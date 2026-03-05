@@ -1,0 +1,21 @@
+{
+    "name": "@yotara/shared",
+    "version": "0.1.0",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        }
+    },
+    "private": true,
+    "scripts": {
+        "build": "tsc",
+        "lint": "tsc --noEmit",
+        "typecheck": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "typescript": "^5.9.3"
+    }
+}
