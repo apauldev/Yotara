@@ -1,0 +1,24 @@
+{
+    "name": "@yotara/api",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "tsx watch src/server.ts",
+        "build": "rimraf dist && tsc",
+        "start": "node dist/server.js",
+        "lint": "tsc --noEmit",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "fastify": "^5.8.1",
+        "@fastify/cors": "^11.2.0",
+        "@yotara/shared": "workspace:*"
+    },
+    "devDependencies": {
+        "typescript": "^5.9.3",
+        "@types/node": "^22",
+        "tsx": "^4.21.0",
+        "rimraf": "^6.0.1"
+    }
+}
