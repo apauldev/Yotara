@@ -1,4 +1,5 @@
 // ─── Primitives ─────────────────────────────────────────────────────────────
+export * from './auth.js';
 
 export type Priority = 'low' | 'medium' | 'high';
 export type TaskStatus = 'inbox' | 'today' | 'upcoming' | 'done' | 'archived';
