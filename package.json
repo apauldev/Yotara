@@ -9,8 +9,14 @@
     "start": "pnpm -r start",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
     "dev:frontend": "pnpm --filter @yotara/frontend dev",
     "dev:api": "pnpm --filter @yotara/api dev"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3"
+    ]
   },
   "devDependencies": {
     "typescript": "^5.9.3"
