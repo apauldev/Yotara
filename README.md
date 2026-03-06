@@ -159,6 +159,10 @@ Location: `apps/api/`
 | `pnpm start` | Run compiled API server |
 | `pnpm lint` | Check for TypeScript errors |
 | `pnpm typecheck` | Verify types without emitting |
+| `pnpm test` | Run API integration tests |
+| `pnpm db:generate` | Generate Drizzle migration files |
+| `pnpm db:push` | Push schema to SQLite database |
+| `pnpm db:studio` | Open Drizzle Studio |
 
 ### Frontend Scripts (Angular)
 
@@ -182,12 +186,15 @@ Configure the API server using these environment variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `DATABASE_URL` | `./data/yotara.db` | SQLite database file location |
+| `BETTER_AUTH_SECRET` | (Generated) | Encryption secret for Better Auth sessions |
+| `BETTER_AUTH_URL` | `http://localhost:3000` | Base URL for the API server |
 | `PORT` | `3000` | Port for the API server |
 | `HOST` | `0.0.0.0` | Host/IP address to bind to |
 
 **Example:**
 ```bash
-PORT=3001 HOST=localhost pnpm dev:api
+DATABASE_URL=./data/yotara.db PORT=3001 HOST=localhost pnpm dev:api
 ```
 
 ### Angular Frontend (`apps/frontend/`)
@@ -206,17 +213,29 @@ Environment configuration is referenced in `app.config.ts`.
 - **Development**: `http://localhost:3000`
 - **Production**: Configure based on deployment
 
+### Authentication
+
+**Endpoints Mounted at:** `/auth/*`
+
+Handled by Better Auth. Common routes include:
+- `POST /auth/sign-in/email`: Sign in with email/password
+- `POST /auth/sign-up/email`: Register a new user
+- `GET /auth/get-session`: Retrieve the current session
+- `POST /auth/sign-out`: Terminate the session
+
+**Protected User Info:** `GET /me` (Returns current user session if authenticated)
+
 ### Health Check
 
 **Endpoint:** `GET /health`
 
 Returns basic health status. Used to verify API is running.
 
-### Tasks
+### Tasks (Protected)
 
-**Endpoints:** `GET /tasks`, `POST /tasks`, etc.
+**Endpoints:** `GET /tasks`, `GET /tasks/:id`, `POST /tasks`, `PATCH /tasks/:id`, `DELETE /tasks/:id`
 
-Routes are defined in `apps/api/src/routes/tasks.ts` and handle task CRUD operations.
+Routes are defined in `apps/api/src/routes/tasks.ts` and use Drizzle ORM with SQLite.
 
 **Type Definition:** See `packages/shared/src/index.ts` for the `Task` type definition.
 
