@@ -1,0 +1,4 @@
+{
+  "componentsPath": "src/app/shared/ui",
+  "importAlias": "@yotara/ui"
+}

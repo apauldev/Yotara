@@ -57,3 +57,24 @@ Angular CLI does not come with an end-to-end testing framework by default. You c
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+
+## Spartan UI
+
+This project uses [spartan-ng](https://www.spartan.ng/) for UI components. Components are located in `src/app/shared/ui` and are added on-demand using the Spartan CLI.
+
+### Adding Components
+
+To add a new Spartan component, run:
+
+```bash
+pnpm exec ng g @spartan-ng/cli:ui component-name
+```
+
+Example:
+```bash
+pnpm exec ng g @spartan-ng/cli:ui accordion
+```
+
+### Theming
+
+The theme is configured using Tailwind CSS variables in `src/styles.css`. This project uses **Tailwind CSS v4** and the **Neutral** theme.
