@@ -1,5 +1,3 @@
-/* To learn more about Typescript configuration file: https://www.typescriptlang.org/docs/handbook/tsconfig-json.html. */
-/* To learn more about Angular compiler options: https://angular.dev/reference/configs/angular-compiler-options. */
 {
   "compileOnSave": false,
   "compilerOptions": {
@@ -20,6 +18,12 @@
     "paths": {
       "@yotara/*": [
         "../../packages/*/src"
+      ],
+      "@yotara/ui/button": [
+        "./src/app/shared/ui/button/src/index.ts"
+      ],
+      "@yotara/ui/utils": [
+        "./src/app/shared/ui/utils/src/index.ts"
       ]
     }
   },

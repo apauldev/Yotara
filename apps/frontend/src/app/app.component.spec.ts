@@ -22,4 +22,17 @@ describe('AppComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('h1')?.textContent).toContain('Yotara');
   });
+
+  it('should render the Spartan button with correct classes', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const button = compiled.querySelector('button[hlmBtn]');
+    expect(button).toBeTruthy();
+    // Check for some base Spartan button classes
+    expect(button?.classList.contains('inline-flex')).toBeTrue();
+    expect(button?.classList.contains('rounded-md')).toBeTrue();
+    // Check for default variant class
+    expect(button?.classList.contains('bg-primary')).toBeTrue();
+  });
 });
