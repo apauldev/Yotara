@@ -1,0 +1,302 @@
+:host {
+  display: block;
+}
+
+.onboarding-screen {
+  min-height: 100dvh;
+  background: #f4f2ea;
+  color: #111b33;
+  font-family: "Avenir Next", "Manrope", "Segoe UI", sans-serif;
+}
+
+.onboarding-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 2rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.brand-mark {
+  width: 2rem;
+  height: 2rem;
+  color: #4f986f;
+}
+
+.brand-mark svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  fill: currentColor;
+}
+
+.brand-name {
+  font-size: 2.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.help-button {
+  border: 1px solid #c6cec5;
+  border-radius: 999px;
+  background: #f1f1ec;
+  color: #2f8b63;
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0.95rem 1.95rem;
+  cursor: pointer;
+}
+
+.onboarding-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: clamp(2rem, 7vh, 5.75rem) 1.25rem 2rem;
+  text-align: center;
+}
+
+.hero-icon {
+  width: 6.8rem;
+  height: 6.8rem;
+  border-radius: 999px;
+  background: #e4e7dd;
+  color: #4f986f;
+  display: grid;
+  place-items: center;
+  margin-bottom: 1.9rem;
+}
+
+.hero-icon svg {
+  width: 2.75rem;
+  height: 2.75rem;
+  fill: currentColor;
+}
+
+.hero-vein {
+  fill: #f1f2ec;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(2.2rem, 4vw, 4.6rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.subtitle {
+  margin: 0.8rem 0 2.7rem;
+  color: #3e5773;
+  font-size: clamp(1.15rem, 1.7vw, 1.35rem);
+  max-width: 26ch;
+}
+
+.workspace-grid {
+  width: min(100%, 50rem);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.workspace-card {
+  border: 1px solid #e2e5e8;
+  border-radius: 0.9rem;
+  background: #f8f8f9;
+  min-height: 17rem;
+  padding: 1.3rem 1.5rem;
+  text-align: center;
+  position: relative;
+  cursor: pointer;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.workspace-card.selected {
+  border-width: 2px;
+  border-color: #308d64;
+  box-shadow: 0 0 0 2px rgba(48, 141, 100, 0.08);
+}
+
+.card-check {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 999px;
+  background: #4f986f;
+  color: #f5f6f3;
+  font-size: 0.88rem;
+  font-weight: 700;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.workspace-card.selected .card-check {
+  display: flex;
+}
+
+.card-icon {
+  width: 3rem;
+  height: 3rem;
+  margin: 1rem auto 1.25rem;
+  border-radius: 999px;
+  background: #eef0ee;
+  color: #4f986f;
+  display: grid;
+  place-items: center;
+}
+
+.card-icon svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  display: block;
+  fill: currentColor;
+}
+
+.card-icon.sprout svg {
+  width: 1.7rem;
+  height: 1.7rem;
+}
+
+.workspace-card h2 {
+  margin: 0;
+  font-size: 2.85rem;
+  letter-spacing: -0.02em;
+}
+
+.workspace-card p {
+  margin: 0.8rem auto 0;
+  max-width: 24ch;
+  color: #506889;
+  font-size: 1.06rem;
+  line-height: 1.45;
+}
+
+.continue-button {
+  margin-top: 2.85rem;
+  border: 0;
+  border-radius: 999px;
+  background: #4f986f;
+  color: #f7f7f2;
+  font-size: 2rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  min-width: 19rem;
+  padding: 0.88rem 2rem;
+  box-shadow: 0 8px 18px rgba(42, 96, 70, 0.2);
+  cursor: pointer;
+}
+
+.progress-dots {
+  display: flex;
+  gap: 0.55rem;
+  margin-top: 1.5rem;
+}
+
+.dot {
+  width: 0.58rem;
+  height: 0.58rem;
+  border-radius: 999px;
+  background: #cad5c8;
+}
+
+.dot.active {
+  background: #4f986f;
+}
+
+@media (max-width: 860px) {
+  .brand-name {
+    font-size: 2.1rem;
+  }
+
+  .workspace-card h2 {
+    font-size: 2rem;
+  }
+
+  .workspace-card p {
+    font-size: 1.04rem;
+  }
+
+  .continue-button {
+    font-size: 1.6rem;
+    min-width: 17rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .onboarding-header {
+    padding: 1rem 1rem 0.8rem;
+  }
+
+  .brand-mark {
+    width: 1.6rem;
+    height: 1.6rem;
+  }
+
+  .brand-name {
+    font-size: 1.9rem;
+  }
+
+  .help-button {
+    padding: 0.62rem 1.15rem;
+    font-size: 0.95rem;
+  }
+
+  .onboarding-main {
+    padding-top: 1.25rem;
+  }
+
+  .hero-icon {
+    width: 5.5rem;
+    height: 5.5rem;
+    margin-bottom: 1.15rem;
+  }
+
+  .hero-icon svg {
+    width: 2.15rem;
+    height: 2.15rem;
+  }
+
+  .subtitle {
+    margin-bottom: 1.75rem;
+  }
+
+  .workspace-grid {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+  }
+
+  .workspace-card {
+    min-height: 0;
+    padding: 1rem 1rem 1.15rem;
+  }
+
+  .card-icon {
+    margin-top: 0.8rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .workspace-card h2 {
+    font-size: 1.75rem;
+  }
+
+  .workspace-card p {
+    font-size: 0.97rem;
+    margin-top: 0.5rem;
+  }
+
+  .continue-button {
+    margin-top: 1.5rem;
+    width: 100%;
+    min-width: 0;
+    max-width: 23rem;
+    font-size: 1.4rem;
+    padding: 0.82rem 1.2rem;
+  }
+}
