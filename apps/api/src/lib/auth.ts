@@ -10,4 +10,16 @@ export const auth = betterAuth({
         enabled: true,
         requireEmailVerification: false,
     },
+    session: {
+        expiresIn: 60 * 60 * 24 * 7, // 7 days
+    },
+    sessionConfig: {
+        cookieOptions: {
+    advanced: {
+        defaultCookieAttributes: {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+        },
+    },
 });
