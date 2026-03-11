@@ -1,13 +1,17 @@
 import { inject } from '@angular/core';
 import { Router, CanActivateFn } from '@angular/router';
-import { AuthService } from '@yotara/shared';
+import { AuthStateService } from '../services/auth-state.service';
 
 export const authGuard: CanActivateFn = async () => {
     const router = inject(Router);
+    const authState = inject(AuthStateService);
 
     try {
-        const session = await AuthService.getSession();
-        if (session?.data?.session) {
+        if (!authState.initialized()) {
+            await authState.initialize();
+        }
+
+        if (authState.isAuthenticated()) {
             return true;
         }
     } catch (error) {
