@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { AuthService } from '@yotara/shared';
+import { AuthStateService } from '../../core/services/auth-state.service';
 
 @Component({
   selector: 'app-login',
@@ -342,7 +342,10 @@ export class LoginComponent {
     loading = signal(false);
     error = signal('');
 
-    constructor(private router: Router) { }
+    constructor(
+        private router: Router,
+        private authState: AuthStateService,
+    ) { }
 
     toggleMode() {
         this.isLogin.set(!this.isLogin());
@@ -438,9 +441,9 @@ export class LoginComponent {
         try {
             let res;
             if (this.isLogin()) {
-                res = await AuthService.signIn(this.email().trim(), this.password());
+                res = await this.authState.signIn(this.email().trim(), this.password());
             } else {
-                res = await AuthService.signUp(this.email().trim(), this.password(), this.name().trim());
+                res = await this.authState.signUp(this.email().trim(), this.password(), this.name().trim());
             }
 
             if (res.error) {
