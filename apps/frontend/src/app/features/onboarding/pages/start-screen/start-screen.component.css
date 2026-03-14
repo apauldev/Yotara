@@ -6,7 +6,7 @@
   min-height: 100dvh;
   background: #f4f2ea;
   color: #111b33;
-  font-family: "Avenir Next", "Manrope", "Segoe UI", sans-serif;
+  font-family: 'Avenir Next', 'Manrope', 'Segoe UI', sans-serif;
 }
 
 .onboarding-header {
@@ -112,7 +112,9 @@ h1 {
   text-align: center;
   position: relative;
   cursor: pointer;
-  transition: border-color 140ms ease, box-shadow 140ms ease;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease;
 }
 
 .workspace-card.selected {

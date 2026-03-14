@@ -1,0 +1,14 @@
+node_modules
+dist
+out-tsc
+.angular
+coverage
+pnpm-lock.yaml
+pnpm-workspace.yaml
+tsconfig.base.json
+*.md
+apps/api/data
+apps/frontend/dist
+.turbo
+.git
+.vscode

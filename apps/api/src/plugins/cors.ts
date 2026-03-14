@@ -7,11 +7,11 @@ import { getCorsOrigins } from '../lib/auth-origins.js';
  * and the configured origin in production.
  */
 export default async function corsPlugin(fastify: FastifyInstance) {
-    const origins = getCorsOrigins();
+  const origins = getCorsOrigins();
 
-    await fastify.register(cors, {
-        origin: origins,
-        credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    });
+  await fastify.register(cors, {
+    origin: origins,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  });
 }
