@@ -1,33 +1,33 @@
 {
-    "name": "@yotara/api",
-    "version": "0.1.0",
-    "private": true,
-    "type": "module",
-    "scripts": {
-        "dev": "tsx watch src/server.ts",
-        "build": "rimraf dist && tsc",
-        "start": "node dist/server.js",
-        "lint": "tsc --noEmit",
-        "typecheck": "tsc --noEmit",
-        "test": "tsx --test src/**/*.test.ts",
-        "db:generate": "drizzle-kit generate",
-        "db:push": "drizzle-kit push",
-        "db:studio": "drizzle-kit studio"
-    },
-    "dependencies": {
-        "@fastify/cors": "^11.2.0",
-        "@yotara/shared": "workspace:*",
-        "better-auth": "^1.5.4",
-        "better-sqlite3": "^12.6.2",
-        "drizzle-orm": "^0.45.1",
-        "fastify": "^5.8.1"
-    },
-    "devDependencies": {
-        "@types/better-sqlite3": "^7.6.13",
-        "@types/node": "^22",
-        "drizzle-kit": "^0.31.9",
-        "rimraf": "^6.0.1",
-        "tsx": "^4.21.0",
-        "typescript": "^5.9.3"
-    }
+  "name": "@yotara/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "rimraf dist && tsc",
+    "start": "node dist/server.js",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/**/*.test.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.2.0",
+    "@yotara/shared": "workspace:*",
+    "better-auth": "^1.5.4",
+    "better-sqlite3": "^12.6.2",
+    "drizzle-orm": "^0.45.1",
+    "fastify": "^5.8.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22",
+    "drizzle-kit": "^0.31.9",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
 }
