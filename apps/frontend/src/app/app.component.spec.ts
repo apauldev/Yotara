@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { By } from '@angular/platform-browser';
+import { provideRouter, RouterOutlet } from '@angular/router';
 import { AppComponent } from './app.component';
 
 describe('AppComponent', () => {
@@ -16,23 +17,9 @@ describe('AppComponent', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should render the app title', () => {
+  it('should provide a router outlet for routed views', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Yotara');
-  });
-
-  it('should render the Spartan button with correct classes', () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    const button = compiled.querySelector('button[hlmBtn]');
-    expect(button).toBeTruthy();
-    // Check for some base Spartan button classes
-    expect(button?.classList.contains('inline-flex')).toBeTrue();
-    expect(button?.classList.contains('rounded-md')).toBeTrue();
-    // Check for default variant class
-    expect(button?.classList.contains('bg-primary')).toBeTrue();
+    expect(fixture.debugElement.query(By.directive(RouterOutlet))).toBeTruthy();
   });
 });

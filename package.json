@@ -7,9 +7,13 @@
     "dev": "node scripts/dev.mjs",
     "build": "pnpm -r build",
     "start": "pnpm -r start",
-    "lint": "pnpm -r lint",
+    "lint": "eslint . --max-warnings 10 && pnpm -r lint",
+    "lint:fix": "eslint . --fix && pnpm -r lint:fix 2>/dev/null || true",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
+    "prepare": "husky install",
     "dev:frontend": "pnpm --filter @yotara/frontend dev",
     "dev:api": "pnpm --filter @yotara/api dev",
     "dev:studio": "pnpm --filter @yotara/api db:studio",
@@ -21,6 +25,12 @@
     ]
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.0.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.3",
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.57.0"
   }
 }

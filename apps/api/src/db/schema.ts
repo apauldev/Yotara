@@ -12,7 +12,9 @@ export const users = sqliteTable('user', {
 
 export const sessions = sqliteTable('session', {
   id: text('id').primaryKey(),
-  userId: text('userId').notNull().references(() => users.id),
+  userId: text('userId')
+    .notNull()
+    .references(() => users.id),
   token: text('token').notNull(),
   expiresAt: integer('expiresAt', { mode: 'timestamp' }).notNull(),
   ipAddress: text('ipAddress'),
@@ -23,7 +25,9 @@ export const sessions = sqliteTable('session', {
 
 export const accounts = sqliteTable('account', {
   id: text('id').primaryKey(),
-  userId: text('userId').notNull().references(() => users.id),
+  userId: text('userId')
+    .notNull()
+    .references(() => users.id),
   accountId: text('accountId').notNull(),
   providerId: text('providerId').notNull(),
   userIdToken: text('userIdToken'),
