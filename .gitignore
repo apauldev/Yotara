@@ -5,3 +5,4 @@ package-lock.json
 apps/api/data/*.db
 apps/api/data/*.db-*
 apps/api/.env
+packages/shared/tsconfig.tsbuildinfo

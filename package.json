@@ -4,14 +4,16 @@
   "version": "0.1.0",
   "description": "Yotara: lightweight self-hosted task manager",
   "scripts": {
-    "dev": "pnpm --parallel dev",
+    "dev": "node scripts/dev.mjs",
     "build": "pnpm -r build",
     "start": "pnpm -r start",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "dev:frontend": "pnpm --filter @yotara/frontend dev",
-    "dev:api": "pnpm --filter @yotara/api dev"
+    "dev:api": "pnpm --filter @yotara/api dev",
+    "dev:studio": "pnpm --filter @yotara/api db:studio",
+    "db:studio": "pnpm --filter @yotara/api db:studio"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
