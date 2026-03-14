@@ -16,15 +16,9 @@
     "target": "ES2022",
     "module": "ES2022",
     "paths": {
-      "@yotara/*": [
-        "../../packages/*/src"
-      ],
-      "@yotara/ui/button": [
-        "./src/app/shared/ui/button/src/index.ts"
-      ],
-      "@yotara/ui/utils": [
-        "./src/app/shared/ui/utils/src/index.ts"
-      ]
+      "@yotara/*": ["../../packages/*/src"],
+      "@yotara/ui/button": ["./src/app/shared/ui/button/src/index.ts"],
+      "@yotara/ui/utils": ["./src/app/shared/ui/utils/src/index.ts"]
     }
   },
   "angularCompilerOptions": {

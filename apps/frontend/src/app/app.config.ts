@@ -1,5 +1,10 @@
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
-import { APP_INITIALIZER, ApplicationConfig, inject, provideZoneChangeDetection } from '@angular/core';
+import {
+  APP_INITIALIZER,
+  ApplicationConfig,
+  inject,
+  provideZoneChangeDetection,
+} from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { configureAuthClient } from '@yotara/shared';
 import { environment } from '../environments/environment';
@@ -23,5 +28,5 @@ export const appConfig: ApplicationConfig = {
         };
       },
     },
-  ]
+  ],
 };

@@ -23,7 +23,11 @@ function prefixOutput(name, chunk, writer) {
 
     writer(`[${name}] ${line}\n`);
 
-    if (name === 'studio' && !announcedStudioUrl && line.includes('Drizzle Studio is up and running on')) {
+    if (
+      name === 'studio' &&
+      !announcedStudioUrl &&
+      line.includes('Drizzle Studio is up and running on')
+    ) {
       announcedStudioUrl = true;
       process.stdout.write(`\n[dev] Drizzle Studio: ${DRIZZLE_STUDIO_URL}\n\n`);
     }
@@ -62,8 +66,12 @@ for (const processConfig of processes) {
 
   children.push(child);
 
-  child.stdout.on('data', (chunk) => prefixOutput(processConfig.name, chunk, process.stdout.write.bind(process.stdout)));
-  child.stderr.on('data', (chunk) => prefixOutput(processConfig.name, chunk, process.stderr.write.bind(process.stderr)));
+  child.stdout.on('data', (chunk) =>
+    prefixOutput(processConfig.name, chunk, process.stdout.write.bind(process.stdout)),
+  );
+  child.stderr.on('data', (chunk) =>
+    prefixOutput(processConfig.name, chunk, process.stderr.write.bind(process.stderr)),
+  );
 
   child.on('exit', (code, signal) => {
     if (shuttingDown) {
@@ -76,7 +84,9 @@ for (const processConfig of processes) {
     }
 
     if (processConfig.optional) {
-      process.stderr.write(`[${processConfig.name}] exited with code ${code ?? 'unknown'}; continuing\n`);
+      process.stderr.write(
+        `[${processConfig.name}] exited with code ${code ?? 'unknown'}; continuing\n`,
+      );
       return;
     }
 
