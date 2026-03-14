@@ -1,306 +1,180 @@
-# Yotra
+# Yotara
 
-**Yotara** — Delightful open-source task manager. Simple for you, seamless for small teams. Self-hosted with Angular + Fastify.
+<div align="center">
 
-A lightweight, self-hosted task management application featuring a modern Angular frontend and a performant Fastify API backend, organized as a TypeScript monorepo with pnpm workspaces.
+<img src="./docs/assets/yotara-logo.svg" alt="Yotara logo" width="88" />
 
-## Table of Contents
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:173F35,50:3E7B63,100:B7D3C3&height=220&section=header&text=Yotara&fontSize=56&fontColor=F7F6F2&fontAlignY=38&desc=Flow%20through%20your%20day%2C%20naturally.&descSize=18&descAlignY=58" alt="Yotara banner" />
 
-- [Prerequisites](#prerequisites)
-- [Project Structure](#project-structure)
-- [Installation](#installation)
-- [Development](#development)
-- [Running in Production](#running-in-production)
-- [Available Scripts](#available-scripts)
-- [Environment Variables](#environment-variables)
-- [API Documentation](#api-documentation)
-- [Troubleshooting](#troubleshooting)
+<p>
+  <a href="./PROJECT_README.md"><img src="https://img.shields.io/badge/docs-project_guide-24473c?style=for-the-badge&logo=readme&logoColor=F7F6F2" alt="Project guide" /></a>
+  <img src="https://img.shields.io/badge/self--hosted-yes-3E7B63?style=for-the-badge&logo=docker&logoColor=white" alt="Self-hosted" />
+  <img src="https://img.shields.io/badge/open_source-MIT-7BA58D?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="MIT license" />
+  <img src="https://img.shields.io/badge/stack-Angular%20%2B%20Fastify%20%2B%20SQLite-1C5D4B?style=for-the-badge&logo=typescript&logoColor=white" alt="Tech stack" />
+</p>
 
-## Prerequisites
+<h3>A calm, self-hosted task manager for focused individuals and lightweight teams.</h3>
 
-- **Node.js** 18.x or higher ([Download](https://nodejs.org/))
-- **pnpm** 9.x or higher (run `npm install -g pnpm` to install globally)
+<p>
+  Yotara is built for the space between personal to-do apps and bloated team software:
+  clean enough for one person, collaborative enough for a small group, and fully under your control.
+</p>
 
-## Project Structure
+<p>
+  <a href="./PROJECT_README.md"><strong>Run Locally</strong></a>
+  ·
+  <a href="#why-yotara"><strong>Why Yotara</strong></a>
+  ·
+  <a href="#current-build"><strong>Current Build</strong></a>
+  ·
+  <a href="#product-direction"><strong>Roadmap Direction</strong></a>
+</p>
 
-This is a monorepo organized with pnpm workspaces:
+</div>
 
-```
+---
+
+## Why Yotara
+
+Most task software breaks down in one of two ways:
+
+- personal apps are elegant until you need to share work
+- team tools become process-heavy before the work is even complicated
+
+Yotara is being built in the gap between those extremes. The goal is a product that feels quiet, fast, and obvious for individual use, but can stretch into small-team collaboration without turning into management software.
+
+<table>
+  <tr>
+    <td width="33%">
+      <h3>Personal First</h3>
+      <p>Start with a clean daily workflow instead of an empty enterprise dashboard.</p>
+    </td>
+    <td width="33%">
+      <h3>Team Ready</h3>
+      <p>Share work when needed without dragging in sprints, epics, or ceremony.</p>
+    </td>
+    <td width="33%">
+      <h3>Own Your Data</h3>
+      <p>Self-hosted by design, with a stack that stays approachable and portable.</p>
+    </td>
+  </tr>
+</table>
+
+## At A Glance
+
+<p align="center">
+  <img src="https://img.shields.io/badge/-Focused%20UI-F4F1E8?style=flat-square" alt="Focused UI" />
+  <img src="https://img.shields.io/badge/-Email%2FPassword%20Auth-E7F0EA?style=flat-square" alt="Email Password Auth" />
+  <img src="https://img.shields.io/badge/-Task%20CRUD-DDECE3?style=flat-square" alt="Task CRUD" />
+  <img src="https://img.shields.io/badge/-Onboarding%20Flow-EAF3EE?style=flat-square" alt="Onboarding flow" />
+  <img src="https://img.shields.io/badge/-SQLite%20Persistence-D8E7DE?style=flat-square" alt="SQLite persistence" />
+  <img src="https://img.shields.io/badge/-Monorepo%20DX-E2EFE8?style=flat-square" alt="Monorepo DX" />
+</p>
+
+## Current Build
+
+What is already present in the repository today:
+
+| Area | Current State |
+| --- | --- |
+| Frontend | Angular app with standalone components and route-based flows |
+| Auth | Better Auth email/password sign-up and sign-in |
+| Onboarding | Personal vs team mode picker |
+| Tasks | Authenticated task dashboard with task CRUD backing |
+| Backend | Fastify API with protected `/tasks` and `/me` routes |
+| Data | SQLite + Drizzle with bootstrapped schema |
+| Monorepo | pnpm workspaces with shared TypeScript package |
+
+### Implemented Flows
+
+- create an account or sign in with email and password
+- pass through onboarding and choose a personal or team workspace mode
+- access an authenticated dashboard
+- create, update, fetch, and delete user-scoped tasks through the API
+
+## Visual Preview
+
+<p align="center">
+  <img src="./docs/assets/screen.png" alt="Yotara upcoming view screenshot" width="48%" />
+  <img src="./docs/assets/screen1.png" alt="Yotara workspace overview screenshot" width="48%" />
+</p>
+
+<p align="center">
+  <sub>
+    Product previews showing the calm personal planning flow and the lightweight team workspace direction.
+  </sub>
+</p>
+
+## Product Direction
+
+Yotara is early, but the direction is intentional.
+
+### Core experience
+
+- Inbox, Today, and Upcoming task flows
+- projects, labels, priorities, subtasks, and recurring work
+- richer task details and notes
+- board and list organization
+
+### Lightweight collaboration
+
+- shared workspaces for small teams
+- assignment and comments
+- live updates without heavyweight PM workflows
+
+### What it is explicitly not trying to become
+
+- an all-in-one enterprise planning suite
+- a process-first project management tool
+- a product full of dashboards before the core workflow feels good
+
+## Stack
+
+<p align="center">
+  <img src="https://skillicons.dev/icons?i=angular,ts,fastify,sqlite" alt="Angular TypeScript Fastify SQLite" />
+</p>
+
+<p align="center">
+  Built with <strong>Angular 21</strong>, <strong>Fastify</strong>, <strong>Better Auth</strong>, <strong>Drizzle ORM</strong>, <strong>SQLite</strong>, and <strong>pnpm workspaces</strong>.
+</p>
+
+## Repo Shape
+
+```text
 .
 ├── apps/
-│   ├── api/                    # Fastify API backend
-│   │   ├── src/
-│   │   │   ├── server.ts       # Main server entry point
-│   │   │   ├── plugins/        # Fastify plugins (CORS, etc.)
-│   │   │   └── routes/         # API route handlers
-│   │   └── package.json
-│   └── frontend/               # Angular frontend application
-│       ├── src/
-│       │   ├── main.ts
-│       │   ├── app/            # Angular components & services
-│       │   └── environments/   # Environment-specific configs
-│       └── package.json
+│   ├── frontend/   # Angular application
+│   └── api/        # Fastify backend
 ├── packages/
-│   └── shared/                 # Shared TypeScript types & utilities
-└── package.json                # Workspace root package.json
+│   └── shared/     # shared auth and task types
+└── scripts/        # development helpers
 ```
 
-## Installation
+## Run And Development Guide
 
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd Yotra
-   ```
+The main README stays product-facing. Full setup, scripts, environment variables, API notes, database details, and testing instructions live in:
 
-2. **Install dependencies:**
-   ```bash
-   pnpm install
-   ```
+### [`PROJECT_README.md`](./PROJECT_README.md)
 
-   This installs dependencies for all workspaces (API, frontend, and shared packages).
+That guide covers:
 
-## Development
+- installation and local development
+- workspace structure
+- environment variables and auth origins
+- database behavior and Drizzle Studio
+- API routes and current architecture
+- testing and verification commands
 
-### Run All Services (API + Frontend)
+## Why Watch Or Contribute
 
-Start both the API server and frontend development server in parallel:
+- You want a self-hosted task tool that does not feel like admin software.
+- You like modern TypeScript stacks but still want a product with a clear point of view.
+- You want to contribute while product and UX decisions are still flexible enough to matter.
 
-```bash
-pnpm dev
-```
+## Status
 
-This command runs:
-- **Fastify API**: Available at `http://localhost:3000`
-- **Angular Frontend**: Available at `http://localhost:4200`
+Yotara is in active early development. This README reflects the current codebase and the intended direction of the product, not a claim that every planned feature is already shipped.
 
-### Run Individual Services
-
-**Frontend Only:**
-```bash
-pnpm dev:frontend
-```
-- Serves Angular app at `http://localhost:4200`
-- Configured to accept connections from all interfaces (`0.0.0.0`)
-
-**API Only:**
-```bash
-pnpm dev:api
-```
-- Starts Fastify server at `http://localhost:3000`
-- Uses tsx for hot-reloading TypeScript files
-
-### Type Checking
-
-Check for TypeScript errors across all packages:
-```bash
-pnpm typecheck
-```
-
-### Linting
-
-Lint all packages:
-```bash
-pnpm lint
-```
-
-## Running in Production
-
-### Build All Packages
-
-```bash
-pnpm build
-```
-
-This compiles TypeScript in all workspaces to JavaScript output:
-- Frontend: Compiled to `dist/` folder
-- API: Compiled to `dist/` folder in the API directory
-
-### Start Production Servers
-
-```bash
-pnpm start
-```
-
-This starts all services in production mode. For individual services:
-
-**Backend only:**
-```bash
-pnpm --filter @yotara/api start
-```
-
-**Frontend only:**
-```bash
-pnpm --filter @yotara/frontend start
-```
-
-## Available Scripts
-
-### Root Scripts (Workspace)
-
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start all services in development mode |
-| `pnpm dev:frontend` | Start only the Angular frontend dev server |
-| `pnpm dev:api` | Start only the Fastify API dev server |
-| `pnpm build` | Build all packages for production |
-| `pnpm start` | Start services in production mode |
-| `pnpm lint` | Typecheck all packages |
-| `pnpm typecheck` | Run TypeScript compiler in check-only mode |
-
-### Backend Scripts (API)
-
-Location: `apps/api/`
-
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start API with hot-reloading (tsx watch) |
-| `pnpm build` | Compile TypeScript to JavaScript |
-| `pnpm start` | Run compiled API server |
-| `pnpm lint` | Check for TypeScript errors |
-| `pnpm typecheck` | Verify types without emitting |
-| `pnpm test` | Run API integration tests |
-| `pnpm db:generate` | Generate Drizzle migration files |
-| `pnpm db:push` | Push schema to SQLite database |
-| `pnpm db:studio` | Open Drizzle Studio |
-
-### Frontend Scripts (Angular)
-
-Location: `apps/frontend/`
-
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Serve Angular app with live reload |
-| `pnpm start` | Serve Angular app on default port (4200) |
-| `pnpm build` | Build optimized production bundle |
-| `pnpm watch` | Build in watch mode during development |
-| `pnpm test` | Run Karma test runner |
-| `pnpm lint` | Check TypeScript types |
-| `pnpm typecheck` | Verify all types |
-
-## Environment Variables
-
-### Fastify API (`apps/api/`)
-
-Configure the API server using these environment variables:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DATABASE_URL` | `./data/yotara.db` | SQLite database file location |
-| `BETTER_AUTH_SECRET` | (Generated) | Encryption secret for Better Auth sessions |
-| `BETTER_AUTH_URL` | `http://localhost:3000` | Base URL for the API server |
-| `PORT` | `3000` | Port for the API server |
-| `HOST` | `0.0.0.0` | Host/IP address to bind to |
-
-**Example:**
-```bash
-DATABASE_URL=./data/yotara.db PORT=3001 HOST=localhost pnpm dev:api
-```
-
-On first startup, the API will create the SQLite file and initialize the required auth and task tables automatically.
-
-### Angular Frontend (`apps/frontend/`)
-
-Configuration is handled in `src/environments/`:
-
-- `environment.ts` — Development configuration
-- `environment.prod.ts` — Production configuration
-
-Environment configuration is referenced in `app.config.ts`.
-
-## API Documentation
-
-### Base URL
-
-- **Development**: `http://localhost:3000`
-- **Production**: Configure based on deployment
-
-### Authentication
-
-**Endpoints Mounted at:** `/auth/*`
-
-Handled by Better Auth. Common routes include:
-- `POST /auth/sign-in/email`: Sign in with email/password
-- `POST /auth/sign-up/email`: Register a new user
-- `GET /auth/get-session`: Retrieve the current session
-- `POST /auth/sign-out`: Terminate the session
-
-**Protected User Info:** `GET /me` (Returns current user session if authenticated)
-
-### Health Check
-
-**Endpoint:** `GET /health`
-
-Returns basic health status. Used to verify API is running.
-
-### Tasks (Protected)
-
-**Endpoints:** `GET /tasks`, `GET /tasks/:id`, `POST /tasks`, `PATCH /tasks/:id`, `DELETE /tasks/:id`
-
-Routes are defined in `apps/api/src/routes/tasks.ts` and use Drizzle ORM with SQLite.
-
-**Type Definition:** See `packages/shared/src/index.ts` for the `Task` type definition.
-
-### CORS Configuration
-
-CORS is enabled in development to allow requests from `http://localhost:4200` (Angular dev server). Configuration is in `apps/api/src/plugins/cors.ts`.
-
-## Troubleshooting
-
-### "pnpm: command not found"
-
-Install pnpm globally:
-```bash
-npm install -g pnpm
-```
-
-### Port already in use
-
-If port 3000 or 4200 is already occupied:
-
-**For API (change port 3000):**
-```bash
-PORT=3001 pnpm dev:api
-```
-
-**For Frontend (change port 4200):**
-```bash
-ng serve --port 4300
-```
-
-Or kill the process using the port:
-```bash
-# Find process on port
-lsof -i :3000
-
-# Kill process by PID
-kill -9 <PID>
-```
-
-### CORS errors
-
-If the frontend can't communicate with the API:
-1. Ensure both servers are running
-2. Check the API is accessible at `http://localhost:3000`
-3. Verify CORS plugin is loaded in `apps/api/src/server.ts`
-4. Update CORS configuration in `apps/api/src/plugins/cors.ts` if needed
-
-### Dependencies not installing
-
-Clear the pnpm cache and reinstall:
-```bash
-pnpm store prune
-pnpm install
-```
-
-### TypeScript errors
-
-Ensure all dependencies are installed:
-```bash
-pnpm install
-pnpm typecheck
-```
-
-## License
-
-See [LICENSE](./LICENSE) for details.
+<div align="center">
+  <sub>Built for focused work, not workflow theater.</sub>
+</div>
