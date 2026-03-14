@@ -78,7 +78,27 @@ cd Yotra
 pnpm install
 ```
 
+The root `prepare` script installs the Husky Git hooks automatically during install.
+If you ever need to restore them manually, run:
+
+```bash
+pnpm prepare
+```
+
 ## Running Locally
+
+### Recommended flow
+
+For normal day-to-day development, use the root workspace scripts from the repository root.
+
+Typical startup:
+
+```bash
+pnpm install
+pnpm dev
+```
+
+Use individual package commands only when you want to isolate one service.
 
 ### Start everything
 
@@ -111,11 +131,31 @@ pnpm dev
 pnpm build
 pnpm start
 pnpm lint
+pnpm lint:fix
+pnpm format
+pnpm format:check
 pnpm typecheck
 pnpm test
+pnpm prepare
 pnpm dev:frontend
 pnpm dev:api
 pnpm db:studio
+```
+
+Recommended pre-PR verification:
+
+```bash
+pnpm lint
+pnpm format:check
+pnpm typecheck
+pnpm test
+```
+
+If you want the repo to auto-correct style issues first:
+
+```bash
+pnpm format
+pnpm lint:fix
 ```
 
 ### API commands
@@ -147,6 +187,47 @@ pnpm test
 pnpm lint
 pnpm typecheck
 ```
+
+Frontend test behavior:
+
+- `pnpm test` runs once in `ChromeHeadless`
+- it does not stay in watch mode, which makes it safe for root-level verification and CI
+
+## Code Quality
+
+The repository now has a root-level code quality workflow that should be used before merges.
+
+### Tooling
+
+- ESLint flat config: [`eslint.config.mjs`](./eslint.config.mjs)
+- Prettier config: [`.prettierrc.json`](./.prettierrc.json)
+- Prettier ignore rules: [`.prettierignore`](./.prettierignore)
+- Husky hook: [`.husky/pre-commit`](./.husky/pre-commit)
+- lint-staged config: [`.lintstagedrc.json`](./.lintstagedrc.json)
+
+### What runs on commit
+
+The pre-commit hook runs `lint-staged`, which currently does the following:
+
+- staged `*.ts` files: `eslint --fix`, then `prettier --write`
+- staged `*.js`, `*.json`, and `*.md` files: `prettier --write`
+
+That means some files may be rewritten automatically during commit if they are staged.
+
+### Root command behavior
+
+- `pnpm lint`: runs root ESLint, then package-level lint scripts
+- `pnpm lint:fix`: runs root ESLint auto-fixes, then attempts package-level lint fixes where available
+- `pnpm format`: rewrites supported files with Prettier
+- `pnpm format:check`: validates formatting without changing files
+- `pnpm typecheck`: runs workspace TypeScript validation
+- `pnpm test`: runs all workspace test suites
+
+### Current expectations
+
+- a healthy branch should pass `pnpm lint`, `pnpm format:check`, `pnpm typecheck`, and `pnpm test`
+- root lint currently allows a small warning budget with `--max-warnings 10`
+- frontend `lint` is a TypeScript compile check for the app project rather than a separate ESLint pass inside `apps/frontend`
 
 ## Environment Variables
 
@@ -281,13 +362,24 @@ There is already a repo-level testing guide in [`testing.md`](./testing.md). The
 
 - API tests use the Node test runner with `tsx`
 - frontend tests use Karma + Jasmine
-- root validation should include type-checking, linting, and tests
+- root validation should include formatting, linting, type-checking, and tests
 
 Common verification commands:
 
 ```bash
+pnpm format:check
 pnpm typecheck
 pnpm lint
+pnpm test
+```
+
+Recommended full cleanup-and-verify flow:
+
+```bash
+pnpm format
+pnpm lint:fix
+pnpm format:check
+pnpm typecheck
 pnpm test
 ```
 
@@ -303,12 +395,20 @@ Frontend tests include:
 - [`apps/frontend/src/app/app.component.spec.ts`](./apps/frontend/src/app/app.component.spec.ts)
 - [`apps/frontend/src/app/core/services/auth-state.service.spec.ts`](./apps/frontend/src/app/core/services/auth-state.service.spec.ts)
 
+Practical notes:
+
+- API tests cover auth flows, auth-origin handling, CORS handling, and task scoping behavior
+- frontend tests now validate the router-shell app structure and auth state services
+- frontend tests require `ChromeHeadless` to be available on the machine
+
 ## Local Development Notes
 
 - The frontend dev server binds to `0.0.0.0` on port `4200`.
 - The API binds to `0.0.0.0` on port `3000` by default.
 - Auth and task routes assume cookies and browser-based session flows.
 - Onboarding currently stores the selected workspace type in `localStorage` before navigating to the dashboard.
+- Drizzle Studio is started from the root dev runner and is intended for local inspection, not production use.
+- If frontend and API run on different origins, keep frontend environment values and API trusted origin settings aligned.
 
 ## Suggested First Checks
 
@@ -316,6 +416,8 @@ After `pnpm install`, a quick sanity pass is:
 
 ```bash
 pnpm dev
+pnpm format:check
+pnpm lint
 pnpm typecheck
 pnpm test
 ```
