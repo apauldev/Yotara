@@ -1,28 +1,35 @@
 import { createAuthClient } from "better-auth/client";
 
-export const authClient = createAuthClient({
-    // You can also use an environment variable here if preferred
-    baseURL: "http://localhost:3000"
-});
+let authBaseUrl = "";
+
+export function configureAuthClient(baseURL: string) {
+    authBaseUrl = baseURL;
+}
+
+function getAuthClient() {
+    return createAuthClient({
+        baseURL: authBaseUrl,
+    });
+}
 
 export const AuthService = {
     signIn: async (email: string, password: string) => {
-        return await authClient.signIn.email({
+        return await getAuthClient().signIn.email({
             email,
             password
         });
     },
     signUp: async (email: string, password: string, name: string) => {
-        return await authClient.signUp.email({
+        return await getAuthClient().signUp.email({
             email,
             password,
             name
         });
     },
     signOut: async () => {
-        return await authClient.signOut();
+        return await getAuthClient().signOut();
     },
     getSession: async () => {
-        return await authClient.getSession();
+        return await getAuthClient().getSession();
     }
 };

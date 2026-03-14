@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { asc, eq } from 'drizzle-orm';
-import type { FastifyInstance } from 'fastify';
+import { and, asc, eq } from 'drizzle-orm';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { CreateTaskDto, Task, TaskStatus, UpdateTaskDto } from '@yotara/shared';
+import { auth } from '../lib/auth.js';
+import { fromNodeHeaders } from 'better-auth/node';
 import { db } from '../db/client.js';
 import { tasks } from '../db/schema.js';
 
@@ -45,17 +47,43 @@ function normalizeStatusOnCompletion(currentStatus: TaskStatus, completed: boole
   return currentStatus;
 }
 
+async function requireUserId(request: FastifyRequest) {
+  const session = await auth.api.getSession({
+    headers: fromNodeHeaders(request.headers),
+  });
+
+  return session?.user.id ?? null;
+}
+
 /**
  * Tasks routes backed by SQLite via Drizzle.
  */
 export default async function taskRoutes(fastify: FastifyInstance) {
-  fastify.get<{ Reply: Task[] }>('/tasks', async () => {
-    const rows = await db.select().from(tasks).orderBy(asc(tasks.order), asc(tasks.createdAt));
+  fastify.get<{ Reply: Task[] | { message: string } }>('/tasks', async (request, reply) => {
+    const userId = await requireUserId(request);
+    if (!userId) {
+      return reply.code(401).send({ message: 'Unauthorized' });
+    }
+
+    const rows = await db
+      .select()
+      .from(tasks)
+      .where(eq(tasks.userId, userId))
+      .orderBy(asc(tasks.order), asc(tasks.createdAt));
     return rows.map(toTask);
   });
 
   fastify.get<{ Params: { id: string }; Reply: Task | { message: string } }>('/tasks/:id', async (request, reply) => {
-    const [row] = await db.select().from(tasks).where(eq(tasks.id, request.params.id)).limit(1);
+    const userId = await requireUserId(request);
+    if (!userId) {
+      return reply.code(401).send({ message: 'Unauthorized' });
+    }
+
+    const [row] = await db
+      .select()
+      .from(tasks)
+      .where(and(eq(tasks.id, request.params.id), eq(tasks.userId, userId)))
+      .limit(1);
 
     if (!row) {
       return reply.code(404).send({ message: 'Task not found' });
@@ -65,6 +93,11 @@ export default async function taskRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post<{ Body: CreateTaskDto; Reply: Task | { message: string } }>('/tasks', async (request, reply) => {
+    const userId = await requireUserId(request);
+    if (!userId) {
+      return reply.code(401).send({ message: 'Unauthorized' });
+    }
+
     const payload = normalizeCreatePayload(request.body);
 
     if (!payload.title) {
@@ -76,6 +109,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
 
     await db.insert(tasks).values({
       id,
+      userId,
       title: payload.title,
       description: payload.description,
       status: payload.status,
@@ -87,7 +121,11 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       updatedAt: now,
     });
 
-    const [created] = await db.select().from(tasks).where(eq(tasks.id, id)).limit(1);
+    const [created] = await db
+      .select()
+      .from(tasks)
+      .where(and(eq(tasks.id, id), eq(tasks.userId, userId)))
+      .limit(1);
     if (!created) {
       return reply.code(500).send({ message: 'Failed to create task' });
     }
@@ -98,7 +136,16 @@ export default async function taskRoutes(fastify: FastifyInstance) {
   fastify.patch<{ Params: { id: string }; Body: UpdateTaskDto; Reply: Task | { message: string } }>(
     '/tasks/:id',
     async (request, reply) => {
-      const [existing] = await db.select().from(tasks).where(eq(tasks.id, request.params.id)).limit(1);
+      const userId = await requireUserId(request);
+      if (!userId) {
+        return reply.code(401).send({ message: 'Unauthorized' });
+      }
+
+      const [existing] = await db
+        .select()
+        .from(tasks)
+        .where(and(eq(tasks.id, request.params.id), eq(tasks.userId, userId)))
+        .limit(1);
 
       if (!existing) {
         return reply.code(404).send({ message: 'Task not found' });
@@ -122,7 +169,11 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         })
         .where(eq(tasks.id, request.params.id));
 
-      const [updated] = await db.select().from(tasks).where(eq(tasks.id, request.params.id)).limit(1);
+      const [updated] = await db
+        .select()
+        .from(tasks)
+        .where(and(eq(tasks.id, request.params.id), eq(tasks.userId, userId)))
+        .limit(1);
       if (!updated) {
         return reply.code(500).send({ message: 'Failed to update task' });
       }
@@ -132,13 +183,17 @@ export default async function taskRoutes(fastify: FastifyInstance) {
   );
 
   fastify.delete<{ Params: { id: string }; Reply: { ok: true } | { message: string } }>('/tasks/:id', async (request, reply) => {
-    const existing = await db
-      .select({ id: tasks.id })
-      .from(tasks)
-      .where(eq(tasks.id, request.params.id))
-      .limit(1);
+    const userId = await requireUserId(request);
+    if (!userId) {
+      return reply.code(401).send({ message: 'Unauthorized' });
+    }
 
-    if (existing.length === 0) {
+    const [row] = await db
+      .select()
+      .from(tasks)
+      .where(and(eq(tasks.id, request.params.id), eq(tasks.userId, userId)))
+      .limit(1);
+    if (!row) {
       return reply.code(404).send({ message: 'Task not found' });
     }
 

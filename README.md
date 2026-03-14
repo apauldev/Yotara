@@ -197,6 +197,8 @@ Configure the API server using these environment variables:
 DATABASE_URL=./data/yotara.db PORT=3001 HOST=localhost pnpm dev:api
 ```
 
+On first startup, the API will create the SQLite file and initialize the required auth and task tables automatically.
+
 ### Angular Frontend (`apps/frontend/`)
 
 Configuration is handled in `src/environments/`:
