@@ -10,12 +10,16 @@
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts",
+    "docs:check": "tsx --test src/docs/openapi.test.ts",
+    "docs:export": "tsx src/scripts/export-openapi.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
+    "@fastify/swagger": "^9.5.1",
+    "@fastify/swagger-ui": "^5.2.3",
     "@yotara/shared": "workspace:*",
     "better-auth": "^1.5.4",
     "better-sqlite3": "^12.6.2",
