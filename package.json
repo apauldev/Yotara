@@ -17,7 +17,9 @@
     "dev:frontend": "pnpm --filter @yotara/frontend dev",
     "dev:api": "pnpm --filter @yotara/api dev",
     "dev:studio": "pnpm --filter @yotara/api db:studio",
-    "db:studio": "pnpm --filter @yotara/api db:studio"
+    "db:studio": "pnpm --filter @yotara/api db:studio",
+    "docs:check": "pnpm --filter @yotara/api docs:check",
+    "docs:export": "pnpm --filter @yotara/api docs:export"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

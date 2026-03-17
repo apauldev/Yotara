@@ -1,6 +1,12 @@
 import Fastify from 'fastify';
 import { fileURLToPath } from 'node:url';
 import corsPlugin from './plugins/cors.js';
+import {
+  authCookieSecurity,
+  errorResponseSchema,
+  registerOpenApi,
+  withJsonResponse,
+} from './docs/openapi.js';
 import healthRoutes from './routes/health.js';
 import taskRoutes from './routes/tasks.js';
 import { auth } from './lib/auth.js';
@@ -65,6 +71,7 @@ export async function buildApp() {
   const app = Fastify({ logger: true });
 
   // ─── Plugins ──────────────────────────────────────────────────────────────
+  await registerOpenApi(app);
   await app.register(corsPlugin);
 
   // Register Better Auth handler
@@ -117,23 +124,58 @@ export async function buildApp() {
     },
   });
 
-  // Example protected route showing session retrieval
-  app.get('/me', async (request, reply) => {
-    const session = await auth.api.getSession({
-      headers: fromNodeHeaders(request.headers),
-    });
-    if (!session) return reply.code(401).send({ error: 'Unauthorized' });
-    return { user: session.user };
-  });
+  app.get(
+    '/me',
+    {
+      schema: withJsonResponse({
+        tags: ['auth'],
+        summary: 'Get the current authenticated user',
+        security: authCookieSecurity,
+        response: {
+          200: {
+            description: 'Authenticated user',
+            $ref: 'MeResponse#',
+          },
+          401: errorResponseSchema('Authentication required', 'Unauthorized'),
+        },
+      }),
+    },
+    async (request, reply) => {
+      const session = await auth.api.getSession({
+        headers: fromNodeHeaders(request.headers),
+      });
+      if (!session) return reply.code(401).send({ message: 'Unauthorized' });
+      return { user: session.user };
+    },
+  );
 
   // ─── Routes ───────────────────────────────────────────────────────────────
   await app.register(healthRoutes);
   await app.register(taskRoutes);
 
   // ─── Root ─────────────────────────────────────────────────────────────────
-  app.get('/', async () => {
-    return { name: 'Yotara API', version: '0.1.0' };
-  });
+  app.get(
+    '/',
+    {
+      schema: {
+        tags: ['meta'],
+        summary: 'Get API metadata',
+        response: {
+          200: {
+            type: 'object',
+            required: ['name', 'version'],
+            properties: {
+              name: { type: 'string' },
+              version: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async () => {
+      return { name: 'Yotara API', version: '0.1.0' };
+    },
+  );
 
   return app;
 }

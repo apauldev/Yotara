@@ -6,6 +6,12 @@ import { auth } from '../lib/auth.js';
 import { fromNodeHeaders } from 'better-auth/node';
 import { db } from '../db/client.js';
 import { tasks } from '../db/schema.js';
+import {
+  authCookieSecurity,
+  errorResponseSchema,
+  idParamSchema,
+  withJsonResponse,
+} from '../docs/openapi.js';
 
 function toTask(task: typeof tasks.$inferSelect): Task {
   return {
@@ -55,22 +61,56 @@ async function requireUserId(request: FastifyRequest) {
  * Tasks routes backed by SQLite via Drizzle.
  */
 export default async function taskRoutes(fastify: FastifyInstance) {
-  fastify.get<{ Reply: Task[] | { message: string } }>('/tasks', async (request, reply) => {
-    const userId = await requireUserId(request);
-    if (!userId) {
-      return reply.code(401).send({ message: 'Unauthorized' });
-    }
+  fastify.get<{ Reply: Task[] | { message: string } }>(
+    '/tasks',
+    {
+      schema: withJsonResponse({
+        tags: ['tasks'],
+        summary: 'List tasks',
+        security: authCookieSecurity,
+        response: {
+          200: {
+            description: 'Tasks for the authenticated user',
+            type: 'array',
+            items: { $ref: 'Task#' },
+          },
+          401: errorResponseSchema('Authentication required', 'Unauthorized'),
+        },
+      }),
+    },
+    async (request, reply) => {
+      const userId = await requireUserId(request);
+      if (!userId) {
+        return reply.code(401).send({ message: 'Unauthorized' });
+      }
 
-    const rows = await db
-      .select()
-      .from(tasks)
-      .where(eq(tasks.userId, userId))
-      .orderBy(asc(tasks.order), asc(tasks.createdAt));
-    return rows.map(toTask);
-  });
+      const rows = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.userId, userId))
+        .orderBy(asc(tasks.order), asc(tasks.createdAt));
+      return rows.map(toTask);
+    },
+  );
 
   fastify.get<{ Params: { id: string }; Reply: Task | { message: string } }>(
     '/tasks/:id',
+    {
+      schema: withJsonResponse({
+        tags: ['tasks'],
+        summary: 'Fetch a single task',
+        security: authCookieSecurity,
+        params: idParamSchema(),
+        response: {
+          200: {
+            description: 'Task found',
+            $ref: 'Task#',
+          },
+          401: errorResponseSchema('Authentication required', 'Unauthorized'),
+          404: errorResponseSchema('Task was not found', 'Task not found'),
+        },
+      }),
+    },
     async (request, reply) => {
       const userId = await requireUserId(request);
       if (!userId) {
@@ -93,6 +133,25 @@ export default async function taskRoutes(fastify: FastifyInstance) {
 
   fastify.post<{ Body: CreateTaskDto; Reply: Task | { message: string } }>(
     '/tasks',
+    {
+      schema: withJsonResponse({
+        tags: ['tasks'],
+        summary: 'Create a task',
+        security: authCookieSecurity,
+        body: {
+          $ref: 'CreateTaskDto#',
+        },
+        response: {
+          201: {
+            description: 'Task created',
+            $ref: 'Task#',
+          },
+          400: errorResponseSchema('Invalid task payload', 'Task title is required'),
+          401: errorResponseSchema('Authentication required', 'Unauthorized'),
+          500: errorResponseSchema('Task could not be created', 'Failed to create task'),
+        },
+      }),
+    },
     async (request, reply) => {
       const userId = await requireUserId(request);
       if (!userId) {
@@ -137,6 +196,26 @@ export default async function taskRoutes(fastify: FastifyInstance) {
 
   fastify.patch<{ Params: { id: string }; Body: UpdateTaskDto; Reply: Task | { message: string } }>(
     '/tasks/:id',
+    {
+      schema: withJsonResponse({
+        tags: ['tasks'],
+        summary: 'Update a task',
+        security: authCookieSecurity,
+        params: idParamSchema(),
+        body: {
+          $ref: 'UpdateTaskDto#',
+        },
+        response: {
+          200: {
+            description: 'Task updated',
+            $ref: 'Task#',
+          },
+          401: errorResponseSchema('Authentication required', 'Unauthorized'),
+          404: errorResponseSchema('Task was not found', 'Task not found'),
+          500: errorResponseSchema('Task could not be updated', 'Failed to update task'),
+        },
+      }),
+    },
     async (request, reply) => {
       const userId = await requireUserId(request);
       if (!userId) {
@@ -186,6 +265,26 @@ export default async function taskRoutes(fastify: FastifyInstance) {
 
   fastify.delete<{ Params: { id: string }; Reply: { ok: true } | { message: string } }>(
     '/tasks/:id',
+    {
+      schema: withJsonResponse({
+        tags: ['tasks'],
+        summary: 'Delete a task',
+        security: authCookieSecurity,
+        params: idParamSchema(),
+        response: {
+          200: {
+            description: 'Task deleted',
+            type: 'object',
+            required: ['ok'],
+            properties: {
+              ok: { type: 'boolean' },
+            },
+          },
+          401: errorResponseSchema('Authentication required', 'Unauthorized'),
+          404: errorResponseSchema('Task was not found', 'Task not found'),
+        },
+      }),
+    },
     async (request, reply) => {
       const userId = await requireUserId(request);
       if (!userId) {

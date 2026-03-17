@@ -169,6 +169,7 @@ pnpm start
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm docs:check
 pnpm db:generate
 pnpm db:push
 pnpm db:studio
@@ -302,36 +303,27 @@ That production setting assumes the frontend and API are served behind the same 
 
 ## API Surface
 
-### Public endpoints
+Interactive API documentation is now served by the API itself:
+
+- Swagger UI: `http://localhost:3000/docs`
+- OpenAPI JSON: `http://localhost:3000/docs/openapi.json`
+
+The generated spec includes app-owned routes plus the configured Better Auth endpoints:
 
 - `GET /`
 - `GET /health`
-
-### Auth endpoints
-
-Mounted under:
-
-```text
-/auth/*
-```
-
-These are handled by Better Auth. Common flows include sign-up, sign-in, session retrieval, and sign-out.
-
-### Session endpoint
-
 - `GET /me`
-
-Returns the authenticated user session or `401`.
-
-### Task endpoints
-
 - `GET /tasks`
 - `GET /tasks/:id`
 - `POST /tasks`
 - `PATCH /tasks/:id`
 - `DELETE /tasks/:id`
+- `POST /auth/sign-up/email`
+- `POST /auth/sign-in/email`
+- `POST /auth/sign-out`
+- `GET /auth/session`
 
-All task routes require authentication and are scoped to the current user.
+Use the generated docs as the source of truth for request/response shapes and examples. Keep this README limited to high-level notes that are not duplicated in OpenAPI.
 
 ## Database And Drizzle
 
