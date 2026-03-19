@@ -73,6 +73,24 @@ test('auth routes register and login with email/password', async () => {
 
     assert.equal(meAfterRegister.statusCode, 200);
     assert.equal(meAfterRegister.json().user.email, TEST_EMAIL);
+    assert.equal(meAfterRegister.json().user.onboardingCompleted, false);
+
+    const updateMeResponse = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/me',
+      headers: {
+        origin: TEST_ORIGIN,
+        cookie: registerCookie,
+      },
+      payload: {
+        workspaceMode: 'personal',
+        onboardingCompleted: true,
+      },
+    });
+
+    assert.equal(updateMeResponse.statusCode, 200);
+    assert.equal(updateMeResponse.json().user.workspaceMode, 'personal');
+    assert.equal(updateMeResponse.json().user.onboardingCompleted, true);
 
     const signOutResponse = await ctx.app.inject({
       method: 'POST',
@@ -115,6 +133,8 @@ test('auth routes register and login with email/password', async () => {
 
     assert.equal(meAfterLogin.statusCode, 200);
     assert.equal(meAfterLogin.json().user.email, TEST_EMAIL);
+    assert.equal(meAfterLogin.json().user.workspaceMode, 'personal');
+    assert.equal(meAfterLogin.json().user.onboardingCompleted, true);
   } finally {
     await ctx.cleanup();
   }
@@ -137,6 +157,42 @@ test('auth routes answer CORS preflight for sign-up', async () => {
     assert.equal(response.statusCode, 204);
     assert.equal(response.headers['access-control-allow-origin'], TEST_ORIGIN);
     assert.equal(response.headers['access-control-allow-credentials'], 'true');
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('authenticated profile route includes CORS headers for allowed frontend origins', async () => {
+  const ctx = await createTestApp();
+
+  try {
+    const registerResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: {
+        origin: TEST_ORIGIN,
+      },
+      payload: {
+        email: `cors-${randomUUID()}@example.com`,
+        password: TEST_PASSWORD,
+        name: TEST_NAME,
+      },
+    });
+
+    const cookie = readCookie(registerResponse);
+
+    const meResponse = await ctx.app.inject({
+      method: 'GET',
+      url: '/me',
+      headers: {
+        origin: TEST_ORIGIN,
+        cookie,
+      },
+    });
+
+    assert.equal(meResponse.statusCode, 200);
+    assert.equal(meResponse.headers['access-control-allow-origin'], TEST_ORIGIN);
+    assert.equal(meResponse.headers['access-control-allow-credentials'], 'true');
   } finally {
     await ctx.cleanup();
   }
