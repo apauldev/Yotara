@@ -1,15 +1,48 @@
 import { createAuthClient } from 'better-auth/client';
+import type { WorkspaceMode } from './index';
 
-let authBaseUrl = '';
+let apiBaseUrl = '';
 
 export function configureAuthClient(baseURL: string) {
-  authBaseUrl = baseURL;
+  apiBaseUrl = baseURL.replace(/\/auth\/?$/, '');
 }
 
 function getAuthClient() {
   return createAuthClient({
-    baseURL: authBaseUrl,
+    baseURL: `${apiBaseUrl}/auth`,
   });
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    ...init,
+    credentials: 'include',
+    headers: {
+      'content-type': 'application/json',
+      ...(init?.headers ?? {}),
+    },
+  });
+
+  if (!response.ok) {
+    const errorBody = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(errorBody?.message ?? `Request failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as T;
+}
+
+export interface ProfileResponse {
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    image?: string | null;
+    emailVerified?: boolean;
+    createdAt: string | number;
+    updatedAt?: string | number;
+    workspaceMode?: WorkspaceMode | null;
+    onboardingCompleted?: boolean;
+  };
 }
 
 export const AuthService = {
@@ -31,5 +64,17 @@ export const AuthService = {
   },
   getSession: async () => {
     return await getAuthClient().getSession();
+  },
+  getProfile: async () => {
+    return await request<ProfileResponse>('/me');
+  },
+  completeOnboarding: async (workspaceMode: WorkspaceMode) => {
+    return await request<ProfileResponse>('/me', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        workspaceMode,
+        onboardingCompleted: true,
+      }),
+    });
   },
 };

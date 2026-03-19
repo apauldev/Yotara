@@ -3,11 +3,12 @@ import { AuthService } from '@yotara/shared';
 
 type SessionResponse = Awaited<ReturnType<typeof AuthService.getSession>>;
 type SessionData = NonNullable<SessionResponse['data']>;
+type ProfileUser = Awaited<ReturnType<typeof AuthService.getProfile>>['user'];
 
 @Injectable({ providedIn: 'root' })
 export class AuthStateService {
   private sessionState = signal<SessionData['session'] | null>(null);
-  private userState = signal<SessionData['user'] | null>(null);
+  private userState = signal<ProfileUser | null>(null);
   private initializedState = signal(false);
   private loadingState = signal(false);
   private initPromise: Promise<SessionResponse> | null = null;
@@ -17,6 +18,9 @@ export class AuthStateService {
   readonly initialized = this.initializedState.asReadonly();
   readonly loading = this.loadingState.asReadonly();
   readonly isAuthenticated = computed(() => !!this.sessionState());
+  readonly needsOnboarding = computed(
+    () => this.isAuthenticated() && !this.userState()?.onboardingCompleted,
+  );
 
   async initialize() {
     if (this.initializedState()) {
@@ -46,7 +50,7 @@ export class AuthStateService {
 
     try {
       const result = await AuthService.getSession();
-      this.applySessionResult(result);
+      await this.applySessionResult(result);
       return result;
     } finally {
       this.initializedState.set(true);
@@ -96,10 +100,32 @@ export class AuthStateService {
     }
   }
 
-  private applySessionResult(result: SessionResponse | null | undefined) {
+  async completeOnboarding(workspaceMode: 'personal' | 'team') {
+    this.loadingState.set(true);
+
+    try {
+      const result = await AuthService.completeOnboarding(workspaceMode);
+      this.userState.set(result.user);
+      return result;
+    } finally {
+      this.loadingState.set(false);
+    }
+  }
+
+  getPostAuthRedirectUrl() {
+    return this.needsOnboarding() ? '/onboarding' : '/dashboard';
+  }
+
+  private async applySessionResult(result: SessionResponse | null | undefined) {
     const session = result?.data?.session ?? null;
-    const user = result?.data?.user ?? null;
     this.sessionState.set(session);
-    this.userState.set(user);
+
+    if (!session) {
+      this.userState.set(null);
+      return;
+    }
+
+    const profile = await AuthService.getProfile();
+    this.userState.set(profile.user);
   }
 }

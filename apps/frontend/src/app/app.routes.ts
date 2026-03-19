@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { onboardingGuard } from './core/guards/onboarding.guard';
 
 export const routes: Routes = [
   {
@@ -9,7 +10,7 @@ export const routes: Routes = [
   },
   {
     path: 'onboarding',
-    canActivate: [authGuard],
+    canActivate: [authGuard, onboardingGuard],
     loadComponent: () =>
       import('./features/onboarding/pages/start-screen/start-screen.component').then(
         (m) => m.StartScreenComponent,
@@ -24,7 +25,7 @@ export const routes: Routes = [
   },
   {
     path: 'dashboard',
-    canActivate: [authGuard],
+    canActivate: [authGuard, onboardingGuard],
     loadComponent: () =>
       import('./features/tasks/pages/tasks-page/tasks-page.component').then(
         (m) => m.TasksPageComponent,
