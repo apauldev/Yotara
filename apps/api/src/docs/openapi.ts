@@ -117,6 +117,10 @@ const userSchema = {
     avatarUrl: { type: 'string', format: 'uri' },
     image: { anyOf: [{ type: 'string', format: 'uri' }, { type: 'null' }] },
     emailVerified: { type: 'boolean' },
+    workspaceMode: {
+      anyOf: [{ type: 'string', enum: ['personal', 'team'] }, { type: 'null' }],
+    },
+    onboardingCompleted: { type: 'boolean' },
     createdAt: {
       anyOf: [{ type: 'string', format: 'date-time' }, { type: 'integer' }],
     },
@@ -164,6 +168,19 @@ const meResponseSchema = {
   properties: {
     user: { $ref: 'User#' },
   },
+} as const;
+
+const updateProfileSchema = {
+  $id: 'UpdateProfile',
+  type: 'object',
+  properties: {
+    workspaceMode: {
+      type: 'string',
+      enum: ['personal', 'team'],
+    },
+    onboardingCompleted: { type: 'boolean' },
+  },
+  additionalProperties: false,
 } as const;
 
 const authSessionResponseSchema = {
@@ -241,6 +258,7 @@ const sharedSchemas = [
   apiErrorSchema,
   sessionSchema,
   meResponseSchema,
+  updateProfileSchema,
   authSessionResponseSchema,
   authCredentialsSchema,
   authSignUpSchema,

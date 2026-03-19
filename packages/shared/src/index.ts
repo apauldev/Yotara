@@ -3,6 +3,7 @@ export * from './auth';
 
 export type Priority = 'low' | 'medium' | 'high';
 export type TaskStatus = 'inbox' | 'today' | 'upcoming' | 'done' | 'archived';
+export type WorkspaceMode = 'personal' | 'team';
 
 // ─── Core Domain Types ───────────────────────────────────────────────────────
 
@@ -11,6 +12,8 @@ export interface User {
   email: string;
   name: string;
   avatarUrl?: string;
+  workspaceMode?: WorkspaceMode;
+  onboardingCompleted?: boolean;
   createdAt: string; // ISO 8601
 }
 

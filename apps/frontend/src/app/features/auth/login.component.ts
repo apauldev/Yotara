@@ -459,7 +459,14 @@ export class LoginComponent {
       if (res.error) {
         this.error.set(res.error.message || 'Authentication failed');
       } else {
-        this.router.navigate([this.isLogin() ? '/dashboard' : '/onboarding']);
+        const redirectUrl = this.authState.getPostAuthRedirectUrl();
+
+        if (!this.isLogin() && redirectUrl === '/onboarding') {
+          this.router.navigate(['/onboarding'], { queryParams: { created: '1' } });
+          return;
+        }
+
+        this.router.navigateByUrl(redirectUrl);
       }
     } catch (err: any) {
       this.error.set(err.message || 'An unexpected error occurred');

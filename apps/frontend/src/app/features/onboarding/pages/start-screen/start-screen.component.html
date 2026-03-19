@@ -29,6 +29,10 @@
     <h1>Welcome to Yotara</h1>
     <p class="subtitle">Flow through your day, naturally</p>
 
+    @if (accountCreated()) {
+      <p class="success-note">Account created. Choose a mode to continue.</p>
+    }
+
     <div class="workspace-grid">
       @for (option of workspaceOptions; track option.id) {
         <button
@@ -59,7 +63,13 @@
       }
     </div>
 
-    <button class="continue-button" type="button" (click)="continue()">Continue</button>
+    @if (error()) {
+      <p class="submit-error">{{ error() }}</p>
+    }
+
+    <button class="continue-button" type="button" [disabled]="loading()" (click)="continue()">
+      {{ loading() ? 'Saving...' : 'Continue' }}
+    </button>
 
     <div class="progress-dots" aria-hidden="true">
       <span class="dot active"></span>
