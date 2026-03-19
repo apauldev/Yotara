@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import { fileURLToPath } from 'node:url';
+import { eq } from 'drizzle-orm';
 import corsPlugin from './plugins/cors.js';
 import {
   authCookieSecurity,
@@ -12,6 +13,22 @@ import taskRoutes from './routes/tasks.js';
 import { auth } from './lib/auth.js';
 import { getCorsOrigins } from './lib/auth-origins.js';
 import { fromNodeHeaders } from 'better-auth/node';
+import { db } from './db/client.js';
+import { users } from './db/schema.js';
+
+function toPublicUser(user: typeof users.$inferSelect) {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    image: user.image,
+    emailVerified: user.emailVerified,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+    workspaceMode: user.workspaceMode,
+    onboardingCompleted: user.onboardingCompleted,
+  };
+}
 
 function toHeaders(source: Record<string, string | string[] | undefined>) {
   const headers = new Headers();
@@ -54,7 +71,7 @@ function getRequestBody(method: string, body: unknown, headers: Headers) {
   return JSON.stringify(body);
 }
 
-function applyAuthCorsHeaders(
+function applyCorsHeaders(
   reply: { header: (name: string, value: string | string[]) => unknown },
   origin: string | undefined,
 ) {
@@ -73,12 +90,15 @@ export async function buildApp() {
   // ─── Plugins ──────────────────────────────────────────────────────────────
   await registerOpenApi(app);
   await app.register(corsPlugin);
+  app.addHook('onRequest', async (request, reply) => {
+    applyCorsHeaders(reply, request.headers.origin);
+  });
 
   // Register Better Auth handler
   app.options('/auth/*', async (request, reply) => {
     const origin = request.headers.origin;
     if (origin && getCorsOrigins().includes(origin)) {
-      applyAuthCorsHeaders(reply, origin);
+      applyCorsHeaders(reply, origin);
       reply.header('access-control-allow-methods', 'GET,POST,PUT,PATCH,DELETE');
 
       const requestedHeaders = request.headers['access-control-request-headers'];
@@ -94,7 +114,7 @@ export async function buildApp() {
     method: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'],
     url: '/auth/*',
     handler: async (request, reply) => {
-      applyAuthCorsHeaders(reply, request.headers.origin);
+      applyCorsHeaders(reply, request.headers.origin);
       const headers = toHeaders(request.headers);
       const protocol = request.protocol ?? 'http';
       const host = request.headers.host ?? 'localhost';
@@ -145,7 +165,55 @@ export async function buildApp() {
         headers: fromNodeHeaders(request.headers),
       });
       if (!session) return reply.code(401).send({ message: 'Unauthorized' });
-      return { user: session.user };
+
+      const [user] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
+      if (!user) return reply.code(401).send({ message: 'Unauthorized' });
+
+      return { user: toPublicUser(user) };
+    },
+  );
+
+  app.patch<{
+    Body: { workspaceMode?: 'personal' | 'team'; onboardingCompleted?: boolean };
+    Reply: { user: ReturnType<typeof toPublicUser> } | { message: string };
+  }>(
+    '/me',
+    {
+      schema: withJsonResponse({
+        tags: ['auth'],
+        summary: 'Update the current authenticated user',
+        security: authCookieSecurity,
+        body: {
+          $ref: 'UpdateProfile#',
+        },
+        response: {
+          200: {
+            description: 'Updated user profile',
+            $ref: 'MeResponse#',
+          },
+          401: errorResponseSchema('Authentication required', 'Unauthorized'),
+        },
+      }),
+    },
+    async (request, reply) => {
+      const session = await auth.api.getSession({
+        headers: fromNodeHeaders(request.headers),
+      });
+      if (!session) return reply.code(401).send({ message: 'Unauthorized' });
+
+      await db
+        .update(users)
+        .set({
+          workspaceMode: request.body.workspaceMode,
+          onboardingCompleted: request.body.onboardingCompleted,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, session.user.id));
+
+      const [user] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
+      if (!user) return reply.code(401).send({ message: 'Unauthorized' });
+
+      return { user: toPublicUser(user) };
     },
   );
 

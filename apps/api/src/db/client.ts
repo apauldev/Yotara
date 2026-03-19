@@ -14,6 +14,8 @@ const SQLITE_BOOTSTRAP_SQL = `
     email TEXT NOT NULL,
     emailVerified INTEGER NOT NULL,
     image TEXT,
+    workspaceMode TEXT,
+    onboardingCompleted INTEGER NOT NULL DEFAULT 0,
     createdAt INTEGER NOT NULL,
     updatedAt INTEGER NOT NULL
   );
@@ -94,6 +96,17 @@ function ensureDatabasePath(databasePath: string): void {
 
 function ensureSqliteSchema(sqlite: Database.Database): void {
   sqlite.exec(SQLITE_BOOTSTRAP_SQL);
+
+  const columns = sqlite.prepare(`PRAGMA table_info('user')`).all() as Array<{ name: string }>;
+  const columnNames = new Set(columns.map((column) => column.name));
+
+  if (!columnNames.has('workspaceMode')) {
+    sqlite.exec(`ALTER TABLE user ADD COLUMN workspaceMode TEXT`);
+  }
+
+  if (!columnNames.has('onboardingCompleted')) {
+    sqlite.exec(`ALTER TABLE user ADD COLUMN onboardingCompleted INTEGER NOT NULL DEFAULT 0`);
+  }
 }
 
 export function createDbClient(databaseUrl = process.env['DATABASE_URL'] ?? DEFAULT_DATABASE_URL) {
