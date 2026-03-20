@@ -8,6 +8,7 @@
 
 <p>
   <a href="./PROJECT_README.md"><img src="https://img.shields.io/badge/docs-project_guide-24473c?style=for-the-badge&logo=readme&logoColor=F7F6F2" alt="Project guide" /></a>
+  <a href="./CONTRIBUTING.md"><img src="https://img.shields.io/badge/contributing-welcome-7BA58D?style=for-the-badge&logo=github&logoColor=white" alt="Contributing" /></a>
   <img src="https://img.shields.io/badge/self--hosted-yes-3E7B63?style=for-the-badge&logo=docker&logoColor=white" alt="Self-hosted" />
   <img src="https://img.shields.io/badge/open_source-MIT-7BA58D?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="MIT license" />
   <img src="https://img.shields.io/badge/stack-Angular%20%2B%20Fastify%20%2B%20SQLite-1C5D4B?style=for-the-badge&logo=typescript&logoColor=white" alt="Tech stack" />
@@ -27,7 +28,11 @@
   ·
   <a href="#current-build"><strong>Current Build</strong></a>
   ·
-  <a href="#product-direction"><strong>Roadmap Direction</strong></a>
+  <a href="./ROADMAP.md"><strong>MVP Roadmap</strong></a>
+  ·
+  <a href="./CONTRIBUTING.md"><strong>Contributing</strong></a>
+  ·
+  <a href="#product-direction"><strong>Direction</strong></a>
 </p>
 
 </div>
@@ -109,6 +114,8 @@ What is already present in the repository today:
 
 Yotara is early, but the direction is intentional.
 
+**For a complete technical breakdown of all planned screens, components, and build phases, see the [MVP Roadmap](./ROADMAP.md).**
+
 ### Core experience
 
 - Inbox, Today, and Upcoming task flows
@@ -170,6 +177,20 @@ That guide covers:
 - You want a self-hosted task tool that does not feel like admin software.
 - You like modern TypeScript stacks but still want a product with a clear point of view.
 - You want to contribute while product and UX decisions are still flexible enough to matter.
+
+## Contributing
+
+Contributions are welcome! Whether it's bug reports, feature ideas, code, or documentation, we'd love your help.
+
+**New to the project?** Start here:
+- [CONTRIBUTING.md](./CONTRIBUTING.md) — Setup guide, PR process, code standards
+- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) — Community guidelines
+- [ROADMAP.md](./ROADMAP.md) — What we're building and priority order
+
+**Looking for something to work on?**
+- Check issues labeled [`good-first-issue`](https://github.com/apauldev/Yotara/labels/good-first-issue)
+- Review the [ROADMAP.md](./ROADMAP.md) for planned features
+- Open a discussion if you have questions
 
 ## Status
 
