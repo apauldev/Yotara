@@ -4,6 +4,8 @@ This document is the technical companion to the main repository page.
 
 For the product overview and project positioning, start with [`README.md`](./README.md).
 
+**For a detailed technical roadmap of all planned screens, components, build phases, and effort estimates, see the [MVP Roadmap](./ROADMAP.md).**
+
 ## Overview
 
 Yotara is a TypeScript monorepo with:
