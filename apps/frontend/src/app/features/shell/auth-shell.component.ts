@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Component, computed, inject, signal } from '@angular/core';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs';
 import { AuthStateService } from '../../core/services/auth-state.service';
 
 type SidebarIcon = 'dashboard' | 'tasks' | 'workspaces' | 'calendar' | 'team';
@@ -18,7 +19,16 @@ interface SidebarItem {
   imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet],
   template: `
     <div class="shell">
-      <aside class="sidebar" aria-label="Primary">
+      @if (mobileMenuOpen()) {
+        <button
+          type="button"
+          class="mobile-backdrop"
+          aria-label="Close navigation menu"
+          (click)="closeMobileMenu()"
+        ></button>
+      }
+
+      <aside class="sidebar" aria-label="Primary" [class.sidebar-open]="mobileMenuOpen()">
         <div class="sidebar-top">
           <div class="brand">
             <div class="brand-mark" aria-hidden="true">
@@ -38,7 +48,7 @@ interface SidebarItem {
             </div>
           </div>
 
-          <nav class="nav-list">
+          <nav id="primary-navigation" class="nav-list">
             @for (item of navItems; track item.label) {
               @if (item.route) {
                 <a
@@ -153,6 +163,28 @@ interface SidebarItem {
       </aside>
 
       <main class="content">
+        <header class="mobile-header">
+          <button
+            type="button"
+            class="menu-toggle"
+            [attr.aria-expanded]="mobileMenuOpen()"
+            aria-controls="primary-navigation"
+            aria-label="Toggle navigation menu"
+            (click)="toggleMobileMenu()"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h16" />
+              <path d="M4 12h16" />
+              <path d="M4 17h16" />
+            </svg>
+          </button>
+
+          <div class="mobile-brand">
+            <div class="mobile-brand-title">Yotara</div>
+            <div class="mobile-brand-subtitle">{{ workspaceLabel() }}</div>
+          </div>
+        </header>
+
         <div class="content-inner">
           <router-outlet />
         </div>
@@ -174,6 +206,11 @@ interface SidebarItem {
         min-height: 100dvh;
         display: grid;
         grid-template-columns: minmax(15.5rem, 17rem) minmax(0, 1fr);
+        position: relative;
+      }
+
+      .mobile-backdrop {
+        display: none;
       }
 
       .sidebar {
@@ -184,6 +221,8 @@ interface SidebarItem {
         background: rgba(255, 255, 255, 0.84);
         border-right: 1px solid rgba(128, 146, 126, 0.2);
         backdrop-filter: blur(12px);
+        position: relative;
+        z-index: 2;
       }
 
       .sidebar-top {
@@ -382,6 +421,49 @@ interface SidebarItem {
         padding: 1.6rem;
       }
 
+      .mobile-header {
+        display: none;
+      }
+
+      .menu-toggle {
+        border: 1px solid rgba(128, 146, 126, 0.28);
+        border-radius: 0.9rem;
+        background: rgba(255, 255, 255, 0.92);
+        width: 3rem;
+        height: 3rem;
+        padding: 0;
+        color: #2f4b3d;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 8px 22px rgba(51, 79, 61, 0.08);
+      }
+
+      .menu-toggle svg {
+        width: 1.35rem;
+        height: 1.35rem;
+        display: block;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+        stroke-linecap: round;
+      }
+
+      .mobile-brand-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        color: #203027;
+      }
+
+      .mobile-brand-subtitle {
+        margin-top: 0.15rem;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: #6ea288;
+      }
+
       .content-inner {
         min-height: calc(100dvh - 3.2rem);
         border-radius: 1.6rem;
@@ -395,14 +477,44 @@ interface SidebarItem {
           grid-template-columns: 1fr;
         }
 
+        .mobile-backdrop {
+          display: block;
+          position: fixed;
+          inset: 0;
+          z-index: 1;
+          border: 0;
+          background: rgba(25, 37, 33, 0.3);
+        }
+
         .sidebar {
           gap: 1.25rem;
           border-right: 0;
           border-bottom: 1px solid rgba(128, 146, 126, 0.2);
+          position: fixed;
+          inset: 0 auto 0 0;
+          width: min(85vw, 20rem);
+          transform: translateX(-100%);
+          transition: transform 180ms ease;
+          box-shadow: 18px 0 36px rgba(45, 65, 57, 0.18);
+        }
+
+        .sidebar.sidebar-open {
+          transform: translateX(0);
         }
 
         .sidebar-top {
           gap: 1.25rem;
+        }
+
+        .mobile-header {
+          display: flex;
+          align-items: center;
+          gap: 0.9rem;
+          margin-bottom: 1rem;
+        }
+
+        .menu-toggle {
+          display: inline-flex;
         }
 
         .nav-list {
@@ -421,6 +533,10 @@ interface SidebarItem {
           border-radius: 1rem;
         }
 
+        .mobile-header {
+          margin-bottom: 0.85rem;
+        }
+
         .nav-list {
           grid-template-columns: 1fr;
         }
@@ -430,6 +546,9 @@ interface SidebarItem {
 })
 export class AuthShellComponent {
   private authState = inject(AuthStateService);
+  private router = inject(Router);
+
+  protected readonly mobileMenuOpen = signal(false);
 
   protected readonly navItems: SidebarItem[] = [
     { label: 'Dashboard', icon: 'dashboard', route: '/dashboard' },
@@ -481,4 +600,18 @@ export class AuthShellComponent {
       .map((part) => part[0]?.toUpperCase() ?? '')
       .join('');
   });
+
+  constructor() {
+    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
+      this.mobileMenuOpen.set(false);
+    });
+  }
+
+  protected toggleMobileMenu() {
+    this.mobileMenuOpen.update((open) => !open);
+  }
+
+  protected closeMobileMenu() {
+    this.mobileMenuOpen.set(false);
+  }
 }
