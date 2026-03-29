@@ -1,15 +1,22 @@
-import { TestBed } from '@angular/core/testing';
+import { Component } from '@angular/core';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { AuthShellComponent } from './auth-shell.component';
 import { AuthStateService } from '../../core/services/auth-state.service';
+
+@Component({
+  standalone: true,
+  template: '<p>Dashboard</p>',
+})
+class DashboardStubComponent {}
 
 describe('AuthShellComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [AuthShellComponent],
+      imports: [AuthShellComponent, DashboardStubComponent],
       providers: [
-        provideRouter([{ path: 'dashboard', component: AuthShellComponent }]),
+        provideRouter([{ path: 'dashboard', component: DashboardStubComponent }]),
         {
           provide: AuthStateService,
           useValue: {
@@ -54,4 +61,64 @@ describe('AuthShellComponent', () => {
       fixture.debugElement.query(By.css('.profile-meta')).nativeElement.textContent.trim(),
     ).toBe('alex@example.com');
   });
+
+  it('toggles the mobile menu from the hamburger button', () => {
+    const fixture = TestBed.createComponent(AuthShellComponent);
+    fixture.detectChanges();
+
+    const toggleButton = fixture.debugElement.query(By.css('.menu-toggle')).nativeElement;
+    const sidebar = fixture.debugElement.query(By.css('.sidebar')).nativeElement;
+
+    expect(toggleButton.getAttribute('aria-expanded')).toBe('false');
+    expect(sidebar.classList.contains('sidebar-open')).toBeFalse();
+
+    toggleButton.click();
+    fixture.detectChanges();
+
+    expect(toggleButton.getAttribute('aria-expanded')).toBe('true');
+    expect(sidebar.classList.contains('sidebar-open')).toBeTrue();
+    expect(fixture.debugElement.query(By.css('.mobile-backdrop'))).toBeTruthy();
+  });
+
+  it('closes the mobile menu when the backdrop is clicked', () => {
+    const fixture = TestBed.createComponent(AuthShellComponent);
+    fixture.detectChanges();
+
+    fixture.debugElement.query(By.css('.menu-toggle')).nativeElement.click();
+    fixture.detectChanges();
+
+    fixture.debugElement.query(By.css('.mobile-backdrop')).nativeElement.click();
+    fixture.detectChanges();
+
+    expect(
+      fixture.debugElement
+        .query(By.css('.sidebar'))
+        .nativeElement.classList.contains('sidebar-open'),
+    ).toBeFalse();
+    expect(fixture.debugElement.query(By.css('.mobile-backdrop'))).toBeNull();
+  });
+
+  it('closes the mobile menu after navigation completes', fakeAsync(() => {
+    const fixture = TestBed.createComponent(AuthShellComponent);
+    const router = TestBed.inject(Router);
+    fixture.detectChanges();
+
+    fixture.debugElement.query(By.css('.menu-toggle')).nativeElement.click();
+    fixture.detectChanges();
+
+    void router.navigateByUrl('/dashboard');
+    tick();
+    fixture.detectChanges();
+
+    expect(
+      fixture.debugElement
+        .query(By.css('.sidebar'))
+        .nativeElement.classList.contains('sidebar-open'),
+    ).toBeFalse();
+    expect(
+      fixture.debugElement
+        .query(By.css('.menu-toggle'))
+        .nativeElement.getAttribute('aria-expanded'),
+    ).toBe('false');
+  }));
 });
