@@ -24,15 +24,22 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'dashboard',
-    canActivate: [authGuard, onboardingGuard],
-    loadComponent: () =>
-      import('./features/tasks/pages/tasks-page/tasks-page.component').then(
-        (m) => m.TasksPageComponent,
-      ),
-  },
-  {
     path: 'login',
     loadComponent: () => import('./features/auth/login.component').then((m) => m.LoginComponent),
+  },
+  {
+    path: '',
+    canActivate: [authGuard, onboardingGuard],
+    loadComponent: () =>
+      import('./features/shell/auth-shell.component').then((m) => m.AuthShellComponent),
+    children: [
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./features/tasks/pages/tasks-page/tasks-page.component').then(
+            (m) => m.TasksPageComponent,
+          ),
+      },
+    ],
   },
 ];
