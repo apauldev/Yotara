@@ -28,6 +28,8 @@
   ·
   <a href="#current-build"><strong>Current Build</strong></a>
   ·
+  <a href="./docs/personal-mode-mvp.md"><strong>Personal Mode MVP</strong></a>
+  ·
   <a href="./ROADMAP.md"><strong>MVP Roadmap</strong></a>
   ·
   <a href="./CONTRIBUTING.md"><strong>Contributing</strong></a>
@@ -71,6 +73,8 @@ Yotara is being built in the gap between those extremes. The goal is a product t
   <img src="https://img.shields.io/badge/-Focused%20UI-F4F1E8?style=flat-square" alt="Focused UI" />
   <img src="https://img.shields.io/badge/-Email%2FPassword%20Auth-E7F0EA?style=flat-square" alt="Email Password Auth" />
   <img src="https://img.shields.io/badge/-Task%20CRUD-DDECE3?style=flat-square" alt="Task CRUD" />
+  <img src="https://img.shields.io/badge/-Personal%20Mode-EAF3EE?style=flat-square" alt="Personal mode" />
+  <img src="https://img.shields.io/badge/-Team%20Shell-D8E7DE?style=flat-square" alt="Team shell" />
   <img src="https://img.shields.io/badge/-Onboarding%20Flow-EAF3EE?style=flat-square" alt="Onboarding flow" />
   <img src="https://img.shields.io/badge/-SQLite%20Persistence-D8E7DE?style=flat-square" alt="SQLite persistence" />
   <img src="https://img.shields.io/badge/-Monorepo%20DX-E2EFE8?style=flat-square" alt="Monorepo DX" />
@@ -85,7 +89,9 @@ What is already present in the repository today:
 | Frontend | Angular app with standalone components and route-based flows |
 | Auth | Better Auth email/password sign-up and sign-in |
 | Onboarding | Personal vs team mode picker |
-| Tasks | Authenticated task dashboard with task CRUD backing |
+| Personal Mode | Dedicated shell with Inbox, Today, Upcoming, Projects, and Labels |
+| Team Mode | Authenticated left-nav shell for `/dashboard` |
+| Tasks | Task CRUD plus personal metadata capture via modal |
 | Backend | Fastify API with protected `/tasks` and `/me` routes |
 | Data | SQLite + Drizzle with bootstrapped schema |
 | Monorepo | pnpm workspaces with shared TypeScript package |
@@ -94,19 +100,46 @@ What is already present in the repository today:
 
 - create an account or sign in with email and password
 - pass through onboarding and choose a personal or team workspace mode
-- access an authenticated dashboard
+- land in a mode-aware authenticated shell after onboarding
+- use personal routes for `Inbox`, `Today`, `Upcoming`, `Projects`, and `Labels`
+- use the team dashboard shell with desktop and mobile navigation
 - create, update, fetch, and delete user-scoped tasks through the API
+- capture richer task metadata including description, priority, due date, simple mode, and buckets
+
+### Personal Mode Highlights
+
+- personal users now default into `/inbox`
+- Inbox supports quick capture plus a richer task modal
+- Today and Upcoming are driven by task status and due-date selectors
+- Projects and Labels have real placeholder routes and UI
+- Daily clarity and Yotara Journal prompts rotate from built-in prompt pools
+
+### Task Metadata Supported Today
+
+- title
+- description
+- status: `inbox | today | upcoming | done | archived`
+- priority: `low | medium | high`
+- due date
+- simple mode
+- bucket: `personal-sanctuary | deep-work | home | health`
+- completion state
+- sort order
 
 ## Visual Preview
 
 <p align="center">
-  <img src="./docs/assets/screen.png" alt="Yotara upcoming view screenshot" width="48%" />
-  <img src="./docs/assets/screen1.png" alt="Yotara workspace overview screenshot" width="48%" />
+  <img src="./screenshots/screen.png" alt="Yotara personal today view screenshot" width="48%" />
+  <img src="./screenshots/screen 2.png" alt="Yotara personal projects view screenshot" width="48%" />
+</p>
+
+<p align="center">
+  <img src="./screenshots/screen 3.png" alt="Yotara personal inbox view screenshot" width="48%" />
 </p>
 
 <p align="center">
   <sub>
-    Product previews showing the calm personal planning flow and the lightweight team workspace direction.
+    Current local build previews showing the shipped personal-mode experience.
   </sub>
 </p>
 
@@ -171,6 +204,10 @@ That guide covers:
 - database behavior and Drizzle Studio
 - API routes and current architecture
 - testing and verification commands
+
+Additional implementation notes:
+
+- [Personal Mode MVP](./docs/personal-mode-mvp.md)
 
 ## Why Watch Or Contribute
 

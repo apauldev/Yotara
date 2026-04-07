@@ -11,8 +11,11 @@ describe('StartScreenComponent', () => {
   let activatedRoute: { snapshot: { queryParamMap: ReturnType<typeof convertToParamMap> } };
 
   beforeEach(async () => {
-    authState = jasmine.createSpyObj<AuthStateService>('AuthStateService', ['completeOnboarding']);
-    router = jasmine.createSpyObj<Router>('Router', ['navigate']);
+    authState = jasmine.createSpyObj<AuthStateService>('AuthStateService', [
+      'completeOnboarding',
+      'getPostAuthRedirectUrl',
+    ]);
+    router = jasmine.createSpyObj<Router>('Router', ['navigate', 'navigateByUrl']);
     activatedRoute = {
       snapshot: {
         queryParamMap: convertToParamMap({}),
@@ -75,7 +78,8 @@ describe('StartScreenComponent', () => {
         createdAt: '2026-03-19T00:00:00.000Z',
       },
     });
-    router.navigate.and.resolveTo(true);
+    authState.getPostAuthRedirectUrl.and.returnValue('/inbox');
+    router.navigateByUrl.and.resolveTo(true);
 
     component.selectWorkspace('personal');
 
@@ -84,7 +88,7 @@ describe('StartScreenComponent', () => {
     expect(authState.completeOnboarding).toHaveBeenCalledOnceWith('personal');
     expect(localStorage.getItem('workspaceType')).toBe('personal');
     expect(localStorage.getItem('onboardingCompleted')).toBe('true');
-    expect(router.navigate).toHaveBeenCalledOnceWith(['/dashboard']);
+    expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/inbox');
     expect(component.error()).toBe('');
     expect(component.loading()).toBeFalse();
   });
@@ -95,7 +99,7 @@ describe('StartScreenComponent', () => {
 
     await component.continue();
 
-    expect(router.navigate).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
     expect(component.error()).toBe('Could not save your workspace mode');
     expect(component.loading()).toBeFalse();
     expect(console.error).toHaveBeenCalled();

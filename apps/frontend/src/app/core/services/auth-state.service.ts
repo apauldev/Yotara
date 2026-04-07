@@ -113,7 +113,11 @@ export class AuthStateService {
   }
 
   getPostAuthRedirectUrl() {
-    return this.needsOnboarding() ? '/onboarding' : '/dashboard';
+    if (this.needsOnboarding()) {
+      return '/onboarding';
+    }
+
+    return this.userState()?.workspaceMode === 'personal' ? '/inbox' : '/dashboard';
   }
 
   private async applySessionResult(result: SessionResponse | null | undefined) {
