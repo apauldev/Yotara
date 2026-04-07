@@ -21,7 +21,7 @@ export const onboardingGuard: CanActivateFn = async (_route, state) => {
     }
 
     if (!needsOnboarding && isOnboardingRoute) {
-      return router.parseUrl('/dashboard');
+      return router.parseUrl(authState.getPostAuthRedirectUrl());
     }
 
     return true;

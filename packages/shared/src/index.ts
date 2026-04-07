@@ -4,6 +4,7 @@ export * from './auth';
 export type Priority = 'low' | 'medium' | 'high';
 export type TaskStatus = 'inbox' | 'today' | 'upcoming' | 'done' | 'archived';
 export type WorkspaceMode = 'personal' | 'team';
+export type TaskBucket = 'personal-sanctuary' | 'deep-work' | 'home' | 'health';
 
 // ─── Core Domain Types ───────────────────────────────────────────────────────
 
@@ -41,6 +42,8 @@ export interface Task {
   priority: Priority;
   completed: boolean;
   dueDate?: string; // ISO 8601 date string
+  simpleMode?: boolean;
+  bucket?: TaskBucket;
   projectId?: string;
   assigneeId?: string;
   parentTaskId?: string; // for subtasks
@@ -83,6 +86,8 @@ export interface CreateTaskDto {
   status?: TaskStatus;
   priority?: Priority;
   dueDate?: string;
+  simpleMode?: boolean;
+  bucket?: TaskBucket;
   projectId?: string;
   parentTaskId?: string;
   labels?: string[];

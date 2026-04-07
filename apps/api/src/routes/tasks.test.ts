@@ -67,6 +67,8 @@ test('tasks routes require auth and scope data to the current user', async () =>
         title: 'Write first task',
         priority: 'high',
         status: 'today',
+        bucket: 'deep-work',
+        simpleMode: true,
       },
     });
 
@@ -74,6 +76,9 @@ test('tasks routes require auth and scope data to the current user', async () =>
     const created = createResponse.json();
     assert.equal(created.title, 'Write first task');
     assert.equal(created.completed, false);
+    assert.equal(created.bucket, 'deep-work');
+    assert.equal(created.simpleMode, true);
+    assert.equal(created.dueDate, undefined);
 
     const ownerList = await ctx.app.inject({
       method: 'GET',

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, asc, eq } from 'drizzle-orm';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { CreateTaskDto, Task, TaskStatus, UpdateTaskDto } from '@yotara/shared';
+import type { CreateTaskDto, Task, TaskBucket, TaskStatus, UpdateTaskDto } from '@yotara/shared';
 import { auth } from '../lib/auth.js';
 import { fromNodeHeaders } from 'better-auth/node';
 import { db } from '../db/client.js';
@@ -22,6 +22,8 @@ function toTask(task: typeof tasks.$inferSelect): Task {
     priority: task.priority as 'low' | 'medium' | 'high',
     completed: task.completed,
     dueDate: task.dueDate ?? undefined,
+    simpleMode: task.simpleMode,
+    bucket: (task.bucket as TaskBucket | null) ?? undefined,
     order: task.order,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
@@ -34,6 +36,8 @@ function normalizeCreatePayload(body: CreateTaskDto): CreateTaskDto {
     title: body.title.trim(),
     status: body.status ?? 'inbox',
     priority: body.priority ?? 'medium',
+    bucket: body.bucket ?? 'personal-sanctuary',
+    dueDate: body.simpleMode ? undefined : body.dueDate,
   };
 }
 
@@ -175,6 +179,8 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         status: payload.status,
         priority: payload.priority,
         dueDate: payload.dueDate,
+        simpleMode: payload.simpleMode ?? false,
+        bucket: payload.bucket ?? 'personal-sanctuary',
         completed: false,
         order: 0,
         createdAt: now,
@@ -235,6 +241,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       const patch = request.body;
       const status = patch.status ?? existing.status;
       const completed = patch.completed ?? existing.completed;
+      const simpleMode = patch.simpleMode ?? existing.simpleMode;
 
       await db
         .update(tasks)
@@ -242,7 +249,9 @@ export default async function taskRoutes(fastify: FastifyInstance) {
           title: patch.title?.trim() || existing.title,
           description: patch.description ?? existing.description,
           priority: patch.priority ?? existing.priority,
-          dueDate: patch.dueDate ?? existing.dueDate,
+          dueDate: simpleMode ? null : (patch.dueDate ?? existing.dueDate),
+          simpleMode,
+          bucket: patch.bucket ?? existing.bucket,
           order: patch.order ?? existing.order,
           completed,
           status: normalizeStatusOnCompletion(status, completed),

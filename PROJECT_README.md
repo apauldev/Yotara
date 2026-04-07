@@ -3,6 +3,7 @@
 This document is the technical companion to the main repository page.
 
 For the product overview and project positioning, start with [`README.md`](./README.md).
+For the current personal-mode implementation details, see [`docs/personal-mode-mvp.md`](./docs/personal-mode-mvp.md).
 
 **For a detailed technical roadmap of all planned screens, components, build phases, and effort estimates, see the [MVP Roadmap](./ROADMAP.md).**
 
@@ -24,14 +25,21 @@ The Angular app currently contains:
 - login and sign-up flow
 - auth guard for protected routes
 - onboarding mode picker with personal and team options
-- dashboard route
+- team dashboard shell
+- personal shell with Inbox, Today, Upcoming, Projects, and Labels
 - task list UI backed by the task service
+- task detail modal for personal-mode create and edit flows
 
 Current route map:
 
 - `/login`
 - `/onboarding`
 - `/preview/picker`
+- `/inbox`
+- `/today`
+- `/upcoming`
+- `/projects`
+- `/labels`
 - `/dashboard`
 
 ### Backend
@@ -50,6 +58,8 @@ Task records currently support:
 - description
 - status: `inbox | today | upcoming | done | archived`
 - priority: `low | medium | high`
+- simple mode
+- bucket: `personal-sanctuary | deep-work | home | health`
 - completion state
 - due date
 - sort order
