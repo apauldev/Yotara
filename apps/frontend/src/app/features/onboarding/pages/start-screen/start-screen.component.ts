@@ -60,7 +60,7 @@ export class StartScreenComponent {
       await this.authState.completeOnboarding(workspace);
       localStorage.setItem('workspaceType', workspace);
       localStorage.setItem('onboardingCompleted', 'true');
-      await this.router.navigate(['/dashboard']);
+      await this.router.navigateByUrl(this.authState.getPostAuthRedirectUrl());
     } catch (error) {
       console.error('Failed to complete onboarding', error);
       this.error.set('Could not save your workspace mode');

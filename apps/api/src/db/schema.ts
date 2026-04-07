@@ -1,4 +1,12 @@
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import type { TaskBucket } from '@yotara/shared';
+
+const TASK_BUCKET_VALUES = [
+  'personal-sanctuary',
+  'deep-work',
+  'home',
+  'health',
+] as const satisfies readonly TaskBucket[];
 
 export const users = sqliteTable('user', {
   id: text('id').primaryKey(),
@@ -70,6 +78,10 @@ export const tasks = sqliteTable('tasks', {
   completed: integer('completed', { mode: 'boolean' }).notNull().default(false),
   order: integer('sort_order').notNull().default(0),
   dueDate: text('due_date'),
+  simpleMode: integer('simple_mode', { mode: 'boolean' }).notNull().default(false),
+  bucket: text('bucket', {
+    enum: TASK_BUCKET_VALUES,
+  }).default('personal-sanctuary'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
