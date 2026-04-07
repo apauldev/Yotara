@@ -72,6 +72,8 @@ const SQLITE_BOOTSTRAP_SQL = `
     completed INTEGER NOT NULL DEFAULT 0,
     sort_order INTEGER NOT NULL DEFAULT 0,
     due_date TEXT,
+    simple_mode INTEGER NOT NULL DEFAULT 0,
+    bucket TEXT DEFAULT 'personal-sanctuary',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE SET NULL
@@ -106,6 +108,17 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
 
   if (!columnNames.has('onboardingCompleted')) {
     sqlite.exec(`ALTER TABLE user ADD COLUMN onboardingCompleted INTEGER NOT NULL DEFAULT 0`);
+  }
+
+  const taskColumns = sqlite.prepare(`PRAGMA table_info('tasks')`).all() as Array<{ name: string }>;
+  const taskColumnNames = new Set(taskColumns.map((column) => column.name));
+
+  if (!taskColumnNames.has('simple_mode')) {
+    sqlite.exec(`ALTER TABLE tasks ADD COLUMN simple_mode INTEGER NOT NULL DEFAULT 0`);
+  }
+
+  if (!taskColumnNames.has('bucket')) {
+    sqlite.exec(`ALTER TABLE tasks ADD COLUMN bucket TEXT DEFAULT 'personal-sanctuary'`);
   }
 }
 

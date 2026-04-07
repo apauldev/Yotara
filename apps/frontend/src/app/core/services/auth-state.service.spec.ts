@@ -87,6 +87,25 @@ describe('AuthStateService', () => {
 
     expect(service.user()?.workspaceMode).toBe('personal');
     expect(service.user()?.onboardingCompleted).toBeTrue();
+    expect(service.getPostAuthRedirectUrl()).toBe('/inbox');
+  });
+
+  it('returns the team dashboard when onboarding is complete in team mode', async () => {
+    spyOn(AuthService, 'completeOnboarding').and.resolveTo({
+      user: {
+        id: 'user-1',
+        email: 'person@example.com',
+        name: 'Person',
+        onboardingCompleted: true,
+        workspaceMode: 'team',
+        createdAt: '2026-03-19T00:00:00.000Z',
+      },
+    });
+
+    const service = TestBed.inject(AuthStateService);
+
+    await service.completeOnboarding('team');
+
     expect(service.getPostAuthRedirectUrl()).toBe('/dashboard');
   });
 });

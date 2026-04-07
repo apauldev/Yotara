@@ -40,6 +40,11 @@ const taskSchema = {
     },
     completed: { type: 'boolean' },
     dueDate: { type: 'string', format: 'date' },
+    simpleMode: { type: 'boolean' },
+    bucket: {
+      type: 'string',
+      enum: ['personal-sanctuary', 'deep-work', 'home', 'health'],
+    },
     projectId: { type: 'string' },
     assigneeId: { type: 'string' },
     parentTaskId: { type: 'string' },
@@ -69,6 +74,11 @@ const createTaskSchema = {
       enum: ['low', 'medium', 'high'],
     },
     dueDate: { type: 'string', format: 'date' },
+    simpleMode: { type: 'boolean' },
+    bucket: {
+      type: 'string',
+      enum: ['personal-sanctuary', 'deep-work', 'home', 'health'],
+    },
     projectId: { type: 'string' },
     parentTaskId: { type: 'string' },
     labels: {
@@ -94,6 +104,11 @@ const updateTaskSchema = {
       enum: ['low', 'medium', 'high'],
     },
     dueDate: { type: 'string', format: 'date' },
+    simpleMode: { type: 'boolean' },
+    bucket: {
+      type: 'string',
+      enum: ['personal-sanctuary', 'deep-work', 'home', 'health'],
+    },
     projectId: { type: 'string' },
     parentTaskId: { type: 'string' },
     labels: {
