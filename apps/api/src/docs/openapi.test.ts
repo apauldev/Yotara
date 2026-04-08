@@ -96,6 +96,9 @@ test('openapi spec includes representative response contracts and examples', asy
 
     assert.ok(spec.paths['/tasks'].get.responses['200']);
     assert.ok(spec.paths['/tasks'].get.responses['401']);
+    assert.ok(spec.paths['/tasks'].get.parameters);
+    assert.equal(spec.paths['/tasks'].get.parameters[0].name, 'page');
+    assert.equal(spec.paths['/tasks'].get.parameters[1].name, 'pageSize');
     assert.ok(spec.paths['/tasks'].post.responses['201']);
     assert.ok(spec.paths['/tasks'].post.responses['400']);
     assert.ok(spec.paths['/tasks'].post.responses['500']);
@@ -108,6 +111,11 @@ test('openapi spec includes representative response contracts and examples', asy
       spec.paths['/tasks'].post.responses['400'].content['application/json'].example.message,
       'Task title is required',
     );
+    assert.equal(
+      spec.paths['/tasks'].get.responses['200'].content['application/json'].example.meta.page,
+      1,
+    );
+    assert.ok(spec.paths['/tasks'].get.responses['200'].content['application/json'].schema);
     assert.equal(
       spec.paths['/auth/sign-in/email'].post.responses['401'].content['application/json'].example
         .code,

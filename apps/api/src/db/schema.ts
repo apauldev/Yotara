@@ -82,6 +82,7 @@ export const tasks = sqliteTable('tasks', {
   bucket: text('bucket', {
     enum: TASK_BUCKET_VALUES,
   }).default('personal-sanctuary'),
+  deletedAt: text('deleted_at'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });

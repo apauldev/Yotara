@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { CreateTaskDto, Task, UpdateTaskDto } from '@yotara/shared';
+import { CreateTaskDto, PaginatedResponse, Task, UpdateTaskDto } from '@yotara/shared';
 import {
   catchError,
   combineLatest,
@@ -46,22 +46,26 @@ export class TaskService {
         this.loadingState.set(true);
         this.errorState.set(null);
 
-        return this.http.get<Task[]>(`${this.baseUrl}/tasks`, { withCredentials: true }).pipe(
-          map((tasks) => [...tasks].sort((left, right) => left.order - right.order)),
-          catchError((error: unknown) => {
-            if (error instanceof HttpErrorResponse && error.status === 401) {
-              this.errorState.set(null);
-              return of([] as Task[]);
-            }
+        return this.http
+          .get<PaginatedResponse<Task[]>>(`${this.baseUrl}/tasks?page=1&pageSize=100`, {
+            withCredentials: true,
+          })
+          .pipe(
+            map((response) => [...response.data].sort((left, right) => left.order - right.order)),
+            catchError((error: unknown) => {
+              if (error instanceof HttpErrorResponse && error.status === 401) {
+                this.errorState.set(null);
+                return of([] as Task[]);
+              }
 
-            console.error('Failed to load tasks', error);
-            this.errorState.set('Could not load your tasks right now.');
-            return of([] as Task[]);
-          }),
-          finalize(() => {
-            this.loadingState.set(false);
-          }),
-        );
+              console.error('Failed to load tasks', error);
+              this.errorState.set('Could not load your tasks right now.');
+              return of([] as Task[]);
+            }),
+            finalize(() => {
+              this.loadingState.set(false);
+            }),
+          );
       }),
     ),
     { initialValue: [] as Task[] },
