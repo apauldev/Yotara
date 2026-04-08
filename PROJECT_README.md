@@ -51,6 +51,8 @@ The Fastify API currently exposes:
 - `/auth/*` Better Auth endpoints
 - `/me` current authenticated user
 - `/tasks` CRUD endpoints for user-owned tasks
+- `/docs` Swagger UI for API consumers
+- `/docs/openapi.json` raw OpenAPI document
 
 Task records currently support:
 
@@ -63,6 +65,7 @@ Task records currently support:
 - completion state
 - due date
 - sort order
+- soft delete timestamp (`deleted_at` in SQLite)
 
 ### Storage
 
@@ -111,6 +114,26 @@ pnpm dev
 ```
 
 Use individual package commands only when you want to isolate one service.
+
+### Docker Compose deployment
+
+For a containerized setup with persisted SQLite data:
+
+```bash
+pnpm docker:up
+```
+
+This starts:
+
+- frontend at `http://localhost:8080`
+- API behind the frontend proxy at `http://localhost:8080/api`
+- API docs at `http://localhost:8080/docs`
+
+To stop containers:
+
+```bash
+pnpm docker:down
+```
 
 ### Start everything
 

@@ -1,7 +1,14 @@
 import { randomUUID } from 'node:crypto';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { CreateTaskDto, Task, TaskBucket, TaskStatus, UpdateTaskDto } from '@yotara/shared';
+import type {
+  CreateTaskDto,
+  PaginatedResponse,
+  Task,
+  TaskBucket,
+  TaskStatus,
+  UpdateTaskDto,
+} from '@yotara/shared';
 import { auth } from '../lib/auth.js';
 import { fromNodeHeaders } from 'better-auth/node';
 import { db } from '../db/client.js';
@@ -65,18 +72,27 @@ async function requireUserId(request: FastifyRequest) {
  * Tasks routes backed by SQLite via Drizzle.
  */
 export default async function taskRoutes(fastify: FastifyInstance) {
-  fastify.get<{ Reply: Task[] | { message: string } }>(
+  fastify.get<{
+    Querystring: { page?: number; pageSize?: number };
+    Reply: PaginatedResponse<Task[]> | { message: string };
+  }>(
     '/tasks',
     {
       schema: withJsonResponse({
         tags: ['tasks'],
         summary: 'List tasks',
         security: authCookieSecurity,
+        querystring: {
+          type: 'object',
+          properties: {
+            page: { type: 'integer', minimum: 1, default: 1 },
+            pageSize: { type: 'integer', minimum: 1, maximum: 100, default: 50 },
+          },
+        },
         response: {
           200: {
             description: 'Tasks for the authenticated user',
-            type: 'array',
-            items: { $ref: 'Task#' },
+            $ref: 'PaginatedTasksResponse#',
           },
           401: errorResponseSchema('Authentication required', 'Unauthorized'),
         },
@@ -88,12 +104,36 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         return reply.code(401).send({ message: 'Unauthorized' });
       }
 
+      const page = Math.max(1, request.query.page ?? 1);
+      const pageSize = Math.min(100, Math.max(1, request.query.pageSize ?? 50));
+      const offset = (page - 1) * pageSize;
+
+      const whereClause = and(eq(tasks.userId, userId), isNull(tasks.deletedAt));
+      const [{ total }] = await db
+        .select({ total: sql<number>`count(*)` })
+        .from(tasks)
+        .where(whereClause);
+
       const rows = await db
         .select()
         .from(tasks)
-        .where(eq(tasks.userId, userId))
-        .orderBy(asc(tasks.order), asc(tasks.createdAt));
-      return rows.map(toTask);
+        .where(whereClause)
+        .orderBy(asc(tasks.order), asc(tasks.createdAt))
+        .limit(pageSize)
+        .offset(offset);
+
+      const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
+      return {
+        data: rows.map(toTask),
+        meta: {
+          total,
+          page,
+          pageSize,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1 && totalPages > 0,
+        },
+      };
     },
   );
 
@@ -124,7 +164,9 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       const [row] = await db
         .select()
         .from(tasks)
-        .where(and(eq(tasks.id, request.params.id), eq(tasks.userId, userId)))
+        .where(
+          and(eq(tasks.id, request.params.id), eq(tasks.userId, userId), isNull(tasks.deletedAt)),
+        )
         .limit(1);
 
       if (!row) {
@@ -183,6 +225,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         bucket: payload.bucket ?? 'personal-sanctuary',
         completed: false,
         order: 0,
+        deletedAt: null,
         createdAt: now,
         updatedAt: now,
       });
@@ -190,7 +233,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       const [created] = await db
         .select()
         .from(tasks)
-        .where(and(eq(tasks.id, id), eq(tasks.userId, userId)))
+        .where(and(eq(tasks.id, id), eq(tasks.userId, userId), isNull(tasks.deletedAt)))
         .limit(1);
       if (!created) {
         return reply.code(500).send({ message: 'Failed to create task' });
@@ -231,7 +274,9 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       const [existing] = await db
         .select()
         .from(tasks)
-        .where(and(eq(tasks.id, request.params.id), eq(tasks.userId, userId)))
+        .where(
+          and(eq(tasks.id, request.params.id), eq(tasks.userId, userId), isNull(tasks.deletedAt)),
+        )
         .limit(1);
 
       if (!existing) {
@@ -262,7 +307,9 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       const [updated] = await db
         .select()
         .from(tasks)
-        .where(and(eq(tasks.id, request.params.id), eq(tasks.userId, userId)))
+        .where(
+          and(eq(tasks.id, request.params.id), eq(tasks.userId, userId), isNull(tasks.deletedAt)),
+        )
         .limit(1);
       if (!updated) {
         return reply.code(500).send({ message: 'Failed to update task' });
@@ -303,13 +350,22 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       const [row] = await db
         .select()
         .from(tasks)
-        .where(and(eq(tasks.id, request.params.id), eq(tasks.userId, userId)))
+        .where(
+          and(eq(tasks.id, request.params.id), eq(tasks.userId, userId), isNull(tasks.deletedAt)),
+        )
         .limit(1);
       if (!row) {
         return reply.code(404).send({ message: 'Task not found' });
       }
 
-      await db.delete(tasks).where(eq(tasks.id, request.params.id));
+      const now = new Date().toISOString();
+      await db
+        .update(tasks)
+        .set({
+          deletedAt: now,
+          updatedAt: now,
+        })
+        .where(eq(tasks.id, request.params.id));
       return { ok: true };
     },
   );

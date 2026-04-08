@@ -15,6 +15,20 @@ describe('TaskService', () => {
     return date.toISOString();
   }
 
+  function paginated(tasks: Task[]) {
+    return {
+      data: tasks,
+      meta: {
+        total: tasks.length,
+        page: 1,
+        pageSize: 100,
+        totalPages: tasks.length === 0 ? 0 : 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      },
+    };
+  }
+
   beforeEach(() => {
     initialized.set(false);
     isAuthenticated.set(false);
@@ -46,7 +60,7 @@ describe('TaskService', () => {
     tick();
 
     expect(service.tasks()).toEqual([]);
-    http.expectNone('http://localhost:3000/tasks');
+    http.expectNone('http://localhost:3000/tasks?page=1&pageSize=100');
   }));
 
   it('does not request tasks when the user is not authenticated', fakeAsync(() => {
@@ -57,7 +71,7 @@ describe('TaskService', () => {
     tick();
 
     expect(service.tasks()).toEqual([]);
-    http.expectNone('http://localhost:3000/tasks');
+    http.expectNone('http://localhost:3000/tasks?page=1&pageSize=100');
   }));
 
   it('returns an empty list when the tasks endpoint responds with 401', fakeAsync(() => {
@@ -68,7 +82,7 @@ describe('TaskService', () => {
     isAuthenticated.set(true);
     tick();
 
-    const request = http.expectOne('http://localhost:3000/tasks');
+    const request = http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100');
     expect(request.request.withCredentials).toBeTrue();
     request.flush({ message: 'Unauthorized' }, { status: 401, statusText: 'Unauthorized' });
     tick();
@@ -153,7 +167,7 @@ describe('TaskService', () => {
       },
     ];
 
-    http.expectOne('http://localhost:3000/tasks').flush(tasks);
+    http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100').flush(paginated(tasks));
     tick();
 
     expect(service.inboxTasks().map((task) => task.id)).toEqual(['inbox-1']);
@@ -177,7 +191,7 @@ describe('TaskService', () => {
     isAuthenticated.set(true);
     tick();
 
-    http.expectOne('http://localhost:3000/tasks').flush([]);
+    http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100').flush(paginated([]));
     tick();
 
     let createdTask: Task | undefined;
@@ -210,21 +224,23 @@ describe('TaskService', () => {
     });
     tick();
 
-    const refreshRequest = http.expectOne('http://localhost:3000/tasks');
-    refreshRequest.flush([
-      {
-        id: 'created-1',
-        title: 'New capture',
-        status: 'inbox',
-        priority: 'medium',
-        completed: false,
-        simpleMode: true,
-        bucket: 'personal-sanctuary',
-        order: 0,
-        createdAt: dayOffset(0),
-        updatedAt: dayOffset(0),
-      },
-    ]);
+    const refreshRequest = http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100');
+    refreshRequest.flush(
+      paginated([
+        {
+          id: 'created-1',
+          title: 'New capture',
+          status: 'inbox',
+          priority: 'medium',
+          completed: false,
+          simpleMode: true,
+          bucket: 'personal-sanctuary',
+          order: 0,
+          createdAt: dayOffset(0),
+          updatedAt: dayOffset(0),
+        },
+      ]),
+    );
     tick();
 
     expect(createdTask?.id).toBe('created-1');
@@ -239,7 +255,7 @@ describe('TaskService', () => {
     isAuthenticated.set(true);
     tick();
 
-    http.expectOne('http://localhost:3000/tasks').flush([]);
+    http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100').flush(paginated([]));
     tick();
 
     void service.updateTask('task-1', {
@@ -267,22 +283,24 @@ describe('TaskService', () => {
     });
     tick();
 
-    const refreshRequest = http.expectOne('http://localhost:3000/tasks');
-    refreshRequest.flush([
-      {
-        id: 'task-1',
-        title: 'Refined task',
-        status: 'inbox',
-        priority: 'medium',
-        completed: false,
-        simpleMode: false,
-        dueDate: '2026-04-08',
-        bucket: 'deep-work',
-        order: 0,
-        createdAt: dayOffset(0),
-        updatedAt: dayOffset(0),
-      },
-    ]);
+    const refreshRequest = http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100');
+    refreshRequest.flush(
+      paginated([
+        {
+          id: 'task-1',
+          title: 'Refined task',
+          status: 'inbox',
+          priority: 'medium',
+          completed: false,
+          simpleMode: false,
+          dueDate: '2026-04-08',
+          bucket: 'deep-work',
+          order: 0,
+          createdAt: dayOffset(0),
+          updatedAt: dayOffset(0),
+        },
+      ]),
+    );
     tick();
 
     expect(service.inboxTasks()[0]?.bucket).toBe('deep-work');

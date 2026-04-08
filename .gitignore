@@ -6,3 +6,4 @@ apps/api/data/*.db
 apps/api/data/*.db-*
 apps/api/.env
 packages/shared/tsconfig.tsbuildinfo
+.DS_Store

@@ -19,7 +19,10 @@
     "dev:studio": "pnpm --filter @yotara/api db:studio",
     "db:studio": "pnpm --filter @yotara/api db:studio",
     "docs:check": "pnpm --filter @yotara/api docs:check",
-    "docs:export": "pnpm --filter @yotara/api docs:export"
+    "docs:export": "pnpm --filter @yotara/api docs:export",
+    "docker:up": "docker-compose up --build -d",
+    "docker:down": "docker-compose down",
+    "smoke:docker": "bash scripts/docker-smoke.sh"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
