@@ -88,7 +88,8 @@ test('tasks routes require auth and scope data to the current user', async () =>
       },
     });
     assert.equal(ownerList.statusCode, 200);
-    assert.equal(ownerList.json().length, 1);
+    assert.equal(ownerList.json().data.length, 1);
+    assert.equal(ownerList.json().meta.total, 1);
 
     const otherUserList = await ctx.app.inject({
       method: 'GET',
@@ -98,7 +99,8 @@ test('tasks routes require auth and scope data to the current user', async () =>
       },
     });
     assert.equal(otherUserList.statusCode, 200);
-    assert.equal(otherUserList.json().length, 0);
+    assert.equal(otherUserList.json().data.length, 0);
+    assert.equal(otherUserList.json().meta.total, 0);
 
     const otherUserFetch = await ctx.app.inject({
       method: 'GET',
@@ -108,6 +110,126 @@ test('tasks routes require auth and scope data to the current user', async () =>
       },
     });
     assert.equal(otherUserFetch.statusCode, 404);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('tasks list supports pagination and delete is a soft delete', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const userCookie = await signUpAndGetCookie(`owner-${randomUUID()}@example.com`);
+
+    for (const title of ['Task 1', 'Task 2', 'Task 3']) {
+      const createResponse = await ctx.app.inject({
+        method: 'POST',
+        url: '/tasks',
+        headers: { cookie: userCookie },
+        payload: { title, status: 'inbox', priority: 'medium', simpleMode: true },
+      });
+      assert.equal(createResponse.statusCode, 201);
+    }
+
+    const firstPage = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?page=1&pageSize=2',
+      headers: { cookie: userCookie },
+    });
+    assert.equal(firstPage.statusCode, 200);
+    assert.equal(firstPage.json().data.length, 2);
+    assert.equal(firstPage.json().meta.total, 3);
+    assert.equal(firstPage.json().meta.totalPages, 2);
+    assert.equal(firstPage.json().meta.hasNextPage, true);
+    assert.equal(firstPage.json().meta.hasPreviousPage, false);
+
+    const secondPage = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?page=2&pageSize=2',
+      headers: { cookie: userCookie },
+    });
+    assert.equal(secondPage.statusCode, 200);
+    assert.equal(secondPage.json().data.length, 1);
+    assert.equal(secondPage.json().meta.page, 2);
+    assert.equal(secondPage.json().meta.hasNextPage, false);
+    assert.equal(secondPage.json().meta.hasPreviousPage, true);
+
+    const deleteId = firstPage.json().data[0].id as string;
+    const deleteResponse = await ctx.app.inject({
+      method: 'DELETE',
+      url: `/tasks/${deleteId}`,
+      headers: { cookie: userCookie },
+    });
+    assert.equal(deleteResponse.statusCode, 200);
+
+    const afterDelete = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks',
+      headers: { cookie: userCookie },
+    });
+    assert.equal(afterDelete.statusCode, 200);
+    assert.equal(afterDelete.json().meta.total, 2);
+    assert.ok(afterDelete.json().data.every((task: { id: string }) => task.id !== deleteId));
+
+    const deletedFetch = await ctx.app.inject({
+      method: 'GET',
+      url: `/tasks/${deleteId}`,
+      headers: { cookie: userCookie },
+    });
+    assert.equal(deletedFetch.statusCode, 404);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('tasks pagination validates query bounds and soft-deleted tasks cannot be updated', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const userCookie = await signUpAndGetCookie(`clamp-${randomUUID()}@example.com`);
+
+    for (let i = 0; i < 3; i += 1) {
+      const createResponse = await ctx.app.inject({
+        method: 'POST',
+        url: '/tasks',
+        headers: { cookie: userCookie },
+        payload: { title: `Task ${i + 1}`, status: 'inbox', priority: 'medium', simpleMode: true },
+      });
+      assert.equal(createResponse.statusCode, 201);
+    }
+
+    const invalidPageResponse = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?page=0&pageSize=500',
+      headers: { cookie: userCookie },
+    });
+    assert.equal(invalidPageResponse.statusCode, 400);
+
+    const validResponse = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?page=1&pageSize=2',
+      headers: { cookie: userCookie },
+    });
+    assert.equal(validResponse.statusCode, 200);
+    assert.equal(validResponse.json().meta.page, 1);
+    assert.equal(validResponse.json().meta.pageSize, 2);
+    assert.equal(validResponse.json().meta.total, 3);
+
+    const deleteId = validResponse.json().data[0].id as string;
+    const deleteResponse = await ctx.app.inject({
+      method: 'DELETE',
+      url: `/tasks/${deleteId}`,
+      headers: { cookie: userCookie },
+    });
+    assert.equal(deleteResponse.statusCode, 200);
+
+    const patchDeleted = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${deleteId}`,
+      headers: { cookie: userCookie },
+      payload: { title: 'Should not update' },
+    });
+    assert.equal(patchDeleted.statusCode, 404);
   } finally {
     await ctx.cleanup();
   }

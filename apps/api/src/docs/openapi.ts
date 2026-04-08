@@ -121,6 +121,33 @@ const updateTaskSchema = {
   additionalProperties: false,
 } as const;
 
+const paginationMetaSchema = {
+  $id: 'PaginationMeta',
+  type: 'object',
+  required: ['total', 'page', 'pageSize', 'totalPages', 'hasNextPage', 'hasPreviousPage'],
+  properties: {
+    total: { type: 'integer', minimum: 0 },
+    page: { type: 'integer', minimum: 1 },
+    pageSize: { type: 'integer', minimum: 1 },
+    totalPages: { type: 'integer', minimum: 0 },
+    hasNextPage: { type: 'boolean' },
+    hasPreviousPage: { type: 'boolean' },
+  },
+} as const;
+
+const paginatedTasksResponseSchema = {
+  $id: 'PaginatedTasksResponse',
+  type: 'object',
+  required: ['data', 'meta'],
+  properties: {
+    data: {
+      type: 'array',
+      items: { $ref: 'Task#' },
+    },
+    meta: { $ref: 'PaginationMeta#' },
+  },
+} as const;
+
 const userSchema = {
   $id: 'User',
   type: 'object',
@@ -269,6 +296,8 @@ const sharedSchemas = [
   taskSchema,
   createTaskSchema,
   updateTaskSchema,
+  paginationMetaSchema,
+  paginatedTasksResponseSchema,
   userSchema,
   apiErrorSchema,
   sessionSchema,
@@ -313,6 +342,30 @@ export const examples = {
   updateTask: {
     completed: true,
     status: 'done',
+  },
+  paginatedTasks: {
+    data: [
+      {
+        id: '9fd8141d-e282-43b8-96d5-a19e6b6f0c8f',
+        title: 'Write API docs',
+        description: 'Document every route with OpenAPI',
+        status: 'today',
+        priority: 'high',
+        completed: false,
+        dueDate: '2026-03-18',
+        order: 0,
+        createdAt: '2026-03-16T12:00:00.000Z',
+        updatedAt: '2026-03-16T12:00:00.000Z',
+      },
+    ],
+    meta: {
+      total: 1,
+      page: 1,
+      pageSize: 50,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    },
   },
   me: {
     user: {
@@ -431,7 +484,7 @@ function addOpenApiExamples(paths: OpenApiPathRecord) {
 
   const tasksListGet = paths['/tasks']?.get;
   if (tasksListGet) {
-    ensureJsonContent(tasksListGet, '200').example = [examples.task];
+    ensureJsonContent(tasksListGet, '200').example = examples.paginatedTasks;
     ensureJsonContent(tasksListGet, '401').example = examples.apiError('Unauthorized');
   }
 

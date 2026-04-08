@@ -8,6 +8,13 @@
       "when": 1772794335972,
       "tag": "0000_abnormal_maelstrom",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1772794335973,
+      "tag": "0001_soft_delete_tasks",
+      "breakpoints": true
     }
   ]
 }

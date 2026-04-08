@@ -74,6 +74,7 @@ const SQLITE_BOOTSTRAP_SQL = `
     due_date TEXT,
     simple_mode INTEGER NOT NULL DEFAULT 0,
     bucket TEXT DEFAULT 'personal-sanctuary',
+    deleted_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE SET NULL
@@ -119,6 +120,10 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
 
   if (!taskColumnNames.has('bucket')) {
     sqlite.exec(`ALTER TABLE tasks ADD COLUMN bucket TEXT DEFAULT 'personal-sanctuary'`);
+  }
+
+  if (!taskColumnNames.has('deleted_at')) {
+    sqlite.exec(`ALTER TABLE tasks ADD COLUMN deleted_at TEXT`);
   }
 }
 
