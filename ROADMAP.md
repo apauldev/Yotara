@@ -16,11 +16,11 @@ This document outlines the complete list of screens, pages, and modals needed fo
 - Auto-login after success → redirect to onboarding or inbox
 
 ### Welcome / Onboarding
-- **Status**: ✅ Partially built (mode selector component exists)
+- **Status**: ✅ Built
 - 1–3 step flow or single screen with mode cards
 - Two big cards: "Personal & Simple" vs "Light Team Sharing"
 - "Continue" button creates default workspace/project
-- Shown only once (localStorage or user profile flag)
+- Shown only once through the user onboarding flag
 
 ### Forgot Password (Optional MVP)
 - Email input → send reset link
@@ -31,7 +31,8 @@ This document outlines the complete list of screens, pages, and modals needed fo
 ## 2. Main Protected App Structure
 
 ### App Shell / Layout Wrapper
-- Persistent layout for all authenticated routes
+- **Status**: ✅ Built
+- Persistent layout for authenticated routes
 - Left sidebar (desktop) / bottom nav (mobile)
 - Top bar with:
   - Quick add task input
@@ -55,22 +56,26 @@ This document outlines the complete list of screens, pages, and modals needed fo
 ## 3. Core Task & Productivity Screens
 
 ### Inbox / Home (`/` or `/inbox`)
+- **Status**: ✅ Built
 - Default view after login
 - Displays uncategorized/inbox tasks + quick capture focus
 - List view with task items
 - Empty state when no tasks
 
 ### Today (`/today`)
+- **Status**: ✅ Built
 - Tasks due today + overdue (highlighted)
 - Sorted by priority
 - Quick daily focus view
 
 ### Upcoming (`/upcoming`)
+- **Status**: ✅ Built
 - Tasks grouped by week / date
 - Sections: This Week, Next Week, Later
 - Visual timeline sense
 
 ### Project / List Detail (`/projects/:id` or `/lists/:slug`)
+- **Status**: 🟡 Placeholder UI exists, full project data model still pending
 - Project name header + description
 - **View switcher**: List | Kanban
   - List view: traditional task list
@@ -79,6 +84,7 @@ This document outlines the complete list of screens, pages, and modals needed fo
 - Edit/archive project options
 
 ### Task Detail / Edit Modal ⭐ (Most Important)
+- **Status**: ✅ Built for personal-mode task create/edit
 - **Triggered from**: task list click or create action
 - **Core fields**:
   - Title (editable)
@@ -116,6 +122,7 @@ This document outlines the complete list of screens, pages, and modals needed fo
 ## 5. Utility & Settings Screens
 
 ### Settings (`/settings`)
+- **Status**: Not started
 - **Account tab**
   - Email display/change
   - Password change
@@ -182,20 +189,20 @@ This document outlines the complete list of screens, pages, and modals needed fo
 ### Phase 1: Authentication & Shell (Foundation)
 1. ✅ Login + Register + auto-redirect
 2. ✅ Onboarding mode choice → create default data
-3. **App shell + sidebar + top quick-add**
-4. **Auth guard on all protected routes**
+3. ✅ App shell + sidebar + top quick-add
+4. ✅ Auth guard on all protected routes
 
 ### Phase 2: Core Task Management (Usable Product)
-5. **Inbox list** + basic task item component
-6. **Task create & detail modal** (the heavy lift)
-7. **Today + Upcoming** (reuse task list component)
-8. **Project create + project detail** (list view first)
+5. ✅ Inbox list + task item component
+6. ✅ Task create & detail modal
+7. ✅ Today + Upcoming views
+8. 🟡 Project create + project detail (data model still pending)
 
 ### Phase 3: Polish & Secondary Features
-9. **Mode toggle logic** (hide/show team features)
-10. **Settings basics + logout**
-11. **Empty states + error handling**
-12. **Global search**
+9. ✅ Mode toggle logic (personal vs team shell direction)
+10. 🟡 Settings basics + logout
+11. ✅ Empty states + error handling
+12. 🟡 Global search
 
 ### Phase 4: Enhanced UX
 - Kanban view for projects
@@ -208,6 +215,13 @@ This document outlines the complete list of screens, pages, and modals needed fo
 - Comments & activity log
 - Real-time collaboration
 
+### Delivery / Ops
+- API docs exposed at `/docs`
+- Paginated task list endpoint
+- Soft delete support for tasks
+- Docker and Compose deployment path
+- Docker smoke script for local verification
+
 ---
 
 ## Current Build Status
@@ -216,22 +230,24 @@ This document outlines the complete list of screens, pages, and modals needed fo
 - Login / Sign In form
 - Register / Sign Up form
 - Onboarding mode selector (Personal / Team)
-- App shell & sidebar layout (basic structure)
+- Personal-mode app shell & navigation
 - Auth guard integration
-- Task service (CRUD backend ready)
+- Task service (CRUD + paginated task loading)
+- Task API with pagination and soft delete
+- OpenAPI docs and Swagger UI
+- Docker deployment and smoke checks
 - Inbox counter pipe
 
 ### 🔄 In Progress
-- Onboarding flow completion
-- Task list UI
+- Team-mode shell and workspace primitives
+- Project data model and project detail screens
 
 ### 📋 Not Started
-- Task detail modal
-- Today / Upcoming views
-- Project management
-- Team mode views
+- Kanban project view
+- Subtasks and recurring tasks UI
+- Global search
 - Settings pages
-- Team workspace features
+- Team workspace membership and assignment features
 
 ---
 
