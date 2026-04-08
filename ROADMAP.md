@@ -199,10 +199,13 @@ This document outlines the complete list of screens, pages, and modals needed fo
 8. 🟡 Project create + project detail (data model still pending)
 
 ### Phase 3: Polish & Secondary Features
-9. ✅ Mode toggle logic (personal vs team shell direction)
-10. 🟡 Settings basics + logout
-11. ✅ Empty states + error handling
-12. 🟡 Global search
+9. 🟡 Settings basics + logout
+10. ✅ Empty states + error handling
+11. 🟡 Global search
+12. 🟡 Labels / tags management
+13. 🟡 Workspace switcher and member list UI
+14. 🟡 404 page + delete confirmation modal
+15. 🟡 Task loading skeletons + validation/error polish
 
 ### Phase 4: Enhanced UX
 - Kanban view for projects
@@ -241,13 +244,16 @@ This document outlines the complete list of screens, pages, and modals needed fo
 ### 🔄 In Progress
 - Team-mode shell and workspace primitives
 - Project data model and project detail screens
+- Settings shell and account/logout flows
 
 ### 📋 Not Started
 - Kanban project view
 - Subtasks and recurring tasks UI
 - Global search
-- Settings pages
 - Team workspace membership and assignment features
+- Labels / tags management
+- 404 page and confirmation dialogs
+- Task loading skeletons and form validation polish
 
 ---
 
