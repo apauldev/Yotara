@@ -1,0 +1,26 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: ./apps/api/data/yotara.db
+      APP_BASE_URL: http://localhost:8080/api
+      TRUSTED_ORIGINS: http://localhost:8080
+      BETTER_AUTH_SECRET: local-dev-secret-change-me
+      HOST: 0.0.0.0
+      PORT: 3000
+    volumes:
+      - yotara_api_data:/app/apps/api/data
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    depends_on:
+      - api
+    ports:
+      - '8080:80'
+
+volumes:
+  yotara_api_data:
