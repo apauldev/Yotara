@@ -184,6 +184,48 @@ This document outlines the complete list of screens, pages, and modals needed fo
 
 ---
 
+## 7. Deployment & Distribution
+
+### Pre-Built Docker Images
+- **Status**: Not started
+- **Effort**: 2 hours
+- **Impact**: 200-300 early users (indie devs)
+- Build `apauldev/yotara-api` and `apauldev/yotara-frontend` images
+- Setup GitHub Actions CI to push on release tags
+- Push to Docker Hub for instant zero-build deployment
+- Update docs with: `docker run -p 8080:80 apauldev/yotara:latest`
+
+### Docker Compose with Pre-Built Images
+- **Status**: Not started
+- **Effort**: 1 hour
+- **Impact**: Primary deployment method for self-hosters
+- Create root `docker-compose.yml` that pulls pre-built images (not building locally)
+- Document environment variables clearly (BETTER_AUTH_SECRET, DATABASE_URL, TRUSTED_ORIGINS)
+- Include volume setup for SQLite data persistence
+- Add health check endpoints to both containers
+
+### One-Click Cloud Deploy Templates
+- **Status**: Not started
+- **Effort**: 3-4 hours (per platform)
+- **Impact**: 300-400 users (low-friction cloud deployers)
+
+#### Render.com Template
+- Create `render.yaml` blueprint
+- Auto-configure API + frontend services
+- Environment variables UI in dashboard
+- Auto-rebuild on GitHub push
+
+#### Railway.app Template
+- Create `railway.toml` config
+- One-click "Deploy to Railway" button on README
+- Handles secrets and environment setup
+
+#### Coolify (Optional)
+- Add Coolify deployment documentation
+- Target: indie devs running their own VPS
+
+---
+
 ## Build Order (Fastest Path to MVP)
 
 ### Phase 1: Authentication & Shell (Foundation)
@@ -218,12 +260,21 @@ This document outlines the complete list of screens, pages, and modals needed fo
 - Comments & activity log
 - Real-time collaboration
 
+### Phase 6: Deployment & Distribution (Growth)
+- Pre-built Docker images on Docker Hub
+- Docker Compose with pre-built images (no local build)
+- Render.com one-click deploy template
+- Railway.app one-click deploy template
+- Coolify deployment documentation (optional)
+
 ### Delivery / Ops
 - API docs exposed at `/docs`
 - Paginated task list endpoint
 - Soft delete support for tasks
 - Docker and Compose deployment path
 - Docker smoke script for local verification
+- GitHub Actions CI for Docker image builds and pushes
+- Environment variable documentation for all platforms
 
 ---
 
@@ -254,6 +305,8 @@ This document outlines the complete list of screens, pages, and modals needed fo
 - Labels / tags management
 - 404 page and confirmation dialogs
 - Task loading skeletons and form validation polish
+- Pre-built Docker images (Phase 6)
+- One-click cloud deploy templates (Phase 6)
 
 ---
 
