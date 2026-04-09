@@ -11,4 +11,3 @@ apps/api/data
 apps/frontend/dist
 .turbo
 .git
-.vscode
