@@ -208,6 +208,7 @@ That guide covers:
 Additional implementation notes:
 
 - [Personal Mode MVP](./docs/personal-mode-mvp.md)
+- [Task API examples](./PROJECT_README.md#task-api-examples)
 
 ## API Examples
 
