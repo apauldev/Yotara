@@ -360,6 +360,122 @@ The generated spec includes app-owned routes plus the configured Better Auth end
 
 Use the generated docs as the source of truth for request/response shapes and examples. Keep this README limited to high-level notes that are not duplicated in OpenAPI.
 
+## Task API Examples
+
+All task endpoints require authentication.
+
+- Use a session cookie for every request.
+- In a browser app that is already signed in, `fetch(..., { credentials: 'include' })` is enough.
+- In Node.js or other server-side clients, send the cookie explicitly with a `Cookie` header.
+
+The API runs at `http://localhost:3000` by default.
+
+### Create a task
+
+```bash
+curl -X POST http://localhost:3000/tasks \
+  -H "Content-Type: application/json" \
+  -b "better-auth.session_token=YOUR_SESSION_TOKEN" \
+  -d '{
+    "title": "Write contribution guide",
+    "status": "today",
+    "priority": "high",
+    "bucket": "deep-work"
+  }'
+```
+
+```js
+const res = await fetch("http://localhost:3000/tasks", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Cookie: "better-auth.session_token=YOUR_SESSION_TOKEN",
+  },
+  body: JSON.stringify({
+    title: "Write contribution guide",
+    status: "today",
+    priority: "high",
+    bucket: "deep-work",
+  }),
+});
+const task = await res.json();
+```
+
+### List tasks
+
+```bash
+curl http://localhost:3000/tasks?page=1&pageSize=10 \
+  -b "better-auth.session_token=YOUR_SESSION_TOKEN"
+```
+
+```js
+const res = await fetch("http://localhost:3000/tasks?page=1&pageSize=10", {
+  headers: {
+    Cookie: "better-auth.session_token=YOUR_SESSION_TOKEN",
+  },
+});
+const { data, meta } = await res.json();
+```
+
+### Fetch a single task
+
+```bash
+curl http://localhost:3000/tasks/TASK_ID \
+  -b "better-auth.session_token=YOUR_SESSION_TOKEN"
+```
+
+```js
+const res = await fetch("http://localhost:3000/tasks/TASK_ID", {
+  headers: {
+    Cookie: "better-auth.session_token=YOUR_SESSION_TOKEN",
+  },
+});
+const task = await res.json();
+```
+
+### Update a task
+
+```bash
+curl -X PATCH http://localhost:3000/tasks/TASK_ID \
+  -H "Content-Type: application/json" \
+  -b "better-auth.session_token=YOUR_SESSION_TOKEN" \
+  -d '{
+    "completed": true,
+    "priority": "low"
+  }'
+```
+
+```js
+const res = await fetch("http://localhost:3000/tasks/TASK_ID", {
+  method: "PATCH",
+  headers: {
+    "Content-Type": "application/json",
+    Cookie: "better-auth.session_token=YOUR_SESSION_TOKEN",
+  },
+  body: JSON.stringify({ completed: true, priority: "low" }),
+});
+const updated = await res.json();
+```
+
+### Delete a task
+
+```bash
+curl -X DELETE http://localhost:3000/tasks/TASK_ID \
+  -b "better-auth.session_token=YOUR_SESSION_TOKEN"
+```
+
+```js
+const res = await fetch("http://localhost:3000/tasks/TASK_ID", {
+  method: "DELETE",
+  headers: {
+    Cookie: "better-auth.session_token=YOUR_SESSION_TOKEN",
+  },
+});
+const result = await res.json();
+```
+
+If you are testing from the frontend in a browser after signing in, use the same endpoint paths with `credentials: 'include'` instead of a manual `Cookie` header.
+
 ## Database And Drizzle
 
 The database client lives in [`apps/api/src/db/client.ts`](./apps/api/src/db/client.ts).
