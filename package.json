@@ -20,6 +20,9 @@
     "db:studio": "pnpm --filter @yotara/api db:studio",
     "docs:check": "pnpm --filter @yotara/api docs:check",
     "docs:export": "pnpm --filter @yotara/api docs:export",
+    "contributors:add": "all-contributors add",
+    "contributors:generate": "all-contributors generate",
+    "contributors:check": "all-contributors check",
     "docker:up": "docker-compose up --build -d",
     "docker:down": "docker-compose down",
     "smoke:docker": "bash scripts/docker-smoke.sh"
@@ -31,6 +34,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "all-contributors-cli": "^6.26.1",
     "eslint": "^10.0.3",
     "husky": "^9.1.7",
     "lint-staged": "^16.3.3",
