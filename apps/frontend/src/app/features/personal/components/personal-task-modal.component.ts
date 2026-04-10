@@ -72,8 +72,12 @@ type SavePayload =
                 name="taskTitle"
                 [ngModel]="draftTitle()"
                 (ngModelChange)="draftTitle.set($event)"
+                [class.field-error]="titleError()"
                 placeholder="Redesign sanctuary garden layout"
               />
+              @if (titleError()) {
+                <p class="field-error-message">{{ titleError() }}</p>
+              }
             </label>
 
             <label class="field">
@@ -83,8 +87,12 @@ type SavePayload =
                 rows="7"
                 [ngModel]="draftDescription()"
                 (ngModelChange)="draftDescription.set($event)"
+                [class.field-error]="descriptionError()"
                 placeholder="Capture extra context, constraints, or subtasks here."
               ></textarea>
+              @if (descriptionError()) {
+                <p class="field-error-message">{{ descriptionError() }}</p>
+              }
             </label>
 
             <div class="field">
@@ -125,9 +133,13 @@ type SavePayload =
                   name="taskDueDate"
                   [ngModel]="draftDueDate()"
                   (ngModelChange)="draftDueDate.set($event)"
+                  [class.field-error]="dueDateError()"
                   [disabled]="draftSimpleMode()"
                 />
               </label>
+              @if (dueDateError()) {
+                <p class="field-error-message">{{ dueDateError() }}</p>
+              }
             </div>
 
             <div class="sidebar-section">
@@ -312,6 +324,19 @@ type SavePayload =
         box-sizing: border-box;
       }
 
+      input.field-error,
+      textarea.field-error,
+      select.field-error {
+        border-color: #ba6d57;
+        background-color: rgba(255, 245, 242, 0.92);
+      }
+
+      .field-error-message {
+        color: #ba6d57;
+        font-size: 0.875rem;
+        margin: 0.35rem 0 0;
+      }
+
       textarea {
         min-height: 11rem;
         resize: vertical;
@@ -462,6 +487,11 @@ export class PersonalTaskModalComponent {
   protected readonly draftBucket = signal<TaskBucket>('personal-sanctuary');
   protected readonly draftCompleted = signal(false);
 
+  // Validation state
+  protected readonly titleError = signal<string | null>(null);
+  protected readonly dueDateError = signal<string | null>(null);
+  protected readonly descriptionError = signal<string | null>(null);
+
   ngOnChanges() {
     this.hydrateDraft();
   }
@@ -478,10 +508,63 @@ export class PersonalTaskModalComponent {
     }
   }
 
-  protected submit() {
+  protected validateTitle(): boolean {
     const title = this.draftTitle().trim();
 
     if (!title) {
+      this.titleError.set('Title is required');
+      return false;
+    }
+
+    if (title.length > 200) {
+      this.titleError.set('Title must be less than 200 characters');
+      return false;
+    }
+
+    this.titleError.set(null);
+    return true;
+  }
+
+  protected validateDueDate(): boolean {
+    if (this.draftSimpleMode()) {
+      this.dueDateError.set(null);
+      return true;
+    }
+
+    const dueDate = this.draftDueDate().trim();
+
+    if (!dueDate) {
+      this.dueDateError.set(null);
+      return true;
+    }
+
+    // Basic date validation: check if it's a valid date format
+    const dateObj = new Date(dueDate);
+    if (isNaN(dateObj.getTime())) {
+      this.dueDateError.set('Please enter a valid date');
+      return false;
+    }
+
+    this.dueDateError.set(null);
+    return true;
+  }
+
+  protected validateDescription(): boolean {
+    // Description is optional by default; extend this if requirements change
+    this.descriptionError.set(null);
+    return true;
+  }
+
+  protected validateForm(): boolean {
+    const titleValid = this.validateTitle();
+    const dueDateValid = this.validateDueDate();
+    const descriptionValid = this.validateDescription();
+
+    return titleValid && dueDateValid && descriptionValid;
+  }
+
+  protected submit() {
+    if (!this.validateForm()) {
       return;
     }
 
@@ -522,5 +605,14 @@ export class PersonalTaskModalComponent {
     this.draftSimpleMode.set(this.task?.simpleMode ?? !this.task?.dueDate);
     this.draftBucket.set(this.task?.bucket ?? 'personal-sanctuary');
     this.draftCompleted.set(this.task?.completed ?? false);
+
+    // Clear validation errors when modal opens
+    this.clearValidationErrors();
+  }
+
+  private clearValidationErrors() {
+    this.titleError.set(null);
+    this.dueDateError.set(null);
+    this.descriptionError.set(null);
   }
 }
