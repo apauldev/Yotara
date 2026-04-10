@@ -1,0 +1,35 @@
+{
+  "projectName": "Yotara",
+  "projectOwner": "apauldev",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "files": ["README.md"],
+  "imageSize": 100,
+  "commit": false,
+  "contributorsPerLine": 7,
+  "contributorsSortAlphabetically": true,
+  "skipCi": true,
+  "contributorAppearance": {
+    "default": {
+      "linkToUsage": true
+    }
+  },
+  "contributors": [
+    {
+      "login": "apauldev",
+      "name": "Arul",
+      "avatar_url": "https://avatars.githubusercontent.com/u/6706835?v=4",
+      "profile": "https://github.com/apauldev",
+      "contributions": ["code", "doc", "design", "ideas", "maintenance"]
+    },
+    {
+      "login": "shivansh090",
+      "name": "Shivansh Vikram Singh",
+      "avatar_url": "https://avatars.githubusercontent.com/u/116243866?v=4",
+      "profile": "https://github.com/shivansh090",
+      "contributions": ["doc"]
+    }
+  ],
+  "commitConvention": "angular"
+}
+
