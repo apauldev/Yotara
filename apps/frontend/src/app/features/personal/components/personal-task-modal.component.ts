@@ -134,6 +134,8 @@ type SavePayload =
                   [ngModel]="draftDueDate()"
                   (ngModelChange)="draftDueDate.set($event)"
                   [class.field-error]="dueDateError()"
+                  [attr.min]="dueDateMin()"
+                  [attr.max]="dueDateMax()"
                   [disabled]="draftSimpleMode()"
                 />
               </label>
@@ -491,6 +493,8 @@ export class PersonalTaskModalComponent {
   protected readonly titleError = signal<string | null>(null);
   protected readonly dueDateError = signal<string | null>(null);
   protected readonly descriptionError = signal<string | null>(null);
+  protected readonly dueDateMin = signal(this.formatDate(new Date()));
+  protected readonly dueDateMax = signal(this.formatDate(this.addYears(new Date(), 10)));
 
   ngOnChanges() {
     this.hydrateDraft();
@@ -538,10 +542,13 @@ export class PersonalTaskModalComponent {
       return true;
     }
 
-    // Basic date validation: check if it's a valid date format
-    const dateObj = new Date(dueDate);
-    if (isNaN(dateObj.getTime())) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
       this.dueDateError.set('Please enter a valid date');
+      return false;
+    }
+
+    if (dueDate < this.dueDateMin() || dueDate > this.dueDateMax()) {
+      this.dueDateError.set('Due date must be within the next 10 years');
       return false;
     }
 
@@ -568,6 +575,7 @@ export class PersonalTaskModalComponent {
       return;
     }
 
+    const title = this.draftTitle().trim();
     const payload = {
       title,
       description: this.draftDescription().trim() || undefined,
@@ -614,5 +622,15 @@ export class PersonalTaskModalComponent {
     this.titleError.set(null);
     this.dueDateError.set(null);
     this.descriptionError.set(null);
+  }
+
+  private formatDate(date: Date): string {
+    return date.toISOString().slice(0, 10);
+  }
+
+  private addYears(date: Date, years: number): Date {
+    const result = new Date(date);
+    result.setFullYear(result.getFullYear() + years);
+    return result;
   }
 }
