@@ -5,6 +5,20 @@ describe('PersonalTaskModalComponent', () => {
   let component: PersonalTaskModalComponent;
   let fixture: ComponentFixture<PersonalTaskModalComponent>;
 
+  const pad = (value: number) => String(value).padStart(2, '0');
+  const toIsoDate = (date: Date) =>
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  const addYears = (date: Date, years: number) => {
+    const result = new Date(date);
+    result.setFullYear(result.getFullYear() + years);
+    return result;
+  };
+  const addDays = (date: Date, days: number) => {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  };
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [PersonalTaskModalComponent],
@@ -90,11 +104,29 @@ describe('PersonalTaskModalComponent', () => {
 
       it('should validate valid date format', () => {
         component['draftSimpleMode'].set(false);
-        component['draftDueDate'].set('2025-12-25');
+        component['draftDueDate'].set(toIsoDate(addDays(new Date(), 1)));
         const isValid = component['validateDueDate']();
 
         expect(isValid).toBe(true);
         expect(component['dueDateError']()).toBeNull();
+      });
+
+      it('should show error for due date beyond 10 years', () => {
+        component['draftSimpleMode'].set(false);
+        component['draftDueDate'].set(toIsoDate(addYears(new Date(), 11)));
+        const isValid = component['validateDueDate']();
+
+        expect(isValid).toBe(false);
+        expect(component['dueDateError']()).toBe('Due date must be within the next 10 years');
+      });
+
+      it('should show error for due date before today', () => {
+        component['draftSimpleMode'].set(false);
+        component['draftDueDate'].set(toIsoDate(addDays(new Date(), -1)));
+        const isValid = component['validateDueDate']();
+
+        expect(isValid).toBe(false);
+        expect(component['dueDateError']()).toBe('Due date must be within the next 10 years');
       });
 
       it('should show error for invalid date format', () => {
@@ -112,7 +144,7 @@ describe('PersonalTaskModalComponent', () => {
         component['validateDueDate']();
         expect(component['dueDateError']()).toBe('Please enter a valid date');
 
-        component['draftDueDate'].set('2025-12-25');
+        component['draftDueDate'].set(toIsoDate(addDays(new Date(), 1)));
         component['validateDueDate']();
         expect(component['dueDateError']()).toBeNull();
       });
@@ -139,7 +171,7 @@ describe('PersonalTaskModalComponent', () => {
     describe('Form Validation (All Fields)', () => {
       it('should fail when title is empty', () => {
         component['draftTitle'].set('');
-        component['draftDueDate'].set('2025-12-25');
+        component['draftDueDate'].set(toIsoDate(addDays(new Date(), 1)));
         const isValid = component['validateForm']();
 
         expect(isValid).toBe(false);
@@ -165,7 +197,7 @@ describe('PersonalTaskModalComponent', () => {
       it('should pass with valid title and date', () => {
         component['draftTitle'].set('My Task');
         component['draftSimpleMode'].set(false);
-        component['draftDueDate'].set('2025-12-25');
+        component['draftDueDate'].set(toIsoDate(addYears(new Date(), 1)));
         const isValid = component['validateForm']();
 
         expect(isValid).toBe(true);
@@ -191,7 +223,7 @@ describe('PersonalTaskModalComponent', () => {
         expect(component['save'].emit).toHaveBeenCalledWith(
           jasmine.objectContaining({
             mode: 'create',
-          })
+          }),
         );
       });
 
