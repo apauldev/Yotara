@@ -45,7 +45,7 @@ const taskSchema = {
       type: 'string',
       enum: ['personal-sanctuary', 'deep-work', 'home', 'health'],
     },
-    projectId: { type: 'string' },
+    projectId: { type: 'string', format: 'uuid' },
     assigneeId: { type: 'string' },
     parentTaskId: { type: 'string' },
     labels: {
@@ -79,7 +79,7 @@ const createTaskSchema = {
       type: 'string',
       enum: ['personal-sanctuary', 'deep-work', 'home', 'health'],
     },
-    projectId: { type: 'string' },
+    projectId: { type: 'string', format: 'uuid' },
     parentTaskId: { type: 'string' },
     labels: {
       type: 'array',
@@ -109,7 +109,9 @@ const updateTaskSchema = {
       type: 'string',
       enum: ['personal-sanctuary', 'deep-work', 'home', 'health'],
     },
-    projectId: { type: 'string' },
+    projectId: {
+      anyOf: [{ type: 'string', format: 'uuid' }, { type: 'null' }],
+    },
     parentTaskId: { type: 'string' },
     labels: {
       type: 'array',
@@ -119,6 +121,68 @@ const updateTaskSchema = {
     order: { type: 'integer' },
   },
   additionalProperties: false,
+} as const;
+
+const projectColorSchema = {
+  $id: 'ProjectColor',
+  type: 'string',
+  enum: ['sage', 'teal', 'olive', 'clay', 'forest', 'deep-ocean'],
+} as const;
+
+const projectSchema = {
+  $id: 'Project',
+  type: 'object',
+  required: [
+    'id',
+    'name',
+    'ownerId',
+    'taskCount',
+    'completedTaskCount',
+    'openTaskCount',
+    'createdAt',
+    'updatedAt',
+  ],
+  properties: {
+    id: { type: 'string', format: 'uuid' },
+    name: { type: 'string' },
+    description: { type: 'string' },
+    color: { $ref: 'ProjectColor#' },
+    ownerId: { type: 'string' },
+    taskCount: { type: 'integer', minimum: 0 },
+    completedTaskCount: { type: 'integer', minimum: 0 },
+    openTaskCount: { type: 'integer', minimum: 0 },
+    createdAt: { type: 'string', format: 'date-time' },
+    updatedAt: { type: 'string', format: 'date-time' },
+  },
+} as const;
+
+const createProjectSchema = {
+  $id: 'CreateProjectDto',
+  type: 'object',
+  required: ['name'],
+  properties: {
+    name: { type: 'string' },
+    description: { type: 'string' },
+    color: { $ref: 'ProjectColor#' },
+  },
+  additionalProperties: false,
+} as const;
+
+const updateProjectSchema = {
+  $id: 'UpdateProjectDto',
+  type: 'object',
+  properties: {
+    name: { type: 'string' },
+    description: { type: 'string' },
+    color: { $ref: 'ProjectColor#' },
+  },
+  additionalProperties: false,
+} as const;
+
+const projectsListResponseSchema = {
+  $id: 'ProjectsListResponse',
+  type: 'array',
+  items: { $ref: 'Project#' },
 } as const;
 
 const paginationMetaSchema = {
@@ -296,6 +360,11 @@ const sharedSchemas = [
   taskSchema,
   createTaskSchema,
   updateTaskSchema,
+  projectColorSchema,
+  projectSchema,
+  createProjectSchema,
+  updateProjectSchema,
+  projectsListResponseSchema,
   paginationMetaSchema,
   paginatedTasksResponseSchema,
   userSchema,
@@ -328,6 +397,7 @@ export const examples = {
     priority: 'high',
     completed: false,
     dueDate: '2026-03-18',
+    projectId: '16f9232b-1dc3-4a8b-afec-0d6df02a4aa2',
     order: 0,
     createdAt: '2026-03-16T12:00:00.000Z',
     updatedAt: '2026-03-16T12:00:00.000Z',
@@ -338,10 +408,12 @@ export const examples = {
     status: 'today',
     priority: 'high',
     dueDate: '2026-03-18',
+    projectId: '16f9232b-1dc3-4a8b-afec-0d6df02a4aa2',
   },
   updateTask: {
     completed: true,
     status: 'done',
+    projectId: null,
   },
   paginatedTasks: {
     data: [
@@ -367,6 +439,41 @@ export const examples = {
       hasPreviousPage: false,
     },
   },
+  project: {
+    id: '16f9232b-1dc3-4a8b-afec-0d6df02a4aa2',
+    name: 'Launch Yotara MVP',
+    description: 'Defining the core user experience and visual language for the initial release.',
+    color: 'sage',
+    ownerId: 'user_123',
+    taskCount: 18,
+    completedTaskCount: 11,
+    openTaskCount: 7,
+    createdAt: '2026-03-16T12:00:00.000Z',
+    updatedAt: '2026-03-18T09:30:00.000Z',
+  },
+  createProject: {
+    name: 'Launch Yotara MVP',
+    description: 'Defining the core user experience and visual language for the initial release.',
+    color: 'sage',
+  },
+  updateProject: {
+    description: 'Updated direction for the initial release',
+    color: 'forest',
+  },
+  projects: [
+    {
+      id: '16f9232b-1dc3-4a8b-afec-0d6df02a4aa2',
+      name: 'Launch Yotara MVP',
+      description: 'Defining the core user experience and visual language for the initial release.',
+      color: 'sage',
+      ownerId: 'user_123',
+      taskCount: 18,
+      completedTaskCount: 11,
+      openTaskCount: 7,
+      createdAt: '2026-03-16T12:00:00.000Z',
+      updatedAt: '2026-03-18T09:30:00.000Z',
+    },
+  ],
   me: {
     user: {
       id: 'user_123',
@@ -497,7 +604,60 @@ function addOpenApiExamples(paths: OpenApiPathRecord) {
     ensureJsonContent(tasksPost, '201').example = examples.task;
     ensureJsonContent(tasksPost, '400').example = examples.apiError('Task title is required');
     ensureJsonContent(tasksPost, '401').example = examples.apiError('Unauthorized');
+    ensureJsonContent(tasksPost, '404').example = examples.apiError('Project not found');
     ensureJsonContent(tasksPost, '500').example = examples.apiError('Failed to create task');
+  }
+
+  const projectsGet = paths['/projects']?.get;
+  if (projectsGet) {
+    ensureJsonContent(projectsGet, '200').example = examples.projects;
+    ensureJsonContent(projectsGet, '401').example = examples.apiError('Unauthorized');
+  }
+
+  const projectsPost = paths['/projects']?.post;
+  if (projectsPost) {
+    projectsPost.requestBody ??= { content: { 'application/json': {} } };
+    projectsPost.requestBody.content ??= {};
+    projectsPost.requestBody.content['application/json'] ??= {};
+    projectsPost.requestBody.content['application/json'].example = examples.createProject;
+    ensureJsonContent(projectsPost, '201').example = examples.project;
+    ensureJsonContent(projectsPost, '400').example = examples.apiError('Project name is required');
+    ensureJsonContent(projectsPost, '401').example = examples.apiError('Unauthorized');
+    ensureJsonContent(projectsPost, '500').example = examples.apiError('Failed to create project');
+  }
+
+  const projectByIdGet = paths['/projects/{id}']?.get;
+  if (projectByIdGet) {
+    ensureJsonContent(projectByIdGet, '200').example = examples.project;
+    ensureJsonContent(projectByIdGet, '401').example = examples.apiError('Unauthorized');
+    ensureJsonContent(projectByIdGet, '404').example = examples.apiError('Project not found');
+  }
+
+  const projectByIdPatch = paths['/projects/{id}']?.patch;
+  if (projectByIdPatch) {
+    projectByIdPatch.requestBody ??= { content: { 'application/json': {} } };
+    projectByIdPatch.requestBody.content ??= {};
+    projectByIdPatch.requestBody.content['application/json'] ??= {};
+    projectByIdPatch.requestBody.content['application/json'].example = examples.updateProject;
+    ensureJsonContent(projectByIdPatch, '200').example = {
+      ...examples.project,
+      ...examples.updateProject,
+    };
+    ensureJsonContent(projectByIdPatch, '400').example = examples.apiError(
+      'Project name is required',
+    );
+    ensureJsonContent(projectByIdPatch, '401').example = examples.apiError('Unauthorized');
+    ensureJsonContent(projectByIdPatch, '404').example = examples.apiError('Project not found');
+    ensureJsonContent(projectByIdPatch, '500').example = examples.apiError(
+      'Failed to update project',
+    );
+  }
+
+  const projectTasksGet = paths['/projects/{id}/tasks']?.get;
+  if (projectTasksGet) {
+    ensureJsonContent(projectTasksGet, '200').example = examples.paginatedTasks.data;
+    ensureJsonContent(projectTasksGet, '401').example = examples.apiError('Unauthorized');
+    ensureJsonContent(projectTasksGet, '404').example = examples.apiError('Project not found');
   }
 
   const taskByIdGet = paths['/tasks/{id}']?.get;
@@ -687,6 +847,7 @@ export async function registerOpenApi(app: FastifyInstance) {
       ],
       tags: [
         { name: 'meta', description: 'Service metadata and health endpoints' },
+        { name: 'projects', description: 'Authenticated personal project endpoints' },
         { name: 'tasks', description: 'Authenticated task CRUD endpoints' },
         { name: 'auth', description: 'Better Auth session and credential flows' },
       ],

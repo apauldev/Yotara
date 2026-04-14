@@ -569,7 +569,7 @@ export class PersonalTaskModalComponent {
     }
 
     const payload = {
-      title,
+      title: this.draftTitle(),
       description: this.draftDescription().trim() || undefined,
       status: this.draftStatus(),
       priority: this.draftPriority(),
