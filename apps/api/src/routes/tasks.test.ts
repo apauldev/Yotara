@@ -234,3 +234,105 @@ test('tasks pagination validates query bounds and soft-deleted tasks cannot be u
     await ctx.cleanup();
   }
 });
+
+test('tasks support owned project assignment and reject foreign project references', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const firstUserCookie = await signUpAndGetCookie(`projects-owner-${randomUUID()}@example.com`);
+    const secondUserCookie = await signUpAndGetCookie(`projects-other-${randomUUID()}@example.com`);
+
+    const createProjectResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/projects',
+      headers: { cookie: firstUserCookie },
+      payload: {
+        name: 'Launch Yotara MVP',
+        description: 'Personal release plan',
+        color: 'sage',
+      },
+    });
+    assert.equal(createProjectResponse.statusCode, 201);
+    const ownedProjectId = createProjectResponse.json().id as string;
+
+    const otherProjectResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/projects',
+      headers: { cookie: secondUserCookie },
+      payload: {
+        name: 'Other user project',
+        color: 'forest',
+      },
+    });
+    assert.equal(otherProjectResponse.statusCode, 201);
+    const foreignProjectId = otherProjectResponse.json().id as string;
+
+    const createTaskResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie: firstUserCookie },
+      payload: {
+        title: 'Define launch checklist',
+        status: 'today',
+        priority: 'high',
+        projectId: ownedProjectId,
+      },
+    });
+    assert.equal(createTaskResponse.statusCode, 201);
+    assert.equal(createTaskResponse.json().projectId, ownedProjectId);
+    const taskId = createTaskResponse.json().id as string;
+
+    const foreignCreateResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie: firstUserCookie },
+      payload: {
+        title: 'Should fail',
+        projectId: foreignProjectId,
+      },
+    });
+    assert.equal(foreignCreateResponse.statusCode, 404);
+
+    const assignProjectResponse = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}`,
+      headers: { cookie: firstUserCookie },
+      payload: {
+        projectId: ownedProjectId,
+      },
+    });
+    assert.equal(assignProjectResponse.statusCode, 200);
+    assert.equal(assignProjectResponse.json().projectId, ownedProjectId);
+
+    const clearProjectResponse = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}`,
+      headers: { cookie: firstUserCookie },
+      payload: {
+        projectId: null,
+      },
+    });
+    assert.equal(clearProjectResponse.statusCode, 200);
+    assert.equal(clearProjectResponse.json().projectId, undefined);
+
+    const foreignPatchResponse = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}`,
+      headers: { cookie: firstUserCookie },
+      payload: {
+        projectId: foreignProjectId,
+      },
+    });
+    assert.equal(foreignPatchResponse.statusCode, 404);
+
+    const listResponse = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks',
+      headers: { cookie: firstUserCookie },
+    });
+    assert.equal(listResponse.statusCode, 200);
+    assert.equal(listResponse.json().data[0].projectId, undefined);
+  } finally {
+    await ctx.cleanup();
+  }
+});

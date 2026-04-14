@@ -67,6 +67,16 @@ The existing `/tasks` API continues to back the personal flow.
 - `PATCH /tasks/:id` updates personal metadata
 - `GET /tasks` returns the enriched task shape
 - SQLite bootstrap now includes `simple_mode` and `bucket`
+- tasks can now optionally reference a persisted `projectId`
+
+Project persistence now exists at the API/domain layer:
+
+- `GET /projects`, `POST /projects`, `GET /projects/:id`, and `PATCH /projects/:id`
+- `GET /projects/:id/tasks` returns active tasks assigned to a project
+- projects are personal-mode scoped and return derived task counts
+
+Frontend project screens are still a follow-up slice. This backend work exists so the personal-mode
+Projects UI can connect to real data next.
 
 ## Verification
 

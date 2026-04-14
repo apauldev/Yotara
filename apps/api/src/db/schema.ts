@@ -1,5 +1,5 @@
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import type { TaskBucket } from '@yotara/shared';
+import type { ProjectColor, TaskBucket } from '@yotara/shared';
 
 const TASK_BUCKET_VALUES = [
   'personal-sanctuary',
@@ -7,6 +7,15 @@ const TASK_BUCKET_VALUES = [
   'home',
   'health',
 ] as const satisfies readonly TaskBucket[];
+
+const PROJECT_COLOR_VALUES = [
+  'sage',
+  'teal',
+  'olive',
+  'clay',
+  'forest',
+  'deep-ocean',
+] as const satisfies readonly ProjectColor[];
 
 export const users = sqliteTable('user', {
   id: text('id').primaryKey(),
@@ -62,6 +71,20 @@ export const verifications = sqliteTable('verification', {
   updatedAt: integer('updatedAt', { mode: 'timestamp' }),
 });
 
+export const projects = sqliteTable('projects', {
+  id: text('id').primaryKey(),
+  ownerId: text('owner_id')
+    .notNull()
+    .references(() => users.id),
+  name: text('name').notNull(),
+  description: text('description'),
+  color: text('color', {
+    enum: PROJECT_COLOR_VALUES,
+  }),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
 export const tasks = sqliteTable('tasks', {
   id: text('id').primaryKey(),
   userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
@@ -82,6 +105,7 @@ export const tasks = sqliteTable('tasks', {
   bucket: text('bucket', {
     enum: TASK_BUCKET_VALUES,
   }).default('personal-sanctuary'),
+  projectId: text('project_id').references(() => projects.id, { onDelete: 'set null' }),
   deletedAt: text('deleted_at'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
@@ -89,3 +113,4 @@ export const tasks = sqliteTable('tasks', {
 
 export type DbTask = typeof tasks.$inferSelect;
 export type NewDbTask = typeof tasks.$inferInsert;
+export type DbProject = typeof projects.$inferSelect;

@@ -19,8 +19,9 @@ import {
   idParamSchema,
   withJsonResponse,
 } from '../docs/openapi.js';
+import { ensureOwnedProject } from './project-utils.js';
 
-function toTask(task: typeof tasks.$inferSelect): Task {
+export function toTask(task: typeof tasks.$inferSelect): Task {
   return {
     id: task.id,
     title: task.title,
@@ -31,6 +32,7 @@ function toTask(task: typeof tasks.$inferSelect): Task {
     dueDate: task.dueDate ?? undefined,
     simpleMode: task.simpleMode,
     bucket: (task.bucket as TaskBucket | null) ?? undefined,
+    projectId: task.projectId ?? undefined,
     order: task.order,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
@@ -194,6 +196,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
           },
           400: errorResponseSchema('Invalid task payload', 'Task title is required'),
           401: errorResponseSchema('Authentication required', 'Unauthorized'),
+          404: errorResponseSchema('Project was not found', 'Project not found'),
           500: errorResponseSchema('Task could not be created', 'Failed to create task'),
         },
       }),
@@ -210,6 +213,13 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         return reply.code(400).send({ message: 'Task title is required' });
       }
 
+      if (payload.projectId) {
+        const project = await ensureOwnedProject(payload.projectId, userId);
+        if (!project) {
+          return reply.code(404).send({ message: 'Project not found' });
+        }
+      }
+
       const now = new Date().toISOString();
       const id = randomUUID();
 
@@ -223,6 +233,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         dueDate: payload.dueDate,
         simpleMode: payload.simpleMode ?? false,
         bucket: payload.bucket ?? 'personal-sanctuary',
+        projectId: payload.projectId ?? null,
         completed: false,
         order: 0,
         deletedAt: null,
@@ -287,6 +298,15 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       const status = patch.status ?? existing.status;
       const completed = patch.completed ?? existing.completed;
       const simpleMode = patch.simpleMode ?? existing.simpleMode;
+      const nextProjectId =
+        patch.projectId === null ? null : (patch.projectId ?? existing.projectId ?? null);
+
+      if (patch.projectId) {
+        const project = await ensureOwnedProject(patch.projectId, userId);
+        if (!project) {
+          return reply.code(404).send({ message: 'Project not found' });
+        }
+      }
 
       await db
         .update(tasks)
@@ -297,6 +317,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
           dueDate: simpleMode ? null : (patch.dueDate ?? existing.dueDate),
           simpleMode,
           bucket: patch.bucket ?? existing.bucket,
+          projectId: nextProjectId,
           order: patch.order ?? existing.order,
           completed,
           status: normalizeStatusOnCompletion(status, completed),
