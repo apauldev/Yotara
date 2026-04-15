@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import {
   CreateTaskDto,
   Priority,
+  Project,
   Task,
   TaskBucket,
   TaskStatus,
@@ -51,7 +52,7 @@ type SavePayload =
                   <h2 id="task-modal-title">
                     {{ task ? 'Refine task details' : 'Capture a new task' }}
                   </h2>
-                  <p>{{ selectedBucketLabel() }}</p>
+                  <p>{{ selectedContextLabel() }}</p>
                 </div>
               </div>
 
@@ -123,6 +124,20 @@ type SavePayload =
                   (ngModelChange)="onSimpleModeChange($event)"
                 />
               </label>
+            </div>
+
+            <div class="sidebar-section">
+              <span class="field-label">Project</span>
+              <select
+                class="status-select"
+                [ngModel]="draftProjectId()"
+                (ngModelChange)="draftProjectId.set($event)"
+              >
+                <option value="">No project</option>
+                @for (project of projects; track project.id) {
+                  <option [value]="project.id">{{ project.name }}</option>
+                }
+              </select>
             </div>
 
             <div class="sidebar-section">
@@ -467,6 +482,8 @@ export class PersonalTaskModalComponent {
   @Input() open = false;
   @Input() task: Task | null = null;
   @Input() initialTitle = '';
+  @Input() initialProjectId: string | null = null;
+  @Input() projects: Project[] = [];
   @Input() error: string | null = null;
   @Output() readonly close = new EventEmitter<void>();
   @Output() readonly save = new EventEmitter<SavePayload>();
@@ -485,6 +502,7 @@ export class PersonalTaskModalComponent {
   protected readonly draftDueDate = signal('');
   protected readonly draftSimpleMode = signal(true);
   protected readonly draftBucket = signal<TaskBucket>('personal-sanctuary');
+  protected readonly draftProjectId = signal('');
   protected readonly draftCompleted = signal(false);
 
   // Validation state
@@ -496,7 +514,13 @@ export class PersonalTaskModalComponent {
     this.hydrateDraft();
   }
 
-  protected selectedBucketLabel() {
+  protected selectedContextLabel() {
+    const projectName = this.projects.find((project) => project.id === this.draftProjectId())?.name;
+
+    if (projectName) {
+      return projectName;
+    }
+
     return this.buckets.find((bucket) => bucket.value === this.draftBucket())?.label ?? 'Bucket';
   }
 
@@ -569,13 +593,14 @@ export class PersonalTaskModalComponent {
     }
 
     const payload = {
-      title,
+      title: this.draftTitle(),
       description: this.draftDescription().trim() || undefined,
       status: this.draftStatus(),
       priority: this.draftPriority(),
       dueDate: this.draftSimpleMode() ? undefined : this.draftDueDate() || undefined,
       simpleMode: this.draftSimpleMode(),
       bucket: this.draftBucket(),
+      projectId: this.draftProjectId() || undefined,
     };
 
     if (this.task) {
@@ -584,6 +609,7 @@ export class PersonalTaskModalComponent {
         taskId: this.task.id,
         payload: {
           ...payload,
+          projectId: this.draftProjectId() || null,
           completed: this.draftCompleted(),
         },
       });
@@ -604,6 +630,7 @@ export class PersonalTaskModalComponent {
     this.draftDueDate.set(this.task?.dueDate ?? '');
     this.draftSimpleMode.set(this.task?.simpleMode ?? !this.task?.dueDate);
     this.draftBucket.set(this.task?.bucket ?? 'personal-sanctuary');
+    this.draftProjectId.set(this.task?.projectId ?? this.initialProjectId ?? '');
     this.draftCompleted.set(this.task?.completed ?? false);
 
     // Clear validation errors when modal opens

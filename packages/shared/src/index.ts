@@ -5,6 +5,7 @@ export type Priority = 'low' | 'medium' | 'high';
 export type TaskStatus = 'inbox' | 'today' | 'upcoming' | 'done' | 'archived';
 export type WorkspaceMode = 'personal' | 'team';
 export type TaskBucket = 'personal-sanctuary' | 'deep-work' | 'home' | 'health';
+export type ProjectColor = 'sage' | 'teal' | 'olive' | 'clay' | 'forest' | 'deep-ocean';
 
 // ─── Core Domain Types ───────────────────────────────────────────────────────
 
@@ -21,10 +22,14 @@ export interface User {
 export interface Project {
   id: string;
   name: string;
-  color?: string;
+  description?: string;
+  color?: ProjectColor;
   ownerId: string;
-  teamId?: string;
   createdAt: string;
+  updatedAt: string;
+  taskCount: number;
+  completedTaskCount: number;
+  openTaskCount: number;
 }
 
 export interface Label {
@@ -107,7 +112,25 @@ export interface CreateTaskDto {
   labels?: string[];
 }
 
-export interface UpdateTaskDto extends Partial<CreateTaskDto> {
+export interface UpdateTaskDto {
+  title?: string;
+  description?: string;
+  status?: TaskStatus;
+  priority?: Priority;
+  dueDate?: string;
+  simpleMode?: boolean;
+  bucket?: TaskBucket;
+  projectId?: string | null;
+  parentTaskId?: string;
+  labels?: string[];
   completed?: boolean;
   order?: number;
 }
+
+export interface CreateProjectDto {
+  name: string;
+  description?: string;
+  color?: ProjectColor;
+}
+
+export type UpdateProjectDto = Partial<CreateProjectDto>;

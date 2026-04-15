@@ -62,6 +62,17 @@ const SQLITE_BOOTSTRAP_SQL = `
     updatedAt INTEGER
   );
 
+  CREATE TABLE IF NOT EXISTS projects (
+    id TEXT PRIMARY KEY NOT NULL,
+    owner_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    color TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (owner_id) REFERENCES user(id) ON DELETE NO ACTION
+  );
+
   CREATE TABLE IF NOT EXISTS tasks (
     id TEXT PRIMARY KEY NOT NULL,
     user_id TEXT,
@@ -74,10 +85,12 @@ const SQLITE_BOOTSTRAP_SQL = `
     due_date TEXT,
     simple_mode INTEGER NOT NULL DEFAULT 0,
     bucket TEXT DEFAULT 'personal-sanctuary',
+    project_id TEXT,
     deleted_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE SET NULL
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE SET NULL,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
   );
 `;
 
@@ -124,6 +137,12 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
 
   if (!taskColumnNames.has('deleted_at')) {
     sqlite.exec(`ALTER TABLE tasks ADD COLUMN deleted_at TEXT`);
+  }
+
+  if (!taskColumnNames.has('project_id')) {
+    sqlite.exec(
+      `ALTER TABLE tasks ADD COLUMN project_id TEXT REFERENCES projects(id) ON DELETE SET NULL`,
+    );
   }
 }
 

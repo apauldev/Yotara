@@ -50,6 +50,7 @@ The Fastify API currently exposes:
 - `/health` health endpoint
 - `/auth/*` Better Auth endpoints
 - `/me` current authenticated user
+- `/projects` personal project CRUD endpoints
 - `/tasks` CRUD endpoints for user-owned tasks
 - `/docs` Swagger UI for API consumers
 - `/docs/openapi.json` raw OpenAPI document
@@ -66,13 +67,22 @@ Task records currently support:
 - due date
 - sort order
 - soft delete timestamp (`deleted_at` in SQLite)
+- optional project assignment through `projectId`
+
+Project records currently support:
+
+- name
+- description
+- color token: `sage | teal | olive | clay | forest | deep-ocean`
+- owner scoping
+- derived task counts for total, completed, and open tasks
 
 ### Storage
 
 The API uses SQLite through Drizzle and bootstraps the required tables automatically on startup:
 
 - Better Auth tables: `user`, `session`, `account`, `verification`
-- app table: `tasks`
+- app tables: `projects`, `tasks`
 
 Default local database path:
 
