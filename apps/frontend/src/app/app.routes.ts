@@ -61,6 +61,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'projects/:id',
+        loadComponent: () =>
+          import('./features/personal/pages/project-detail-page.component').then(
+            (m) => m.ProjectDetailPageComponent,
+          ),
+      },
+      {
         path: 'projects',
         loadComponent: () =>
           import('./features/personal/pages/projects-page.component').then(
