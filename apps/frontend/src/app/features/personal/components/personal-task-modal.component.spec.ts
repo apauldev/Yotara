@@ -191,7 +191,7 @@ describe('PersonalTaskModalComponent', () => {
         expect(component['save'].emit).toHaveBeenCalledWith(
           jasmine.objectContaining({
             mode: 'create',
-          })
+          }),
         );
       });
 

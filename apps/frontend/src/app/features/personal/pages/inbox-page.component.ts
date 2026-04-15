@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CreateTaskDto, Task, UpdateTaskDto } from '@yotara/shared';
+import { ProjectService } from '../../../core/services/project.service';
 import { TaskService } from '../../../core/services/task.service';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
 import { PersonalTaskModalComponent } from '../components/personal-task-modal.component';
@@ -54,6 +55,7 @@ import { PersonalTaskModalComponent } from '../components/personal-task-modal.co
         [open]="modalOpen()"
         [task]="selectedTask()"
         [initialTitle]="captureTitle()"
+        [projects]="projectService.projects()"
         [error]="taskService.error()"
         (close)="closeModal()"
         (save)="saveTask($event)"
@@ -331,6 +333,7 @@ import { PersonalTaskModalComponent } from '../components/personal-task-modal.co
 })
 export class InboxPageComponent {
   protected readonly taskService = inject(TaskService);
+  protected readonly projectService = inject(ProjectService);
   protected readonly captureTitle = signal('');
   protected readonly captureError = signal('');
   protected readonly modalOpen = signal(false);
@@ -380,6 +383,7 @@ export class InboxPageComponent {
         await this.taskService.updateTask(event.taskId, event.payload);
       }
 
+      this.projectService.refreshProjects();
       this.dailyClarityPrompt.set(pickRandomPrompt(this.dailyClarityPrompts));
       this.journalPrompt.set(pickRandomPrompt(this.journalPrompts));
       this.closeModal();

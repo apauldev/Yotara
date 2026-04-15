@@ -45,6 +45,9 @@ test('openapi endpoint exposes documented app and auth routes', async () => {
     assert.ok(spec.paths['/']);
     assert.ok(spec.paths['/health']);
     assert.ok(spec.paths['/me']);
+    assert.ok(spec.paths['/projects']);
+    assert.ok(spec.paths['/projects/{id}']);
+    assert.ok(spec.paths['/projects/{id}/tasks']);
     assert.ok(spec.paths['/tasks']);
     assert.ok(spec.paths['/tasks/{id}']);
     assert.ok(spec.paths['/auth/sign-up/email']);
@@ -95,6 +98,10 @@ test('openapi spec includes representative response contracts and examples', asy
     const spec = response.json();
 
     assert.ok(spec.paths['/tasks'].get.responses['200']);
+    assert.ok(spec.paths['/projects'].get.responses['200']);
+    assert.ok(spec.paths['/projects'].post.responses['201']);
+    assert.ok(spec.paths['/projects/{id}'].patch.responses['200']);
+    assert.ok(spec.paths['/projects/{id}/tasks'].get.responses['200']);
     assert.ok(spec.paths['/tasks'].get.responses['401']);
     assert.ok(spec.paths['/tasks'].get.parameters);
     assert.equal(spec.paths['/tasks'].get.parameters[0].name, 'page');
@@ -107,6 +114,14 @@ test('openapi spec includes representative response contracts and examples', asy
     assert.ok(spec.paths['/auth/sign-in/email'].post.responses['401']);
     assert.ok(spec.paths['/auth/session'].get.responses['200']);
 
+    assert.equal(
+      spec.paths['/projects'].post.responses['400'].content['application/json'].example.message,
+      'Project name is required',
+    );
+    assert.equal(
+      spec.paths['/projects'].get.responses['200'].content['application/json'].example[0].color,
+      'sage',
+    );
     assert.equal(
       spec.paths['/tasks'].post.responses['400'].content['application/json'].example.message,
       'Task title is required',

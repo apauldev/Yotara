@@ -9,6 +9,7 @@ import {
   withJsonResponse,
 } from './docs/openapi.js';
 import healthRoutes from './routes/health.js';
+import projectRoutes from './routes/projects.js';
 import taskRoutes from './routes/tasks.js';
 import { auth } from './lib/auth.js';
 import { getCorsOrigins } from './lib/auth-origins.js';
@@ -219,6 +220,7 @@ export async function buildApp() {
 
   // ─── Routes ───────────────────────────────────────────────────────────────
   await app.register(healthRoutes);
+  await app.register(projectRoutes);
   await app.register(taskRoutes);
 
   // ─── Root ─────────────────────────────────────────────────────────────────
