@@ -3,6 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthStateService } from '../../core/services/auth-state.service';
+import { LogoutConfirmModalComponent } from '../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
 
 type SidebarIcon = 'dashboard' | 'tasks' | 'workspaces' | 'calendar' | 'team';
 
@@ -16,7 +17,7 @@ interface SidebarItem {
 @Component({
   selector: 'app-auth-shell',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, LogoutConfirmModalComponent],
   template: `
     <div class="shell">
       @if (mobileMenuOpen()) {
@@ -152,12 +153,50 @@ interface SidebarItem {
         <div class="sidebar-bottom">
           <button type="button" class="invite-button">Invite Member</button>
 
-          <div class="profile-card">
-            <div class="avatar" aria-hidden="true">{{ userInitials() }}</div>
-            <div class="profile-copy">
-              <div class="profile-name">{{ displayName() }}</div>
-              <div class="profile-meta">{{ profileMeta() }}</div>
-            </div>
+          <div class="profile-menu">
+            @if (profileMenuOpen()) {
+              <button
+                type="button"
+                class="profile-menu-backdrop"
+                aria-label="Close profile menu"
+                (click)="closeProfileMenu()"
+              ></button>
+            }
+
+            <button
+              type="button"
+              class="profile-card profile-card-button"
+              [attr.aria-expanded]="profileMenuOpen()"
+              aria-label="Open account menu"
+              (click)="toggleProfileMenu()"
+            >
+              <div class="avatar" aria-hidden="true">{{ userInitials() }}</div>
+              <div class="profile-copy">
+                <div class="profile-name">{{ displayName() }}</div>
+                <div class="profile-meta">{{ profileMeta() }}</div>
+              </div>
+            </button>
+
+            @if (profileMenuOpen()) {
+              <div class="profile-menu-card" role="menu" aria-label="Account actions">
+                <button
+                  type="button"
+                  class="profile-menu-item"
+                  role="menuitem"
+                  (click)="handleStayFocused()"
+                >
+                  Stay and Focus
+                </button>
+                <button
+                  type="button"
+                  class="profile-menu-item profile-menu-item-danger"
+                  role="menuitem"
+                  (click)="openLogoutDialog()"
+                >
+                  Logout
+                </button>
+              </div>
+            }
           </div>
         </div>
       </aside>
@@ -190,6 +229,14 @@ interface SidebarItem {
         </div>
       </main>
     </div>
+
+    <app-logout-confirm-modal
+      [open]="logoutDialogOpen()"
+      [loading]="signingOut()"
+      (close)="closeLogoutDialog()"
+      (stay)="handleStayFocused()"
+      (confirm)="confirmLogout()"
+    />
   `,
   styles: [
     `
@@ -373,12 +420,67 @@ interface SidebarItem {
         letter-spacing: -0.01em;
       }
 
+      .profile-menu {
+        position: relative;
+      }
+
+      .profile-menu-backdrop {
+        position: fixed;
+        inset: 0;
+        border: 0;
+        background: transparent;
+        z-index: 4;
+      }
+
+      .profile-menu-card {
+        position: absolute;
+        bottom: calc(100% + 0.4rem);
+        left: 0;
+        right: 0;
+        border-radius: 0.9rem;
+        background: rgba(255, 251, 243, 0.97);
+        border: 1px solid rgba(226, 219, 204, 0.95);
+        box-shadow: 0 14px 30px rgba(64, 62, 51, 0.18);
+        padding: 0.3rem;
+        display: grid;
+        gap: 0.2rem;
+        z-index: 5;
+      }
+
+      .profile-menu-item {
+        border: 0;
+        border-radius: 0.64rem;
+        background: transparent;
+        color: #3d423b;
+        text-align: left;
+        font-weight: 600;
+        padding: 0.58rem 0.66rem;
+        cursor: pointer;
+      }
+
+      .profile-menu-item:hover {
+        background: rgba(207, 225, 214, 0.45);
+      }
+
+      .profile-menu-item-danger {
+        color: #8a453a;
+      }
+
       .profile-card {
+        width: 100%;
         display: flex;
         align-items: center;
         gap: 0.82rem;
         padding: 0.9rem 0.35rem 0;
         border-top: 1px solid rgba(120, 138, 143, 0.18);
+      }
+
+      .profile-card-button {
+        border-left: 0;
+        border-right: 0;
+        border-bottom: 0;
+        background: transparent;
+        cursor: pointer;
       }
 
       .avatar {
@@ -391,6 +493,7 @@ interface SidebarItem {
         place-items: center;
         font-size: 0.92rem;
         font-weight: 700;
+        flex: 0 0 auto;
       }
 
       .profile-copy {
@@ -549,6 +652,9 @@ export class AuthShellComponent {
   private router = inject(Router);
 
   protected readonly mobileMenuOpen = signal(false);
+  protected readonly profileMenuOpen = signal(false);
+  protected readonly logoutDialogOpen = signal(false);
+  protected readonly signingOut = signal(false);
 
   protected readonly navItems: SidebarItem[] = [
     { label: 'Dashboard', icon: 'dashboard', route: '/dashboard' },
@@ -604,6 +710,7 @@ export class AuthShellComponent {
   constructor() {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
       this.mobileMenuOpen.set(false);
+      this.profileMenuOpen.set(false);
     });
   }
 
@@ -613,5 +720,42 @@ export class AuthShellComponent {
 
   protected closeMobileMenu() {
     this.mobileMenuOpen.set(false);
+  }
+
+  protected toggleProfileMenu() {
+    this.profileMenuOpen.update((open) => !open);
+  }
+
+  protected closeProfileMenu() {
+    this.profileMenuOpen.set(false);
+  }
+
+  protected handleStayFocused() {
+    this.profileMenuOpen.set(false);
+    this.logoutDialogOpen.set(false);
+  }
+
+  protected openLogoutDialog() {
+    this.profileMenuOpen.set(false);
+    this.logoutDialogOpen.set(true);
+  }
+
+  protected closeLogoutDialog() {
+    this.logoutDialogOpen.set(false);
+  }
+
+  protected async confirmLogout() {
+    if (this.signingOut()) {
+      return;
+    }
+
+    this.signingOut.set(true);
+    try {
+      await this.authState.signOut();
+      this.logoutDialogOpen.set(false);
+      await this.router.navigateByUrl('/login');
+    } finally {
+      this.signingOut.set(false);
+    }
   }
 }
