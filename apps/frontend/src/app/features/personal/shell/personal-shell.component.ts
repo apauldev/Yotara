@@ -3,6 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthStateService } from '../../../core/services/auth-state.service';
+import { LogoutConfirmModalComponent } from '../../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
 
 type PersonalIcon = 'inbox' | 'today' | 'upcoming' | 'projects' | 'labels';
 
@@ -15,7 +16,7 @@ interface PersonalNavItem {
 @Component({
   selector: 'app-personal-shell',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, LogoutConfirmModalComponent],
   template: `
     <div class="personal-shell">
       @if (mobileMenuOpen()) {
@@ -143,7 +144,47 @@ interface PersonalNavItem {
                 />
               </svg>
             </button>
-            <div class="avatar">{{ userInitials() }}</div>
+            <div class="profile-menu">
+              @if (profileMenuOpen()) {
+                <button
+                  type="button"
+                  class="profile-menu-backdrop"
+                  aria-label="Close profile menu"
+                  (click)="closeProfileMenu()"
+                ></button>
+              }
+
+              <button
+                type="button"
+                class="avatar avatar-button"
+                [attr.aria-expanded]="profileMenuOpen()"
+                aria-label="Open account menu"
+                (click)="toggleProfileMenu()"
+              >
+                {{ userInitials() }}
+              </button>
+
+              @if (profileMenuOpen()) {
+                <div class="profile-menu-card" role="menu" aria-label="Account actions">
+                  <button
+                    type="button"
+                    class="profile-menu-item"
+                    role="menuitem"
+                    (click)="handleStayFocused()"
+                  >
+                    Stay and Focus
+                  </button>
+                  <button
+                    type="button"
+                    class="profile-menu-item profile-menu-item-danger"
+                    role="menuitem"
+                    (click)="openLogoutDialog()"
+                  >
+                    Logout
+                  </button>
+                </div>
+              }
+            </div>
           </div>
         </header>
 
@@ -152,6 +193,14 @@ interface PersonalNavItem {
         </div>
       </main>
     </div>
+
+    <app-logout-confirm-modal
+      [open]="logoutDialogOpen()"
+      [loading]="signingOut()"
+      (close)="closeLogoutDialog()"
+      (stay)="handleStayFocused()"
+      (confirm)="confirmLogout()"
+    />
   `,
   styles: [
     `
@@ -376,6 +425,52 @@ interface PersonalNavItem {
         gap: 0.65rem;
       }
 
+      .profile-menu {
+        position: relative;
+      }
+
+      .profile-menu-backdrop {
+        position: fixed;
+        inset: 0;
+        border: 0;
+        background: transparent;
+        z-index: 4;
+      }
+
+      .profile-menu-card {
+        position: absolute;
+        top: calc(100% + 0.65rem);
+        right: 0;
+        width: 12rem;
+        border-radius: 0.95rem;
+        background: rgba(255, 251, 243, 0.97);
+        border: 1px solid rgba(227, 220, 203, 0.95);
+        box-shadow: 0 16px 30px rgba(74, 68, 56, 0.16);
+        padding: 0.35rem;
+        display: grid;
+        gap: 0.2rem;
+        z-index: 5;
+      }
+
+      .profile-menu-item {
+        border: 0;
+        border-radius: 0.7rem;
+        background: transparent;
+        color: #3f443c;
+        text-align: left;
+        font-weight: 600;
+        padding: 0.6rem 0.68rem;
+        cursor: pointer;
+      }
+
+      .profile-menu-item:hover {
+        background: rgba(205, 228, 211, 0.4);
+      }
+
+      .profile-menu-item-danger {
+        color: #8d4438;
+      }
+
       .icon-button,
       .menu-toggle {
         width: 2.7rem;
@@ -404,6 +499,11 @@ interface PersonalNavItem {
         place-items: center;
         font-size: 0.9rem;
         font-weight: 700;
+      }
+
+      .avatar-button {
+        border: 0;
+        cursor: pointer;
       }
 
       .page-surface {
@@ -493,6 +593,9 @@ export class PersonalShellComponent {
     { label: 'Labels', route: '/labels', icon: 'labels' },
   ];
   protected readonly mobileMenuOpen = signal(false);
+  protected readonly profileMenuOpen = signal(false);
+  protected readonly logoutDialogOpen = signal(false);
+  protected readonly signingOut = signal(false);
   protected readonly userInitials = computed(() => {
     const fallback = 'PS';
     const source = this.authState.user()?.name?.trim() || this.authState.user()?.email || fallback;
@@ -511,6 +614,7 @@ export class PersonalShellComponent {
   constructor() {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
       this.mobileMenuOpen.set(false);
+      this.profileMenuOpen.set(false);
     });
   }
 
@@ -520,5 +624,42 @@ export class PersonalShellComponent {
 
   protected closeMobileMenu() {
     this.mobileMenuOpen.set(false);
+  }
+
+  protected toggleProfileMenu() {
+    this.profileMenuOpen.update((open) => !open);
+  }
+
+  protected closeProfileMenu() {
+    this.profileMenuOpen.set(false);
+  }
+
+  protected handleStayFocused() {
+    this.profileMenuOpen.set(false);
+    this.logoutDialogOpen.set(false);
+  }
+
+  protected openLogoutDialog() {
+    this.profileMenuOpen.set(false);
+    this.logoutDialogOpen.set(true);
+  }
+
+  protected closeLogoutDialog() {
+    this.logoutDialogOpen.set(false);
+  }
+
+  protected async confirmLogout() {
+    if (this.signingOut()) {
+      return;
+    }
+
+    this.signingOut.set(true);
+    try {
+      await this.authState.signOut();
+      this.logoutDialogOpen.set(false);
+      await this.router.navigateByUrl('/login');
+    } finally {
+      this.signingOut.set(false);
+    }
   }
 }
