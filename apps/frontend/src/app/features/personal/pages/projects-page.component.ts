@@ -371,6 +371,32 @@ import { projectPaletteFor, projectProgressPercent } from '../project-presentati
       }
 
       @media (max-width: 720px) {
+        .hero-row {
+          align-items: stretch;
+        }
+
+        .hero-button,
+        .focus-button {
+          width: 100%;
+        }
+
+        .project-card,
+        .project-card-create,
+        .empty-shell,
+        .focus-card {
+          padding: 1.15rem;
+        }
+
+        .progress-copy {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.35rem;
+        }
+
+        .meta-row {
+          gap: 0.45rem;
+        }
+
         .fab {
           right: 1rem;
           bottom: 1rem;

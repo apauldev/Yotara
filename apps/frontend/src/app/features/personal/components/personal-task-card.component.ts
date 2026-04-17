@@ -196,6 +196,24 @@ import { Task, TaskBucket } from '@yotara/shared';
         .task-card {
           padding: 1rem;
           border-radius: 1rem;
+          gap: 0.8rem;
+        }
+
+        .task-title-row {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.45rem;
+        }
+
+        .task-meta {
+          gap: 0.35rem;
+          margin-top: 0.65rem;
+        }
+
+        .meta-pill,
+        .priority-chip {
+          font-size: 0.64rem;
+          padding: 0.16rem 0.5rem;
         }
 
         h3 {

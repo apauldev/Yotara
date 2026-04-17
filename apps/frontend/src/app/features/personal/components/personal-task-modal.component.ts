@@ -475,6 +475,52 @@ type SavePayload =
           border-top: 1px solid rgba(229, 220, 200, 0.95);
         }
       }
+
+      @media (max-width: 640px) {
+        .modal-shell {
+          padding: 0;
+          place-items: end center;
+        }
+
+        .modal-card {
+          width: 100%;
+          max-height: 92dvh;
+          border-radius: 1.4rem 1.4rem 0 0;
+        }
+
+        .modal-main,
+        .modal-sidebar {
+          padding: 1.2rem;
+        }
+
+        .modal-header {
+          align-items: center;
+        }
+
+        .title-row {
+          gap: 0.75rem;
+        }
+
+        .title-row h2 {
+          font-size: 1.5rem;
+        }
+
+        .bucket-chip,
+        .primary-button,
+        .secondary-button,
+        .status-select,
+        .toggle-row {
+          width: 100%;
+        }
+
+        .bucket-grid {
+          gap: 0.5rem;
+        }
+
+        .actions {
+          grid-template-columns: 1fr;
+        }
+      }
     `,
   ],
 })
