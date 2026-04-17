@@ -237,6 +237,31 @@ import { PROJECT_PALETTE } from '../project-presentation';
         background: #ede6d8;
         color: #5d584d;
       }
+
+      @media (max-width: 640px) {
+        .modal-shell {
+          padding: 0;
+          place-items: end center;
+        }
+
+        .modal-card {
+          width: 100%;
+          max-height: 92dvh;
+          border-radius: 1.4rem 1.4rem 0 0;
+          padding: 1.25rem;
+          overflow: auto;
+        }
+
+        .actions {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .primary-button,
+        .secondary-button {
+          width: 100%;
+        }
+      }
     `,
   ],
 })
