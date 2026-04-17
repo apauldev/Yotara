@@ -1,91 +1,112 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, computed, inject, viewChild } from '@angular/core';
+import { Task } from '@yotara/shared';
 import { TaskService } from '../../../core/services/task.service';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
+import { PersonalTaskWorkspaceComponent } from '../components/personal-task-workspace.component';
 
 @Component({
   selector: 'app-today-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, PersonalTaskCardComponent],
+  imports: [CommonModule, PersonalTaskCardComponent, PersonalTaskWorkspaceComponent],
   template: `
-    <section class="page">
-      <div class="hero-row">
-        <header class="page-header">
-          <p class="eyebrow">Personal Sanctuary</p>
-          <h1>Today</h1>
-          <p class="subtitle">{{ dateLabel() }} - {{ progressLabel() }}</p>
-        </header>
+    <app-personal-task-workspace #workspace>
+      <section class="page">
+        <div class="hero-row">
+          <header class="page-header">
+            <p class="eyebrow">Personal Sanctuary</p>
+            <h1>Today</h1>
+            <p class="subtitle">{{ dateLabel() }} - {{ progressLabel() }}</p>
+          </header>
 
-        <div class="zen-card">
-          <div class="zen-icon">✦</div>
-          <div>
-            <strong>Daily Zen</strong>
-            <p>Progress is quiet, but steady.</p>
-          </div>
-        </div>
-      </div>
-
-      @if (taskService.overdueTasks().length > 0) {
-        <section class="task-section">
-          <div class="section-heading section-heading-accent">
-            <h2>Overdue</h2>
-          </div>
-
-          <div class="task-stack">
-            @for (task of taskService.overdueTasks(); track task.id) {
-              <app-personal-task-card [task]="task" tone="overdue" />
-            }
-          </div>
-        </section>
-      }
-
-      <section class="task-section">
-        <div class="section-heading">
-          <h2>Due Today</h2>
-
-          <div class="section-actions">
-            <button type="button" class="icon-chip" aria-label="Filter tasks">≡</button>
-            <button type="button" class="icon-chip" aria-label="More actions">…</button>
+          <div class="zen-card">
+            <div class="zen-icon">✦</div>
+            <div>
+              <strong>Daily Zen</strong>
+              <p>Progress is quiet, but steady.</p>
+            </div>
           </div>
         </div>
 
-        @if (taskService.loading()) {
-          <p class="status-copy">Loading your focused list...</p>
-        } @else if (taskService.error()) {
-          <p class="status-copy">{{ taskService.error() }}</p>
-        } @else if (
-          taskService.todayTasks().length === 0 &&
-          taskService.todayCompletedTasks().length === 0 &&
-          taskService.overdueTasks().length === 0
-        ) {
-          <div class="empty-state">
-            <h3>You are clear for today</h3>
-            <p>Nothing urgent is waiting. Capture a new task or plan the next focus block.</p>
-          </div>
-        } @else {
-          <div class="task-stack">
-            @for (task of taskService.todayTasks(); track task.id) {
-              <app-personal-task-card [task]="task" />
-            }
-          </div>
+        @if (taskService.overdueTasks().length > 0) {
+          <section class="task-section">
+            <div class="section-heading section-heading-accent">
+              <h2>Overdue</h2>
+            </div>
 
-          @if (taskService.todayCompletedTasks().length > 0) {
-            <div class="completed-stack">
-              @for (task of taskService.todayCompletedTasks(); track task.id) {
+            <div class="task-stack">
+              @for (task of taskService.overdueTasks(); track task.id) {
                 <app-personal-task-card
                   [task]="task"
-                  [showDescription]="false"
-                  [showCompletionState]="true"
+                  tone="overdue"
+                  [interactive]="true"
+                  (select)="editTask(task)"
                 />
               }
             </div>
-          }
+          </section>
         }
-      </section>
 
-      <a routerLink="/inbox" fragment="capture" class="fab" aria-label="Quick add task">+</a>
-    </section>
+        <section class="task-section">
+          <div class="section-heading">
+            <h2>Due Today</h2>
+
+            <div class="section-actions">
+              <button type="button" class="icon-chip" aria-label="Filter tasks">≡</button>
+              <button type="button" class="icon-chip" aria-label="More actions">…</button>
+            </div>
+          </div>
+
+          @if (taskService.loading()) {
+            <p class="status-copy">Loading your focused list...</p>
+          } @else if (taskService.error()) {
+            <p class="status-copy">{{ taskService.error() }}</p>
+          } @else if (
+            taskService.todayTasks().length === 0 &&
+            taskService.todayCompletedTasks().length === 0 &&
+            taskService.overdueTasks().length === 0
+          ) {
+            <div class="empty-state">
+              <h3>You are clear for today</h3>
+              <p>Nothing urgent is waiting. Capture a new task or plan the next focus block.</p>
+            </div>
+          } @else {
+            <div class="task-stack">
+              @for (task of taskService.todayTasks(); track task.id) {
+                <app-personal-task-card
+                  [task]="task"
+                  [interactive]="true"
+                  (select)="editTask(task)"
+                />
+              }
+            </div>
+
+            @if (taskService.todayCompletedTasks().length > 0) {
+              <div class="completed-stack">
+                @for (task of taskService.todayCompletedTasks(); track task.id) {
+                  <app-personal-task-card
+                    [task]="task"
+                    [interactive]="true"
+                    [showDescription]="false"
+                    [showCompletionState]="true"
+                    (select)="editTask(task)"
+                  />
+                }
+              </div>
+            }
+          }
+        </section>
+
+        <button
+          type="button"
+          class="fab"
+          aria-label="Quick add task"
+          (click)="openCreateTaskModal()"
+        >
+          +
+        </button>
+      </section>
+    </app-personal-task-workspace>
   `,
   styles: [
     `
@@ -271,6 +292,7 @@ import { PersonalTaskCardComponent } from '../components/personal-task-card.comp
 })
 export class TodayPageComponent {
   protected readonly taskService = inject(TaskService);
+  private readonly workspace = viewChild(PersonalTaskWorkspaceComponent);
   protected readonly dateLabel = computed(() =>
     new Intl.DateTimeFormat('en-US', {
       month: 'long',
@@ -287,4 +309,12 @@ export class TodayPageComponent {
 
     return total === 0 ? 'a clear page' : `${completed} of ${total} done`;
   });
+
+  protected openCreateTaskModal() {
+    this.workspace()?.openCreateTaskModal();
+  }
+
+  protected editTask(task: Task) {
+    this.workspace()?.editTask(task);
+  }
 }
