@@ -2,47 +2,54 @@ import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { TaskService } from '../../../core/services/task.service';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
+import { PersonalTaskWorkspaceComponent } from '../components/personal-task-workspace.component';
 
 @Component({
   selector: 'app-upcoming-page',
   standalone: true,
-  imports: [CommonModule, PersonalTaskCardComponent],
+  imports: [CommonModule, PersonalTaskCardComponent, PersonalTaskWorkspaceComponent],
   template: `
-    <section class="page">
-      <header class="page-header">
-        <p class="eyebrow">Future Focus</p>
-        <h1>Upcoming</h1>
-        <p>See what is approaching and space it out before it becomes noisy.</p>
-      </header>
+    <app-personal-task-workspace #workspace>
+      <section class="page">
+        <header class="page-header">
+          <p class="eyebrow">Future Focus</p>
+          <h1>Upcoming</h1>
+          <p>See what is approaching and space it out before it becomes noisy.</p>
+        </header>
 
-      @if (taskService.loading()) {
-        <p class="status-copy">Loading your upcoming plans...</p>
-      } @else if (taskService.error()) {
-        <p class="status-copy">{{ taskService.error() }}</p>
-      } @else if (taskService.upcomingTaskGroups().length === 0) {
-        <div class="empty-state">
-          <h2>Nothing is crowding the horizon</h2>
-          <p>Upcoming work will appear here once tasks are scheduled ahead.</p>
-        </div>
-      } @else {
-        <div class="group-stack">
-          @for (group of taskService.upcomingTaskGroups(); track group.label) {
-            <section class="group-card">
-              <div class="group-header">
-                <h2>{{ group.label }}</h2>
-                <span>{{ group.tasks.length }} tasks</span>
-              </div>
+        @if (taskService.loading()) {
+          <p class="status-copy">Loading your upcoming plans...</p>
+        } @else if (taskService.error()) {
+          <p class="status-copy">{{ taskService.error() }}</p>
+        } @else if (taskService.upcomingTaskGroups().length === 0) {
+          <div class="empty-state">
+            <h2>Nothing is crowding the horizon</h2>
+            <p>Upcoming work will appear here once tasks are scheduled ahead.</p>
+          </div>
+        } @else {
+          <div class="group-stack">
+            @for (group of taskService.upcomingTaskGroups(); track group.label) {
+              <section class="group-card">
+                <div class="group-header">
+                  <h2>{{ group.label }}</h2>
+                  <span>{{ group.tasks.length }} tasks</span>
+                </div>
 
-              <div class="task-stack">
-                @for (task of group.tasks; track task.id) {
-                  <app-personal-task-card [task]="task" />
-                }
-              </div>
-            </section>
-          }
-        </div>
-      }
-    </section>
+                <div class="task-stack">
+                  @for (task of group.tasks; track task.id) {
+                    <app-personal-task-card
+                      [task]="task"
+                      [interactive]="true"
+                      (select)="workspace.editTask(task)"
+                    />
+                  }
+                </div>
+              </section>
+            }
+          </div>
+        }
+      </section>
+    </app-personal-task-workspace>
   `,
   styles: [
     `
