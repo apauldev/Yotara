@@ -70,6 +70,11 @@
   - [ ] Avoid fixed `pageSize=100` fetch strategy
   - [ ] Move to paged/cursor loading and server-driven sorting
 
+- [ ] Add an archive flow for completed tasks:
+  - [ ] Keep `done` as completion state and add `archived` as the final inactive state
+  - [ ] Move completed tasks out of active views once archived
+  - [ ] Add UI actions for archiving and viewing archived tasks later
+
 ## OSS and Delivery Hardening
 
 - [ ] Add GitHub Actions workflows in `.github/workflows`:
