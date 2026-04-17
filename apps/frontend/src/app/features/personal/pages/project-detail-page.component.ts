@@ -1,149 +1,146 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import type { CreateTaskDto, Project, Task, UpdateTaskDto } from '@yotara/shared';
+import type { Project } from '@yotara/shared';
 import { ProjectService } from '../../../core/services/project.service';
 import { TaskService } from '../../../core/services/task.service';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
-import { PersonalTaskModalComponent } from '../components/personal-task-modal.component';
+import { PersonalTaskWorkspaceComponent } from '../components/personal-task-workspace.component';
 import { projectPaletteFor, projectProgressPercent } from '../project-presentation';
-
-type SavePayload =
-  | { mode: 'create'; payload: CreateTaskDto }
-  | { mode: 'update'; taskId: string; payload: UpdateTaskDto };
 
 @Component({
   selector: 'app-project-detail-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, PersonalTaskCardComponent, PersonalTaskModalComponent],
+  imports: [CommonModule, RouterLink, PersonalTaskCardComponent, PersonalTaskWorkspaceComponent],
   template: `
-    <section class="page">
-      @if (project(); as currentProject) {
-        <a routerLink="/projects" class="back-link">← Projects</a>
+    <app-personal-task-workspace
+      #workspace
+      [initialProjectId]="projectId()"
+      (taskSaved)="handleTaskSaved()"
+    >
+      <section class="page">
+        @if (project(); as currentProject) {
+          <a routerLink="/projects" class="back-link">← Projects</a>
 
-        <header class="hero-card" [style.background]="heroBackground(currentProject)">
-          <div class="hero-icon" [style.background]="accentSoft(currentProject)">
-            <span [style.color]="accent(currentProject)">✦</span>
-          </div>
-
-          <div class="hero-copy">
-            <p class="eyebrow">Personal Project</p>
-            <h1>{{ currentProject.name }}</h1>
-            <p class="subtitle">
-              {{
-                currentProject.description || 'A calm place for everything related to this outcome.'
-              }}
-            </p>
-          </div>
-        </header>
-
-        <section class="metrics-card">
-          <div class="metric">
-            <strong>{{ currentProject.openTaskCount }}</strong>
-            <span>Remaining</span>
-          </div>
-          <div class="metric">
-            <strong>{{ currentProject.completedTaskCount }}</strong>
-            <span>Completed</span>
-          </div>
-          <div class="progress-block">
-            <div class="progress-copy">
-              <strong>{{ progressPercent(currentProject) }}% total progress</strong>
-              <span>{{ currentProject.taskCount }} tasks total</span>
+          <header class="hero-card" [style.background]="heroBackground(currentProject)">
+            <div class="hero-icon" [style.background]="accentSoft(currentProject)">
+              <span [style.color]="accent(currentProject)">✦</span>
             </div>
-            <div class="progress-track">
-              <span
-                class="progress-bar"
-                [style.width.%]="progressPercent(currentProject)"
-                [style.background]="accent(currentProject)"
-              ></span>
+
+            <div class="hero-copy">
+              <p class="eyebrow">Personal Project</p>
+              <h1>{{ currentProject.name }}</h1>
+              <p class="subtitle">
+                {{
+                  currentProject.description ||
+                    'A calm place for everything related to this outcome.'
+                }}
+              </p>
             </div>
-          </div>
-        </section>
+          </header>
 
-        <div class="actions-row">
-          <div class="view-pill">List</div>
-          <button type="button" class="action-button" (click)="openCreateTaskModal()">
-            Add Task
-          </button>
-        </div>
+          <section class="metrics-card">
+            <div class="metric">
+              <strong>{{ currentProject.openTaskCount }}</strong>
+              <span>Remaining</span>
+            </div>
+            <div class="metric">
+              <strong>{{ currentProject.completedTaskCount }}</strong>
+              <span>Completed</span>
+            </div>
+            <div class="progress-block">
+              <div class="progress-copy">
+                <strong>{{ progressPercent(currentProject) }}% total progress</strong>
+                <span>{{ currentProject.taskCount }} tasks total</span>
+              </div>
+              <div class="progress-track">
+                <span
+                  class="progress-bar"
+                  [style.width.%]="progressPercent(currentProject)"
+                  [style.background]="accent(currentProject)"
+                ></span>
+              </div>
+            </div>
+          </section>
 
-        <app-personal-task-modal
-          [open]="modalOpen()"
-          [task]="selectedTask()"
-          [projects]="projectService.projects()"
-          [initialProjectId]="currentProject.id"
-          [error]="taskService.error()"
-          (close)="closeTaskModal()"
-          (save)="saveTask($event)"
-        />
-
-        @if (activeProjectTasks().length === 0 && completedProjectTasks().length === 0) {
-          <section class="empty-state">
-            <div class="empty-emblem">◌</div>
-            <p class="quote">
-              “A project becomes useful the moment the next step is visible. Start with one
-              meaningful step.”
-            </p>
-            <button type="button" class="empty-button" (click)="openCreateTaskModal()">
-              Add First Task
+          <div class="actions-row">
+            <div class="view-pill">List</div>
+            <button type="button" class="action-button" (click)="workspace.openCreateTaskModal()">
+              Add Task
             </button>
-          </section>
-        } @else {
-          <section class="task-section">
-            <div class="section-heading">
-              <h2>To Do</h2>
-              <span>{{ activeProjectTasks().length }}</span>
-            </div>
+          </div>
 
-            <div class="task-stack">
-              @for (task of activeProjectTasks(); track task.id) {
-                <app-personal-task-card
-                  [task]="task"
-                  [interactive]="true"
-                  (select)="editTask(task)"
-                />
-              }
-
-              <button type="button" class="inline-create" (click)="openCreateTaskModal()">
-                + Add new task to {{ currentProject.name }}
+          @if (activeProjectTasks().length === 0 && completedProjectTasks().length === 0) {
+            <section class="empty-state">
+              <div class="empty-emblem">◌</div>
+              <p class="quote">
+                “A project becomes useful the moment the next step is visible. Start with one
+                meaningful step.”
+              </p>
+              <button type="button" class="empty-button" (click)="workspace.openCreateTaskModal()">
+                Add First Task
               </button>
-            </div>
-          </section>
-
-          @if (completedProjectTasks().length > 0) {
-            <section class="task-section task-section-soft">
+            </section>
+          } @else {
+            <section class="task-section">
               <div class="section-heading">
-                <h2>Completed</h2>
-                <span>{{ completedProjectTasks().length }}</span>
+                <h2>To Do</h2>
+                <span>{{ activeProjectTasks().length }}</span>
               </div>
 
               <div class="task-stack">
-                @for (task of completedProjectTasks(); track task.id) {
+                @for (task of activeProjectTasks(); track task.id) {
                   <app-personal-task-card
                     [task]="task"
                     [interactive]="true"
-                    [showDescription]="false"
-                    [showCompletionState]="true"
-                    (select)="editTask(task)"
+                    (select)="workspace.editTask(task)"
                   />
                 }
+
+                <button
+                  type="button"
+                  class="inline-create"
+                  (click)="workspace.openCreateTaskModal()"
+                >
+                  + Add new task to {{ currentProject.name }}
+                </button>
               </div>
             </section>
+
+            @if (completedProjectTasks().length > 0) {
+              <section class="task-section task-section-soft">
+                <div class="section-heading">
+                  <h2>Completed</h2>
+                  <span>{{ completedProjectTasks().length }}</span>
+                </div>
+
+                <div class="task-stack">
+                  @for (task of completedProjectTasks(); track task.id) {
+                    <app-personal-task-card
+                      [task]="task"
+                      [interactive]="true"
+                      [showDescription]="false"
+                      [showCompletionState]="true"
+                      (select)="workspace.editTask(task)"
+                    />
+                  }
+                </div>
+              </section>
+            }
           }
+        } @else if (projectService.loading()) {
+          <p class="status-copy">Loading your project...</p>
+        } @else {
+          <section class="empty-state">
+            <h2>Project not found</h2>
+            <p>This project may have moved, or it is not available in your sanctuary yet.</p>
+            <a routerLink="/projects" class="empty-button">Back to Projects</a>
+          </section>
         }
-      } @else if (projectService.loading()) {
-        <p class="status-copy">Loading your project...</p>
-      } @else {
-        <section class="empty-state">
-          <h2>Project not found</h2>
-          <p>This project may have moved, or it is not available in your sanctuary yet.</p>
-          <a routerLink="/projects" class="empty-button">Back to Projects</a>
-        </section>
-      }
-    </section>
+      </section>
+    </app-personal-task-workspace>
   `,
   styles: [
     `
@@ -373,12 +370,11 @@ export class ProjectDetailPageComponent {
   protected readonly projectService = inject(ProjectService);
   protected readonly taskService = inject(TaskService);
   private readonly route = inject(ActivatedRoute);
-  private readonly projectId = toSignal(
+  private readonly workspace = viewChild(PersonalTaskWorkspaceComponent);
+  protected readonly projectId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get('id'))),
     { initialValue: this.route.snapshot.paramMap.get('id') },
   );
-  protected readonly modalOpen = signal(false);
-  protected readonly selectedTask = signal<Task | null>(null);
   protected readonly project = computed(
     () => this.projectService.projects().find((project) => project.id === this.projectId()) ?? null,
   );
@@ -389,33 +385,8 @@ export class ProjectDetailPageComponent {
     this.taskService.completedTasks().filter((task) => task.projectId === this.projectId()),
   );
 
-  protected openCreateTaskModal() {
-    this.selectedTask.set(null);
-    this.modalOpen.set(true);
-  }
-
-  protected editTask(task: Task) {
-    this.selectedTask.set(task);
-    this.modalOpen.set(true);
-  }
-
-  protected closeTaskModal() {
-    this.selectedTask.set(null);
-    this.modalOpen.set(false);
-  }
-
-  protected async saveTask(event: SavePayload) {
-    if (event.mode === 'create') {
-      await this.taskService.createTask({
-        ...event.payload,
-        projectId: this.projectId() ?? undefined,
-      });
-    } else {
-      await this.taskService.updateTask(event.taskId, event.payload);
-    }
-
-    this.projectService.refreshProjects();
-    this.closeTaskModal();
+  protected handleTaskSaved() {
+    this.workspace()?.closeTaskModal();
   }
 
   protected accent(project: Project) {
