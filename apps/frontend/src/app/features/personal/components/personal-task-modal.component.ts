@@ -43,11 +43,6 @@ type SavePayload =
           <div class="modal-main">
             <header class="modal-header">
               <div class="title-row">
-                <div class="completion-dot" [class.completion-dot-complete]="draftCompleted()">
-                  @if (draftCompleted()) {
-                    ✓
-                  }
-                </div>
                 <div>
                   <h2 id="task-modal-title">
                     {{ task ? 'Refine task details' : 'Capture a new task' }}
@@ -272,22 +267,6 @@ type SavePayload =
 
       .title-row {
         justify-content: flex-start;
-      }
-
-      .completion-dot {
-        width: 1.7rem;
-        height: 1.7rem;
-        border-radius: 999px;
-        border: 2px solid #4d966b;
-        color: #f6fbf7;
-        display: grid;
-        place-items: center;
-        font-size: 0.82rem;
-        background: transparent;
-      }
-
-      .completion-dot-complete {
-        background: #4d966b;
       }
 
       h2 {
