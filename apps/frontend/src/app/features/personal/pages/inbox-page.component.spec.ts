@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { InboxPageComponent } from './inbox-page.component';
 import { TaskService } from '../../../core/services/task.service';
+import { PersonalTaskWorkspaceComponent } from '../components/personal-task-workspace.component';
 
 describe('InboxPageComponent', () => {
   beforeEach(async () => {
@@ -31,33 +32,20 @@ describe('InboxPageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Clear skies');
   });
 
-  it('captures a new task from the inbox input', async () => {
+  it('opens task workspace modal from the inbox input', () => {
     const fixture = TestBed.createComponent(InboxPageComponent);
-    const taskService = TestBed.inject(TaskService) as jasmine.SpyObj<TaskService>;
     fixture.detectChanges();
+    const workspaceDebugEl = fixture.debugElement.query(
+      By.directive(PersonalTaskWorkspaceComponent),
+    );
+    const workspace = workspaceDebugEl.componentInstance as PersonalTaskWorkspaceComponent;
+    spyOn(workspace, 'openCreateTaskModal');
 
     fixture.componentInstance['captureTitle'].set('Write morning pages');
     fixture.debugElement.query(By.css('form')).triggerEventHandler('ngSubmit', {});
     fixture.detectChanges();
 
-    await fixture.componentInstance['saveTask']({
-      mode: 'create',
-      payload: {
-        title: 'Write morning pages',
-        status: 'inbox',
-        priority: 'medium',
-        simpleMode: true,
-        bucket: 'personal-sanctuary',
-      },
-    });
-
-    expect(taskService.createTask).toHaveBeenCalledOnceWith({
-      title: 'Write morning pages',
-      status: 'inbox',
-      priority: 'medium',
-      simpleMode: true,
-      bucket: 'personal-sanctuary',
-    });
+    expect(workspace.openCreateTaskModal).toHaveBeenCalled();
   });
 
   it('ships at least 30 rotating prompts for both promo cards', () => {

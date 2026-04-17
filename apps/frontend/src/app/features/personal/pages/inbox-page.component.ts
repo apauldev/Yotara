@@ -1,107 +1,102 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { CreateTaskDto, Task, UpdateTaskDto } from '@yotara/shared';
-import { ProjectService } from '../../../core/services/project.service';
 import { TaskService } from '../../../core/services/task.service';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
-import { PersonalTaskModalComponent } from '../components/personal-task-modal.component';
+import { PersonalTaskWorkspaceComponent } from '../components/personal-task-workspace.component';
 
 @Component({
   selector: 'app-inbox-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, PersonalTaskCardComponent, PersonalTaskModalComponent],
+  imports: [CommonModule, FormsModule, PersonalTaskCardComponent, PersonalTaskWorkspaceComponent],
   template: `
-    <section class="page">
-      <header class="page-header">
-        <h1>Inbox</h1>
-        <p>Collect everything that needs your attention.</p>
-      </header>
+    <app-personal-task-workspace
+      #workspace
+      [initialTitle]="captureTitle()"
+      (taskSaved)="handleTaskSaved($event)"
+      (taskSaveFailed)="captureError.set($event)"
+    >
+      <section class="page">
+        <header class="page-header">
+          <h1>Inbox</h1>
+          <p>Collect everything that needs your attention.</p>
+        </header>
 
-      <form id="capture" class="capture-bar" (ngSubmit)="captureTask()">
-        <button
-          type="submit"
-          class="capture-plus"
-          [disabled]="taskService.creating()"
-          aria-label="Capture task"
-        >
-          +
-        </button>
+        <form id="capture" class="capture-bar" (ngSubmit)="captureTask()">
+          <button
+            type="submit"
+            class="capture-plus"
+            [disabled]="taskService.creating()"
+            aria-label="Capture task"
+          >
+            +
+          </button>
 
-        <input
-          type="text"
-          name="captureTitle"
-          [ngModel]="captureTitle()"
-          (ngModelChange)="captureTitle.set($event)"
-          placeholder="What's on your mind today?"
-          autocomplete="off"
-        />
+          <input
+            type="text"
+            name="captureTitle"
+            [ngModel]="captureTitle()"
+            (ngModelChange)="captureTitle.set($event)"
+            placeholder="What's on your mind today?"
+            autocomplete="off"
+          />
 
-        <div class="capture-actions" aria-hidden="true">
-          <span class="capture-icon">🗓</span>
-          <span class="capture-icon">⚑</span>
-        </div>
-
-        <button type="submit" class="capture-submit" [disabled]="taskService.creating()">
-          {{ taskService.creating() ? 'Saving...' : 'Capture' }}
-        </button>
-      </form>
-
-      @if (captureError()) {
-        <p class="capture-error">{{ captureError() }}</p>
-      }
-
-      <app-personal-task-modal
-        [open]="modalOpen()"
-        [task]="selectedTask()"
-        [initialTitle]="captureTitle()"
-        [projects]="projectService.projects()"
-        [error]="taskService.error()"
-        (close)="closeModal()"
-        (save)="saveTask($event)"
-      />
-
-      <section class="list-section">
-        <div class="section-heading">
-          <h2>Pending Processing</h2>
-          <span class="section-count">{{ inboxCountLabel() }}</span>
-        </div>
-
-        @if (taskService.loading()) {
-          <p class="status-copy">Loading your inbox...</p>
-        } @else if (taskService.error()) {
-          <p class="status-copy">{{ taskService.error() }}</p>
-        } @else if (taskService.inboxTasks().length === 0) {
-          <div class="empty-state">
-            <h3>Clear skies</h3>
-            <p>Your inbox is empty. Capture the next idea or task above to keep moving.</p>
+          <div class="capture-actions" aria-hidden="true">
+            <span class="capture-icon">🗓</span>
+            <span class="capture-icon">⚑</span>
           </div>
-        } @else {
-          <div class="task-stack">
-            @for (task of taskService.inboxTasks(); track task.id) {
-              <app-personal-task-card
-                [task]="task"
-                [interactive]="true"
-                (select)="editTask(task)"
-              />
-            }
-          </div>
+
+          <button type="submit" class="capture-submit" [disabled]="taskService.creating()">
+            {{ taskService.creating() ? 'Saving...' : 'Capture' }}
+          </button>
+        </form>
+
+        @if (captureError()) {
+          <p class="capture-error">{{ captureError() }}</p>
         }
+
+        <section class="list-section">
+          <div class="section-heading">
+            <h2>Pending Processing</h2>
+            <span class="section-count">{{ inboxCountLabel() }}</span>
+          </div>
+
+          @if (taskService.loading()) {
+            <p class="status-copy">Loading your inbox...</p>
+          } @else if (taskService.error()) {
+            <p class="status-copy">{{ taskService.error() }}</p>
+          } @else if (taskService.inboxTasks().length === 0) {
+            <div class="empty-state">
+              <h3>Clear skies</h3>
+              <p>Your inbox is empty. Capture the next idea or task above to keep moving.</p>
+            </div>
+          } @else {
+            <div class="task-stack">
+              @for (task of taskService.inboxTasks(); track task.id) {
+                <app-personal-task-card
+                  [task]="task"
+                  [interactive]="true"
+                  (select)="workspace.editTask(task)"
+                />
+              }
+            </div>
+          }
+        </section>
+
+        <div class="promo-grid">
+          <div class="promo-card promo-card-soft">
+            <div class="promo-icon">✦</div>
+            <h3>Daily clarity</h3>
+            <p>{{ dailyClarityPrompt() }}</p>
+          </div>
+
+          <div class="promo-card promo-card-dark">
+            <p>{{ journalPrompt() }}</p>
+            <span>The Yotara Journal</span>
+          </div>
+        </div>
       </section>
-
-      <div class="promo-grid">
-        <div class="promo-card promo-card-soft">
-          <div class="promo-icon">✦</div>
-          <h3>Daily clarity</h3>
-          <p>{{ dailyClarityPrompt() }}</p>
-        </div>
-
-        <div class="promo-card promo-card-dark">
-          <p>{{ journalPrompt() }}</p>
-          <span>The Yotara Journal</span>
-        </div>
-      </div>
-    </section>
+    </app-personal-task-workspace>
   `,
   styles: [
     `
@@ -333,11 +328,9 @@ import { PersonalTaskModalComponent } from '../components/personal-task-modal.co
 })
 export class InboxPageComponent {
   protected readonly taskService = inject(TaskService);
-  protected readonly projectService = inject(ProjectService);
+  private readonly workspace = viewChild(PersonalTaskWorkspaceComponent);
   protected readonly captureTitle = signal('');
   protected readonly captureError = signal('');
-  protected readonly modalOpen = signal(false);
-  protected readonly selectedTask = signal<Task | null>(null);
   protected readonly inboxCountLabel = computed(
     () => `${this.taskService.inboxTasks().length} Tasks`,
   );
@@ -355,46 +348,17 @@ export class InboxPageComponent {
     }
 
     this.captureError.set('');
-    this.selectedTask.set(null);
-    this.modalOpen.set(true);
+    this.workspace()?.openCreateTaskModal();
   }
 
-  protected editTask(task: Task) {
-    this.captureError.set('');
-    this.selectedTask.set(task);
-    this.modalOpen.set(true);
-  }
-
-  protected closeModal() {
-    this.modalOpen.set(false);
-    this.selectedTask.set(null);
-  }
-
-  protected async saveTask(
-    event:
-      | { mode: 'create'; payload: CreateTaskDto }
-      | { mode: 'update'; taskId: string; payload: UpdateTaskDto },
-  ) {
-    try {
-      if (event.mode === 'create') {
-        await this.taskService.createTask(event.payload);
-        this.captureTitle.set('');
-      } else {
-        await this.taskService.updateTask(event.taskId, event.payload);
-      }
-
-      this.projectService.refreshProjects();
-      this.dailyClarityPrompt.set(pickRandomPrompt(this.dailyClarityPrompts));
-      this.journalPrompt.set(pickRandomPrompt(this.journalPrompts));
-      this.closeModal();
-    } catch {
-      this.captureError.set(
-        this.taskService.error() ??
-          (event.mode === 'create'
-            ? 'Could not save your task right now.'
-            : 'Could not update your task right now.'),
-      );
+  protected handleTaskSaved(mode: 'create' | 'update') {
+    if (mode === 'create') {
+      this.captureTitle.set('');
     }
+
+    this.captureError.set('');
+    this.dailyClarityPrompt.set(pickRandomPrompt(this.dailyClarityPrompts));
+    this.journalPrompt.set(pickRandomPrompt(this.journalPrompts));
   }
 }
 
