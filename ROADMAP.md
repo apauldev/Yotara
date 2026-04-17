@@ -104,7 +104,58 @@ This document outlines the complete list of screens, pages, and modals needed fo
 
 ---
 
-## 4. Team Mode–Specific Screens
+## 4. Personal Mode Work That Sets Up Team Mode
+
+These features should be built as personal-mode improvements first, but they should be designed so the same model can carry into team mode later.
+
+### Task lifecycle and archive flow
+- Personal mode should distinguish between `done` and `archived`
+- Team mode will need the same distinction so closed work does not clutter active collaboration views
+- Archive should become the shared “out of active workflow” state across both modes
+
+### Search and filtering
+- Personal search should start with titles, descriptions, projects, and labels
+- Team mode will extend the same search surface to assignees, comments, and shared workspace tasks
+- Build search as a cross-cutting app capability, not a one-off page
+
+### Labels / tags
+- Personal labels establish task organization before team complexity arrives
+- Team mode can reuse the same label system for workspace-wide tagging and filtering
+
+### Settings and preferences
+- Personal settings should cover default view, theme, and quick-add behavior
+- Team mode should inherit the same account settings shell and add workspace preferences later
+
+### Empty, loading, and error states
+- These are not just polish
+- They become the baseline UX for team collaboration once multiple users, slower loads, and permission errors enter the product
+
+### Confirmation dialogs
+- Task delete/archive confirmations in personal mode should set the dialog pattern for workspace actions later
+- Team mode will need the same pattern for leave workspace, remove member, and delete project flows
+
+### Project detail groundwork
+- Personal project detail should establish the data shape for shared workspaces later
+- Team mode can then layer assignments, comments, and board views on top of the same project foundation
+
+### Notifications and reminders
+- Personal mode should include browser notifications for due dates, reminders, and key task updates
+- The same notification infrastructure should later carry team mentions, assignments, and workspace activity
+- Build around service workers and backend push delivery so the feature works when the app is not open
+
+### Language and localization support
+- Start with English as the default product language
+- Add Spanish next if there is demand from early users
+- Add Chinese, Korean, Japanese, Arabic, Hindi, and Russian as the next major language set
+- Add German, French, Portuguese, and Italian as easy LTR expansion languages
+- Keep the UI text layer separate from components so additional languages can be added later without rewiring the app
+- Treat localized date/time/copy formatting as part of settings and not as hardcoded UI text
+- Defer right-to-left layout support to a later phase
+- Revisit RTL only if Arabic or other RTL language demand becomes real
+
+---
+
+## 5. Team Mode–Specific Screens
 
 ### Workspaces Overview (`/workspaces`)
 - List of workspaces (cards or simple list view)
@@ -116,10 +167,12 @@ This document outlines the complete list of screens, pages, and modals needed fo
 - Members list with avatars + role badges
 - Invite by email or public link
 - (Optional) role/permission management
+- Workspace-level notification preferences
+- Member language / locale preferences if supported by the workspace model
 
 ---
 
-## 5. Utility & Settings Screens
+## 6. Utility & Settings Screens
 
 ### Settings (`/settings`)
 - **Status**: Not started
@@ -133,6 +186,8 @@ This document outlines the complete list of screens, pages, and modals needed fo
   - Default view (Inbox | Today | Upcoming)
   - Date format (US | ISO | etc.)
   - Quick-add behavior
+  - Language selector
+  - Right-to-left layout support deferred
 - **Data & Privacy tab**
   - Export data (JSON / CSV button)
 - **About section**
@@ -152,9 +207,22 @@ This document outlines the complete list of screens, pages, and modals needed fo
   - Due date
   - Completion status
 
+### Notifications Center
+- In-app notification list or panel
+- Read/unread states
+- Due reminders, assignments, mentions, and system notices
+- Sync with push notifications so the same events appear in-app and on device
+
+### PWA / Installable Mobile Web App
+- App manifest
+- Service worker registration
+- Install prompt and homescreen icon support
+- Push notifications for supported browsers
+- Badge count support where available
+
 ---
 
-## 6. Micro-Screens & States
+## 7. Micro-Screens & States
 
 ### Empty States
 - Inbox empty illustration + message
@@ -176,6 +244,8 @@ This document outlines the complete list of screens, pages, and modals needed fo
 - In-app notification panel/dropdown
 - Mentions, assignments, comments (team mode)
 - (Optional) toast notifications for quick feedback
+- Browser push notifications for the installable web app
+- Notification permission management and subscription refresh flow
 
 ### Confirmation Dialogs
 - Delete task confirmation
@@ -184,7 +254,7 @@ This document outlines the complete list of screens, pages, and modals needed fo
 
 ---
 
-## 7. Deployment & Distribution
+## 8. Deployment & Distribution
 
 ### Pre-Built Docker Images
 - **Status**: Not started
@@ -224,6 +294,11 @@ This document outlines the complete list of screens, pages, and modals needed fo
 - Add Coolify deployment documentation
 - Target: indie devs running their own VPS
 
+### Mobile packaging options
+- Keep the mobile web experience excellent first
+- Consider a PWA as the default mobile distribution path
+- If demand proves out, evaluate a lightweight hybrid wrapper later rather than maintaining a separate native app
+
 ---
 
 ## Build Order (Fastest Path to MVP)
@@ -248,6 +323,8 @@ This document outlines the complete list of screens, pages, and modals needed fo
 13. 🟡 Workspace switcher and member list UI
 14. 🟡 404 page + delete confirmation modal
 15. 🟡 Task loading skeletons + validation/error polish
+16. 🟡 Language selection / localization groundwork
+17. 🟡 Notification center + browser push support
 
 ### Phase 4: Enhanced UX
 - Kanban view for projects
@@ -259,6 +336,7 @@ This document outlines the complete list of screens, pages, and modals needed fo
 - Task assignment
 - Comments & activity log
 - Real-time collaboration
+- Shared notification preferences
 
 ### Phase 6: Deployment & Distribution (Growth)
 - Pre-built Docker images on Docker Hub
@@ -275,6 +353,13 @@ This document outlines the complete list of screens, pages, and modals needed fo
 - Docker smoke script for local verification
 - GitHub Actions CI for Docker image builds and pushes
 - Environment variable documentation for all platforms
+- Workspace-mode aware routing and guards
+- Shared task state model that supports personal and team views
+- Reusable modal, empty state, and confirmation dialog primitives
+- Search/filter infrastructure that can grow into team scope
+- Notification delivery pipeline with push subscriptions
+- Localization-ready text and formatting layers
+- PWA installability for mobile web users
 
 ---
 
@@ -296,6 +381,7 @@ This document outlines the complete list of screens, pages, and modals needed fo
 - Team-mode shell and workspace primitives
 - Project data model and project detail screens
 - Settings shell and account/logout flows
+- Archive flow for completed tasks
 
 ### 📋 Not Started
 - Kanban project view
@@ -307,6 +393,13 @@ This document outlines the complete list of screens, pages, and modals needed fo
 - Task loading skeletons and form validation polish
 - Pre-built Docker images (Phase 6)
 - One-click cloud deploy templates (Phase 6)
+- Workspace-level notifications and comments/activity log
+- Theme and preference settings
+- Export / data and privacy controls
+- Cross-mode search and filter enhancements
+- Localization / language support
+- Notification preferences and push delivery
+- PWA installability and badge counts
 
 ---
 
@@ -391,6 +484,13 @@ apps/frontend/src/app/
 - [ ] Implement Today / Upcoming list views
 - [ ] Add project create & list views
 - [ ] Build settings module
+- [ ] Add archive flow for completed tasks
+- [ ] Add labels / tags management
+- [ ] Add global search
+- [ ] Add confirmation dialogs and 404/error polish
+- [ ] Define the team-mode data model for tasks, projects, and membership
+- [ ] Design notification data model and push subscription storage
+- [ ] Add localization foundation and language selector
 - [ ] Integrate real-time updates (optional for MVP)
 - [ ] User testing & iterate
 
@@ -403,6 +503,11 @@ apps/frontend/src/app/
 - **Kanban**: Include in MVP or as Phase 4?
 - **Team mode**: Hide completely or show greyed-out tab in MVP?
 - **Notifications**: Real-time via WebSocket or polling?
+- **Archive**: Manual archive only, or auto-archive after completion?
+- **Search**: Single global search or separate personal/team search scopes?
+- **Permissions**: What is the minimum viable team role model?
+- **Languages**: English first, then Spanish, then other locales as demand proves out?
+- **Languages**: English first, then Spanish, Hindi, Chinese, Japanese, Korean, Russian, plus easy LTR European additions like German, French, Portuguese, and Italian?
 
 ---
 
