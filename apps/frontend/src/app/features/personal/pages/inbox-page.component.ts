@@ -312,15 +312,26 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
         }
 
         .capture-bar {
-          grid-template-columns: auto minmax(0, 1fr);
+          grid-template-columns: 1fr;
+          align-items: stretch;
+          gap: 0.65rem;
+        }
+
+        .capture-plus {
+          width: 2.4rem;
+          height: 2.4rem;
         }
 
         .capture-actions {
-          display: none;
+          justify-content: flex-start;
         }
 
         .capture-submit {
-          grid-column: 1 / -1;
+          width: 100%;
+        }
+
+        .promo-grid {
+          grid-template-columns: 1fr;
         }
       }
     `,
