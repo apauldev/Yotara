@@ -1,6 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import {
+  faBars,
+  faChartColumn,
+  faCalendarDays,
+  faLeaf,
+  faSquareCheck,
+  faUsers,
+} from '@fortawesome/free-solid-svg-icons';
 import { filter } from 'rxjs';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { LogoutConfirmModalComponent } from '../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
@@ -17,7 +26,14 @@ interface SidebarItem {
 @Component({
   selector: 'app-auth-shell',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, LogoutConfirmModalComponent],
+  imports: [
+    CommonModule,
+    FontAwesomeModule,
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet,
+    LogoutConfirmModalComponent,
+  ],
   template: `
     <div class="shell">
       @if (mobileMenuOpen()) {
@@ -33,15 +49,7 @@ interface SidebarItem {
         <div class="sidebar-top">
           <div class="brand">
             <div class="brand-mark" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path
-                  d="M20 4C11 4 4 10.3 4 18c0 .9.1 1.8.4 2.6A9.8 9.8 0 0 0 12 24c6.6 0 12-5.4 12-12V4h-4Z"
-                />
-                <path
-                  class="brand-vein"
-                  d="M7.5 16.8a1 1 0 1 0 1.5 1.4c1.6-1.7 4-3.4 7.4-4.5a1 1 0 1 0-.6-1.9c-3.8 1.3-6.6 3.2-8.3 5Z"
-                />
-              </svg>
+              <fa-icon [icon]="faLeaf" aria-hidden="true"></fa-icon>
             </div>
             <div>
               <div class="brand-name">Yotara</div>
@@ -61,40 +69,19 @@ interface SidebarItem {
                   <span class="nav-icon" aria-hidden="true">
                     @switch (item.icon) {
                       @case ('dashboard') {
-                        <svg viewBox="0 0 24 24">
-                          <path d="M4 4h6v6H4zM14 4h6v4h-6zM14 10h6v10h-6zM4 14h6v6H4z" />
-                        </svg>
+                        <fa-icon [icon]="faChartColumn"></fa-icon>
                       }
                       @case ('tasks') {
-                        <svg viewBox="0 0 24 24">
-                          <path d="M7 12.5 10 15l7-7" />
-                          <path d="M5 6h14" />
-                          <path d="M5 18h14" />
-                        </svg>
+                        <fa-icon [icon]="faSquareCheck"></fa-icon>
                       }
                       @case ('workspaces') {
-                        <svg viewBox="0 0 24 24">
-                          <path d="M8 7a2.5 2.5 0 1 0 0 .01" />
-                          <path d="M16 7a2.5 2.5 0 1 0 0 .01" />
-                          <path d="M8 17a2.5 2.5 0 1 0 0 .01" />
-                          <path d="M16 17a2.5 2.5 0 1 0 0 .01" />
-                        </svg>
+                        <fa-icon [icon]="faUsers"></fa-icon>
                       }
                       @case ('calendar') {
-                        <svg viewBox="0 0 24 24">
-                          <path d="M7 3v4" />
-                          <path d="M17 3v4" />
-                          <path d="M4 9h16" />
-                          <rect x="4" y="5" width="16" height="15" rx="2" />
-                        </svg>
+                        <fa-icon [icon]="faCalendarDays"></fa-icon>
                       }
                       @case ('team') {
-                        <svg viewBox="0 0 24 24">
-                          <path d="M16 20v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1" />
-                          <circle cx="10" cy="8" r="3" />
-                          <path d="M20 20v-1a4 4 0 0 0-3-3.87" />
-                          <path d="M14 5.13a3 3 0 0 1 0 5.74" />
-                        </svg>
+                        <fa-icon [icon]="faUsers"></fa-icon>
                       }
                     }
                   </span>
@@ -105,40 +92,19 @@ interface SidebarItem {
                   <span class="nav-icon" aria-hidden="true">
                     @switch (item.icon) {
                       @case ('dashboard') {
-                        <svg viewBox="0 0 24 24">
-                          <path d="M4 4h6v6H4zM14 4h6v4h-6zM14 10h6v10h-6zM4 14h6v6H4z" />
-                        </svg>
+                        <fa-icon [icon]="faChartColumn"></fa-icon>
                       }
                       @case ('tasks') {
-                        <svg viewBox="0 0 24 24">
-                          <path d="M7 12.5 10 15l7-7" />
-                          <path d="M5 6h14" />
-                          <path d="M5 18h14" />
-                        </svg>
+                        <fa-icon [icon]="faSquareCheck"></fa-icon>
                       }
                       @case ('workspaces') {
-                        <svg viewBox="0 0 24 24">
-                          <path d="M8 7a2.5 2.5 0 1 0 0 .01" />
-                          <path d="M16 7a2.5 2.5 0 1 0 0 .01" />
-                          <path d="M8 17a2.5 2.5 0 1 0 0 .01" />
-                          <path d="M16 17a2.5 2.5 0 1 0 0 .01" />
-                        </svg>
+                        <fa-icon [icon]="faUsers"></fa-icon>
                       }
                       @case ('calendar') {
-                        <svg viewBox="0 0 24 24">
-                          <path d="M7 3v4" />
-                          <path d="M17 3v4" />
-                          <path d="M4 9h16" />
-                          <rect x="4" y="5" width="16" height="15" rx="2" />
-                        </svg>
+                        <fa-icon [icon]="faCalendarDays"></fa-icon>
                       }
                       @case ('team') {
-                        <svg viewBox="0 0 24 24">
-                          <path d="M16 20v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1" />
-                          <circle cx="10" cy="8" r="3" />
-                          <path d="M20 20v-1a4 4 0 0 0-3-3.87" />
-                          <path d="M14 5.13a3 3 0 0 1 0 5.74" />
-                        </svg>
+                        <fa-icon [icon]="faUsers"></fa-icon>
                       }
                     }
                   </span>
@@ -211,11 +177,7 @@ interface SidebarItem {
             aria-label="Toggle navigation menu"
             (click)="toggleMobileMenu()"
           >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 7h16" />
-              <path d="M4 12h16" />
-              <path d="M4 17h16" />
-            </svg>
+            <fa-icon [icon]="faBars" aria-hidden="true"></fa-icon>
           </button>
 
           <div class="mobile-brand">
@@ -285,8 +247,8 @@ interface SidebarItem {
       }
 
       .brand-mark {
-        width: 2rem;
-        height: 2rem;
+        width: 2.15rem;
+        height: 2.15rem;
         border-radius: 999px;
         background: #e7efe5;
         color: #4f986f;
@@ -294,15 +256,8 @@ interface SidebarItem {
         place-items: center;
       }
 
-      .brand-mark svg {
-        width: 1.1rem;
-        height: 1.1rem;
-        display: block;
-        fill: currentColor;
-      }
-
-      .brand-vein {
-        fill: #f7f8f4;
+      .brand-mark fa-icon {
+        font-size: 1.02rem;
       }
 
       .brand-name {
@@ -389,6 +344,13 @@ interface SidebarItem {
         stroke-width: 1.8;
         stroke-linecap: round;
         stroke-linejoin: round;
+      }
+
+      .nav-icon fa-icon,
+      .menu-toggle fa-icon {
+        width: 100%;
+        height: 100%;
+        display: block;
       }
 
       .nav-badge {
@@ -650,6 +612,13 @@ interface SidebarItem {
 export class AuthShellComponent {
   private authState = inject(AuthStateService);
   private router = inject(Router);
+
+  protected readonly faBars = faBars;
+  protected readonly faCalendarDays = faCalendarDays;
+  protected readonly faChartColumn = faChartColumn;
+  protected readonly faLeaf = faLeaf;
+  protected readonly faSquareCheck = faSquareCheck;
+  protected readonly faUsers = faUsers;
 
   protected readonly mobileMenuOpen = signal(false);
   protected readonly profileMenuOpen = signal(false);

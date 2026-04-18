@@ -55,6 +55,22 @@
 - [ ] Reduce large inline templates/styles:
   - [ ] Move large inline template/CSS from page components to separate `.html` + `.css` files
   - [ ] Start with `inbox-page.component.ts` and similar high-size components
+  - [ ] Inline template/style components to split:
+    - [ ] `apps/frontend/src/app/features/auth/login.component.ts`
+    - [ ] `apps/frontend/src/app/features/personal/components/personal-project-modal.component.ts`
+    - [ ] `apps/frontend/src/app/features/personal/components/personal-task-card.component.ts`
+    - [ ] `apps/frontend/src/app/features/personal/components/personal-task-modal.component.ts`
+    - [ ] `apps/frontend/src/app/features/personal/components/personal-task-workspace.component.ts`
+    - [ ] `apps/frontend/src/app/features/personal/pages/inbox-page.component.ts`
+    - [ ] `apps/frontend/src/app/features/personal/pages/labels-page.component.ts`
+    - [ ] `apps/frontend/src/app/features/personal/pages/project-detail-page.component.ts`
+    - [ ] `apps/frontend/src/app/features/personal/pages/projects-page.component.ts`
+    - [ ] `apps/frontend/src/app/features/personal/pages/today-page.component.ts`
+    - [ ] `apps/frontend/src/app/features/personal/pages/upcoming-page.component.ts`
+    - [ ] `apps/frontend/src/app/features/personal/shell/personal-shell.component.ts`
+    - [ ] `apps/frontend/src/app/features/shell/auth-shell.component.ts`
+    - [ ] `apps/frontend/src/app/shared/components/page-header/page-header.component.ts`
+    - [ ] `apps/frontend/src/app/shared/ui/logout-confirm-modal/logout-confirm-modal.component.ts`
 
 ## Backend and Cross-Cutting Improvements
 
