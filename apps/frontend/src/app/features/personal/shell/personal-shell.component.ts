@@ -1,6 +1,18 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import {
+  faBars,
+  faBell,
+  faCalendarDays,
+  faInbox,
+  faArrowRightLong,
+  faRocket,
+  faPlus,
+  faSliders,
+  faTag,
+} from '@fortawesome/free-solid-svg-icons';
 import { filter } from 'rxjs';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { LogoutConfirmModalComponent } from '../../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
@@ -16,7 +28,14 @@ interface PersonalNavItem {
 @Component({
   selector: 'app-personal-shell',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, LogoutConfirmModalComponent],
+  imports: [
+    CommonModule,
+    FontAwesomeModule,
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet,
+    LogoutConfirmModalComponent,
+  ],
   template: `
     <div class="personal-shell">
       @if (mobileMenuOpen()) {
@@ -46,37 +65,19 @@ interface PersonalNavItem {
                 <span class="nav-icon" aria-hidden="true">
                   @switch (item.icon) {
                     @case ('inbox') {
-                      <svg viewBox="0 0 24 24">
-                        <path d="M4 6h16v10H4z" />
-                        <path d="M8 12h8" />
-                      </svg>
+                      <fa-icon [icon]="faInbox"></fa-icon>
                     }
                     @case ('today') {
-                      <svg viewBox="0 0 24 24">
-                        <path d="M7 3v4" />
-                        <path d="M17 3v4" />
-                        <path d="M4 9h16" />
-                        <rect x="4" y="5" width="16" height="15" rx="2" />
-                      </svg>
+                      <fa-icon [icon]="faCalendarDays"></fa-icon>
                     }
                     @case ('upcoming') {
-                      <svg viewBox="0 0 24 24">
-                        <path d="M3 12h9" />
-                        <path d="m9 6 6 6-6 6" />
-                        <path d="M19 5v14" />
-                      </svg>
+                      <fa-icon [icon]="faArrowRightLong"></fa-icon>
                     }
                     @case ('projects') {
-                      <svg viewBox="0 0 24 24">
-                        <path d="M3 7h18v11H3z" />
-                        <path d="M8 7V5h8v2" />
-                      </svg>
+                      <fa-icon [icon]="faRocket"></fa-icon>
                     }
                     @case ('labels') {
-                      <svg viewBox="0 0 24 24">
-                        <path d="M11 4H4v7l9 9 7-7z" />
-                        <circle cx="8.5" cy="8.5" r="1" />
-                      </svg>
+                      <fa-icon [icon]="faTag"></fa-icon>
                     }
                   }
                 </span>
@@ -88,7 +89,7 @@ interface PersonalNavItem {
 
         <div class="sidebar-bottom">
           <a routerLink="/inbox" fragment="capture" class="quick-add-button">
-            <span class="quick-add-icon">+</span>
+            <span class="quick-add-icon"><fa-icon [icon]="faPlus"></fa-icon></span>
             Quick Add Task
           </a>
 
@@ -109,14 +110,23 @@ interface PersonalNavItem {
               aria-label="Toggle navigation menu"
               (click)="toggleMobileMenu()"
             >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 7h16" />
-                <path d="M4 12h16" />
-                <path d="M4 17h16" />
-              </svg>
+              <fa-icon [icon]="faBars" aria-hidden="true"></fa-icon>
             </button>
 
-            <a routerLink="/inbox" class="topbar-brand">Yotara</a>
+            <a routerLink="/inbox" class="topbar-brand">
+              <span class="topbar-brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path
+                    d="M20 4C11 4 4 10.3 4 18c0 .9.1 1.8.4 2.6A9.8 9.8 0 0 0 12 24c6.6 0 12-5.4 12-12V4h-4Z"
+                  />
+                  <path
+                    class="topbar-brand-vein"
+                    d="M7.5 16.8a1 1 0 1 0 1.5 1.4c1.6-1.7 4-3.4 7.4-4.5a1 1 0 1 0-.6-1.9c-3.8 1.3-6.6 3.2-8.3 5Z"
+                  />
+                </svg>
+              </span>
+              <span>Yotara</span>
+            </a>
 
             <label class="search-shell">
               <span class="search-icon" aria-hidden="true">
@@ -131,18 +141,10 @@ interface PersonalNavItem {
 
           <div class="topbar-actions">
             <button type="button" class="icon-button" aria-label="Notifications">
-              <svg viewBox="0 0 24 24">
-                <path d="M15 17H9" />
-                <path d="M18 17V11a6 6 0 1 0-12 0v6l-2 2h16z" />
-              </svg>
+              <fa-icon [icon]="faBell" aria-hidden="true"></fa-icon>
             </button>
             <button type="button" class="icon-button" aria-label="Preferences">
-              <svg viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="3" />
-                <path
-                  d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.5h.1a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.5 1Z"
-                />
-              </svg>
+              <fa-icon [icon]="faSliders" aria-hidden="true"></fa-icon>
             </button>
             <div class="profile-menu">
               @if (profileMenuOpen()) {
@@ -345,7 +347,7 @@ interface PersonalNavItem {
 
       .content {
         min-width: 0;
-        padding: 0 1.2rem 1.5rem;
+        padding: 0 clamp(1rem, 2vw, 2rem) 1.5rem;
       }
 
       .topbar {
@@ -354,8 +356,7 @@ interface PersonalNavItem {
         align-items: center;
         justify-content: space-between;
         gap: 1rem;
-        max-width: 74rem;
-        margin: 0 auto;
+        width: 100%;
       }
 
       .topbar-left {
@@ -367,11 +368,40 @@ interface PersonalNavItem {
       }
 
       .topbar-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.65rem;
         color: #1e6f49;
         text-decoration: none;
         font-size: 1.8rem;
         font-weight: 700;
         letter-spacing: -0.04em;
+      }
+
+      .topbar-brand-mark {
+        width: 1.95rem;
+        height: 1.95rem;
+        border-radius: 999px;
+        background: #e7efe5;
+        color: #4f986f;
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+      }
+
+      .topbar-brand-mark svg {
+        width: 1rem;
+        height: 1rem;
+        display: block;
+        fill: currentColor;
+      }
+
+      .topbar-brand-vein {
+        fill: #f7f8f4;
+      }
+
+      .topbar-brand-mark fa-icon {
+        font-size: 1rem;
       }
 
       .search-shell {
@@ -423,6 +453,14 @@ interface PersonalNavItem {
         display: flex;
         align-items: center;
         gap: 0.65rem;
+      }
+
+      .icon-button fa-icon,
+      .menu-toggle fa-icon,
+      .nav-icon fa-icon,
+      .quick-add-icon fa-icon {
+        font-size: 1em;
+        line-height: 1;
       }
 
       .profile-menu {
@@ -508,8 +546,6 @@ interface PersonalNavItem {
 
       .page-surface {
         min-height: calc(100dvh - 5.2rem);
-        max-width: 74rem;
-        margin: 0 auto;
         width: 100%;
       }
 
@@ -577,11 +613,25 @@ interface PersonalNavItem {
         .topbar-brand {
           font-size: 1.7rem;
         }
+
+        .topbar-brand-mark {
+          width: 1.8rem;
+          height: 1.8rem;
+        }
       }
     `,
   ],
 })
 export class PersonalShellComponent {
+  protected readonly faBars = faBars;
+  protected readonly faBell = faBell;
+  protected readonly faArrowRightLong = faArrowRightLong;
+  protected readonly faCalendarDays = faCalendarDays;
+  protected readonly faInbox = faInbox;
+  protected readonly faRocket = faRocket;
+  protected readonly faPlus = faPlus;
+  protected readonly faSliders = faSliders;
+  protected readonly faTag = faTag;
   private router = inject(Router);
   private authState = inject(AuthStateService);
 
