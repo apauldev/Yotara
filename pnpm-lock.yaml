@@ -111,6 +111,15 @@ importers:
       '@better-fetch/fetch':
         specifier: ^1.1.21
         version: 1.1.21
+      '@fortawesome/angular-fontawesome':
+        specifier: ^4.0.0
+        version: 4.0.0(@angular/core@21.2.1(@angular/compiler@21.2.1)(rxjs@7.8.2)(zone.js@0.15.1))
+      '@fortawesome/fontawesome-svg-core':
+        specifier: ^7.2.0
+        version: 7.2.0
+      '@fortawesome/free-solid-svg-icons':
+        specifier: ^7.2.0
+        version: 7.2.0
       '@spartan-ng/brain':
         specifier: 0.0.1-alpha.646
         version: 0.0.1-alpha.646(429244e3510478ec5a6ee303dc10e0e5)
@@ -1665,6 +1674,23 @@ packages:
 
   '@fastify/swagger@9.7.0':
     resolution: {integrity: sha512-Vp1SC1GC2Hrkd3faFILv86BzUNyFz5N4/xdExqtCgkGASOzn/x+eMe4qXIGq7cdT6wif/P/oa6r1Ruqx19paZA==}
+
+  '@fortawesome/angular-fontawesome@4.0.0':
+    resolution: {integrity: sha512-TCqHqT5ovFY1A4RgMpoBUgS+RX3OVs39+CzHFgzDhbCPAopOa26J748TZJcuZwJAvGAk9tbWeVEmWuLByINAeg==}
+    peerDependencies:
+      '@angular/core': ^21.0.0
+
+  '@fortawesome/fontawesome-common-types@7.2.0':
+    resolution: {integrity: sha512-IpR0bER9FY25p+e7BmFH25MZKEwFHTfRAfhOyJubgiDnoJNsSvJ7nigLraHtp4VOG/cy8D7uiV0dLkHOne5Fhw==}
+    engines: {node: '>=6'}
+
+  '@fortawesome/fontawesome-svg-core@7.2.0':
+    resolution: {integrity: sha512-6639htZMjEkwskf3J+e6/iar+4cTNM9qhoWuRfj9F3eJD6r7iCzV1SWnQr2Mdv0QT0suuqU8BoJCZUyCtP9R4Q==}
+    engines: {node: '>=6'}
+
+  '@fortawesome/free-solid-svg-icons@7.2.0':
+    resolution: {integrity: sha512-YTVITFGN0/24PxzXrwqCgnyd7njDuzp5ZvaCx5nq/jg55kUYd94Nj8UTchBdBofi/L0nwRfjGOg0E41d2u9T1w==}
+    engines: {node: '>=6'}
 
   '@gar/promise-retry@1.0.2':
     resolution: {integrity: sha512-Lm/ZLhDZcBECta3TmCQSngiQykFdfw+QtI1/GYMsZd4l3nG+P8WLB16XuS7WaBGLQ+9E+cOcWQsth9cayuGt8g==}
@@ -9856,6 +9882,22 @@ snapshots:
       yaml: 2.8.2
     transitivePeerDependencies:
       - supports-color
+
+  '@fortawesome/angular-fontawesome@4.0.0(@angular/core@21.2.1(@angular/compiler@21.2.1)(rxjs@7.8.2)(zone.js@0.15.1))':
+    dependencies:
+      '@angular/core': 21.2.1(@angular/compiler@21.2.1)(rxjs@7.8.2)(zone.js@0.15.1)
+      '@fortawesome/fontawesome-svg-core': 7.2.0
+      tslib: 2.8.1
+
+  '@fortawesome/fontawesome-common-types@7.2.0': {}
+
+  '@fortawesome/fontawesome-svg-core@7.2.0':
+    dependencies:
+      '@fortawesome/fontawesome-common-types': 7.2.0
+
+  '@fortawesome/free-solid-svg-icons@7.2.0':
+    dependencies:
+      '@fortawesome/fontawesome-common-types': 7.2.0
 
   '@gar/promise-retry@1.0.2':
     dependencies:
