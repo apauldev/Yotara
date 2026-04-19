@@ -141,6 +141,18 @@
   - [ ] Keep theme changes in sync across the app shell and task views
   - [ ] Ensure mascots can adapt to the active theme palette
 
+### User Menu Stats
+- [ ] Add a lightweight stats panel in the user dropdown:
+  - [ ] Surface simple task activity summaries without making the app feel score-driven
+  - [ ] Include Lumi status here when `Show Lumi` is enabled
+  - [ ] Show subtle Lumi states such as neutral, happy, excited, and hidden milestone variants
+  - [ ] Show a minimal summary such as tasks completed today, this week, and current active task count
+  - [ ] Keep the panel visually small and secondary to account actions
+  - [ ] Make the panel easy to dismiss or ignore
+  - [ ] Avoid streak scores, leaderboards, badges, and anything that reads as a report card
+  - [ ] Reuse the same status data that drives the Lumi avatar so the UI stays consistent
+  - [ ] Keep the stats panel optional and easy to ignore
+
 ### Gamification: Lumi Mascot System
 - [ ] Design low-pressure gamification system with mascot "Lumi" as a gentle sanctuary spirit:
   - [ ] Create the Lumi avatar component for compact surfaces (32x32 or 48x48 px) in the top bar / sidebar
