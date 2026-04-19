@@ -122,6 +122,12 @@
 - [ ] Support frontend state triggers:
   - [ ] Emit or expose task completion events that can drive happy / dance / daily momentum states
   - [ ] Expose enough context for hidden milestone visuals at 30, 90, and 365 days
+- [ ] Support lightweight user-menu stats:
+  - [ ] Return a simple Lumi status payload for the optional user dropdown stats panel
+  - [ ] Include hidden milestone state and whether Lumi should be shown at all
+  - [ ] Keep the payload small enough to avoid turning the menu into a dashboard
+  - [ ] Include a minimal activity summary such as tasks completed today, tasks completed this week, and active task count
+  - [ ] Reuse the same computed values that drive the Lumi avatar so frontend state stays consistent
 
 ## Suggested Rollout Order
 
