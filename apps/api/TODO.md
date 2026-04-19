@@ -77,6 +77,52 @@
 
 - [ ] Add regression tests for the manual auth proxy path and cookie forwarding behavior.
 
+## Product Features
+
+### Recurring Tasks
+- [ ] Extend task schema in Drizzle:
+  - [ ] Add `recurrence` field: `null | 'daily' | 'weekly' | 'monthly'`
+  - [ ] Add `nextOccurrenceDate` field for tracking when next recurrence should be created
+  - [ ] Run migration to add columns to existing tasks table
+- [ ] Implement recurrence logic:
+  - [ ] Create helper to generate next occurrence when task is marked done
+  - [ ] Ensure recurrence respects timezone and calendar boundaries
+  - [ ] Handle edge case: monthly recurrence on day 31 → Feb mapping
+- [ ] Update task API endpoints:
+  - [ ] Accept `recurrence` in POST/PATCH payloads
+  - [ ] Return `recurrence` and `nextOccurrenceDate` in task responses
+- [ ] Optional: Add background job / cron for auto-creating occurrences (if not on-demand)
+
+### Search and Filtering
+- [ ] Add full-text search capability:
+  - [ ] Add search endpoint: `GET /tasks/search?q=query`
+  - [ ] Search across task titles, descriptions
+  - [ ] Filter results by project, status, priority, label
+  - [ ] Return paginated results with relevance/sort options
+- [ ] Add filtering to task list endpoints:
+  - [ ] Support query params: `?priority=high&label=work&project=123&status=today`
+  - [ ] Compose multiple filters
+  - [ ] Validate filter values against allowed enums
+- [ ] Update OpenAPI schema to document search and filter params
+
+### Gamification: Lumi Stats Tracking (Backend)
+- [ ] Extend user schema to store Lumi preferences:
+  - [ ] Add `showLumi` or equivalent boolean field (default: true)
+  - [ ] Keep settings lightweight so Lumi can remain optional everywhere
+- [ ] Extend user schema to store appearance preferences:
+  - [ ] Add a persisted `colorTheme` or equivalent field for theme selection
+  - [ ] Keep the theme value compatible with mascot palette matching
+- [ ] Create stats/metrics endpoints as needed:
+  - [ ] `GET /me/stats` to return completion count, streaks, and momentum values
+  - [ ] Compute stats from task completion dates instead of storing separate derived counters
+- [ ] Add preference/settings route:
+  - [ ] `PATCH /me` to toggle Lumi visibility
+  - [ ] `PATCH /me` to update color theme
+  - [ ] Return updated preference values in the user/me payload
+- [ ] Support frontend state triggers:
+  - [ ] Emit or expose task completion events that can drive happy / dance / daily momentum states
+  - [ ] Expose enough context for hidden milestone visuals at 30, 90, and 365 days
+
 ## Suggested Rollout Order
 
 - [ ] Phase 1: shared auth helper + route cleanup

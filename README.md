@@ -157,6 +157,15 @@ Yotara is early, but the direction is intentional.
 - richer task details and notes
 - board and list organization
 
+### Mobile web
+
+- keep the mobile web experience excellent first
+- use the team dashboard shell with desktop and mobile navigation
+- keep Lumi docked as a small optional companion in the bottom-right corner on mobile
+- keep mobile Lumi interactions subtle, short, and non-blocking
+- never let Lumi cover primary task actions or system gesture areas
+- respect `Show Lumi` and `prefers-reduced-motion` on mobile as well as desktop
+
 ### Lightweight collaboration
 
 - shared workspaces for small teams
