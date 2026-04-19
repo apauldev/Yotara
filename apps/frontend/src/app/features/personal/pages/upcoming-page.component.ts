@@ -3,19 +3,24 @@ import { Component, inject } from '@angular/core';
 import { TaskService } from '../../../core/services/task.service';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
 import { PersonalTaskWorkspaceComponent } from '../components/personal-task-workspace.component';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-upcoming-page',
   standalone: true,
-  imports: [CommonModule, PersonalTaskCardComponent, PersonalTaskWorkspaceComponent],
+  imports: [
+    CommonModule,
+    PersonalTaskCardComponent,
+    PersonalTaskWorkspaceComponent,
+    PageHeaderComponent,
+  ],
   template: `
     <app-personal-task-workspace #workspace>
       <section class="page">
-        <header class="page-header">
-          <p class="eyebrow">Future Focus</p>
-          <h1>Upcoming</h1>
-          <p>See what is approaching and space it out before it becomes noisy.</p>
-        </header>
+        <app-page-header
+          title="Upcoming"
+          subtitle="See what is approaching and space it out before it becomes noisy."
+        />
 
         @if (taskService.loading()) {
           <p class="status-copy">Loading your upcoming plans...</p>
@@ -61,23 +66,6 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
         padding: 1rem 0 2rem;
       }
 
-      .eyebrow {
-        margin: 0;
-        color: #9f9887;
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-        font-size: 0.82rem;
-        font-weight: 800;
-      }
-
-      h1 {
-        margin: 0.25rem 0 0;
-        font-size: clamp(3rem, 4vw, 4rem);
-        line-height: 1.02;
-        letter-spacing: -0.05em;
-      }
-
-      .page-header p:last-child,
       .status-copy {
         margin-top: 0.6rem;
         color: #8a8378;

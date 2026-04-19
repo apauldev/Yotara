@@ -1,0 +1,179 @@
+@if (open) {
+  <div class="modal-shell">
+    <button
+      type="button"
+      class="backdrop"
+      aria-label="Close task modal"
+      (click)="close.emit()"
+    ></button>
+
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
+      <div class="modal-main">
+        <header class="modal-header">
+          <div class="title-row">
+            <div>
+              <h2 id="task-modal-title">
+                {{ task ? 'Refine task details' : 'Capture a new task' }}
+              </h2>
+              <p>{{ selectedContextLabel() }}</p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="close-button"
+            aria-label="Close task modal"
+            (click)="close.emit()"
+          >
+            ×
+          </button>
+        </header>
+
+        <label class="field">
+          <span class="field-label">Title</span>
+          <input
+            type="text"
+            name="taskTitle"
+            [ngModel]="draftTitle()"
+            (ngModelChange)="draftTitle.set($event)"
+            [class.field-error]="titleError()"
+            placeholder="Redesign sanctuary garden layout"
+          />
+          @if (titleError()) {
+            <p class="field-error-message">{{ titleError() }}</p>
+          }
+        </label>
+
+        <label class="field">
+          <span class="field-label">Description</span>
+          <textarea
+            name="taskDescription"
+            rows="7"
+            [ngModel]="draftDescription()"
+            (ngModelChange)="draftDescription.set($event)"
+            [class.field-error]="descriptionError()"
+            placeholder="Capture extra context, constraints, or subtasks here."
+          ></textarea>
+          @if (descriptionError()) {
+            <p class="field-error-message">{{ descriptionError() }}</p>
+          }
+        </label>
+
+        <div class="field">
+          <span class="field-label">Bucket</span>
+          <div class="bucket-grid">
+            @for (bucket of buckets; track bucket.value) {
+              <button
+                type="button"
+                class="bucket-chip"
+                [class.bucket-chip-active]="draftBucket() === bucket.value"
+                (click)="draftBucket.set(bucket.value)"
+              >
+                {{ bucket.label }}
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+
+      <aside class="modal-sidebar">
+        <div class="sidebar-section">
+          <span class="field-label">Simple mode</span>
+          <label class="toggle-row">
+            <span>Keep it lightweight with no date metadata</span>
+            <input
+              type="checkbox"
+              [ngModel]="draftSimpleMode()"
+              (ngModelChange)="onSimpleModeChange($event)"
+            />
+          </label>
+        </div>
+
+        <div class="sidebar-section">
+          <span class="field-label">Project</span>
+          <select
+            class="status-select"
+            [ngModel]="draftProjectId()"
+            (ngModelChange)="draftProjectId.set($event)"
+          >
+            <option value="">No project</option>
+            @for (project of projects; track project.id) {
+              <option [value]="project.id">{{ project.name }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="sidebar-section">
+          <span class="field-label">Schedule</span>
+          <label class="field compact-field">
+            <input
+              type="date"
+              name="taskDueDate"
+              [ngModel]="draftDueDate()"
+              (ngModelChange)="draftDueDate.set($event)"
+              [class.field-error]="dueDateError()"
+              [disabled]="draftSimpleMode()"
+            />
+          </label>
+          @if (dueDateError()) {
+            <p class="field-error-message">{{ dueDateError() }}</p>
+          }
+        </div>
+
+        <div class="sidebar-section">
+          <span class="field-label">Priority</span>
+          <div class="priority-dots">
+            @for (option of priorities; track option) {
+              <button
+                type="button"
+                class="priority-dot"
+                [class.priority-dot-active]="draftPriority() === option"
+                [class.priority-dot-high]="option === 'high'"
+                [class.priority-dot-medium]="option === 'medium'"
+                [class.priority-dot-low]="option === 'low'"
+                (click)="draftPriority.set(option)"
+                [attr.aria-label]="option + ' priority'"
+              ></button>
+            }
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <span class="field-label">Status</span>
+          <select
+            class="status-select"
+            [ngModel]="draftStatus()"
+            (ngModelChange)="draftStatus.set($event)"
+          >
+            <option value="inbox">Inbox</option>
+            <option value="today">Today</option>
+            <option value="upcoming">Upcoming</option>
+          </select>
+        </div>
+
+        <div class="sidebar-section">
+          <span class="field-label">Completion</span>
+          <label class="toggle-row">
+            <span>Mark as completed</span>
+            <input
+              type="checkbox"
+              [ngModel]="draftCompleted()"
+              (ngModelChange)="draftCompleted.set($event)"
+            />
+          </label>
+        </div>
+
+        @if (error) {
+          <p class="error-copy">{{ error }}</p>
+        }
+
+        <div class="actions">
+          <button type="button" class="secondary-button" (click)="close.emit()">Cancel</button>
+          <button type="button" class="primary-button" (click)="submit()">
+            {{ task ? 'Save Task' : 'Create Task' }}
+          </button>
+        </div>
+      </aside>
+    </section>
+  </div>
+}

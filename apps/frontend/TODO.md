@@ -2,22 +2,22 @@
 
 ## Shared UI and Generic Components
 
-- [ ] Build a generic modal primitive in `shared/ui/modal` with:
-  - [ ] Inputs: `open`, `title`, `size`, `closeOnBackdrop`, `closeOnEsc`
-  - [ ] Outputs: `close`, `afterOpen`
-  - [ ] Content projection support for custom form/content sections
-  - [ ] Accessibility baseline: `role="dialog"`, `aria-modal`, labelled title
-  - [ ] Focus management and return focus to trigger
-  - [ ] Body scroll lock while modal is open
-  - [ ] Keyboard support (Esc + tab cycle)
+- [x] Build a generic modal primitive in `shared/ui/modal` with:
+  - [x] Inputs: `open`, `title`, `size`, `closeOnBackdrop`, `closeOnEsc`
+  - [x] Outputs: `close`, `afterOpen`
+  - [x] Content projection support for custom form/content sections
+  - [x] Accessibility baseline: `role="dialog"`, `aria-modal`, labelled title
+  - [x] Focus management and return focus to trigger
+  - [x] Body scroll lock while modal is open
+  - [x] Keyboard support (Esc + tab cycle)
 
-- [ ] Build a reusable `ConfirmDialog` on top of the generic modal:
-  - [ ] Inputs: `title`, `description`, `confirmLabel`, `cancelLabel`, `loading`, `danger`
-  - [ ] Outputs: `confirm`, `cancel`, `close`
-  - [ ] Migrate `logout-confirm-modal` to use the shared primitive
+- [x] Build a reusable `ConfirmDialog` on top of the generic modal:
+  - [x] Inputs: `title`, `description`, `confirmLabel`, `cancelLabel`, `loading`, `danger`
+  - [x] Outputs: `confirm`, `cancel`, `close`
+  - [x] Migrate `logout-confirm-modal` to use the shared primitive
 
-- [ ] Upgrade and standardize `PageHeader`:
-  - [ ] Support subtitle and optional action slot/button area
+- [x] Upgrade and standardize `PageHeader`:
+  - [x] Support subtitle and optional action slot/button area
   - [ ] Replace repeated `page-header` markup in personal pages
 
 - [ ] Create a generic `SectionHeader` component:
@@ -52,19 +52,19 @@
 - [ ] Split `ProjectService` similarly where useful:
   - [ ] API-only calls separated from view state
 
-- [ ] Reduce large inline templates/styles:
-  - [ ] Move large inline template/CSS from page components to separate `.html` + `.css` files
-  - [ ] Start with `inbox-page.component.ts` and similar high-size components
-  - [ ] Inline template/style components to split:
-    - [ ] `apps/frontend/src/app/features/auth/login.component.ts`
+- [x] Reduce large inline templates/styles:
+  - [x] Move large inline template/CSS from page components to separate `.html` + `.css` files
+  - [x] Start with `inbox-page.component.ts` and similar high-size components
+  - [x] Inline template/style components to split:
+    - [x] `apps/frontend/src/app/features/auth/login.component.ts`
     - [ ] `apps/frontend/src/app/features/personal/components/personal-project-modal.component.ts`
     - [ ] `apps/frontend/src/app/features/personal/components/personal-task-card.component.ts`
-    - [ ] `apps/frontend/src/app/features/personal/components/personal-task-modal.component.ts`
+    - [x] `apps/frontend/src/app/features/personal/components/personal-task-modal.component.ts`
     - [ ] `apps/frontend/src/app/features/personal/components/personal-task-workspace.component.ts`
-    - [ ] `apps/frontend/src/app/features/personal/pages/inbox-page.component.ts`
+    - [x] `apps/frontend/src/app/features/personal/pages/inbox-page.component.ts`
     - [ ] `apps/frontend/src/app/features/personal/pages/labels-page.component.ts`
-    - [ ] `apps/frontend/src/app/features/personal/pages/project-detail-page.component.ts`
-    - [ ] `apps/frontend/src/app/features/personal/pages/projects-page.component.ts`
+    - [x] `apps/frontend/src/app/features/personal/pages/project-detail-page.component.ts`
+    - [x] `apps/frontend/src/app/features/personal/pages/projects-page.component.ts`
     - [ ] `apps/frontend/src/app/features/personal/pages/today-page.component.ts`
     - [ ] `apps/frontend/src/app/features/personal/pages/upcoming-page.component.ts`
     - [ ] `apps/frontend/src/app/features/personal/shell/personal-shell.component.ts`

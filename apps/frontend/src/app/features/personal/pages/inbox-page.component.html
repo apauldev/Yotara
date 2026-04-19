@@ -1,0 +1,87 @@
+<app-personal-task-workspace
+  #workspace
+  [initialTitle]="captureTitle()"
+  (taskSaved)="handleTaskSaved($event)"
+  (taskSaveFailed)="captureError.set($event)"
+>
+  <section class="page">
+    <header class="page-header">
+      <h1>Inbox</h1>
+      <p>Collect everything that needs your attention.</p>
+    </header>
+
+    <form id="capture" class="capture-bar" (ngSubmit)="captureTask()">
+      <button
+        type="submit"
+        class="capture-plus"
+        [disabled]="taskService.creating()"
+        aria-label="Capture task"
+      >
+        +
+      </button>
+
+      <input
+        type="text"
+        name="captureTitle"
+        [ngModel]="captureTitle()"
+        (ngModelChange)="captureTitle.set($event)"
+        placeholder="What's on your mind today?"
+        autocomplete="off"
+      />
+
+      <div class="capture-actions" aria-hidden="true">
+        <span class="capture-icon">🗓</span>
+        <span class="capture-icon">⚑</span>
+      </div>
+
+      <button type="submit" class="capture-submit" [disabled]="taskService.creating()">
+        {{ taskService.creating() ? 'Saving...' : 'Capture' }}
+      </button>
+    </form>
+
+    @if (captureError()) {
+      <p class="capture-error">{{ captureError() }}</p>
+    }
+
+    <section class="list-section">
+      <div class="section-heading">
+        <h2>Pending Processing</h2>
+        <span class="section-count">{{ inboxCountLabel() }}</span>
+      </div>
+
+      @if (taskService.loading()) {
+        <p class="status-copy">Loading your inbox...</p>
+      } @else if (taskService.error()) {
+        <p class="status-copy">{{ taskService.error() }}</p>
+      } @else if (taskService.inboxTasks().length === 0) {
+        <div class="empty-state">
+          <h3>Clear skies</h3>
+          <p>Your inbox is empty. Capture the next idea or task above to keep moving.</p>
+        </div>
+      } @else {
+        <div class="task-stack">
+          @for (task of taskService.inboxTasks(); track task.id) {
+            <app-personal-task-card
+              [task]="task"
+              [interactive]="true"
+              (select)="workspace.editTask(task)"
+            />
+          }
+        </div>
+      }
+    </section>
+
+    <div class="promo-grid">
+      <div class="promo-card promo-card-soft">
+        <div class="promo-icon">✦</div>
+        <h3>Daily clarity</h3>
+        <p>{{ dailyClarityPrompt() }}</p>
+      </div>
+
+      <div class="promo-card promo-card-dark">
+        <p>{{ journalPrompt() }}</p>
+        <span>The Yotara Journal</span>
+      </div>
+    </div>
+  </section>
+</app-personal-task-workspace>
