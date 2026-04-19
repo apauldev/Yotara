@@ -44,6 +44,12 @@
 
 ## Service and Component Refactors
 
+- [ ] Modernize Angular component APIs to match the project guidance:
+  - [ ] Replace decorator-based `@Input()` / `@Output()` usage with `input()` / `output()` where practical
+  - [ ] Add `ChangeDetectionStrategy.OnPush` to components that still use default change detection
+  - [ ] Remove redundant explicit `standalone: true` declarations as components are updated
+  - [ ] Prioritize leaf UI components like `page-header`, `task-list`, `modal`, `confirm-dialog`, `logout-confirm-modal`, and `personal-task-card`
+
 - [ ] Split `TaskService` responsibilities into smaller units:
   - [ ] API client layer (`task-api.client.ts`)
   - [ ] View-model selectors/computed logic (`task-selectors.ts`)
@@ -51,6 +57,18 @@
 
 - [ ] Split `ProjectService` similarly where useful:
   - [ ] API-only calls separated from view state
+
+- [ ] Extract shared shell chrome between `auth-shell` and `personal-shell`:
+  - [ ] Reuse the mobile menu, profile menu, and logout/logout-confirm flows
+  - [ ] Move shared account actions into a focused component
+
+- [ ] Migrate `personal-project-modal` to the shared modal primitive so modal behavior stays consistent across the app.
+
+- [ ] Replace browser-only `localStorage` and `window.open` usage in onboarding with an injected, platform-safe helper.
+
+- [ ] Centralize task date parsing and formatting in shared utilities and reuse them from cards and pages instead of ad hoc `new Date(...)` calls.
+
+- [ ] Remove remaining `any` escapes from auth/login error handling by switching to `unknown` plus type guards.
 
 - [x] Reduce large inline templates/styles:
   - [x] Move large inline template/CSS from page components to separate `.html` + `.css` files
@@ -69,7 +87,7 @@
     - [ ] `apps/frontend/src/app/features/personal/pages/upcoming-page.component.ts`
     - [ ] `apps/frontend/src/app/features/personal/shell/personal-shell.component.ts`
     - [ ] `apps/frontend/src/app/features/shell/auth-shell.component.ts`
-    - [ ] `apps/frontend/src/app/shared/components/page-header/page-header.component.ts`
+    - [x] `apps/frontend/src/app/shared/components/page-header/page-header.component.ts`
     - [ ] `apps/frontend/src/app/shared/ui/logout-confirm-modal/logout-confirm-modal.component.ts`
 
 ## Backend and Cross-Cutting Improvements
@@ -81,6 +99,8 @@
 - [ ] Improve frontend error handling strategy:
   - [ ] Replace scattered `console.error` with a shared logging/error service
   - [ ] Map known API errors to consistent user-facing messages
+
+- [ ] Replace remaining `@HostBinding` usage in `apps/frontend/src/app/shared/directives/empty-state.directive.ts` with host metadata bindings to match the Angular guidance.
 
 - [ ] Improve task list scalability:
   - [ ] Avoid fixed `pageSize=100` fetch strategy
