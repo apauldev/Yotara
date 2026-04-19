@@ -1,0 +1,18 @@
+<app-modal [open]="open" [title]="title" [size]="size" (close)="close.emit()">
+  <div class="confirm-dialog" [class.confirm-dialog-danger]="danger">
+    <div class="confirm-icon" aria-hidden="true">
+      <ng-content select="[confirm-icon]"></ng-content>
+    </div>
+
+    <p class="confirm-description">{{ description }}</p>
+
+    <div class="confirm-actions">
+      <button type="button" class="secondary-button" [disabled]="loading" (click)="cancel.emit()">
+        {{ cancelLabel }}
+      </button>
+      <button type="button" class="primary-button" [disabled]="loading" (click)="confirm.emit()">
+        {{ loading ? loadingLabel : confirmLabel }}
+      </button>
+    </div>
+  </div>
+</app-modal>

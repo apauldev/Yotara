@@ -1,0 +1,96 @@
+<section class="page">
+      <header class="hero-row">
+        <div class="hero-copy">
+          <p class="eyebrow">Personal Projects</p>
+          <h1>Projects</h1>
+          <p class="subtitle">
+            Your work, gathered by outcome. Focused environments for your highest intentions.
+          </p>
+        </div>
+
+        <button type="button" class="hero-button" (click)="openCreateModal()">New Project</button>
+      </header>
+
+      <app-personal-project-modal
+        [open]="createModalOpen()"
+        [saving]="projectService.saving()"
+        [error]="projectService.error()"
+        (close)="closeCreateModal()"
+        (save)="createProject($event)"
+      />
+
+      @if (projectService.loading()) {
+        <p class="status-copy">Loading your project spaces...</p>
+      } @else if (projectService.error() && projects().length === 0) {
+        <p class="status-copy">{{ projectService.error() }}</p>
+      } @else if (projects().length === 0) {
+        <section class="empty-shell">
+          <div class="empty-orb">+</div>
+          <h2>Start your first project</h2>
+          <p>A project becomes useful the moment the next step has a home.</p>
+          <button type="button" class="empty-button" (click)="openCreateModal()">
+            Create Project
+          </button>
+        </section>
+      } @else {
+        <section class="project-grid">
+          @for (project of projects(); track project.id) {
+            <article
+              class="project-card"
+              [style.background]="cardBackground(project)"
+              (click)="openProject(project.id)"
+            >
+              <div class="project-icon" [style.background]="accentSoft(project)">
+                <span [style.color]="accent(project)">✦</span>
+              </div>
+
+              <div class="project-menu">•••</div>
+
+              <h2>{{ project.name }}</h2>
+              <p>{{ project.description || 'A calm place for the work that belongs together.' }}</p>
+
+              <div class="progress-copy">
+                <strong>{{ project.taskCount }} tasks</strong>
+                <span>{{ project.openTaskCount }} remaining</span>
+              </div>
+
+              <div class="progress-track">
+                <span
+                  class="progress-bar"
+                  [style.width.%]="progressPercent(project)"
+                  [style.background]="accent(project)"
+                ></span>
+              </div>
+
+              <div class="meta-row">
+                <span class="meta-pill">{{ progressPercent(project) }}% complete</span>
+                <span class="meta-pill meta-pill-soft">{{ paletteLabel(project) }}</span>
+              </div>
+            </article>
+          }
+
+          <article class="project-card project-card-create" (click)="openCreateModal()">
+            <div class="create-orb">+</div>
+            <h2>New Project</h2>
+            <p>Begin a new journey of focused outcomes.</p>
+          </article>
+        </section>
+
+        <section class="focus-card">
+          <div class="focus-copy">
+            <p class="focus-eyebrow">Weekly Focus</p>
+            <h2>{{ focusHeadline() }}</h2>
+            <p>{{ focusBody() }}</p>
+            <a routerLink="/today" class="focus-button">Open Today</a>
+          </div>
+
+          <div class="focus-visual">
+            <div class="focus-orb"></div>
+          </div>
+        </section>
+      }
+
+      <button type="button" class="fab" aria-label="Create project" (click)="openCreateModal()">
+        +
+      </button>
+    </section>

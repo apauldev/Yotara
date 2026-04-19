@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 
 interface PersonalLabelSummary {
   name: string;
@@ -10,14 +11,13 @@ interface PersonalLabelSummary {
 @Component({
   selector: 'app-labels-page',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, PageHeaderComponent],
   template: `
     <section class="page">
-      <header class="page-header">
-        <p class="eyebrow">Preview Collection</p>
-        <h1>Labels</h1>
-        <p>Shape the language of your sanctuary before full label management arrives.</p>
-      </header>
+      <app-page-header
+        title="Labels"
+        subtitle="Shape the language of your sanctuary before full label management arrives."
+      />
 
       <div class="label-grid">
         @for (label of labels; track label.name) {
@@ -47,28 +47,6 @@ interface PersonalLabelSummary {
 
       .page {
         padding: 1rem 0 2rem;
-      }
-
-      .eyebrow {
-        margin: 0;
-        color: #9f9887;
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-        font-size: 0.82rem;
-        font-weight: 800;
-      }
-
-      h1 {
-        margin: 0.25rem 0 0;
-        font-size: clamp(3rem, 4vw, 4rem);
-        line-height: 1.02;
-        letter-spacing: -0.05em;
-      }
-
-      .page-header p:last-child {
-        margin: 0.6rem 0 0;
-        color: #8a8378;
-        font-size: 1.08rem;
       }
 
       .label-grid {
