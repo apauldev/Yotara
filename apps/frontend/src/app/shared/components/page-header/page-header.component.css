@@ -1,0 +1,22 @@
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.page-header-copy {
+  min-width: 0;
+}
+
+.tagline {
+  margin: 0.35rem 0 0;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}

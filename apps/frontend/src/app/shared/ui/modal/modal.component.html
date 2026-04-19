@@ -1,0 +1,36 @@
+@if (open) {
+  <div class="modal-shell">
+    <button
+      type="button"
+      class="backdrop"
+      [attr.aria-label]="'Close ' + title"
+      (click)="onBackdropClick()"
+    ></button>
+
+    <section
+      #dialog
+      class="modal-card modal-card-{{ size }}"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="titleId"
+      tabindex="-1"
+      (click)="onDialogClick($event)"
+      (keydown)="onDialogKeydown($event)"
+    >
+      <header class="modal-header">
+        <div class="title-block">
+          <h2 [id]="titleId">{{ title }}</h2>
+          <ng-content select="[modal-subtitle]"></ng-content>
+        </div>
+
+        <button type="button" class="close-button" [attr.aria-label]="'Close ' + title" (click)="closeFromButton()">
+          ×
+        </button>
+      </header>
+
+      <div class="modal-body">
+        <ng-content />
+      </div>
+    </section>
+  </div>
+}
