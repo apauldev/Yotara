@@ -1,0 +1,86 @@
+:host {
+  display: contents;
+}
+
+.modal-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(32, 30, 24, 0.22);
+  backdrop-filter: blur(10px);
+}
+
+.modal-card {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 34rem);
+  border-radius: 1.6rem;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(232, 225, 209, 0.95);
+  box-shadow: 0 28px 60px rgba(88, 79, 59, 0.18);
+  padding: 1.35rem;
+  outline: none;
+}
+
+.modal-card-sm {
+  width: min(100%, 26rem);
+}
+
+.modal-card-lg {
+  width: min(100%, 44rem);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.title-block {
+  min-width: 0;
+}
+
+h2 {
+  margin: 0;
+  font-size: 1.65rem;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  color: #1d241f;
+}
+
+.close-button {
+  border: 0;
+  background: transparent;
+  color: #6f6a5e;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal-body {
+  margin-top: 1rem;
+}
+
+@media (max-width: 640px) {
+  .modal-shell {
+    padding: 0;
+    place-items: end center;
+  }
+
+  .modal-card {
+    width: 100%;
+    border-radius: 1.3rem 1.3rem 0 0;
+    max-height: 92dvh;
+    overflow: auto;
+  }
+}
