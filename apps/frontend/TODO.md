@@ -111,6 +111,73 @@
   - [ ] Move completed tasks out of active views once archived
   - [ ] Add UI actions for archiving and viewing archived tasks later
 
+## Product Features
+
+### Recurring Tasks
+- [ ] Extend task modal to include recurrence options:
+  - [ ] Add recurrence selector: None | Daily | Weekly | Monthly
+  - [ ] Show recurrence badge on recurring tasks
+  - [ ] Handle completion of recurring task (mark done vs create next occurrence)
+  - [ ] Display next occurrence date when task is marked complete
+- [ ] Wire recurrence UI to API submission
+
+### Search and Filtering
+- [ ] Build global search component in top nav:
+  - [ ] Route to `/search?q=…` or overlay modal
+  - [ ] Display results grouped by project, due date, or status
+  - [ ] Filter results by project, priority, or label
+  - [ ] Show empty state for no results
+- [ ] Add task list filtering:
+  - [ ] Filter by priority (Low | Medium | High)
+  - [ ] Filter by label/tags
+  - [ ] Filter by project (in cross-view contexts)
+  - [ ] Preserve filter state in URL or local state
+- [ ] Integrate search/filter API endpoints from backend
+
+### Appearance and Theme
+- [ ] Add color theme switching in settings:
+  - [ ] Support changing the app color theme without reloading
+  - [ ] Persist the selected theme in user preferences
+  - [ ] Keep theme changes in sync across the app shell and task views
+  - [ ] Ensure mascots can adapt to the active theme palette
+
+### Gamification: Lumi Mascot System
+- [ ] Design low-pressure gamification system with mascot "Lumi" as a gentle sanctuary spirit:
+  - [ ] Create the Lumi avatar component for compact surfaces (32x32 or 48x48 px) in the top bar / sidebar
+  - [ ] Create the larger Lumi version (80-120 px) for task detail modal completion moments
+  - [ ] Add Settings toggle: `Show Lumi` with default `On`
+  - [ ] Keep all gamification optional and non-blocking
+- [ ] Implement Lumi core states:
+  - [ ] Neutral / Calm default state with peaceful resting expression, soft half-closed eyes, relaxed leaf ears, and gentle steady glow
+  - [ ] Happy state after task completion or other positive actions with warm smile, slightly squinted eyes, raised leaf ears, and brighter glow
+  - [ ] Thoughtful / Mild Sad state for long inactivity or many overdue tasks with subtle concern and dimmer glow
+- [ ] Implement Lumi celebration states:
+  - [ ] Task Complete Dance when a task is marked complete
+  - [ ] Daily Momentum state when the user completes at least one task in a day
+  - [ ] Streak Celebration state for 7, 14, and 30 day momentum milestones
+- [ ] Add animation rules for Lumi:
+  - [ ] Use soft, slow, soothing motion only
+  - [ ] Cap animation length at 4 seconds
+  - [ ] Use Lottie or lightweight CSS/SVG animations
+  - [ ] Respect `prefers-reduced-motion`
+- [ ] Keep emotional tone gentle:
+  - [ ] Avoid guilt-trip behavior when the user misses days or falls behind
+  - [ ] Keep expressions subtle, kind, supportive, and slightly magical
+  - [ ] Avoid loud effects, competitive framing, or high-energy motion
+- [ ] Build gamification dashboard/widget:
+  - [ ] Weekly completion stats
+  - [ ] Streak counter
+  - [ ] Simple achievement badges that are optional and non-required
+  - [ ] Optional control to hide all gamification in settings
+- [ ] Store gamification preferences in user settings service
+- [ ] Future phase ideas to park in backlog:
+  - [ ] Cat mascot variant that mirrors Lumi behavior and adapts to the active color theme
+  - [ ] Dog mascot variant that mirrors Lumi behavior and adapts to the active color theme
+  - [ ] Hidden milestone visual variations for Lumi at 30, 90, and 365 days with small, subtle enhancements only
+  - [ ] Seasonal variants such as winter snowflakes
+  - [ ] Theme-based outfit variations
+  - [ ] Rare super-happy state for big project completion
+
 ## OSS and Delivery Hardening
 
 - [ ] Add GitHub Actions workflows in `.github/workflows`:
