@@ -93,7 +93,7 @@ export class AuthStateService {
       const result = await AuthService.signOut();
       this.sessionState.set(null);
       this.userState.set(null);
-      this.initializedState.set(true);
+      this.initializedState.set(false);
       return result;
     } finally {
       this.loadingState.set(false);
