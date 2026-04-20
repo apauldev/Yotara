@@ -22,6 +22,12 @@ type OpenApiPathRecord = Record<
   Partial<Record<'get' | 'post' | 'patch' | 'delete', OpenApiOperation>>
 >;
 
+const nonEmptyTextSchema = {
+  type: 'string',
+  minLength: 1,
+  pattern: '.*\\S.*',
+} as const;
+
 const taskSchema = {
   $id: 'Task',
   type: 'object',
@@ -63,7 +69,7 @@ const createTaskSchema = {
   type: 'object',
   required: ['title'],
   properties: {
-    title: { type: 'string' },
+    title: nonEmptyTextSchema,
     description: { type: 'string' },
     status: {
       type: 'string',
@@ -93,7 +99,7 @@ const updateTaskSchema = {
   $id: 'UpdateTaskDto',
   type: 'object',
   properties: {
-    title: { type: 'string' },
+    title: nonEmptyTextSchema,
     description: { type: 'string' },
     status: {
       type: 'string',
@@ -161,7 +167,7 @@ const createProjectSchema = {
   type: 'object',
   required: ['name'],
   properties: {
-    name: { type: 'string' },
+    name: nonEmptyTextSchema,
     description: { type: 'string' },
     color: { $ref: 'ProjectColor#' },
   },
@@ -172,7 +178,7 @@ const updateProjectSchema = {
   $id: 'UpdateProjectDto',
   type: 'object',
   properties: {
-    name: { type: 'string' },
+    name: nonEmptyTextSchema,
     description: { type: 'string' },
     color: { $ref: 'ProjectColor#' },
   },
@@ -215,12 +221,21 @@ const paginatedTasksResponseSchema = {
 const userSchema = {
   $id: 'User',
   type: 'object',
-  required: ['id', 'email', 'name', 'createdAt'],
+  required: [
+    'id',
+    'email',
+    'name',
+    'image',
+    'emailVerified',
+    'workspaceMode',
+    'onboardingCompleted',
+    'createdAt',
+    'updatedAt',
+  ],
   properties: {
     id: { type: 'string' },
     email: { type: 'string', format: 'email' },
     name: { type: 'string' },
-    avatarUrl: { type: 'string', format: 'uri' },
     image: { anyOf: [{ type: 'string', format: 'uri' }, { type: 'null' }] },
     emailVerified: { type: 'boolean' },
     workspaceMode: {
@@ -479,7 +494,12 @@ export const examples = {
       id: 'user_123',
       email: 'demo@example.com',
       name: 'Demo User',
+      image: null,
+      emailVerified: false,
+      workspaceMode: null,
+      onboardingCompleted: false,
       createdAt: '2026-03-16T12:00:00.000Z',
+      updatedAt: '2026-03-16T12:00:00.000Z',
     },
   },
   apiError: (message: string) => ({ message }),
@@ -497,8 +517,10 @@ export const examples = {
       id: 'user_123',
       email: 'demo@example.com',
       name: 'Demo User',
-      emailVerified: false,
       image: null,
+      emailVerified: false,
+      workspaceMode: null,
+      onboardingCompleted: false,
       createdAt: 1773652800000,
       updatedAt: 1773652800000,
     },
@@ -517,8 +539,10 @@ export const examples = {
       id: 'user_123',
       email: 'demo@example.com',
       name: 'Demo User',
-      emailVerified: false,
       image: null,
+      emailVerified: false,
+      workspaceMode: null,
+      onboardingCompleted: false,
       createdAt: 1773652800000,
       updatedAt: 1773652800000,
     },
