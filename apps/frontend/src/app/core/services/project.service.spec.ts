@@ -8,10 +8,12 @@ import { ProjectService } from './project.service';
 describe('ProjectService', () => {
   const initialized = signal(false);
   const isAuthenticated = signal(false);
+  const currentUserId = signal<string | null>(null);
 
   beforeEach(() => {
     initialized.set(false);
     isAuthenticated.set(false);
+    currentUserId.set(null);
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
@@ -22,6 +24,7 @@ describe('ProjectService', () => {
           useValue: {
             initialized,
             isAuthenticated,
+            currentUserId,
           },
         },
       ],
@@ -49,6 +52,7 @@ describe('ProjectService', () => {
 
     initialized.set(true);
     isAuthenticated.set(true);
+    currentUserId.set('user-1');
     tick();
 
     const projects: Project[] = [
@@ -75,12 +79,70 @@ describe('ProjectService', () => {
     expect(service.hasProjects()).toBeTrue();
   }));
 
+  it('drops the previous user projects and reloads for the next login', fakeAsync(() => {
+    const service = TestBed.inject(ProjectService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    http.expectOne('http://localhost:3000/projects').flush([
+      {
+        id: 'project-1',
+        name: 'User One Project',
+        description: 'First account',
+        color: 'sage',
+        ownerId: 'user-1',
+        taskCount: 1,
+        completedTaskCount: 0,
+        openTaskCount: 1,
+        createdAt: '2026-04-01T10:00:00.000Z',
+        updatedAt: '2026-04-03T10:00:00.000Z',
+      },
+    ]);
+    tick();
+
+    expect(service.projects().map((project) => project.id)).toEqual(['project-1']);
+
+    currentUserId.set(null);
+    isAuthenticated.set(false);
+    tick();
+
+    expect(service.projects()).toEqual([]);
+    http.expectNone('http://localhost:3000/projects');
+
+    isAuthenticated.set(true);
+    currentUserId.set('user-2');
+    tick();
+
+    http.expectOne('http://localhost:3000/projects').flush([
+      {
+        id: 'project-2',
+        name: 'User Two Project',
+        description: 'Second account',
+        color: 'olive',
+        ownerId: 'user-2',
+        taskCount: 2,
+        completedTaskCount: 1,
+        openTaskCount: 1,
+        createdAt: '2026-04-04T10:00:00.000Z',
+        updatedAt: '2026-04-05T10:00:00.000Z',
+      },
+    ]);
+    tick();
+
+    expect(service.projects().map((project) => project.id)).toEqual(['project-2']);
+  }));
+
   it('creates a project and refreshes the list', fakeAsync(() => {
     const service = TestBed.inject(ProjectService);
     const http = TestBed.inject(HttpTestingController);
 
     initialized.set(true);
     isAuthenticated.set(true);
+    currentUserId.set('user-1');
     tick();
 
     http.expectOne('http://localhost:3000/projects').flush([]);
