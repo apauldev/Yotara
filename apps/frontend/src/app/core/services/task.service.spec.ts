@@ -8,6 +8,7 @@ import { Task } from '@yotara/shared';
 describe('TaskService', () => {
   const initialized = signal(false);
   const isAuthenticated = signal(false);
+  const currentUserId = signal<string | null>(null);
 
   function dayOffset(offset: number) {
     const date = new Date();
@@ -32,6 +33,7 @@ describe('TaskService', () => {
   beforeEach(() => {
     initialized.set(false);
     isAuthenticated.set(false);
+    currentUserId.set(null);
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
@@ -42,6 +44,7 @@ describe('TaskService', () => {
           useValue: {
             initialized,
             isAuthenticated,
+            currentUserId,
           },
         },
       ],
@@ -74,12 +77,74 @@ describe('TaskService', () => {
     http.expectNone('http://localhost:3000/tasks?page=1&pageSize=100');
   }));
 
+  it('clears the previous user data and refetches when the active account changes', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100').flush(
+      paginated([
+        {
+          id: 'user-1-task',
+          title: 'User one task',
+          status: 'inbox',
+          priority: 'medium',
+          completed: false,
+          simpleMode: true,
+          bucket: 'personal-sanctuary',
+          order: 0,
+          createdAt: dayOffset(0),
+          updatedAt: dayOffset(0),
+        },
+      ]),
+    );
+    tick();
+
+    expect(service.tasks().map((task) => task.id)).toEqual(['user-1-task']);
+
+    currentUserId.set(null);
+    isAuthenticated.set(false);
+    tick();
+
+    expect(service.tasks()).toEqual([]);
+    http.expectNone('http://localhost:3000/tasks?page=1&pageSize=100');
+
+    isAuthenticated.set(true);
+    currentUserId.set('user-2');
+    tick();
+
+    http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100').flush(
+      paginated([
+        {
+          id: 'user-2-task',
+          title: 'User two task',
+          status: 'today',
+          priority: 'high',
+          completed: false,
+          simpleMode: false,
+          bucket: 'deep-work',
+          order: 0,
+          createdAt: dayOffset(1),
+          updatedAt: dayOffset(1),
+        },
+      ]),
+    );
+    tick();
+
+    expect(service.tasks().map((task) => task.id)).toEqual(['user-2-task']);
+  }));
+
   it('returns an empty list when the tasks endpoint responds with 401', fakeAsync(() => {
     const service = TestBed.inject(TaskService);
     const http = TestBed.inject(HttpTestingController);
 
     initialized.set(true);
     isAuthenticated.set(true);
+    currentUserId.set('user-1');
     tick();
 
     const request = http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100');
@@ -98,6 +163,7 @@ describe('TaskService', () => {
 
     initialized.set(true);
     isAuthenticated.set(true);
+    currentUserId.set('user-1');
     tick();
 
     const tasks: Task[] = [
@@ -189,6 +255,7 @@ describe('TaskService', () => {
 
     initialized.set(true);
     isAuthenticated.set(true);
+    currentUserId.set('user-1');
     tick();
 
     http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100').flush(paginated([]));
@@ -253,6 +320,7 @@ describe('TaskService', () => {
 
     initialized.set(true);
     isAuthenticated.set(true);
+    currentUserId.set('user-1');
     tick();
 
     http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100').flush(paginated([]));

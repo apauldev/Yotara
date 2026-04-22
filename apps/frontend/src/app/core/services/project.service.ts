@@ -28,10 +28,11 @@ export class ProjectService {
   readonly projects = toSignal(
     combineLatest([
       toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
+      toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
       toObservable(this.refreshState),
     ]).pipe(
-      switchMap(([initialized]) => {
-        if (!initialized || !this.authState.isAuthenticated()) {
+      switchMap(([initialized, currentUserId]) => {
+        if (!initialized || !currentUserId) {
           this.errorState.set(null);
           return of([] as Project[]);
         }
