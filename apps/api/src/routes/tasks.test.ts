@@ -80,6 +80,18 @@ test('tasks routes require auth and scope data to the current user', async () =>
     assert.equal(created.simpleMode, true);
     assert.equal(created.dueDate, undefined);
 
+    const blankTitleResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: {
+        cookie: firstUserCookie,
+      },
+      payload: {
+        title: '   ',
+      },
+    });
+    assert.equal(blankTitleResponse.statusCode, 400);
+
     const ownerList = await ctx.app.inject({
       method: 'GET',
       url: '/tasks',
@@ -177,6 +189,16 @@ test('tasks list supports pagination and delete is a soft delete', async () => {
       headers: { cookie: userCookie },
     });
     assert.equal(deletedFetch.statusCode, 404);
+
+    const blankTitlePatch = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${deleteId}`,
+      headers: { cookie: userCookie },
+      payload: {
+        title: '   ',
+      },
+    });
+    assert.equal(blankTitlePatch.statusCode, 400);
   } finally {
     await ctx.cleanup();
   }
