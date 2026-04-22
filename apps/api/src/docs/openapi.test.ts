@@ -130,6 +130,15 @@ test('openapi spec includes representative response contracts and examples', asy
       spec.paths['/tasks'].get.responses['200'].content['application/json'].example.meta.page,
       1,
     );
+    assert.equal(
+      spec.paths['/me'].get.responses['200'].content['application/json'].example.user.workspaceMode,
+      null,
+    );
+    assert.equal(
+      spec.paths['/me'].get.responses['200'].content['application/json'].example.user
+        .onboardingCompleted,
+      false,
+    );
     assert.ok(spec.paths['/tasks'].get.responses['200'].content['application/json'].schema);
     assert.equal(
       spec.paths['/auth/sign-in/email'].post.responses['401'].content['application/json'].example

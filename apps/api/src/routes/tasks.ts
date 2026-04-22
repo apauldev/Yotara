@@ -1,79 +1,29 @@
-import { randomUUID } from 'node:crypto';
-import { and, asc, eq, isNull, sql } from 'drizzle-orm';
-import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type {
-  CreateTaskDto,
-  PaginatedResponse,
-  Task,
-  TaskBucket,
-  TaskStatus,
-  UpdateTaskDto,
-} from '@yotara/shared';
-import { auth } from '../lib/auth.js';
-import { fromNodeHeaders } from 'better-auth/node';
-import { db } from '../db/client.js';
-import { tasks } from '../db/schema.js';
+import type { FastifyInstance } from 'fastify';
+import type { CreateTaskDto, PaginatedResponse, Task, UpdateTaskDto } from '@yotara/shared';
 import {
   authCookieSecurity,
   errorResponseSchema,
   idParamSchema,
   withJsonResponse,
 } from '../docs/openapi.js';
-import { ensureOwnedProject } from './project-utils.js';
-
-export function toTask(task: typeof tasks.$inferSelect): Task {
-  return {
-    id: task.id,
-    title: task.title,
-    description: task.description ?? undefined,
-    status: task.status as TaskStatus,
-    priority: task.priority as 'low' | 'medium' | 'high',
-    completed: task.completed,
-    dueDate: task.dueDate ?? undefined,
-    simpleMode: task.simpleMode,
-    bucket: (task.bucket as TaskBucket | null) ?? undefined,
-    projectId: task.projectId ?? undefined,
-    order: task.order,
-    createdAt: task.createdAt,
-    updatedAt: task.updatedAt,
-  };
-}
-
-function normalizeCreatePayload(body: CreateTaskDto): CreateTaskDto {
-  return {
-    ...body,
-    title: body.title.trim(),
-    status: body.status ?? 'inbox',
-    priority: body.priority ?? 'medium',
-    bucket: body.bucket ?? 'personal-sanctuary',
-    dueDate: body.simpleMode ? undefined : body.dueDate,
-  };
-}
-
-function normalizeStatusOnCompletion(currentStatus: TaskStatus, completed: boolean): TaskStatus {
-  if (completed) {
-    return 'done';
-  }
-
-  if (currentStatus === 'done') {
-    return 'today';
-  }
-
-  return currentStatus;
-}
-
-async function requireUserId(request: FastifyRequest) {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(request.headers),
-  });
-
-  return session?.user.id ?? null;
-}
+import { sendNotFound } from '../lib/api-errors.js';
+import requireAuthenticatedUser from '../plugins/auth-required.js';
+import { getProjectForOwner } from '../services/project-service.js';
+import {
+  createTaskForOwner,
+  deleteTaskForOwner,
+  getTaskForOwner,
+  listTasksForOwner,
+  toTask,
+  updateTaskForOwner,
+} from '../services/task-service.js';
 
 /**
  * Tasks routes backed by SQLite via Drizzle.
  */
 export default async function taskRoutes(fastify: FastifyInstance) {
+  fastify.addHook('preHandler', requireAuthenticatedUser);
+
   fastify.get<{
     Querystring: { page?: number; pageSize?: number };
     Reply: PaginatedResponse<Task[]> | { message: string };
@@ -100,42 +50,11 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         },
       }),
     },
-    async (request, reply) => {
-      const userId = await requireUserId(request);
-      if (!userId) {
-        return reply.code(401).send({ message: 'Unauthorized' });
-      }
-
+    async (request) => {
+      const userId = request.userId!;
       const page = Math.max(1, request.query.page ?? 1);
       const pageSize = Math.min(100, Math.max(1, request.query.pageSize ?? 50));
-      const offset = (page - 1) * pageSize;
-
-      const whereClause = and(eq(tasks.userId, userId), isNull(tasks.deletedAt));
-      const [{ total }] = await db
-        .select({ total: sql<number>`count(*)` })
-        .from(tasks)
-        .where(whereClause);
-
-      const rows = await db
-        .select()
-        .from(tasks)
-        .where(whereClause)
-        .orderBy(asc(tasks.order), asc(tasks.createdAt))
-        .limit(pageSize)
-        .offset(offset);
-
-      const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
-      return {
-        data: rows.map(toTask),
-        meta: {
-          total,
-          page,
-          pageSize,
-          totalPages,
-          hasNextPage: page < totalPages,
-          hasPreviousPage: page > 1 && totalPages > 0,
-        },
-      };
+      return listTasksForOwner(userId, page, pageSize);
     },
   );
 
@@ -158,21 +77,10 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       }),
     },
     async (request, reply) => {
-      const userId = await requireUserId(request);
-      if (!userId) {
-        return reply.code(401).send({ message: 'Unauthorized' });
-      }
-
-      const [row] = await db
-        .select()
-        .from(tasks)
-        .where(
-          and(eq(tasks.id, request.params.id), eq(tasks.userId, userId), isNull(tasks.deletedAt)),
-        )
-        .limit(1);
-
+      const userId = request.userId!;
+      const row = await getTaskForOwner(request.params.id, userId);
       if (!row) {
-        return reply.code(404).send({ message: 'Task not found' });
+        return sendNotFound(reply, 'Task not found');
       }
 
       return toTask(row);
@@ -202,50 +110,15 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       }),
     },
     async (request, reply) => {
-      const userId = await requireUserId(request);
-      if (!userId) {
-        return reply.code(401).send({ message: 'Unauthorized' });
-      }
-
-      const payload = normalizeCreatePayload(request.body);
-
-      if (!payload.title) {
-        return reply.code(400).send({ message: 'Task title is required' });
-      }
-
-      if (payload.projectId) {
-        const project = await ensureOwnedProject(payload.projectId, userId);
+      const userId = request.userId!;
+      if (request.body.projectId) {
+        const project = await getProjectForOwner(request.body.projectId, userId);
         if (!project) {
-          return reply.code(404).send({ message: 'Project not found' });
+          return sendNotFound(reply, 'Project not found');
         }
       }
 
-      const now = new Date().toISOString();
-      const id = randomUUID();
-
-      await db.insert(tasks).values({
-        id,
-        userId,
-        title: payload.title,
-        description: payload.description,
-        status: payload.status,
-        priority: payload.priority,
-        dueDate: payload.dueDate,
-        simpleMode: payload.simpleMode ?? false,
-        bucket: payload.bucket ?? 'personal-sanctuary',
-        projectId: payload.projectId ?? null,
-        completed: false,
-        order: 0,
-        deletedAt: null,
-        createdAt: now,
-        updatedAt: now,
-      });
-
-      const [created] = await db
-        .select()
-        .from(tasks)
-        .where(and(eq(tasks.id, id), eq(tasks.userId, userId), isNull(tasks.deletedAt)))
-        .limit(1);
+      const created = await createTaskForOwner(userId, request.body);
       if (!created) {
         return reply.code(500).send({ message: 'Failed to create task' });
       }
@@ -277,61 +150,20 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       }),
     },
     async (request, reply) => {
-      const userId = await requireUserId(request);
-      if (!userId) {
-        return reply.code(401).send({ message: 'Unauthorized' });
-      }
-
-      const [existing] = await db
-        .select()
-        .from(tasks)
-        .where(
-          and(eq(tasks.id, request.params.id), eq(tasks.userId, userId), isNull(tasks.deletedAt)),
-        )
-        .limit(1);
-
+      const userId = request.userId!;
+      const existing = await getTaskForOwner(request.params.id, userId);
       if (!existing) {
-        return reply.code(404).send({ message: 'Task not found' });
+        return sendNotFound(reply, 'Task not found');
       }
 
-      const patch = request.body;
-      const status = patch.status ?? existing.status;
-      const completed = patch.completed ?? existing.completed;
-      const simpleMode = patch.simpleMode ?? existing.simpleMode;
-      const nextProjectId =
-        patch.projectId === null ? null : (patch.projectId ?? existing.projectId ?? null);
-
-      if (patch.projectId) {
-        const project = await ensureOwnedProject(patch.projectId, userId);
+      if (request.body.projectId) {
+        const project = await getProjectForOwner(request.body.projectId, userId);
         if (!project) {
-          return reply.code(404).send({ message: 'Project not found' });
+          return sendNotFound(reply, 'Project not found');
         }
       }
 
-      await db
-        .update(tasks)
-        .set({
-          title: patch.title?.trim() || existing.title,
-          description: patch.description ?? existing.description,
-          priority: patch.priority ?? existing.priority,
-          dueDate: simpleMode ? null : (patch.dueDate ?? existing.dueDate),
-          simpleMode,
-          bucket: patch.bucket ?? existing.bucket,
-          projectId: nextProjectId,
-          order: patch.order ?? existing.order,
-          completed,
-          status: normalizeStatusOnCompletion(status, completed),
-          updatedAt: new Date().toISOString(),
-        })
-        .where(eq(tasks.id, request.params.id));
-
-      const [updated] = await db
-        .select()
-        .from(tasks)
-        .where(
-          and(eq(tasks.id, request.params.id), eq(tasks.userId, userId), isNull(tasks.deletedAt)),
-        )
-        .limit(1);
+      const updated = await updateTaskForOwner(userId, request.params.id, request.body, existing);
       if (!updated) {
         return reply.code(500).send({ message: 'Failed to update task' });
       }
@@ -363,30 +195,17 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       }),
     },
     async (request, reply) => {
-      const userId = await requireUserId(request);
-      if (!userId) {
-        return reply.code(401).send({ message: 'Unauthorized' });
+      const userId = request.userId!;
+      const existing = await getTaskForOwner(request.params.id, userId);
+      if (!existing) {
+        return sendNotFound(reply, 'Task not found');
       }
 
-      const [row] = await db
-        .select()
-        .from(tasks)
-        .where(
-          and(eq(tasks.id, request.params.id), eq(tasks.userId, userId), isNull(tasks.deletedAt)),
-        )
-        .limit(1);
-      if (!row) {
-        return reply.code(404).send({ message: 'Task not found' });
+      const deleted = await deleteTaskForOwner(userId, request.params.id, existing);
+      if (!deleted) {
+        return sendNotFound(reply, 'Task not found');
       }
 
-      const now = new Date().toISOString();
-      await db
-        .update(tasks)
-        .set({
-          deletedAt: now,
-          updatedAt: now,
-        })
-        .where(eq(tasks.id, request.params.id));
       return { ok: true };
     },
   );
