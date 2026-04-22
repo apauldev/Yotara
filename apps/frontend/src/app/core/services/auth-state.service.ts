@@ -18,6 +18,9 @@ export class AuthStateService {
   readonly initialized = this.initializedState.asReadonly();
   readonly loading = this.loadingState.asReadonly();
   readonly isAuthenticated = computed(() => !!this.sessionState());
+  readonly currentUserId = computed(
+    () => this.userState()?.id ?? this.sessionState()?.userId ?? null,
+  );
   readonly needsOnboarding = computed(
     () => this.isAuthenticated() && !this.userState()?.onboardingCompleted,
   );
