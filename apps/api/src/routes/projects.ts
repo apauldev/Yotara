@@ -1,37 +1,26 @@
-import { randomUUID } from 'node:crypto';
-import { and, eq, isNull } from 'drizzle-orm';
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import type { CreateProjectDto, Project, Task, UpdateProjectDto } from '@yotara/shared';
-import { db } from '../db/client.js';
-import { projects, tasks } from '../db/schema.js';
-import { auth } from '../lib/auth.js';
-import { fromNodeHeaders } from 'better-auth/node';
 import {
   authCookieSecurity,
   errorResponseSchema,
   idParamSchema,
   withJsonResponse,
 } from '../docs/openapi.js';
+import { sendNotFound, sendUnauthorized } from '../lib/api-errors.js';
+import requireAuthenticatedUser from '../plugins/auth-required.js';
+import { toProject } from './project-utils.js';
 import {
-  ensureOwnedProject,
-  getProjectById,
-  getProjectsForOwner,
-  isValidProjectColor,
-  normalizeProjectCreatePayload,
-  normalizeProjectUpdatePayload,
-  toProject,
-} from './project-utils.js';
-import { toTask } from './tasks.js';
-
-async function requireUserId(request: FastifyRequest) {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(request.headers),
-  });
-
-  return session?.user.id ?? null;
-}
+  createProjectForOwner,
+  getProjectForOwner,
+  listProjectsForOwner,
+  listTasksForProject,
+  updateProjectForOwner,
+} from '../services/project-service.js';
+import { toTask } from '../services/task-service.js';
 
 export default async function projectRoutes(fastify: FastifyInstance) {
+  fastify.addHook('preHandler', requireAuthenticatedUser);
+
   fastify.get<{ Reply: Project[] | { message: string } }>(
     '/projects',
     {
@@ -49,12 +38,12 @@ export default async function projectRoutes(fastify: FastifyInstance) {
       }),
     },
     async (request, reply) => {
-      const userId = await requireUserId(request);
+      const userId = request.userId;
       if (!userId) {
-        return reply.code(401).send({ message: 'Unauthorized' });
+        return sendUnauthorized(reply);
       }
 
-      const rows = await getProjectsForOwner(userId);
+      const rows = await listProjectsForOwner(userId);
       return rows.map(toProject);
     },
   );
@@ -81,35 +70,12 @@ export default async function projectRoutes(fastify: FastifyInstance) {
       }),
     },
     async (request, reply) => {
-      const userId = await requireUserId(request);
+      const userId = request.userId;
       if (!userId) {
-        return reply.code(401).send({ message: 'Unauthorized' });
+        return sendUnauthorized(reply);
       }
 
-      const payload = normalizeProjectCreatePayload(request.body);
-
-      if (!payload.name) {
-        return reply.code(400).send({ message: 'Project name is required' });
-      }
-
-      if (payload.color !== undefined && !isValidProjectColor(payload.color)) {
-        return reply.code(400).send({ message: 'Project color is invalid' });
-      }
-
-      const now = new Date().toISOString();
-      const id = randomUUID();
-
-      await db.insert(projects).values({
-        id,
-        ownerId: userId,
-        name: payload.name,
-        description: payload.description ?? null,
-        color: payload.color ?? null,
-        createdAt: now,
-        updatedAt: now,
-      });
-
-      const created = await getProjectById(id, userId);
+      const created = await createProjectForOwner(userId, request.body);
       if (!created) {
         return reply.code(500).send({ message: 'Failed to create project' });
       }
@@ -137,14 +103,14 @@ export default async function projectRoutes(fastify: FastifyInstance) {
       }),
     },
     async (request, reply) => {
-      const userId = await requireUserId(request);
+      const userId = request.userId;
       if (!userId) {
-        return reply.code(401).send({ message: 'Unauthorized' });
+        return sendUnauthorized(reply);
       }
 
-      const project = await getProjectById(request.params.id, userId);
+      const project = await getProjectForOwner(request.params.id, userId);
       if (!project) {
-        return reply.code(404).send({ message: 'Project not found' });
+        return sendNotFound(reply, 'Project not found');
       }
 
       return toProject(project);
@@ -179,39 +145,23 @@ export default async function projectRoutes(fastify: FastifyInstance) {
       }),
     },
     async (request, reply) => {
-      const userId = await requireUserId(request);
+      const userId = request.userId;
       if (!userId) {
-        return reply.code(401).send({ message: 'Unauthorized' });
+        return sendUnauthorized(reply);
       }
 
-      const existing = await ensureOwnedProject(request.params.id, userId);
+      const existing = await getProjectForOwner(request.params.id, userId);
       if (!existing) {
-        return reply.code(404).send({ message: 'Project not found' });
+        return sendNotFound(reply, 'Project not found');
       }
 
-      const patch = normalizeProjectUpdatePayload(request.body);
-      if (patch.name !== undefined && !patch.name) {
-        return reply.code(400).send({ message: 'Project name is required' });
-      }
+      const updated = await updateProjectForOwner(
+        userId,
+        request.params.id,
+        request.body,
+        existing,
+      );
 
-      if (patch.color !== undefined && !isValidProjectColor(patch.color)) {
-        return reply.code(400).send({ message: 'Project color is invalid' });
-      }
-
-      await db
-        .update(projects)
-        .set({
-          name: patch.name ?? existing.name,
-          description:
-            request.body.description !== undefined
-              ? (patch.description ?? null)
-              : (existing.description ?? null),
-          color: patch.color ?? existing.color ?? null,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(eq(projects.id, request.params.id));
-
-      const updated = await getProjectById(request.params.id, userId);
       if (!updated) {
         return reply.code(500).send({ message: 'Failed to update project' });
       }
@@ -240,26 +190,15 @@ export default async function projectRoutes(fastify: FastifyInstance) {
       }),
     },
     async (request, reply) => {
-      const userId = await requireUserId(request);
+      const userId = request.userId;
       if (!userId) {
-        return reply.code(401).send({ message: 'Unauthorized' });
+        return sendUnauthorized(reply);
       }
 
-      const existing = await ensureOwnedProject(request.params.id, userId);
-      if (!existing) {
-        return reply.code(404).send({ message: 'Project not found' });
+      const rows = await listTasksForProject(request.params.id, userId);
+      if (!rows) {
+        return sendNotFound(reply, 'Project not found');
       }
-
-      const rows = await db
-        .select()
-        .from(tasks)
-        .where(
-          and(
-            eq(tasks.userId, userId),
-            eq(tasks.projectId, request.params.id),
-            isNull(tasks.deletedAt),
-          ),
-        );
 
       return rows.map(toTask);
     },

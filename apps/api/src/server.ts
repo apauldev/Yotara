@@ -1,251 +1,29 @@
 import Fastify from 'fastify';
 import { fileURLToPath } from 'node:url';
-import { eq } from 'drizzle-orm';
 import corsPlugin from './plugins/cors.js';
-import {
-  authCookieSecurity,
-  errorResponseSchema,
-  registerOpenApi,
-  withJsonResponse,
-} from './docs/openapi.js';
+import authBridgePlugin, { applyCorsHeaders } from './plugins/auth-bridge.js';
+import { registerOpenApi } from './docs/openapi.js';
 import healthRoutes from './routes/health.js';
+import meRoutes from './routes/me.js';
 import projectRoutes from './routes/projects.js';
+import rootRoutes from './routes/root.js';
 import taskRoutes from './routes/tasks.js';
-import { auth } from './lib/auth.js';
-import { getCorsOrigins } from './lib/auth-origins.js';
-import { fromNodeHeaders } from 'better-auth/node';
-import { db } from './db/client.js';
-import { users } from './db/schema.js';
-
-function toPublicUser(user: typeof users.$inferSelect) {
-  return {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    image: user.image,
-    emailVerified: user.emailVerified,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-    workspaceMode: user.workspaceMode,
-    onboardingCompleted: user.onboardingCompleted,
-  };
-}
-
-function toHeaders(source: Record<string, string | string[] | undefined>) {
-  const headers = new Headers();
-
-  for (const [key, value] of Object.entries(source)) {
-    if (value === undefined) {
-      continue;
-    }
-
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        headers.append(key, item);
-      }
-      continue;
-    }
-
-    headers.set(key, value);
-  }
-
-  return headers;
-}
-
-function getRequestBody(method: string, body: unknown, headers: Headers) {
-  if (method === 'GET' || method === 'HEAD' || body == null) {
-    return undefined;
-  }
-
-  if (typeof body === 'string') {
-    return body;
-  }
-
-  if (body instanceof Uint8Array) {
-    return Buffer.from(body);
-  }
-
-  if (!headers.has('content-type')) {
-    headers.set('content-type', 'application/json');
-  }
-
-  return JSON.stringify(body);
-}
-
-function applyCorsHeaders(
-  reply: { header: (name: string, value: string | string[]) => unknown },
-  origin: string | undefined,
-) {
-  if (!origin || !getCorsOrigins().includes(origin)) {
-    return;
-  }
-
-  reply.header('access-control-allow-origin', origin);
-  reply.header('access-control-allow-credentials', 'true');
-  reply.header('vary', 'Origin');
-}
 
 export async function buildApp() {
   const app = Fastify({ logger: true });
 
-  // ─── Plugins ──────────────────────────────────────────────────────────────
   await registerOpenApi(app);
   await app.register(corsPlugin);
+  await app.register(authBridgePlugin);
   app.addHook('onRequest', async (request, reply) => {
     applyCorsHeaders(reply, request.headers.origin);
   });
 
-  // Register Better Auth handler
-  app.options('/auth/*', async (request, reply) => {
-    const origin = request.headers.origin;
-    if (origin && getCorsOrigins().includes(origin)) {
-      applyCorsHeaders(reply, origin);
-      reply.header('access-control-allow-methods', 'GET,POST,PUT,PATCH,DELETE');
-
-      const requestedHeaders = request.headers['access-control-request-headers'];
-      if (requestedHeaders) {
-        reply.header('access-control-allow-headers', requestedHeaders);
-      }
-    }
-
-    return reply.code(204).send();
-  });
-
-  app.route({
-    method: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'],
-    url: '/auth/*',
-    handler: async (request, reply) => {
-      applyCorsHeaders(reply, request.headers.origin);
-      const headers = toHeaders(request.headers);
-      const protocol = request.protocol ?? 'http';
-      const host = request.headers.host ?? 'localhost';
-      const url = new URL(request.url, `${protocol}://${host}`);
-      const body = getRequestBody(request.method, request.body, headers);
-      const response = await auth.handler(
-        new Request(url, {
-          method: request.method,
-          headers,
-          body,
-        }),
-      );
-
-      reply.code(response.status);
-
-      response.headers.forEach((value, key) => {
-        if (key === 'set-cookie') {
-          reply.header(key, response.headers.getSetCookie());
-          return;
-        }
-
-        reply.header(key, value);
-      });
-
-      const text = await response.text();
-      return reply.send(text);
-    },
-  });
-
-  app.get(
-    '/me',
-    {
-      schema: withJsonResponse({
-        tags: ['auth'],
-        summary: 'Get the current authenticated user',
-        security: authCookieSecurity,
-        response: {
-          200: {
-            description: 'Authenticated user',
-            $ref: 'MeResponse#',
-          },
-          401: errorResponseSchema('Authentication required', 'Unauthorized'),
-        },
-      }),
-    },
-    async (request, reply) => {
-      const session = await auth.api.getSession({
-        headers: fromNodeHeaders(request.headers),
-      });
-      if (!session) return reply.code(401).send({ message: 'Unauthorized' });
-
-      const [user] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
-      if (!user) return reply.code(401).send({ message: 'Unauthorized' });
-
-      return { user: toPublicUser(user) };
-    },
-  );
-
-  app.patch<{
-    Body: { workspaceMode?: 'personal' | 'team'; onboardingCompleted?: boolean };
-    Reply: { user: ReturnType<typeof toPublicUser> } | { message: string };
-  }>(
-    '/me',
-    {
-      schema: withJsonResponse({
-        tags: ['auth'],
-        summary: 'Update the current authenticated user',
-        security: authCookieSecurity,
-        body: {
-          $ref: 'UpdateProfile#',
-        },
-        response: {
-          200: {
-            description: 'Updated user profile',
-            $ref: 'MeResponse#',
-          },
-          401: errorResponseSchema('Authentication required', 'Unauthorized'),
-        },
-      }),
-    },
-    async (request, reply) => {
-      const session = await auth.api.getSession({
-        headers: fromNodeHeaders(request.headers),
-      });
-      if (!session) return reply.code(401).send({ message: 'Unauthorized' });
-
-      await db
-        .update(users)
-        .set({
-          workspaceMode: request.body.workspaceMode,
-          onboardingCompleted: request.body.onboardingCompleted,
-          updatedAt: new Date(),
-        })
-        .where(eq(users.id, session.user.id));
-
-      const [user] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
-      if (!user) return reply.code(401).send({ message: 'Unauthorized' });
-
-      return { user: toPublicUser(user) };
-    },
-  );
-
-  // ─── Routes ───────────────────────────────────────────────────────────────
   await app.register(healthRoutes);
+  await app.register(meRoutes);
   await app.register(projectRoutes);
   await app.register(taskRoutes);
-
-  // ─── Root ─────────────────────────────────────────────────────────────────
-  app.get(
-    '/',
-    {
-      schema: {
-        tags: ['meta'],
-        summary: 'Get API metadata',
-        response: {
-          200: {
-            type: 'object',
-            required: ['name', 'version'],
-            properties: {
-              name: { type: 'string' },
-              version: { type: 'string' },
-            },
-          },
-        },
-      },
-    },
-    async () => {
-      return { name: 'Yotara API', version: '0.1.0' };
-    },
-  );
+  await app.register(rootRoutes);
 
   return app;
 }
@@ -264,7 +42,7 @@ export async function startServer() {
   }
 }
 
-const isEntryPoint = process.argv[1] === fileURLToPath(import.meta.url);
-if (isEntryPoint) {
+const isDirectExecution = process.argv[1] === fileURLToPath(import.meta.url);
+if (isDirectExecution) {
   await startServer();
 }
