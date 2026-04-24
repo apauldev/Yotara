@@ -14,6 +14,7 @@ import {
   faBars,
   faBell,
   faCalendarDays,
+  faBoxArchive,
   faInbox,
   faArrowRightLong,
   faRocket,
@@ -26,7 +27,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { LogoutConfirmModalComponent } from '../../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
 
-type PersonalIcon = 'inbox' | 'today' | 'upcoming' | 'projects' | 'labels';
+type PersonalIcon = 'inbox' | 'today' | 'upcoming' | 'projects' | 'labels' | 'archive';
 
 interface PersonalNavItem {
   label: string;
@@ -54,6 +55,7 @@ export class PersonalShellComponent {
   protected readonly faBell = faBell;
   protected readonly faArrowRightLong = faArrowRightLong;
   protected readonly faCalendarDays = faCalendarDays;
+  protected readonly faBoxArchive = faBoxArchive;
   protected readonly faInbox = faInbox;
   protected readonly faRocket = faRocket;
   protected readonly faPlus = faPlus;
@@ -70,6 +72,7 @@ export class PersonalShellComponent {
     { label: 'Upcoming', route: '/upcoming', icon: 'upcoming' },
     { label: 'Projects', route: '/projects', icon: 'projects' },
     { label: 'Labels', route: '/labels', icon: 'labels' },
+    { label: 'Archive', route: '/archive', icon: 'archive' },
   ];
   protected readonly mobileMenuOpen = signal(false);
   protected readonly profileMenuOpen = signal(false);
