@@ -154,12 +154,20 @@
         <div class="sidebar-section">
           <span class="field-label">Completion</span>
           <label class="toggle-row">
-            <span>Mark as completed</span>
-            <input
-              type="checkbox"
-              [ngModel]="draftCompleted()"
-              (ngModelChange)="draftCompleted.set($event)"
-            />
+            <span>{{ draftCompleted() ? 'Move back to doing' : 'Mark as completed' }}</span>
+            <label class="checkbox-control">
+              <input
+                type="checkbox"
+                [ngModel]="draftCompleted()"
+                (ngModelChange)="draftCompleted.set($event)"
+                [attr.aria-label]="draftCompleted() ? 'Move back to doing' : 'Mark as completed'"
+              />
+              <span class="checkbox-box" aria-hidden="true">
+                @if (draftCompleted()) {
+                  <span class="checkbox-mark"></span>
+                }
+              </span>
+            </label>
           </label>
         </div>
 
