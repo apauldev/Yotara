@@ -1,11 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
 import { Task, TaskBucket } from '@yotara/shared';
+import { TaskService } from '../../../core/services/task.service';
+import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-personal-task-card',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ConfirmDialogComponent],
   template: `
     <article
       class="task-card"
@@ -14,16 +16,27 @@ import { Task, TaskBucket } from '@yotara/shared';
       [class.task-card-interactive]="interactive"
       (click)="select.emit()"
     >
-      <div class="task-check" [class.task-check-complete]="task.completed" aria-hidden="true">
-        @if (task.completed) {
-          <span>✓</span>
-        }
-      </div>
+      <button
+        type="button"
+        class="task-check"
+        [class.task-check-complete]="task.completed"
+        [attr.aria-label]="task.completed ? 'Task completed' : 'Mark task complete'"
+        (click)="requestComplete($event)"
+      >
+        <span class="task-check-box" aria-hidden="true">
+          @if (task.completed) {
+            <span class="task-check-mark"></span>
+          }
+        </span>
+      </button>
 
       <div class="task-copy">
         <div class="task-title-row">
           <h3>{{ task.title }}</h3>
           <span class="priority-chip priority-chip-{{ task.priority }}">{{ priorityLabel() }}</span>
+          @if (task.completed) {
+            <span class="completion-chip completion-chip-complete">Completed</span>
+          }
         </div>
 
         @if (showDescription && task.description) {
@@ -53,6 +66,23 @@ import { Task, TaskBucket } from '@yotara/shared';
         </div>
       </div>
     </article>
+
+    <app-confirm-dialog
+      [open]="completeConfirmOpen()"
+      [title]="task.completed ? 'Move task back to doing?' : 'Complete task?'"
+      [description]="
+        task.completed
+          ? 'This will return the task to your active work list.'
+          : 'This will move the task into completed and archive it for 30 days.'
+      "
+      [confirmLabel]="task.completed ? 'Put back into doing' : 'Mark complete'"
+      cancelLabel="Keep as is"
+      [loading]="completing()"
+      [loadingLabel]="task.completed ? 'Restoring...' : 'Completing...'"
+      (confirm)="completeTask()"
+      (cancel)="closeCompleteConfirm()"
+      (close)="closeCompleteConfirm()"
+    />
   `,
   styles: [
     `
@@ -86,22 +116,44 @@ import { Task, TaskBucket } from '@yotara/shared';
       }
 
       .task-check {
-        width: 1.1rem;
-        height: 1.1rem;
-        border-radius: 0.22rem;
-        border: 1.5px solid #b9c2bb;
-        margin-top: 0.22rem;
+        appearance: none;
+        padding: 0;
+        width: 1.15rem;
+        height: 1.15rem;
+        border: 0;
+        margin-top: 0.18rem;
+        background: transparent;
+        cursor: pointer;
         display: grid;
         place-items: center;
-        color: #f9faf6;
-        font-size: 0.72rem;
-        font-weight: 700;
-        background: #ffffff;
       }
 
-      .task-check-complete {
+      .task-check-box {
+        width: 1.02rem;
+        height: 1.02rem;
+        border-radius: 0.28rem;
+        border: 1.5px solid #b9c2bb;
+        background: #ffffff;
+        display: grid;
+        place-items: center;
+        transition:
+          background-color 120ms ease,
+          border-color 120ms ease,
+          box-shadow 120ms ease;
+      }
+
+      .task-check-complete .task-check-box {
         background: #84a4f6;
         border-color: #84a4f6;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+      }
+
+      .task-check-mark {
+        width: 0.34rem;
+        height: 0.62rem;
+        border-right: 2px solid #fff;
+        border-bottom: 2px solid #fff;
+        transform: translateY(-0.05rem) rotate(45deg);
       }
 
       .task-copy {
@@ -113,6 +165,21 @@ import { Task, TaskBucket } from '@yotara/shared';
         align-items: center;
         gap: 0.65rem;
         flex-wrap: wrap;
+      }
+
+      .completion-chip {
+        margin-left: auto;
+        border-radius: 999px;
+        padding: 0.18rem 0.55rem;
+        font-size: 0.69rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+      }
+
+      .completion-chip-complete {
+        background: #dff0e3;
+        color: #3d7b59;
       }
 
       h3 {
@@ -205,6 +272,10 @@ import { Task, TaskBucket } from '@yotara/shared';
           gap: 0.45rem;
         }
 
+        .completion-chip {
+          margin-left: 0;
+        }
+
         .task-meta {
           gap: 0.35rem;
           margin-top: 0.65rem;
@@ -224,6 +295,10 @@ import { Task, TaskBucket } from '@yotara/shared';
   ],
 })
 export class PersonalTaskCardComponent {
+  private readonly taskService = inject(TaskService);
+  protected readonly completeConfirmOpen = signal(false);
+  protected readonly completing = signal(false);
+
   @Input({ required: true }) task!: Task;
   @Input() tone: 'default' | 'overdue' = 'default';
   @Input() showDescription = true;
@@ -269,5 +344,25 @@ export class PersonalTaskCardComponent {
     };
 
     return this.task.bucket ? labels[this.task.bucket] : '';
+  }
+
+  requestComplete(event: MouseEvent) {
+    event.stopPropagation();
+    this.completeConfirmOpen.set(true);
+  }
+
+  closeCompleteConfirm() {
+    this.completeConfirmOpen.set(false);
+  }
+
+  async completeTask() {
+    this.completing.set(true);
+
+    try {
+      await this.taskService.updateTask(this.task.id, { completed: !this.task.completed });
+      this.completeConfirmOpen.set(false);
+    } finally {
+      this.completing.set(false);
+    }
   }
 }
