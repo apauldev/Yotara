@@ -16,12 +16,6 @@ describe('TaskService', () => {
     return date.toISOString();
   }
 
-  function daysAgo(offset: number) {
-    const date = new Date();
-    date.setDate(date.getDate() - offset);
-    return date.toISOString();
-  }
-
   function paginated(tasks: Task[]) {
     return {
       data: tasks,
@@ -247,55 +241,12 @@ describe('TaskService', () => {
     expect(service.todayTasks().map((task) => task.id)).toEqual(['today-1']);
     expect(service.todayCompletedTasks().map((task) => task.id)).toEqual(['done-1']);
     expect(service.upcomingTasks().map((task) => task.id)).toEqual(['upcoming-1']);
-    expect(service.archivedTasks().map((task) => task.id)).toEqual(['done-1']);
     expect(service.upcomingTaskGroups()).toEqual([
       {
         label: 'This Week',
         tasks: [jasmine.objectContaining({ id: 'upcoming-1' })],
       },
     ]);
-  }));
-
-  it('only includes tasks completed within the last 30 days in the archive', fakeAsync(() => {
-    const service = TestBed.inject(TaskService);
-    const http = TestBed.inject(HttpTestingController);
-
-    initialized.set(true);
-    isAuthenticated.set(true);
-    currentUserId.set('user-1');
-    tick();
-
-    const tasks: Task[] = [
-      {
-        id: 'recent-done',
-        title: 'Recent completed task',
-        status: 'done',
-        priority: 'medium',
-        completed: true,
-        simpleMode: true,
-        bucket: 'personal-sanctuary',
-        order: 0,
-        createdAt: daysAgo(3),
-        updatedAt: daysAgo(3),
-      },
-      {
-        id: 'old-done',
-        title: 'Old completed task',
-        status: 'done',
-        priority: 'medium',
-        completed: true,
-        simpleMode: true,
-        bucket: 'personal-sanctuary',
-        order: 1,
-        createdAt: daysAgo(40),
-        updatedAt: daysAgo(40),
-      },
-    ];
-
-    http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100').flush(paginated(tasks));
-    tick();
-
-    expect(service.archivedTasks().map((task) => task.id)).toEqual(['recent-done']);
   }));
 
   it('creates a task and refreshes the fetched list', fakeAsync(() => {

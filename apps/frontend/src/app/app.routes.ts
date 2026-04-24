@@ -82,13 +82,6 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'archive',
-        loadComponent: () =>
-          import('./features/personal/pages/archive-page.component').then(
-            (m) => m.ArchivePageComponent,
-          ),
-      },
-      {
         path: 'search',
         loadComponent: () =>
           import('./features/personal/pages/search-page.component').then(
