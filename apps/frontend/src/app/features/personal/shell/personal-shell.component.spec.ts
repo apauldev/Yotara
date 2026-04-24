@@ -11,12 +11,21 @@ import { AuthStateService } from '../../../core/services/auth-state.service';
 })
 class InboxStubComponent {}
 
+@Component({
+  standalone: true,
+  template: '<p>Search</p>',
+})
+class SearchStubComponent {}
+
 describe('PersonalShellComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [PersonalShellComponent, InboxStubComponent],
       providers: [
-        provideRouter([{ path: 'inbox', component: InboxStubComponent }]),
+        provideRouter([
+          { path: 'inbox', component: InboxStubComponent },
+          { path: 'search', component: SearchStubComponent },
+        ]),
         {
           provide: AuthStateService,
           useValue: {
@@ -85,5 +94,20 @@ describe('PersonalShellComponent', () => {
         .query(By.css('.sidebar'))
         .nativeElement.classList.contains('sidebar-open'),
     ).toBeFalse();
+  }));
+
+  it('navigates to the search results page when the search form is submitted', fakeAsync(() => {
+    const fixture = TestBed.createComponent(PersonalShellComponent);
+    const router = TestBed.inject(Router);
+    fixture.detectChanges();
+
+    fixture.componentInstance['searchQuery'].set('Launch Yotara');
+    fixture.detectChanges();
+
+    fixture.debugElement.query(By.css('.search-shell')).triggerEventHandler('ngSubmit', {});
+    tick();
+    fixture.detectChanges();
+
+    expect(router.url).toBe('/search?q=Launch%20Yotara');
   }));
 });
