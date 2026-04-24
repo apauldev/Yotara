@@ -51,7 +51,7 @@ describe('PersonalShellComponent', () => {
       .queryAll(By.css('.nav-item'))
       .map((element) => element.nativeElement.textContent.replace(/\s+/g, ' ').trim());
 
-    expect(labels).toEqual(['Inbox', 'Today', 'Upcoming', 'Projects', 'Labels']);
+    expect(labels).toEqual(['Inbox', 'Today', 'Upcoming', 'Projects', 'Labels', 'Archive']);
   });
 
   it('renders the top bar and quick add affordance', () => {
