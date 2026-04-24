@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { PersonalTaskModalComponent } from './personal-task-modal.component';
 
 describe('PersonalTaskModalComponent', () => {
@@ -227,6 +228,17 @@ describe('PersonalTaskModalComponent', () => {
       component['ngOnChanges']();
 
       expect(component['titleError']()).toBeNull();
+    });
+  });
+
+  describe('Completion Toggle', () => {
+    it('should render a Font Awesome icon for the completion toggle', () => {
+      component.open = true;
+      fixture.detectChanges();
+
+      const checkbox = fixture.debugElement.query(By.css('.checkbox-control'));
+      expect(checkbox).toBeTruthy();
+      expect(checkbox.nativeElement.querySelector('.checkbox-box')).toBeTruthy();
     });
   });
 });

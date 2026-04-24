@@ -80,6 +80,9 @@ export class TaskService {
   );
   readonly pendingTasks = computed(() => this.tasks().filter((task) => !task.completed));
   readonly completedTasks = computed(() => this.tasks().filter((task) => task.completed));
+  readonly archivedTasks = computed(() =>
+    this.completedTasks().filter((task) => this.isTaskInArchiveWindow(task)),
+  );
   readonly inboxTasks = computed(() =>
     this.activeTasks().filter((task) => task.status === 'inbox'),
   );
@@ -191,6 +194,21 @@ export class TaskService {
     return (
       task.status === 'upcoming' || (!!dueDate && dueDate.getTime() > startOfToday().getTime())
     );
+  }
+
+  isTaskInArchiveWindow(task: Task) {
+    if (!task.completed) {
+      return false;
+    }
+
+    const completedAt = toCalendarDate(task.updatedAt);
+    if (!completedAt) {
+      return false;
+    }
+
+    const cutoff = new Date(startOfToday());
+    cutoff.setDate(cutoff.getDate() - 30);
+    return completedAt.getTime() >= cutoff.getTime();
   }
 
   private upcomingBucketForTask(task: Task): UpcomingBucket {
