@@ -1,0 +1,169 @@
+<app-personal-task-workspace #workspace>
+  <section class="page">
+    <app-page-header
+      title="Search"
+      [subtitle]="subtitle()"
+    >
+      <div page-header-actions class="header-chip">
+        <span>{{ resultCount() }} matches</span>
+      </div>
+    </app-page-header>
+
+    <form class="search-panel" (ngSubmit)="submitSearch()">
+      <label class="search-input-shell">
+        <span class="search-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="6"></circle>
+            <path d="m20 20-3.5-3.5"></path>
+          </svg>
+        </span>
+
+        <input
+          type="search"
+          name="searchQuery"
+          [ngModel]="draftQuery()"
+          (ngModelChange)="draftQuery.set($event)"
+          placeholder="Search tasks, projects, and status keywords..."
+          aria-label="Search"
+        />
+      </label>
+
+      <button type="submit" class="search-button">Search</button>
+    </form>
+
+    <nav class="tab-row" aria-label="Search result filters">
+      @for (tab of tabItems; track tab.value) {
+        <button
+          type="button"
+          class="tab-chip"
+          [class.tab-chip-active]="activeTab() === tab.value"
+          (click)="chooseTab(tab.value)"
+        >
+          <span>{{ tab.label }}</span>
+          @if (tab.count && tab.value !== 'all') {
+            <strong>{{ tab.count() }}</strong>
+          }
+        </button>
+      }
+    </nav>
+
+    @if (!searchQuery()) {
+      <section class="empty-state">
+        <h2>Start with a title, project, or keyword</h2>
+        <p>
+          Search looks through task titles, descriptions, project names, and status keywords like
+          inbox, today, upcoming, done, and archived.
+        </p>
+      </section>
+    } @else if (resultCount() === 0) {
+      <section class="empty-state">
+        <h2>No matches found</h2>
+        <p>Try a different phrase, project name, or status keyword.</p>
+      </section>
+    } @else {
+      @if (activeTab() === 'all') {
+        @if (taskResults().length > 0) {
+          <section class="result-group">
+            <div class="group-header">
+              <h2>Tasks</h2>
+              <span>{{ results().tasks.length }} matches</span>
+            </div>
+
+            <div class="task-stack">
+              @for (taskResult of taskResults(); track taskResult.task.id) {
+                <app-personal-task-card
+                  [task]="taskResult.task"
+                  [interactive]="true"
+                  (select)="openTask(taskResult.task)"
+                />
+              }
+            </div>
+          </section>
+        }
+
+        @if (projectResults().length > 0) {
+          <section class="result-group">
+            <div class="group-header">
+              <h2>Projects</h2>
+              <span>{{ results().projects.length }} matches</span>
+            </div>
+
+            <div class="project-grid">
+              @for (projectResult of projectResults(); track projectResult.project.id) {
+                <a class="project-card" [routerLink]="['/projects', projectResult.project.id]">
+                  <div class="project-topline">
+                    <h3>{{ projectResult.project.name }}</h3>
+                    <span>{{ projectLabel(projectResult.project) }}</span>
+                  </div>
+                  <p>{{ projectResult.project.description || 'A calm place for related work.' }}</p>
+                  <div class="project-meta">
+                    <span>{{ projectResult.project.taskCount }} tasks</span>
+                    <span>{{ projectResult.project.completedTaskCount }} done</span>
+                  </div>
+                </a>
+              }
+            </div>
+          </section>
+        }
+      }
+
+      @if (activeTab() === 'tasks') {
+        <section class="result-group">
+          <div class="group-header">
+            <h2>Tasks</h2>
+            <span>{{ results().tasks.length }} matches</span>
+          </div>
+
+          <div class="task-stack">
+            @for (taskResult of results().tasks; track taskResult.task.id) {
+              <app-personal-task-card
+                [task]="taskResult.task"
+                [interactive]="true"
+                (select)="openTask(taskResult.task)"
+              />
+            }
+          </div>
+        </section>
+      }
+
+      @if (activeTab() === 'projects') {
+        <section class="result-group">
+          <div class="group-header">
+            <h2>Projects</h2>
+            <span>{{ results().projects.length }} matches</span>
+          </div>
+
+          <div class="project-grid">
+            @for (projectResult of results().projects; track projectResult.project.id) {
+              <a class="project-card" [routerLink]="['/projects', projectResult.project.id]">
+                <div class="project-topline">
+                  <h3>{{ projectResult.project.name }}</h3>
+                  <span>{{ projectLabel(projectResult.project) }}</span>
+                </div>
+                <p>{{ projectResult.project.description || 'A calm place for related work.' }}</p>
+                <div class="project-meta">
+                  <span>{{ projectResult.project.taskCount }} tasks</span>
+                  <span>{{ projectResult.project.completedTaskCount }} done</span>
+                </div>
+              </a>
+            }
+          </div>
+        </section>
+      }
+
+      @if (activeTab() === 'labels') {
+        <section class="result-group">
+          <div class="group-header">
+            <h2>Labels</h2>
+            <span>Planned</span>
+          </div>
+
+          <div class="empty-state compact">
+            <h2>Label search will come online with label persistence</h2>
+            <p>{{ labelSearchCopy() }}</p>
+          </div>
+        </section>
+      }
+    }
+  </section>
+</app-personal-task-workspace>

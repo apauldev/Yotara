@@ -1,0 +1,174 @@
+<div class="personal-shell">
+  @if (mobileMenuOpen()) {
+    <button
+      type="button"
+      class="mobile-backdrop"
+      aria-label="Close personal navigation"
+      (click)="closeMobileMenu()"
+    ></button>
+  }
+
+  <aside class="sidebar" [class.sidebar-open]="mobileMenuOpen()">
+    <div class="sidebar-top">
+      <div class="sidebar-brand">
+        <h1>Personal Sanctuary</h1>
+        <p>Focus Mode Active</p>
+      </div>
+
+      <nav class="nav-list" aria-label="Personal navigation">
+        @for (item of navItems; track item.route) {
+          <a
+            [routerLink]="item.route"
+            routerLinkActive="nav-item-active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            class="nav-item"
+          >
+            <span class="nav-icon" aria-hidden="true">
+              @switch (item.icon) {
+                @case ('inbox') {
+                  <fa-icon [icon]="faInbox"></fa-icon>
+                }
+                @case ('today') {
+                  <fa-icon [icon]="faCalendarDays"></fa-icon>
+                }
+                @case ('upcoming') {
+                  <fa-icon [icon]="faArrowRightLong"></fa-icon>
+                }
+                @case ('projects') {
+                  <fa-icon [icon]="faRocket"></fa-icon>
+                }
+                @case ('labels') {
+                  <fa-icon [icon]="faTag"></fa-icon>
+                }
+              }
+            </span>
+            <span>{{ item.label }}</span>
+          </a>
+        }
+      </nav>
+    </div>
+
+    <div class="sidebar-bottom">
+      <a routerLink="/inbox" fragment="capture" class="quick-add-button">
+        <span class="quick-add-icon"><fa-icon [icon]="faPlus"></fa-icon></span>
+        Quick Add Task
+      </a>
+
+      <div class="mode-switcher">
+        <button type="button" class="mode-button mode-button-active">Simple Mode</button>
+        <button type="button" class="mode-button" disabled>Team Mode</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button
+          type="button"
+          class="menu-toggle"
+          [attr.aria-expanded]="mobileMenuOpen()"
+          aria-label="Toggle navigation menu"
+          (click)="toggleMobileMenu()"
+        >
+          <fa-icon [icon]="faBars" aria-hidden="true"></fa-icon>
+        </button>
+
+        <a routerLink="/inbox" class="topbar-brand">
+          <span class="topbar-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M20 4C11 4 4 10.3 4 18c0 .9.1 1.8.4 2.6A9.8 9.8 0 0 0 12 24c6.6 0 12-5.4 12-12V4h-4Z"
+              />
+              <path
+                class="topbar-brand-vein"
+                d="M7.5 16.8a1 1 0 1 0 1.5 1.4c1.6-1.7 4-3.4 7.4-4.5a1 1 0 1 0-.6-1.9c-3.8 1.3-6.6 3.2-8.3 5Z"
+              />
+            </svg>
+          </span>
+          <span>Yotara</span>
+        </a>
+
+        <form class="search-shell" (ngSubmit)="submitSearch()">
+          <span class="search-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="6"></circle>
+              <path d="m20 20-3.5-3.5"></path>
+            </svg>
+          </span>
+          <input
+            type="search"
+            name="searchQuery"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+            placeholder="Search tasks and projects..."
+            aria-label="Search your sanctuary"
+          />
+          <button type="submit" class="search-submit">Search</button>
+        </form>
+      </div>
+
+      <div class="topbar-actions">
+        <button type="button" class="icon-button" aria-label="Notifications">
+          <fa-icon [icon]="faBell" aria-hidden="true"></fa-icon>
+        </button>
+        <button type="button" class="icon-button" aria-label="Preferences">
+          <fa-icon [icon]="faSliders" aria-hidden="true"></fa-icon>
+        </button>
+        <div class="profile-menu">
+          @if (profileMenuOpen()) {
+            <button
+              type="button"
+              class="profile-menu-backdrop"
+              aria-label="Close profile menu"
+              (click)="closeProfileMenu()"
+            ></button>
+          }
+
+          <button
+            type="button"
+            class="avatar avatar-button"
+            [attr.aria-expanded]="profileMenuOpen()"
+            aria-label="Open account menu"
+            (click)="toggleProfileMenu()"
+          >
+            {{ userInitials() }}
+          </button>
+
+          @if (profileMenuOpen()) {
+            <div class="profile-menu-card" role="menu" aria-label="Account actions">
+              <button
+                type="button"
+                class="profile-menu-item"
+                role="menuitem"
+                (click)="handleStayFocused()"
+              >
+                Stay and Focus
+              </button>
+              <button
+                type="button"
+                class="profile-menu-item profile-menu-item-danger"
+                role="menuitem"
+                (click)="openLogoutDialog()"
+              >
+                Logout
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </header>
+
+    <div class="page-surface">
+      <router-outlet />
+    </div>
+  </main>
+</div>
+
+<app-logout-confirm-modal
+  [open]="logoutDialogOpen()"
+  [loading]="signingOut()"
+  (close)="closeLogoutDialog()"
+  (stay)="handleStayFocused()"
+  (confirm)="confirmLogout()"
+/>

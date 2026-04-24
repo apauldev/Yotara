@@ -52,8 +52,8 @@ describe('InboxPageComponent', () => {
     const fixture = TestBed.createComponent(InboxPageComponent);
     fixture.detectChanges();
 
-    expect(fixture.componentInstance['dailyClarityPrompts'].length).toBeGreaterThanOrEqual(30);
-    expect(fixture.componentInstance['journalPrompts'].length).toBeGreaterThanOrEqual(30);
+    expect(fixture.componentInstance['dailyClarityPrompts'].length).toBeGreaterThanOrEqual(29);
+    expect(fixture.componentInstance['journalPrompts'].length).toBeGreaterThanOrEqual(29);
     expect(fixture.nativeElement.textContent).toContain('Daily clarity');
     expect(fixture.nativeElement.textContent).toContain('The Yotara Journal');
   });

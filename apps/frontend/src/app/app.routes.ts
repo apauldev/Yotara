@@ -81,6 +81,13 @@ export const routes: Routes = [
             (m) => m.LabelsPageComponent,
           ),
       },
+      {
+        path: 'search',
+        loadComponent: () =>
+          import('./features/personal/pages/search-page.component').then(
+            (m) => m.SearchPageComponent,
+          ),
+      },
     ],
   },
   {

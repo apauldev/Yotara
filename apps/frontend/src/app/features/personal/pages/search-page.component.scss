@@ -1,0 +1,247 @@
+:host {
+  display: block;
+}
+
+.page {
+  padding: 1rem 0 2.5rem;
+}
+
+.header-chip {
+  border-radius: 999px;
+  background: rgba(37, 108, 71, 0.1);
+  color: #2c6a49;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.search-panel {
+  margin-top: 1.35rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.search-input-shell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  border-radius: 999px;
+  padding: 0.82rem 1rem;
+  background: rgba(255, 251, 242, 0.88);
+  border: 1px solid rgba(232, 224, 208, 0.9);
+}
+
+.search-input-shell:focus-within {
+  border-color: rgba(75, 133, 96, 0.36);
+  box-shadow: 0 0 0 4px rgba(208, 238, 218, 0.36);
+}
+
+.search-input-shell input {
+  width: 100%;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #4f534b;
+  font-size: 0.96rem;
+}
+
+.search-input-shell input::placeholder {
+  color: #a6a193;
+}
+
+.search-button {
+  border: 0;
+  border-radius: 999px;
+  background: #256c47;
+  color: #f5f8f2;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 0.82rem 1.1rem;
+}
+
+.search-icon {
+  width: 1rem;
+  height: 1rem;
+  color: #a6a193;
+  flex: 0 0 auto;
+}
+
+.search-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tab-row {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.tab-chip {
+  border: 1px solid rgba(226, 217, 198, 0.9);
+  border-radius: 999px;
+  background: rgba(255, 251, 242, 0.82);
+  color: #5f645b;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.68rem 0.95rem;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.tab-chip strong {
+  border-radius: 999px;
+  padding: 0.15rem 0.45rem;
+  background: rgba(37, 108, 71, 0.1);
+  color: #285f41;
+}
+
+.tab-chip-active {
+  border-color: rgba(37, 108, 71, 0.18);
+  background: #dff0e7;
+  color: #275f41;
+}
+
+.result-group {
+  margin-top: 1.35rem;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.group-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  letter-spacing: -0.04em;
+}
+
+.group-header span {
+  color: #7f7a6f;
+  font-size: 0.88rem;
+}
+
+.task-stack {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.project-card {
+  display: grid;
+  gap: 0.8rem;
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(235, 228, 212, 0.9);
+  box-shadow: 0 14px 28px rgba(105, 97, 74, 0.05);
+  padding: 1.05rem 1.1rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.project-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.project-topline h3 {
+  margin: 0;
+  font-size: 1.16rem;
+  letter-spacing: -0.03em;
+}
+
+.project-topline span {
+  color: #7a7369;
+  font-size: 0.82rem;
+  text-align: right;
+}
+
+.project-card p {
+  margin: 0;
+  color: #7d776d;
+  line-height: 1.45;
+}
+
+.project-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  color: #6d685d;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.project-meta span {
+  border-radius: 999px;
+  background: #f1ede3;
+  padding: 0.25rem 0.55rem;
+}
+
+.empty-state {
+  margin-top: 1.25rem;
+  border-radius: 1.4rem;
+  border: 1px dashed rgba(224, 215, 196, 0.95);
+  background: rgba(255, 251, 242, 0.68);
+  padding: 1.6rem 1.3rem;
+}
+
+.empty-state.compact {
+  margin-top: 0;
+}
+
+.empty-state h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  letter-spacing: -0.04em;
+}
+
+.empty-state p {
+  margin: 0.55rem 0 0;
+  color: #7f7a6f;
+  line-height: 1.45;
+}
+
+@media (max-width: 840px) {
+  .project-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .search-panel {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-button {
+    width: 100%;
+  }
+
+  .group-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
