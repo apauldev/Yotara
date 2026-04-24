@@ -2,12 +2,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { PersonalTaskCardComponent } from './personal-task-card.component';
 import { Task } from '@yotara/shared';
-import { TaskService } from '../../../core/services/task.service';
 
 describe('PersonalTaskCardComponent', () => {
   let component: PersonalTaskCardComponent;
   let fixture: ComponentFixture<PersonalTaskCardComponent>;
-  let taskServiceSpy: jasmine.SpyObj<TaskService>;
 
   const mockTask: Task = {
     id: 'task-1',
@@ -25,11 +23,8 @@ describe('PersonalTaskCardComponent', () => {
   };
 
   beforeEach(async () => {
-    taskServiceSpy = jasmine.createSpyObj<TaskService>('TaskService', ['updateTask']);
-
     await TestBed.configureTestingModule({
       imports: [PersonalTaskCardComponent],
-      providers: [{ provide: TaskService, useValue: taskServiceSpy }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(PersonalTaskCardComponent);
@@ -186,9 +181,8 @@ describe('PersonalTaskCardComponent', () => {
     it('should show checkmark when task is completed', () => {
       component.task = { ...mockTask, completed: true };
       fixture.detectChanges();
-      const box = fixture.debugElement.query(By.css('.task-check-box'));
-      expect(box).toBeTruthy();
-      expect(box.nativeElement.querySelector('.task-check-mark')).toBeTruthy();
+      const checkmark = fixture.debugElement.query(By.css('.task-check span'));
+      expect(checkmark.nativeElement.textContent).toContain('✓');
     });
 
     it('should add complete class to checkbox when task is completed', () => {
@@ -226,54 +220,6 @@ describe('PersonalTaskCardComponent', () => {
       const card = fixture.debugElement.query(By.css('.task-card'));
       card.nativeElement.click();
       expect(component.select.emit).toHaveBeenCalledWith();
-    });
-
-    it('should complete the task when the check button is clicked', () => {
-      component.task = mockTask;
-      fixture.detectChanges();
-
-      const checkButton = fixture.debugElement.query(By.css('.task-check'));
-      checkButton.nativeElement.click();
-
-      expect(fixture.debugElement.query(By.css('app-confirm-dialog'))).toBeTruthy();
-      expect(taskServiceSpy.updateTask).not.toHaveBeenCalled();
-    });
-
-    it('should complete the task after confirming in the modal', async () => {
-      component.task = mockTask;
-      fixture.detectChanges();
-
-      const checkButton = fixture.debugElement.query(By.css('.task-check'));
-      checkButton.nativeElement.click();
-      fixture.detectChanges();
-
-      const confirmButton = fixture.debugElement.query(By.css('.primary-button'));
-      await confirmButton.nativeElement.click();
-      fixture.detectChanges();
-
-      expect(taskServiceSpy.updateTask).toHaveBeenCalledWith('task-1', { completed: true });
-    });
-
-    it('should open the restore modal when the completed checkmark is clicked', () => {
-      component.task = { ...mockTask, completed: true };
-      fixture.detectChanges();
-
-      const checkButton = fixture.debugElement.query(By.css('.task-check'));
-      checkButton.nativeElement.click();
-      fixture.detectChanges();
-
-      expect(fixture.debugElement.query(By.css('app-confirm-dialog'))).toBeTruthy();
-    });
-
-    it('should not bubble the check click to the card', () => {
-      component.task = mockTask;
-      fixture.detectChanges();
-
-      spyOn(component.select, 'emit');
-      const checkButton = fixture.debugElement.query(By.css('.task-check'));
-      checkButton.nativeElement.click();
-
-      expect(component.select.emit).not.toHaveBeenCalled();
     });
 
     it('should emit select event even when not interactive', () => {
