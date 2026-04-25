@@ -95,14 +95,18 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
         grid-template-columns: auto minmax(0, 1fr);
         gap: 1rem;
         border-radius: 1.3rem;
-        background: rgba(255, 255, 255, 0.9);
-        border: 1px solid rgba(235, 228, 212, 0.9);
-        box-shadow: 0 14px 30px rgba(105, 97, 74, 0.06);
+        background: var(--surface-card);
+        box-shadow:
+          0 14px 30px var(--surface-dim),
+          inset 0 0 0 1px var(--outline-variant);
         padding: 1.15rem 1.2rem;
       }
 
       .task-card-overdue {
-        border-left: 4px solid #dd8b4c;
+        box-shadow:
+          0 14px 30px var(--surface-dim),
+          inset 0 0 0 1px var(--outline-variant),
+          inset 4px 0 0 0 #dd8b4c;
       }
 
       .task-card-interactive {
@@ -110,7 +114,7 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
       }
 
       .task-card-complete {
-        background: rgba(252, 250, 243, 0.76);
+        background: color-mix(in srgb, var(--surface-card) 84%, var(--surface-container-low));
         box-shadow: none;
         opacity: 0.76;
       }
@@ -132,8 +136,8 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
         width: 1.02rem;
         height: 1.02rem;
         border-radius: 0.28rem;
-        border: 1.5px solid #b9c2bb;
-        background: #ffffff;
+        box-shadow: inset 0 0 0 1px var(--outline-variant);
+        background: var(--surface-container-lowest);
         display: grid;
         place-items: center;
         transition:
@@ -144,7 +148,6 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
 
       .task-check-complete .task-check-box {
         background: #84a4f6;
-        border-color: #84a4f6;
         box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
       }
 
@@ -187,7 +190,7 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
         font-size: 1.18rem;
         line-height: 1.3;
         letter-spacing: -0.03em;
-        color: #262a24;
+        color: var(--on-surface);
       }
 
       .task-card-complete h3 {
@@ -196,7 +199,7 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
 
       .task-description {
         margin: 0.45rem 0 0;
-        color: #827b6f;
+        color: var(--on-surface-muted);
         font-size: 0.96rem;
         line-height: 1.45;
       }
@@ -220,43 +223,43 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
       }
 
       .meta-pill {
-        background: #f2eee3;
-        color: #7a7468;
+        background: var(--surface-container-low);
+        color: var(--on-surface-muted);
       }
 
       .meta-pill-muted {
-        background: #f5f2ea;
-        color: #92897b;
+        background: var(--surface-container-low);
+        color: var(--on-surface-subtle);
       }
 
       .meta-pill-complete {
-        background: #dff0e3;
-        color: #3d7b59;
+        background: var(--primary-soft);
+        color: var(--primary-solid);
       }
 
       .meta-pill-bucket {
-        background: #dff0e6;
-        color: #41785a;
+        background: var(--accent-soft);
+        color: var(--primary-solid);
       }
 
       .meta-pill-simple {
-        background: #edf0f5;
-        color: #6d7690;
+        background: var(--info-soft);
+        color: var(--on-surface-muted);
       }
 
       .priority-chip-high {
-        background: #f9e5de;
+        background: var(--danger-soft);
         color: #cc764b;
       }
 
       .priority-chip-medium {
-        background: #f6edd8;
+        background: var(--warning-soft);
         color: #b28734;
       }
 
       .priority-chip-low {
-        background: #e0efe2;
-        color: #508164;
+        background: var(--primary-soft);
+        color: var(--primary-solid);
       }
 
       @media (max-width: 720px) {

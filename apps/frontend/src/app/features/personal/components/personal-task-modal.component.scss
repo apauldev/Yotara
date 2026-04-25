@@ -15,7 +15,7 @@
   position: absolute;
   inset: 0;
   border: 0;
-  background: rgba(47, 46, 39, 0.2);
+  background: rgba(28, 28, 23, 0.2);
   backdrop-filter: blur(6px);
 }
 
@@ -28,9 +28,8 @@
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(16rem, 18rem);
   border-radius: 2rem;
-  background: #f8f4e8;
-  border: 1px solid rgba(229, 220, 200, 0.95);
-  box-shadow: 0 30px 60px rgba(88, 79, 59, 0.15);
+  background: var(--surface-container-lowest);
+  box-shadow: 0 30px 60px var(--surface-dim-strong), inset 0 0 0 1px var(--outline-variant);
 }
 
 .modal-main {
@@ -39,8 +38,8 @@
 
 .modal-sidebar {
   padding: 1.8rem 1.4rem 1.6rem;
-  background: rgba(250, 246, 236, 0.7);
-  border-left: 1px solid rgba(229, 220, 200, 0.95);
+  background: var(--surface-container-low);
+  box-shadow: inset 1px 0 0 0 var(--outline-variant);
 }
 
 .modal-header,
@@ -64,14 +63,14 @@ h2 {
 
 .title-row p {
   margin: 0.35rem 0 0;
-  color: #4e8a67;
+  color: var(--primary-solid);
   font-size: 0.94rem;
 }
 
 .close-button {
   border: 0;
   background: transparent;
-  color: #7d776b;
+  color: var(--on-surface-muted);
   font-size: 2rem;
   line-height: 1;
 }
@@ -84,7 +83,7 @@ h2 {
 }
 
 .field-label {
-  color: #9c957f;
+  color: var(--on-surface-subtle);
   text-transform: uppercase;
   letter-spacing: 0.14em;
   font-size: 0.76rem;
@@ -95,10 +94,10 @@ input,
 textarea,
 select {
   width: 100%;
-  border: 1px solid rgba(231, 222, 204, 0.95);
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.92);
-  color: #2f302b;
+  background: var(--surface-container-lowest);
+  box-shadow: inset 0 0 0 1px var(--outline-variant);
+  color: var(--on-surface);
   font: inherit;
   padding: 0.95rem 1rem;
   box-sizing: border-box;
@@ -107,8 +106,8 @@ select {
 input.field-error,
 textarea.field-error,
 select.field-error {
-  border-color: #ba6d57;
-  background-color: rgba(255, 245, 242, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(186, 109, 87, 0.55);
+  background-color: color-mix(in srgb, var(--surface-container-lowest) 88%, #f5e3da);
 }
 
 .field-error-message {
@@ -134,17 +133,15 @@ textarea {
 }
 
 .bucket-chip {
-  border: 1px solid rgba(221, 228, 213, 0.95);
   border-radius: 999px;
-  background: #eef7f0;
-  color: #497a60;
+  background: var(--primary-soft);
+  color: var(--primary-solid);
   padding: 0.5rem 0.8rem;
   font-weight: 700;
 }
 
 .bucket-chip-active {
-  background: #d7f0de;
-  border-color: #7db18f;
+  background: var(--primary-soft-strong);
 }
 
 .toggle-row {
@@ -153,10 +150,10 @@ textarea {
   justify-content: space-between;
   gap: 0.9rem;
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(231, 222, 204, 0.95);
+  background: var(--surface-container-lowest);
+  box-shadow: inset 0 0 0 1px var(--outline-variant);
   padding: 0.85rem 1rem;
-  color: #666156;
+  color: var(--on-surface-muted);
 }
 
 .checkbox-control {
@@ -181,8 +178,8 @@ textarea {
   width: 1.02rem;
   height: 1.02rem;
   border-radius: 0.28rem;
-  border: 1.5px solid #b9c2bb;
-  background: #ffffff;
+  background: var(--surface-container-lowest);
+  box-shadow: inset 0 0 0 1px var(--outline-variant);
   display: grid;
   place-items: center;
   transition:
@@ -193,7 +190,6 @@ textarea {
 
 .checkbox-control input:checked + .checkbox-box {
   background: #84a4f6;
-  border-color: #84a4f6;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 
@@ -215,7 +211,7 @@ textarea {
   height: 1.15rem;
   border-radius: 999px;
   border: 0;
-  background: #d9ddd4;
+  background: var(--surface-container-highest);
   box-shadow: inset 0 0 0 6px transparent;
 }
 
@@ -228,7 +224,7 @@ textarea {
 }
 
 .priority-dot-low.priority-dot-active {
-  background: #5a9a6d;
+  background: var(--primary-solid);
 }
 
 .priority-dot:not(.priority-dot-active) {
@@ -255,13 +251,13 @@ textarea {
 }
 
 .primary-button {
-  background: #256c47;
+  background: var(--primary-gradient);
   color: #f7fbf6;
 }
 
 .secondary-button {
-  background: #ece7d9;
-  color: #5e5a50;
+  background: var(--surface-container-high);
+  color: var(--on-surface-muted);
 }
 
 .error-copy {
@@ -276,8 +272,7 @@ textarea {
   }
 
   .modal-sidebar {
-    border-left: 0;
-    border-top: 1px solid rgba(229, 220, 200, 0.95);
+    box-shadow: inset 0 1px 0 0 var(--outline-variant);
   }
 }
 

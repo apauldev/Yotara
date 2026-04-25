@@ -12,7 +12,7 @@
     <div class="sidebar-top">
       <div class="sidebar-brand">
         <h1>Personal Sanctuary</h1>
-        <p>Focus Mode Active</p>
+        <p>Focus mode active</p>
       </div>
 
       <nav class="nav-list" aria-label="Personal navigation">
@@ -115,9 +115,48 @@
         <button type="button" class="icon-button" aria-label="Notifications">
           <fa-icon [icon]="faBell" aria-hidden="true"></fa-icon>
         </button>
-        <button type="button" class="icon-button" aria-label="Preferences">
+        <button
+          type="button"
+          class="icon-button"
+          [attr.aria-expanded]="preferencesMenuOpen()"
+          aria-haspopup="menu"
+          aria-label="Preferences"
+          (click)="togglePreferencesMenu()"
+        >
           <fa-icon [icon]="faSliders" aria-hidden="true"></fa-icon>
         </button>
+        @if (preferencesMenuOpen()) {
+          <button
+            type="button"
+            class="preferences-backdrop"
+            aria-label="Close preferences menu"
+            (click)="closePreferencesMenu()"
+          ></button>
+
+          <div class="preferences-menu" role="menu" aria-label="Preferences">
+            <button
+              type="button"
+              class="preferences-item"
+              role="menuitem"
+              (click)="toggleTheme(); closePreferencesMenu()"
+            >
+              <span class="preferences-item-copy">
+                <strong>Dark theme</strong>
+                <span>Use the quieter nighttime palette.</span>
+              </span>
+              <span class="preferences-toggle" [class.preferences-toggle-on]="isDarkTheme()">
+                <span></span>
+              </span>
+            </button>
+
+            <button type="button" class="preferences-item" role="menuitem" disabled>
+              <span class="preferences-item-copy">
+                <strong>Compact mode</strong>
+                <span>Coming soon.</span>
+              </span>
+            </button>
+          </div>
+        }
         <div class="profile-menu">
           @if (profileMenuOpen()) {
             <button
