@@ -7,9 +7,9 @@
         @if (project(); as currentProject) {
           <a routerLink="/projects" class="back-link">← Projects</a>
 
-          <header class="hero-card" [style.background]="heroBackground(currentProject)">
-            <div class="hero-icon" [style.background]="accentSoft(currentProject)">
-              <span [style.color]="accent(currentProject)">✦</span>
+          <header class="hero-card" [ngClass]="projectColorClass(currentProject)">
+            <div class="hero-icon">
+              <span>✦</span>
             </div>
 
             <div class="hero-copy">
@@ -42,7 +42,6 @@
                 <span
                   class="progress-bar"
                   [style.width.%]="progressPercent(currentProject)"
-                  [style.background]="accent(currentProject)"
                 ></span>
               </div>
             </div>

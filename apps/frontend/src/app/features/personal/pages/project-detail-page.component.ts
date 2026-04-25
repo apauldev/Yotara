@@ -40,16 +40,8 @@ export class ProjectDetailPageComponent {
     this.workspace()?.closeTaskModal();
   }
 
-  protected accent(project: Project) {
-    return projectPaletteFor(project.color).accent;
-  }
-
-  protected accentSoft(project: Project) {
-    return projectPaletteFor(project.color).accentSoft;
-  }
-
-  protected heroBackground(project: Project) {
-    return projectPaletteFor(project.color).panel;
+  protected projectColorClass(project: Project) {
+    return `project-${projectPaletteFor(project.color).value}`;
   }
 
   protected progressPercent(project: Project) {
