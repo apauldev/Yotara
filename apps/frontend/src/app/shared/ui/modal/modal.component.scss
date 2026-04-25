@@ -15,7 +15,7 @@
   position: absolute;
   inset: 0;
   border: 0;
-  background: rgba(32, 30, 24, 0.22);
+  background: rgba(28, 28, 23, 0.22);
   backdrop-filter: blur(10px);
 }
 
@@ -24,9 +24,8 @@
   z-index: 1;
   width: min(100%, 34rem);
   border-radius: 1.6rem;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(232, 225, 209, 0.95);
-  box-shadow: 0 28px 60px rgba(88, 79, 59, 0.18);
+  background: var(--surface-container-lowest);
+  box-shadow: 0 28px 60px var(--surface-dim-strong), inset 0 0 0 1px var(--outline-variant);
   padding: 1.35rem;
   outline: none;
 }
@@ -55,13 +54,13 @@ h2 {
   font-size: 1.65rem;
   line-height: 1.1;
   letter-spacing: -0.04em;
-  color: #1d241f;
+  color: var(--on-surface);
 }
 
 .close-button {
   border: 0;
   background: transparent;
-  color: #6f6a5e;
+  color: var(--on-surface-muted);
   font-size: 2rem;
   line-height: 1;
   cursor: pointer;

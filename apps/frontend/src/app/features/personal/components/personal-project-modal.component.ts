@@ -105,7 +105,7 @@ import { PROJECT_PALETTE } from '../project-presentation';
         position: absolute;
         inset: 0;
         border: 0;
-        background: rgba(41, 39, 31, 0.18);
+        background: rgba(28, 28, 23, 0.18);
         backdrop-filter: blur(10px);
       }
 
@@ -114,9 +114,10 @@ import { PROJECT_PALETTE } from '../project-presentation';
         z-index: 1;
         width: min(100%, 32rem);
         border-radius: 1.7rem;
-        background: rgba(255, 255, 255, 0.94);
-        border: 1px solid rgba(235, 227, 208, 0.95);
-        box-shadow: 0 28px 60px rgba(88, 79, 59, 0.18);
+        background: var(--surface-container-lowest);
+        box-shadow:
+          0 28px 60px var(--surface-dim-strong),
+          inset 0 0 0 1px var(--outline-variant);
         padding: 1.5rem;
       }
 
@@ -135,13 +136,13 @@ import { PROJECT_PALETTE } from '../project-presentation';
 
       .modal-header p {
         margin: 0.35rem 0 0;
-        color: #7e786d;
+        color: var(--on-surface-muted);
       }
 
       .close-button {
         border: 0;
         background: transparent;
-        color: #6f6a5e;
+        color: var(--on-surface-muted);
         font-size: 2rem;
         line-height: 1;
       }
@@ -153,7 +154,7 @@ import { PROJECT_PALETTE } from '../project-presentation';
       }
 
       .field-label {
-        color: #9c957f;
+        color: var(--on-surface-subtle);
         text-transform: uppercase;
         letter-spacing: 0.14em;
         font-size: 0.76rem;
@@ -163,10 +164,10 @@ import { PROJECT_PALETTE } from '../project-presentation';
       input,
       textarea {
         width: 100%;
-        border: 1px solid rgba(231, 222, 204, 0.95);
         border-radius: 1rem;
-        background: #f6f2e7;
-        color: #2f302b;
+        background: var(--surface-container-lowest);
+        box-shadow: inset 0 0 0 1px var(--outline-variant);
+        color: var(--on-surface);
         font: inherit;
         padding: 0.95rem 1rem;
         box-sizing: border-box;
@@ -178,8 +179,8 @@ import { PROJECT_PALETTE } from '../project-presentation';
       }
 
       input.field-error {
-        border-color: #ba6d57;
-        background: rgba(255, 245, 242, 0.95);
+        box-shadow: inset 0 0 0 1px rgba(186, 109, 87, 0.55);
+        background: color-mix(in srgb, var(--surface-container-lowest) 88%, #f5e3da);
       }
 
       .field-error-message,
@@ -197,7 +198,7 @@ import { PROJECT_PALETTE } from '../project-presentation';
       }
 
       .color-chip {
-        --chip-color: #4a8a63;
+        --chip-color: var(--primary-solid);
         width: 2rem;
         height: 2rem;
         border-radius: 999px;
@@ -229,13 +230,13 @@ import { PROJECT_PALETTE } from '../project-presentation';
       }
 
       .primary-button {
-        background: #2d7c53;
-        color: #f7fbf6;
+        background: var(--primary-gradient);
+        color: hsl(var(--primary-foreground));
       }
 
       .secondary-button {
-        background: #ede6d8;
-        color: #5d584d;
+        background: var(--surface-container-low);
+        color: var(--on-surface-muted);
       }
 
       @media (max-width: 640px) {

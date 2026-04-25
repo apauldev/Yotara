@@ -128,7 +128,7 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
 
       .eyebrow {
         margin: 0;
-        color: #9f9887;
+        color: var(--on-surface-subtle);
         text-transform: uppercase;
         letter-spacing: 0.16em;
         font-size: 0.82rem;
@@ -144,7 +144,7 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
 
       .subtitle {
         margin: 0.65rem 0 0;
-        color: #7d776e;
+        color: var(--on-surface-muted);
         font-size: 1.1rem;
       }
 
@@ -154,8 +154,8 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
         align-items: center;
         gap: 0.85rem;
         border-radius: 1.2rem;
-        background: rgba(255, 251, 241, 0.72);
-        border: 1px solid rgba(235, 227, 208, 0.9);
+        background: var(--surface-card);
+        box-shadow: inset 0 0 0 1px var(--outline-variant);
         padding: 0.85rem 0.95rem;
       }
 
@@ -163,8 +163,8 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
         width: 2.5rem;
         height: 2.5rem;
         border-radius: 0.9rem;
-        background: #e0f1e4;
-        color: #2f7a54;
+        background: var(--primary-soft);
+        color: var(--primary-solid);
         display: grid;
         place-items: center;
       }
@@ -174,12 +174,12 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
         text-transform: uppercase;
         letter-spacing: 0.08em;
         font-size: 0.7rem;
-        color: #8e887d;
+        color: var(--on-surface-subtle);
       }
 
       .zen-card p {
         margin: 0.2rem 0 0;
-        color: #5f5c54;
+        color: var(--on-surface-muted);
       }
 
       .task-section {
@@ -201,7 +201,7 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
       }
 
       .section-heading-accent h2 {
-        color: #d07f46;
+        color: #c97c46;
       }
 
       .section-actions {
@@ -215,8 +215,9 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
         height: 2.4rem;
         border: 0;
         border-radius: 0.9rem;
-        background: rgba(255, 251, 242, 0.8);
-        color: #8b8476;
+        background: var(--surface-container-lowest);
+        box-shadow: inset 0 0 0 1px var(--outline-variant);
+        color: var(--on-surface-subtle);
         font-size: 1rem;
       }
 
@@ -231,13 +232,13 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
       }
 
       .status-copy {
-        color: #8a8378;
+        color: var(--on-surface-muted);
       }
 
       .empty-state {
-        border: 1px dashed rgba(224, 215, 196, 0.95);
         border-radius: 1.4rem;
-        background: rgba(255, 251, 242, 0.6);
+        background: var(--surface-card);
+        box-shadow: inset 0 0 0 1px var(--outline-variant);
         padding: 2rem 1.3rem;
       }
 
@@ -249,7 +250,7 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
 
       .empty-state p {
         margin: 0.55rem 0 0;
-        color: #8a8378;
+        color: var(--on-surface-muted);
       }
 
       .fab {
@@ -259,13 +260,13 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
         width: 4rem;
         height: 4rem;
         border-radius: 999px;
-        background: #2d7c53;
-        color: #f7faf5;
+        background: var(--primary-gradient);
+        color: hsl(var(--primary-foreground));
         text-decoration: none;
         font-size: 2rem;
         display: grid;
         place-items: center;
-        box-shadow: 0 18px 36px rgba(45, 124, 83, 0.22);
+        box-shadow: 0 18px 36px var(--surface-dim-strong);
       }
 
       @media (max-width: 900px) {
