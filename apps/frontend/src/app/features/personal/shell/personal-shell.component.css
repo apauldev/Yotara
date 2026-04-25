@@ -109,8 +109,8 @@
   gap: 0.7rem;
   min-height: 3rem;
   border-radius: 1.15rem;
-  background: var(--primary-gradient);
-  color: var(--primary-foreground);
+  background: var(--primary-action-gradient);
+  color: hsl(var(--primary-foreground));
   text-decoration: none;
   font-weight: 700;
   box-shadow: 0 18px 36px rgba(28, 28, 23, 0.08);
@@ -192,7 +192,7 @@
 }
 
 .topbar-brand-vein {
-  fill: var(--primary-foreground);
+  fill: hsl(var(--primary-foreground));
 }
 
 .topbar-brand-mark fa-icon {
@@ -234,8 +234,8 @@
 .search-shell button {
   border: 0;
   border-radius: 999px;
-  background: var(--primary-gradient);
-  color: var(--primary-foreground);
+  background: var(--primary-action-gradient);
+  color: hsl(var(--primary-foreground));
   font-size: 0.78rem;
   font-weight: 700;
   padding: 0.48rem 0.78rem;
@@ -293,8 +293,8 @@
   right: 3rem;
   width: min(18rem, calc(100vw - 2rem));
   border-radius: 1.25rem;
-  background: var(--surface-card);
-  box-shadow: 0 20px 40px var(--surface-dim-strong), inset 0 0 0 1px var(--outline-variant);
+  background: color-mix(in srgb, var(--primary-soft) 24%, var(--surface-card));
+  box-shadow: 0 20px 40px var(--surface-dim-strong), inset 0 0 0 1px color-mix(in srgb, var(--primary-solid) 22%, var(--outline-variant));
   padding: 0.4rem;
   display: grid;
   gap: 0.25rem;
@@ -363,7 +363,7 @@
 }
 
 .preferences-toggle-on {
-  background: var(--primary-gradient);
+  background: var(--primary-action-gradient);
 }
 
 .preferences-toggle-on span {
@@ -384,8 +384,8 @@
   right: 0;
   width: 12rem;
   border-radius: 1.25rem;
-  background: var(--surface-card);
-  box-shadow: 0 20px 40px var(--surface-dim-strong), inset 0 0 0 1px var(--outline-variant);
+  background: color-mix(in srgb, var(--primary-soft) 24%, var(--surface-card));
+  box-shadow: 0 20px 40px var(--surface-dim-strong), inset 0 0 0 1px color-mix(in srgb, var(--primary-solid) 22%, var(--outline-variant));
   padding: 0.35rem;
   display: grid;
   gap: 0.2rem;
@@ -401,6 +401,16 @@
   font-weight: 600;
   padding: 0.6rem 0.68rem;
   cursor: pointer;
+}
+
+.profile-menu-item-primary {
+  background: color-mix(in srgb, var(--primary-action-gradient) 14%, var(--surface-container-lowest));
+  color: hsl(var(--primary-foreground));
+}
+
+.profile-menu-item-primary:hover {
+  background: color-mix(in srgb, var(--primary-action-gradient) 18%, var(--surface-container-lowest));
+  color: hsl(var(--primary-foreground));
 }
 
 .profile-menu-item:hover {
@@ -420,6 +430,15 @@
   background: var(--surface-overlay);
   color: var(--on-surface-muted);
   cursor: pointer;
+}
+
+.topbar-actions .icon-button[aria-label='Preferences'] {
+  background: color-mix(in srgb, var(--primary-action-gradient) 24%, var(--surface-overlay));
+  color: var(--primary-solid);
+}
+
+.topbar-actions .icon-button[aria-label='Preferences']:hover {
+  background: color-mix(in srgb, var(--primary-action-gradient) 30%, var(--surface-overlay));
 }
 
 .menu-toggle {

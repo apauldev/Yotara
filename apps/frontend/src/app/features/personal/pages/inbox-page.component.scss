@@ -36,8 +36,8 @@
   height: 2rem;
   border: 0;
   border-radius: 999px;
-  background: var(--primary-gradient);
-  color: var(--primary-foreground);
+  background: var(--primary-action-gradient);
+  color: hsl(var(--primary-foreground));
   font-size: 1.4rem;
   line-height: 1;
 }
@@ -64,8 +64,8 @@
 .capture-submit {
   border: 0;
   border-radius: 0.92rem;
-  background: var(--primary-gradient);
-  color: var(--primary-foreground);
+  background: var(--primary-action-gradient);
+  color: hsl(var(--primary-foreground));
   font-weight: 700;
   min-width: 6.8rem;
   min-height: 2.8rem;
@@ -177,7 +177,7 @@
 
 .promo-card-dark {
   background: linear-gradient(135deg, var(--surface-container-highest), var(--surface-container-high));
-  color: var(--primary-foreground);
+  color: hsl(var(--primary-foreground));
   display: flex;
   flex-direction: column;
   justify-content: flex-end;

@@ -79,7 +79,7 @@
 }
 
 .hero-vein {
-  fill: var(--primary-foreground);
+  fill: hsl(var(--primary-foreground));
 }
 
 h1 {
@@ -139,7 +139,7 @@ h1 {
   height: 1.45rem;
   border-radius: 999px;
   background: var(--primary-gradient);
-  color: var(--primary-foreground);
+  color: hsl(var(--primary-foreground));
   font-size: 0.88rem;
   font-weight: 700;
   display: none;
@@ -193,7 +193,7 @@ h1 {
   border: 0;
   border-radius: 999px;
   background: var(--primary-gradient);
-  color: var(--primary-foreground);
+  color: hsl(var(--primary-foreground));
   font-size: 1.35rem;
   font-weight: 650;
   letter-spacing: -0.01em;

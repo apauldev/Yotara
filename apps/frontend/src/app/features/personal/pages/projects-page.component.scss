@@ -45,7 +45,7 @@
         border: 0;
         border-radius: 1rem;
         background: var(--primary-gradient);
-        color: var(--primary-foreground);
+        color: hsl(var(--primary-foreground));
         font-weight: 700;
         min-height: 3rem;
         padding: 0 1.15rem;
@@ -236,7 +236,7 @@
         border-radius: 999px;
         border: 0;
         background: var(--primary-gradient);
-        color: var(--primary-foreground);
+        color: hsl(var(--primary-foreground));
         font-size: 2rem;
         box-shadow: 0 18px 36px var(--surface-dim-strong);
       }

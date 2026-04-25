@@ -43,6 +43,7 @@
   --surface-dim: rgba(28, 28, 23, 0.08);
   --surface-dim-strong: rgba(28, 28, 23, 0.14);
   --primary-gradient: linear-gradient(135deg, #236849 0%, #3f8161 100%);
+  --primary-action-gradient: linear-gradient(135deg, #4f8f72 0%, #66ae86 100%);
   --primary-solid: #236849;
   --primary-soft: #dff0e7;
   --primary-soft-strong: #cfe8db;
@@ -89,6 +90,7 @@
   --surface-dim: rgba(208, 224, 212, 0.06);
   --surface-dim-strong: rgba(208, 224, 212, 0.1);
   --primary-gradient: linear-gradient(135deg, #4f8f72 0%, #5aa37d 100%);
+  --primary-action-gradient: linear-gradient(135deg, #4f8f72 0%, #5aa37d 100%);
   --primary-solid: #5aa37d;
   --primary-soft: rgba(90, 163, 125, 0.16);
   --primary-soft-strong: rgba(90, 163, 125, 0.24);

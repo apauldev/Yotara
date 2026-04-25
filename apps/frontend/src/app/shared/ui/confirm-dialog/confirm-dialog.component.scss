@@ -44,7 +44,7 @@
 
 .primary-button {
   background: var(--primary-gradient);
-  color: var(--primary-foreground);
+  color: hsl(var(--primary-foreground));
   box-shadow: 0 10px 22px var(--surface-dim-strong);
 }
 
