@@ -37,11 +37,11 @@
           @for (project of projects(); track project.id) {
             <article
               class="project-card"
-              [style.background]="cardBackground(project)"
+              [ngClass]="projectColorClass(project)"
               (click)="openProject(project.id)"
             >
-              <div class="project-icon" [style.background]="accentSoft(project)">
-                <span [style.color]="accent(project)">✦</span>
+              <div class="project-icon">
+                <span>✦</span>
               </div>
 
               <div class="project-menu">•••</div>
@@ -58,7 +58,6 @@
                 <span
                   class="progress-bar"
                   [style.width.%]="progressPercent(project)"
-                  [style.background]="accent(project)"
                 ></span>
               </div>
 
