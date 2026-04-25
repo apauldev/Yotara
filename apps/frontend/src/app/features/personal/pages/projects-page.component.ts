@@ -57,16 +57,8 @@ export class ProjectsPageComponent {
     void this.router.navigate(['/projects', projectId]);
   }
 
-  protected accent(project: Project) {
-    return projectPaletteFor(project.color).accent;
-  }
-
-  protected accentSoft(project: Project) {
-    return projectPaletteFor(project.color).accentSoft;
-  }
-
-  protected cardBackground(project: Project) {
-    return projectPaletteFor(project.color).panel;
+  protected projectColorClass(project: Project) {
+    return `project-card-${projectPaletteFor(project.color).value}`;
   }
 
   protected paletteLabel(project: Project) {
