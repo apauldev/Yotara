@@ -261,7 +261,7 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
         height: 4rem;
         border-radius: 999px;
         background: var(--primary-gradient);
-        color: var(--primary-foreground);
+        color: hsl(var(--primary-foreground));
         text-decoration: none;
         font-size: 2rem;
         display: grid;

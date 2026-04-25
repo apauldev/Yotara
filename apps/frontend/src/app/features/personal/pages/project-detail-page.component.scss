@@ -134,7 +134,7 @@
         border: 0;
         border-radius: 1rem;
         background: var(--primary-gradient);
-        color: var(--primary-foreground);
+        color: hsl(var(--primary-foreground));
         min-height: 3rem;
         padding: 0 1.1rem;
         font-weight: 700;

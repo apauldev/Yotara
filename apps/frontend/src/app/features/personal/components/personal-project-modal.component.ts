@@ -231,7 +231,7 @@ import { PROJECT_PALETTE } from '../project-presentation';
 
       .primary-button {
         background: var(--primary-gradient);
-        color: #f7fbf6;
+        color: hsl(var(--primary-foreground));
       }
 
       .secondary-button {

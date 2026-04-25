@@ -56,8 +56,8 @@
 .search-button {
   border: 0;
   border-radius: 999px;
-  background: var(--primary-gradient);
-  color: #f5f8f2;
+  background: var(--primary-action-gradient);
+  color: hsl(var(--primary-foreground));
   font-size: 0.9rem;
   font-weight: 700;
   padding: 0.82rem 1.1rem;
