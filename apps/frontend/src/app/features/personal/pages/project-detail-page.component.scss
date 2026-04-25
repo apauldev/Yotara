@@ -7,7 +7,7 @@
       }
 
       .back-link {
-        color: #7d776d;
+        color: var(--on-surface-muted);
         text-decoration: none;
         font-weight: 600;
       }
@@ -15,7 +15,8 @@
       .hero-card {
         margin-top: 1rem;
         border-radius: 1.8rem;
-        border: 1px solid rgba(235, 227, 208, 0.92);
+        background: var(--surface-card);
+        box-shadow: inset 0 0 0 1px var(--outline-variant);
         padding: 1.6rem;
         display: grid;
         grid-template-columns: auto minmax(0, 1fr);
@@ -35,7 +36,7 @@
 
       .eyebrow {
         margin: 0;
-        color: #8c8a7b;
+        color: var(--on-surface-subtle);
         text-transform: uppercase;
         letter-spacing: 0.16em;
         font-size: 0.76rem;
@@ -52,7 +53,7 @@
       .subtitle,
       .status-copy {
         margin: 0.7rem 0 0;
-        color: #7b756a;
+        color: var(--on-surface-muted);
         font-size: 1.05rem;
         line-height: 1.5;
       }
@@ -60,8 +61,8 @@
       .metrics-card {
         margin-top: 1.4rem;
         border-radius: 1.5rem;
-        background: rgba(255, 251, 242, 0.78);
-        border: 1px solid rgba(235, 227, 208, 0.92);
+        background: var(--surface-card);
+        box-shadow: inset 0 0 0 1px var(--outline-variant);
         padding: 1.2rem 1.25rem;
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 10rem)) minmax(0, 1fr);
@@ -73,13 +74,13 @@
         display: block;
         font-size: 2rem;
         letter-spacing: -0.05em;
-        color: #27573f;
+        color: var(--primary-solid);
       }
 
       .metric span,
       .progress-copy span,
       .section-heading span {
-        color: #857f73;
+        color: var(--on-surface-subtle);
         font-size: 0.88rem;
       }
 
@@ -94,14 +95,14 @@
         text-transform: uppercase;
         letter-spacing: 0.06em;
         font-size: 0.82rem;
-        color: #2f6f4d;
+        color: var(--primary-solid);
       }
 
       .progress-track {
         margin-top: 0.65rem;
         height: 0.5rem;
         border-radius: 999px;
-        background: rgba(233, 227, 213, 0.95);
+        background: var(--surface-container-low);
         overflow: hidden;
       }
 
@@ -120,10 +121,10 @@
 
       .view-pill {
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.9);
-        border: 1px solid rgba(235, 227, 208, 0.95);
+        background: var(--surface-container-lowest);
+        box-shadow: inset 0 0 0 1px var(--outline-variant);
         padding: 0.6rem 1rem;
-        color: #2d6b49;
+        color: var(--primary-solid);
         font-weight: 700;
       }
 
@@ -132,8 +133,8 @@
       .empty-button {
         border: 0;
         border-radius: 1rem;
-        background: #2d7c53;
-        color: #f7fbf6;
+        background: var(--primary-gradient);
+        color: hsl(var(--primary-foreground));
         min-height: 3rem;
         padding: 0 1.1rem;
         font-weight: 700;
@@ -174,29 +175,29 @@
       .inline-create {
         justify-content: flex-start;
         background: transparent;
-        color: #7c7568;
-        border: 1px dashed rgba(220, 210, 190, 0.95);
+        color: var(--on-surface-muted);
+        box-shadow: inset 0 0 0 1px var(--outline-variant);
       }
 
       .empty-state {
         margin-top: 1.8rem;
         border-radius: 1.7rem;
-        background: rgba(255, 251, 242, 0.74);
-        border: 1px solid rgba(235, 227, 208, 0.92);
+        background: var(--surface-card);
+        box-shadow: inset 0 0 0 1px var(--outline-variant);
         padding: 2.2rem 1.5rem;
         text-align: center;
       }
 
       .empty-emblem {
         margin: 0 auto;
-        background: rgba(255, 255, 255, 0.9);
-        color: #bcb4a5;
+        background: var(--surface-container-lowest);
+        color: var(--on-surface-subtle);
       }
 
       .quote {
         max-width: 28rem;
         margin: 1.1rem auto 0;
-        color: #665f54;
+        color: var(--on-surface-muted);
         font-size: 1.08rem;
         line-height: 1.7;
       }
