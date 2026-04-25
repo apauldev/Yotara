@@ -59,8 +59,8 @@ interface PersonalLabelSummary {
       .label-card,
       .note-panel {
         border-radius: 1.5rem;
-        background: rgba(255, 251, 242, 0.72);
-        border: 1px solid rgba(236, 228, 210, 0.9);
+        background: var(--surface-card);
+        box-shadow: inset 0 0 0 1px var(--outline-variant);
         padding: 1.35rem;
       }
 
@@ -80,7 +80,7 @@ interface PersonalLabelSummary {
       .label-card p,
       .note-panel p {
         margin: 0.55rem 0 0;
-        color: #8a8378;
+        color: var(--on-surface-muted);
         line-height: 1.45;
       }
 
@@ -92,7 +92,7 @@ interface PersonalLabelSummary {
         font-size: 0.84rem;
         text-transform: uppercase;
         letter-spacing: 0.16em;
-        color: #6d756c;
+        color: var(--on-surface-subtle);
       }
 
       @media (max-width: 900px) {

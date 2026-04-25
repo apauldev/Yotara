@@ -64,7 +64,7 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
 
       .status-copy {
         margin-top: 0.6rem;
-        color: #8a8378;
+        color: var(--on-surface-muted);
         font-size: 1.08rem;
       }
 
@@ -74,7 +74,7 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
         align-items: baseline;
         justify-content: space-between;
         gap: 1rem;
-        color: #7f786d;
+        color: var(--on-surface-muted);
       }
 
       .archive-summary span {
@@ -91,8 +91,8 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
       .task-stack,
       .empty-state {
         border-radius: 1.5rem;
-        background: rgba(255, 251, 242, 0.72);
-        border: 1px solid rgba(236, 228, 210, 0.9);
+        background: var(--surface-card);
+        box-shadow: inset 0 0 0 1px var(--outline-variant);
         padding: 1.25rem;
       }
 
@@ -109,7 +109,7 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
 
       .empty-state p {
         margin: 0.55rem 0 0;
-        color: #8a8378;
+        color: var(--on-surface-muted);
       }
     `,
   ],

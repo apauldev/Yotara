@@ -45,7 +45,7 @@ import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.compone
         width: 4.4rem;
         height: 4.4rem;
         border-radius: 999px;
-        background: #f0efe8;
+        background: var(--surface-container-low);
         display: grid;
         place-items: center;
       }
@@ -53,7 +53,7 @@ import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.compone
       .icon-disc svg {
         width: 2rem;
         height: 2rem;
-        stroke: #6d947c;
+        stroke: var(--primary-solid);
         fill: none;
         stroke-width: 1.8;
         stroke-linecap: round;

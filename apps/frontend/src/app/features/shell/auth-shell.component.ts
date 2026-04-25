@@ -206,9 +206,14 @@ interface SidebarItem {
         display: block;
         min-height: 100dvh;
         background:
-          radial-gradient(circle at top left, rgba(241, 244, 236, 0.9), transparent 28%), #f4f1e7;
-        color: #1f2937;
-        font-family: 'Avenir Next', 'Manrope', 'Segoe UI', sans-serif;
+          radial-gradient(
+            circle at top left,
+            color-mix(in srgb, var(--primary-soft) 28%, transparent),
+            transparent 28%
+          ),
+          var(--surface);
+        color: var(--on-surface);
+        font-family: var(--font-sans);
       }
 
       .shell {
@@ -227,8 +232,7 @@ interface SidebarItem {
         flex-direction: column;
         justify-content: space-between;
         padding: 1.15rem 1rem 1rem;
-        background: rgba(255, 255, 255, 0.84);
-        border-right: 1px solid rgba(128, 146, 126, 0.2);
+        background: var(--surface-container-lowest);
         backdrop-filter: blur(12px);
         position: relative;
         z-index: 2;
@@ -250,8 +254,8 @@ interface SidebarItem {
         width: 2.15rem;
         height: 2.15rem;
         border-radius: 999px;
-        background: #e7efe5;
-        color: #4f986f;
+        background: var(--surface-container-low);
+        color: var(--primary-solid);
         display: grid;
         place-items: center;
       }
@@ -265,7 +269,7 @@ interface SidebarItem {
         line-height: 1;
         font-weight: 700;
         letter-spacing: -0.03em;
-        color: #203027;
+        color: var(--on-surface);
       }
 
       .workspace-label {
@@ -273,7 +277,7 @@ interface SidebarItem {
         font-size: 0.74rem;
         font-weight: 700;
         letter-spacing: 0.08em;
-        color: #6ea288;
+        color: var(--on-surface-subtle);
       }
 
       .nav-list {
@@ -289,7 +293,7 @@ interface SidebarItem {
         border: 0;
         border-radius: 0.7rem;
         background: transparent;
-        color: #55657d;
+        color: var(--on-surface-muted);
         text-decoration: none;
         text-align: left;
         padding: 0.9rem 0.85rem;
@@ -303,14 +307,14 @@ interface SidebarItem {
       }
 
       .nav-item:hover {
-        background: rgba(79, 152, 111, 0.08);
-        color: #355e4b;
+        background: var(--primary-soft);
+        color: var(--primary-solid);
       }
 
       .nav-item-active {
-        background: #4f986f;
-        color: #f7f7f2;
-        box-shadow: 0 10px 22px rgba(69, 127, 92, 0.18);
+        background: var(--primary-gradient);
+        color: var(--primary-foreground);
+        box-shadow: 0 10px 22px var(--surface-dim-strong);
       }
 
       .nav-item-active .nav-icon {
@@ -324,14 +328,14 @@ interface SidebarItem {
 
       .nav-item-disabled:hover {
         background: transparent;
-        color: #55657d;
+        color: var(--on-surface-muted);
         transform: none;
       }
 
       .nav-icon {
         width: 1.15rem;
         height: 1.15rem;
-        color: #5d6d86;
+        color: var(--on-surface-subtle);
         flex: 0 0 auto;
       }
 
@@ -356,8 +360,8 @@ interface SidebarItem {
       .nav-badge {
         margin-left: auto;
         border-radius: 999px;
-        background: rgba(79, 152, 111, 0.1);
-        color: #5b896f;
+        background: var(--primary-soft);
+        color: var(--primary-solid);
         padding: 0.18rem 0.45rem;
         font-size: 0.68rem;
         font-weight: 700;
@@ -374,8 +378,8 @@ interface SidebarItem {
         width: 100%;
         border: 0;
         border-radius: 0.78rem;
-        background: #eef4ed;
-        color: #4f986f;
+        background: var(--surface-container-low);
+        color: var(--primary-solid);
         padding: 0.95rem 1rem;
         font-size: 0.95rem;
         font-weight: 700;
@@ -400,9 +404,10 @@ interface SidebarItem {
         left: 0;
         right: 0;
         border-radius: 0.9rem;
-        background: rgba(255, 251, 243, 0.97);
-        border: 1px solid rgba(226, 219, 204, 0.95);
-        box-shadow: 0 14px 30px rgba(64, 62, 51, 0.18);
+        background: var(--surface-card);
+        box-shadow:
+          inset 0 0 0 1px var(--outline-variant),
+          0 14px 30px var(--surface-dim-strong);
         padding: 0.3rem;
         display: grid;
         gap: 0.2rem;
@@ -413,7 +418,7 @@ interface SidebarItem {
         border: 0;
         border-radius: 0.64rem;
         background: transparent;
-        color: #3d423b;
+        color: var(--on-surface);
         text-align: left;
         font-weight: 600;
         padding: 0.58rem 0.66rem;
@@ -421,11 +426,11 @@ interface SidebarItem {
       }
 
       .profile-menu-item:hover {
-        background: rgba(207, 225, 214, 0.45);
+        background: var(--primary-soft);
       }
 
       .profile-menu-item-danger {
-        color: #8a453a;
+        color: #c7846d;
       }
 
       .profile-card {
@@ -434,7 +439,7 @@ interface SidebarItem {
         align-items: center;
         gap: 0.82rem;
         padding: 0.9rem 0.35rem 0;
-        border-top: 1px solid rgba(120, 138, 143, 0.18);
+        box-shadow: inset 0 1px 0 0 var(--outline-variant);
       }
 
       .profile-card-button {
@@ -449,8 +454,12 @@ interface SidebarItem {
         width: 2.7rem;
         height: 2.7rem;
         border-radius: 999px;
-        background: linear-gradient(135deg, #f4c7a1, #8bb49a);
-        color: #fffdf8;
+        background: linear-gradient(
+          135deg,
+          var(--surface-container-highest),
+          var(--surface-container-low)
+        );
+        color: var(--primary-foreground);
         display: grid;
         place-items: center;
         font-size: 0.92rem;
@@ -472,13 +481,13 @@ interface SidebarItem {
       .profile-name {
         font-size: 0.95rem;
         font-weight: 700;
-        color: #223128;
+        color: var(--on-surface);
       }
 
       .profile-meta {
         margin-top: 0.12rem;
         font-size: 0.79rem;
-        color: #6f7f91;
+        color: var(--on-surface-subtle);
       }
 
       .content {
@@ -491,17 +500,16 @@ interface SidebarItem {
       }
 
       .menu-toggle {
-        border: 1px solid rgba(128, 146, 126, 0.28);
         border-radius: 0.9rem;
-        background: rgba(255, 255, 255, 0.92);
+        background: var(--surface-container-lowest);
         width: 3rem;
         height: 3rem;
         padding: 0;
-        color: #2f4b3d;
+        color: var(--on-surface);
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        box-shadow: 0 8px 22px rgba(51, 79, 61, 0.08);
+        box-shadow: 0 8px 22px var(--surface-dim);
       }
 
       .menu-toggle svg {
@@ -518,7 +526,7 @@ interface SidebarItem {
         font-size: 1.15rem;
         font-weight: 700;
         letter-spacing: -0.03em;
-        color: #203027;
+        color: var(--on-surface);
       }
 
       .mobile-brand-subtitle {
@@ -526,14 +534,14 @@ interface SidebarItem {
         font-size: 0.68rem;
         font-weight: 700;
         letter-spacing: 0.08em;
-        color: #6ea288;
+        color: var(--on-surface-subtle);
       }
 
       .content-inner {
         min-height: calc(100dvh - 3.2rem);
         border-radius: 1.6rem;
-        background: rgba(255, 251, 242, 0.5);
-        border: 1px solid rgba(214, 221, 208, 0.7);
+        background: var(--surface-container-low);
+        box-shadow: inset 0 0 0 1px var(--outline-variant);
         padding: 1.75rem;
       }
 
@@ -548,19 +556,19 @@ interface SidebarItem {
           inset: 0;
           z-index: 1;
           border: 0;
-          background: rgba(25, 37, 33, 0.3);
+          background: rgba(10, 12, 10, 0.34);
         }
 
         .sidebar {
           gap: 1.25rem;
           border-right: 0;
-          border-bottom: 1px solid rgba(128, 146, 126, 0.2);
+          box-shadow: inset 0 -1px 0 0 var(--outline-variant);
           position: fixed;
           inset: 0 auto 0 0;
           width: min(85vw, 20rem);
           transform: translateX(-100%);
           transition: transform 180ms ease;
-          box-shadow: 18px 0 36px rgba(45, 65, 57, 0.18);
+          box-shadow: 18px 0 36px var(--surface-dim-strong);
         }
 
         .sidebar.sidebar-open {

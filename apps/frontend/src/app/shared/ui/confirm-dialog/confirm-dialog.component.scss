@@ -17,7 +17,7 @@
 
 .confirm-description {
   margin: 0;
-  color: #5e6159;
+  color: var(--on-surface-muted);
   line-height: 1.5;
   max-width: 22rem;
 }
@@ -43,14 +43,14 @@
 }
 
 .primary-button {
-  background: #2b7f57;
-  color: #f5faf4;
-  box-shadow: 0 10px 22px rgba(43, 127, 87, 0.28);
+  background: var(--primary-gradient);
+  color: var(--primary-foreground);
+  box-shadow: 0 10px 22px var(--surface-dim-strong);
 }
 
 .secondary-button {
-  background: #ece9df;
-  color: #4f5149;
+  background: var(--surface-container-low);
+  color: var(--on-surface-muted);
 }
 
 .primary-button:disabled,
@@ -60,6 +60,6 @@
 }
 
 .confirm-dialog-danger .primary-button {
-  background: #b13a3a;
+  background: linear-gradient(135deg, #a83f3f, #c45d52);
   box-shadow: 0 10px 22px rgba(177, 58, 58, 0.24);
 }

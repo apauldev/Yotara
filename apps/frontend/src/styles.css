@@ -1,4 +1,5 @@
 @import '@angular/cdk/overlay-prebuilt.css';
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,54 +7,96 @@
 
 :root {
   color-scheme: light;
-  --font-sans:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans',
-    sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-  /* Light Mode Colors */
-  --background: 45 38% 94%; /* Warm Pebble Beige */
-  --foreground: 150 16% 12%; /* Dark Woodland */
-  --card: 45 38% 94%; /* Warm Pebble Beige */
-  --card-foreground: 150 16% 12%; /* Dark Woodland */
-  --popover: 45 38% 94%; /* Warm Pebble Beige */
-  --popover-foreground: 150 16% 12%; /* Dark Woodland */
-  --primary: 150 31% 42%; /* Soft River Green */
-  --primary-foreground: 45 38% 94%; /* Warm Pebble Beige */
-  --secondary: 45 38% 94%; /* Warm Pebble Beige */
-  --secondary-foreground: 150 16% 12%; /* Dark Woodland */
-  --muted: 124 14% 21%; /* Deep Forest Charcoal - slightly lighter for muted */
-  --muted-foreground: 45 38% 94%; /* Warm Pebble Beige */
-  --accent: 181 26% 54%; /* Gentle Stream Blue */
-  --accent-foreground: 150 16% 12%; /* Dark Woodland */
+  --font-sans: 'Manrope', sans-serif;
+  --background: 42 58% 97%;
+  --foreground: 75 13% 14%;
+  --card: 45 27% 95%;
+  --card-foreground: 75 13% 14%;
+  --popover: 45 27% 95%;
+  --popover-foreground: 75 13% 14%;
+  --primary: 151 47% 28%;
+  --primary-foreground: 45 56% 96%;
+  --secondary: 38 28% 91%;
+  --secondary-foreground: 75 13% 14%;
+  --muted: 45 19% 89%;
+  --muted-foreground: 76 8% 37%;
+  --accent: 147 27% 84%;
+  --accent-foreground: 75 13% 14%;
   --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 45 38% 94%;
-  --border: 150 31% 42%; /* Soft River Green - subtle border */
-  --input: 45 38% 94%; /* Warm Pebble Beige */
-  --ring: 181 26% 54%; /* Gentle Stream Blue */
-  --radius: 0.5rem;
+  --destructive-foreground: 45 56% 96%;
+  --border: 46 18% 80%;
+  --input: 45 27% 95%;
+  --ring: 151 47% 28%;
+  --radius: 1.5rem;
+  --surface: #fcf9f0;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f6f3ea;
+  --surface-container-high: #ece7dd;
+  --surface-container-highest: #e5e2da;
+  --outline-variant: rgba(28, 28, 23, 0.15);
+  --on-surface: #1c1c17;
+  --on-surface-muted: #6d685f;
+  --on-surface-subtle: #8f897d;
+  --surface-overlay: color-mix(in srgb, var(--surface-container-lowest) 88%, transparent);
+  --surface-card: color-mix(in srgb, var(--surface-container-lowest) 92%, transparent);
+  --surface-card-strong: color-mix(in srgb, var(--surface-container-highest) 88%, white);
+  --surface-dim: rgba(28, 28, 23, 0.08);
+  --surface-dim-strong: rgba(28, 28, 23, 0.14);
+  --primary-gradient: linear-gradient(135deg, #236849 0%, #3f8161 100%);
+  --primary-solid: #236849;
+  --primary-soft: #dff0e7;
+  --primary-soft-strong: #cfe8db;
+  --accent-soft: #e8f3ec;
+  --accent-strong: #79a08d;
+  --danger-soft: #f5e3da;
+  --warning-soft: #f6edd8;
+  --info-soft: #edf0f5;
 }
 
 :root.dark {
   color-scheme: dark;
-  /* Dark Mode Colors */
-  --background: 124 14% 21%; /* Deep Forest Charcoal */
-  --foreground: 45 38% 94%; /* Warm Pebble Beige */
-  --card: 124 14% 21%; /* Deep Forest Charcoal */
-  --card-foreground: 45 38% 94%; /* Warm Pebble Beige */
-  --popover: 124 14% 21%; /* Deep Forest Charcoal */
-  --popover-foreground: 45 38% 94%; /* Warm Pebble Beige */
-  --primary: 150 31% 42%; /* Soft River Green */
-  --primary-foreground: 124 14% 21%; /* Deep Forest Charcoal */
-  --secondary: 92 33% 56%; /* Fresh Sprout */
-  --secondary-foreground: 124 14% 21%; /* Deep Forest Charcoal */
-  --muted: 150 16% 12%; /* Dark Woodland */
-  --muted-foreground: 45 38% 94%; /* Warm Pebble Beige */
-  --accent: 181 26% 54%; /* Gentle Stream Blue */
-  --accent-foreground: 124 14% 21%; /* Deep Forest Charcoal */
+  --background: 147 18% 14%;
+  --foreground: 146 19% 87%;
+  --card: 149 11% 17%;
+  --card-foreground: 146 19% 87%;
+  --popover: 149 11% 17%;
+  --popover-foreground: 146 19% 87%;
+  --primary: 151 35% 50%;
+  --primary-foreground: 147 18% 14%;
+  --secondary: 149 11% 17%;
+  --secondary-foreground: 146 19% 87%;
+  --muted: 149 11% 17%;
+  --muted-foreground: 146 11% 73%;
+  --accent: 151 35% 50%;
+  --accent-foreground: 147 18% 14%;
   --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 45 38% 94%;
-  --border: 150 31% 42%; /* Soft River Green */
-  --input: 124 14% 21%; /* Deep Forest Charcoal */
-  --ring: 181 26% 54%; /* Gentle Stream Blue */
+  --destructive-foreground: 45 56% 96%;
+  --border: 45 12% 27%;
+  --input: 75 12% 18%;
+  --ring: 151 47% 38%;
+  --surface: #1a241f;
+  --surface-container-lowest: #1a241f;
+  --surface-container-low: #242e29;
+  --surface-container-high: #2b352f;
+  --surface-container-highest: #313c36;
+  --outline-variant: rgba(208, 224, 212, 0.12);
+  --on-surface: #d0e0d4;
+  --on-surface-muted: #adc0b1;
+  --on-surface-subtle: #89a18f;
+  --surface-overlay: color-mix(in srgb, var(--surface-container-lowest) 88%, transparent);
+  --surface-card: color-mix(in srgb, var(--surface-container-lowest) 92%, transparent);
+  --surface-card-strong: color-mix(in srgb, var(--surface-container-highest) 90%, black);
+  --surface-dim: rgba(208, 224, 212, 0.06);
+  --surface-dim-strong: rgba(208, 224, 212, 0.1);
+  --primary-gradient: linear-gradient(135deg, #4f8f72 0%, #5aa37d 100%);
+  --primary-solid: #5aa37d;
+  --primary-soft: rgba(90, 163, 125, 0.16);
+  --primary-soft-strong: rgba(90, 163, 125, 0.24);
+  --accent-soft: rgba(90, 163, 125, 0.12);
+  --accent-strong: #5aa37d;
+  --danger-soft: rgba(186, 109, 87, 0.16);
+  --warning-soft: rgba(210, 161, 61, 0.14);
+  --info-soft: rgba(109, 118, 144, 0.14);
 }
 
 @layer base {
@@ -69,5 +112,6 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
   }
 }
