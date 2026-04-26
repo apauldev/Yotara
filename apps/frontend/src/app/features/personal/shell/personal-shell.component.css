@@ -2,8 +2,16 @@
   display: block;
   min-height: 100dvh;
   background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--primary-soft) 28%, transparent), transparent 24%),
-    radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-soft) 24%, transparent), transparent 28%),
+    radial-gradient(
+      circle at top left,
+      color-mix(in srgb, var(--primary-soft) 28%, transparent),
+      transparent 24%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      color-mix(in srgb, var(--accent-soft) 24%, transparent),
+      transparent 28%
+    ),
     var(--surface);
   color: var(--on-surface);
   font-family: var(--font-sans);
@@ -294,7 +302,9 @@
   width: min(18rem, calc(100vw - 2rem));
   border-radius: 1.25rem;
   background: color-mix(in srgb, var(--primary-soft) 24%, var(--surface-card));
-  box-shadow: 0 20px 40px var(--surface-dim-strong), inset 0 0 0 1px color-mix(in srgb, var(--primary-solid) 22%, var(--outline-variant));
+  box-shadow:
+    0 20px 40px var(--surface-dim-strong),
+    inset 0 0 0 1px color-mix(in srgb, var(--primary-solid) 22%, var(--outline-variant));
   padding: 0.4rem;
   display: grid;
   gap: 0.25rem;
@@ -359,7 +369,9 @@
   border-radius: 999px;
   background: var(--surface-container-lowest);
   box-shadow: 0 4px 10px var(--surface-dim);
-  transition: transform 140ms ease, background-color 140ms ease;
+  transition:
+    transform 140ms ease,
+    background-color 140ms ease;
 }
 
 .preferences-toggle-on {
@@ -385,7 +397,9 @@
   width: 12rem;
   border-radius: 1.25rem;
   background: color-mix(in srgb, var(--primary-soft) 24%, var(--surface-card));
-  box-shadow: 0 20px 40px var(--surface-dim-strong), inset 0 0 0 1px color-mix(in srgb, var(--primary-solid) 22%, var(--outline-variant));
+  box-shadow:
+    0 20px 40px var(--surface-dim-strong),
+    inset 0 0 0 1px color-mix(in srgb, var(--primary-solid) 22%, var(--outline-variant));
   padding: 0.35rem;
   display: grid;
   gap: 0.2rem;
@@ -404,13 +418,16 @@
 }
 
 .profile-menu-item-primary {
-  background: color-mix(in srgb, var(--primary-action-gradient) 14%, var(--surface-container-lowest));
-  color: hsl(var(--primary-foreground));
+  background:
+    linear-gradient(rgba(79, 143, 114, 0.14), rgba(79, 143, 114, 0.14)),
+    /* 14% tint */ var(--surface-container-lowest);
+  color: hsl(var(--foreground));
 }
 
 .profile-menu-item-primary:hover {
-  background: color-mix(in srgb, var(--primary-action-gradient) 18%, var(--surface-container-lowest));
-  color: hsl(var(--primary-foreground));
+  background:
+    linear-gradient(rgba(79, 143, 114, 0.18), rgba(79, 143, 114, 0.18)),
+    /* 18% tint */ var(--surface-container-lowest);
 }
 
 .profile-menu-item:hover {
@@ -451,7 +468,7 @@
   height: 2.55rem;
   border-radius: 1rem;
   background: var(--primary-gradient);
-  color: var(--primary-foreground);
+  color: hsl(var(--primary-foreground));
   display: grid;
   place-items: center;
   font-size: 0.84rem;
