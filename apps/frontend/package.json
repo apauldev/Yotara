@@ -8,7 +8,9 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test --watch=false --browsers ChromeHeadless",
-    "lint": "tsc -p tsconfig.app.json --noEmit",
+    "lint": "tsc -p tsconfig.app.json --noEmit && stylelint \"src/**/*.css\"",
+    "lint:css": "stylelint \"src/**/*.css\"",
+    "lint:css:fix": "stylelint \"src/**/*.css\" --fix",
     "typecheck": "tsc --noEmit"
   },
   "private": true,
@@ -50,6 +52,8 @@
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
     "postcss": "^8.5.8",
+    "stylelint": "^17.9.0",
+    "stylelint-config-standard": "^40.0.0",
     "tailwindcss": "^3.4.19",
     "typescript": "~5.9.0"
   }
