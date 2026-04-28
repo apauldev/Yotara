@@ -228,6 +228,26 @@ describe('PersonalTaskCardComponent', () => {
       expect(component.select.emit).toHaveBeenCalledWith();
     });
 
+    it('should be keyboard activatable when interactive is true', () => {
+      component.interactive = true;
+      fixture.detectChanges();
+      spyOn(component.select, 'emit');
+
+      const card = fixture.debugElement.query(By.css('.task-card'));
+      card.nativeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+
+      expect(component.select.emit).toHaveBeenCalledWith();
+    });
+
+    it('should expose button semantics when interactive is true', () => {
+      component.interactive = true;
+      fixture.detectChanges();
+
+      const card = fixture.debugElement.query(By.css('.task-card'));
+      expect(card.nativeElement.getAttribute('role')).toBe('button');
+      expect(card.nativeElement.getAttribute('tabindex')).toBe('0');
+    });
+
     it('should complete the task when the check button is clicked', () => {
       component.task = mockTask;
       fixture.detectChanges();

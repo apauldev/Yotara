@@ -14,7 +14,11 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
       [class.task-card-overdue]="tone === 'overdue'"
       [class.task-card-complete]="task.completed"
       [class.task-card-interactive]="interactive"
+      [attr.role]="interactive ? 'button' : null"
+      [attr.tabindex]="interactive ? 0 : null"
+      [attr.aria-label]="interactive ? 'Open task details for ' + task.title : null"
       (click)="select.emit()"
+      (keydown)="onKeydown($event)"
     >
       <button
         type="button"
@@ -352,6 +356,17 @@ export class PersonalTaskCardComponent {
   requestComplete(event: MouseEvent) {
     event.stopPropagation();
     this.completeConfirmOpen.set(true);
+  }
+
+  onKeydown(event: KeyboardEvent) {
+    if (!this.interactive) {
+      return;
+    }
+
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.select.emit();
+    }
   }
 
   closeCompleteConfirm() {

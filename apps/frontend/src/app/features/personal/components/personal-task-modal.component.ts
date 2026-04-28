@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, Output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   CreateTaskDto,
@@ -61,6 +61,16 @@ export class PersonalTaskModalComponent {
 
   ngOnChanges() {
     this.hydrateDraft();
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  protected onDocumentKeydown(event: KeyboardEvent) {
+    if (!this.open || event.key !== 'Escape') {
+      return;
+    }
+
+    event.preventDefault();
+    this.close.emit();
   }
 
   protected selectedContextLabel() {
