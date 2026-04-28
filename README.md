@@ -87,13 +87,13 @@ What is already present in the repository today:
 
 | Area | Current State |
 | --- | --- |
-| Frontend | Angular app with standalone components and route-based flows |
+| Frontend | Angular app with standalone components, shared UI primitives, and route-based flows |
 | Auth | Better Auth email/password sign-up and sign-in |
 | Onboarding | Personal vs team mode picker |
-| Personal Mode | Dedicated shell with Inbox, Today, Upcoming, Projects, and Labels |
+| Personal Mode | Dedicated shell with Inbox, Today, Upcoming, Projects, Labels, Archive, and Search |
 | Team Mode | Authenticated left-nav shell for `/dashboard` |
-| Tasks | Task CRUD plus personal metadata capture via modal |
-| Backend | Fastify API with protected `/tasks` and `/me` routes |
+| Tasks | Task CRUD plus personal metadata capture via shared modals and task cards |
+| Backend | Fastify API with protected `/tasks`, `/projects`, `/me`, and auth bridge routes |
 | Data | SQLite + Drizzle with bootstrapped schema |
 | Monorepo | pnpm workspaces with shared TypeScript package |
 
@@ -102,17 +102,19 @@ What is already present in the repository today:
 - create an account or sign in with email and password
 - pass through onboarding and choose a personal or team workspace mode
 - land in a mode-aware authenticated shell after onboarding
-- use personal routes for `Inbox`, `Today`, `Upcoming`, `Projects`, and `Labels`
+- use personal routes for `Inbox`, `Today`, `Upcoming`, `Projects`, `Labels`, `Archive`, and `Search`
 - use the team dashboard shell with desktop and mobile navigation
 - create, update, fetch, and delete user-scoped tasks through the API
-- capture richer task metadata including description, priority, due date, simple mode, and buckets
+- capture richer task metadata including description, priority, due date, simple mode, buckets, and project assignment
 
 ### Personal Mode Highlights
 
 - personal users now default into `/inbox`
 - Inbox supports quick capture plus a richer task modal
-- Today and Upcoming are driven by task status and due-date selectors
-- Projects and Labels have real placeholder routes and UI
+- Today, Upcoming, and Archive are driven by task status and due-date selectors
+- Search covers tasks and projects from the personal shell
+- Projects, Labels, Archive, and Search are live personal-mode routes with their own UI
+- shared modal, confirm dialog, and page header primitives are used across the personal experience
 - Daily clarity and Yotara Journal prompts rotate from built-in prompt pools
 
 ### Task Metadata Supported Today
@@ -124,8 +126,10 @@ What is already present in the repository today:
 - due date
 - simple mode
 - bucket: `personal-sanctuary | deep-work | home | health`
+- project assignment
 - completion state
 - sort order
+- soft delete / archive timestamp
 
 ## Visual Preview
 
