@@ -135,6 +135,24 @@ describe('PersonalTaskWorkspaceComponent', () => {
     expect(modal.initialProjectId).toBe('project-1');
   });
 
+  it('closes the visible edit modal when Escape is pressed', () => {
+    fixture.detectChanges();
+
+    const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
+      .componentInstance as PersonalTaskWorkspaceComponent;
+
+    workspace.editTask(task);
+    fixture.detectChanges();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+
+    const modal = fixture.debugElement.query(By.directive(PersonalTaskModalComponent))
+      .componentInstance as PersonalTaskModalComponent;
+    expect(modal.open).toBeFalse();
+    expect(modal.task).toBeNull();
+  });
+
   it('creates a task, refreshes projects, and closes the modal', async () => {
     fixture.detectChanges();
 
