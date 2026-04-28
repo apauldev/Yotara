@@ -54,14 +54,14 @@ Add visual regression snapshots for core screens (Inbox, Today, Upcoming, Projec
 
 Additional accessibility issues to add
 
-    Task cards are mouse-clickable but not keyboard-activatable (semantic mismatch).
-    article.task-card has (click)="select.emit()", but no tabindex, no keyboard handler, and no button/link semantics. Keyboard users can’t open task details via Enter/Space.
+    [x] Task cards are mouse-clickable but not keyboard-activatable (semantic mismatch).
+    [x] `article.task-card` now exposes button semantics, tabindex, and keyboard handling so keyboard users can open task details with Enter/Space.
 
-    Two <select> controls in task modal are unlabeled for AT (programmatic label missing).
-    “Project” and “Status” use a visual <span class="field-label">, but the <select> elements are not wrapped in <label> and have no id/for, aria-label, or aria-labelledby.
+    [x] Two `<select>` controls in the task modal are labeled for assistive tech.
+    [x] “Project” and “Status” now use explicit `label`/`for` wiring with matching `id` values.
 
-    Invalid nested label structure in completion toggle (can confuse screen readers).
-    A <label class="toggle-row"> contains another <label class="checkbox-control">. Nested labels are invalid HTML and can produce inconsistent AT behavior.
+    [x] Invalid nested label structure in the completion toggle has been removed.
+    [x] The completion toggle now uses a non-nested control structure, which avoids invalid HTML and AT confusion.
 
     Validation errors are visual-only in multiple places (missing aria-invalid / aria-describedby / live region patterns).
     Inputs get error classes and text, but no field-level ARIA wiring.

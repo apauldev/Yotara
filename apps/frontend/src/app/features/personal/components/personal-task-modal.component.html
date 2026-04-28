@@ -90,8 +90,9 @@
         </div>
 
         <div class="sidebar-section">
-          <span class="field-label">Project</span>
+          <label class="field-label" for="task-project">Project</label>
           <select
+            id="task-project"
             class="status-select"
             [ngModel]="draftProjectId()"
             (ngModelChange)="draftProjectId.set($event)"
@@ -139,8 +140,9 @@
         </div>
 
         <div class="sidebar-section">
-          <span class="field-label">Status</span>
+          <label class="field-label" for="task-status">Status</label>
           <select
+            id="task-status"
             class="status-select"
             [ngModel]="draftStatus()"
             (ngModelChange)="draftStatus.set($event)"
@@ -155,7 +157,7 @@
           <span class="field-label">Completion</span>
           <label class="toggle-row">
             <span>{{ draftCompleted() ? 'Move back to doing' : 'Mark as completed' }}</span>
-            <label class="checkbox-control">
+            <span class="checkbox-control">
               <input
                 type="checkbox"
                 [ngModel]="draftCompleted()"
@@ -167,7 +169,7 @@
                   <span class="checkbox-mark"></span>
                 }
               </span>
-            </label>
+            </span>
           </label>
         </div>
 

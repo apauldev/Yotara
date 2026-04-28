@@ -241,4 +241,48 @@ describe('PersonalTaskModalComponent', () => {
       expect(checkbox.nativeElement.querySelector('.checkbox-box')).toBeTruthy();
     });
   });
+
+  describe('Modal dismissal', () => {
+    it('should close when Escape is pressed anywhere in the modal', () => {
+      component.open = true;
+      fixture.detectChanges();
+
+      const closeSpy = spyOn(component.close, 'emit');
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+      expect(closeSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('Field labeling', () => {
+    it('should label the project select', () => {
+      component.open = true;
+      fixture.detectChanges();
+
+      const projectLabel = fixture.debugElement.query(By.css('label[for="task-project"]'));
+      const projectSelect = fixture.debugElement.query(By.css('#task-project'));
+
+      expect(projectLabel.nativeElement.textContent).toContain('Project');
+      expect(projectSelect).toBeTruthy();
+    });
+
+    it('should label the status select', () => {
+      component.open = true;
+      fixture.detectChanges();
+
+      const statusLabel = fixture.debugElement.query(By.css('label[for="task-status"]'));
+      const statusSelect = fixture.debugElement.query(By.css('#task-status'));
+
+      expect(statusLabel.nativeElement.textContent).toContain('Status');
+      expect(statusSelect).toBeTruthy();
+    });
+
+    it('should not nest labels in the completion toggle', () => {
+      component.open = true;
+      fixture.detectChanges();
+
+      const completionToggle = fixture.debugElement.query(By.css('.toggle-row'));
+      expect(completionToggle.nativeElement.querySelectorAll('label').length).toBe(0);
+    });
+  });
 });
