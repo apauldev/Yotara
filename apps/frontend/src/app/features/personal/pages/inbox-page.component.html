@@ -31,7 +31,19 @@
 
       <div class="capture-actions" aria-hidden="true">
         <span class="capture-icon">🗓</span>
-        <span class="capture-icon">⚑</span>
+        <label class="capture-project">
+          <span class="sr-only">Project</span>
+          <select
+            [ngModel]="captureProjectId() || defaultCaptureProjectId()"
+            (ngModelChange)="captureProjectId.set($event)"
+            name="captureProjectId"
+            aria-label="Choose project"
+          >
+            @for (project of projectService.projects(); track project.id) {
+              <option [value]="project.id">{{ project.name }}</option>
+            }
+          </select>
+        </label>
       </div>
 
       <button type="submit" class="capture-submit" [disabled]="taskService.creating()">

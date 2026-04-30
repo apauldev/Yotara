@@ -92,6 +92,24 @@ const SQLITE_BOOTSTRAP_SQL = `
     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE SET NULL,
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
   );
+
+  CREATE TABLE IF NOT EXISTS labels (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    color TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS task_labels (
+    task_id TEXT NOT NULL,
+    label_id TEXT NOT NULL,
+    PRIMARY KEY (task_id, label_id),
+    FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+    FOREIGN KEY (label_id) REFERENCES labels(id) ON DELETE CASCADE
+  );
 `;
 
 function resolveDbPath(databaseUrl: string): string {
@@ -143,6 +161,38 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
     sqlite.exec(
       `ALTER TABLE tasks ADD COLUMN project_id TEXT REFERENCES projects(id) ON DELETE SET NULL`,
     );
+  }
+
+  const labelColumns = sqlite.prepare(`PRAGMA table_info('labels')`).all() as Array<{ name: string }>;
+  const labelColumnNames = new Set(labelColumns.map((column) => column.name));
+  if (labelColumns.length === 0) {
+    sqlite.exec(`CREATE TABLE labels (
+      id TEXT PRIMARY KEY NOT NULL,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      color TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+    )`);
+  } else {
+    if (!labelColumnNames.has('created_at')) {
+      sqlite.exec(`ALTER TABLE labels ADD COLUMN created_at TEXT NOT NULL DEFAULT ''`);
+    }
+    if (!labelColumnNames.has('updated_at')) {
+      sqlite.exec(`ALTER TABLE labels ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''`);
+    }
+  }
+
+  const joinColumns = sqlite.prepare(`PRAGMA table_info('task_labels')`).all() as Array<{ name: string }>;
+  if (joinColumns.length === 0) {
+    sqlite.exec(`CREATE TABLE task_labels (
+      task_id TEXT NOT NULL,
+      label_id TEXT NOT NULL,
+      PRIMARY KEY (task_id, label_id),
+      FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+      FOREIGN KEY (label_id) REFERENCES labels(id) ON DELETE CASCADE
+    )`);
   }
 }
 

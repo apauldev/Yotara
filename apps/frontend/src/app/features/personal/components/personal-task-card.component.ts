@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
-import { Task, TaskBucket } from '@yotara/shared';
+import { Task } from '@yotara/shared';
+import { LabelService } from '../../../core/services/label.service';
 import { TaskService } from '../../../core/services/task.service';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 
@@ -48,8 +49,12 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
         }
 
         <div class="task-meta">
-          @if (task.bucket) {
-            <span class="meta-pill meta-pill-bucket">{{ bucketLabel() }}</span>
+          @if (task.labels?.length) {
+            <div class="label-row">
+              @for (labelId of task.labels?.slice(0, 3) ?? []; track labelId) {
+                <span class="meta-pill meta-pill-label">{{ labelName(labelId) }}</span>
+              }
+            </div>
           }
 
           @if (task.dueDate) {
@@ -216,6 +221,12 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
         margin-top: 0.7rem;
       }
 
+      .label-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+      }
+
       .meta-pill,
       .priority-chip {
         border-radius: 999px;
@@ -236,13 +247,13 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
         color: var(--on-surface-subtle);
       }
 
-      .meta-pill-complete {
-        background: var(--primary-soft);
-        color: var(--primary-solid);
+      .meta-pill-label {
+        background: #e7f2ea;
+        color: #48725a;
       }
 
-      .meta-pill-bucket {
-        background: var(--accent-soft);
+      .meta-pill-complete {
+        background: var(--primary-soft);
         color: var(--primary-solid);
       }
 
@@ -303,6 +314,7 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
 })
 export class PersonalTaskCardComponent {
   private readonly taskService = inject(TaskService);
+  private readonly labelService = inject(LabelService);
   protected readonly completeConfirmOpen = signal(false);
   protected readonly completing = signal(false);
 
@@ -342,15 +354,12 @@ export class PersonalTaskCardComponent {
     return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(parsed);
   }
 
-  protected bucketLabel() {
-    const labels: Record<TaskBucket, string> = {
-      'personal-sanctuary': 'Personal Sanctuary',
-      'deep-work': 'Deep Work',
-      home: 'Home',
-      health: 'Health',
-    };
+  protected labelName(labelId: string) {
+    return this.labelService.labels().find((label) => label.id === labelId)?.name ?? labelId;
+  }
 
-    return this.task.bucket ? labels[this.task.bucket] : '';
+  protected bucketLabel() {
+    return '';
   }
 
   requestComplete(event: MouseEvent) {

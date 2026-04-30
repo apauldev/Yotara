@@ -5,6 +5,7 @@ import authBridgePlugin, { applyCorsHeaders } from './plugins/auth-bridge.js';
 import { registerOpenApi } from './docs/openapi.js';
 import healthRoutes from './routes/health.js';
 import meRoutes from './routes/me.js';
+import labelRoutes from './routes/labels.js';
 import projectRoutes from './routes/projects.js';
 import rootRoutes from './routes/root.js';
 import taskRoutes from './routes/tasks.js';
@@ -21,6 +22,7 @@ export async function buildApp() {
 
   await app.register(healthRoutes);
   await app.register(meRoutes);
+  await app.register(labelRoutes);
   await app.register(projectRoutes);
   await app.register(taskRoutes);
   await app.register(rootRoutes);

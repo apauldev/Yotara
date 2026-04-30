@@ -56,14 +56,17 @@ export class SearchPageComponent {
   protected readonly projectResults = computed(() =>
     this.activeTab() === 'all' ? this.results().projects.slice(0, 3) : this.results().projects,
   );
+  protected readonly labelResults = computed(() =>
+    this.activeTab() === 'all' ? this.results().labels.slice(0, 5) : this.results().labels,
+  );
   protected readonly resultCount = computed(
-    () => this.results().tasks.length + this.results().projects.length,
+    () => this.results().tasks.length + this.results().projects.length + this.results().labels.length,
   );
   protected readonly tabItems: { value: SearchTab; label: string; count?: () => number }[] = [
     { value: 'all', label: 'All' },
     { value: 'tasks', label: 'Tasks', count: () => this.results().tasks.length },
     { value: 'projects', label: 'Projects', count: () => this.results().projects.length },
-    { value: 'labels', label: 'Labels', count: () => 0 },
+    { value: 'labels', label: 'Labels', count: () => this.results().labels.length },
   ];
 
   constructor() {
@@ -103,7 +106,7 @@ export class SearchPageComponent {
   }
 
   protected labelSearchCopy() {
-    return 'Label search is ready in the interface, but label storage is not persisted yet.';
+    return 'Labels now match by name and color, and can be managed from this page.';
   }
 
   private async navigateToQuery(query: string, tab: SearchTab) {

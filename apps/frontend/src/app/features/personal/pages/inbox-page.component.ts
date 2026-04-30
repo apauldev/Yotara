@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ProjectService } from '../../../core/services/project.service';
 import { TaskService } from '../../../core/services/task.service';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
 import { PersonalTaskWorkspaceComponent } from '../components/personal-task-workspace.component';
@@ -21,12 +22,18 @@ import { SectionHeaderComponent } from '../../../shared/components/section-heade
 })
 export class InboxPageComponent {
   protected readonly taskService = inject(TaskService);
+  protected readonly projectService = inject(ProjectService);
   private readonly workspace = viewChild(PersonalTaskWorkspaceComponent);
   protected readonly captureTitle = signal('');
+  protected readonly captureProjectId = signal('');
   protected readonly captureError = signal('');
   protected readonly inboxCountLabel = computed(
     () => `${this.taskService.inboxTasks().length} Tasks`,
   );
+  protected readonly defaultCaptureProjectId = computed(() => {
+    const inboxProject = this.projectService.projects().find((project) => project.name === 'Inbox');
+    return inboxProject?.id ?? this.projectService.projects()[0]?.id ?? '';
+  });
   protected readonly dailyClarityPrompts = DAILY_CLARITY_PROMPTS;
   protected readonly journalPrompts = YOTARA_JOURNAL_PROMPTS;
   protected readonly dailyClarityPrompt = signal(pickRandomPrompt(DAILY_CLARITY_PROMPTS));
@@ -41,7 +48,7 @@ export class InboxPageComponent {
     }
 
     this.captureError.set('');
-    this.workspace()?.openCreateTaskModal();
+    this.workspace()?.openCreateTaskModal(this.captureProjectId() || this.defaultCaptureProjectId() || null);
   }
 
   protected handleTaskSaved(mode: 'create' | 'update') {
