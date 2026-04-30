@@ -59,129 +59,167 @@
           }
         </label>
 
-        <div class="field">
-          <span class="field-label">Bucket</span>
-          <div class="bucket-grid">
-            @for (bucket of buckets; track bucket.value) {
-              <button
-                type="button"
-                class="bucket-chip"
-                [class.bucket-chip-active]="draftBucket() === bucket.value"
-                (click)="draftBucket.set(bucket.value)"
-              >
-                {{ bucket.label }}
-              </button>
-            }
-          </div>
-        </div>
       </div>
 
       <aside class="modal-sidebar">
-        <div class="sidebar-section">
-          <span class="field-label">Simple mode</span>
-          <label class="toggle-row">
-            <span>Keep it lightweight with no date metadata</span>
-            <input
-              type="checkbox"
-              [ngModel]="draftSimpleMode()"
-              (ngModelChange)="onSimpleModeChange($event)"
-            />
-          </label>
-        </div>
+        <div class="sidebar-scroll">
+          <div class="sidebar-section project-section">
+            <div class="project-section-header">
+              <span class="field-label">Project</span>
+              <p>Choose where this task should live.</p>
+            </div>
 
-        <div class="sidebar-section">
-          <label class="field-label" for="task-project">Project</label>
-          <select
-            id="task-project"
-            class="status-select"
-            [ngModel]="draftProjectId()"
-            (ngModelChange)="draftProjectId.set($event)"
-          >
-            <option value="">No project</option>
-            @for (project of projects; track project.id) {
-              <option [value]="project.id">{{ project.name }}</option>
+            <label class="project-picker" for="task-project">
+              <span class="project-picker-dot"></span>
+              <select
+                id="task-project"
+                class="status-select project-select"
+                [ngModel]="draftProjectId()"
+                (ngModelChange)="draftProjectId.set($event)"
+              >
+                @for (project of projects; track project.id) {
+                  <option [value]="project.id">{{ project.name }}</option>
+                }
+              </select>
+            </label>
+
+            <p class="project-helper">{{ selectedContextLabel() }}</p>
+          </div>
+
+          <div class="sidebar-section">
+            <span class="field-label">Simple mode</span>
+            <label class="toggle-row">
+              <span>Keep it lightweight with no date metadata</span>
+              <input
+                type="checkbox"
+                [ngModel]="draftSimpleMode()"
+                (ngModelChange)="onSimpleModeChange($event)"
+              />
+            </label>
+          </div>
+
+          <div class="sidebar-section">
+            <span class="field-label">Labels</span>
+            <div class="label-chip-grid">
+              @for (label of labels(); track label.id) {
+                <button
+                  type="button"
+                  class="label-chip"
+                  [class.label-chip-active]="labelSelected(label)"
+                  (click)="toggleLabel(label)"
+                >
+                  <span class="label-chip-dot" [style.background]="label.color"></span>
+                  <span>{{ label.name }}</span>
+                </button>
+              }
+            </div>
+
+            <div class="inline-create">
+              <input
+                type="text"
+                placeholder="New label"
+                [ngModel]="newLabelName()"
+                (ngModelChange)="newLabelName.set($event)"
+              />
+              <div class="palette-row" aria-label="Label color presets">
+                @for (color of palette; track color) {
+                  <button
+                    type="button"
+                    class="palette-swatch"
+                    [class.palette-swatch-active]="newLabelColor() === color"
+                    [style.background]="color"
+                    [attr.aria-label]="'Choose color ' + color"
+                    (click)="newLabelColor.set(color)"
+                  ></button>
+                }
+              </div>
+              <button type="button" class="create-inline-button" (click)="createInlineLabel()">
+                Create label
+              </button>
+            </div>
+          </div>
+
+          <div class="sidebar-section">
+            <span class="field-label">Schedule</span>
+            <label class="field compact-field">
+              <input
+                type="date"
+                name="taskDueDate"
+                [ngModel]="draftDueDate()"
+                (ngModelChange)="draftDueDate.set($event)"
+                [class.field-error]="dueDateError()"
+                [disabled]="draftSimpleMode()"
+              />
+            </label>
+            @if (dueDateError()) {
+              <p class="field-error-message">{{ dueDateError() }}</p>
             }
-          </select>
-        </div>
+          </div>
 
-        <div class="sidebar-section">
-          <span class="field-label">Schedule</span>
-          <label class="field compact-field">
-            <input
-              type="date"
-              name="taskDueDate"
-              [ngModel]="draftDueDate()"
-              (ngModelChange)="draftDueDate.set($event)"
-              [class.field-error]="dueDateError()"
-              [disabled]="draftSimpleMode()"
-            />
-          </label>
-          @if (dueDateError()) {
-            <p class="field-error-message">{{ dueDateError() }}</p>
-          }
-        </div>
+          <div class="sidebar-section">
+            <span class="field-label">Priority</span>
+            <div class="priority-dots">
+              @for (option of priorities; track option) {
+                <button
+                  type="button"
+                  class="priority-dot"
+                  [class.priority-dot-active]="draftPriority() === option"
+                  [class.priority-dot-high]="option === 'high'"
+                  [class.priority-dot-medium]="option === 'medium'"
+                  [class.priority-dot-low]="option === 'low'"
+                  (click)="draftPriority.set(option)"
+                  [attr.aria-label]="option + ' priority'"
+                ></button>
+              }
+            </div>
+          </div>
 
-        <div class="sidebar-section">
-          <span class="field-label">Priority</span>
-          <div class="priority-dots">
-            @for (option of priorities; track option) {
-              <button
-                type="button"
-                class="priority-dot"
-                [class.priority-dot-active]="draftPriority() === option"
-                [class.priority-dot-high]="option === 'high'"
-                [class.priority-dot-medium]="option === 'medium'"
-                [class.priority-dot-low]="option === 'low'"
-                (click)="draftPriority.set(option)"
-                [attr.aria-label]="option + ' priority'"
-              ></button>
-            }
+          <div class="sidebar-section">
+            <label class="field-label" for="task-status">Status</label>
+            <select
+              id="task-status"
+              class="status-select"
+              [ngModel]="draftStatus()"
+              (ngModelChange)="draftStatus.set($event)"
+            >
+              <option value="inbox">Inbox</option>
+              <option value="today">Today</option>
+              <option value="upcoming">Upcoming</option>
+            </select>
+          </div>
+
+          <div class="sidebar-section">
+            <span class="field-label">Completion</span>
+            <label class="toggle-row">
+              <span>{{ draftCompleted() ? 'Move back to doing' : 'Mark as completed' }}</span>
+              <span class="checkbox-control">
+                <input
+                  type="checkbox"
+                  [ngModel]="draftCompleted()"
+                  (ngModelChange)="draftCompleted.set($event)"
+                  [attr.aria-label]="draftCompleted() ? 'Move back to doing' : 'Mark as completed'"
+                />
+                <span class="checkbox-box" aria-hidden="true">
+                  @if (draftCompleted()) {
+                    <span class="checkbox-mark"></span>
+                  }
+                </span>
+              </span>
+            </label>
           </div>
         </div>
 
-        <div class="sidebar-section">
-          <label class="field-label" for="task-status">Status</label>
-          <select
-            id="task-status"
-            class="status-select"
-            [ngModel]="draftStatus()"
-            (ngModelChange)="draftStatus.set($event)"
-          >
-            <option value="inbox">Inbox</option>
-            <option value="today">Today</option>
-            <option value="upcoming">Upcoming</option>
-          </select>
-        </div>
+        <div class="sidebar-footer">
+          @if (error) {
+            <p class="error-copy">{{ error }}</p>
+          }
 
-        <div class="sidebar-section">
-          <span class="field-label">Completion</span>
-          <label class="toggle-row">
-            <span>{{ draftCompleted() ? 'Move back to doing' : 'Mark as completed' }}</span>
-            <span class="checkbox-control">
-              <input
-                type="checkbox"
-                [ngModel]="draftCompleted()"
-                (ngModelChange)="draftCompleted.set($event)"
-                [attr.aria-label]="draftCompleted() ? 'Move back to doing' : 'Mark as completed'"
-              />
-              <span class="checkbox-box" aria-hidden="true">
-                @if (draftCompleted()) {
-                  <span class="checkbox-mark"></span>
-                }
-              </span>
-            </span>
-          </label>
-        </div>
-
-        @if (error) {
-          <p class="error-copy">{{ error }}</p>
-        }
-
-        <div class="actions">
-          <button type="button" class="secondary-button" (click)="close.emit()">Cancel</button>
-          <button type="button" class="primary-button" (click)="submit()">
-            {{ task ? 'Save Task' : 'Create Task' }}
-          </button>
+          <div class="actions">
+            <button type="button" class="secondary-button" (click)="close.emit()">Cancel</button>
+            <button type="button" class="primary-button" (click)="submit()">
+              {{ task ? 'Save Task' : 'Create Task' }}
+            </button>
+          </div>
         </div>
       </aside>
     </section>
