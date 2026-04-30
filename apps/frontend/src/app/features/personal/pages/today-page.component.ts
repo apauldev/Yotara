@@ -4,11 +4,17 @@ import { Task } from '@yotara/shared';
 import { TaskService } from '../../../core/services/task.service';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
 import { PersonalTaskWorkspaceComponent } from '../components/personal-task-workspace.component';
+import { SectionHeaderComponent } from '../../../shared/components/section-header/section-header.component';
 
 @Component({
   selector: 'app-today-page',
   standalone: true,
-  imports: [CommonModule, PersonalTaskCardComponent, PersonalTaskWorkspaceComponent],
+  imports: [
+    CommonModule,
+    PersonalTaskCardComponent,
+    PersonalTaskWorkspaceComponent,
+    SectionHeaderComponent,
+  ],
   template: `
     <app-personal-task-workspace #workspace>
       <section class="page">
@@ -30,9 +36,7 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
 
         @if (taskService.overdueTasks().length > 0) {
           <section class="task-section">
-            <div class="section-heading section-heading-accent">
-              <h2>Overdue</h2>
-            </div>
+            <app-section-header title="Overdue" size="lg" tone="accent" />
 
             <div class="task-stack">
               @for (task of taskService.overdueTasks(); track task.id) {
@@ -48,14 +52,12 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
         }
 
         <section class="task-section">
-          <div class="section-heading">
-            <h2>Due Today</h2>
-
-            <div class="section-actions">
+          <app-section-header title="Due Today" size="lg">
+            <div section-header-actions class="section-actions">
               <button type="button" class="icon-chip" aria-label="Filter tasks">≡</button>
               <button type="button" class="icon-chip" aria-label="More actions">…</button>
             </div>
-          </div>
+          </app-section-header>
 
           @if (taskService.loading()) {
             <p class="status-copy">Loading your focused list...</p>
@@ -184,24 +186,6 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
 
       .task-section {
         margin-top: 2rem;
-      }
-
-      .section-heading {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        margin-bottom: 1rem;
-      }
-
-      .section-heading h2 {
-        margin: 0;
-        font-size: 1.85rem;
-        letter-spacing: -0.04em;
-      }
-
-      .section-heading-accent h2 {
-        color: #c97c46;
       }
 
       .section-actions {
