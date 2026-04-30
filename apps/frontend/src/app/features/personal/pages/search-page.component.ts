@@ -6,6 +6,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { Project, Task } from '@yotara/shared';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { SectionHeaderComponent } from '../../../shared/components/section-header/section-header.component';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
 import { PersonalTaskWorkspaceComponent } from '../components/personal-task-workspace.component';
 import { SearchService, SearchTab } from '../../../core/services/search.service';
@@ -18,6 +19,7 @@ import { SearchService, SearchTab } from '../../../core/services/search.service'
     FormsModule,
     RouterLink,
     PageHeaderComponent,
+    SectionHeaderComponent,
     PersonalTaskCardComponent,
     PersonalTaskWorkspaceComponent,
   ],

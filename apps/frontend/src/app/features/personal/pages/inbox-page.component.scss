@@ -88,32 +88,6 @@
   margin-top: 2.8rem;
 }
 
-.section-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.section-heading h2 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--on-surface-subtle);
-}
-
-.section-count {
-  border-radius: 999px;
-  background: var(--surface-container-low);
-  padding: 0.28rem 0.7rem;
-  color: var(--on-surface-muted);
-  font-size: 0.76rem;
-  font-weight: 700;
-}
-
 .task-stack {
   display: grid;
   gap: 0.95rem;

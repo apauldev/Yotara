@@ -44,10 +44,7 @@
     }
 
     <section class="list-section">
-      <div class="section-heading">
-        <h2>Pending Processing</h2>
-        <span class="section-count">{{ inboxCountLabel() }}</span>
-      </div>
+      <app-section-header title="Pending Processing" [count]="inboxCountLabel()" size="sm" />
 
       @if (taskService.loading()) {
         <p class="status-copy">Loading your inbox...</p>

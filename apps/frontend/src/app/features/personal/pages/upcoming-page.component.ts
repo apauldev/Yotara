@@ -4,6 +4,7 @@ import { TaskService } from '../../../core/services/task.service';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
 import { PersonalTaskWorkspaceComponent } from '../components/personal-task-workspace.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { SectionHeaderComponent } from '../../../shared/components/section-header/section-header.component';
 
 @Component({
   selector: 'app-upcoming-page',
@@ -13,6 +14,7 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
     PersonalTaskCardComponent,
     PersonalTaskWorkspaceComponent,
     PageHeaderComponent,
+    SectionHeaderComponent,
   ],
   template: `
     <app-personal-task-workspace #workspace>
@@ -35,10 +37,11 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
           <div class="group-stack">
             @for (group of taskService.upcomingTaskGroups(); track group.label) {
               <section class="group-card">
-                <div class="group-header">
-                  <h2>{{ group.label }}</h2>
-                  <span>{{ group.tasks.length }} tasks</span>
-                </div>
+                <app-section-header
+                  [title]="group.label"
+                  [count]="group.tasks.length + ' tasks'"
+                  size="md"
+                />
 
                 <div class="task-stack">
                   @for (task of group.tasks; track task.id) {
@@ -86,24 +89,10 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
         padding: 1.25rem;
       }
 
-      .group-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        margin-bottom: 0.95rem;
-      }
-
-      .group-header h2,
       .empty-state h2 {
         margin: 0;
         font-size: 1.7rem;
         letter-spacing: -0.04em;
-      }
-
-      .group-header span {
-        color: var(--on-surface-muted);
-        font-size: 0.88rem;
       }
 
       .task-stack {

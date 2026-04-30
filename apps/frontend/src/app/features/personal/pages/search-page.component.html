@@ -47,9 +47,9 @@
       }
     </nav>
 
-    @if (!searchQuery()) {
-      <section class="empty-state">
-        <h2>Start with a title, project, or keyword</h2>
+      @if (!searchQuery()) {
+        <section class="empty-state">
+          <h2>Start with a title, project, or keyword</h2>
         <p>
           Search looks through task titles, descriptions, project names, and status keywords like
           inbox, today, upcoming, done, and archived.
@@ -60,18 +60,15 @@
         <h2>No matches found</h2>
         <p>Try a different phrase, project name, or status keyword.</p>
       </section>
-    } @else {
-      @if (activeTab() === 'all') {
-        @if (taskResults().length > 0) {
-          <section class="result-group">
-            <div class="group-header">
-              <h2>Tasks</h2>
-              <span>{{ results().tasks.length }} matches</span>
-            </div>
+      } @else {
+        @if (activeTab() === 'all') {
+          @if (taskResults().length > 0) {
+            <section class="result-group">
+              <app-section-header title="Tasks" [count]="results().tasks.length + ' matches'" />
 
-            <div class="task-stack">
-              @for (taskResult of taskResults(); track taskResult.task.id) {
-                <app-personal-task-card
+              <div class="task-stack">
+                @for (taskResult of taskResults(); track taskResult.task.id) {
+                  <app-personal-task-card
                   [task]="taskResult.task"
                   [interactive]="true"
                   (select)="openTask(taskResult.task)"
@@ -81,15 +78,15 @@
           </section>
         }
 
-        @if (projectResults().length > 0) {
-          <section class="result-group">
-            <div class="group-header">
-              <h2>Projects</h2>
-              <span>{{ results().projects.length }} matches</span>
-            </div>
+          @if (projectResults().length > 0) {
+            <section class="result-group">
+              <app-section-header
+                title="Projects"
+                [count]="results().projects.length + ' matches'"
+              />
 
-            <div class="project-grid">
-              @for (projectResult of projectResults(); track projectResult.project.id) {
+              <div class="project-grid">
+                @for (projectResult of projectResults(); track projectResult.project.id) {
                 <a class="project-card" [routerLink]="['/projects', projectResult.project.id]">
                   <div class="project-topline">
                     <h3>{{ projectResult.project.name }}</h3>
@@ -109,10 +106,7 @@
 
       @if (activeTab() === 'tasks') {
         <section class="result-group">
-          <div class="group-header">
-            <h2>Tasks</h2>
-            <span>{{ results().tasks.length }} matches</span>
-          </div>
+          <app-section-header title="Tasks" [count]="results().tasks.length + ' matches'" />
 
           <div class="task-stack">
             @for (taskResult of results().tasks; track taskResult.task.id) {
@@ -128,10 +122,10 @@
 
       @if (activeTab() === 'projects') {
         <section class="result-group">
-          <div class="group-header">
-            <h2>Projects</h2>
-            <span>{{ results().projects.length }} matches</span>
-          </div>
+          <app-section-header
+            title="Projects"
+            [count]="results().projects.length + ' matches'"
+          />
 
           <div class="project-grid">
             @for (projectResult of results().projects; track projectResult.project.id) {
@@ -153,10 +147,7 @@
 
       @if (activeTab() === 'labels') {
         <section class="result-group">
-          <div class="group-header">
-            <h2>Labels</h2>
-            <span>Planned</span>
-          </div>
+          <app-section-header title="Labels" count="Planned" />
 
           <div class="empty-state compact">
             <h2>Label search will come online with label persistence</h2>
