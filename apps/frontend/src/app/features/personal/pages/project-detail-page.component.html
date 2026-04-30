@@ -67,10 +67,11 @@
             </section>
           } @else {
             <section class="task-section">
-              <div class="section-heading">
-                <h2>To Do</h2>
-                <span>{{ activeProjectTasks().length }}</span>
-              </div>
+              <app-section-header
+                title="To Do"
+                [count]="activeProjectTasks().length"
+                size="lg"
+              />
 
               <div class="task-stack">
                 @for (task of activeProjectTasks(); track task.id) {
@@ -93,10 +94,11 @@
 
             @if (completedProjectTasks().length > 0) {
               <section class="task-section task-section-soft">
-                <div class="section-heading">
-                  <h2>Completed</h2>
-                  <span>{{ completedProjectTasks().length }}</span>
-                </div>
+                <app-section-header
+                  title="Completed"
+                  [count]="completedProjectTasks().length"
+                  size="lg"
+                />
 
                 <div class="task-stack">
                   @for (task of completedProjectTasks(); track task.id) {

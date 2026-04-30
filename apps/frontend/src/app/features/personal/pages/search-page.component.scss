@@ -117,25 +117,6 @@
   margin-top: 1.35rem;
 }
 
-.group-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.85rem;
-}
-
-.group-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
-  letter-spacing: -0.04em;
-}
-
-.group-header span {
-  color: var(--on-surface-muted);
-  font-size: 0.88rem;
-}
-
 .task-stack {
   display: grid;
   gap: 0.9rem;
@@ -237,10 +218,5 @@
 
   .search-button {
     width: 100%;
-  }
-
-  .group-header {
-    align-items: flex-start;
-    flex-direction: column;
   }
 }

@@ -1,0 +1,21 @@
+<header
+  class="section-header"
+  [class.section-header-sm]="size === 'sm'"
+  [class.section-header-md]="size === 'md'"
+  [class.section-header-lg]="size === 'lg'"
+  [class.section-header-accent]="tone === 'accent'"
+>
+  <div class="section-header-copy">
+    <h2>{{ title }}</h2>
+  </div>
+
+  <div class="section-header-meta">
+    @if (count !== null && count !== undefined && count !== '') {
+      <span class="section-header-count">{{ count }}</span>
+    }
+
+    <div class="section-header-actions">
+      <ng-content select="[section-header-actions]" />
+    </div>
+  </div>
+</header>
