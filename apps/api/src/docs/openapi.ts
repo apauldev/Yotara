@@ -129,6 +129,42 @@ const updateTaskSchema = {
   additionalProperties: false,
 } as const;
 
+const labelSchema = {
+  $id: 'Label',
+  type: 'object',
+  required: ['id', 'name', 'color', 'userId'],
+  properties: {
+    id: { type: 'string', format: 'uuid' },
+    name: { type: 'string' },
+    color: { type: 'string' },
+    userId: { type: 'string' },
+    taskCount: { type: 'integer', minimum: 0 },
+    createdAt: { type: 'string', format: 'date-time' },
+    updatedAt: { type: 'string', format: 'date-time' },
+  },
+} as const;
+
+const createLabelSchema = {
+  $id: 'CreateLabelDto',
+  type: 'object',
+  required: ['name'],
+  properties: {
+    name: nonEmptyTextSchema,
+    color: { type: 'string' },
+  },
+  additionalProperties: false,
+} as const;
+
+const updateLabelSchema = {
+  $id: 'UpdateLabelDto',
+  type: 'object',
+  properties: {
+    name: nonEmptyTextSchema,
+    color: { type: 'string' },
+  },
+  additionalProperties: false,
+} as const;
+
 const projectColorSchema = {
   $id: 'ProjectColor',
   type: 'string',
@@ -375,6 +411,9 @@ const sharedSchemas = [
   taskSchema,
   createTaskSchema,
   updateTaskSchema,
+  labelSchema,
+  createLabelSchema,
+  updateLabelSchema,
   projectColorSchema,
   projectSchema,
   createProjectSchema,

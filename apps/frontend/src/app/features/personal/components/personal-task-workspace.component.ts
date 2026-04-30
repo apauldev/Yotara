@@ -20,7 +20,7 @@ type SavePayload =
       [open]="modalOpen()"
       [task]="selectedTask()"
       [projects]="projectService.projects()"
-      [initialProjectId]="initialProjectId"
+      [initialProjectId]="draftProjectId() || initialProjectId || projectService.projects()[0]?.id || null"
       [initialTitle]="initialTitle"
       [error]="taskService.error()"
       (close)="closeTaskModal()"
@@ -38,9 +38,11 @@ export class PersonalTaskWorkspaceComponent {
   protected readonly taskService = inject(TaskService);
   protected readonly modalOpen = signal(false);
   protected readonly selectedTask = signal<Task | null>(null);
+  protected readonly draftProjectId = signal<string | null>(null);
 
-  openCreateTaskModal() {
+  openCreateTaskModal(projectId?: string | null) {
     this.selectedTask.set(null);
+    this.draftProjectId.set(projectId ?? this.initialProjectId ?? this.projectService.projects()[0]?.id ?? null);
     this.modalOpen.set(true);
   }
 
@@ -51,6 +53,7 @@ export class PersonalTaskWorkspaceComponent {
 
   closeTaskModal() {
     this.selectedTask.set(null);
+    this.draftProjectId.set(null);
     this.modalOpen.set(false);
   }
 

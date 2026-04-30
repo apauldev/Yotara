@@ -83,7 +83,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         return sendNotFound(reply, 'Task not found');
       }
 
-      return toTask(row);
+      return toTask(row, row.labels);
     },
   );
 
@@ -123,7 +123,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         return reply.code(500).send({ message: 'Failed to create task' });
       }
 
-      return reply.code(201).send(toTask(created));
+      return reply.code(201).send(toTask(created, created.labels));
     },
   );
 
@@ -168,7 +168,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         return reply.code(500).send({ message: 'Failed to update task' });
       }
 
-      return toTask(updated);
+      return toTask(updated, updated.labels);
     },
   );
 

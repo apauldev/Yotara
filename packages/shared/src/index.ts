@@ -37,6 +37,9 @@ export interface Label {
   name: string;
   color: string;
   userId: string;
+  taskCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Task {
@@ -125,6 +128,16 @@ export interface UpdateTaskDto {
   labels?: string[];
   completed?: boolean;
   order?: number;
+}
+
+export interface CreateLabelDto {
+  name: string;
+  color?: string;
+}
+
+export interface UpdateLabelDto {
+  name?: string;
+  color?: string;
 }
 
 export interface CreateProjectDto {

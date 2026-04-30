@@ -6,6 +6,8 @@ import { authCookieSecurity, errorResponseSchema, withJsonResponse } from '../do
 import { sendUnauthorized } from '../lib/api-errors.js';
 import requireAuthenticatedUser from '../plugins/auth-required.js';
 import { toPublicUser } from '../lib/public-user.js';
+import { seedDefaultLabelsForOwner } from '../services/label-service.js';
+import { seedDefaultProjectsForOwner } from '../services/project-service.js';
 
 export default async function meRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', requireAuthenticatedUser);
@@ -77,6 +79,11 @@ export default async function meRoutes(fastify: FastifyInstance) {
           updatedAt: new Date(),
         })
         .where(eq(users.id, userId));
+
+      if (request.body.workspaceMode === 'personal' && request.body.onboardingCompleted) {
+        await seedDefaultProjectsForOwner(userId);
+        await seedDefaultLabelsForOwner(userId);
+      }
 
       const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       if (!user) {

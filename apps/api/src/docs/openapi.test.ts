@@ -46,6 +46,7 @@ test('openapi endpoint exposes documented app and auth routes', async () => {
     assert.ok(spec.paths['/health']);
     assert.ok(spec.paths['/me']);
     assert.ok(spec.paths['/projects']);
+    assert.ok(spec.paths['/labels']);
     assert.ok(spec.paths['/projects/{id}']);
     assert.ok(spec.paths['/projects/{id}/tasks']);
     assert.ok(spec.paths['/tasks']);

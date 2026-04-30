@@ -83,7 +83,7 @@ test('projects routes require auth and scope project data to the current user', 
       headers: { cookie: firstUserCookie },
     });
     assert.equal(ownerList.statusCode, 200);
-    assert.equal(ownerList.json().length, 1);
+    assert.equal(ownerList.json().length, 9);
 
     const otherUserList = await ctx.app.inject({
       method: 'GET',
@@ -91,7 +91,7 @@ test('projects routes require auth and scope project data to the current user', 
       headers: { cookie: secondUserCookie },
     });
     assert.equal(otherUserList.statusCode, 200);
-    assert.equal(otherUserList.json().length, 0);
+    assert.equal(otherUserList.json().length, 8);
 
     const otherUserFetch = await ctx.app.inject({
       method: 'GET',

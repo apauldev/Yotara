@@ -9,6 +9,8 @@ import type {
 } from '@yotara/shared';
 import { db } from '../db/client.js';
 import { tasks } from '../db/schema.js';
+import { getTaskLabels, syncTaskLabels } from './label-service.js';
+import { getDefaultProjectForOwner, getProjectForOwner } from './project-service.js';
 
 type TaskRow = typeof tasks.$inferSelect;
 
@@ -18,7 +20,6 @@ function normalizeCreatePayload(body: CreateTaskDto): CreateTaskDto {
     title: body.title.trim(),
     status: body.status ?? 'inbox',
     priority: body.priority ?? 'medium',
-    bucket: body.bucket ?? 'personal-sanctuary',
     dueDate: body.simpleMode ? undefined : body.dueDate,
   };
 }
@@ -35,7 +36,7 @@ function normalizeStatusOnCompletion(currentStatus: TaskStatus, completed: boole
   return currentStatus;
 }
 
-export function toTask(task: TaskRow): Task {
+export function toTask(task: TaskRow, labelIds: string[] = []): Task {
   return {
     id: task.id,
     title: task.title,
@@ -45,8 +46,8 @@ export function toTask(task: TaskRow): Task {
     completed: task.completed,
     dueDate: task.dueDate ?? undefined,
     simpleMode: task.simpleMode,
-    bucket: task.bucket ?? undefined,
     projectId: task.projectId ?? undefined,
+    labels: labelIds,
     order: task.order,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
@@ -74,8 +75,12 @@ export async function listTasksForOwner(
     .offset(offset);
 
   const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
+  const data = await Promise.all(
+    rows.map(async (row) => toTask(row, (await getTaskLabels(row.id)).map((label) => label.id))),
+  );
+
   return {
-    data: rows.map(toTask),
+    data,
     meta: {
       total,
       page,
@@ -94,13 +99,24 @@ export async function getTaskForOwner(taskId: string, ownerId: string) {
     .where(and(eq(tasks.id, taskId), eq(tasks.userId, ownerId), isNull(tasks.deletedAt)))
     .limit(1);
 
-  return row ?? null;
+  if (!row) {
+    return null;
+  }
+
+  return {
+    ...row,
+    labels: (await getTaskLabels(row.id)).map((label) => label.id),
+  } as TaskRow & { labels: string[] };
 }
 
 export async function createTaskForOwner(ownerId: string, body: CreateTaskDto) {
   const payload = normalizeCreatePayload(body);
   const now = new Date().toISOString();
   const id = randomUUID();
+  const defaultProject = payload.projectId
+    ? null
+    : await getDefaultProjectForOwner(ownerId);
+  const projectId = payload.projectId ?? defaultProject?.id ?? null;
 
   await db.insert(tasks).values({
     id,
@@ -111,14 +127,15 @@ export async function createTaskForOwner(ownerId: string, body: CreateTaskDto) {
     priority: payload.priority,
     dueDate: payload.dueDate,
     simpleMode: payload.simpleMode ?? false,
-    bucket: payload.bucket ?? 'personal-sanctuary',
-    projectId: payload.projectId ?? null,
+    projectId,
     completed: false,
     order: 0,
     deletedAt: null,
     createdAt: now,
     updatedAt: now,
   });
+
+  await syncTaskLabels(ownerId, id, payload.labels);
 
   return getTaskForOwner(id, ownerId);
 }
@@ -138,7 +155,9 @@ export async function updateTaskForOwner(
   const completed = body.completed ?? current.completed;
   const simpleMode = body.simpleMode ?? current.simpleMode;
   const nextProjectId =
-    body.projectId === null ? null : (body.projectId ?? current.projectId ?? null);
+    body.projectId === null
+      ? (await getDefaultProjectForOwner(ownerId))?.id ?? current.projectId ?? null
+      : body.projectId ?? current.projectId ?? (await getDefaultProjectForOwner(ownerId))?.id ?? null;
 
   await db
     .update(tasks)
@@ -148,7 +167,6 @@ export async function updateTaskForOwner(
       priority: body.priority ?? current.priority,
       dueDate: simpleMode ? null : (body.dueDate ?? current.dueDate),
       simpleMode,
-      bucket: body.bucket ?? current.bucket,
       projectId: nextProjectId,
       order: body.order ?? current.order,
       completed,
@@ -156,6 +174,8 @@ export async function updateTaskForOwner(
       updatedAt: new Date().toISOString(),
     })
     .where(eq(tasks.id, taskId));
+
+  await syncTaskLabels(ownerId, taskId, body.labels);
 
   return getTaskForOwner(taskId, ownerId);
 }
