@@ -111,6 +111,26 @@ export const tasks = sqliteTable('tasks', {
   updatedAt: text('updated_at').notNull(),
 });
 
+export const labels = sqliteTable('labels', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  color: text('color').notNull(),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export const taskLabels = sqliteTable('task_labels', {
+  taskId: text('task_id')
+    .notNull()
+    .references(() => tasks.id, { onDelete: 'cascade' }),
+  labelId: text('label_id')
+    .notNull()
+    .references(() => labels.id, { onDelete: 'cascade' }),
+});
+
 export type DbTask = typeof tasks.$inferSelect;
 export type NewDbTask = typeof tasks.$inferInsert;
 export type DbProject = typeof projects.$inferSelect;

@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import type { Project, Task } from '@yotara/shared';
+import type { Label, Project, Task } from '@yotara/shared';
+import { LabelService } from './label.service';
 import { ProjectService } from './project.service';
 import { TaskService } from './task.service';
 
@@ -23,18 +24,26 @@ export interface SearchResults {
   normalizedQuery: string;
   tasks: SearchTaskResult[];
   projects: SearchProjectResult[];
-  labels: never[];
+  labels: SearchLabelResult[];
+}
+
+export interface SearchLabelResult {
+  label: Label;
+  score: number;
+  matchReasons: string[];
 }
 
 @Injectable({ providedIn: 'root' })
 export class SearchService {
   private readonly taskService = inject(TaskService);
   private readonly projectService = inject(ProjectService);
+  private readonly labelService = inject(LabelService);
 
   search(query: string): SearchResults {
     const normalizedQuery = normalize(query);
     const tasks = this.taskService.tasks();
     const projects = this.projectService.projects();
+    const labels = this.labelService.labels();
     const projectById = new Map(projects.map((project) => [project.id, project] as const));
 
     if (!normalizedQuery) {
@@ -59,14 +68,39 @@ export class SearchService {
         compareSearchResults(left.score, right.score, left.project, right.project),
       );
 
+    const labelResults = labels
+      .map((label) => buildLabelResult(label, normalizedQuery))
+      .filter((result): result is SearchLabelResult => result !== null)
+      .sort((left, right) => right.score - left.score || left.label.name.localeCompare(right.label.name));
+
     return {
       query: query.trim(),
       normalizedQuery,
       tasks: taskResults,
       projects: projectResults,
-      labels: [],
+      labels: labelResults,
     };
   }
+}
+
+function buildLabelResult(label: Label, normalizedQuery: string): SearchLabelResult | null {
+  const name = normalize(label.name);
+  const color = normalize(label.color);
+  const haystack = [name, color].filter(Boolean).join(' ');
+
+  if (!includesQuery(haystack, normalizedQuery)) {
+    return null;
+  }
+
+  return {
+    label,
+    score:
+      scoreExact(name, normalizedQuery, 120) +
+      scoreStartsWith(name, normalizedQuery, 100) +
+      scoreContains(name, normalizedQuery, 80) +
+      termCoverageScore(haystack, normalizedQuery),
+    matchReasons: scoreContains(name, normalizedQuery, 1) ? ['label'] : [],
+  };
 }
 
 function buildTaskResult(
@@ -77,11 +111,10 @@ function buildTaskResult(
   const title = normalize(task.title);
   const description = normalize(task.description);
   const status = normalize(formatStatus(task.status));
-  const bucket = normalize(formatBucket(task.bucket));
   const projectName = normalize(project?.name);
   const projectDescription = normalize(project?.description);
   const dueDate = normalize(formatDueDate(task.dueDate));
-  const haystack = [title, description, status, bucket, projectName, projectDescription, dueDate]
+  const haystack = [title, description, status, projectName, projectDescription, dueDate]
     .filter(Boolean)
     .join(' ');
 
@@ -93,7 +126,6 @@ function buildTaskResult(
     title,
     description,
     status,
-    bucket,
     projectName,
     projectDescription,
     dueDate,
@@ -107,7 +139,6 @@ function buildTaskResult(
     scoreContains(projectName, normalizedQuery, 70) +
     scoreContains(projectDescription, normalizedQuery, 30) +
     scoreContains(status, normalizedQuery, 65) +
-    scoreContains(bucket, normalizedQuery, 30) +
     scoreContains(dueDate, normalizedQuery, 20) +
     termCoverageScore(haystack, normalizedQuery) +
     recencyScore(task.updatedAt) +
@@ -170,7 +201,6 @@ function collectMatchReasons(details: {
   title: string;
   description: string;
   status: string;
-  bucket: string;
   projectName: string;
   projectDescription: string;
   dueDate: string;
@@ -194,10 +224,6 @@ function collectMatchReasons(details: {
 
   if (scoreContains(details.status, details.normalizedQuery, 1)) {
     reasons.push('status');
-  }
-
-  if (scoreContains(details.bucket, details.normalizedQuery, 1)) {
-    reasons.push('bucket');
   }
 
   if (scoreContains(details.dueDate, details.normalizedQuery, 1)) {
@@ -353,21 +379,6 @@ function formatStatus(status: Task['status']) {
       return 'archived';
     default:
       return 'inbox';
-  }
-}
-
-function formatBucket(bucket?: Task['bucket']) {
-  switch (bucket) {
-    case 'personal-sanctuary':
-      return 'personal sanctuary';
-    case 'deep-work':
-      return 'deep work';
-    case 'home':
-      return 'home';
-    case 'health':
-      return 'health';
-    default:
-      return '';
   }
 }
 

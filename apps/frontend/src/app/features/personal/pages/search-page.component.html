@@ -147,11 +147,21 @@
 
       @if (activeTab() === 'labels') {
         <section class="result-group">
-          <app-section-header title="Labels" count="Planned" />
+          <app-section-header title="Labels" [count]="results().labels.length + ' matches'" />
 
-          <div class="empty-state compact">
-            <h2>Label search will come online with label persistence</h2>
-            <p>{{ labelSearchCopy() }}</p>
+          <div class="project-grid">
+            @for (labelResult of labelResults(); track labelResult.label.id) {
+              <article class="project-card">
+                <div class="project-topline">
+                  <h3>{{ labelResult.label.name }}</h3>
+                  <span>{{ labelResult.label.taskCount ?? 0 }} tasks</span>
+                </div>
+                <p>{{ labelResult.label.color }}</p>
+                <div class="project-meta">
+                  <span>Match: label name</span>
+                </div>
+              </article>
+            }
           </div>
         </section>
       }
