@@ -135,8 +135,7 @@
       }
 
       .metric span,
-      .progress-copy span,
-      .section-heading span {
+      .progress-copy span {
         color: var(--on-surface-subtle);
         font-size: 0.88rem;
       }
@@ -211,15 +210,6 @@
         margin-top: 2rem;
       }
 
-      .section-heading {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        margin-bottom: 1rem;
-      }
-
-      .section-heading h2,
       .empty-state h2 {
         margin: 0;
         font-size: 2rem;

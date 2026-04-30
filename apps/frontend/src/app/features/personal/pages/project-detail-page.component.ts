@@ -8,12 +8,19 @@ import { ProjectService } from '../../../core/services/project.service';
 import { TaskService } from '../../../core/services/task.service';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
 import { PersonalTaskWorkspaceComponent } from '../components/personal-task-workspace.component';
+import { SectionHeaderComponent } from '../../../shared/components/section-header/section-header.component';
 import { projectPaletteFor, projectProgressPercent } from '../project-presentation';
 
 @Component({
   selector: 'app-project-detail-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, PersonalTaskCardComponent, PersonalTaskWorkspaceComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    PersonalTaskCardComponent,
+    PersonalTaskWorkspaceComponent,
+    SectionHeaderComponent,
+  ],
   templateUrl: './project-detail-page.component.html',
   styleUrl: './project-detail-page.component.scss',
 })

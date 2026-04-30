@@ -4,11 +4,18 @@ import { FormsModule } from '@angular/forms';
 import { TaskService } from '../../../core/services/task.service';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
 import { PersonalTaskWorkspaceComponent } from '../components/personal-task-workspace.component';
+import { SectionHeaderComponent } from '../../../shared/components/section-header/section-header.component';
 
 @Component({
   selector: 'app-inbox-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, PersonalTaskCardComponent, PersonalTaskWorkspaceComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    PersonalTaskCardComponent,
+    PersonalTaskWorkspaceComponent,
+    SectionHeaderComponent,
+  ],
   templateUrl: './inbox-page.component.html',
   styleUrl: './inbox-page.component.scss',
 })
