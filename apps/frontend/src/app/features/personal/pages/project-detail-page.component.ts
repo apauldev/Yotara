@@ -4,6 +4,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import type { Project } from '@yotara/shared';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { ProjectService } from '../../../core/services/project.service';
 import { TaskService } from '../../../core/services/task.service';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
@@ -17,6 +19,7 @@ import { projectPaletteFor, projectProgressPercent } from '../project-presentati
   imports: [
     CommonModule,
     RouterLink,
+    FontAwesomeModule,
     PersonalTaskCardComponent,
     PersonalTaskWorkspaceComponent,
     SectionHeaderComponent,
@@ -29,6 +32,7 @@ export class ProjectDetailPageComponent {
   protected readonly taskService = inject(TaskService);
   private readonly route = inject(ActivatedRoute);
   private readonly workspace = viewChild(PersonalTaskWorkspaceComponent);
+  protected readonly faArrowLeft = faArrowLeft;
   protected readonly projectId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get('id'))),
     { initialValue: this.route.snapshot.paramMap.get('id') },
