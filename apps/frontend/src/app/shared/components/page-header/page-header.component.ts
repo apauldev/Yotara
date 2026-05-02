@@ -11,4 +11,5 @@ import { Component, Input } from '@angular/core';
 export class PageHeaderComponent {
   @Input() title = '';
   @Input() subtitle = '';
+  @Input() eyebrow = '';
 }

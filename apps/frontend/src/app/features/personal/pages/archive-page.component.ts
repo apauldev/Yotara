@@ -18,6 +18,7 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
     <app-personal-task-workspace #workspace>
       <section class="page">
         <app-page-header
+          eyebrow="Personal Sanctuary"
           title="Archive"
           subtitle="Recently completed tasks stay here for 30 days, ready to be restored if needed."
         />
