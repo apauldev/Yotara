@@ -5,10 +5,10 @@
   (taskSaveFailed)="captureError.set($event)"
 >
   <section class="page">
-    <header class="page-header">
-      <h1>Inbox</h1>
-      <p>Collect everything that needs your attention.</p>
-    </header>
+    <app-page-header
+      title="Inbox"
+      subtitle="Collect everything that needs your attention."
+    />
 
     <form id="capture" class="capture-bar" (ngSubmit)="captureTask()">
       <button

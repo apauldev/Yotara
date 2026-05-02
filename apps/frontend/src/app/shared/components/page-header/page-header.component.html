@@ -1,6 +1,12 @@
 <header class="page-header">
   <div class="page-header-copy">
-    <h1>{{ title }}</h1>
+    @if (eyebrow) {
+      <p class="eyebrow">{{ eyebrow }}</p>
+    }
+    <div class="title-row">
+      <ng-content select="[page-header-back]" />
+      <h1>{{ title }}</h1>
+    </div>
     @if (subtitle) {
       <p class="tagline">{{ subtitle }}</p>
     }

@@ -11,6 +11,7 @@ import { TaskService } from '../../../core/services/task.service';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
 import { PersonalTaskWorkspaceComponent } from '../components/personal-task-workspace.component';
 import { SectionHeaderComponent } from '../../../shared/components/section-header/section-header.component';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { projectPaletteFor, projectProgressPercent } from '../project-presentation';
 
 @Component({
@@ -23,6 +24,7 @@ import { projectPaletteFor, projectProgressPercent } from '../project-presentati
     PersonalTaskCardComponent,
     PersonalTaskWorkspaceComponent,
     SectionHeaderComponent,
+    PageHeaderComponent,
   ],
   templateUrl: './project-detail-page.component.html',
   styleUrl: './project-detail-page.component.scss',

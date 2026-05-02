@@ -1,16 +1,17 @@
 <section class="page">
-  <header class="header-section">
-    <div class="header-content">
-      <h1>Project Directory</h1>
-      <p class="header-subtitle">
-        A curated overview of your active creative pursuits, designed for clarity and rapid
-        navigation.
-      </p>
-    </div>
-    <button type="button" class="new-project-button" (click)="openCreateModal()">
+  <app-page-header
+    title="Project Directory"
+    subtitle="A curated overview of your active creative pursuits, designed for clarity and rapid navigation."
+  >
+    <button
+      page-header-actions
+      type="button"
+      class="new-project-button"
+      (click)="openCreateModal()"
+    >
       + New Project
     </button>
-  </header>
+  </app-page-header>
 
   <app-personal-project-modal
     [open]="createModalOpen()"
