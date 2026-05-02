@@ -1,127 +1,104 @@
 <app-personal-task-workspace
-      #workspace
-      [initialProjectId]="projectId()"
-      (taskSaved)="handleTaskSaved()"
-    >
-      <section class="page">
-        @if (project(); as currentProject) {
-          <a routerLink="/projects" class="back-link">← Projects</a>
+  #workspace
+  [initialProjectId]="projectId()"
+  (taskSaved)="handleTaskSaved()"
+>
+  <section class="page">
+    @if (project(); as currentProject) {
+      <div class="page-header">
+        <a routerLink="/projects" class="back-button" [title]="'Back to Projects'">
+          <fa-icon [icon]="faArrowLeft"></fa-icon>
+        </a>
+        <h1>{{ currentProject.name }}</h1>
+      </div>
 
-          <header class="hero-card" [ngClass]="projectColorClass(currentProject)">
-            <div class="hero-icon">
-              <span>✦</span>
-            </div>
+      <section class="metrics-card">
+        <div class="metric">
+          <strong>{{ currentProject.openTaskCount }}</strong>
+          <span>Remaining</span>
+        </div>
+        <div class="metric">
+          <strong>{{ currentProject.completedTaskCount }}</strong>
+          <span>Completed</span>
+        </div>
+        <div class="progress-block">
+          <div class="progress-copy">
+            <strong>{{ progressPercent(currentProject) }}% total progress</strong>
+            <span>{{ currentProject.taskCount }} tasks total</span>
+          </div>
+          <div class="progress-track">
+            <span class="progress-bar" [style.width.%]="progressPercent(currentProject)"></span>
+          </div>
+        </div>
+      </section>
 
-            <div class="hero-copy">
-              <p class="eyebrow">Personal Project</p>
-              <h1>{{ currentProject.name }}</h1>
-              <p class="subtitle">
-                {{
-                  currentProject.description ||
-                    'A calm place for everything related to this outcome.'
-                }}
-              </p>
-            </div>
-          </header>
+      <div class="actions-row">
+        <div class="view-pill">List</div>
+        <button type="button" class="action-button" (click)="workspace.openCreateTaskModal()">
+          Add Task
+        </button>
+      </div>
 
-          <section class="metrics-card">
-            <div class="metric">
-              <strong>{{ currentProject.openTaskCount }}</strong>
-              <span>Remaining</span>
-            </div>
-            <div class="metric">
-              <strong>{{ currentProject.completedTaskCount }}</strong>
-              <span>Completed</span>
-            </div>
-            <div class="progress-block">
-              <div class="progress-copy">
-                <strong>{{ progressPercent(currentProject) }}% total progress</strong>
-                <span>{{ currentProject.taskCount }} tasks total</span>
-              </div>
-              <div class="progress-track">
-                <span
-                  class="progress-bar"
-                  [style.width.%]="progressPercent(currentProject)"
-                ></span>
-              </div>
-            </div>
-          </section>
+      @if (activeProjectTasks().length === 0 && completedProjectTasks().length === 0) {
+        <section class="empty-state">
+          <div class="empty-emblem">◌</div>
+          <p class="quote">
+            “A project becomes useful the moment the next step is visible. Start with one meaningful
+            step.”
+          </p>
+          <button type="button" class="empty-button" (click)="workspace.openCreateTaskModal()">
+            Add First Task
+          </button>
+        </section>
+      } @else {
+        <section class="task-section">
+          <app-section-header title="To Do" [count]="activeProjectTasks().length" size="lg" />
 
-          <div class="actions-row">
-            <div class="view-pill">List</div>
-            <button type="button" class="action-button" (click)="workspace.openCreateTaskModal()">
-              Add Task
+          <div class="task-stack">
+            @for (task of activeProjectTasks(); track task.id) {
+              <app-personal-task-card
+                [task]="task"
+                [interactive]="true"
+                (select)="workspace.editTask(task)"
+              />
+            }
+
+            <button type="button" class="inline-create" (click)="workspace.openCreateTaskModal()">
+              + Add new task to {{ currentProject.name }}
             </button>
           </div>
+        </section>
 
-          @if (activeProjectTasks().length === 0 && completedProjectTasks().length === 0) {
-            <section class="empty-state">
-              <div class="empty-emblem">◌</div>
-              <p class="quote">
-                “A project becomes useful the moment the next step is visible. Start with one
-                meaningful step.”
-              </p>
-              <button type="button" class="empty-button" (click)="workspace.openCreateTaskModal()">
-                Add First Task
-              </button>
-            </section>
-          } @else {
-            <section class="task-section">
-              <app-section-header
-                title="To Do"
-                [count]="activeProjectTasks().length"
-                size="lg"
-              />
+        @if (completedProjectTasks().length > 0) {
+          <section class="task-section task-section-soft">
+            <app-section-header
+              title="Completed"
+              [count]="completedProjectTasks().length"
+              size="lg"
+            />
 
-              <div class="task-stack">
-                @for (task of activeProjectTasks(); track task.id) {
-                  <app-personal-task-card
-                    [task]="task"
-                    [interactive]="true"
-                    (select)="workspace.editTask(task)"
-                  />
-                }
-
-                <button
-                  type="button"
-                  class="inline-create"
-                  (click)="workspace.openCreateTaskModal()"
-                >
-                  + Add new task to {{ currentProject.name }}
-                </button>
-              </div>
-            </section>
-
-            @if (completedProjectTasks().length > 0) {
-              <section class="task-section task-section-soft">
-                <app-section-header
-                  title="Completed"
-                  [count]="completedProjectTasks().length"
-                  size="lg"
+            <div class="task-stack">
+              @for (task of completedProjectTasks(); track task.id) {
+                <app-personal-task-card
+                  [task]="task"
+                  [interactive]="true"
+                  [showDescription]="false"
+                  [showCompletionState]="true"
+                  (select)="workspace.editTask(task)"
                 />
-
-                <div class="task-stack">
-                  @for (task of completedProjectTasks(); track task.id) {
-                    <app-personal-task-card
-                      [task]="task"
-                      [interactive]="true"
-                      [showDescription]="false"
-                      [showCompletionState]="true"
-                      (select)="workspace.editTask(task)"
-                    />
-                  }
-                </div>
-              </section>
-            }
-          }
-        } @else if (projectService.loading()) {
-          <p class="status-copy">Loading your project...</p>
-        } @else {
-          <section class="empty-state">
-            <h2>Project not found</h2>
-            <p>This project may have moved, or it is not available in your sanctuary yet.</p>
-            <a routerLink="/projects" class="empty-button">Back to Projects</a>
+              }
+            </div>
           </section>
         }
+      }
+    } @else if (projectService.loading()) {
+      <p class="status-copy">Loading your project...</p>
+    } @else {
+      <section class="empty-state">
+        <h2>Project not found</h2>
+        <p>This project may have moved, or it is not available in your sanctuary yet.</p>
+        <a routerLink="/projects" class="empty-button">Back to Projects</a>
       </section>
-    </app-personal-task-workspace>
+    }
+  </section>
+</app-personal-task-workspace>
