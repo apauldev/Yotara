@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import type { CreateProjectDto, Project } from '@yotara/shared';
 import { ProjectService } from '../../../core/services/project.service';
 import { PersonalProjectModalComponent } from '../components/personal-project-modal.component';
@@ -9,7 +9,7 @@ import { projectPaletteFor, projectProgressPercent } from '../project-presentati
 @Component({
   selector: 'app-projects-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, PersonalProjectModalComponent],
+  imports: [CommonModule, PersonalProjectModalComponent],
   templateUrl: './projects-page.component.html',
   styleUrl: './projects-page.component.scss',
 })
@@ -67,5 +67,14 @@ export class ProjectsPageComponent {
 
   protected progressPercent(project: Project) {
     return projectProgressPercent(project.openTaskCount, project.completedTaskCount);
+  }
+
+  protected getProjectStatus(project: Project): string {
+    if (project.openTaskCount === 0) {
+      return 'inactive';
+    } else if (project.completedTaskCount > 0) {
+      return 'active';
+    }
+    return 'active';
   }
 }
