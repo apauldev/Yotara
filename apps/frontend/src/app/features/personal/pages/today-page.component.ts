@@ -5,6 +5,7 @@ import { TaskService } from '../../../core/services/task.service';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
 import { PersonalTaskWorkspaceComponent } from '../components/personal-task-workspace.component';
 import { SectionHeaderComponent } from '../../../shared/components/section-header/section-header.component';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-today-page',
@@ -14,25 +15,24 @@ import { SectionHeaderComponent } from '../../../shared/components/section-heade
     PersonalTaskCardComponent,
     PersonalTaskWorkspaceComponent,
     SectionHeaderComponent,
+    PageHeaderComponent,
   ],
   template: `
     <app-personal-task-workspace #workspace>
       <section class="page">
-        <div class="hero-row">
-          <header class="page-header">
-            <p class="eyebrow">Personal Sanctuary</p>
-            <h1>Today</h1>
-            <p class="subtitle">{{ dateLabel() }} - {{ progressLabel() }}</p>
-          </header>
-
-          <div class="zen-card">
+        <app-page-header
+          eyebrow="Personal Sanctuary"
+          title="Today"
+          [subtitle]="dateLabel() + ' - ' + progressLabel()"
+        >
+          <div page-header-actions class="zen-card">
             <div class="zen-icon">✦</div>
             <div>
               <strong>Daily Zen</strong>
               <p>Progress is quiet, but steady.</p>
             </div>
           </div>
-        </div>
+        </app-page-header>
 
         @if (taskService.overdueTasks().length > 0) {
           <section class="task-section">
@@ -119,35 +119,6 @@ import { SectionHeaderComponent } from '../../../shared/components/section-heade
       .page {
         position: relative;
         padding: 0.85rem 0 3rem;
-      }
-
-      .hero-row {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 1.5rem;
-      }
-
-      .eyebrow {
-        margin: 0;
-        color: var(--on-surface-subtle);
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-        font-size: 0.82rem;
-        font-weight: 800;
-      }
-
-      .page-header h1 {
-        margin: 0.2rem 0 0;
-        font-size: clamp(2.7rem, 4vw, 3.6rem);
-        line-height: 1.02;
-        letter-spacing: -0.05em;
-      }
-
-      .subtitle {
-        margin: 0.65rem 0 0;
-        color: var(--on-surface-muted);
-        font-size: 1.1rem;
       }
 
       .zen-card {
@@ -251,17 +222,6 @@ import { SectionHeaderComponent } from '../../../shared/components/section-heade
         display: grid;
         place-items: center;
         box-shadow: 0 18px 36px var(--surface-dim-strong);
-      }
-
-      @media (max-width: 900px) {
-        .hero-row {
-          flex-direction: column;
-          align-items: stretch;
-        }
-
-        .zen-card {
-          min-width: 0;
-        }
       }
 
       @media (max-width: 720px) {

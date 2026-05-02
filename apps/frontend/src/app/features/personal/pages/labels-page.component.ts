@@ -3,7 +3,7 @@ import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
-import { Label, Task } from '@yotara/shared';
+import { Label } from '@yotara/shared';
 import { LabelService } from '../../../core/services/label.service';
 import { TaskService } from '../../../core/services/task.service';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
@@ -25,11 +25,14 @@ import { LabelModalComponent } from '../components/label-modal.component';
     <app-personal-task-workspace #workspace>
       <section class="page">
         <app-page-header
+          eyebrow="Personal Sanctuary"
           title="Labels"
           subtitle="Tap a label to see its tasks. Manage colors and names from the same modal."
         >
           <div page-header-actions class="header-actions">
-            <button type="button" class="header-button" (click)="openCreateLabel()">Create Label</button>
+            <button type="button" class="header-button" (click)="openCreateLabel()">
+              Create Label
+            </button>
             <button type="button" class="header-button secondary" (click)="openManageLabels()">
               Manage Labels
             </button>
@@ -58,7 +61,11 @@ import { LabelModalComponent } from '../components/label-modal.component';
                 </button>
               }
 
-              <button type="button" class="label-card label-card-create" (click)="openCreateLabel()">
+              <button
+                type="button"
+                class="label-card label-card-create"
+                (click)="openCreateLabel()"
+              >
                 <span class="create-plus">+</span>
                 <strong>Create New Label</strong>
                 <p>Start a new focus area</p>
@@ -78,7 +85,9 @@ import { LabelModalComponent } from '../components/label-modal.component';
                   </p>
                 </div>
                 @if (selectedLabel()) {
-                  <button type="button" class="edit-link" (click)="openManageLabels()">Edit Label</button>
+                  <button type="button" class="edit-link" (click)="openManageLabels()">
+                    Edit Label
+                  </button>
                 }
               </div>
 
@@ -222,7 +231,11 @@ import { LabelModalComponent } from '../components/label-modal.component';
 
       .label-card-create {
         border: 1px dashed var(--outline-variant);
-        background: color-mix(in srgb, var(--surface-container-lowest) 68%, var(--surface-container-low) 32%);
+        background: color-mix(
+          in srgb,
+          var(--surface-container-lowest) 68%,
+          var(--surface-container-low) 32%
+        );
         justify-content: center;
         align-items: center;
         gap: 0.4rem;
@@ -282,7 +295,11 @@ import { LabelModalComponent } from '../components/label-modal.component';
         margin-top: 1rem;
         min-height: 22rem;
         border-radius: 1.35rem;
-        background: color-mix(in srgb, var(--surface-container-lowest) 72%, var(--surface-container-low) 28%);
+        background: color-mix(
+          in srgb,
+          var(--surface-container-lowest) 72%,
+          var(--surface-container-low) 28%
+        );
         box-shadow: inset 0 0 0 1px var(--outline-variant);
         display: grid;
         place-items: center;
