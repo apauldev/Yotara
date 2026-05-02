@@ -1,4 +1,4 @@
-@import '@angular/cdk/overlay-prebuilt.css';
+@import url('@angular/cdk/overlay-prebuilt.css');
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
@@ -7,6 +7,7 @@
 
 :root {
   color-scheme: light;
+
   --font-sans: 'Manrope', sans-serif;
   --background: 42 58% 97%;
   --foreground: 75 13% 14%;
@@ -29,19 +30,19 @@
   --ring: 151 47% 28%;
   --radius: 1.5rem;
   --surface: #fcf9f0;
-  --surface-container-lowest: #ffffff;
+  --surface-container-lowest: #fff;
   --surface-container-low: #f6f3ea;
   --surface-container-high: #ece7dd;
   --surface-container-highest: #e5e2da;
-  --outline-variant: rgba(28, 28, 23, 0.15);
+  --outline-variant: rgb(28 28 23 / 15%);
   --on-surface: #1c1c17;
   --on-surface-muted: #6d685f;
   --on-surface-subtle: #8f897d;
   --surface-overlay: color-mix(in srgb, var(--surface-container-lowest) 88%, transparent);
   --surface-card: color-mix(in srgb, var(--surface-container-lowest) 92%, transparent);
   --surface-card-strong: color-mix(in srgb, var(--surface-container-highest) 88%, white);
-  --surface-dim: rgba(28, 28, 23, 0.08);
-  --surface-dim-strong: rgba(28, 28, 23, 0.14);
+  --surface-dim: rgb(28 28 23 / 8%);
+  --surface-dim-strong: rgb(28 28 23 / 14%);
   --primary-gradient: linear-gradient(135deg, #236849 0%, #3f8161 100%);
   --primary-action-gradient: linear-gradient(135deg, #4f8f72 0%, #66ae86 100%);
   --primary-solid: #236849;
@@ -56,6 +57,7 @@
 
 :root.dark {
   color-scheme: dark;
+
   --background: 147 18% 14%;
   --foreground: 146 19% 87%;
   --card: 149 11% 17%;
@@ -80,25 +82,25 @@
   --surface-container-low: #242e29;
   --surface-container-high: #2b352f;
   --surface-container-highest: #313c36;
-  --outline-variant: rgba(208, 224, 212, 0.12);
+  --outline-variant: rgb(208 224 212 / 12%);
   --on-surface: #d0e0d4;
   --on-surface-muted: #adc0b1;
   --on-surface-subtle: #89a18f;
   --surface-overlay: color-mix(in srgb, var(--surface-container-lowest) 88%, transparent);
   --surface-card: color-mix(in srgb, var(--surface-container-lowest) 92%, transparent);
   --surface-card-strong: color-mix(in srgb, var(--surface-container-highest) 90%, black);
-  --surface-dim: rgba(208, 224, 212, 0.06);
-  --surface-dim-strong: rgba(208, 224, 212, 0.1);
+  --surface-dim: rgb(208 224 212 / 6%);
+  --surface-dim-strong: rgb(208 224 212 / 10%);
   --primary-gradient: linear-gradient(135deg, #4f8f72 0%, #5aa37d 100%);
   --primary-action-gradient: linear-gradient(135deg, #4f8f72 0%, #5aa37d 100%);
   --primary-solid: #5aa37d;
-  --primary-soft: rgba(90, 163, 125, 0.16);
-  --primary-soft-strong: rgba(90, 163, 125, 0.24);
-  --accent-soft: rgba(90, 163, 125, 0.12);
+  --primary-soft: rgb(90 163 125 / 16%);
+  --primary-soft-strong: rgb(90 163 125 / 24%);
+  --accent-soft: rgb(90 163 125 / 12%);
   --accent-strong: #5aa37d;
-  --danger-soft: rgba(186, 109, 87, 0.16);
-  --warning-soft: rgba(210, 161, 61, 0.14);
-  --info-soft: rgba(109, 118, 144, 0.14);
+  --danger-soft: rgb(186 109 87 / 16%);
+  --warning-soft: rgb(210 161 61 / 14%);
+  --info-soft: rgb(109 118 144 / 14%);
 }
 
 @layer base {
@@ -114,6 +116,7 @@
 
   body {
     @apply bg-background text-foreground;
+
     font-family: var(--font-sans);
   }
 }
