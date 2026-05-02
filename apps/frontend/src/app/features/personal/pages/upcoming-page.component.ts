@@ -20,6 +20,7 @@ import { SectionHeaderComponent } from '../../../shared/components/section-heade
     <app-personal-task-workspace #workspace>
       <section class="page">
         <app-page-header
+          eyebrow="Personal Sanctuary"
           title="Upcoming"
           subtitle="See what is approaching and space it out before it becomes noisy."
         />

@@ -6,6 +6,7 @@ import { TaskService } from '../../../core/services/task.service';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
 import { PersonalTaskWorkspaceComponent } from '../components/personal-task-workspace.component';
 import { SectionHeaderComponent } from '../../../shared/components/section-header/section-header.component';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 
 @Component({
   selector: 'app-inbox-page',
@@ -16,6 +17,7 @@ import { SectionHeaderComponent } from '../../../shared/components/section-heade
     PersonalTaskCardComponent,
     PersonalTaskWorkspaceComponent,
     SectionHeaderComponent,
+    PageHeaderComponent,
   ],
   templateUrl: './inbox-page.component.html',
   styleUrl: './inbox-page.component.scss',
@@ -48,7 +50,9 @@ export class InboxPageComponent {
     }
 
     this.captureError.set('');
-    this.workspace()?.openCreateTaskModal(this.captureProjectId() || this.defaultCaptureProjectId() || null);
+    this.workspace()?.openCreateTaskModal(
+      this.captureProjectId() || this.defaultCaptureProjectId() || null,
+    );
   }
 
   protected handleTaskSaved(mode: 'create' | 'update') {

@@ -5,12 +5,16 @@
 >
   <section class="page">
     @if (project(); as currentProject) {
-      <div class="page-header">
-        <a routerLink="/projects" class="back-button" [title]="'Back to Projects'">
+      <app-page-header [title]="currentProject.name">
+        <a
+          page-header-back
+          routerLink="/projects"
+          class="back-button"
+          [title]="'Back to Projects'"
+        >
           <fa-icon [icon]="faArrowLeft"></fa-icon>
         </a>
-        <h1>{{ currentProject.name }}</h1>
-      </div>
+      </app-page-header>
 
       <section class="metrics-card">
         <div class="metric">

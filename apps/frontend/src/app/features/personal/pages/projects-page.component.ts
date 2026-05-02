@@ -4,12 +4,13 @@ import { Router } from '@angular/router';
 import type { CreateProjectDto, Project } from '@yotara/shared';
 import { ProjectService } from '../../../core/services/project.service';
 import { PersonalProjectModalComponent } from '../components/personal-project-modal.component';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { projectPaletteFor, projectProgressPercent } from '../project-presentation';
 
 @Component({
   selector: 'app-projects-page',
   standalone: true,
-  imports: [CommonModule, PersonalProjectModalComponent],
+  imports: [CommonModule, PersonalProjectModalComponent, PageHeaderComponent],
   templateUrl: './projects-page.component.html',
   styleUrl: './projects-page.component.scss',
 })
