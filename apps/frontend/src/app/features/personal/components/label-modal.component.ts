@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { CreateLabelDto, Label, UpdateLabelDto } from '@yotara/shared';
+import { Label } from '@yotara/shared';
 import { LabelService } from '../../../core/services/label.service';
 import { ModalComponent } from '../../../shared/ui/modal/modal.component';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
@@ -51,11 +51,22 @@ type LabelModalMode = 'create' | 'edit';
           <div class="editor-header">
             <div>
               <h3>{{ mode === 'create' ? 'Add Label' : 'Edit Label' }}</h3>
-              <p>{{ mode === 'create' ? 'Create a new label and save it immediately.' : 'Refine how you identify your focus areas.' }}</p>
+              <p>
+                {{
+                  mode === 'create'
+                    ? 'Create a new label and save it immediately.'
+                    : 'Refine how you identify your focus areas.'
+                }}
+              </p>
             </div>
 
             @if (mode === 'edit') {
-              <button type="button" class="icon-button" aria-label="Delete label" (click)="askDelete()">
+              <button
+                type="button"
+                class="icon-button"
+                aria-label="Delete label"
+                (click)="askDelete()"
+              >
                 ×
               </button>
             }
@@ -130,15 +141,15 @@ type LabelModalMode = 'create' | 'edit';
         display: grid;
         grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr);
         min-height: 31rem;
-        background: linear-gradient(90deg, #f3efe3 0%, #fbf8f1 100%);
+        background: var(--surface-container-low);
         border-radius: 1.35rem;
         overflow: hidden;
       }
 
       .label-list {
         padding: 1.2rem 1.05rem;
-        background: rgba(255, 255, 255, 0.28);
-        box-shadow: inset -1px 0 0 rgba(115, 115, 96, 0.1);
+        background: var(--surface-overlay);
+        box-shadow: inset -1px 0 0 var(--outline-variant);
       }
 
       .label-list-header h3,
@@ -159,8 +170,8 @@ type LabelModalMode = 'create' | 'edit';
         min-height: 4rem;
         margin-top: 0.85rem;
         border-radius: 0.95rem;
-        border: 1px dashed rgba(115, 115, 96, 0.25);
-        background: rgba(255, 255, 255, 0.4);
+        border: 1px dashed var(--outline-variant);
+        background: var(--surface-overlay);
         display: flex;
         align-items: center;
         gap: 0.75rem;
@@ -175,7 +186,7 @@ type LabelModalMode = 'create' | 'edit';
         border-radius: 999px;
         display: grid;
         place-items: center;
-        background: rgba(255, 255, 255, 0.9);
+        background: var(--surface-container-high);
       }
 
       .label-rail {
@@ -198,8 +209,8 @@ type LabelModalMode = 'create' | 'edit';
       }
 
       .label-rail-item-active {
-        background: rgba(255, 255, 255, 0.72);
-        color: #123b2e;
+        background: var(--surface-container-high);
+        color: var(--on-surface);
       }
 
       .label-rail-dot {
@@ -222,7 +233,7 @@ type LabelModalMode = 'create' | 'edit';
 
       .label-editor {
         padding: 1.6rem 1.6rem 1.25rem;
-        background: rgba(255, 255, 255, 0.86);
+        background: var(--surface-container-lowest);
         display: grid;
         align-content: start;
         gap: 1rem;
@@ -260,8 +271,8 @@ type LabelModalMode = 'create' | 'edit';
         min-height: 3.05rem;
         border: 0;
         border-radius: 0.95rem;
-        background: rgba(245, 242, 231, 0.9);
-        box-shadow: inset 0 0 0 1px rgba(115, 115, 96, 0.12);
+        background: var(--input);
+        box-shadow: inset 0 0 0 1px var(--outline-variant);
         padding: 0 1rem;
         font: inherit;
         color: var(--on-surface);
@@ -317,7 +328,7 @@ type LabelModalMode = 'create' | 'edit';
       }
 
       .secondary-button {
-        background: rgba(236, 231, 218, 0.9);
+        background: var(--secondary);
         color: var(--on-surface-muted);
       }
 
@@ -337,7 +348,7 @@ type LabelModalMode = 'create' | 'edit';
         }
 
         .label-list {
-          box-shadow: inset 0 -1px 0 rgba(115, 115, 96, 0.1);
+          box-shadow: inset 0 -1px 0 var(--outline-variant);
         }
       }
     `,
