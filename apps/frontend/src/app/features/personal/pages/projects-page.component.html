@@ -1,95 +1,75 @@
 <section class="page">
-      <header class="hero-row">
-        <div class="hero-copy">
-          <p class="eyebrow">Personal Projects</p>
-          <h1>Projects</h1>
-          <p class="subtitle">
-            Your work, gathered by outcome. Focused environments for your highest intentions.
-          </p>
-        </div>
+  <header class="header-section">
+    <div class="header-content">
+      <h1>Project Directory</h1>
+      <p class="header-subtitle">
+        A curated overview of your active creative pursuits, designed for clarity and rapid
+        navigation.
+      </p>
+    </div>
+    <button type="button" class="new-project-button" (click)="openCreateModal()">
+      + New Project
+    </button>
+  </header>
 
-        <button type="button" class="hero-button" (click)="openCreateModal()">New Project</button>
-      </header>
+  <app-personal-project-modal
+    [open]="createModalOpen()"
+    [saving]="projectService.saving()"
+    [error]="projectService.error()"
+    (close)="closeCreateModal()"
+    (save)="createProject($event)"
+  />
 
-      <app-personal-project-modal
-        [open]="createModalOpen()"
-        [saving]="projectService.saving()"
-        [error]="projectService.error()"
-        (close)="closeCreateModal()"
-        (save)="createProject($event)"
-      />
-
-      @if (projectService.loading()) {
-        <p class="status-copy">Loading your project spaces...</p>
-      } @else if (projectService.error() && projects().length === 0) {
-        <p class="status-copy">{{ projectService.error() }}</p>
-      } @else if (projects().length === 0) {
-        <section class="empty-shell">
-          <div class="empty-orb">+</div>
-          <h2>Start your first project</h2>
-          <p>A project becomes useful the moment the next step has a home.</p>
-          <button type="button" class="empty-button" (click)="openCreateModal()">
-            Create Project
-          </button>
-        </section>
-      } @else {
-        <section class="project-grid">
-          @for (project of projects(); track project.id) {
-            <article
-              class="project-card"
-              [ngClass]="projectColorClass(project)"
-              (click)="openProject(project.id)"
-            >
-              <div class="project-icon">
-                <span>✦</span>
-              </div>
-
-              <div class="project-menu">•••</div>
-
-              <h2>{{ project.name }}</h2>
-              <p>{{ project.description || 'A calm place for the work that belongs together.' }}</p>
-
-              <div class="progress-copy">
-                <strong>{{ project.taskCount }} tasks</strong>
-                <span>{{ project.openTaskCount }} remaining</span>
-              </div>
-
-              <div class="progress-track">
-                <span
-                  class="progress-bar"
-                  [style.width.%]="progressPercent(project)"
-                ></span>
-              </div>
-
-              <div class="meta-row">
-                <span class="meta-pill">{{ progressPercent(project) }}% complete</span>
-                <span class="meta-pill meta-pill-soft">{{ paletteLabel(project) }}</span>
-              </div>
-            </article>
-          }
-
-          <article class="project-card project-card-create" (click)="openCreateModal()">
-            <div class="create-orb">+</div>
-            <h2>New Project</h2>
-            <p>Begin a new journey of focused outcomes.</p>
-          </article>
-        </section>
-
-        <section class="focus-card">
-          <div class="focus-copy">
-            <p class="focus-eyebrow">Weekly Focus</p>
-            <h2>{{ focusHeadline() }}</h2>
-            <p>{{ focusBody() }}</p>
-            <a routerLink="/today" class="focus-button">Open Today</a>
-          </div>
-
-          <div class="focus-visual">
-            <div class="focus-orb"></div>
-          </div>
-        </section>
-      }
-
-      <button type="button" class="fab" aria-label="Create project" (click)="openCreateModal()">
-        +
-      </button>
+  @if (projectService.loading()) {
+    <p class="status-copy">Loading your project spaces...</p>
+  } @else if (projectService.error() && projects().length === 0) {
+    <p class="status-copy">{{ projectService.error() }}</p>
+  } @else if (projects().length === 0) {
+    <section class="empty-shell">
+      <div class="empty-orb">+</div>
+      <h2>Start your first project</h2>
+      <p>A project becomes useful the moment the next step has a home.</p>
+      <button type="button" class="empty-button" (click)="openCreateModal()">Create Project</button>
     </section>
+  } @else {
+    <section class="projects-table-container">
+      <div class="table-header">
+        <div class="col-identification">PROJECT IDENTIFICATION</div>
+        <div class="col-progress">PROGRESS</div>
+        <div class="col-status">STATUS</div>
+        <div class="col-actions">ACTIONS</div>
+      </div>
+
+      <div class="table-rows">
+        @for (project of projects(); track project.id) {
+          <div class="table-row" (click)="openProject(project.id)">
+            <div class="col-identification">
+              <div class="project-identifier">
+                <div class="project-color-dot" [ngClass]="projectColorClass(project)"></div>
+                <div class="project-info">
+                  <h3>{{ project.name }}</h3>
+                  <p>
+                    {{ project.description || 'A calm place for the work that belongs together.' }}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="col-progress">
+              <div class="progress-info">
+                <span class="progress-label">{{ progressPercent(project) }}%</span>
+              </div>
+            </div>
+            <div class="col-status">
+              <span class="status-badge" [ngClass]="'status-' + getProjectStatus(project)">
+                {{ getProjectStatus(project) | uppercase }}
+              </span>
+            </div>
+            <div class="col-actions">
+              <span class="action-icon">→</span>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+  }
+</section>
