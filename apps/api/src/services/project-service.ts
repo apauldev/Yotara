@@ -10,13 +10,25 @@ import {
 
 const DEFAULT_PROJECTS = [
   { name: 'Inbox', description: 'Default capture space for incoming tasks.', color: 'sage' },
-  { name: 'Focus', description: 'High-focus work that needs uninterrupted attention.', color: 'forest' },
-  { name: 'Deep Work', description: 'Long-form thinking and concentrated execution.', color: 'deep-ocean' },
+  {
+    name: 'Focus',
+    description: 'High-focus work that needs uninterrupted attention.',
+    color: 'forest',
+  },
+  {
+    name: 'Deep Work',
+    description: 'Long-form thinking and concentrated execution.',
+    color: 'deep-ocean',
+  },
   { name: 'Writing', description: 'Drafts, notes, and editorial work.', color: 'olive' },
   { name: 'Home', description: 'Household planning and personal upkeep.', color: 'clay' },
   { name: 'Health', description: 'Fitness, recovery, and wellbeing.', color: 'teal' },
   { name: 'Admin', description: 'Life admin, follow-ups, and maintenance.', color: 'sage' },
-  { name: 'Ideas', description: 'Scratchpad for future experiments and concepts.', color: 'forest' },
+  {
+    name: 'Ideas',
+    description: 'Scratchpad for future experiments and concepts.',
+    color: 'forest',
+  },
 ] as const;
 
 type ProjectWithCountsRow = typeof projects.$inferSelect & {
@@ -49,7 +61,10 @@ async function loadProjectById(projectId: string, ownerId: string) {
 }
 
 export async function seedDefaultProjectsForOwner(ownerId: string) {
-  const existing = await db.select({ name: projects.name }).from(projects).where(eq(projects.ownerId, ownerId));
+  const existing = await db
+    .select({ name: projects.name })
+    .from(projects)
+    .where(eq(projects.ownerId, ownerId));
   const existingNames = new Set(existing.map((project) => project.name.toLowerCase()));
   const now = new Date().toISOString();
   const missingProjects = DEFAULT_PROJECTS.filter(
@@ -158,6 +173,18 @@ export async function listTasksForProject(projectId: string, ownerId: string) {
     .select()
     .from(tasks)
     .where(and(eq(tasks.userId, ownerId), eq(tasks.projectId, projectId), isNull(tasks.deletedAt)));
+  rows.sort((left, right) => {
+    if (left.order !== right.order) {
+      return left.order - right.order;
+    }
+
+    const createdAtOrder = left.createdAt.localeCompare(right.createdAt);
+    if (createdAtOrder !== 0) {
+      return createdAtOrder;
+    }
+
+    return left.id.localeCompare(right.id);
+  });
 
   return rows;
 }

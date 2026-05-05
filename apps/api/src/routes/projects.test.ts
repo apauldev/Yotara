@@ -263,3 +263,80 @@ test('project task listing returns only active tasks assigned to that project', 
     await ctx.cleanup();
   }
 });
+
+test('project task listing returns tasks in stable order', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const userCookie = await signUpAndGetCookie(`order-${randomUUID()}@example.com`);
+
+    const createProjectResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/projects',
+      headers: { cookie: userCookie },
+      payload: {
+        name: 'Ordered Project',
+        color: 'sage',
+      },
+    });
+    assert.equal(createProjectResponse.statusCode, 201);
+    const projectId = createProjectResponse.json().id as string;
+
+    const lowOrderTaskResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie: userCookie },
+      payload: {
+        title: 'Second task',
+        projectId,
+      },
+    });
+    assert.equal(lowOrderTaskResponse.statusCode, 201);
+
+    const highOrderTaskResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie: userCookie },
+      payload: {
+        title: 'First task',
+        projectId,
+      },
+    });
+    assert.equal(highOrderTaskResponse.statusCode, 201);
+
+    const firstTaskId = lowOrderTaskResponse.json().id as string;
+    const secondTaskId = highOrderTaskResponse.json().id as string;
+
+    await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${firstTaskId}`,
+      headers: { cookie: userCookie },
+      payload: {
+        order: 2,
+      },
+    });
+
+    await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${secondTaskId}`,
+      headers: { cookie: userCookie },
+      payload: {
+        order: 1,
+      },
+    });
+
+    const projectTasksResponse = await ctx.app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/tasks`,
+      headers: { cookie: userCookie },
+    });
+
+    assert.equal(projectTasksResponse.statusCode, 200);
+    assert.deepEqual(
+      projectTasksResponse.json().map((task: { title: string }) => task.title),
+      ['First task', 'Second task'],
+    );
+  } finally {
+    await ctx.cleanup();
+  }
+});

@@ -8,6 +8,7 @@
     mode="edit"
     [project]="project()"
     [saving]="projectService.saving()"
+    [error]="projectService.error()"
     (close)="closeProjectModal()"
     (save)="saveProject($event)"
   />
