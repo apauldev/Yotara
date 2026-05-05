@@ -20,9 +20,9 @@
   - [x] Support subtitle and optional action slot/button area
   - [ ] Replace repeated `page-header` markup in personal pages
 
-- [ ] Create a generic `SectionHeader` component:
-  - [ ] Inputs: `title`, `count`, `accent/tone`
-  - [ ] Replace repeated `section-heading` markup
+- [x] Create a generic `SectionHeader` component:
+  - [x] Inputs: `title`, `count`, `accent/tone`
+  - [x] Replace repeated `section-heading` markup
 
 - [ ] Create a generic `EmptyState` component:
   - [ ] Inputs: `title`, `description`, optional icon/illustration

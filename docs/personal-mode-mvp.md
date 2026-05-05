@@ -14,7 +14,7 @@ This document captures what is now implemented for Yotara's personal-mode experi
 - mode-aware redirect logic so personal users land in `/inbox`
 - separate team routing so team users continue to `/dashboard`
 - task-backed Inbox, Today, and Upcoming views
-- placeholder-ready Projects and Labels pages
+- projects directory/detail screens and labels page
 - mobile drawer behavior for the personal shell
 - quick task capture from Inbox
 - richer task detail modal for create and edit flows
@@ -75,8 +75,9 @@ Project persistence now exists at the API/domain layer:
 - `GET /projects/:id/tasks` returns active tasks assigned to a project
 - projects are personal-mode scoped and return derived task counts
 
-Frontend project screens are still a follow-up slice. This backend work exists so the personal-mode
-Projects UI can connect to real data next.
+Frontend project screens now connect to live project data and support editing from both the
+directory and detail views. Follow-up slices remain Kanban, archive/delete, and any future team-mode
+layering.
 
 ## Verification
 

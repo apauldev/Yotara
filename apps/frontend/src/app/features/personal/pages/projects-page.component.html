@@ -15,9 +15,11 @@
 
   <app-personal-project-modal
     [open]="createModalOpen()"
+    [mode]="modalMode()"
+    [project]="selectedProject()"
     [saving]="projectService.saving()"
     [error]="projectService.error()"
-    (close)="closeCreateModal()"
+    (close)="closeProjectModal()"
     (save)="createProject($event)"
   />
 
@@ -52,6 +54,13 @@
                   <p>
                     {{ project.description || 'A calm place for the work that belongs together.' }}
                   </p>
+                  <button
+                    type="button"
+                    class="project-edit-button"
+                    (click)="openEditModal(project, $event)"
+                  >
+                    Edit
+                  </button>
                 </div>
               </div>
             </div>
