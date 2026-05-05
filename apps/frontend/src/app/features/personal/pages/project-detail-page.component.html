@@ -3,8 +3,18 @@
   [initialProjectId]="projectId()"
   (taskSaved)="handleTaskSaved()"
 >
+  <app-personal-project-modal
+    [open]="projectModalOpen()"
+    mode="edit"
+    [project]="project()"
+    [saving]="projectService.saving()"
+    (close)="closeProjectModal()"
+    (save)="saveProject($event)"
+  />
+
   <section class="page">
-    @if (project(); as currentProject) {
+    @if (projectState() === 'ready') {
+      @if (project(); as currentProject) {
       <app-page-header [title]="currentProject.name">
         <a
           page-header-back
@@ -14,7 +24,20 @@
         >
           <fa-icon [icon]="faArrowLeft"></fa-icon>
         </a>
+
+        <button
+          page-header-actions
+          type="button"
+          class="header-action-button"
+          (click)="openEditProjectModal()"
+        >
+          Edit Project
+        </button>
       </app-page-header>
+
+      @if (currentProject.description) {
+        <p class="project-description">{{ currentProject.description }}</p>
+      }
 
       <section class="metrics-card">
         <div class="metric">
@@ -95,8 +118,15 @@
           </section>
         }
       }
-    } @else if (projectService.loading()) {
+      }
+    } @else if (projectState() === 'loading') {
       <p class="status-copy">Loading your project...</p>
+    } @else if (projectState() === 'error') {
+      <section class="empty-state">
+        <h2>We could not load this project</h2>
+        <p>{{ loadError() }}</p>
+        <button type="button" class="empty-button" (click)="retryLoad()">Try Again</button>
+      </section>
     } @else {
       <section class="empty-state">
         <h2>Project not found</h2>

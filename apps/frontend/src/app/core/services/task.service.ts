@@ -14,6 +14,8 @@ import {
 } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthStateService } from './auth-state.service';
+import { LabelService } from './label.service';
+import { ProjectService } from './project.service';
 
 type UpcomingBucket = 'This Week' | 'Next Week' | 'Later';
 
@@ -26,6 +28,8 @@ export interface UpcomingTaskGroup {
 export class TaskService {
   private http = inject(HttpClient);
   private authState = inject(AuthStateService);
+  private labelService = inject(LabelService);
+  private projectService = inject(ProjectService);
   private baseUrl = environment.apiBaseUrl;
   private refreshState = signal(0);
   private loadingState = signal(false);
@@ -75,6 +79,7 @@ export class TaskService {
   readonly loading = this.loadingState.asReadonly();
   readonly creating = this.creatingState.asReadonly();
   readonly error = this.errorState.asReadonly();
+  readonly revision = this.refreshState.asReadonly();
   readonly activeTasks = computed(() =>
     this.tasks().filter((task) => !task.completed && task.status !== 'archived'),
   );
@@ -123,6 +128,8 @@ export class TaskService {
         this.http.post<Task>(`${this.baseUrl}/tasks`, payload, { withCredentials: true }),
       );
       this.refreshState.update((value: number) => value + 1);
+      this.labelService.refreshLabels();
+      this.projectService.refreshProjects();
       return createdTask;
     } catch (error) {
       console.error('Failed to create task', error);
@@ -144,6 +151,8 @@ export class TaskService {
         }),
       );
       this.refreshState.update((value: number) => value + 1);
+      this.labelService.refreshLabels();
+      this.projectService.refreshProjects();
       return updatedTask;
     } catch (error) {
       console.error('Failed to update task', error);
