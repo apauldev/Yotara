@@ -107,6 +107,18 @@ This document outlines the complete list of screens, pages, and modals needed fo
 
 These features should be built as personal-mode improvements first, but they should be designed so the same model can carry into team mode later.
 
+### Personal Mode Product Design / UX Polish
+- Personal mode should feel like a calm, focused operating system for one user, not a generic task dashboard
+- Quick capture should be the hero interaction, with refinement optional and never blocking capture
+- The shell should keep navigation simple and predictable, with Inbox, Today, Upcoming, Projects, Labels, and Archive clearly separated by intent
+- The task detail model should use progressive disclosure so simple tasks stay lightweight while advanced metadata remains available
+- Empty states should teach the product model and guide the next action instead of feeling like a blank void
+- Search should reinforce confidence that anything captured can be found later
+- Visual hierarchy should stay calm and spacious, with strong color reserved for state, priority, and primary actions
+- Status language should be consistent across done, archived, simple mode, buckets, and priority so the mental model stays stable
+- Preferences should feel minimal and useful, especially for theme, density, and quick-add behavior
+- Accessibility and keyboard support should be treated as part of the product finish, not only technical compliance
+
 ### Task lifecycle and archive flow
 - Personal mode should distinguish between `done` and `archived`
 - Team mode will need the same distinction so closed work does not clutter active collaboration views
@@ -125,7 +137,15 @@ These features should be built as personal-mode improvements first, but they sho
 - Personal settings should cover default view, theme, and quick-add behavior
 - Team mode should inherit the same account settings shell and add workspace preferences later
 
+### Shell hierarchy and navigation
+- Make personal mode’s primary actions feel lighter than the surrounding chrome
+- Keep secondary controls visually quieter than capture, search, and core navigation
+- Make the personal/team switch communicate product intent clearly without looking like a disabled control
+
 ### Empty, loading, and error states
+- Empty states should be designed for Inbox, Today, Upcoming, Projects, Labels, Search, and Archive with specific guidance for each page
+- Loading and error states should stay consistent across task and project surfaces so the app feels coherent under stress
+- These states should be written to support future team-mode complexity as well
 - These are not just polish
 - They become the baseline UX for team collaboration once multiple users, slower loads, and permission errors enter the product
 
@@ -151,6 +171,12 @@ These features should be built as personal-mode improvements first, but they sho
 - Treat localized date/time/copy formatting as part of settings and not as hardcoded UI text
 - Defer right-to-left layout support to a later phase
 - Revisit RTL only if Arabic or other RTL language demand becomes real
+
+### Accessibility and interaction polish
+- Ensure every interactive shell control has visible focus states and keyboard behavior
+- Preserve readable contrast for muted text, chips, and metadata in light and dark themes
+- Keep touch targets large enough for mobile use, especially in the top bar and task rows
+- Standardize modal, menu, and confirmation behavior so the shell feels consistent across the app
 
 ---
 
