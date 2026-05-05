@@ -75,13 +75,12 @@ This document outlines the complete list of screens, pages, and modals needed fo
 - Visual timeline sense
 
 ### Project / List Detail (`/projects/:id` or `/lists/:slug`)
-- **Status**: 🟡 Placeholder UI exists, full project data model still pending
+- **Status**: ✅ Built for personal mode
 - Project name header + description
-- **View switcher**: List | Kanban
-  - List view: traditional task list
-  - Kanban view: To Do | In Progress | Done columns
-- Add task button (inline and/or floating action button)
-- Edit/archive project options
+- Project-scoped task list with add-task actions
+- Edit from the directory and detail views
+- Kanban view remains a later enhancement
+- Archive/delete project options remain a separate follow-up slice
 
 ### Task Detail / Edit Modal ⭐ (Most Important)
 - **Status**: ✅ Built for personal-mode task create/edit
@@ -313,7 +312,7 @@ These features should be built as personal-mode improvements first, but they sho
 5. ✅ Inbox list + task item component
 6. ✅ Task create & detail modal
 7. ✅ Today + Upcoming views
-8. 🟡 Project create + project detail (data model still pending)
+8. ✅ Project create + project detail
 
 ### Phase 3: Polish & Secondary Features
 9. 🟡 Settings basics + logout
@@ -373,13 +372,13 @@ These features should be built as personal-mode improvements first, but they sho
 - Auth guard integration
 - Task service (CRUD + paginated task loading)
 - Task API with pagination and soft delete
+- Project create + project detail screens
 - OpenAPI docs and Swagger UI
 - Docker deployment and smoke checks
 - Inbox counter pipe
 
 ### 🔄 In Progress
 - Team-mode shell and workspace primitives
-- Project data model and project detail screens
 - Settings shell and account/logout flows
 - Archive flow for completed tasks
 

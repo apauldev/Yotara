@@ -18,6 +18,8 @@ export class ProjectsPageComponent {
   protected readonly projectService = inject(ProjectService);
   private readonly router = inject(Router);
   protected readonly createModalOpen = signal(false);
+  protected readonly modalMode = signal<'create' | 'edit'>('create');
+  protected readonly selectedProject = signal<Project | null>(null);
   protected readonly projects = this.projectService.projects;
   protected readonly focusHeadline = computed(() => {
     const projects = this.projects();
@@ -41,16 +43,35 @@ export class ProjectsPageComponent {
   });
 
   protected openCreateModal() {
+    this.selectedProject.set(null);
+    this.modalMode.set('create');
     this.createModalOpen.set(true);
   }
 
-  protected closeCreateModal() {
+  protected openEditModal(project: Project, event?: MouseEvent) {
+    event?.stopPropagation();
+    this.selectedProject.set(project);
+    this.modalMode.set('edit');
+    this.createModalOpen.set(true);
+  }
+
+  protected closeProjectModal() {
     this.createModalOpen.set(false);
+    this.selectedProject.set(null);
+    this.modalMode.set('create');
   }
 
   protected async createProject(payload: CreateProjectDto) {
+    const selectedProject = this.selectedProject();
+
+    if (this.modalMode() === 'edit' && selectedProject) {
+      await this.projectService.updateProject(selectedProject.id, payload);
+      this.closeProjectModal();
+      return;
+    }
+
     const created = await this.projectService.createProject(payload);
-    this.createModalOpen.set(false);
+    this.closeProjectModal();
     await this.router.navigate(['/projects', created.id]);
   }
 

@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { CreateProjectDto, Project, UpdateProjectDto } from '@yotara/shared';
+import { CreateProjectDto, Project, Task, UpdateProjectDto } from '@yotara/shared';
 import {
   catchError,
   combineLatest,
@@ -67,6 +67,36 @@ export class ProjectService {
   readonly saving = this.savingState.asReadonly();
   readonly error = this.errorState.asReadonly();
   readonly hasProjects = computed(() => this.projects().length > 0);
+
+  async getProject(projectId: string): Promise<Project | null> {
+    try {
+      return await firstValueFrom(
+        this.http.get<Project>(`${this.baseUrl}/projects/${projectId}`, { withCredentials: true }),
+      );
+    } catch (error) {
+      if (error instanceof HttpErrorResponse && error.status === 404) {
+        return null;
+      }
+
+      throw error;
+    }
+  }
+
+  async getProjectTasks(projectId: string): Promise<Task[] | null> {
+    try {
+      return await firstValueFrom(
+        this.http.get<Task[]>(`${this.baseUrl}/projects/${projectId}/tasks`, {
+          withCredentials: true,
+        }),
+      );
+    } catch (error) {
+      if (error instanceof HttpErrorResponse && error.status === 404) {
+        return null;
+      }
+
+      throw error;
+    }
+  }
 
   async createProject(payload: CreateProjectDto) {
     this.savingState.set(true);

@@ -30,10 +30,7 @@ import { LabelModalComponent } from '../components/label-modal.component';
           subtitle="Tap a label to see its tasks. Manage colors and names from the same modal."
         >
           <div page-header-actions class="header-actions">
-            <button type="button" class="header-button" (click)="openCreateLabel()">
-              Create Label
-            </button>
-            <button type="button" class="header-button secondary" (click)="openManageLabels()">
+            <button type="button" class="header-button" (click)="openManageLabels()">
               Manage Labels
             </button>
           </div>

@@ -3,12 +3,16 @@ import { signal } from '@angular/core';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { TaskService } from './task.service';
 import { AuthStateService } from './auth-state.service';
+import { LabelService } from './label.service';
+import { ProjectService } from './project.service';
 import { Task } from '@yotara/shared';
 
 describe('TaskService', () => {
   const initialized = signal(false);
   const isAuthenticated = signal(false);
   const currentUserId = signal<string | null>(null);
+  let labelServiceStub: { refreshLabels: jasmine.Spy };
+  let projectServiceStub: { projects: ReturnType<typeof signal>; refreshProjects: jasmine.Spy };
 
   function dayOffset(offset: number) {
     const date = new Date();
@@ -40,6 +44,13 @@ describe('TaskService', () => {
     initialized.set(false);
     isAuthenticated.set(false);
     currentUserId.set(null);
+    projectServiceStub = {
+      projects: signal([]),
+      refreshProjects: jasmine.createSpy('refreshProjects'),
+    };
+    labelServiceStub = {
+      refreshLabels: jasmine.createSpy('refreshLabels'),
+    };
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
@@ -52,6 +63,14 @@ describe('TaskService', () => {
             isAuthenticated,
             currentUserId,
           },
+        },
+        {
+          provide: ProjectService,
+          useValue: projectServiceStub,
+        },
+        {
+          provide: LabelService,
+          useValue: labelServiceStub,
         },
       ],
     });
@@ -361,6 +380,8 @@ describe('TaskService', () => {
 
     expect(createdTask?.id).toBe('created-1');
     expect(service.inboxTasks().map((task) => task.id)).toEqual(['created-1']);
+    expect(labelServiceStub.refreshLabels).toHaveBeenCalled();
+    expect(projectServiceStub.refreshProjects).toHaveBeenCalled();
   }));
 
   it('updates a task with metadata and refreshes the list', fakeAsync(() => {
@@ -422,5 +443,7 @@ describe('TaskService', () => {
 
     expect(service.inboxTasks()[0]?.bucket).toBe('deep-work');
     expect(service.inboxTasks()[0]?.simpleMode).toBeFalse();
+    expect(labelServiceStub.refreshLabels).toHaveBeenCalled();
+    expect(projectServiceStub.refreshProjects).toHaveBeenCalled();
   }));
 });
