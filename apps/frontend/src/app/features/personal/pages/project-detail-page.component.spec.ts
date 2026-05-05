@@ -11,6 +11,7 @@ describe('ProjectDetailPageComponent', () => {
   let projectServiceStub: {
     projects: ReturnType<typeof signal>;
     saving: ReturnType<typeof signal>;
+    error: ReturnType<typeof signal>;
     getProject: jasmine.Spy;
     getProjectTasks: jasmine.Spy;
     updateProject: jasmine.Spy;
@@ -63,10 +64,16 @@ describe('ProjectDetailPageComponent', () => {
     projectServiceStub = {
       projects: signal([baseProject]),
       saving: signal(false),
+      error: signal<string | null>(null),
       getProject: jasmine.createSpy('getProject').and.resolveTo(projectResponse),
-      getProjectTasks: jasmine
-        .createSpy('getProjectTasks')
-        .and.resolveTo(projectResponse ? [activeTask, completedTask] : null),
+      getProjectTasks: jasmine.createSpy('getProjectTasks').and.resolveTo(
+        projectResponse
+          ? [
+              { ...completedTask, order: 2 },
+              { ...activeTask, order: 1 },
+            ]
+          : null,
+      ),
       updateProject: jasmine.createSpy('updateProject').and.resolveTo(baseProject),
       refreshProjects: jasmine.createSpy('refreshProjects'),
     };
@@ -115,6 +122,24 @@ describe('ProjectDetailPageComponent', () => {
     expect(text).toContain('Outline release checklist');
     expect(text).toContain('Edit Project');
     expect(text).toContain('Add Task');
+    expect(text.indexOf('Draft launch copy')).toBeLessThan(
+      text.indexOf('Outline release checklist'),
+    );
+  });
+
+  it('surfaces project save errors in the edit modal', async () => {
+    await configure(baseProject);
+
+    const fixture = TestBed.createComponent(ProjectDetailPageComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    (fixture.componentInstance as any).openEditProjectModal();
+    projectServiceStub.error.set('Could not update your project right now.');
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Could not update your project right now.');
   });
 
   it('shows a not found state when the project is missing', async () => {

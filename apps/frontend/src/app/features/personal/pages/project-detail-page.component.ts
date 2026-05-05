@@ -50,10 +50,14 @@ export class ProjectDetailPageComponent {
     { initialValue: this.route.snapshot.paramMap.get('id') },
   );
   protected readonly activeProjectTasks = computed(() =>
-    this.projectTasks().filter((task) => !task.completed && task.status !== 'archived'),
+    [...this.projectTasks()]
+      .filter((task) => !task.completed && task.status !== 'archived')
+      .sort(compareTasksByOrder),
   );
   protected readonly completedProjectTasks = computed(() =>
-    this.projectTasks().filter((task) => task.completed && task.status !== 'archived'),
+    [...this.projectTasks()]
+      .filter((task) => task.completed && task.status !== 'archived')
+      .sort(compareTasksByOrder),
   );
 
   constructor() {
@@ -187,4 +191,20 @@ export class ProjectDetailPageComponent {
       this.projectState.set('error');
     }
   }
+}
+
+function compareTasksByOrder(left: Task, right: Task) {
+  const leftOrder = left.order ?? 0;
+  const rightOrder = right.order ?? 0;
+
+  if (leftOrder !== rightOrder) {
+    return leftOrder - rightOrder;
+  }
+
+  const createdAtOrder = left.createdAt.localeCompare(right.createdAt);
+  if (createdAtOrder !== 0) {
+    return createdAtOrder;
+  }
+
+  return left.id.localeCompare(right.id);
 }
