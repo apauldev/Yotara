@@ -1,7 +1,15 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  OnChanges,
+  Output,
+  SimpleChanges,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import type { CreateProjectDto, ProjectColor } from '@yotara/shared';
+import type { CreateProjectDto, Project, ProjectColor } from '@yotara/shared';
 import { PROJECT_PALETTE } from '../project-presentation';
 
 @Component({
@@ -21,8 +29,14 @@ import { PROJECT_PALETTE } from '../project-presentation';
         <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="project-title">
           <header class="modal-header">
             <div>
-              <h2 id="project-title">New Project</h2>
-              <p>A project is a home for related tasks and progress.</p>
+              <h2 id="project-title">{{ mode === 'edit' ? 'Edit Project' : 'New Project' }}</h2>
+              <p>
+                {{
+                  mode === 'edit'
+                    ? 'Adjust the name, description, or color of this project space.'
+                    : 'A project is a home for related tasks and progress.'
+                }}
+              </p>
             </div>
 
             <button type="button" class="close-button" aria-label="Close" (click)="close.emit()">
@@ -79,7 +93,15 @@ import { PROJECT_PALETTE } from '../project-presentation';
           <div class="actions">
             <button type="button" class="secondary-button" (click)="close.emit()">Cancel</button>
             <button type="button" class="primary-button" [disabled]="saving" (click)="submit()">
-              {{ saving ? 'Creating...' : 'Create Project' }}
+              {{
+                saving
+                  ? mode === 'edit'
+                    ? 'Saving...'
+                    : 'Creating...'
+                  : mode === 'edit'
+                    ? 'Save Changes'
+                    : 'Create Project'
+              }}
             </button>
           </div>
         </section>
@@ -266,8 +288,10 @@ import { PROJECT_PALETTE } from '../project-presentation';
     `,
   ],
 })
-export class PersonalProjectModalComponent {
+export class PersonalProjectModalComponent implements OnChanges {
   @Input() open = false;
+  @Input() mode: 'create' | 'edit' = 'create';
+  @Input() project: Project | null = null;
   @Input() saving = false;
   @Input() error: string | null = null;
   @Output() readonly close = new EventEmitter<void>();
@@ -278,6 +302,16 @@ export class PersonalProjectModalComponent {
   protected readonly draftDescription = signal('');
   protected readonly draftColor = signal<ProjectColor>('sage');
   protected readonly nameError = signal<string | null>(null);
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (this.open && (changes['open'] || changes['mode'] || changes['project'])) {
+      this.hydrateDrafts();
+    }
+
+    if (changes['open'] && !this.open) {
+      this.nameError.set(null);
+    }
+  }
 
   protected submit() {
     const name = this.draftName().trim();
@@ -293,5 +327,19 @@ export class PersonalProjectModalComponent {
       description: this.draftDescription().trim() || undefined,
       color: this.draftColor(),
     });
+  }
+
+  private hydrateDrafts() {
+    if (this.mode === 'edit' && this.project) {
+      this.draftName.set(this.project.name);
+      this.draftDescription.set(this.project.description ?? '');
+      this.draftColor.set(this.project.color ?? 'sage');
+    } else {
+      this.draftName.set('');
+      this.draftDescription.set('');
+      this.draftColor.set('sage');
+    }
+
+    this.nameError.set(null);
   }
 }

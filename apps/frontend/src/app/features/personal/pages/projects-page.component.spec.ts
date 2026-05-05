@@ -46,7 +46,9 @@ describe('ProjectsPageComponent', () => {
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Launch Yotara MVP');
     expect(text).toContain('Core release scope');
-    expect(text).toContain('18 tasks');
+    expect(text).toContain('61%');
+    expect(text).toContain('ACTIVE');
     expect(text).toContain('New Project');
+    expect(text).toContain('Edit');
   });
 });
