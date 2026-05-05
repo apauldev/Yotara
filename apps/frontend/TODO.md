@@ -42,6 +42,18 @@
   - [ ] Shared card shell for modal/list/promo use cases
   - [ ] Consistent border radius, shadows, spacing, and background tokens
 
+- [ ] Add personal-mode product design polish tasks:
+  - [ ] Make Inbox quick capture the primary hero interaction
+  - [ ] Use progressive disclosure in the task modal so simple tasks stay lightweight
+  - [ ] Clarify the mental model for done vs archived vs simple mode vs bucket
+  - [ ] Strengthen empty states for Inbox, Today, Upcoming, Projects, Labels, Search, and Archive
+  - [ ] Reduce visual weight of secondary shell controls so capture and navigation stay dominant
+  - [ ] Make the personal/team mode switch communicate intent more clearly
+  - [ ] Improve search-result confidence with better surfaced match context
+  - [ ] Tighten spacing, elevation, and visual hierarchy so the shell feels calmer and less dashboard-like
+  - [ ] Keep preferences minimal and useful: theme, density, and quick-add behavior
+  - [ ] Treat keyboard support, focus states, contrast, and touch targets as part of the final product finish
+
 ## Service and Component Refactors
 
 - [ ] Modernize Angular component APIs to match the project guidance:
@@ -110,6 +122,13 @@
   - [ ] Keep `done` as completion state and add `archived` as the final inactive state
   - [ ] Move completed tasks out of active views once archived
   - [ ] Add UI actions for archiving and viewing archived tasks later
+
+- [ ] Add shell and navigation polish:
+  - [ ] Rebalance sidebar and topbar hierarchy so core actions stay primary
+  - [ ] Keep utility actions visually quieter than Inbox, Today, Upcoming, and Quick Add
+  - [ ] Standardize empty/loading/error states across all personal-mode pages
+  - [ ] Make modal, menu, and confirmation patterns feel visually and behaviorally consistent
+  - [ ] Review mobile drawer, search, and preferences behavior for the personal-mode finish pass
 
 ## OSS and Delivery Hardening
 
