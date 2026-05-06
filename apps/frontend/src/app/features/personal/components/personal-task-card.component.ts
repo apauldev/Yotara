@@ -29,6 +29,7 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
         [class.task-check-complete]="task.completed"
         [attr.aria-label]="task.completed ? 'Task completed' : 'Mark task complete'"
         (click)="requestComplete($event)"
+        (keydown)="$event.stopPropagation()"
       >
         <span class="task-check-box" aria-hidden="true">
           @if (task.completed) {
@@ -48,6 +49,7 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
                 type="button"
                 class="restore-pill"
                 (click)="requestComplete($event)"
+                (keydown)="$event.stopPropagation()"
                 aria-label="Restore task"
               >
                 <fa-icon [icon]="faRotateLeft" class="restore-icon"></fa-icon>
