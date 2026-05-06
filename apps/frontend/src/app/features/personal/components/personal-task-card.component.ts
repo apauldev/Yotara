@@ -1,8 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
 import { Task } from '@yotara/shared';
-import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faRotateLeft } from '@fortawesome/free-solid-svg-icons';
 import { LabelService } from '../../../core/services/label.service';
 import { TaskService } from '../../../core/services/task.service';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
@@ -10,7 +8,7 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
 @Component({
   selector: 'app-personal-task-card',
   standalone: true,
-  imports: [CommonModule, ConfirmDialogComponent, FontAwesomeModule],
+  imports: [CommonModule, ConfirmDialogComponent],
   template: `
     <article
       class="task-card"
@@ -42,18 +40,7 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
           <h3>{{ task.title }}</h3>
           <span class="priority-chip priority-chip-{{ task.priority }}">{{ priorityLabel() }}</span>
           @if (task.completed) {
-            <div class="completion-group">
-              <span class="completion-chip completion-chip-complete">Completed</span>
-              <button
-                type="button"
-                class="restore-pill"
-                (click)="requestComplete($event)"
-                aria-label="Restore task"
-              >
-                <fa-icon [icon]="faRotateLeft" class="restore-icon"></fa-icon>
-                <span>Restore</span>
-              </button>
-            </div>
+            <span class="completion-chip completion-chip-complete">Completed</span>
           }
         </div>
 
@@ -192,14 +179,8 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
         flex-wrap: wrap;
       }
 
-      .completion-group {
-        margin-left: auto;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-
       .completion-chip {
+        margin-left: auto;
         border-radius: 999px;
         padding: 0.18rem 0.55rem;
         font-size: 0.69rem;
@@ -209,34 +190,8 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
       }
 
       .completion-chip-complete {
-        background: var(--primary-soft);
-        color: var(--primary-solid);
-      }
-
-      .restore-pill {
-        appearance: none;
-        border: 0;
-        display: flex;
-        align-items: center;
-        gap: 0.35rem;
-        background: var(--primary-soft);
-        color: var(--primary-solid);
-        border-radius: 999px;
-        padding: 0.18rem 0.65rem;
-        font-size: 0.69rem;
-        font-weight: 700;
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
-        cursor: pointer;
-        transition: background-color 120ms ease;
-      }
-
-      .restore-pill:hover {
-        background: var(--primary-soft-strong);
-      }
-
-      .restore-icon {
-        font-size: 0.75rem;
+        background: #dff0e3;
+        color: #3d7b59;
       }
 
       h3 {
@@ -335,9 +290,8 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
           gap: 0.45rem;
         }
 
-        .completion-group {
+        .completion-chip {
           margin-left: 0;
-          margin-top: 0.2rem;
         }
 
         .task-meta {
@@ -363,7 +317,6 @@ export class PersonalTaskCardComponent {
   private readonly labelService = inject(LabelService);
   protected readonly completeConfirmOpen = signal(false);
   protected readonly completing = signal(false);
-  protected readonly faRotateLeft = faRotateLeft;
 
   @Input({ required: true }) task!: Task;
   @Input() tone: 'default' | 'overdue' = 'default';
