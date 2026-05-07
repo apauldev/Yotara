@@ -89,7 +89,10 @@ export class TaskService {
     this.completedTasks().filter((task) => this.isTaskInArchiveWindow(task)),
   );
   readonly inboxTasks = computed(() =>
-    this.activeTasks().filter((task) => task.status === 'inbox'),
+    this.activeTasks().filter(
+      (task) =>
+        this.isTaskOverdue(task) || (task.status === 'inbox' && !this.hasScheduledDate(task)),
+    ),
   );
   readonly overdueTasks = computed(() =>
     this.activeTasks().filter((task) => this.isTaskOverdue(task)),
@@ -205,6 +208,11 @@ export class TaskService {
     );
   }
 
+  private hasScheduledDate(task: Task) {
+    const dueDate = toCalendarDate(task.dueDate);
+    return !!dueDate && dueDate.getTime() >= startOfToday().getTime();
+  }
+
   isTaskInArchiveWindow(task: Task) {
     if (!task.completed) {
       return false;
@@ -245,6 +253,12 @@ export class TaskService {
 function toCalendarDate(value?: string | null) {
   if (!value) {
     return null;
+  }
+
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch;
+    return new Date(Number(year), Number(month) - 1, Number(day));
   }
 
   const parsed = new Date(value);

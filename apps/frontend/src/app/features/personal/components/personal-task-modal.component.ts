@@ -21,6 +21,7 @@ import {
   UpdateTaskDto,
 } from '@yotara/shared';
 import { LabelService } from '../../../core/services/label.service';
+import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
 
 type SavePayload =
   | { mode: 'create'; payload: CreateTaskDto }
@@ -29,7 +30,7 @@ type SavePayload =
 @Component({
   selector: 'app-personal-task-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, DatePickerComponent, FormsModule],
   templateUrl: './personal-task-modal.component.html',
   styleUrl: './personal-task-modal.component.scss',
 })
@@ -177,7 +178,7 @@ export class PersonalTaskModalComponent implements OnDestroy {
       description: this.draftDescription().trim() || undefined,
       status: this.draftStatus(),
       priority: this.draftPriority(),
-      dueDate: this.draftSimpleMode() ? undefined : this.draftDueDate() || undefined,
+      dueDate: this.draftSimpleMode() ? undefined : normalizeDateInputValue(this.draftDueDate()),
       simpleMode: this.draftSimpleMode(),
       projectId: this.draftProjectId() || undefined,
       labels: this.draftLabels(),
@@ -234,7 +235,7 @@ export class PersonalTaskModalComponent implements OnDestroy {
     this.draftDescription.set(this.task?.description ?? '');
     this.draftStatus.set(this.task?.status ?? 'inbox');
     this.draftPriority.set(this.task?.priority ?? 'medium');
-    this.draftDueDate.set(this.task?.dueDate ?? '');
+    this.draftDueDate.set(toDateInputValue(this.task?.dueDate));
     this.draftSimpleMode.set(this.task?.simpleMode ?? !this.task?.dueDate);
     this.draftProjectId.set(
       this.task?.projectId ?? this.initialProjectId ?? this.projects[0]?.id ?? '',
@@ -287,4 +288,47 @@ export class PersonalTaskModalComponent implements OnDestroy {
     document.body.style.touchAction = this.previousBodyTouchAction;
     this.bodyScrollLocked = false;
   }
+}
+
+function toDateInputValue(value?: string | null) {
+  const date = parseCalendarDate(value);
+  if (!date) {
+    return '';
+  }
+
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+    date.getDate(),
+  ).padStart(2, '0')}`;
+}
+
+function normalizeDateInputValue(value: string) {
+  const date = parseCalendarDate(value);
+  return date ? formatDateInputValue(date) : undefined;
+}
+
+function parseCalendarDate(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch;
+    // Use local date constructor to avoid timezone shifts
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  // If it's a full ISO string, we want the local date representation of that moment
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+}
+
+function formatDateInputValue(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+    date.getDate(),
+  ).padStart(2, '0')}`;
 }

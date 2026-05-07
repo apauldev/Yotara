@@ -256,23 +256,113 @@ describe('TaskService', () => {
         createdAt: dayOffset(-1),
         updatedAt: dayOffset(-1),
       },
+      {
+        id: 'inbox-due-today',
+        title: 'Inbox item due today',
+        status: 'inbox',
+        priority: 'medium',
+        completed: false,
+        dueDate: dayOffset(0),
+        simpleMode: false,
+        bucket: 'personal-sanctuary',
+        order: 5,
+        createdAt: dayOffset(-1),
+        updatedAt: dayOffset(-1),
+      },
+      {
+        id: 'inbox-due-upcoming',
+        title: 'Inbox item due later',
+        status: 'inbox',
+        priority: 'medium',
+        completed: false,
+        dueDate: dayOffset(5),
+        simpleMode: false,
+        bucket: 'personal-sanctuary',
+        order: 6,
+        createdAt: dayOffset(-1),
+        updatedAt: dayOffset(-1),
+      },
+      {
+        id: 'upcoming-overdue',
+        title: 'Upcoming item now overdue',
+        status: 'upcoming',
+        priority: 'high',
+        completed: false,
+        dueDate: dayOffset(-2),
+        simpleMode: false,
+        bucket: 'deep-work',
+        order: 7,
+        createdAt: dayOffset(-3),
+        updatedAt: dayOffset(-3),
+      },
     ];
 
     http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100').flush(paginated(tasks));
     tick();
 
-    expect(service.inboxTasks().map((task) => task.id)).toEqual(['inbox-1']);
-    expect(service.overdueTasks().map((task) => task.id)).toEqual(['overdue-1']);
-    expect(service.todayTasks().map((task) => task.id)).toEqual(['today-1']);
+    expect(service.inboxTasks().map((task) => task.id)).toEqual([
+      'inbox-1',
+      'overdue-1',
+      'upcoming-overdue',
+    ]);
+    expect(service.overdueTasks().map((task) => task.id)).toEqual([
+      'overdue-1',
+      'upcoming-overdue',
+    ]);
+    expect(service.todayTasks().map((task) => task.id)).toEqual(['today-1', 'inbox-due-today']);
     expect(service.todayCompletedTasks().map((task) => task.id)).toEqual(['done-1']);
-    expect(service.upcomingTasks().map((task) => task.id)).toEqual(['upcoming-1']);
+    expect(service.upcomingTasks().map((task) => task.id)).toEqual([
+      'upcoming-1',
+      'inbox-due-upcoming',
+    ]);
     expect(service.archivedTasks().map((task) => task.id)).toEqual(['done-1']);
     expect(service.upcomingTaskGroups()).toEqual([
       {
         label: 'This Week',
-        tasks: [jasmine.objectContaining({ id: 'upcoming-1' })],
+        tasks: [
+          jasmine.objectContaining({ id: 'upcoming-1' }),
+          jasmine.objectContaining({ id: 'inbox-due-upcoming' }),
+        ],
       },
     ]);
+  }));
+
+  it('treats date-only due dates as local calendar days', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+    const today = new Date();
+    const todayDateOnly = [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, '0'),
+      String(today.getDate()).padStart(2, '0'),
+    ].join('-');
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100').flush(
+      paginated([
+        {
+          id: 'date-only-today',
+          title: 'Date-only today',
+          status: 'inbox',
+          priority: 'medium',
+          completed: false,
+          dueDate: todayDateOnly,
+          simpleMode: false,
+          bucket: 'personal-sanctuary',
+          order: 0,
+          createdAt: dayOffset(0),
+          updatedAt: dayOffset(0),
+        },
+      ]),
+    );
+    tick();
+
+    expect(service.todayTasks().map((task) => task.id)).toEqual(['date-only-today']);
+    expect(service.inboxTasks()).toEqual([]);
   }));
 
   it('only includes tasks completed within the last 30 days in the archive', fakeAsync(() => {

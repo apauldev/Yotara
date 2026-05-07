@@ -70,6 +70,7 @@
             </div>
 
             <label class="project-picker" for="task-project">
+              <span class="sr-only">Project</span>
               <span class="project-picker-dot"></span>
               <select
                 id="task-project"
@@ -141,16 +142,13 @@
 
           <div class="sidebar-section">
             <span class="field-label">Schedule</span>
-            <label class="field compact-field">
-              <input
-                type="date"
-                name="taskDueDate"
-                [ngModel]="draftDueDate()"
-                (ngModelChange)="draftDueDate.set($event)"
-                [class.field-error]="dueDateError()"
-                [disabled]="draftSimpleMode()"
-              />
-            </label>
+            <app-date-picker
+              class="compact-field"
+              [value]="draftDueDate()"
+              (valueChange)="draftDueDate.set($event)"
+              [disabled]="draftSimpleMode()"
+              label="Due date"
+            />
             @if (dueDateError()) {
               <p class="field-error-message">{{ dueDateError() }}</p>
             }
