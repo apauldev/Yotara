@@ -53,15 +53,14 @@
     </div>
 
     <div class="sidebar-bottom">
-      <a
-        [routerLink]="['/tasks']"
-        [queryParams]="{ view: 'inbox' }"
-        fragment="capture"
+      <button
+        type="button"
         class="quick-add-button"
+        (click)="openCreateTaskModal()"
       >
         <span class="quick-add-icon"><fa-icon [icon]="faPlus"></fa-icon></span>
         Quick Add Task
-      </a>
+      </button>
 
       <div class="mode-switcher">
         <button type="button" class="mode-button mode-button-active">Simple Mode</button>
