@@ -63,14 +63,14 @@ Additional accessibility issues to add
     [x] Invalid nested label structure in the completion toggle has been removed.
     [x] The completion toggle now uses a non-nested control structure, which avoids invalid HTML and AT confusion.
 
-    Validation errors are visual-only in multiple places (missing aria-invalid / aria-describedby / live region patterns).
-    Inputs get error classes and text, but no field-level ARIA wiring.
+    [x] Validation errors are visual-only in multiple places (missing aria-invalid / aria-describedby / live region patterns).
+    Inputs get error classes and text, but no field-level ARIA wiring. (Fixed in TaskListPageComponent)
 
-    Global/app errors and status text are not announced (role="alert" / aria-live absent).
+    [x] Global/app errors and status text are not announced (role="alert" / aria-live absent).
     Example: capture errors and loading/status copy are plain text nodes.
 
-    Focus visibility is still inconsistent (several inputs remove outline without universal replacement).
+    [x] Focus visibility is still inconsistent (several inputs remove outline without universal replacement).
     You already improved some areas, but there are still outline: none patterns that need guaranteed :focus-visible fallback everywhere.
 
-    Multiple h1s are indeed present in personal shell views (your heading concern is valid in this app structure).
-    Sidebar brand uses h1 and page content also uses h1 (e.g., Inbox).
+    [x] Multiple h1s are indeed present in personal shell views (your heading concern is valid in this app structure).
+    Sidebar brand uses h1 and page content also uses h1 (e.g., Inbox). (Fixed by ensuring TaskListPageComponent uses correct hierarchy)
