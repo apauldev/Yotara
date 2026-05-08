@@ -6,7 +6,7 @@
   box-shadow: inset 0 -1px 0 0 var(--outline-variant);
 }
 
-.task-item--done strong {
+.task-item-done strong {
   text-decoration: line-through;
   color: var(--on-surface-subtle);
 }
@@ -19,17 +19,17 @@
   text-transform: uppercase;
 }
 
-.priority--high {
+.priority-high {
   background: var(--danger-soft);
   color: #c8846d;
 }
 
-.priority--medium {
+.priority-medium {
   background: var(--warning-soft);
   color: #b28734;
 }
 
-.priority--low {
+.priority-low {
   background: var(--primary-soft);
   color: var(--primary-solid);
 }

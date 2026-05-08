@@ -25,6 +25,7 @@ import {
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthStateService } from '../../../core/services/auth-state.service';
+import { TaskService } from '../../../core/services/task.service';
 import { LogoutConfirmModalComponent } from '../../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
 
 type PersonalIcon = 'inbox' | 'today' | 'upcoming' | 'projects' | 'labels' | 'archive';
@@ -65,6 +66,7 @@ export class PersonalShellComponent {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private authState = inject(AuthStateService);
+  protected readonly taskService = inject(TaskService);
   protected readonly searchQuery = signal(this.route.snapshot.queryParamMap.get('q') ?? '');
 
   protected readonly navItems: PersonalNavItem[] = [
@@ -179,6 +181,22 @@ export class PersonalShellComponent {
       await this.router.navigateByUrl('/login');
     } finally {
       this.signingOut.set(false);
+    }
+  }
+
+  protected async openCreateTaskModal() {
+    const currentUrl = this.router.url;
+    if (!currentUrl.includes('/tasks')) {
+      await this.router.navigate(['/tasks'], {
+        queryParams: { view: 'inbox', fragment: 'capture' },
+      });
+      return;
+    }
+
+    const captureEl = document.getElementById('capture');
+    if (captureEl) {
+      captureEl.scrollIntoView({ behavior: 'smooth' });
+      captureEl.querySelector('input')?.focus();
     }
   }
 
