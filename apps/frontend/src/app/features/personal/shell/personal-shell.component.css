@@ -435,7 +435,7 @@
 }
 
 .profile-menu-item-danger {
-  color: #c8846d;
+  color: var(--status-overdue);
 }
 
 .icon-button,
