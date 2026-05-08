@@ -411,8 +411,14 @@
     }
 
     <!-- Shared FAB for all modes -->
-    <button type="button" class="fab" aria-label="Quick add task" (click)="openCreateTaskModal()">
-      <span aria-hidden="true">+</span>
+    <button
+      type="button"
+      class="fab"
+      aria-label="Quick add task"
+      [disabled]="taskService.creating()"
+      (click)="openCreateTaskModal()"
+    >
+      <fa-icon [icon]="faPlus" aria-hidden="true"></fa-icon>
     </button>
   </section>
 </app-personal-task-workspace>

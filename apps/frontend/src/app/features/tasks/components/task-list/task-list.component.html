@@ -7,8 +7,8 @@
 
   <ul>
     @for (task of tasks; track task.id) {
-      <li class="task-item" [class.task-item--done]="task.completed">
-        <span class="priority priority--{{ task.priority }}">{{ task.priority }}</span>
+      <li class="task-item" [class.task-item-done]="task.completed">
+        <span class="priority priority-{{ task.priority }}">{{ task.priority }}</span>
         <strong>{{ task.title }}</strong>
         @if (showStatus) {
           <span class="status">{{ task.status }}</span>

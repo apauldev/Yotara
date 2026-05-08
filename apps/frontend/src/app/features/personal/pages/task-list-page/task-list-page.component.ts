@@ -12,6 +12,8 @@ import { SectionHeaderComponent } from '../../../../shared/components/section-he
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { faPlus } from '@fortawesome/free-solid-svg-icons';
 
 export type TaskListViewMode = 'inbox' | 'today' | 'upcoming' | 'search';
 
@@ -26,6 +28,7 @@ export type TaskListViewMode = 'inbox' | 'today' | 'upcoming' | 'search';
     PersonalTaskWorkspaceComponent,
     SectionHeaderComponent,
     PageHeaderComponent,
+    FontAwesomeModule,
   ],
   templateUrl: './task-list-page.component.html',
   styleUrl: './task-list-page.component.scss',
@@ -36,6 +39,8 @@ export class TaskListPageComponent implements OnInit {
   protected readonly searchService = inject(SearchService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+
+  protected readonly faPlus = faPlus;
 
   private readonly workspace = viewChild(PersonalTaskWorkspaceComponent);
 
