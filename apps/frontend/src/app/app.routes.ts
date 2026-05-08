@@ -40,25 +40,26 @@ export const routes: Routes = [
       ),
     children: [
       {
-        path: 'inbox',
+        path: 'tasks',
         loadComponent: () =>
-          import('./features/personal/pages/inbox-page.component').then(
-            (m) => m.InboxPageComponent,
+          import('./features/personal/pages/task-list-page/task-list-page.component').then(
+            (m) => m.TaskListPageComponent,
           ),
+      },
+      {
+        path: 'inbox',
+        redirectTo: 'tasks',
+        pathMatch: 'full',
       },
       {
         path: 'today',
-        loadComponent: () =>
-          import('./features/personal/pages/today-page.component').then(
-            (m) => m.TodayPageComponent,
-          ),
+        redirectTo: 'tasks',
+        pathMatch: 'full',
       },
       {
         path: 'upcoming',
-        loadComponent: () =>
-          import('./features/personal/pages/upcoming-page.component').then(
-            (m) => m.UpcomingPageComponent,
-          ),
+        redirectTo: 'tasks',
+        pathMatch: 'full',
       },
       {
         path: 'projects/:id',
@@ -90,10 +91,8 @@ export const routes: Routes = [
       },
       {
         path: 'search',
-        loadComponent: () =>
-          import('./features/personal/pages/search-page.component').then(
-            (m) => m.SearchPageComponent,
-          ),
+        redirectTo: 'tasks',
+        pathMatch: 'full',
       },
     ],
   },

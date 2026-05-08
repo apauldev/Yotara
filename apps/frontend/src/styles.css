@@ -53,6 +53,9 @@
   --danger-soft: #f5e3da;
   --warning-soft: #f6edd8;
   --info-soft: #edf0f5;
+  --status-overdue: #bb6d57;
+  --status-complete: #236849;
+  --status-pending: #c97c46;
 }
 
 :root.dark {
@@ -101,6 +104,9 @@
   --danger-soft: rgb(186 109 87 / 16%);
   --warning-soft: rgb(210 161 61 / 14%);
   --info-soft: rgb(109 118 144 / 14%);
+  --status-overdue: #da8e78;
+  --status-complete: #5aa37d;
+  --status-pending: #df9b6d;
 }
 
 @layer base {

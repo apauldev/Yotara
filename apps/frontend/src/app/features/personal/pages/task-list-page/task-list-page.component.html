@@ -1,0 +1,418 @@
+<app-personal-task-workspace
+  #workspace
+  [initialTitle]="viewMode() === 'inbox' ? captureTitle() : ''"
+  (taskSaved)="handleTaskSaved($event)"
+  (taskSaveFailed)="captureError.set($event)"
+>
+  <section class="page" [attr.data-view]="viewMode()">
+    <app-page-header eyebrow="Personal Sanctuary" [title]="pageTitle()" [subtitle]="pageSubtitle()">
+      <!-- Today Specific: Zen Card -->
+      @if (viewMode() === 'today') {
+        <div page-header-actions class="zen-card" aria-hidden="true">
+          <div class="zen-icon">✦</div>
+          <div>
+            <strong>Daily Zen</strong>
+            <p>Progress is quiet, but steady.</p>
+          </div>
+        </div>
+      }
+
+      <!-- Search Specific: Result Count -->
+      @if (viewMode() === 'search' && searchQuery()) {
+        <div page-header-actions class="header-chip" aria-live="polite">
+          <span>{{ resultCount() }} matches</span>
+        </div>
+      }
+    </app-page-header>
+
+    @switch (viewMode()) {
+      @case ('inbox') {
+        <!-- Inbox View: Capture Bar + List -->
+        <form id="capture" class="capture-bar" (ngSubmit)="captureTask()">
+          <button
+            type="submit"
+            class="capture-plus"
+            [disabled]="taskService.creating()"
+            aria-label="Capture task"
+          >
+            +
+          </button>
+
+          <input
+            type="text"
+            name="captureTitle"
+            [ngModel]="captureTitle()"
+            (ngModelChange)="captureTitle.set($event)"
+            placeholder="What's on your mind today?"
+            autocomplete="off"
+            [attr.aria-invalid]="captureError() ? 'true' : 'false'"
+            [attr.aria-describedby]="captureError() ? 'capture-error' : null"
+          />
+
+          <div class="capture-actions">
+            <span class="capture-icon" aria-hidden="true">🗓</span>
+            <label class="capture-project">
+              <span class="sr-only">Project</span>
+              <select
+                [ngModel]="captureProjectId() || defaultCaptureProjectId()"
+                (ngModelChange)="captureProjectId.set($event)"
+                name="captureProjectId"
+                aria-label="Choose project"
+              >
+                @for (project of projectService.projects(); track project.id) {
+                  <option [value]="project.id">{{ project.name }}</option>
+                }
+              </select>
+            </label>
+          </div>
+
+          <button type="submit" class="capture-submit" [disabled]="taskService.creating()">
+            {{ taskService.creating() ? 'Saving...' : 'Capture' }}
+          </button>
+        </form>
+
+        @if (captureError()) {
+          <p id="capture-error" class="capture-error" role="alert">{{ captureError() }}</p>
+        }
+
+        <section class="list-section">
+          <app-section-header title="Pending Processing" [count]="inboxCountLabel()" size="sm" />
+
+          <div aria-live="polite">
+            @if (taskService.loading()) {
+              <p class="status-copy">Loading your inbox...</p>
+            } @else if (taskService.error()) {
+              <p class="status-copy">{{ taskService.error() }}</p>
+            } @else if (taskService.inboxTasks().length === 0) {
+              <div class="empty-state">
+                <h3>Clear skies</h3>
+                <p>Your inbox is empty. Capture the next idea or task above to keep moving.</p>
+              </div>
+            } @else {
+              <div class="task-stack">
+                @for (task of taskService.inboxTasks(); track task.id) {
+                  <app-personal-task-card
+                    [task]="task"
+                    [interactive]="true"
+                    (select)="workspace.editTask(task)"
+                  />
+                }
+              </div>
+            }
+          </div>
+        </section>
+
+        <div class="promo-grid">
+          <div class="promo-card promo-card-soft">
+            <div class="promo-icon" aria-hidden="true">✦</div>
+            <h3>Daily clarity</h3>
+            <p>{{ dailyClarityPrompt() }}</p>
+          </div>
+
+          <div class="promo-card promo-card-dark">
+            <p>{{ journalPrompt() }}</p>
+            <span>The Yotara Journal</span>
+          </div>
+        </div>
+      }
+
+      @case ('today') {
+        <!-- Today View: Overdue + Today + Completed -->
+        @if (taskService.overdueTasks().length > 0) {
+          <section class="task-section">
+            <app-section-header title="Overdue" size="lg" tone="accent" />
+
+            <div class="task-stack">
+              @for (task of taskService.overdueTasks(); track task.id) {
+                <app-personal-task-card
+                  [task]="task"
+                  tone="overdue"
+                  [interactive]="true"
+                  (select)="editTask(task)"
+                />
+              }
+            </div>
+          </section>
+        }
+
+        <section class="task-section">
+          <app-section-header title="Due Today" size="lg">
+            <div section-header-actions class="section-actions">
+              <button type="button" class="icon-chip" aria-label="Filter tasks">≡</button>
+              <button type="button" class="icon-chip" aria-label="More actions">…</button>
+            </div>
+          </app-section-header>
+
+          <div aria-live="polite">
+            @if (taskService.loading()) {
+              <p class="status-copy">Loading your focused list...</p>
+            } @else if (taskService.error()) {
+              <p class="status-copy">{{ taskService.error() }}</p>
+            } @else if (
+              taskService.todayTasks().length === 0 &&
+              taskService.todayCompletedTasks().length === 0 &&
+              taskService.overdueTasks().length === 0
+            ) {
+              <div class="empty-state">
+                <h3>You are clear for today</h3>
+                <p>Nothing urgent is waiting. Capture a new task or plan the next focus block.</p>
+              </div>
+            } @else {
+              <div class="task-stack">
+                @for (task of taskService.todayTasks(); track task.id) {
+                  <app-personal-task-card
+                    [task]="task"
+                    [interactive]="true"
+                    (select)="editTask(task)"
+                  />
+                }
+              </div>
+
+              @if (taskService.todayCompletedTasks().length > 0) {
+                <div class="completed-stack">
+                  @for (task of taskService.todayCompletedTasks(); track task.id) {
+                    <app-personal-task-card
+                      [task]="task"
+                      [interactive]="true"
+                      [showDescription]="false"
+                      [showCompletionState]="true"
+                      (select)="editTask(task)"
+                    />
+                  }
+                </div>
+              }
+            }
+          </div>
+        </section>
+      }
+
+      @case ('upcoming') {
+        <!-- Upcoming View: Grouped by date -->
+        <div aria-live="polite">
+          @if (taskService.loading()) {
+            <p class="status-copy">Loading your upcoming plans...</p>
+          } @else if (taskService.error()) {
+            <p class="status-copy">{{ taskService.error() }}</p>
+          } @else if (taskService.upcomingTaskGroups().length === 0) {
+            <div class="empty-state">
+              <h2>Nothing is crowding the horizon</h2>
+              <p>Upcoming work will appear here once tasks are scheduled ahead.</p>
+            </div>
+          } @else {
+            <div class="group-stack">
+              @for (group of taskService.upcomingTaskGroups(); track group.label) {
+                <section class="group-card">
+                  <app-section-header
+                    [title]="group.label"
+                    [count]="group.tasks.length + ' tasks'"
+                    size="md"
+                  />
+
+                  <div class="task-stack">
+                    @for (task of group.tasks; track task.id) {
+                      <app-personal-task-card
+                        [task]="task"
+                        [interactive]="true"
+                        (select)="workspace.editTask(task)"
+                      />
+                    }
+                  </div>
+                </section>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      @case ('search') {
+        <!-- Search View -->
+        <div class="search-container">
+          <form class="search-panel" (ngSubmit)="submitSearch()">
+            <label class="search-input-shell">
+              <span class="search-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="11" cy="11" r="6"></circle>
+                  <path d="m20 20-3.5-3.5"></path>
+                </svg>
+              </span>
+
+              <input
+                type="search"
+                name="searchQuery"
+                [ngModel]="draftQuery()"
+                (ngModelChange)="draftQuery.set($event)"
+                placeholder="Search tasks, projects, and status keywords..."
+                aria-label="Search"
+              />
+            </label>
+
+            <button type="submit" class="search-button">Search</button>
+          </form>
+
+          <nav class="tab-row" aria-label="Search result filters">
+            @for (tab of tabItems; track tab.value) {
+              <button
+                type="button"
+                class="tab-chip"
+                [class.tab-chip-active]="activeTab() === tab.value"
+                (click)="chooseSearchTab(tab.value)"
+              >
+                <span>{{ tab.label }}</span>
+                @if (tab.count && tab.value !== 'all') {
+                  <strong>{{ tab.count() }}</strong>
+                }
+              </button>
+            }
+          </nav>
+
+          <div aria-live="polite">
+            @if (!searchQuery()) {
+              <section class="empty-state">
+                <h2>Start with a title, project, or keyword</h2>
+                <p>
+                  Search looks through task titles, descriptions, project names, and status keywords
+                  like inbox, today, upcoming, done, and archived.
+                </p>
+              </section>
+            } @else if (resultCount() === 0) {
+              <section class="empty-state">
+                <h2>No matches found</h2>
+                <p>Try a different phrase, project name, or status keyword.</p>
+              </section>
+            } @else {
+              @if (activeTab() === 'all') {
+                @if (taskResults().length > 0) {
+                  <section class="result-group">
+                    <app-section-header
+                      title="Tasks"
+                      [count]="results().tasks.length + ' matches'"
+                    />
+
+                    <div class="task-stack">
+                      @for (taskResult of taskResults(); track taskResult.task.id) {
+                        <app-personal-task-card
+                          [task]="taskResult.task"
+                          [interactive]="true"
+                          (select)="editTask(taskResult.task)"
+                        />
+                      }
+                    </div>
+                  </section>
+                }
+
+                @if (projectResults().length > 0) {
+                  <section class="result-group">
+                    <app-section-header
+                      title="Projects"
+                      [count]="results().projects.length + ' matches'"
+                    />
+
+                    <div class="project-grid">
+                      @for (projectResult of projectResults(); track projectResult.project.id) {
+                        <a
+                          class="project-card"
+                          [routerLink]="['/projects', projectResult.project.id]"
+                        >
+                          <div class="project-topline">
+                            <h3>{{ projectResult.project.name }}</h3>
+                            <span>{{ projectLabel(projectResult.project) }}</span>
+                          </div>
+                          <p>
+                            {{
+                              projectResult.project.description || 'A calm place for related work.'
+                            }}
+                          </p>
+                          <div class="project-meta">
+                            <span>{{ projectResult.project.taskCount }} tasks</span>
+                            <span>{{ projectResult.project.completedTaskCount }} done</span>
+                          </div>
+                        </a>
+                      }
+                    </div>
+                  </section>
+                }
+              }
+
+              @if (activeTab() === 'tasks') {
+                <section class="result-group">
+                  <app-section-header title="Tasks" [count]="results().tasks.length + ' matches'" />
+
+                  <div class="task-stack">
+                    @for (taskResult of results().tasks; track taskResult.task.id) {
+                      <app-personal-task-card
+                        [task]="taskResult.task"
+                        [interactive]="true"
+                        (select)="editTask(taskResult.task)"
+                      />
+                    }
+                  </div>
+                </section>
+              }
+
+              @if (activeTab() === 'projects') {
+                <section class="result-group">
+                  <app-section-header
+                    title="Projects"
+                    [count]="results().projects.length + ' matches'"
+                  />
+
+                  <div class="project-grid">
+                    @for (projectResult of results().projects; track projectResult.project.id) {
+                      <a
+                        class="project-card"
+                        [routerLink]="['/projects', projectResult.project.id]"
+                      >
+                        <div class="project-topline">
+                          <h3>{{ projectResult.project.name }}</h3>
+                          <span>{{ projectLabel(projectResult.project) }}</span>
+                        </div>
+                        <p>
+                          {{
+                            projectResult.project.description || 'A calm place for related work.'
+                          }}
+                        </p>
+                        <div class="project-meta">
+                          <span>{{ projectResult.project.taskCount }} tasks</span>
+                          <span>{{ projectResult.project.completedTaskCount }} done</span>
+                        </div>
+                      </a>
+                    }
+                  </div>
+                </section>
+              }
+
+              @if (activeTab() === 'labels') {
+                <section class="result-group">
+                  <app-section-header
+                    title="Labels"
+                    [count]="results().labels.length + ' matches'"
+                  />
+
+                  <div class="project-grid">
+                    @for (labelResult of labelResults(); track labelResult.label.id) {
+                      <article class="project-card">
+                        <div class="project-topline">
+                          <h3>{{ labelResult.label.name }}</h3>
+                          <span>{{ labelResult.label.taskCount ?? 0 }} tasks</span>
+                        </div>
+                        <p>{{ labelResult.label.color }}</p>
+                        <div class="project-meta">
+                          <span>Match: label name</span>
+                        </div>
+                      </article>
+                    }
+                  </div>
+                </section>
+              }
+            }
+          </div>
+        </div>
+      }
+    }
+
+    <!-- Shared FAB for all modes -->
+    <button type="button" class="fab" aria-label="Quick add task" (click)="openCreateTaskModal()">
+      <span aria-hidden="true">+</span>
+    </button>
+  </section>
+</app-personal-task-workspace>

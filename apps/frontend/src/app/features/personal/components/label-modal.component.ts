@@ -300,7 +300,7 @@ type LabelModalMode = 'create' | 'edit';
       }
 
       .check {
-        color: #fff;
+        color: white;
         font-weight: 800;
         text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
       }
@@ -319,16 +319,17 @@ type LabelModalMode = 'create' | 'edit';
         border-radius: 0.95rem;
         padding: 0 1rem;
         font-weight: 700;
+        cursor: pointer;
       }
 
       .primary-button {
         flex: 1;
-        background: linear-gradient(135deg, #2b7c55 0%, #1c5f42 100%);
-        color: #fff;
+        background: var(--primary-action-gradient);
+        color: hsl(var(--primary-foreground));
       }
 
       .secondary-button {
-        background: var(--secondary);
+        background: var(--surface-container-high);
         color: var(--on-surface-muted);
       }
 
@@ -336,10 +337,11 @@ type LabelModalMode = 'create' | 'edit';
         justify-self: start;
         border: 0;
         background: transparent;
-        color: #2b7c55;
+        color: var(--primary-solid);
         font-weight: 700;
         padding: 0;
         font-size: 0.95rem;
+        cursor: pointer;
       }
 
       @media (max-width: 900px) {

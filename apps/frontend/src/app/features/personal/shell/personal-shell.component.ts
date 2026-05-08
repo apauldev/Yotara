@@ -33,6 +33,7 @@ interface PersonalNavItem {
   label: string;
   route: string;
   icon: PersonalIcon;
+  queryParams?: Record<string, string>;
 }
 
 @Component({
@@ -67,9 +68,9 @@ export class PersonalShellComponent {
   protected readonly searchQuery = signal(this.route.snapshot.queryParamMap.get('q') ?? '');
 
   protected readonly navItems: PersonalNavItem[] = [
-    { label: 'Inbox', route: '/inbox', icon: 'inbox' },
-    { label: 'Today', route: '/today', icon: 'today' },
-    { label: 'Upcoming', route: '/upcoming', icon: 'upcoming' },
+    { label: 'Inbox', route: '/tasks', icon: 'inbox', queryParams: { view: 'inbox' } },
+    { label: 'Today', route: '/tasks', icon: 'today', queryParams: { view: 'today' } },
+    { label: 'Upcoming', route: '/tasks', icon: 'upcoming', queryParams: { view: 'upcoming' } },
     { label: 'Projects', route: '/projects', icon: 'projects' },
     { label: 'Labels', route: '/labels', icon: 'labels' },
     { label: 'Archive', route: '/archive', icon: 'archive' },
@@ -117,8 +118,8 @@ export class PersonalShellComponent {
   protected async submitSearch() {
     const query = this.searchQuery().trim();
 
-    await this.router.navigate(['/search'], {
-      queryParams: query ? { q: query } : {},
+    await this.router.navigate(['/tasks'], {
+      queryParams: query ? { view: 'search', q: query } : { view: 'search' },
     });
   }
 
