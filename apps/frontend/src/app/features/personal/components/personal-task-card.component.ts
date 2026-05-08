@@ -130,7 +130,7 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
         box-shadow:
           0 14px 30px var(--surface-dim),
           inset 0 0 0 1px var(--outline-variant),
-          inset 4px 0 0 0 #dd8b4c;
+          inset 4px 0 0 0 var(--status-overdue);
       }
 
       .task-card-interactive {
@@ -171,7 +171,7 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
       }
 
       .task-check-complete .task-check-box {
-        background: #84a4f6;
+        background: var(--primary-solid);
         box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
       }
 
@@ -295,8 +295,8 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
       }
 
       .meta-pill-label {
-        background: #e7f2ea;
-        color: #48725a;
+        background: var(--accent-soft);
+        color: var(--accent-strong);
       }
 
       .meta-pill-complete {
@@ -311,12 +311,12 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
 
       .priority-chip-high {
         background: var(--danger-soft);
-        color: #cc764b;
+        color: var(--status-overdue);
       }
 
       .priority-chip-medium {
         background: var(--warning-soft);
-        color: #b28734;
+        color: var(--status-pending);
       }
 
       .priority-chip-low {
