@@ -217,7 +217,8 @@ interface SidebarItem {
       }
 
       .shell {
-        min-height: 100dvh;
+        height: 100dvh;
+        overflow: hidden;
         display: grid;
         grid-template-columns: minmax(15.5rem, 17rem) minmax(0, 1fr);
         position: relative;
@@ -235,7 +236,9 @@ interface SidebarItem {
         background: var(--surface-container-lowest);
         backdrop-filter: blur(12px);
         position: relative;
-        z-index: 2;
+        z-index: 10;
+        height: 100%;
+        overflow-y: auto;
       }
 
       .sidebar-top {
@@ -311,14 +314,27 @@ interface SidebarItem {
         color: var(--primary-solid);
       }
 
+      .nav-item:focus-visible {
+        outline: 2px solid var(--primary-solid);
+        outline-offset: -2px;
+        background: var(--primary-soft);
+      }
+
       .nav-item-active {
         background: var(--primary-gradient);
         color: var(--primary-foreground);
         box-shadow: 0 10px 22px var(--surface-dim-strong);
       }
 
+      .nav-icon {
+        width: 1.15rem;
+        height: 1.15rem;
+        color: var(--on-surface-subtle);
+        flex: 0 0 auto;
+      }
+
       .nav-item-active .nav-icon {
-        color: currentColor;
+        color: currentcolor;
       }
 
       .nav-item-disabled {
@@ -332,18 +348,11 @@ interface SidebarItem {
         transform: none;
       }
 
-      .nav-icon {
-        width: 1.15rem;
-        height: 1.15rem;
-        color: var(--on-surface-subtle);
-        flex: 0 0 auto;
-      }
-
       .nav-icon :is(svg) {
         width: 100%;
         height: 100%;
         display: block;
-        stroke: currentColor;
+        stroke: currentcolor;
         fill: none;
         stroke-width: 1.8;
         stroke-linecap: round;
@@ -384,6 +393,17 @@ interface SidebarItem {
         font-size: 0.95rem;
         font-weight: 700;
         letter-spacing: -0.01em;
+        cursor: pointer;
+        transition: background-color 140ms ease;
+      }
+
+      .invite-button:hover {
+        background: var(--surface-container-high);
+      }
+
+      .invite-button:focus-visible {
+        outline: 2px solid var(--primary-solid);
+        outline-offset: 2px;
       }
 
       .profile-menu {
@@ -448,6 +468,16 @@ interface SidebarItem {
         border-bottom: 0;
         background: transparent;
         cursor: pointer;
+        transition: background-color 140ms ease;
+      }
+
+      .profile-card-button:hover {
+        background: var(--surface-container-low);
+      }
+
+      .profile-card-button:focus-visible {
+        outline: 2px solid var(--primary-solid);
+        outline-offset: -4px;
       }
 
       .avatar {
@@ -492,7 +522,9 @@ interface SidebarItem {
 
       .content {
         min-width: 0;
-        padding: 1.6rem;
+        padding: 0;
+        height: 100%;
+        overflow-y: auto;
       }
 
       .mobile-header {
@@ -543,6 +575,7 @@ interface SidebarItem {
         background: var(--surface-container-low);
         box-shadow: inset 0 0 0 1px var(--outline-variant);
         padding: 1.75rem;
+        margin: 1.6rem;
       }
 
       @media (max-width: 920px) {
@@ -554,7 +587,7 @@ interface SidebarItem {
           display: block;
           position: fixed;
           inset: 0;
-          z-index: 1;
+          z-index: 9;
           border: 0;
           background: rgba(10, 12, 10, 0.34);
         }
@@ -583,7 +616,17 @@ interface SidebarItem {
           display: flex;
           align-items: center;
           gap: 0.9rem;
-          margin-bottom: 1rem;
+          position: sticky;
+          top: 0;
+          z-index: 5;
+          background: var(--surface-overlay);
+          backdrop-filter: blur(12px);
+          padding: 1rem 1.6rem;
+          border-bottom: 1px solid var(--outline-variant);
+        }
+
+        .content-inner {
+          margin: 1rem;
         }
 
         .menu-toggle {
