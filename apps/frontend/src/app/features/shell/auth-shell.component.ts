@@ -233,7 +233,7 @@ interface SidebarItem {
         flex-direction: column;
         justify-content: space-between;
         padding: 1.15rem 1rem 1rem;
-        background: var(--surface-container-lowest);
+        background: var(--surface-container-low);
         backdrop-filter: blur(12px);
         position: relative;
         z-index: 10;
@@ -619,7 +619,7 @@ interface SidebarItem {
           position: sticky;
           top: 0;
           z-index: 5;
-          background: var(--surface-overlay);
+          background: color-mix(in srgb, var(--surface-container-low) 88%, transparent);
           backdrop-filter: blur(12px);
           padding: 1rem 1.6rem;
           border-bottom: 1px solid var(--outline-variant);
