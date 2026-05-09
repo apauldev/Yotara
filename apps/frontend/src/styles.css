@@ -38,8 +38,8 @@
   --on-surface: #1c1c17;
   --on-surface-muted: #6d685f;
   --on-surface-subtle: #8f897d;
-  --surface-overlay: color-mix(in srgb, var(--surface-container-lowest) 88%, transparent);
-  --surface-card: color-mix(in srgb, var(--surface-container-lowest) 92%, transparent);
+  --surface-overlay: color-mix(in srgb, var(--surface-container-low) 88%, transparent);
+  --surface-card: color-mix(in srgb, var(--surface-container-low) 92%, transparent);
   --surface-card-strong: color-mix(in srgb, var(--surface-container-highest) 88%, white);
   --surface-dim: rgb(28 28 23 / 8%);
   --surface-dim-strong: rgb(28 28 23 / 14%);
