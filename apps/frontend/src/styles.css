@@ -5,7 +5,8 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+:root,
+.theme-light-forest {
   color-scheme: light;
 
   --font-sans: 'Manrope', sans-serif;
@@ -36,15 +37,15 @@
   --surface-container-highest: #e5e2da;
   --outline-variant: rgb(28 28 23 / 15%);
   --on-surface: #1c1c17;
-  --on-surface-muted: #6d685f;
-  --on-surface-subtle: #8f897d;
+  --on-surface-muted: #5d5952;
+  --on-surface-subtle: #706a60;
   --surface-overlay: color-mix(in srgb, var(--surface-container-low) 88%, transparent);
   --surface-card: color-mix(in srgb, var(--surface-container-low) 92%, transparent);
   --surface-card-strong: color-mix(in srgb, var(--surface-container-highest) 88%, white);
   --surface-dim: rgb(28 28 23 / 8%);
   --surface-dim-strong: rgb(28 28 23 / 14%);
-  --primary-gradient: linear-gradient(135deg, #236849 0%, #3f8161 100%);
-  --primary-action-gradient: linear-gradient(135deg, #4f8f72 0%, #66ae86 100%);
+  --primary-gradient: linear-gradient(135deg, #1d533b 0%, #2e7b57 100%);
+  --primary-action-gradient: linear-gradient(135deg, #3d7a5e 0%, #4a8d6e 100%);
   --primary-solid: #236849;
   --primary-soft: #dff0e7;
   --primary-soft-strong: #cfe8db;
@@ -53,12 +54,12 @@
   --danger-soft: #f5e3da;
   --warning-soft: #f6edd8;
   --info-soft: #edf0f5;
-  --status-overdue: #bb6d57;
+  --status-overdue: #af634e;
   --status-complete: #236849;
-  --status-pending: #c97c46;
+  --status-pending: #a05e2d;
 }
 
-:root.dark {
+.theme-dark-forest {
   color-scheme: dark;
 
   --background: 147 18% 14%;
@@ -88,7 +89,7 @@
   --outline-variant: rgb(208 224 212 / 12%);
   --on-surface: #d0e0d4;
   --on-surface-muted: #adc0b1;
-  --on-surface-subtle: #89a18f;
+  --on-surface-subtle: #9db1a2;
   --surface-overlay: color-mix(in srgb, var(--surface-container-lowest) 88%, transparent);
   --surface-card: color-mix(in srgb, var(--surface-container-lowest) 92%, transparent);
   --surface-card-strong: color-mix(in srgb, var(--surface-container-highest) 90%, black);
@@ -107,6 +108,108 @@
   --status-overdue: #da8e78;
   --status-complete: #5aa37d;
   --status-pending: #df9b6d;
+}
+
+.theme-coastal-calm {
+  color-scheme: light;
+
+  --background: 215 32% 96%;
+  --foreground: 220 15% 15%;
+  --card: 215 32% 94%;
+  --card-foreground: 220 15% 15%;
+  --popover: 215 32% 94%;
+  --popover-foreground: 220 15% 15%;
+  --primary: 215 45% 42%;
+  --primary-foreground: 210 100% 98%;
+  --secondary: 215 20% 90%;
+  --secondary-foreground: 220 15% 15%;
+  --muted: 215 20% 90%;
+  --muted-foreground: 220 12% 45%;
+  --accent: 210 42% 88%;
+  --accent-foreground: 220 15% 15%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 100% 98%;
+  --border: 215 20% 86%;
+  --input: 215 32% 94%;
+  --ring: 215 45% 42%;
+  --surface: #f7f9fc;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f0f4f8;
+  --surface-container-high: #e6ecf2;
+  --surface-container-highest: #dbe4ed;
+  --outline-variant: rgb(30 40 50 / 12%);
+  --on-surface: #1a1e22;
+  --on-surface-muted: #5a646e;
+  --on-surface-subtle: #707a84;
+  --surface-overlay: color-mix(in srgb, var(--surface-container-low) 88%, transparent);
+  --surface-card: color-mix(in srgb, var(--surface-container-low) 92%, transparent);
+  --surface-card-strong: color-mix(in srgb, var(--surface-container-highest) 88%, white);
+  --surface-dim: rgb(30 40 50 / 6%);
+  --surface-dim-strong: rgb(30 40 50 / 10%);
+  --primary-gradient: linear-gradient(135deg, #365b7a 0%, #4a7aa1 100%);
+  --primary-action-gradient: linear-gradient(135deg, #4a7aa1 0%, #5b92b5 100%);
+  --primary-solid: #365b7a;
+  --primary-soft: #e8f1f7;
+  --primary-soft-strong: #d1e3ef;
+  --accent-soft: #f0f4f8;
+  --accent-strong: #4a7aa1;
+  --danger-soft: #f9e8e8;
+  --warning-soft: #f9f3e8;
+  --info-soft: #e8f1f9;
+  --status-overdue: #af634e;
+  --status-complete: #365b7a;
+  --status-pending: #a05e2d;
+}
+
+.theme-minimal-slate {
+  color-scheme: light;
+
+  --background: 0 0% 96%;
+  --foreground: 210 8% 14%;
+  --card: 0 0% 94%;
+  --card-foreground: 210 8% 14%;
+  --popover: 0 0% 94%;
+  --popover-foreground: 210 8% 14%;
+  --primary: 210 7% 22%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 6% 90%;
+  --secondary-foreground: 210 8% 14%;
+  --muted: 210 6% 90%;
+  --muted-foreground: 210 8% 40%;
+  --accent: 42 95% 55%;
+  --accent-foreground: 210 10% 12%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 210 8% 86%;
+  --input: 0 0% 94%;
+  --ring: 210 7% 22%;
+  --surface: #f6f6f7;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #efeff1;
+  --surface-container-high: #e7e7ea;
+  --surface-container-highest: #dfdfe2;
+  --outline-variant: rgb(30 30 35 / 12%);
+  --on-surface: #202025;
+  --on-surface-muted: #555560;
+  --on-surface-subtle: #70707b;
+  --surface-overlay: color-mix(in srgb, var(--surface-container-low) 88%, transparent);
+  --surface-card: color-mix(in srgb, var(--surface-container-low) 92%, transparent);
+  --surface-card-strong: color-mix(in srgb, var(--surface-container-highest) 88%, white);
+  --surface-dim: rgb(30 30 35 / 6%);
+  --surface-dim-strong: rgb(30 30 35 / 10%);
+  --primary-gradient: linear-gradient(135deg, #202427 0%, #33383d 100%);
+  --primary-action-gradient: linear-gradient(135deg, #33383d 0%, #4a5056 100%);
+  --primary-solid: #33383d;
+  --primary-soft: #ececed;
+  --primary-soft-strong: #e1e1e3;
+  --accent-soft: #fff7e6;
+  --accent-strong: #d2a106;
+  --danger-soft: #fbecec;
+  --warning-soft: #fff7e6;
+  --info-soft: #e6f0ff;
+  --status-overdue: #af634e;
+  --status-complete: #33383d;
+  --status-pending: #a05e2d;
 }
 
 @layer base {

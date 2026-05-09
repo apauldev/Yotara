@@ -53,11 +53,7 @@
     </div>
 
     <div class="sidebar-bottom">
-      <button
-        type="button"
-        class="quick-add-button"
-        (click)="openCreateTaskModal()"
-      >
+      <button type="button" class="quick-add-button" (click)="openCreateTaskModal()">
         <span class="quick-add-icon"><fa-icon [icon]="faPlus"></fa-icon></span>
         Quick Add Task
       </button>
@@ -139,20 +135,35 @@
           ></button>
 
           <div class="preferences-menu" role="menu" aria-label="Preferences">
-            <button
+            <a
+              [routerLink]="['/settings']"
+              class="preferences-item"
+              role="menuitem"
+              (click)="closePreferencesMenu()"
+            >
+              <span class="preferences-item-copy">
+                <strong>Settings</strong>
+                <span>Personalize your experience.</span>
+              </span>
+            </a>
+
+            <!-- <button
               type="button"
               class="preferences-item"
               role="menuitem"
-              (click)="toggleTheme(); closePreferencesMenu()"
+              (click)="themeService.toggleTheme()"
             >
               <span class="preferences-item-copy">
                 <strong>Dark theme</strong>
                 <span>Use the quieter nighttime palette.</span>
               </span>
-              <span class="preferences-toggle" [class.preferences-toggle-on]="isDarkTheme()">
+              <div
+                class="preferences-toggle"
+                [class.preferences-toggle-on]="themeService.isDarkTheme()"
+              >
                 <span></span>
-              </span>
-            </button>
+              </div>
+            </button> -->
 
             <button type="button" class="preferences-item" role="menuitem" disabled>
               <span class="preferences-item-copy">
