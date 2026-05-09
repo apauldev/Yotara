@@ -51,7 +51,7 @@
   - [ ] Make the personal/team mode switch communicate intent more clearly
   - [ ] Improve search-result confidence with better surfaced match context
   - [ ] Tighten spacing, elevation, and visual hierarchy so the shell feels calmer and less dashboard-like
-  - [ ] Keep preferences minimal and useful: theme, density, and quick-add behavior
+  - [x] Keep preferences minimal and useful: theme, density, and quick-add behavior
   - [ ] Treat keyboard support, focus states, contrast, and touch targets as part of the final product finish
 
 ## Service and Component Refactors
@@ -153,33 +153,3 @@
 - [ ] Phase 5: Card primitives
 - [ ] Phase 6: service/component decomposition and backend/auth cleanup
 - [ ] Phase 7: CI, coverage gates, production hardening
-
-New themes
-
-Coastal Calm — cool, airy, low-contrast blue/teal palette (soft, restful)
-
---background: 210 25% 96%
---foreground: 213 13% 13%
---surface: #f7fbff
---surface-container-low: #eef6fb
---surface-container-high: #e4eef6
---primary: 176 45% 33%
---primary-foreground: 200 99% 98%
---muted: 210 18% 90%
---muted-foreground: 215 10% 45%
---accent: 198 35% 88%
---border: 210 18% 85%
-Minimal Slate — neutral, modern grayscale with a warm accent (clean, focused)
-
---background: 0 0% 96%
---foreground: 210 8% 14%
---surface: #f6f6f7
---surface-container-low: #efeff1
---surface-container-high: #e7e7ea
---primary: 210 7% 22% (deep slate)
---primary-foreground: 0 0% 100%
---muted: 210 6% 90%
---muted-foreground: 210 8% 40%
---accent: 42 95% 55% (warm amber)
---accent-foreground: 210 10% 12%
---border: 210 8% 86%

@@ -90,6 +90,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'settings',
+        loadComponent: () =>
+          import('./features/personal/pages/settings-page.component').then(
+            (m) => m.SettingsPageComponent,
+          ),
+      },
+      {
         path: 'search',
         redirectTo: 'tasks',
         pathMatch: 'full',
