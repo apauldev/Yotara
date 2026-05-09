@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import {
   ActivatedRoute,
   NavigationEnd,
@@ -26,6 +26,7 @@ import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { TaskService } from '../../../core/services/task.service';
+import { ThemeService } from '../../../core/services/theme.service';
 import { LogoutConfirmModalComponent } from '../../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
 
 type PersonalIcon = 'inbox' | 'today' | 'upcoming' | 'projects' | 'labels' | 'archive';
@@ -67,6 +68,7 @@ export class PersonalShellComponent {
   private route = inject(ActivatedRoute);
   private authState = inject(AuthStateService);
   protected readonly taskService = inject(TaskService);
+  protected readonly themeService = inject(ThemeService);
   protected readonly searchQuery = signal(this.route.snapshot.queryParamMap.get('q') ?? '');
 
   protected readonly navItems: PersonalNavItem[] = [
@@ -82,7 +84,6 @@ export class PersonalShellComponent {
   protected readonly preferencesMenuOpen = signal(false);
   protected readonly logoutDialogOpen = signal(false);
   protected readonly signingOut = signal(false);
-  protected readonly isDarkTheme = signal(this.resolveInitialTheme() === 'dark');
   protected readonly userInitials = computed(() => {
     const fallback = 'PS';
     const source = this.authState.user()?.name?.trim() || this.authState.user()?.email || fallback;
@@ -99,13 +100,6 @@ export class PersonalShellComponent {
   });
 
   constructor() {
-    effect(() => {
-      const theme = this.isDarkTheme() ? 'dark' : 'light';
-      document.documentElement.classList.toggle('dark', this.isDarkTheme());
-      document.documentElement.style.colorScheme = theme;
-      localStorage.setItem('yotara-theme', theme);
-    });
-
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
       this.mobileMenuOpen.set(false);
       this.profileMenuOpen.set(false);
@@ -151,10 +145,6 @@ export class PersonalShellComponent {
     this.preferencesMenuOpen.set(false);
   }
 
-  protected toggleTheme() {
-    this.isDarkTheme.update((value) => !value);
-  }
-
   protected handleStayFocused() {
     this.profileMenuOpen.set(false);
     this.logoutDialogOpen.set(false);
@@ -198,14 +188,5 @@ export class PersonalShellComponent {
       captureEl.scrollIntoView({ behavior: 'smooth' });
       captureEl.querySelector('input')?.focus();
     }
-  }
-
-  private resolveInitialTheme() {
-    const storedTheme = localStorage.getItem('yotara-theme');
-    if (storedTheme === 'dark' || storedTheme === 'light') {
-      return storedTheme;
-    }
-
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
 }
