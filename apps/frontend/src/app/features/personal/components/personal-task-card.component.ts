@@ -41,7 +41,34 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
       <div class="task-copy">
         <div class="task-title-row">
           <h3>{{ task.title }}</h3>
-          <span class="priority-chip priority-chip-{{ task.priority }}">{{ priorityLabel() }}</span>
+
+          <div class="task-badges">
+            @if (task.labels?.length) {
+              @for (labelId of task.labels?.slice(0, 1) ?? []; track labelId) {
+                <span class="meta-pill meta-pill-label">{{ labelName(labelId) }}</span>
+              }
+            }
+
+            @if (task.dueDate) {
+              <span class="meta-pill meta-pill-date">
+                {{ dateLabel() }}
+              </span>
+            }
+
+            <span class="meta-pill meta-pill-muted">{{ statusLabel() }}</span>
+            <span class="priority-chip priority-chip-{{ task.priority }}">{{
+              priorityLabel()
+            }}</span>
+
+            @if (task.simpleMode) {
+              <span class="meta-pill meta-pill-simple">Simple</span>
+            }
+
+            @if (showCompletionState && task.completed) {
+              <span class="meta-pill meta-pill-complete">Done</span>
+            }
+          </div>
+
           @if (task.completed) {
             <div class="completion-group">
               <span class="completion-chip completion-chip-complete">Completed</span>
@@ -60,34 +87,14 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
         </div>
 
         @if (showDescription && task.description) {
-          <p class="task-description">{{ task.description }}</p>
+          <p class="task-description">
+            {{
+              task.description.length > 120
+                ? (task.description | slice: 0 : 120) + '...'
+                : task.description
+            }}
+          </p>
         }
-
-        <div class="task-meta">
-          @if (task.labels?.length) {
-            <div class="label-row">
-              @for (labelId of task.labels?.slice(0, 3) ?? []; track labelId) {
-                <span class="meta-pill meta-pill-label">{{ labelName(labelId) }}</span>
-              }
-            </div>
-          }
-
-          @if (task.dueDate) {
-            <span class="meta-pill">
-              {{ dateLabel() }}
-            </span>
-          }
-
-          <span class="meta-pill meta-pill-muted">{{ statusLabel() }}</span>
-
-          @if (task.simpleMode) {
-            <span class="meta-pill meta-pill-simple">Simple mode</span>
-          }
-
-          @if (showCompletionState && task.completed) {
-            <span class="meta-pill meta-pill-complete">Done</span>
-          }
-        </div>
       </div>
     </article>
 
@@ -117,18 +124,18 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
       .task-card {
         display: grid;
         grid-template-columns: auto minmax(0, 1fr);
-        gap: 1rem;
-        border-radius: 1.3rem;
+        gap: 0.8rem;
+        border-radius: 0.8rem;
         background: var(--surface-card);
         box-shadow:
-          0 14px 30px var(--surface-dim),
+          0 2px 8px var(--surface-dim),
           inset 0 0 0 1px var(--outline-variant);
-        padding: 1.15rem 1.2rem;
+        padding: 0.6rem 0.85rem;
       }
 
       .task-card-overdue {
         box-shadow:
-          0 14px 30px var(--surface-dim),
+          0 2px 8px var(--surface-dim),
           inset 0 0 0 1px var(--outline-variant),
           inset 4px 0 0 0 var(--status-overdue);
       }
@@ -149,7 +156,7 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
         width: 1.15rem;
         height: 1.15rem;
         border: 0;
-        margin-top: 0.18rem;
+        margin-top: 0.05rem;
         background: transparent;
         cursor: pointer;
         display: grid;
@@ -157,9 +164,9 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
       }
 
       .task-check-box {
-        width: 1.02rem;
-        height: 1.02rem;
-        border-radius: 0.28rem;
+        width: 0.95rem;
+        height: 0.95rem;
+        border-radius: 0.22rem;
         box-shadow: inset 0 0 0 1px var(--outline-variant);
         background: var(--surface-container-lowest);
         display: grid;
@@ -176,8 +183,8 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
       }
 
       .task-check-mark {
-        width: 0.34rem;
-        height: 0.62rem;
+        width: 0.3rem;
+        height: 0.55rem;
         border-right: 2px solid #fff;
         border-bottom: 2px solid #fff;
         transform: translateY(-0.05rem) rotate(45deg);
@@ -190,12 +197,19 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
       .task-title-row {
         display: flex;
         align-items: center;
-        gap: 0.65rem;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+
+      .task-badges {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
         flex-wrap: wrap;
       }
 
       .completion-group {
-        margin-left: auto;
         display: flex;
         align-items: center;
         gap: 0.5rem;
@@ -203,8 +217,8 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
 
       .completion-chip {
         border-radius: 999px;
-        padding: 0.18rem 0.55rem;
-        font-size: 0.69rem;
+        padding: 0.12rem 0.4rem;
+        font-size: 0.62rem;
         font-weight: 700;
         letter-spacing: 0.03em;
         text-transform: uppercase;
@@ -224,8 +238,8 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
         background: var(--primary-soft);
         color: var(--primary-solid);
         border-radius: 999px;
-        padding: 0.18rem 0.65rem;
-        font-size: 0.69rem;
+        padding: 0.12rem 0.5rem;
+        font-size: 0.62rem;
         font-weight: 700;
         letter-spacing: 0.03em;
         text-transform: uppercase;
@@ -238,15 +252,16 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
       }
 
       .restore-icon {
-        font-size: 0.75rem;
+        font-size: 0.68rem;
       }
 
       h3 {
         margin: 0;
-        font-size: 1.18rem;
-        line-height: 1.3;
-        letter-spacing: -0.03em;
+        font-size: 0.98rem;
+        line-height: 1.25;
+        letter-spacing: -0.015em;
         color: var(--on-surface);
+        font-weight: 600;
       }
 
       .task-card-complete h3 {
@@ -254,34 +269,21 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
       }
 
       .task-description {
-        margin: 0.45rem 0 0;
+        margin: 0.2rem 0 0;
         color: var(--on-surface-muted);
-        font-size: 0.96rem;
-        line-height: 1.45;
-      }
-
-      .task-meta {
-        display: flex;
-        align-items: center;
-        gap: 0.45rem;
-        flex-wrap: wrap;
-        margin-top: 0.7rem;
-      }
-
-      .label-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.35rem;
+        font-size: 0.88rem;
+        line-height: 1.35;
       }
 
       .meta-pill,
       .priority-chip {
         border-radius: 999px;
-        padding: 0.18rem 0.55rem;
-        font-size: 0.69rem;
+        padding: 0.12rem 0.4rem;
+        font-size: 0.62rem;
         font-weight: 700;
-        letter-spacing: 0.03em;
+        letter-spacing: 0.02em;
         text-transform: uppercase;
+        white-space: nowrap;
       }
 
       .meta-pill {
@@ -297,6 +299,11 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
       .meta-pill-label {
         background: var(--accent-soft);
         color: var(--accent-strong);
+      }
+
+      .meta-pill-date {
+        background: var(--surface-container-high);
+        color: var(--on-surface);
       }
 
       .meta-pill-complete {
@@ -326,35 +333,34 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
 
       @media (max-width: 720px) {
         .task-card {
-          padding: 1rem;
-          border-radius: 1rem;
-          gap: 0.8rem;
+          padding: 0.55rem 0.7rem;
+          border-radius: 0.7rem;
+          gap: 0.6rem;
         }
 
         .task-title-row {
           flex-direction: column;
           align-items: flex-start;
-          gap: 0.45rem;
+          gap: 0.3rem;
+        }
+
+        .task-badges {
+          margin-left: 0;
+          gap: 0.25rem;
         }
 
         .completion-group {
-          margin-left: 0;
-          margin-top: 0.2rem;
-        }
-
-        .task-meta {
-          gap: 0.35rem;
-          margin-top: 0.65rem;
+          margin-top: 0.1rem;
         }
 
         .meta-pill,
         .priority-chip {
-          font-size: 0.64rem;
-          padding: 0.16rem 0.5rem;
+          font-size: 0.58rem;
+          padding: 0.1rem 0.35rem;
         }
 
         h3 {
-          font-size: 1.05rem;
+          font-size: 0.92rem;
         }
       }
     `,
