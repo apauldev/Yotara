@@ -76,7 +76,7 @@
         }
 
         <section class="list-section">
-          <app-section-header title="Pending Processing" [count]="inboxCountLabel()" size="sm" />
+          <app-section-header title="Task List" [count]="inboxCountLabel()" size="sm" />
 
           <div aria-live="polite">
             @if (taskService.loading()) {
