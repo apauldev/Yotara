@@ -73,10 +73,13 @@
 
 .brand-content {
   flex: 1;
+  flex-basis: auto;
   min-width: 0;
   transition:
     opacity 160ms ease,
     transform 160ms ease;
+  /* Reserve space on the right so the sidebar toggle doesn't overlap text */
+  /* padding-right: calc(2.25rem + 0.5rem); */
 }
 
 .sidebar-collapsed .brand-content {
@@ -84,11 +87,12 @@
   transform: translateX(-8px);
   pointer-events: none;
   width: 0;
+  padding-right: 0;
 }
 
 .sidebar-brand h1 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 0.9rem;
   line-height: 1.1;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -567,6 +571,11 @@
   color: var(--primary-solid);
 }
 
+/* Hide the mobile menu toggle by default on larger screens; enabled in mobile media query */
+.menu-toggle {
+  display: none;
+}
+
 .avatar {
   width: 2.5rem;
   height: 2.5rem;
@@ -602,7 +611,7 @@
   .sidebar {
     position: fixed;
     inset: 0 auto 0 0;
-    width: min(85vw, 18rem);
+    width: min(100vw, 24rem);
     transform: translateX(-100%);
     transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 20px 0 50px rgb(0 0 0 / 15%);
