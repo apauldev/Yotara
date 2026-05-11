@@ -21,6 +21,8 @@ import {
   faPlus,
   faSliders,
   faTag,
+  faChevronLeft,
+  faChevronRight,
 } from '@fortawesome/free-solid-svg-icons';
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -64,6 +66,8 @@ export class PersonalShellComponent {
   protected readonly faPlus = faPlus;
   protected readonly faSliders = faSliders;
   protected readonly faTag = faTag;
+  protected readonly faChevronLeft = faChevronLeft;
+  protected readonly faChevronRight = faChevronRight;
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private authState = inject(AuthStateService);
@@ -80,6 +84,7 @@ export class PersonalShellComponent {
     { label: 'Archive', route: '/archive', icon: 'archive' },
   ];
   protected readonly mobileMenuOpen = signal(false);
+  protected readonly sidebarCollapsed = signal(false);
   protected readonly profileMenuOpen = signal(false);
   protected readonly preferencesMenuOpen = signal(false);
   protected readonly logoutDialogOpen = signal(false);
@@ -125,6 +130,10 @@ export class PersonalShellComponent {
 
   protected closeMobileMenu() {
     this.mobileMenuOpen.set(false);
+  }
+
+  protected toggleSidebar() {
+    this.sidebarCollapsed.update((collapsed) => !collapsed);
   }
 
   protected toggleProfileMenu() {
