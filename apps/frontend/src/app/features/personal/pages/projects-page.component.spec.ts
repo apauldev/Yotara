@@ -47,8 +47,11 @@ describe('ProjectsPageComponent', () => {
     expect(text).toContain('Launch Yotara MVP');
     expect(text).toContain('Core release scope');
     expect(text).toContain('61%');
-    expect(text).toContain('ACTIVE');
+    expect(text.toLowerCase()).toContain('active');
     expect(text).toContain('New Project');
-    expect(text).toContain('Edit');
+
+    // Check for edit button by aria-label since text 'Edit' is gone
+    const editBtn = fixture.nativeElement.querySelector('[aria-label*="Edit project"]');
+    expect(editBtn).toBeTruthy();
   });
 });

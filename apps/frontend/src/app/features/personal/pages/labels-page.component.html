@@ -1,0 +1,136 @@
+<app-personal-task-workspace #workspace>
+  <section class="page">
+    <app-page-header
+      title="Labels"
+      subtitle="Organize your tasks with semantic focus areas. Categorize, color-code, and filter your workspace."
+    >
+      <div page-header-actions class="header-actions">
+        <button type="button" class="new-label-button" (click)="openCreateLabel()">
+          + New Label
+        </button>
+      </div>
+    </app-page-header>
+
+    @if (labelService.loading()) {
+      <p class="status-copy">Loading your focus areas...</p>
+    } @else if (labelService.error()) {
+      <p class="status-copy">{{ labelService.error() }}</p>
+    } @else {
+      <div class="label-browser">
+        <section class="labels-table-container" role="table" aria-label="Labels Directory">
+          <div class="table-header" role="rowgroup">
+            <div class="table-row-header" role="row">
+              <div class="col-identification" role="columnheader">Label</div>
+              <div class="col-count" role="columnheader">Tasks</div>
+              <div class="col-actions" role="columnheader"><span class="sr-only">Actions</span></div>
+            </div>
+          </div>
+
+          <div class="table-rows" role="rowgroup">
+            @for (label of labels(); track label.id) {
+              <div
+                class="table-row"
+                [class.table-row-active]="selectedLabelId() === label.id"
+                role="row"
+                (click)="selectLabel(label)"
+                tabindex="0"
+                (keydown.enter)="selectLabel(label)"
+                (keydown.space)="$event.preventDefault(); selectLabel(label)"
+              >
+                <div class="col-identification" role="cell">
+                  <div class="label-identifier">
+                    <div
+                      class="label-color-dot"
+                      [style.background]="label.color"
+                      [attr.aria-label]="'Color: ' + label.color"
+                      role="img"
+                    ></div>
+                    <div class="label-info">
+                      <h3>{{ label.name }}</h3>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-count" role="cell">
+                  <span class="count-badge">
+                    {{ label.taskCount ?? 0 }}
+                  </span>
+                </div>
+                <div class="col-actions" role="cell">
+                  <div class="action-group">
+                    <button
+                      type="button"
+                      class="action-button-edit"
+                      (click)="openEditLabel(label, $event)"
+                      [attr.aria-label]="'Edit label ' + label.name"
+                      title="Edit label"
+                    >
+                      <fa-icon [icon]="faEdit"></fa-icon>
+                    </button>
+                    <span class="action-icon-go" aria-hidden="true">→</span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </section>
+
+        <aside class="task-pane" aria-labelledby="task-pane-title">
+          <header class="task-pane-header">
+            <div>
+              <h2 id="task-pane-title">{{ selectedLabel()?.name || 'Select a Label' }}</h2>
+              <p class="task-pane-subtitle">
+                @if (selectedLabel()) {
+                  {{ filteredTasks().length }} active tasks tagged with this focus area.
+                } @else {
+                  Choose a focus area from the directory to view associated tasks.
+                }
+              </p>
+            </div>
+          </header>
+
+          <div class="task-pane-content">
+            @if (!selectedLabel()) {
+              <div class="task-empty">
+                <div class="empty-icon-shell">
+                  <fa-icon [icon]="faTag"></fa-icon>
+                </div>
+                <h3>Master your focus</h3>
+                <p>Select a label to filter your workspace and concentrate on a specific category of work.</p>
+              </div>
+            } @else if (filteredTasks().length === 0) {
+              <div class="task-empty">
+                <div class="empty-icon-shell">
+                  <fa-icon [icon]="faInbox"></fa-icon>
+                </div>
+                <h3>Clear Focus</h3>
+                <p>There are no active tasks for this label. You're all caught up here!</p>
+              </div>
+            } @else {
+              <div class="task-stack">
+                @for (task of filteredTasks(); track task.id) {
+                  <app-personal-task-card
+                    [task]="task"
+                    [interactive]="true"
+                    (select)="workspace.editTask(task)"
+                  />
+                }
+              </div>
+            }
+          </div>
+        </aside>
+      </div>
+    }
+  </section>
+
+  <app-label-modal
+    [open]="labelModalOpen()"
+    [labels]="labels()"
+    [selectedLabelId]="selectedLabelId()"
+    [mode]="labelModalMode()"
+    [taskCountForSelected]="selectedLabel()?.taskCount ?? 0"
+    (close)="closeLabelModal()"
+    (saved)="onLabelSaved()"
+    (deleted)="onLabelDeleted()"
+    (selectedLabelIdChange)="selectLabelById($event)"
+  />
+</app-personal-task-workspace>

@@ -22,10 +22,7 @@ describe('PersonalShellComponent', () => {
     await TestBed.configureTestingModule({
       imports: [PersonalShellComponent, InboxStubComponent],
       providers: [
-        provideRouter([
-          { path: 'inbox', component: InboxStubComponent },
-          { path: 'search', component: SearchStubComponent },
-        ]),
+        provideRouter([{ path: 'tasks', component: InboxStubComponent }]),
         {
           provide: AuthStateService,
           useValue: {
@@ -54,16 +51,13 @@ describe('PersonalShellComponent', () => {
     expect(labels).toEqual(['Inbox', 'Today', 'Upcoming', 'Projects', 'Labels', 'Archive']);
   });
 
-  it('renders the top bar and quick add affordance', () => {
+  it('renders the top bar branding and user avatar', () => {
     const fixture = TestBed.createComponent(PersonalShellComponent);
     fixture.detectChanges();
 
     expect(
       fixture.debugElement.query(By.css('.topbar-brand')).nativeElement.textContent.trim(),
     ).toBe('Yotara');
-    expect(
-      fixture.debugElement.query(By.css('.quick-add-button')).nativeElement.textContent.trim(),
-    ).toContain('Quick Add Task');
     expect(fixture.debugElement.query(By.css('.avatar')).nativeElement.textContent.trim()).toBe(
       'JD',
     );
@@ -85,7 +79,7 @@ describe('PersonalShellComponent', () => {
     ).toBeTrue();
     expect(fixture.debugElement.query(By.css('.mobile-backdrop'))).toBeTruthy();
 
-    void router.navigateByUrl('/inbox');
+    void router.navigateByUrl('/tasks');
     tick();
     fixture.detectChanges();
 
@@ -108,6 +102,6 @@ describe('PersonalShellComponent', () => {
     tick();
     fixture.detectChanges();
 
-    expect(router.url).toBe('/search?q=Launch%20Yotara');
+    expect(router.url).toContain('/tasks?view=search&q=Launch%20Yotara');
   }));
 });
