@@ -6,14 +6,38 @@
 >
   <section class="page" [attr.data-view]="viewMode()">
     <app-page-header eyebrow="Personal Sanctuary" [title]="pageTitle()" [subtitle]="pageSubtitle()">
-      <!-- Today Specific: Zen Card -->
-      @if (viewMode() === 'today') {
-        <div page-header-actions class="zen-card" aria-hidden="true">
-          <div class="zen-icon">✦</div>
-          <div>
-            <strong>Daily Zen</strong>
-            <p>Progress is quiet, but steady.</p>
-          </div>
+      <!-- Unified Insight Panel -->
+      @if (
+        insightPanelVisible() &&
+        (viewMode() === 'inbox' || viewMode() === 'today' || viewMode() === 'upcoming')
+      ) {
+        <div page-header-actions class="insight-panel" role="complementary" aria-label="Daily Insight">
+          <button
+            type="button"
+            class="insight-dismiss"
+            (click)="dismissInsight()"
+            aria-label="Dismiss insight"
+          >
+            <fa-icon [icon]="faXmark"></fa-icon>
+          </button>
+
+          @if (activeInsightType() === 'clarity') {
+            <div class="insight-content">
+              <div class="insight-icon" aria-hidden="true">✦</div>
+              <div>
+                <strong>Daily Clarity</strong>
+                <p>{{ dailyClarityPrompt() }}</p>
+              </div>
+            </div>
+          } @else {
+            <div class="insight-content">
+              <div class="insight-icon" aria-hidden="true">✍︎</div>
+              <div>
+                <strong>The Yotara Journal</strong>
+                <p>{{ journalPrompt() }}</p>
+              </div>
+            </div>
+          }
         </div>
       }
 
@@ -101,19 +125,6 @@
             }
           </div>
         </section>
-
-        <div class="promo-grid">
-          <div class="promo-card promo-card-soft">
-            <div class="promo-icon" aria-hidden="true">✦</div>
-            <h3>Daily clarity</h3>
-            <p>{{ dailyClarityPrompt() }}</p>
-          </div>
-
-          <div class="promo-card promo-card-dark">
-            <p>{{ journalPrompt() }}</p>
-            <span>The Yotara Journal</span>
-          </div>
-        </div>
       }
 
       @case ('today') {
