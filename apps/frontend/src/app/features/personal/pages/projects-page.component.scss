@@ -31,18 +31,18 @@
 }
 
 .projects-table-container {
-  background: color-mix(in srgb, var(--primary-soft) 15%, var(--surface-container-lowest));
-  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--primary-soft) 20%, var(--surface));
+  border-radius: 0.85rem;
   overflow: hidden;
   border: 1px solid var(--outline-variant);
-  box-shadow: 0 4px 12px rgb(0 0 0 / 2%);
+  box-shadow: 0 10px 30px var(--surface-dim);
 }
 
 .table-header {
   display: grid;
   grid-template-columns: 2fr 12rem 10rem 6rem;
-  padding: 0.85rem 1.25rem;
-  background: color-mix(in srgb, var(--primary-soft) 40%, var(--surface-container-low));
+  padding: 0.9rem 1.25rem;
+  background: color-mix(in srgb, var(--primary-soft) 50%, var(--surface-container-low));
   border-bottom: 1px solid var(--outline-variant);
   align-items: center;
 
@@ -75,7 +75,7 @@
   outline: none;
 
   &:hover {
-    background: color-mix(in srgb, var(--primary-solid) 5%, var(--primary-soft));
+    background: color-mix(in srgb, var(--primary-solid) 4%, var(--surface-container-high));
 
     .action-icon-go {
       transform: translateX(4px);
