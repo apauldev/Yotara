@@ -13,9 +13,10 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faXmark } from '@fortawesome/free-solid-svg-icons';
 
 export type TaskListViewMode = 'inbox' | 'today' | 'upcoming' | 'search';
+export type InsightType = 'clarity' | 'journal';
 
 @Component({
   selector: 'app-task-list-page',
@@ -41,6 +42,7 @@ export class TaskListPageComponent implements OnInit {
   private readonly router = inject(Router);
 
   protected readonly faPlus = faPlus;
+  protected readonly faXmark = faXmark;
 
   private readonly workspace = viewChild(PersonalTaskWorkspaceComponent);
 
@@ -110,6 +112,10 @@ export class TaskListPageComponent implements OnInit {
 
   protected readonly dailyClarityPrompt = signal(pickRandomPrompt(DAILY_CLARITY_PROMPTS));
   protected readonly journalPrompt = signal(pickRandomPrompt(YOTARA_JOURNAL_PROMPTS));
+  protected readonly activeInsightType = signal<InsightType>(
+    Math.random() > 0.5 ? 'clarity' : 'journal',
+  );
+  protected readonly insightPanelVisible = signal(true);
 
   protected async captureTask() {
     const title = this.captureTitle().trim();
@@ -133,6 +139,11 @@ export class TaskListPageComponent implements OnInit {
     this.captureError.set('');
     this.dailyClarityPrompt.set(pickRandomPrompt(DAILY_CLARITY_PROMPTS));
     this.journalPrompt.set(pickRandomPrompt(YOTARA_JOURNAL_PROMPTS));
+    this.activeInsightType.set(Math.random() > 0.5 ? 'clarity' : 'journal');
+  }
+
+  protected dismissInsight() {
+    this.insightPanelVisible.set(false);
   }
 
   // --- Today Logic ---

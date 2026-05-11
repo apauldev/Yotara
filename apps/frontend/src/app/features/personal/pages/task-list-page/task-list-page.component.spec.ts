@@ -80,7 +80,9 @@ describe('TaskListPageComponent', () => {
       fixture.detectChanges();
 
       expect(fixture.nativeElement.textContent).toContain('Today');
-      expect(fixture.nativeElement.textContent).toContain('Daily Zen');
+      // Daily Zen is replaced by Insight Panel which is randomized
+      const text = fixture.nativeElement.textContent;
+      expect(text.toLowerCase()).toMatch(/daily clarity|the yotara journal/);
     });
 
     it('renders the upcoming view when query param is set', () => {
@@ -90,6 +92,26 @@ describe('TaskListPageComponent', () => {
 
       expect(fixture.nativeElement.textContent).toContain('Upcoming');
       expect(fixture.nativeElement.textContent).toContain('Nothing is crowding the horizon');
+    });
+
+    it('renders the insight panel in inbox, today, and upcoming views', () => {
+      ['inbox', 'today', 'upcoming'].forEach((view) => {
+        mockActivatedRoute.queryParamMap = of(new Map([['view', view]]));
+        const fixture = TestBed.createComponent(TaskListPageComponent);
+        fixture.detectChanges();
+        const panel = fixture.debugElement.query(By.css('.insight-panel'));
+        expect(panel).toBeTruthy();
+      });
+    });
+
+    it('dismisses the insight panel when the x is clicked', () => {
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+      const dismissBtn = fixture.debugElement.query(By.css('.insight-dismiss'));
+      dismissBtn.nativeElement.click();
+      fixture.detectChanges();
+      const panel = fixture.debugElement.query(By.css('.insight-panel'));
+      expect(panel).toBeNull();
     });
 
     it('renders the search view when query param is set', () => {
@@ -141,13 +163,15 @@ describe('TaskListPageComponent', () => {
       expect(fixture.componentInstance['captureError']()).toBe('');
     });
 
-    it('displays daily clarity and journal prompts in inbox view', () => {
+    it('displays randomized insight prompts in inbox view', () => {
       const fixture = TestBed.createComponent(TaskListPageComponent);
       fixture.detectChanges();
 
-      // Verify prompts are rendered in the view
-      expect(fixture.nativeElement.textContent).toContain('Daily clarity');
-      expect(fixture.nativeElement.textContent).toContain('The Yotara Journal');
+      // Verify at least one type of prompt is rendered
+      const text = fixture.nativeElement.textContent;
+      const foundClarity = text.includes('Daily Clarity');
+      const foundJournal = text.includes('The Yotara Journal');
+      expect(foundClarity || foundJournal).toBeTrue();
     });
   });
 
