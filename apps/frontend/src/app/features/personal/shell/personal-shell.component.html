@@ -1,4 +1,4 @@
-<div class="personal-shell">
+<div class="personal-shell" [class.sidebar-collapsed]="sidebarCollapsed()">
   @if (mobileMenuOpen()) {
     <button
       type="button"
@@ -8,11 +8,21 @@
     ></button>
   }
 
-  <aside class="sidebar" [class.sidebar-open]="mobileMenuOpen()">
+  <aside class="sidebar" [class.sidebar-open]="mobileMenuOpen()" [class.sidebar-collapsed]="sidebarCollapsed()">
     <div class="sidebar-top">
       <div class="sidebar-brand">
-        <h1>Personal Sanctuary</h1>
-        <p>Focus mode active</p>
+        <div class="brand-content">
+          <h1>Personal Sanctuary</h1>
+          <p>Focus mode active</p>
+        </div>
+        <button
+          type="button"
+          class="sidebar-toggle"
+          (click)="toggleSidebar()"
+          [attr.aria-label]="sidebarCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+        >
+          <fa-icon [icon]="sidebarCollapsed() ? faChevronRight : faChevronLeft"></fa-icon>
+        </button>
       </div>
 
       <nav class="nav-list" aria-label="Personal navigation">
@@ -23,6 +33,7 @@
             routerLinkActive="nav-item-active"
             [routerLinkActiveOptions]="{ exact: true }"
             class="nav-item"
+            [title]="sidebarCollapsed() ? item.label : ''"
           >
             <span class="nav-icon" aria-hidden="true">
               @switch (item.icon) {
@@ -46,22 +57,17 @@
                 }
               }
             </span>
-            <span>{{ item.label }}</span>
+            <span class="nav-label">{{ item.label }}</span>
           </a>
         }
       </nav>
     </div>
 
     <div class="sidebar-bottom">
-      <button type="button" class="quick-add-button" (click)="openCreateTaskModal()">
+      <!-- <button type="button" class="quick-add-button" (click)="openCreateTaskModal()">
         <span class="quick-add-icon"><fa-icon [icon]="faPlus"></fa-icon></span>
         Quick Add Task
-      </button>
-
-      <div class="mode-switcher">
-        <button type="button" class="mode-button mode-button-active">Simple Mode</button>
-        <button type="button" class="mode-button" disabled>Team Mode</button>
-      </div>
+      </button> -->
     </div>
   </aside>
 
@@ -92,6 +98,11 @@
           </span>
           <span>Yotara</span>
         </a>
+
+        <div class="mode-switcher">
+          <button type="button" class="mode-button mode-button-active">Simple</button>
+          <button type="button" class="mode-button" disabled>Team</button>
+        </div>
 
         <form class="search-shell" (ngSubmit)="submitSearch()">
           <span class="search-icon" aria-hidden="true">
