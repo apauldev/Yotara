@@ -60,8 +60,12 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
               priorityLabel()
             }}</span>
 
+            @if (task.bucket) {
+              <span class="meta-pill meta-pill-bucket">{{ bucketLabel() }}</span>
+            }
+
             @if (task.simpleMode) {
-              <span class="meta-pill meta-pill-simple">Simple</span>
+              <span class="meta-pill meta-pill-simple">Simple mode</span>
             }
 
             @if (showCompletionState && task.completed) {
@@ -414,7 +418,18 @@ export class PersonalTaskCardComponent {
   }
 
   protected bucketLabel() {
-    return '';
+    switch (this.task.bucket) {
+      case 'personal-sanctuary':
+        return 'Personal Sanctuary';
+      case 'deep-work':
+        return 'Deep Work';
+      case 'home':
+        return 'Home';
+      case 'health':
+        return 'Health';
+      default:
+        return this.task.bucket || '';
+    }
   }
 
   requestComplete(event: MouseEvent) {

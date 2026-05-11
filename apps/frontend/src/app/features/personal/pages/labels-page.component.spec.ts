@@ -1,13 +1,14 @@
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { BehaviorSubject, of } from 'rxjs';
 import { LabelsPageComponent } from './labels-page.component';
 import { LabelService } from '../../../core/services/label.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { TaskService } from '../../../core/services/task.service';
 
 describe('LabelsPageComponent', () => {
+  const queryParams$ = new BehaviorSubject(convertToParamMap({}));
   const labels = signal([
     { id: 'writing', name: 'Writing', color: '#82d7a9', taskCount: 3 },
     { id: 'focus', name: 'Focus', color: '#81d7e8', taskCount: 1 },
@@ -17,6 +18,8 @@ describe('LabelsPageComponent', () => {
   const tasks = signal([]);
 
   beforeEach(async () => {
+    queryParams$.next(convertToParamMap({}));
+
     await TestBed.configureTestingModule({
       imports: [LabelsPageComponent],
       providers: [
@@ -24,7 +27,7 @@ describe('LabelsPageComponent', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            queryParamMap: of(convertToParamMap({})),
+            queryParamMap: queryParams$.asObservable(),
             snapshot: { queryParamMap: convertToParamMap({}) },
           },
         },
@@ -71,5 +74,31 @@ describe('LabelsPageComponent', () => {
     expect(text).toContain('Focus');
     expect(text).toContain('Finance');
     expect(text).toContain('frontend-only');
+  });
+
+  it('selects a label and updates the task pane title', fakeAsync(() => {
+    const fixture = TestBed.createComponent(LabelsPageComponent);
+    fixture.detectChanges();
+    tick();
+
+    // Directly push to our mock to simulate navigation result
+    queryParams$.next(convertToParamMap({ label: 'writing' }));
+    fixture.detectChanges();
+    tick();
+
+    const paneTitle = fixture.nativeElement.querySelector('#task-pane-title');
+    expect(paneTitle.textContent).toContain('Writing');
+  }));
+
+  it('opens the edit modal when the edit button is clicked', () => {
+    const fixture = TestBed.createComponent(LabelsPageComponent);
+    fixture.detectChanges();
+
+    const editBtn = fixture.nativeElement.querySelector('[aria-label*="Edit label"]');
+    editBtn.click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance['labelModalOpen']()).toBeTrue();
+    expect(fixture.componentInstance['labelModalMode']()).toBe('edit');
   });
 });
