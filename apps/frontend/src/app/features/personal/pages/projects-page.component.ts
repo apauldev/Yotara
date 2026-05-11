@@ -6,15 +6,18 @@ import { ProjectService } from '../../../core/services/project.service';
 import { PersonalProjectModalComponent } from '../components/personal-project-modal.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { projectPaletteFor, projectProgressPercent } from '../project-presentation';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { faEdit } from '@fortawesome/free-solid-svg-icons';
 
 @Component({
   selector: 'app-projects-page',
   standalone: true,
-  imports: [CommonModule, PersonalProjectModalComponent, PageHeaderComponent],
+  imports: [CommonModule, PersonalProjectModalComponent, PageHeaderComponent, FontAwesomeModule],
   templateUrl: './projects-page.component.html',
   styleUrl: './projects-page.component.scss',
 })
 export class ProjectsPageComponent {
+  protected readonly faEdit = faEdit;
   protected readonly projectService = inject(ProjectService);
   private readonly router = inject(Router);
   protected readonly createModalOpen = signal(false);

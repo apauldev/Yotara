@@ -35,47 +35,67 @@
       <button type="button" class="empty-button" (click)="openCreateModal()">Create Project</button>
     </section>
   } @else {
-    <section class="projects-table-container">
-      <div class="table-header">
-        <div class="col-identification">PROJECT IDENTIFICATION</div>
-        <div class="col-progress">PROGRESS</div>
-        <div class="col-status">STATUS</div>
-        <div class="col-actions">ACTIONS</div>
+    <section class="projects-table-container" role="table" aria-label="Projects">
+      <div class="table-header" role="rowgroup">
+        <div class="table-row-header" role="row">
+          <div class="col-identification" role="columnheader">Project</div>
+          <div class="col-progress" role="columnheader">Progress</div>
+          <div class="col-status" role="columnheader">Status</div>
+          <div class="col-actions" role="columnheader"><span class="sr-only">Actions</span></div>
+        </div>
       </div>
 
-      <div class="table-rows">
+      <div class="table-rows" role="rowgroup">
         @for (project of projects(); track project.id) {
-          <div class="table-row" (click)="openProject(project.id)">
-            <div class="col-identification">
+          <div
+            class="table-row"
+            role="row"
+            (click)="openProject(project.id)"
+            tabindex="0"
+            (keydown.enter)="openProject(project.id)"
+            (keydown.space)="$event.preventDefault(); openProject(project.id)"
+          >
+            <div class="col-identification" role="cell">
               <div class="project-identifier">
-                <div class="project-color-dot" [ngClass]="projectColorClass(project)"></div>
+                <div
+                  class="project-color-dot"
+                  [ngClass]="projectColorClass(project)"
+                  [attr.aria-label]="'Color: ' + paletteLabel(project)"
+                  role="img"
+                ></div>
                 <div class="project-info">
                   <h3>{{ project.name }}</h3>
-                  <p>
+                  <p class="description-line">
                     {{ project.description || 'A calm place for the work that belongs together.' }}
                   </p>
-                  <button
-                    type="button"
-                    class="project-edit-button"
-                    (click)="openEditModal(project, $event)"
-                  >
-                    Edit
-                  </button>
                 </div>
               </div>
             </div>
-            <div class="col-progress">
+            <div class="col-progress" role="cell">
               <div class="progress-info">
-                <span class="progress-label">{{ progressPercent(project) }}%</span>
+                <span class="progress-label" [attr.aria-label]="'Progress: ' + progressPercent(project) + ' percent'">
+                  {{ progressPercent(project) }}%
+                </span>
               </div>
             </div>
-            <div class="col-status">
+            <div class="col-status" role="cell">
               <span class="status-badge" [ngClass]="'status-' + getProjectStatus(project)">
-                {{ getProjectStatus(project) | uppercase }}
+                {{ getProjectStatus(project) }}
               </span>
             </div>
-            <div class="col-actions">
-              <span class="action-icon">→</span>
+            <div class="col-actions" role="cell">
+              <div class="action-group">
+                <button
+                  type="button"
+                  class="action-button-edit"
+                  (click)="openEditModal(project, $event)"
+                  [attr.aria-label]="'Edit project ' + project.name"
+                  title="Edit project"
+                >
+                  <fa-icon [icon]="faEdit"></fa-icon>
+                </button>
+                <span class="action-icon-go" aria-hidden="true">→</span>
+              </div>
             </div>
           </div>
         }
