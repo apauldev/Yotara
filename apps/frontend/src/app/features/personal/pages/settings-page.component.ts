@@ -1,12 +1,21 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { ThemeService, Theme } from '../../../core/services/theme.service';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { ChangePasswordModalComponent } from '../components/change-password-modal.component';
+import { LogoutConfirmModalComponent } from '../../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
+import { AuthStateService } from '../../../core/services/auth-state.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-settings-page',
   standalone: true,
-  imports: [CommonModule, PageHeaderComponent],
+  imports: [
+    CommonModule,
+    PageHeaderComponent,
+    ChangePasswordModalComponent,
+    LogoutConfirmModalComponent,
+  ],
   template: `
     <section class="page">
       <app-page-header
@@ -75,12 +84,15 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
 
         <div class="settings-section">
           <h3 class="section-title">Account</h3>
-          <button type="button" class="settings-item settings-link" disabled>
+          <button
+            type="button"
+            class="settings-item settings-link"
+            (click)="isChangePasswordOpen.set(true)"
+          >
             <div class="settings-item-copy">
               <strong>Change password</strong>
               <span>Update your account password.</span>
             </div>
-            <span class="coming-soon">Coming soon</span>
           </button>
           <button type="button" class="settings-item settings-link" disabled>
             <div class="settings-item-copy">
@@ -95,6 +107,16 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
               <span>Add extra security to your account.</span>
             </div>
             <span class="coming-soon">Coming soon</span>
+          </button>
+          <button
+            type="button"
+            class="settings-item settings-link settings-link-danger"
+            (click)="isLogoutConfirmOpen.set(true)"
+          >
+            <div class="settings-item-copy">
+              <strong>Logout</strong>
+              <span>Sign out of your account.</span>
+            </div>
           </button>
         </div>
 
@@ -135,6 +157,19 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
         </div>
       </div>
     </section>
+
+    <app-change-password-modal
+      [open]="isChangePasswordOpen()"
+      (close)="isChangePasswordOpen.set(false)"
+    />
+
+    <app-logout-confirm-modal
+      [open]="isLogoutConfirmOpen()"
+      [loading]="isLoggingOut()"
+      (close)="isLogoutConfirmOpen.set(false)"
+      (stay)="isLogoutConfirmOpen.set(false)"
+      (confirm)="onLogout()"
+    />
   `,
   styles: [
     `
@@ -154,23 +189,24 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
         padding: 1.5rem;
         display: flex;
         flex-direction: column;
-        gap: 2rem;
+        gap: 2.25rem;
         max-width: 42rem;
       }
 
       .settings-section {
         display: flex;
         flex-direction: column;
-        gap: 1.25rem;
+        gap: 1rem;
       }
 
       .section-title {
         margin: 0;
-        font-size: 0.85rem;
-        font-weight: 700;
+        font-size: 0.8rem;
+        font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: var(--on-surface-muted);
+        letter-spacing: 0.12em;
+        color: var(--on-surface-subtle);
+        padding-left: 0.5rem;
       }
 
       .settings-item {
@@ -178,10 +214,9 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
         align-items: center;
         justify-content: space-between;
         gap: 1.5rem;
-      }
-
-      .settings-item-disabled {
-        opacity: 0.5;
+        padding: 0.75rem 0.5rem;
+        border-radius: 1rem;
+        transition: background-color 0.2s ease;
       }
 
       .settings-item-copy {
@@ -191,13 +226,15 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
       }
 
       .settings-item-copy strong {
-        font-size: 1.1rem;
+        font-size: 1.05rem;
         letter-spacing: -0.01em;
+        color: var(--on-surface);
       }
 
       .settings-item-copy span {
         color: var(--on-surface-muted);
-        font-size: 0.95rem;
+        font-size: 0.9rem;
+        line-height: 1.4;
       }
 
       .settings-select {
@@ -207,15 +244,16 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
         border-radius: 0.75rem;
         color: var(--on-surface);
         font-family: inherit;
-        font-size: 0.92rem;
+        font-size: 0.9rem;
         font-weight: 600;
-        padding: 0.6rem 2.2rem 0.6rem 1rem;
+        padding: 0.6rem 2.25rem 0.6rem 1rem;
         cursor: pointer;
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
         background-repeat: no-repeat;
         background-position: right 0.75rem center;
         background-size: 1rem;
         transition: all 0.2s ease;
+        min-width: 10rem;
       }
 
       .settings-select:hover {
@@ -229,41 +267,27 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
         box-shadow: 0 0 0 2px var(--primary-soft);
       }
 
-      .settings-placeholder {
-        font-size: 0.95rem;
-        color: var(--on-surface-muted);
-        padding: 0.5rem 0.9rem;
+      .coming-soon {
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--on-surface-subtle);
+        padding: 0.3rem 0.6rem;
         background: var(--surface-container-high);
         border-radius: 0.5rem;
         flex: 0 0 auto;
       }
 
-      .coming-soon {
-        font-size: 0.75rem;
-        font-weight: 600;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        color: var(--on-surface-muted);
-        padding: 0.35rem 0.65rem;
-        background: var(--surface-container-high);
-        border-radius: 0.4rem;
-        flex: 0 0 auto;
-      }
-
       .settings-link {
-        padding: 0.85rem 0.9rem;
-        gap: 0.9rem;
         width: 100%;
         border: 0;
-        border-radius: 1rem;
         background: transparent;
         color: var(--on-surface);
         text-align: left;
         cursor: pointer;
         font: inherit;
-        font-size: 1rem;
         text-decoration: none;
-        transition: background-color 0.2s ease;
       }
 
       .settings-link:hover:not(:disabled) {
@@ -272,16 +296,73 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
 
       .settings-link:disabled {
         cursor: not-allowed;
+      }
+
+      .settings-item-disabled {
         opacity: 0.5;
+      }
+
+      .settings-link-danger:hover:not(:disabled) {
+        background: var(--error-soft);
+      }
+
+      .settings-link-danger:hover:not(:disabled) strong {
+        color: var(--error-solid);
+      }
+
+      .settings-link-danger:hover:not(:disabled) span {
+        color: var(--error-solid);
+        opacity: 0.7;
+      }
+
+      @media (max-width: 640px) {
+        .settings-card {
+          padding: 1rem;
+          gap: 2rem;
+          border-radius: 1.25rem;
+        }
+
+        .settings-item {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 1rem;
+          padding: 0.5rem;
+        }
+
+        .settings-select {
+          width: 100%;
+          min-width: 0;
+        }
+
+        .coming-soon {
+          align-self: flex-start;
+        }
       }
     `,
   ],
 })
 export class SettingsPageComponent {
   protected readonly themeService = inject(ThemeService);
+  private readonly authState = inject(AuthStateService);
+  private readonly router = inject(Router);
+
+  protected readonly isChangePasswordOpen = signal(false);
+  protected readonly isLogoutConfirmOpen = signal(false);
+  protected readonly isLoggingOut = signal(false);
 
   protected onThemeChange(event: Event) {
     const select = event.target as HTMLSelectElement;
     this.themeService.setTheme(select.value as Theme);
+  }
+
+  protected async onLogout() {
+    this.isLoggingOut.set(true);
+    try {
+      await this.authState.signOut();
+      this.isLogoutConfirmOpen.set(false);
+      await this.router.navigate(['/login']);
+    } finally {
+      this.isLoggingOut.set(false);
+    }
   }
 }

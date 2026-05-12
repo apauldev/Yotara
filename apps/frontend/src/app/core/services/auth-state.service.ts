@@ -89,6 +89,16 @@ export class AuthStateService {
     }
   }
 
+  async changePassword(currentPassword: string, newPassword: string, revokeOtherSessions = true) {
+    this.loadingState.set(true);
+
+    try {
+      return await AuthService.changePassword(currentPassword, newPassword, revokeOtherSessions);
+    } finally {
+      this.loadingState.set(false);
+    }
+  }
+
   async signOut() {
     this.loadingState.set(true);
 
