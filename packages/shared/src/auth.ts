@@ -65,6 +65,17 @@ export const AuthService = {
   getSession: async () => {
     return await getAuthClient().getSession();
   },
+  changePassword: async (
+    currentPassword: string,
+    newPassword: string,
+    revokeOtherSessions = true,
+  ) => {
+    return await getAuthClient().changePassword({
+      currentPassword,
+      newPassword,
+      revokeOtherSessions,
+    });
+  },
   getProfile: async () => {
     return await request<ProfileResponse>('/me');
   },

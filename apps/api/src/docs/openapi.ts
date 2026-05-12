@@ -395,6 +395,18 @@ const authSignOutResponseSchema = {
   additionalProperties: true,
 } as const;
 
+const authChangePasswordSchema = {
+  $id: 'AuthChangePassword',
+  type: 'object',
+  required: ['currentPassword', 'newPassword'],
+  properties: {
+    currentPassword: { type: 'string' },
+    newPassword: { type: 'string' },
+    revokeOtherSessions: { type: 'boolean' },
+  },
+  additionalProperties: false,
+} as const;
+
 const authErrorSchema = {
   $id: 'AuthError',
   type: 'object',
@@ -431,6 +443,7 @@ const sharedSchemas = [
   authSignUpSchema,
   authUserResponseSchema,
   authSignOutResponseSchema,
+  authChangePasswordSchema,
   authErrorSchema,
 ] as const;
 
@@ -550,6 +563,11 @@ export const examples = {
   authSignIn: {
     email: 'demo@example.com',
     password: 'Password123!',
+  },
+  authChangePassword: {
+    currentPassword: 'Password123!',
+    newPassword: 'NewPassword123!',
+    revokeOtherSessions: true,
   },
   authUser: {
     user: {
@@ -874,7 +892,7 @@ function authPaths() {
         security: authCookieSecurity,
         responses: {
           200: {
-            description: 'Session response',
+            description: 'Authenticated session data',
             content: {
               'application/json': {
                 schema: { $ref: 'AuthSessionResponse#' },
@@ -885,7 +903,49 @@ function authPaths() {
         },
       },
     },
-  } as const;
+    '/auth/change-password': {
+      post: {
+        tags: ['auth'],
+        summary: 'Change the authenticated user password',
+        description:
+          'Updates the password for the current user. Requires the current password for verification.',
+        security: authCookieSecurity,
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: 'AuthChangePassword#' },
+              example: examples.authChangePassword,
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Password updated',
+            content: {
+              'application/json': {
+                schema: { type: 'object', properties: { success: { type: 'boolean' } } },
+                example: { success: true },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized or invalid current password',
+            content: {
+              'application/json': {
+                schema: { $ref: 'AuthError#' },
+                example: {
+                  message: 'Invalid password',
+                  code: 'INVALID_PASSWORD',
+                  status: 401,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  };
 }
 
 export async function registerOpenApi(app: FastifyInstance) {

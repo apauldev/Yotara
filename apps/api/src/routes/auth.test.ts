@@ -135,6 +135,54 @@ test('auth routes register and login with email/password', async () => {
     assert.equal(meAfterLogin.json().user.email, TEST_EMAIL);
     assert.equal(meAfterLogin.json().user.workspaceMode, 'personal');
     assert.equal(meAfterLogin.json().user.onboardingCompleted, true);
+
+    const NEW_PASSWORD = 'NewPassword123!';
+
+    const changePasswordResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/change-password',
+      headers: {
+        origin: TEST_ORIGIN,
+        cookie: loginCookie,
+      },
+      payload: {
+        currentPassword: TEST_PASSWORD,
+        newPassword: NEW_PASSWORD,
+        revokeOtherSessions: true,
+      },
+    });
+
+    assert.equal(changePasswordResponse.statusCode, 200);
+
+    // Verify old password no longer works
+    const loginFailResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-in/email',
+      headers: {
+        origin: TEST_ORIGIN,
+      },
+      payload: {
+        email: TEST_EMAIL,
+        password: TEST_PASSWORD,
+      },
+    });
+
+    assert.notEqual(loginFailResponse.statusCode, 200);
+
+    // Verify new password works
+    const loginSuccessResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-in/email',
+      headers: {
+        origin: TEST_ORIGIN,
+      },
+      payload: {
+        email: TEST_EMAIL,
+        password: NEW_PASSWORD,
+      },
+    });
+
+    assert.equal(loginSuccessResponse.statusCode, 200);
   } finally {
     await ctx.cleanup();
   }
