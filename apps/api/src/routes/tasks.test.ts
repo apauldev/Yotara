@@ -5,7 +5,6 @@ import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { eq } from 'drizzle-orm';
-import { db } from '../db/client.js';
 import { tasks } from '../db/schema.js';
 
 async function createAuthedApp() {
@@ -267,6 +266,7 @@ test('tasks pagination validates query bounds and deleted tasks cannot be update
 
 test('temporary archived tasks are cleaned up in the database while permanent archives stay', async () => {
   const ctx = await createAuthedApp();
+  const { db } = await import('../db/client.js');
 
   try {
     const userCookie = await signUpAndGetCookie(`archive-${randomUUID()}@example.com`);

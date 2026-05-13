@@ -174,6 +174,11 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
     sqlite.exec(`ALTER TABLE tasks ADD COLUMN archived_at TEXT`);
   }
 
+  // Backfill archived_at for existing completed tasks if missing
+  sqlite.exec(
+    `UPDATE tasks SET archived_at = updated_at WHERE completed = 1 AND archived_at IS NULL`,
+  );
+
   if (!taskColumnNames.has('permanent_archive')) {
     sqlite.exec(`ALTER TABLE tasks ADD COLUMN permanent_archive INTEGER NOT NULL DEFAULT 0`);
   }
