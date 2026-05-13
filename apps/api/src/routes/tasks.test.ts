@@ -4,6 +4,9 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { eq } from 'drizzle-orm';
+import { db } from '../db/client.js';
+import { tasks } from '../db/schema.js';
 
 async function createAuthedApp() {
   const dbFile = join(tmpdir(), `yotara-test-${randomUUID()}.db`);
@@ -45,6 +48,12 @@ async function signUpAndGetCookie(email: string) {
   const cookie = response.headers.get('set-cookie');
   assert.ok(cookie);
   return cookie;
+}
+
+function daysAgoIso(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString();
 }
 
 test('tasks routes require auth and scope data to the current user', async () => {
@@ -126,7 +135,7 @@ test('tasks routes require auth and scope data to the current user', async () =>
   }
 });
 
-test('tasks list supports pagination and delete is a soft delete', async () => {
+test('tasks list supports pagination and delete removes the row', async () => {
   const ctx = await createAuthedApp();
 
   try {
@@ -203,7 +212,7 @@ test('tasks list supports pagination and delete is a soft delete', async () => {
   }
 });
 
-test('tasks pagination validates query bounds and soft-deleted tasks cannot be updated', async () => {
+test('tasks pagination validates query bounds and deleted tasks cannot be updated', async () => {
   const ctx = await createAuthedApp();
 
   try {
@@ -251,6 +260,134 @@ test('tasks pagination validates query bounds and soft-deleted tasks cannot be u
       payload: { title: 'Should not update' },
     });
     assert.equal(patchDeleted.statusCode, 404);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('temporary archived tasks are cleaned up in the database while permanent archives stay', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const userCookie = await signUpAndGetCookie(`archive-${randomUUID()}@example.com`);
+
+    const disableCleanupResponse = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/me',
+      headers: {
+        cookie: userCookie,
+      },
+      payload: {
+        archiveAutoDelete: false,
+      },
+    });
+    assert.equal(disableCleanupResponse.statusCode, 200);
+    assert.equal(disableCleanupResponse.json().user.archiveAutoDelete, false);
+
+    const temporaryCreate = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie: userCookie },
+      payload: {
+        title: 'Temporary archive',
+        status: 'inbox',
+        priority: 'medium',
+        simpleMode: true,
+      },
+    });
+    assert.equal(temporaryCreate.statusCode, 201);
+    const temporaryTask = temporaryCreate.json();
+
+    const completeTemporary = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${temporaryTask.id}`,
+      headers: { cookie: userCookie },
+      payload: { completed: true, permanentArchive: false },
+    });
+    assert.equal(completeTemporary.statusCode, 200);
+    assert.equal(completeTemporary.json().permanentArchive, false);
+
+    await db
+      .update(tasks)
+      .set({ archivedAt: daysAgoIso(40) })
+      .where(eq(tasks.id, temporaryTask.id));
+
+    const temporaryArchiveVisible = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks',
+      headers: { cookie: userCookie },
+    });
+    assert.equal(temporaryArchiveVisible.statusCode, 200);
+    assert.equal(temporaryArchiveVisible.json().meta.total, 1);
+
+    const enableCleanupResponse = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/me',
+      headers: {
+        cookie: userCookie,
+      },
+      payload: {
+        archiveAutoDelete: true,
+      },
+    });
+    assert.equal(enableCleanupResponse.statusCode, 200);
+    assert.equal(enableCleanupResponse.json().user.archiveAutoDelete, true);
+
+    const cleanedArchive = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks',
+      headers: { cookie: userCookie },
+    });
+    assert.equal(cleanedArchive.statusCode, 200);
+    assert.equal(cleanedArchive.json().meta.total, 0);
+
+    const cleanedFetch = await ctx.app.inject({
+      method: 'GET',
+      url: `/tasks/${temporaryTask.id}`,
+      headers: { cookie: userCookie },
+    });
+    assert.equal(cleanedFetch.statusCode, 404);
+
+    const permanentCreate = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie: userCookie },
+      payload: {
+        title: 'Permanent archive',
+        status: 'inbox',
+        priority: 'medium',
+        simpleMode: true,
+      },
+    });
+    assert.equal(permanentCreate.statusCode, 201);
+    const permanentTask = permanentCreate.json();
+
+    const completePermanent = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${permanentTask.id}`,
+      headers: { cookie: userCookie },
+      payload: {
+        completed: true,
+        permanentArchive: true,
+      },
+    });
+    assert.equal(completePermanent.statusCode, 200);
+    assert.equal(completePermanent.json().permanentArchive, true);
+
+    await db
+      .update(tasks)
+      .set({ archivedAt: daysAgoIso(40) })
+      .where(eq(tasks.id, permanentTask.id));
+
+    const permanentArchiveVisible = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks',
+      headers: { cookie: userCookie },
+    });
+    assert.equal(permanentArchiveVisible.statusCode, 200);
+    assert.equal(permanentArchiveVisible.json().meta.total, 1);
+    assert.equal(permanentArchiveVisible.json().data[0].id, permanentTask.id);
+    assert.equal(permanentArchiveVisible.json().data[0].permanentArchive, true);
   } finally {
     await ctx.cleanup();
   }

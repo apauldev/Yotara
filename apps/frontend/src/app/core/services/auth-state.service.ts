@@ -125,6 +125,22 @@ export class AuthStateService {
     }
   }
 
+  async updateProfile(payload: {
+    workspaceMode?: 'personal' | 'team';
+    onboardingCompleted?: boolean;
+    archiveAutoDelete?: boolean;
+  }) {
+    this.loadingState.set(true);
+
+    try {
+      const result = await AuthService.updateProfile(payload);
+      this.userState.set(result.user);
+      return result;
+    } finally {
+      this.loadingState.set(false);
+    }
+  }
+
   getPostAuthRedirectUrl() {
     if (this.needsOnboarding()) {
       return '/onboarding';

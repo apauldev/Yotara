@@ -25,6 +25,7 @@ export const users = sqliteTable('user', {
   image: text('image'),
   workspaceMode: text('workspaceMode', { enum: ['personal', 'team'] }),
   onboardingCompleted: integer('onboardingCompleted', { mode: 'boolean' }).notNull().default(false),
+  archiveAutoDelete: integer('archiveAutoDelete', { mode: 'boolean' }).notNull().default(true),
   createdAt: integer('createdAt', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updatedAt', { mode: 'timestamp' }).notNull(),
 });
@@ -107,6 +108,8 @@ export const tasks = sqliteTable('tasks', {
   }).default('personal-sanctuary'),
   projectId: text('project_id').references(() => projects.id, { onDelete: 'set null' }),
   deletedAt: text('deleted_at'),
+  archivedAt: text('archived_at'),
+  permanentArchive: integer('permanent_archive', { mode: 'boolean' }).notNull().default(false),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
