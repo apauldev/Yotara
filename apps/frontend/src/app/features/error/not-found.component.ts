@@ -1,13 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faCompass } from '@fortawesome/free-solid-svg-icons';
 
 @Component({
   selector: 'app-not-found',
   standalone: true,
-  imports: [CommonModule, RouterLink, FontAwesomeModule],
+  imports: [CommonModule, RouterLink],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="not-found-container">
       <div class="parallax-forest">
@@ -32,11 +31,12 @@ import { faCompass } from '@fortawesome/free-solid-svg-icons';
           <div class="particle p18"></div>
         </div>
 
-        <div class="sky-elements">
+        <div class="birds" aria-hidden="true">
           <div class="bird bird-1 type-a"></div>
           <div class="bird bird-2 type-b"></div>
           <div class="bird bird-3 type-a"></div>
           <div class="bird bird-4 type-c"></div>
+          <div class="bird bird-5 type-b"></div>
         </div>
 
         <div class="layer layer-5"></div>
@@ -68,15 +68,16 @@ import { faCompass } from '@fortawesome/free-solid-svg-icons';
         display: block;
         min-height: 100vh;
         background: var(--background);
+        overflow-x: hidden;
       }
 
       .not-found-container {
+        min-height: 100vh;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        min-height: 100vh;
-        padding: 2rem;
+        padding: 1.5rem;
         box-sizing: border-box;
       }
 
@@ -84,7 +85,7 @@ import { faCompass } from '@fortawesome/free-solid-svg-icons';
         position: relative;
         width: 100%;
         max-width: 1100px;
-        height: clamp(300px, 50vh, 550px);
+        height: clamp(280px, 45vh, 550px);
         margin-bottom: 2rem;
         overflow: hidden;
         border-radius: var(--radius);
@@ -95,6 +96,7 @@ import { faCompass } from '@fortawesome/free-solid-svg-icons';
         );
         box-shadow: 0 40px 80px rgba(0, 0, 0, 0.15);
         flex-shrink: 0;
+        isolation: isolate;
       }
 
       .layer {
@@ -110,14 +112,14 @@ import { faCompass } from '@fortawesome/free-solid-svg-icons';
         pointer-events: none;
       }
 
-      /* Weather Layer (Snow/Rain) */
+      /* Weather Layer */
       .weather-layer {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        z-index: 5;
+        z-index: 10;
         pointer-events: none;
       }
 
@@ -129,13 +131,10 @@ import { faCompass } from '@fortawesome/free-solid-svg-icons';
         animation: fall linear infinite;
       }
 
-      /* Snow Styles */
       .weather-layer.snow .particle {
         border-radius: 50%;
-        filter: blur(1px);
       }
 
-      /* Rain Styles */
       .weather-layer.rain .particle {
         width: 1px !important;
         height: 20px !important;
@@ -277,7 +276,6 @@ import { faCompass } from '@fortawesome/free-solid-svg-icons';
         --drift: -10px;
       }
 
-      /* Rain specific overrides */
       .weather-layer.rain .particle {
         animation-duration: 0.8s !important;
         animation-timing-function: ease-in;
@@ -285,13 +283,11 @@ import { faCompass } from '@fortawesome/free-solid-svg-icons';
       }
 
       /* Birds */
-      .sky-elements {
+      .birds {
         position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 60%;
-        z-index: 1;
+        inset: 0;
+        z-index: 7;
+        pointer-events: none;
       }
 
       .bird {
@@ -303,46 +299,49 @@ import { faCompass } from '@fortawesome/free-solid-svg-icons';
       }
 
       .type-a {
-        /* Classic */
         width: 40px;
         height: 25px;
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 40'%3E%3Cpath d='M10 20 C 15 10, 25 10, 30 20 C 35 10, 45 10, 50 20 L 45 22 C 40 18, 35 18, 30 22 C 25 18, 20 18, 15 22 Z' fill='%235d5952'/%3E%3C/svg%3E");
       }
       .type-b {
-        /* Wide wing */
         width: 50px;
         height: 20px;
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 30'%3E%3Cpath d='M0 15 C 10 0, 25 0, 30 15 C 35 0, 50 0, 60 15 L 50 17 C 40 5, 30 5, 30 17 C 30 5, 20 5, 10 17 Z' fill='%23706a60'/%3E%3C/svg%3E");
       }
       .type-c {
-        /* Small swift */
-        width: 30px;
-        height: 15px;
+        width: 35px;
+        height: 18px;
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'%3E%3Cpath d='M5 10 C 10 2, 18 2, 20 10 C 22 2, 30 2, 35 10 L 30 12 C 25 6, 20 6, 20 12 C 20 6, 15 6, 10 12 Z' fill='%235d5952'/%3E%3C/svg%3E");
       }
 
       .bird-1 {
-        top: 15%;
+        top: 12%;
         left: -10%;
         animation-duration: 22s, 0.4s;
       }
       .bird-2 {
-        top: 30%;
+        top: 28%;
         left: -15%;
         animation-duration: 28s, 0.5s;
         animation-delay: 3s;
       }
       .bird-3 {
-        top: 10%;
+        top: 8%;
         left: -20%;
         animation-duration: 20s, 0.35s;
         animation-delay: 7s;
       }
       .bird-4 {
-        top: 40%;
+        top: 38%;
         left: -10%;
-        animation-duration: 15s, 0.25s;
+        animation-duration: 16s, 0.25s;
         animation-delay: 2s;
+      }
+      .bird-5 {
+        top: 22%;
+        right: -15%;
+        animation-duration: 25s, 0.45s;
+        animation-name: fly-reverse, flap;
       }
 
       @keyframes flap {
@@ -356,44 +355,57 @@ import { faCompass } from '@fortawesome/free-solid-svg-icons';
 
       @keyframes fly {
         from {
-          left: -10%;
+          left: -12%;
         }
         to {
-          left: 110%;
+          left: 112%;
         }
       }
 
-      /* Natural Trees */
+      @keyframes fly-reverse {
+        from {
+          right: -12%;
+        }
+        to {
+          right: 112%;
+        }
+      }
+
+      /* Parallax Layers */
       .layer-5 {
-        /* Mountains */
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 400'%3E%3Cpath d='M0 400 L 200 150 L 350 280 L 550 100 L 800 320 L 1000 200 V 400 Z' fill='%2379a08d' opacity='0.18'/%3E%3C/svg%3E");
-        animation-duration: 120s;
+        z-index: 2;
         background-size: auto 65%;
+        opacity: 0.2;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 400'%3E%3Cpath d='M0 400 L 200 150 L 350 280 L 550 100 L 800 320 L 1000 200 V 400 Z' fill='%2379a08d'/%3E%3C/svg%3E");
+        animation-duration: 140s;
       }
 
       .layer-4 {
-        /* Distant Pine Forest */
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 300'%3E%3Cpath d='M50 250 L 70 180 L 90 250 Z M 150 250 L 175 160 L 200 250 Z M 300 250 L 330 150 L 360 250 Z M 500 250 L 540 140 L 580 250 Z' fill='%235aa37d' opacity='0.3'/%3E%3C/svg%3E");
-        animation-duration: 75s;
-        filter: blur(2px);
+        z-index: 3;
+        opacity: 0.35;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 300'%3E%3Cpath d='M50 250 L 70 180 L 90 250 Z M 150 250 L 175 160 L 200 250 Z M 300 250 L 330 150 L 360 250 Z M 500 250 L 540 140 L 580 250 Z M 720 250 L 750 160 L 780 250 Z' fill='%235aa37d'/%3E%3C/svg%3E");
+        animation-duration: 90s;
       }
 
       .layer-3 {
-        /* Mid-ground Varied Forest */
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 300'%3E%3Cpath d='M100 260 L 150 120 L 200 260 Z M 400 260 L 460 100 L 520 260 Z M 750 260 L 820 110 L 890 260 Z M 250 260 Q 280 180, 310 260 Z' fill='%233e7b63' opacity='0.5'/%3E%3C/svg%3E");
-        animation-duration: 50s;
+        z-index: 4;
+        opacity: 0.5;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 300'%3E%3Cpath d='M100 260 L 145 110 L 190 260 Z M 400 260 L 460 100 L 520 260 Z M 750 260 L 820 110 L 890 260 Z M 250 260 Q 280 180, 310 260 Z M 600 260 Q 640 160, 680 260 Z' fill='%233e7b63'/%3E%3C/svg%3E");
+        animation-duration: 60s;
       }
 
       .layer-2 {
-        /* Near Detailed Trees */
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 300'%3E%3Cpath d='M200 270 L 280 80 L 360 270 Z M 600 270 L 700 60 L 800 270 Z M 100 270 Q 150 150, 200 270 Z' fill='%2324473c' opacity='0.75'/%3E%3C/svg%3E");
-        animation-duration: 35s;
+        z-index: 5;
+        opacity: 0.75;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 300'%3E%3Cpath d='M150 270 L 210 100 L 270 270 Z M 500 270 L 580 80 L 660 270 Z M 800 270 L 880 100 L 960 270 Z M 350 270 Q 400 150, 450 270 Z' fill='%2324473c'/%3E%3C/svg%3E");
+        animation-duration: 38s;
       }
 
       .layer-1 {
-        /* Foreground Lush Trees */
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 300'%3E%3Cpath d='M0 280 L 150 40 L 300 280 Z M 450 280 L 600 20 L 750 280 Z M 800 280 Q 900 120, 1000 280 Z' fill='%23172e26'/%3E%3C/svg%3E");
-        animation-duration: 20s;
+        z-index: 6;
+        opacity: 1;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 300'%3E%3Cpath d='M0 280 L 120 40 L 240 280 Z M 400 280 L 530 20 L 660 280 Z M 800 280 Q 900 120, 1000 280 Z' fill='%23172e26'/%3E%3C/svg%3E");
+        animation-duration: 22s;
       }
 
       .error-code {
@@ -401,58 +413,56 @@ import { faCompass } from '@fortawesome/free-solid-svg-icons';
         top: 50%;
         left: 50%;
         transform: translate(-50%, -55%);
-        font-size: clamp(8rem, 20vw, 18rem);
+        font-size: clamp(8rem, 20vw, 16rem);
         font-weight: 900;
         color: var(--primary-solid);
-        opacity: 0.1;
+        opacity: 0.08;
         letter-spacing: -0.06em;
         user-select: none;
         z-index: 0;
       }
 
       .content {
-        z-index: 10;
+        z-index: 20;
         text-align: center;
         width: 100%;
+        max-width: 600px;
       }
 
       h1 {
-        font-size: clamp(1.8rem, 5vw, 3.2rem);
-        letter-spacing: -0.04em;
-        margin-bottom: 0.5rem;
+        font-size: clamp(2rem, 5vw, 3.5rem);
+        letter-spacing: -0.05em;
+        margin: 0 0 0.75rem;
         color: var(--on-surface);
         font-weight: 800;
       }
 
       p {
-        font-size: clamp(1rem, 2vw, 1.25rem);
+        font-size: clamp(1rem, 2vw, 1.2rem);
         color: var(--on-surface-muted);
-        margin-bottom: 2rem;
-        max-width: 500px;
+        margin: 0 auto 2.5rem;
         line-height: 1.6;
-        margin-left: auto;
-        margin-right: auto;
       }
 
       .btn-primary-action {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 1rem 2.5rem;
+        padding: 1rem 2.8rem;
         border-radius: 999px;
         font-weight: 700;
         text-decoration: none;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         background: var(--primary-action-gradient);
         color: white;
-        font-size: clamp(1rem, 1.5vw, 1.25rem);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        font-size: 1.15rem;
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
       }
 
       .btn-primary-action:hover {
         transform: translateY(-3px);
-        box-shadow: 0 15px 45px rgba(0, 0, 0, 0.2);
-        filter: brightness(1.1);
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.2);
+        filter: brightness(1.08);
       }
 
       @keyframes slide {
@@ -464,23 +474,20 @@ import { faCompass } from '@fortawesome/free-solid-svg-icons';
         }
       }
 
-      /* Theme specific overrides */
+      /* Theme Adjustments */
       :host-context(.theme-dark-forest) .parallax-forest {
         background: linear-gradient(
           to bottom,
           var(--surface-container-lowest),
           var(--surface-container-high)
         );
-        box-shadow: 0 40px 80px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 40px 100px rgba(0, 0, 0, 0.4);
       }
       :host-context(.theme-dark-forest) .bird {
-        filter: brightness(1.8);
-      }
-      :host-context(.theme-dark-forest) .error-code {
-        opacity: 0.08;
+        filter: brightness(1.6);
       }
       :host-context(.theme-dark-forest) .particle {
-        opacity: 0.3;
+        opacity: 0.35;
       }
 
       @media (max-width: 640px) {
@@ -488,16 +495,16 @@ import { faCompass } from '@fortawesome/free-solid-svg-icons';
           padding: 1rem;
         }
         .parallax-forest {
-          height: 250px;
+          height: 300px;
+          margin-bottom: 1.5rem;
         }
-        .content {
-          margin-top: 1rem;
+        h1 {
+          font-size: 2.2rem;
         }
       }
     `,
   ],
 })
 export class NotFoundComponent {
-  protected readonly faCompass = faCompass;
   protected readonly weatherType = signal<'snow' | 'rain'>(Math.random() > 0.5 ? 'snow' : 'rain');
 }
