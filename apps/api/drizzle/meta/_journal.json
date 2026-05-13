@@ -22,6 +22,13 @@
       "when": 1776158665860,
       "tag": "0002_messy_wolfpack",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1776158665861,
+      "tag": "0003_archive_retention",
+      "breakpoints": true
     }
   ]
 }
