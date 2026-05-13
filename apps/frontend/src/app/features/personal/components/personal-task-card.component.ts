@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
 import { Task } from '@yotara/shared';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faRotateLeft } from '@fortawesome/free-solid-svg-icons';
+import { faBoxArchive, faRotateLeft, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { LabelService } from '../../../core/services/label.service';
 import { TaskService } from '../../../core/services/task.service';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
@@ -86,6 +86,35 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
                 <fa-icon [icon]="faRotateLeft" class="restore-icon"></fa-icon>
                 <span>Restore</span>
               </button>
+
+              @if (showArchiveActions) {
+                <button
+                  type="button"
+                  class="restore-pill archive-pill"
+                  [class.archive-pill-active]="task.permanentArchive"
+                  (click)="$event.stopPropagation(); togglePermanentArchive.emit()"
+                  (keydown)="$event.stopPropagation()"
+                  [attr.aria-label]="
+                    task.permanentArchive
+                      ? 'Remove permanent archive tag'
+                      : 'Mark permanent archive'
+                  "
+                >
+                  <fa-icon [icon]="faBoxArchive" class="restore-icon"></fa-icon>
+                  <span>{{ task.permanentArchive ? 'Permanent archive' : 'Make permanent' }}</span>
+                </button>
+
+                <button
+                  type="button"
+                  class="restore-pill delete-pill"
+                  (click)="$event.stopPropagation(); deleteForever.emit()"
+                  (keydown)="$event.stopPropagation()"
+                  aria-label="Delete task forever"
+                >
+                  <fa-icon [icon]="faTrash" class="restore-icon"></fa-icon>
+                  <span>Delete forever</span>
+                </button>
+              }
             </div>
           }
         </div>
@@ -108,7 +137,7 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
       [description]="
         task.completed
           ? 'This will return the task to your active work list.'
-          : 'This will move the task into completed and archive it for 30 days.'
+          : 'This will move the task into completed and archive it.'
       "
       [confirmLabel]="task.completed ? 'Put back into doing' : 'Mark complete'"
       cancelLabel="Keep as is"
@@ -217,6 +246,7 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        flex-wrap: wrap;
       }
 
       .completion-chip {
@@ -253,6 +283,27 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
 
       .restore-pill:hover {
         background: var(--primary-soft-strong);
+      }
+
+      .archive-pill {
+        background: var(--surface-container-low);
+        color: var(--on-surface-muted);
+      }
+
+      .archive-pill:hover {
+        background: var(--surface-container-high);
+      }
+
+      .archive-pill-active {
+        color: var(--primary-solid);
+      }
+
+      .delete-pill {
+        color: var(--status-overdue);
+      }
+
+      .delete-pill:hover {
+        background: var(--error-soft);
       }
 
       .restore-icon {
@@ -376,13 +427,18 @@ export class PersonalTaskCardComponent {
   protected readonly completeConfirmOpen = signal(false);
   protected readonly completing = signal(false);
   protected readonly faRotateLeft = faRotateLeft;
+  protected readonly faBoxArchive = faBoxArchive;
+  protected readonly faTrash = faTrash;
 
   @Input({ required: true }) task!: Task;
   @Input() tone: 'default' | 'overdue' = 'default';
   @Input() showDescription = true;
   @Input() showCompletionState = false;
+  @Input() showArchiveActions = false;
   @Input() interactive = false;
   @Output() readonly select = new EventEmitter<void>();
+  @Output() readonly togglePermanentArchive = new EventEmitter<void>();
+  @Output() readonly deleteForever = new EventEmitter<void>();
 
   protected priorityLabel() {
     return `${this.task.priority} priority`;

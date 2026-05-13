@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, asc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import type {
   CreateTaskDto,
   PaginatedResponse,
@@ -8,9 +8,9 @@ import type {
   UpdateTaskDto,
 } from '@yotara/shared';
 import { db } from '../db/client.js';
-import { tasks } from '../db/schema.js';
+import { tasks, users } from '../db/schema.js';
 import { getTaskLabels, syncTaskLabels } from './label-service.js';
-import { getDefaultProjectForOwner, getProjectForOwner } from './project-service.js';
+import { getDefaultProjectForOwner } from './project-service.js';
 
 type TaskRow = typeof tasks.$inferSelect;
 
@@ -36,6 +36,16 @@ function normalizeStatusOnCompletion(currentStatus: TaskStatus, completed: boole
   return currentStatus;
 }
 
+async function getArchiveAutoDeleteForOwner(ownerId: string) {
+  const [row] = await db
+    .select({ archiveAutoDelete: users.archiveAutoDelete })
+    .from(users)
+    .where(eq(users.id, ownerId))
+    .limit(1);
+
+  return row?.archiveAutoDelete ?? true;
+}
+
 export function toTask(task: TaskRow, labelIds: string[] = []): Task {
   return {
     id: task.id,
@@ -47,11 +57,41 @@ export function toTask(task: TaskRow, labelIds: string[] = []): Task {
     dueDate: task.dueDate ?? undefined,
     simpleMode: task.simpleMode,
     projectId: task.projectId ?? undefined,
+    archivedAt: task.archivedAt ?? undefined,
+    permanentArchive: task.permanentArchive,
     labels: labelIds,
     order: task.order,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
   };
+}
+
+export async function cleanupExpiredArchivedTasks(ownerId: string) {
+  await db.delete(tasks).where(and(eq(tasks.userId, ownerId), isNotNull(tasks.deletedAt)));
+
+  const archiveAutoDelete = await getArchiveAutoDeleteForOwner(ownerId);
+  if (!archiveAutoDelete) {
+    return 0;
+  }
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const cutoffIso = cutoff.toISOString();
+
+  await db
+    .delete(tasks)
+    .where(
+      and(
+        eq(tasks.userId, ownerId),
+        eq(tasks.completed, true),
+        eq(tasks.permanentArchive, false),
+        isNotNull(tasks.archivedAt),
+        isNull(tasks.deletedAt),
+        sql`${tasks.archivedAt} < ${cutoffIso}`,
+      ),
+    );
+
+  return 1;
 }
 
 export async function listTasksForOwner(
@@ -76,7 +116,12 @@ export async function listTasksForOwner(
 
   const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
   const data = await Promise.all(
-    rows.map(async (row) => toTask(row, (await getTaskLabels(row.id)).map((label) => label.id))),
+    rows.map(async (row) =>
+      toTask(
+        row,
+        (await getTaskLabels(row.id)).map((label) => label.id),
+      ),
+    ),
   );
 
   return {
@@ -113,9 +158,7 @@ export async function createTaskForOwner(ownerId: string, body: CreateTaskDto) {
   const payload = normalizeCreatePayload(body);
   const now = new Date().toISOString();
   const id = randomUUID();
-  const defaultProject = payload.projectId
-    ? null
-    : await getDefaultProjectForOwner(ownerId);
+  const defaultProject = payload.projectId ? null : await getDefaultProjectForOwner(ownerId);
   const projectId = payload.projectId ?? defaultProject?.id ?? null;
 
   await db.insert(tasks).values({
@@ -129,6 +172,8 @@ export async function createTaskForOwner(ownerId: string, body: CreateTaskDto) {
     simpleMode: payload.simpleMode ?? false,
     projectId,
     completed: false,
+    archivedAt: null,
+    permanentArchive: false,
     order: 0,
     deletedAt: null,
     createdAt: now,
@@ -154,10 +199,23 @@ export async function updateTaskForOwner(
   const status = body.status ?? current.status;
   const completed = body.completed ?? current.completed;
   const simpleMode = body.simpleMode ?? current.simpleMode;
+  const archiveAutoDelete = await getArchiveAutoDeleteForOwner(ownerId);
+  const nextPermanentArchive =
+    body.permanentArchive ??
+    (completed && !current.completed ? !archiveAutoDelete : current.permanentArchive);
+  const nextArchivedAt =
+    completed && !current.completed
+      ? new Date().toISOString()
+      : completed
+        ? (current.archivedAt ?? new Date().toISOString())
+        : null;
   const nextProjectId =
     body.projectId === null
-      ? (await getDefaultProjectForOwner(ownerId))?.id ?? current.projectId ?? null
-      : body.projectId ?? current.projectId ?? (await getDefaultProjectForOwner(ownerId))?.id ?? null;
+      ? ((await getDefaultProjectForOwner(ownerId))?.id ?? current.projectId ?? null)
+      : (body.projectId ??
+        current.projectId ??
+        (await getDefaultProjectForOwner(ownerId))?.id ??
+        null);
 
   await db
     .update(tasks)
@@ -171,6 +229,8 @@ export async function updateTaskForOwner(
       order: body.order ?? current.order,
       completed,
       status: normalizeStatusOnCompletion(status, completed),
+      archivedAt: nextArchivedAt,
+      permanentArchive: completed ? nextPermanentArchive : false,
       updatedAt: new Date().toISOString(),
     })
     .where(eq(tasks.id, taskId));
@@ -190,14 +250,7 @@ export async function deleteTaskForOwner(
     return null;
   }
 
-  const now = new Date().toISOString();
-  await db
-    .update(tasks)
-    .set({
-      deletedAt: now,
-      updatedAt: now,
-    })
-    .where(eq(tasks.id, taskId));
+  await db.delete(tasks).where(and(eq(tasks.id, taskId), eq(tasks.userId, ownerId)));
 
   return true;
 }

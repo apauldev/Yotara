@@ -44,7 +44,11 @@ export default async function meRoutes(fastify: FastifyInstance) {
   );
 
   fastify.patch<{
-    Body: { workspaceMode?: 'personal' | 'team'; onboardingCompleted?: boolean };
+    Body: {
+      workspaceMode?: 'personal' | 'team';
+      onboardingCompleted?: boolean;
+      archiveAutoDelete?: boolean;
+    };
     Reply: { user: ReturnType<typeof toPublicUser> } | { message: string };
   }>(
     '/me',
@@ -71,14 +75,20 @@ export default async function meRoutes(fastify: FastifyInstance) {
         return sendUnauthorized(reply);
       }
 
-      await db
-        .update(users)
-        .set({
-          workspaceMode: request.body.workspaceMode,
-          onboardingCompleted: request.body.onboardingCompleted,
-          updatedAt: new Date(),
-        })
-        .where(eq(users.id, userId));
+      const profilePatch = {
+        ...(request.body.workspaceMode !== undefined
+          ? { workspaceMode: request.body.workspaceMode }
+          : {}),
+        ...(request.body.onboardingCompleted !== undefined
+          ? { onboardingCompleted: request.body.onboardingCompleted }
+          : {}),
+        ...(request.body.archiveAutoDelete !== undefined
+          ? { archiveAutoDelete: request.body.archiveAutoDelete }
+          : {}),
+        updatedAt: new Date(),
+      };
+
+      await db.update(users).set(profilePatch).where(eq(users.id, userId));
 
       if (request.body.workspaceMode === 'personal' && request.body.onboardingCompleted) {
         await seedDefaultProjectsForOwner(userId);
