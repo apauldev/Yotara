@@ -1,0 +1,1 @@
+ALTER TABLE `user` ADD `captureBehavior` text DEFAULT 'quick' NOT NULL;

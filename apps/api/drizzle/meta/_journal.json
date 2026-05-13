@@ -29,6 +29,13 @@
       "when": 1776158665861,
       "tag": "0003_archive_retention",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1778673964935,
+      "tag": "0004_noisy_black_knight",
+      "breakpoints": true
     }
   ]
 }
