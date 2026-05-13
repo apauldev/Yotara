@@ -11,6 +11,7 @@ import requireAuthenticatedUser from '../plugins/auth-required.js';
 import { getProjectForOwner } from '../services/project-service.js';
 import {
   createTaskForOwner,
+  cleanupExpiredArchivedTasks,
   deleteTaskForOwner,
   getTaskForOwner,
   listTasksForOwner,
@@ -23,6 +24,13 @@ import {
  */
 export default async function taskRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', requireAuthenticatedUser);
+  fastify.addHook('preHandler', async (request) => {
+    if (!request.userId) {
+      return;
+    }
+
+    await cleanupExpiredArchivedTasks(request.userId);
+  });
 
   fastify.get<{
     Querystring: { page?: number; pageSize?: number };
@@ -51,7 +59,11 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       }),
     },
     async (request) => {
-      const userId = request.userId!;
+      if (!request.userId) {
+        throw new Error('Authentication required');
+      }
+
+      const userId = request.userId;
       const page = Math.max(1, request.query.page ?? 1);
       const pageSize = Math.min(100, Math.max(1, request.query.pageSize ?? 50));
       return listTasksForOwner(userId, page, pageSize);
@@ -77,7 +89,11 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       }),
     },
     async (request, reply) => {
-      const userId = request.userId!;
+      if (!request.userId) {
+        return sendNotFound(reply, 'Task not found');
+      }
+
+      const userId = request.userId;
       const row = await getTaskForOwner(request.params.id, userId);
       if (!row) {
         return sendNotFound(reply, 'Task not found');
@@ -110,7 +126,11 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       }),
     },
     async (request, reply) => {
-      const userId = request.userId!;
+      if (!request.userId) {
+        return sendNotFound(reply, 'Project not found');
+      }
+
+      const userId = request.userId;
       if (request.body.projectId) {
         const project = await getProjectForOwner(request.body.projectId, userId);
         if (!project) {
@@ -150,7 +170,11 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       }),
     },
     async (request, reply) => {
-      const userId = request.userId!;
+      if (!request.userId) {
+        return sendNotFound(reply, 'Task not found');
+      }
+
+      const userId = request.userId;
       const existing = await getTaskForOwner(request.params.id, userId);
       if (!existing) {
         return sendNotFound(reply, 'Task not found');
@@ -177,12 +201,12 @@ export default async function taskRoutes(fastify: FastifyInstance) {
     {
       schema: withJsonResponse({
         tags: ['tasks'],
-        summary: 'Delete a task',
+        summary: 'Delete a task forever',
         security: authCookieSecurity,
         params: idParamSchema(),
         response: {
           200: {
-            description: 'Task deleted',
+            description: 'Task deleted from the database',
             type: 'object',
             required: ['ok'],
             properties: {
@@ -195,7 +219,11 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       }),
     },
     async (request, reply) => {
-      const userId = request.userId!;
+      if (!request.userId) {
+        return sendNotFound(reply, 'Task not found');
+      }
+
+      const userId = request.userId;
       const existing = await getTaskForOwner(request.params.id, userId);
       if (!existing) {
         return sendNotFound(reply, 'Task not found');

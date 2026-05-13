@@ -41,6 +41,7 @@ describe('TaskService', () => {
   }
 
   beforeEach(() => {
+    localStorage.clear();
     initialized.set(false);
     isAuthenticated.set(false);
     currentUserId.set(null);
@@ -365,7 +366,7 @@ describe('TaskService', () => {
     expect(service.inboxTasks()).toEqual([]);
   }));
 
-  it('only includes tasks completed within the last 30 days in the archive', fakeAsync(() => {
+  it('includes all completed tasks in the archive selector', fakeAsync(() => {
     const service = TestBed.inject(TaskService);
     const http = TestBed.inject(HttpTestingController);
 
@@ -404,7 +405,7 @@ describe('TaskService', () => {
     http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100').flush(paginated(tasks));
     tick();
 
-    expect(service.archivedTasks().map((task) => task.id)).toEqual(['recent-done']);
+    expect(service.archivedTasks().map((task) => task.id)).toEqual(['recent-done', 'old-done']);
   }));
 
   it('creates a task and refreshes the fetched list', fakeAsync(() => {
@@ -533,6 +534,35 @@ describe('TaskService', () => {
 
     expect(service.inboxTasks()[0]?.bucket).toBe('deep-work');
     expect(service.inboxTasks()[0]?.simpleMode).toBeFalse();
+    expect(labelServiceStub.refreshLabels).toHaveBeenCalled();
+    expect(projectServiceStub.refreshProjects).toHaveBeenCalled();
+  }));
+
+  it('deletes a task and refreshes the list', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100').flush(paginated([]));
+    tick();
+
+    void service.deleteTask('task-to-delete');
+
+    const deleteRequest = http.expectOne('http://localhost:3000/tasks/task-to-delete');
+    expect(deleteRequest.request.method).toBe('DELETE');
+    expect(deleteRequest.request.withCredentials).toBeTrue();
+    deleteRequest.flush({ ok: true });
+    tick();
+
+    const refreshRequest = http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100');
+    refreshRequest.flush(paginated([]));
+    tick();
+
+    expect(service.error()).toBeNull();
     expect(labelServiceStub.refreshLabels).toHaveBeenCalled();
     expect(projectServiceStub.refreshProjects).toHaveBeenCalled();
   }));

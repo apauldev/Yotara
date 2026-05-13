@@ -16,6 +16,7 @@ const SQLITE_BOOTSTRAP_SQL = `
     image TEXT,
     workspaceMode TEXT,
     onboardingCompleted INTEGER NOT NULL DEFAULT 0,
+    archiveAutoDelete INTEGER NOT NULL DEFAULT 1,
     createdAt INTEGER NOT NULL,
     updatedAt INTEGER NOT NULL
   );
@@ -87,6 +88,8 @@ const SQLITE_BOOTSTRAP_SQL = `
     bucket TEXT DEFAULT 'personal-sanctuary',
     project_id TEXT,
     deleted_at TEXT,
+    archived_at TEXT,
+    permanent_archive INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE SET NULL,
@@ -142,6 +145,10 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
     sqlite.exec(`ALTER TABLE user ADD COLUMN onboardingCompleted INTEGER NOT NULL DEFAULT 0`);
   }
 
+  if (!columnNames.has('archiveAutoDelete')) {
+    sqlite.exec(`ALTER TABLE user ADD COLUMN archiveAutoDelete INTEGER NOT NULL DEFAULT 1`);
+  }
+
   const taskColumns = sqlite.prepare(`PRAGMA table_info('tasks')`).all() as Array<{ name: string }>;
   const taskColumnNames = new Set(taskColumns.map((column) => column.name));
 
@@ -163,7 +170,17 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
     );
   }
 
-  const labelColumns = sqlite.prepare(`PRAGMA table_info('labels')`).all() as Array<{ name: string }>;
+  if (!taskColumnNames.has('archived_at')) {
+    sqlite.exec(`ALTER TABLE tasks ADD COLUMN archived_at TEXT`);
+  }
+
+  if (!taskColumnNames.has('permanent_archive')) {
+    sqlite.exec(`ALTER TABLE tasks ADD COLUMN permanent_archive INTEGER NOT NULL DEFAULT 0`);
+  }
+
+  const labelColumns = sqlite.prepare(`PRAGMA table_info('labels')`).all() as Array<{
+    name: string;
+  }>;
   const labelColumnNames = new Set(labelColumns.map((column) => column.name));
   if (labelColumns.length === 0) {
     sqlite.exec(`CREATE TABLE labels (
@@ -184,7 +201,9 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
     }
   }
 
-  const joinColumns = sqlite.prepare(`PRAGMA table_info('task_labels')`).all() as Array<{ name: string }>;
+  const joinColumns = sqlite.prepare(`PRAGMA table_info('task_labels')`).all() as Array<{
+    name: string;
+  }>;
   if (joinColumns.length === 0) {
     sqlite.exec(`CREATE TABLE task_labels (
       task_id TEXT NOT NULL,

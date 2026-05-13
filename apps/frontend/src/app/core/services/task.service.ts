@@ -85,9 +85,7 @@ export class TaskService {
   );
   readonly pendingTasks = computed(() => this.tasks().filter((task) => !task.completed));
   readonly completedTasks = computed(() => this.tasks().filter((task) => task.completed));
-  readonly archivedTasks = computed(() =>
-    this.completedTasks().filter((task) => this.isTaskInArchiveWindow(task)),
-  );
+  readonly archivedTasks = computed(() => this.completedTasks());
   readonly inboxTasks = computed(() =>
     this.activeTasks().filter(
       (task) =>
@@ -166,6 +164,28 @@ export class TaskService {
     }
   }
 
+  async deleteTask(taskId: string) {
+    this.creatingState.set(true);
+    this.errorState.set(null);
+
+    try {
+      await firstValueFrom(
+        this.http.delete<{ ok: true }>(`${this.baseUrl}/tasks/${taskId}`, {
+          withCredentials: true,
+        }),
+      );
+      this.refreshState.update((value: number) => value + 1);
+      this.labelService.refreshLabels();
+      this.projectService.refreshProjects();
+    } catch (error) {
+      console.error('Failed to delete task', error);
+      this.errorState.set('Could not delete your task right now.');
+      throw error;
+    } finally {
+      this.creatingState.set(false);
+    }
+  }
+
   refreshTasks() {
     this.refreshState.update((value: number) => value + 1);
   }
@@ -211,21 +231,6 @@ export class TaskService {
   private hasScheduledDate(task: Task) {
     const dueDate = toCalendarDate(task.dueDate);
     return !!dueDate && dueDate.getTime() >= startOfToday().getTime();
-  }
-
-  isTaskInArchiveWindow(task: Task) {
-    if (!task.completed) {
-      return false;
-    }
-
-    const completedAt = toCalendarDate(task.updatedAt);
-    if (!completedAt) {
-      return false;
-    }
-
-    const cutoff = new Date(startOfToday());
-    cutoff.setDate(cutoff.getDate() - 30);
-    return completedAt.getTime() >= cutoff.getTime();
   }
 
   private upcomingBucketForTask(task: Task): UpcomingBucket {

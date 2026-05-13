@@ -16,6 +16,7 @@ export interface User {
   avatarUrl?: string;
   workspaceMode?: WorkspaceMode;
   onboardingCompleted?: boolean;
+  archiveAutoDelete?: boolean;
   createdAt: string; // ISO 8601
 }
 
@@ -55,6 +56,8 @@ export interface Task {
   projectId?: string;
   assigneeId?: string;
   parentTaskId?: string; // for subtasks
+  archivedAt?: string;
+  permanentArchive?: boolean;
   labels?: string[]; // label IDs
   order: number;
   createdAt: string;
@@ -125,6 +128,7 @@ export interface UpdateTaskDto {
   bucket?: TaskBucket;
   projectId?: string | null;
   parentTaskId?: string;
+  permanentArchive?: boolean;
   labels?: string[];
   completed?: boolean;
   order?: number;
