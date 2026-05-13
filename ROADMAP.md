@@ -4,6 +4,102 @@ This document outlines the complete list of screens, pages, and modals needed fo
 
 ---
 
+## Implementation-Aware Priority Roadmap
+
+Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
+
+### Verified Done In Current Code
+
+- ✅ Auth: login, sign up, session refresh, logout, onboarding mode selection, and change password
+- ✅ Personal shell: sidebar/bottom navigation, top search form, quick-add entry point, user menu, and notifications icon placeholder
+- ✅ Personal task views: Inbox, Today, Upcoming, project detail, and archive page shell
+- ✅ Archive page behavior: archive list and restore toggle are already working at the current MVP level
+- ✅ Task CRUD foundation: paginated API loading, create/update/delete API, soft delete, labels on tasks, project assignment, priority, due date, simple mode, and personal buckets
+- ✅ Personal project CRUD foundation: create, list, update, detail view, and project-scoped tasks
+- ✅ Personal label CRUD: labels page, create/edit/delete modal, color selection, label counts, and task label filtering
+- ✅ Shared UI primitives: accessible modal, reusable confirm dialog, logout confirm modal, page header, section header, button utility, date picker, and empty-state directive
+- ✅ Settings foundation: theme selection, change password, and logout confirmation
+- ✅ Search foundation: task/project/label search service and search UI available through `/tasks?view=search&q=...`
+- ✅ API/docs/devops foundation: OpenAPI docs, Swagger UI, Dockerfiles, local build-based Compose, Docker smoke script, and core API tests
+
+### P0 – Personal Mode Polish (Must Have Before Public Demo)
+
+| # | Task | Status | Effort | Current code reality / next action |
+|---|------|--------|--------|------------------------------------|
+| 1 | Archive view: show `archived` tasks with restore and permanent delete buttons | 🟡 Partial | Low | The archive page and restore flow already work at the MVP level. What remains is a true archived lifecycle state, explicit archive action, and permanent delete. |
+| 2 | Confirmation dialogs: reusable modal for delete/archive actions | 🟡 Partial | Low | Shared `Modal` and `ConfirmDialog` are ✅ done and used for logout, label delete, and task complete/restore. Wire them into task delete/archive and project destructive flows. |
+| 3 | Global search results page (`/search?q=...`): titles, descriptions, labels | 🟡 Partial | Medium | Search service and UI are ✅ done through `/tasks?view=search&q=...` for tasks, projects, and labels. Make `/search?q=...` canonical and include task-label-name matching in task result ranking/context. |
+| 4 | 404 page: friendly error with link to Inbox | ⬜ Not started | Low | No wildcard route yet. Add a protected not-found route/page for personal/team shells. |
+| 5 | Task loading skeletons | ⬜ Not started | Low | Loading states mostly use copy/spinners. Add skeleton rows for task lists and project/label task panels. |
+| 6 | Empty states for Inbox, Today, Upcoming, Projects, Labels | 🟡 Partial | Low | Page-specific empty states are ✅ present. Extract/shared `EmptyState` is still open and illustrated/icon states need one final polish pass. |
+| 7 | Form validation and error polish | 🟡 Partial | Low | Basic validation is ✅ present in task, project, label, auth, and password forms. Standardize API error mapping, retry actions, disabled/loading labels, and validation copy. |
+
+**P0 target:** 1–2 weeks at 1–2 hours/day. This is the public-demo gate.
+
+### P1 – High-Value Personal Features
+
+| # | Task | Status | Effort | Current code reality / next action |
+|---|------|--------|--------|------------------------------------|
+| 8 | Subtasks UI: checklist inside task modal | ⬜ Not started | Medium | Shared DTOs mention `parentTaskId`, but DB schema and UI do not support subtasks yet. Start with one-level subtasks. |
+| 9 | Recurring tasks: daily/weekly/monthly | ⬜ Not started | Medium | No recurrence model yet. Add schema/API first, then modal controls and task materialization rules. |
+| 10 | Markdown preview in task description | ⬜ Not started | Low | Task modal has a textarea only. Add preview toggle and sanitization. |
+| 11 | Browser notifications for due reminders | ⬜ Not started | Medium | Settings has disabled notification rows; no permission/scheduler/service worker flow yet. |
+| 12 | Export data: JSON and CSV from Settings | ⬜ Not started | Low | Settings has disabled export row. Implement client export first, API export later if needed. |
+
+**P1 target:** 2–3 weeks after P0.
+
+### P2 – Team Mode MVP (Core for SaaS / Non-Profits)
+
+| # | Task | Status | Effort | Notes |
+|---|------|--------|--------|-------|
+| 13 | Workspace data model: workspaces and memberships | ⬜ Not started | Medium | Current backend only stores `user.workspaceMode`; no workspace tables yet. |
+| 14 | Workspace switcher: create/switch workspaces | ⬜ Not started | Low | Team shell has placeholder workspace navigation/label only; no real switcher or persistence. |
+| 15 | Invite link flow: token + `/join/:token` | ⬜ Not started | Medium | No invite tables/routes/pages. |
+| 16 | Task assignment: `assigneeId` and avatar in lists | ⬜ Not started | Low | Shared/OpenAPI mention `assigneeId`, but DB schema and task UI do not persist/render it. |
+| 17 | “Assigned to me” smart list | ⬜ Not started | Low | Depends on assignment. |
+| 18 | Comments on tasks | ⬜ Not started | Medium | Shared `Comment` type exists; no DB/API/UI. |
+| 19 | Team Board: columns per member, drag to reassign | ⬜ Not started | Medium | Depends on workspaces, membership, and assignment. |
+| 20 | Workspace settings: members list + remove member | ⬜ Not started | Low | Depends on workspace membership. |
+| 21 | Real-time updates: WebSockets for task changes | ⬜ Not started | High | No WebSocket layer yet. |
+
+**P2 target:** 6–8 weeks. Critical path for SaaS launch.
+
+### P3 – Deployment & Distribution
+
+| # | Task | Status | Effort | Notes |
+|---|------|--------|--------|-------|
+| 22 | Pre-built Docker images pushed on tag | ⬜ Not started | Medium | Dockerfiles exist; no GitHub Actions workflow or Docker Hub release path. |
+| 23 | Docker Compose with pre-built images | 🟡 Partial | Low | Local build-based Compose is ✅ done, but pre-built image Compose is not. |
+| 24 | Render.com template (`render.yaml`) | ⬜ Not started | Medium | Not present. |
+| 25 | Railway.app template (`railway.toml`) | ⬜ Not started | Medium | Not present. |
+| 26 | Live demo instance and README link | ⬜ Not started | Medium | Not present. |
+
+**P3 target:** 2–3 weeks. Can run in parallel with P2 once image publishing is stable.
+
+### P4 – Polish & Nice-to-Haves (Post-v1)
+
+| # | Task | Status | Effort | Notes |
+|---|------|--------|--------|-------|
+| 27 | Kanban board with custom project statuses | ⬜ Not started | Medium | Keep post-v1 unless early users demand it. |
+| 28 | PWA installability | ⬜ Not started | Medium | No manifest/service worker yet. |
+| 29 | Localization groundwork: English + Spanish | ⬜ Not started | Medium | Current UI strings are component-local. |
+| 30 | Notification center | ⬜ Not started | Medium | Depends on notification event model. |
+| 31 | Activity log | ⬜ Not started | Low | Can share event model with comments/notifications. |
+| 32 | Cross-mode search | ⬜ Not started | Medium | Depends on team-mode data model. |
+
+### Recommended Sprint Order
+
+| Weeks | Focus | Key deliverable |
+|-------|-------|-----------------|
+| 1–2 | P0 Personal polish | Archive clarification, confirmation modals, canonical search route, skeletons, empty states, 404, validation polish |
+| 3–5 | P1 Personal features | Subtasks, recurring tasks, markdown preview, browser notifications, export |
+| 6–13 | P2 Team Mode | Workspaces, assignment, comments, Team Board, real-time updates in the final stretch |
+| 14–16 | P3 Deployment | Docker images, Compose with pulled images, one-click templates, live demo |
+
+After week 16, Yotara should be ready for both self-hosted and SaaS v1.0. Use P4 for feedback-driven follow-up work.
+
+---
+
 ## 1. Entry & Auth Screens (Must Have)
 
 ### Login / Sign In
@@ -11,6 +107,7 @@ This document outlines the complete list of screens, pages, and modals needed fo
 - Centered form with email, password, forgot password link, create account CTA
 
 ### Register / Sign Up
+- **Status**: ✅ Built
 - Email, password, confirm password input
 - Optional username field
 - Auto-login after success → redirect to onboarding or inbox
@@ -42,6 +139,7 @@ This document outlines the complete list of screens, pages, and modals needed fo
 - Mode toggle switch (Personal ↔ Team) as visual indicator
 
 ### Sidebar Navigation
+- **Status**: ✅ Built for personal mode; 🟡 placeholder-only for team workspace switching
 - Logo + app name
 - **Inbox** (default view)
 - **Today**
@@ -88,13 +186,12 @@ This document outlines the complete list of screens, pages, and modals needed fo
 - **Core fields**:
   - Title (editable)
   - Checkbox + completed state
-  - Markdown description (textarea + preview toggle)
+  - Description textarea (markdown preview is P1)
   - Due date picker
-  - Start date picker (optional)
   - Priority selector (Low | Medium | High)
   - Labels / tags multi-select
-  - Subtasks (list with check/add/delete/reorder)
-  - Recurring toggle (basic: daily | weekly | monthly)
+  - Project, simple mode, and personal bucket controls
+  - Subtasks and recurring controls remain P1
 - **Team mode additions**:
   - Assignee dropdown
   - Comments section
@@ -200,13 +297,14 @@ These features should be built as personal-mode improvements first, but they sho
 ## 6. Utility & Settings Screens
 
 ### Settings (`/settings`)
-- **Status**: Not started
+- **Status**: 🟡 Partial
 - **Account tab**
-  - Email display/change
-  - Password change
+  - Password change is ✅ built
+  - Logout confirmation is ✅ built
+  - Email/profile management remains open
   - Delete account option
 - **Appearance tab**
-  - Theme selector: Light | Dark | Auto
+  - Theme selector is ✅ built with current product themes
 - **Preferences tab**
   - Default view (Inbox | Today | Upcoming)
   - Date format (US | ISO | etc.)
@@ -219,26 +317,31 @@ These features should be built as personal-mode improvements first, but they sho
   - Version, license, links
 
 ### Labels / Tags Management
+- **Status**: ✅ Built for personal mode
 - Dedicated page or modal
 - Create/edit/delete labels
 - Color picker for each label
-- Search/filter labels
+- Filter labels and view matching tasks
 
 ### Global Search Results
+- **Status**: 🟡 Partial
 - Triggered from top bar search icon
-- Route: `/search?q=…` or search overlay/modal
+- Current route: `/tasks?view=search&q=...`
+- Target route: `/search?q=...`
 - Results grouped by:
   - Project
   - Due date
   - Completion status
 
 ### Notifications Center
+- **Status**: ⬜ Not started
 - In-app notification list or panel
 - Read/unread states
 - Due reminders, assignments, mentions, and system notices
 - Sync with push notifications so the same events appear in-app and on device
 
 ### PWA / Installable Mobile Web App
+- **Status**: ⬜ Not started
 - App manifest
 - Service worker registration
 - Install prompt and homescreen icon support
@@ -250,22 +353,26 @@ These features should be built as personal-mode improvements first, but they sho
 ## 7. Micro-Screens & States
 
 ### Empty States
+- **Status**: 🟡 Partial
 - Inbox empty illustration + message
 - Today empty state
 - No projects state
 - No results (search)
 
 ### Loading States
+- **Status**: ⬜ Not started for skeletons; 🟡 partial for loading messages/spinners
 - Skeleton loaders for task lists
 - Loading spinners for async operations
 
 ### Error States
+- **Status**: 🟡 Partial
 - Network error message with retry
 - Unauthorized / session expired
 - 404 / Not Found page
 - Generic error fallback
 
 ### Notifications & Alerts
+- **Status**: ⬜ Not started beyond a shell icon/disabled settings copy
 - In-app notification panel/dropdown
 - Mentions, assignments, comments (team mode)
 - (Optional) toast notifications for quick feedback
@@ -273,9 +380,12 @@ These features should be built as personal-mode improvements first, but they sho
 - Notification permission management and subscription refresh flow
 
 ### Confirmation Dialogs
+- **Status**: 🟡 Partial
 - Delete task confirmation
 - Leave workspace confirmation
 - Delete project confirmation
+- Shared modal and confirm dialog primitives are ✅ built
+- Logout, label delete, and task complete/restore confirmations are ✅ wired
 
 ---
 
@@ -342,14 +452,14 @@ These features should be built as personal-mode improvements first, but they sho
 
 ### Phase 3: Polish & Secondary Features
 9. 🟡 Settings basics + logout
-10. ✅ Empty states + error handling
+10. 🟡 Empty states + error handling
 11. 🟡 Global search
-12. 🟡 Labels / tags management
-13. 🟡 Workspace switcher and member list UI
-14. 🟡 404 page + delete confirmation modal
-15. 🟡 Task loading skeletons + validation/error polish
-16. 🟡 Language selection / localization groundwork
-17. 🟡 Notification center + browser push support
+12. ✅ Labels / tags management for personal mode
+13. 🟡 Team shell placeholders
+14. 🟡 Confirmation modal primitive; 404 page still open
+15. 🟡 Validation/error polish; task loading skeletons still open
+16. ⬜ Language selection / localization groundwork
+17. ⬜ Notification center + browser push support
 
 ### Phase 4: Enhanced UX
 - Kanban view for projects
@@ -371,20 +481,20 @@ These features should be built as personal-mode improvements first, but they sho
 - Coolify deployment documentation (optional)
 
 ### Delivery / Ops
-- API docs exposed at `/docs`
-- Paginated task list endpoint
-- Soft delete support for tasks
-- Docker and Compose deployment path
-- Docker smoke script for local verification
-- GitHub Actions CI for Docker image builds and pushes
-- Environment variable documentation for all platforms
-- Workspace-mode aware routing and guards
-- Shared task state model that supports personal and team views
-- Reusable modal, empty state, and confirmation dialog primitives
-- Search/filter infrastructure that can grow into team scope
-- Notification delivery pipeline with push subscriptions
-- Localization-ready text and formatting layers
-- PWA installability for mobile web users
+- ✅ API docs exposed at `/docs`
+- ✅ Paginated task list endpoint
+- ✅ Soft delete support for tasks
+- ✅ Dockerfiles, local Compose deployment path, and Docker smoke script
+- ✅ Workspace-mode aware routing and guards
+- ✅ Shared task state model that supports personal views and leaves room for team fields
+- ✅ Reusable modal and confirmation dialog primitives
+- 🟡 Empty state and async-state primitives
+- 🟡 Search/filter infrastructure that can grow into team scope
+- ⬜ GitHub Actions CI for Docker image builds and pushes
+- ⬜ Pre-built image Compose path and platform-specific environment docs
+- ⬜ Notification delivery pipeline with push subscriptions
+- ⬜ Localization-ready text and formatting layers
+- ⬜ PWA installability for mobile web users
 
 ---
 
@@ -399,27 +509,35 @@ These features should be built as personal-mode improvements first, but they sho
 - Task service (CRUD + paginated task loading)
 - Task API with pagination and soft delete
 - Project create + project detail screens
+- Personal labels page and label CRUD
+- Personal search service and search UI within `/tasks?view=search`
+- Shared modal and confirmation dialog primitives
+- Logout, label delete, and task complete/restore confirmation flows
+- Settings foundation: theme selection, change password, logout
+- Shared page header, section header, date picker, and empty-state directive
 - OpenAPI docs and Swagger UI
-- Docker deployment and smoke checks
+- Dockerfiles, local build-based Compose deployment, and smoke checks
 - Inbox counter pipe
 
 ### 🔄 In Progress
-- Team-mode shell and workspace primitives
-- Settings shell and account/logout flows
-- Archive flow for completed tasks
+- Team-mode shell placeholders and workspace-mode routing
+- Settings shell beyond theme/password/logout
+- Archive flow for completed tasks is effectively working; remaining work is lifecycle cleanup
+- Empty/loading/error state polish
+- Canonical global search routing
+- Full destructive confirmation coverage
 
 ### 📋 Not Started
 - Kanban project view
 - Subtasks and recurring tasks UI
-- Global search
 - Team workspace membership and assignment features
-- Labels / tags management
-- 404 page and confirmation dialogs
-- Task loading skeletons and form validation polish
+- 404 page
+- Task loading skeletons
 - Pre-built Docker images (Phase 6)
+- Compose file that pulls pre-built images
 - One-click cloud deploy templates (Phase 6)
 - Workspace-level notifications and comments/activity log
-- Theme and preference settings
+- Preference settings beyond theme
 - Export / data and privacy controls
 - Cross-mode search and filter enhancements
 - Localization / language support
@@ -504,15 +622,13 @@ apps/frontend/src/app/
 
 ## Next Steps
 
-- [ ] Set up feature module structure in `apps/frontend/src/app/features`
-- [ ] Create task-detail modal component
-- [ ] Implement Today / Upcoming list views
-- [ ] Add project create & list views
-- [ ] Build settings module
-- [ ] Add archive flow for completed tasks
-- [ ] Add labels / tags management
-- [ ] Add global search
-- [ ] Add confirmation dialogs and 404/error polish
+- [ ] Make `/search?q=...` the canonical global search route and surface label match context
+- [ ] Add the friendly 404 / not-found page with a link back to Inbox
+- [ ] Add task list skeleton loaders
+- [ ] Extract shared empty-state and async-state helpers
+- [ ] Standardize destructive confirmations across task, label, project, and future workspace flows
+- [ ] Polish form validation, error messages, retry actions, and loading labels
+- [ ] Build P1 personal features: subtasks, recurring tasks, markdown preview, browser notifications, and data export
 - [ ] Define the team-mode data model for tasks, projects, and membership
 - [ ] Design notification data model and push subscription storage
 - [ ] Add localization foundation and language selector
