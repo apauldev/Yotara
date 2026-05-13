@@ -101,6 +101,11 @@ export const routes: Routes = [
         redirectTo: 'tasks',
         pathMatch: 'full',
       },
+      {
+        path: '**',
+        loadComponent: () =>
+          import('./features/error/not-found.component').then((m) => m.NotFoundComponent),
+      },
     ],
   },
   {
@@ -117,6 +122,16 @@ export const routes: Routes = [
             (m) => m.TasksPageComponent,
           ),
       },
+      {
+        path: '**',
+        loadComponent: () =>
+          import('./features/error/not-found.component').then((m) => m.NotFoundComponent),
+      },
     ],
+  },
+  {
+    path: '**',
+    loadComponent: () =>
+      import('./features/error/not-found.component').then((m) => m.NotFoundComponent),
   },
 ];
