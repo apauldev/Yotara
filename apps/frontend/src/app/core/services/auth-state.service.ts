@@ -129,6 +129,7 @@ export class AuthStateService {
     workspaceMode?: 'personal' | 'team';
     onboardingCompleted?: boolean;
     archiveAutoDelete?: boolean;
+    captureBehavior?: 'quick' | 'capture';
   }) {
     this.loadingState.set(true);
 

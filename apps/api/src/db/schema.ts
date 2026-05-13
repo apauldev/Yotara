@@ -26,6 +26,9 @@ export const users = sqliteTable('user', {
   workspaceMode: text('workspaceMode', { enum: ['personal', 'team'] }),
   onboardingCompleted: integer('onboardingCompleted', { mode: 'boolean' }).notNull().default(false),
   archiveAutoDelete: integer('archiveAutoDelete', { mode: 'boolean' }).notNull().default(true),
+  captureBehavior: text('captureBehavior', { enum: ['quick', 'capture'] })
+    .notNull()
+    .default('quick'),
   createdAt: integer('createdAt', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updatedAt', { mode: 'timestamp' }).notNull(),
 });

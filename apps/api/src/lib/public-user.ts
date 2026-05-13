@@ -12,5 +12,6 @@ export function toPublicUser(user: typeof users.$inferSelect) {
     workspaceMode: user.workspaceMode,
     onboardingCompleted: user.onboardingCompleted,
     archiveAutoDelete: user.archiveAutoDelete,
+    captureBehavior: user.captureBehavior,
   };
 }

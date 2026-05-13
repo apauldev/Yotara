@@ -53,28 +53,43 @@
       @case ('inbox') {
         <!-- Inbox View: Capture Bar + List -->
         <form id="capture" class="capture-bar" (ngSubmit)="captureTask()">
-          <button
-            type="submit"
-            class="capture-plus"
-            [disabled]="taskService.creating()"
-            aria-label="Capture task"
-          >
-            +
-          </button>
+          <div class="capture-input-container">
+            <div
+              class="capture-highlighter"
+              aria-hidden="true"
+              [innerHTML]="highlightedTitle()"
+            ></div>
+            <input
+              #captureInput
+              type="text"
+              name="captureTitle"
+              [ngModel]="captureTitle()"
+              (ngModelChange)="captureTitle.set($event)"
+              (input)="onCaptureInput()"
+              (keydown)="onCaptureKeyDown($event)"
+              placeholder="What's on your mind today?"
+              autocomplete="off"
+              [attr.aria-invalid]="captureError() ? 'true' : 'false'"
+              [attr.aria-describedby]="captureError() ? 'capture-error' : null"
+              (keydown.enter)="lastSubmissionType = 'default'"
+            />
 
-          <input
-            type="text"
-            name="captureTitle"
-            [ngModel]="captureTitle()"
-            (ngModelChange)="captureTitle.set($event)"
-            placeholder="What's on your mind today?"
-            autocomplete="off"
-            [attr.aria-invalid]="captureError() ? 'true' : 'false'"
-            [attr.aria-describedby]="captureError() ? 'capture-error' : null"
-          />
+            @if (activeTagSearch() !== null && tagSuggestions().length > 0) {
+              <ul class="tag-suggestions" role="listbox">
+                @for (suggestion of tagSuggestions(); track suggestion.id; let i = $index) {
+                  <li
+                    [class.suggestion-active]="i === selectedSuggestionIndex()"
+                    (click)="selectSuggestion(suggestion.name)"
+                    role="option"
+                  >
+                    <span class="suggestion-hash">#</span>{{ suggestion.name }}
+                  </li>
+                }
+              </ul>
+            }
+          </div>
 
           <div class="capture-actions">
-            <span class="capture-icon" aria-hidden="true">🗓</span>
             <label class="capture-project">
               <span class="sr-only">Project</span>
               <select
@@ -90,9 +105,24 @@
             </label>
           </div>
 
-          <button type="submit" class="capture-submit" [disabled]="taskService.creating()">
-            {{ taskService.creating() ? 'Saving...' : 'Capture' }}
-          </button>
+          <div class="capture-button-group">
+            <button
+              type="submit"
+              class="capture-submit capture-submit-quick"
+              [disabled]="taskService.creating()"
+              (click)="lastSubmissionType = 'quick'"
+            >
+              Add Task
+            </button>
+            <button
+              type="submit"
+              class="capture-submit capture-submit-details"
+              [disabled]="taskService.creating()"
+              (click)="lastSubmissionType = 'capture'"
+            >
+              Add task with details
+            </button>
+          </div>
         </form>
 
         @if (captureError()) {
