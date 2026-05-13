@@ -17,6 +17,7 @@ const SQLITE_BOOTSTRAP_SQL = `
     workspaceMode TEXT,
     onboardingCompleted INTEGER NOT NULL DEFAULT 0,
     archiveAutoDelete INTEGER NOT NULL DEFAULT 1,
+    captureBehavior TEXT NOT NULL DEFAULT 'quick',
     createdAt INTEGER NOT NULL,
     updatedAt INTEGER NOT NULL
   );
@@ -147,6 +148,10 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
 
   if (!columnNames.has('archiveAutoDelete')) {
     sqlite.exec(`ALTER TABLE user ADD COLUMN archiveAutoDelete INTEGER NOT NULL DEFAULT 1`);
+  }
+
+  if (!columnNames.has('captureBehavior')) {
+    sqlite.exec(`ALTER TABLE user ADD COLUMN captureBehavior TEXT NOT NULL DEFAULT 'quick'`);
   }
 
   const taskColumns = sqlite.prepare(`PRAGMA table_info('tasks')`).all() as Array<{ name: string }>;

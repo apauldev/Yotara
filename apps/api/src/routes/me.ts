@@ -48,6 +48,7 @@ export default async function meRoutes(fastify: FastifyInstance) {
       workspaceMode?: 'personal' | 'team';
       onboardingCompleted?: boolean;
       archiveAutoDelete?: boolean;
+      captureBehavior?: 'quick' | 'capture';
     };
     Reply: { user: ReturnType<typeof toPublicUser> } | { message: string };
   }>(
@@ -84,6 +85,9 @@ export default async function meRoutes(fastify: FastifyInstance) {
           : {}),
         ...(request.body.archiveAutoDelete !== undefined
           ? { archiveAutoDelete: request.body.archiveAutoDelete }
+          : {}),
+        ...(request.body.captureBehavior !== undefined
+          ? { captureBehavior: request.body.captureBehavior }
           : {}),
         updatedAt: new Date(),
       };

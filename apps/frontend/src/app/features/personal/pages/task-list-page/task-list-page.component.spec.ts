@@ -7,6 +7,7 @@ import { TaskListPageComponent } from './task-list-page.component';
 import { TaskService } from '../../../../core/services/task.service';
 import { ProjectService } from '../../../../core/services/project.service';
 import { SearchService } from '../../../../core/services/search.service';
+import { AuthStateService } from '../../../../core/services/auth-state.service';
 import { PersonalTaskWorkspaceComponent } from '../../components/personal-task-workspace.component';
 import { Task } from '@yotara/shared';
 
@@ -14,6 +15,7 @@ describe('TaskListPageComponent', () => {
   let mockTaskService: any;
   let mockProjectService: any;
   let mockSearchService: any;
+  let mockAuthStateService: any;
   let mockActivatedRoute: any;
   let mockRouter: any;
 
@@ -27,6 +29,7 @@ describe('TaskListPageComponent', () => {
       todayCompletedTasks: signal([]),
       overdueTasks: signal([]),
       upcomingTaskGroups: signal([]),
+      createTask: jasmine.createSpy().and.returnValue(Promise.resolve({})),
     };
 
     mockProjectService = {
@@ -39,6 +42,10 @@ describe('TaskListPageComponent', () => {
         projects: [],
         labels: [],
       }),
+    };
+
+    mockAuthStateService = {
+      user: signal({ id: 'user-1', captureBehavior: 'quick' }),
     };
 
     mockActivatedRoute = {
@@ -59,6 +66,7 @@ describe('TaskListPageComponent', () => {
         { provide: TaskService, useValue: mockTaskService },
         { provide: ProjectService, useValue: mockProjectService },
         { provide: SearchService, useValue: mockSearchService },
+        { provide: AuthStateService, useValue: mockAuthStateService },
         { provide: ActivatedRoute, useValue: mockActivatedRoute },
         { provide: Router, useValue: mockRouter },
       ],
@@ -125,20 +133,56 @@ describe('TaskListPageComponent', () => {
   });
 
   describe('Inbox Capture', () => {
-    it('opens task workspace modal from the inbox input', () => {
+    it('quick captures a task when behavior is quick', async () => {
+      mockAuthStateService.user.set({ id: 'user-1', captureBehavior: 'quick' });
       const fixture = TestBed.createComponent(TaskListPageComponent);
       fixture.detectChanges();
+
+      fixture.componentInstance['captureTitle'].set('Quick task');
+      await fixture.componentInstance['captureTask']();
+
+      expect(mockTaskService.createTask).toHaveBeenCalledWith(
+        jasmine.objectContaining({ title: 'Quick task' }),
+      );
+    });
+
+    it('opens task workspace modal when behavior is capture', () => {
+      mockAuthStateService.user.set({ id: 'user-1', captureBehavior: 'capture' });
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
       const workspaceDebugEl = fixture.debugElement.query(
         By.directive(PersonalTaskWorkspaceComponent),
       );
       const workspace = workspaceDebugEl.componentInstance as PersonalTaskWorkspaceComponent;
       spyOn(workspace, 'openCreateTaskModal');
 
-      fixture.componentInstance['captureTitle'].set('Write morning pages');
+      fixture.componentInstance['captureTitle'].set('Capture task');
       fixture.debugElement.query(By.css('form')).triggerEventHandler('ngSubmit', {});
       fixture.detectChanges();
 
       expect(workspace.openCreateTaskModal).toHaveBeenCalled();
+    });
+
+    it('always opens modal when "Add task with details" button is clicked', () => {
+      mockAuthStateService.user.set({ id: 'user-1', captureBehavior: 'quick' });
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      const workspaceDebugEl = fixture.debugElement.query(
+        By.directive(PersonalTaskWorkspaceComponent),
+      );
+      const workspace = workspaceDebugEl.componentInstance as PersonalTaskWorkspaceComponent;
+      spyOn(workspace, 'openCreateTaskModal');
+
+      fixture.componentInstance['captureTitle'].set('Force capture');
+      // Simulate clicking the "Add task with details" button
+      const detailsBtn = fixture.debugElement.query(By.css('.capture-submit-details'));
+      detailsBtn.nativeElement.click();
+      fixture.detectChanges();
+
+      expect(workspace.openCreateTaskModal).toHaveBeenCalled();
+      expect(mockTaskService.createTask).not.toHaveBeenCalled();
     });
 
     it('shows capture error when title is empty', () => {

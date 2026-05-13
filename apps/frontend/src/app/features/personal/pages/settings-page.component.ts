@@ -62,6 +62,24 @@ import { Router } from '@angular/router';
               aria-label="Toggle auto-delete for archived tasks"
             />
           </label>
+
+          <div class="settings-item">
+            <div class="settings-item-copy">
+              <strong>Capture behavior</strong>
+              <span>Choose how the task capture bar behaves by default.</span>
+            </div>
+            <select
+              class="settings-select"
+              [value]="captureBehavior()"
+              (change)="onCaptureBehaviorChange($event)"
+              [disabled]="isSavingCaptureBehavior()"
+              aria-label="Select capture behavior"
+            >
+              <option value="quick">Quick Capture (Default)</option>
+              <option value="capture">Full Capture (Open Modal)</option>
+            </select>
+          </div>
+
           <div class="settings-item settings-item-disabled">
             <div class="settings-item-copy">
               <strong>Desktop notifications</strong>
@@ -412,6 +430,7 @@ export class SettingsPageComponent {
   protected readonly isLogoutConfirmOpen = signal(false);
   protected readonly isLoggingOut = signal(false);
   protected readonly isSavingArchiveCleanup = signal(false);
+  protected readonly isSavingCaptureBehavior = signal(false);
 
   protected onThemeChange(event: Event) {
     const select = event.target as HTMLSelectElement;
@@ -420,6 +439,10 @@ export class SettingsPageComponent {
 
   protected archiveAutoDelete() {
     return this.authState.user()?.archiveAutoDelete ?? true;
+  }
+
+  protected captureBehavior() {
+    return this.authState.user()?.captureBehavior ?? 'quick';
   }
 
   protected async onArchiveCleanupChange(event: Event) {
@@ -432,6 +455,19 @@ export class SettingsPageComponent {
       });
     } finally {
       this.isSavingArchiveCleanup.set(false);
+    }
+  }
+
+  protected async onCaptureBehaviorChange(event: Event) {
+    const select = event.target as HTMLSelectElement;
+    this.isSavingCaptureBehavior.set(true);
+
+    try {
+      await this.authState.updateProfile({
+        captureBehavior: select.value as 'quick' | 'capture',
+      });
+    } finally {
+      this.isSavingCaptureBehavior.set(false);
     }
   }
 

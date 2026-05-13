@@ -31,6 +31,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
+export type CaptureBehavior = 'quick' | 'capture';
+
 export interface ProfileResponse {
   user: {
     id: string;
@@ -43,6 +45,7 @@ export interface ProfileResponse {
     workspaceMode?: WorkspaceMode | null;
     onboardingCompleted?: boolean;
     archiveAutoDelete?: boolean;
+    captureBehavior?: CaptureBehavior | null;
   };
 }
 
@@ -84,6 +87,7 @@ export const AuthService = {
     workspaceMode?: WorkspaceMode;
     onboardingCompleted?: boolean;
     archiveAutoDelete?: boolean;
+    captureBehavior?: CaptureBehavior;
   }) => {
     return await request<ProfileResponse>('/me', {
       method: 'PATCH',
