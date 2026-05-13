@@ -5,7 +5,9 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Project, Task } from '@yotara/shared';
 import { ProjectService } from '../../../../core/services/project.service';
 import { TaskService } from '../../../../core/services/task.service';
+import { LabelService } from '../../../../core/services/label.service';
 import { SearchService, SearchTab } from '../../../../core/services/search.service';
+import { AuthStateService } from '../../../../core/services/auth-state.service';
 import { PersonalTaskCardComponent } from '../../components/personal-task-card.component';
 import { PersonalTaskWorkspaceComponent } from '../../components/personal-task-workspace.component';
 import { SectionHeaderComponent } from '../../../../shared/components/section-header/section-header.component';
@@ -14,6 +16,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faPlus, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { ElementRef } from '@angular/core';
+import { parseTaskCommand } from '../../utils/task-command-parser';
 
 export type TaskListViewMode = 'inbox' | 'today' | 'upcoming' | 'search';
 export type InsightType = 'clarity' | 'journal';
@@ -37,7 +41,9 @@ export type InsightType = 'clarity' | 'journal';
 export class TaskListPageComponent implements OnInit {
   protected readonly taskService = inject(TaskService);
   protected readonly projectService = inject(ProjectService);
+  protected readonly labelService = inject(LabelService);
   protected readonly searchService = inject(SearchService);
+  protected readonly authState = inject(AuthStateService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -45,6 +51,45 @@ export class TaskListPageComponent implements OnInit {
   protected readonly faXmark = faXmark;
 
   private readonly workspace = viewChild(PersonalTaskWorkspaceComponent);
+  protected readonly captureInput = viewChild<ElementRef<HTMLInputElement>>('captureInput');
+
+  protected lastSubmissionType: 'quick' | 'capture' | 'default' = 'default';
+
+  // --- Autocomplete & Parsing ---
+  protected readonly activeTagSearch = signal<string | null>(null);
+  protected readonly selectedSuggestionIndex = signal(0);
+  protected readonly tagSuggestions = computed(() => {
+    const search = this.activeTagSearch();
+    if (search === null) return [];
+    return this.labelService
+      .labels()
+      .filter((l) => l.name.toLowerCase().includes(search.toLowerCase()))
+      .slice(0, 5);
+  });
+
+  protected readonly highlightedTitle = computed(() => {
+    const text = this.captureTitle();
+    if (!text) return '';
+
+    // Escape HTML
+    let html = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+
+    // Highlight Priorities: !h, !high, etc. (requires space before or start of string)
+    html = html.replace(
+      /((?:^| )!([lhm]|low|med|medium|high)\b)/gi,
+      '<span class="hl-priority">$1</span>',
+    );
+
+    // Highlight Labels: #tag (requires space before or start of string)
+    html = html.replace(/((?:^| )#([\w-]+)\b)/g, '<span class="hl-label">$1</span>');
+
+    return html;
+  });
 
   // --- View Mode Management ---
   protected readonly viewMode = toSignal(
@@ -118,17 +163,111 @@ export class TaskListPageComponent implements OnInit {
   protected readonly insightPanelVisible = signal(true);
 
   protected async captureTask() {
-    const title = this.captureTitle().trim();
+    const rawValue = this.captureTitle().trim();
 
-    if (!title) {
+    if (!rawValue) {
       this.captureError.set('Add a task title to capture it.');
+      this.lastSubmissionType = 'default';
       return;
     }
 
+    const { title, priority, labelNames } = parseTaskCommand(rawValue);
+
+    // Resolve labels
+    const labels = this.labelService
+      .labels()
+      .filter((l) => labelNames.some((name) => name.toLowerCase() === l.name.toLowerCase()))
+      .map((l) => l.id);
+
+    const behavior =
+      this.lastSubmissionType === 'default'
+        ? this.authState.user()?.captureBehavior || 'quick'
+        : this.lastSubmissionType;
+
     this.captureError.set('');
-    this.workspace()?.openCreateTaskModal(
-      this.captureProjectId() || this.defaultCaptureProjectId() || null,
-    );
+
+    if (behavior === 'quick') {
+      try {
+        await this.taskService.createTask({
+          title,
+          priority: priority || 'medium',
+          labels,
+          projectId: this.captureProjectId() || this.defaultCaptureProjectId() || undefined,
+          status: 'inbox',
+        });
+        this.captureTitle.set('');
+        this.activeTagSearch.set(null);
+      } catch (_) {
+        this.captureError.set('Failed to quick capture task.');
+      }
+    } else {
+      this.workspace()?.openCreateTaskModal(
+        this.captureProjectId() || this.defaultCaptureProjectId() || null,
+      );
+    }
+
+    this.lastSubmissionType = 'default';
+  }
+
+  protected onCaptureInput() {
+    const input = this.captureInput()?.nativeElement;
+    if (!input) return;
+
+    const value = input.value;
+    const pos = input.selectionStart || 0;
+
+    const lastHash = value.lastIndexOf('#', pos - 1);
+    if (lastHash !== -1) {
+      const textSinceHash = value.substring(lastHash + 1, pos);
+      if (!textSinceHash.includes(' ')) {
+        this.activeTagSearch.set(textSinceHash);
+        this.selectedSuggestionIndex.set(0);
+        return;
+      }
+    }
+
+    this.activeTagSearch.set(null);
+  }
+
+  protected onCaptureKeyDown(event: KeyboardEvent) {
+    if (this.activeTagSearch() !== null && this.tagSuggestions().length > 0) {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        this.selectedSuggestionIndex.update((i) => (i + 1) % this.tagSuggestions().length);
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        this.selectedSuggestionIndex.update(
+          (i) => (i - 1 + this.tagSuggestions().length) % this.tagSuggestions().length,
+        );
+      } else if (event.key === 'Enter' || event.key === 'Tab') {
+        event.preventDefault();
+        this.selectSuggestion(this.tagSuggestions()[this.selectedSuggestionIndex()].name);
+      } else if (event.key === 'Escape') {
+        this.activeTagSearch.set(null);
+      }
+    }
+  }
+
+  protected selectSuggestion(labelName: string) {
+    const input = this.captureInput()?.nativeElement;
+    if (!input) return;
+
+    const value = input.value;
+    const pos = input.selectionStart || 0;
+    const lastHash = value.lastIndexOf('#', pos - 1);
+
+    if (lastHash !== -1) {
+      const newValue = value.substring(0, lastHash) + '#' + labelName + ' ' + value.substring(pos);
+      this.captureTitle.set(newValue);
+      this.activeTagSearch.set(null);
+
+      // Reset cursor position after change
+      setTimeout(() => {
+        const newPos = lastHash + labelName.length + 2; // +1 for #, +1 for space
+        input.setSelectionRange(newPos, newPos);
+        input.focus();
+      });
+    }
   }
 
   protected handleTaskSaved(mode: 'create' | 'update') {

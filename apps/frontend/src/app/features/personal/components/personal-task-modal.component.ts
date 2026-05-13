@@ -22,6 +22,7 @@ import {
 } from '@yotara/shared';
 import { LabelService } from '../../../core/services/label.service';
 import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
+import { parseTaskCommand } from '../utils/task-command-parser';
 
 type SavePayload =
   | { mode: 'create'; payload: CreateTaskDto }
@@ -231,17 +232,36 @@ export class PersonalTaskModalComponent implements OnDestroy {
   }
 
   private hydrateDraft() {
-    this.draftTitle.set(this.task?.title ?? this.initialTitle);
+    const rawTitle = this.task?.title ?? this.initialTitle;
+    const { title, priority, labelNames } = parseTaskCommand(rawTitle);
+
+    // If editing, use raw title. If creating from initialTitle, use cleaned title.
+    this.draftTitle.set(this.task ? rawTitle : title);
     this.draftDescription.set(this.task?.description ?? '');
     this.draftStatus.set(this.task?.status ?? 'inbox');
-    this.draftPriority.set(this.task?.priority ?? 'medium');
+
+    if (!this.task && this.initialTitle) {
+      this.draftPriority.set(priority ?? 'medium');
+
+      const parsedLabelIds = this.labelService
+        .labels()
+        .filter((l) => labelNames.some((name) => name.toLowerCase() === l.name.toLowerCase()))
+        .map((l) => l.id);
+
+      if (parsedLabelIds.length > 0) {
+        this.draftLabels.set(parsedLabelIds);
+      }
+    } else {
+      this.draftPriority.set(this.task?.priority ?? 'medium');
+      this.draftLabels.set(this.task?.labels ?? []);
+    }
+
     this.draftDueDate.set(toDateInputValue(this.task?.dueDate));
     this.draftSimpleMode.set(this.task?.simpleMode ?? !this.task?.dueDate);
     this.draftProjectId.set(
       this.task?.projectId ?? this.initialProjectId ?? this.projects[0]?.id ?? '',
     );
     this.draftCompleted.set(this.task?.completed ?? false);
-    this.draftLabels.set(this.task?.labels ?? []);
     this.newLabelName.set('');
     this.newLabelColor.set(this.palette[0]);
 
