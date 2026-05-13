@@ -42,6 +42,7 @@ export interface ProfileResponse {
     updatedAt?: string | number;
     workspaceMode?: WorkspaceMode | null;
     onboardingCompleted?: boolean;
+    archiveAutoDelete?: boolean;
   };
 }
 
@@ -78,6 +79,16 @@ export const AuthService = {
   },
   getProfile: async () => {
     return await request<ProfileResponse>('/me');
+  },
+  updateProfile: async (payload: {
+    workspaceMode?: WorkspaceMode;
+    onboardingCompleted?: boolean;
+    archiveAutoDelete?: boolean;
+  }) => {
+    return await request<ProfileResponse>('/me', {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
   },
   completeOnboarding: async (workspaceMode: WorkspaceMode) => {
     return await request<ProfileResponse>('/me', {

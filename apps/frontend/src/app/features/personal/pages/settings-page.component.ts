@@ -21,7 +21,7 @@ import { Router } from '@angular/router';
       <app-page-header
         eyebrow="Personal Sanctuary"
         title="Settings"
-        subtitle="Manage your personal sanctuary preferences."
+        subtitle="Manage your personal sanctuary preferences, including archive cleanup."
       />
 
       <div class="settings-card">
@@ -48,6 +48,20 @@ import { Router } from '@angular/router';
 
         <div class="settings-section">
           <h3 class="section-title">Behavior</h3>
+          <label class="settings-item settings-toggle">
+            <div class="settings-item-copy">
+              <strong>Auto-delete archived tasks</strong>
+              <span>Turn this off to keep archived tasks indefinitely.</span>
+            </div>
+            <input
+              type="checkbox"
+              class="toggle-input"
+              [checked]="archiveAutoDelete()"
+              (change)="onArchiveCleanupChange($event)"
+              [disabled]="isSavingArchiveCleanup()"
+              aria-label="Toggle auto-delete for archived tasks"
+            />
+          </label>
           <div class="settings-item settings-item-disabled">
             <div class="settings-item-copy">
               <strong>Desktop notifications</strong>
@@ -219,6 +233,10 @@ import { Router } from '@angular/router';
         transition: background-color 0.2s ease;
       }
 
+      .settings-toggle {
+        cursor: pointer;
+      }
+
       .settings-item-copy {
         display: flex;
         flex-direction: column;
@@ -265,6 +283,50 @@ import { Router } from '@angular/router';
         outline: none;
         border-color: var(--primary-solid);
         box-shadow: 0 0 0 2px var(--primary-soft);
+      }
+
+      .toggle-input {
+        appearance: none;
+        width: 3rem;
+        height: 1.7rem;
+        border-radius: 999px;
+        background: var(--surface-container-high);
+        box-shadow: inset 0 0 0 1px var(--outline-variant);
+        position: relative;
+        flex: 0 0 auto;
+        cursor: pointer;
+        transition:
+          background-color 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+
+      .toggle-input::after {
+        content: '';
+        position: absolute;
+        top: 0.18rem;
+        left: 0.18rem;
+        width: 1.34rem;
+        height: 1.34rem;
+        border-radius: 50%;
+        background: var(--on-surface-subtle);
+        transition:
+          transform 0.2s ease,
+          background-color 0.2s ease;
+      }
+
+      .toggle-input:checked {
+        background: var(--primary-soft);
+        box-shadow: inset 0 0 0 1px var(--primary-soft-strong);
+      }
+
+      .toggle-input:checked::after {
+        transform: translateX(1.3rem);
+        background: var(--primary-solid);
+      }
+
+      .toggle-input:focus-visible {
+        outline: 2px solid var(--primary-solid);
+        outline-offset: 2px;
       }
 
       .coming-soon {
@@ -349,10 +411,28 @@ export class SettingsPageComponent {
   protected readonly isChangePasswordOpen = signal(false);
   protected readonly isLogoutConfirmOpen = signal(false);
   protected readonly isLoggingOut = signal(false);
+  protected readonly isSavingArchiveCleanup = signal(false);
 
   protected onThemeChange(event: Event) {
     const select = event.target as HTMLSelectElement;
     this.themeService.setTheme(select.value as Theme);
+  }
+
+  protected archiveAutoDelete() {
+    return this.authState.user()?.archiveAutoDelete ?? true;
+  }
+
+  protected async onArchiveCleanupChange(event: Event) {
+    const checkbox = event.target as HTMLInputElement;
+    this.isSavingArchiveCleanup.set(true);
+
+    try {
+      await this.authState.updateProfile({
+        archiveAutoDelete: checkbox.checked,
+      });
+    } finally {
+      this.isSavingArchiveCleanup.set(false);
+    }
   }
 
   protected async onLogout() {
