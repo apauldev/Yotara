@@ -50,7 +50,8 @@ describe('Interceptors', () => {
     it('should skip loading if X-Skip-Loading header is present', () => {
       httpClient.get('/test', { headers: { 'X-Skip-Loading': 'true' } }).subscribe();
 
-      httpMock.expectOne('/test');
+      const req = httpMock.expectOne('/test');
+      req.flush({});
       expect(statusService.isLoading()).toBeFalse();
     });
   });
