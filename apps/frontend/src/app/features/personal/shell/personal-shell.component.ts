@@ -30,6 +30,7 @@ import { AuthStateService } from '../../../core/services/auth-state.service';
 import { TaskService } from '../../../core/services/task.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { LogoutConfirmModalComponent } from '../../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
+import { AppStatusComponent } from '../../../shared/ui/app-status/app-status.component';
 
 type PersonalIcon = 'inbox' | 'today' | 'upcoming' | 'projects' | 'labels' | 'archive';
 
@@ -52,6 +53,7 @@ interface PersonalNavItem {
     RouterLinkActive,
     RouterOutlet,
     LogoutConfirmModalComponent,
+    AppStatusComponent,
   ],
   templateUrl: './personal-shell.component.html',
 })
