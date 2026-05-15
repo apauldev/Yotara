@@ -13,6 +13,7 @@ import {
 import { filter } from 'rxjs';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { LogoutConfirmModalComponent } from '../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
+import { AppStatusComponent } from '../../shared/ui/app-status/app-status.component';
 
 type SidebarIcon = 'dashboard' | 'tasks' | 'workspaces' | 'calendar' | 'team';
 
@@ -33,6 +34,7 @@ interface SidebarItem {
     RouterLinkActive,
     RouterOutlet,
     LogoutConfirmModalComponent,
+    AppStatusComponent,
   ],
   template: `
     <div class="shell">
@@ -204,6 +206,7 @@ interface SidebarItem {
       (stay)="handleStayFocused()"
       (confirm)="confirmLogout()"
     />
+    <app-status />
   `,
   styles: [
     `
