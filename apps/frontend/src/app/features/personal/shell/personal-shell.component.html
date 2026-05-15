@@ -31,7 +31,12 @@
             [routerLink]="item.route"
             [queryParams]="item.queryParams"
             routerLinkActive="nav-item-active"
-            [routerLinkActiveOptions]="{ exact: true }"
+            [routerLinkActiveOptions]="{
+              paths: 'exact',
+              queryParams: 'subset',
+              fragment: 'ignored',
+              matrixParams: 'ignored'
+            }"
             class="nav-item"
             [title]="sidebarCollapsed() ? item.label : ''"
           >
