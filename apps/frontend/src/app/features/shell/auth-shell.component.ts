@@ -64,7 +64,7 @@ interface SidebarItem {
                   [routerLink]="item.route"
                   routerLinkActive="nav-item-active"
                   [routerLinkActiveOptions]="{
-                    paths: 'exact',
+                    paths: 'subset',
                     queryParams: 'subset',
                     fragment: 'ignored',
                     matrixParams: 'ignored',
