@@ -1,0 +1,41 @@
+@if (statusService.isLoading()) {
+  <div class="loading-bar" role="progressbar" aria-label="Loading content"></div>
+}
+
+<div class="toast-container" aria-live="polite">
+  @for (toast of statusService.toasts(); track toast.id) {
+    <div class="toast toast-{{ toast.type }}" role="status" @toastAnimation>
+      <span class="toast-icon">
+        @switch (toast.type) {
+          @case ('success') {
+            <fa-icon [icon]="faCircleCheck"></fa-icon>
+          }
+          @case ('error') {
+            <fa-icon [icon]="faCircleExclamation"></fa-icon>
+          }
+          @case ('warning') {
+            <fa-icon [icon]="faCircleExclamation"></fa-icon>
+          }
+          @case ('info') {
+            <fa-icon [icon]="faCircleInfo"></fa-icon>
+          }
+        }
+      </span>
+
+      <div class="toast-content">
+        {{ toast.message }}
+      </div>
+
+      @if (toast.dismissible) {
+        <button
+          type="button"
+          class="toast-close"
+          aria-label="Dismiss notification"
+          (click)="statusService.remove(toast.id)"
+        >
+          <fa-icon [icon]="faXmark"></fa-icon>
+        </button>
+      }
+    </div>
+  }
+</div>
