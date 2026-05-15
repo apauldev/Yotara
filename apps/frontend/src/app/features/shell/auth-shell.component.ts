@@ -63,7 +63,12 @@ interface SidebarItem {
                 <a
                   [routerLink]="item.route"
                   routerLinkActive="nav-item-active"
-                  [routerLinkActiveOptions]="{ exact: true }"
+                  [routerLinkActiveOptions]="{
+                    paths: 'exact',
+                    queryParams: 'subset',
+                    fragment: 'ignored',
+                    matrixParams: 'ignored',
+                  }"
                   class="nav-item"
                 >
                   <span class="nav-icon" aria-hidden="true">
