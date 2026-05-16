@@ -192,6 +192,19 @@ Thanks go to these wonderful people ([emoji key](https://allcontributors.org/doc
 
 ---
 
+## 🏷️ Versioning Policy
+
+Yotara follows a **Semantic Versioning (SemVer)** strategy combined with Git build metadata.
+
+- **Format:** `v[Major].[Minor].[Patch]+[ShortSHA]`
+- **Bumping Rules (Main Branch):**
+  - **Minor (`+0.1.0`):** Triggered by `feat:` commits/merges.
+  - **Patch (`+0.0.1`):** Triggered by `fix:`, `docs:`, `chore:`, `refactor:`, or `misc:` commits/merges.
+  - **Major (`+1.0.0`):** Reserved for public stable releases.
+- **Automation:** Versioning is automatically injected into the UI during the build process, ensuring that the footer and settings menu always reflect the exact build state.
+
+---
+
 <div align="center">
   <p>Built with care for focused work, one quiet task at a time. 🌿</p>
   <img src="https://capsule-render.vercel.app/api?type=rect&color=173F35&height=30&section=footer" width="100%" />

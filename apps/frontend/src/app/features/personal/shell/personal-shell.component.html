@@ -69,10 +69,16 @@
     </div>
 
     <div class="sidebar-bottom">
-      <!-- <button type="button" class="quick-add-button" (click)="openCreateTaskModal()">
-        <span class="quick-add-icon"><fa-icon [icon]="faPlus"></fa-icon></span>
-        Quick Add Task
-      </button> -->
+      <div
+        class="sidebar-version"
+        [class.sidebar-version-collapsed]="sidebarCollapsed()"
+        [title]="'Built on ' + (appVersion.buildDate | date: 'medium')"
+      >
+        <span class="version-tag">{{ appVersion.version }}</span>
+        @if (!sidebarCollapsed()) {
+          <span class="version-hash">+{{ appVersion.hash }}</span>
+        }
+      </div>
     </div>
   </aside>
 

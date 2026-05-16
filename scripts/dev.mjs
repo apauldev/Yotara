@@ -1,4 +1,11 @@
-import { spawn } from 'node:child_process';
+import { spawn, execSync } from 'node:child_process';
+
+try {
+  process.stdout.write(`[dev] Generating version metadata...\n`);
+  execSync('node scripts/generate-version.mjs', { stdio: 'inherit' });
+} catch (e) {
+  process.stderr.write(`[dev] Warning: Failed to generate version metadata\n`);
+}
 
 const processes = [
   { name: 'frontend', args: ['--filter', '@yotara/frontend', 'dev'] },
