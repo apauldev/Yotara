@@ -4,6 +4,10 @@
   "version": "0.42.0",
   "description": "Yotara: lightweight self-hosted task manager",
   "scripts": {
+    "version:gen": "node scripts/generate-version.mjs",
+    "predev": "pnpm version:gen",
+    "prebuild": "pnpm version:gen",
+    "pretest": "pnpm version:gen",
     "dev": "node scripts/dev.mjs",
     "build": "pnpm -r build",
     "start": "pnpm -r start",
