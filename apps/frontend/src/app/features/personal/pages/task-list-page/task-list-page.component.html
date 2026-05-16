@@ -130,7 +130,49 @@
         }
 
         <section class="list-section">
-          <app-section-header title="Task List" [count]="inboxCountLabel()" size="sm" />
+          <app-section-header title="Task List" [count]="inboxCountLabel()" size="sm">
+            <div section-header-actions class="view-controls">
+              <div class="control-group">
+                <button
+                  type="button"
+                  class="control-pill"
+                  [class.active]="sortOption() === 'date'"
+                  (click)="sortOption.set('date')"
+                >
+                  Date
+                </button>
+                <button
+                  type="button"
+                  class="control-pill"
+                  [class.active]="sortOption() === 'alpha'"
+                  (click)="sortOption.set('alpha')"
+                >
+                  A-Z
+                </button>
+              </div>
+
+              <div class="control-divider"></div>
+
+              <div class="control-group">
+                <button
+                  type="button"
+                  class="control-pill"
+                  [class.active]="pageSize() === 10"
+                  (click)="pageSize.set(10)"
+                >
+                  10
+                </button>
+                <button
+                  type="button"
+                  class="control-pill"
+                  [class.active]="pageSize() === 25"
+                  (click)="pageSize.set(25)"
+                >
+                  25
+                </button>
+              </div>
+            </div>
+          </app-section-header>
 
           <div aria-live="polite">
             @if (taskService.loading()) {
@@ -144,7 +186,7 @@
               </div>
             } @else {
               <div class="task-stack">
-                @for (task of taskService.inboxTasks(); track task.id) {
+                @for (task of processedInboxTasks(); track task.id) {
                   <app-personal-task-card
                     [task]="task"
                     [interactive]="true"
@@ -152,6 +194,13 @@
                   />
                 }
               </div>
+
+              <app-pagination
+                [totalItems]="taskService.inboxTasks().length"
+                [pageSize]="pageSize()"
+                [currentPage]="currentPage()"
+                (pageChange)="currentPage.set($event)"
+              />
             }
           </div>
         </section>
@@ -178,9 +227,46 @@
 
         <section class="task-section">
           <app-section-header title="Due Today" size="lg">
-            <div section-header-actions class="section-actions">
-              <button type="button" class="icon-chip" aria-label="Filter tasks">≡</button>
-              <button type="button" class="icon-chip" aria-label="More actions">…</button>
+            <div section-header-actions class="view-controls">
+              <div class="control-group">
+                <button
+                  type="button"
+                  class="control-pill"
+                  [class.active]="sortOption() === 'date'"
+                  (click)="sortOption.set('date')"
+                >
+                  Date
+                </button>
+                <button
+                  type="button"
+                  class="control-pill"
+                  [class.active]="sortOption() === 'alpha'"
+                  (click)="sortOption.set('alpha')"
+                >
+                  A-Z
+                </button>
+              </div>
+
+              <div class="control-divider"></div>
+
+              <div class="control-group">
+                <button
+                  type="button"
+                  class="control-pill"
+                  [class.active]="pageSize() === 10"
+                  (click)="pageSize.set(10)"
+                >
+                  10
+                </button>
+                <button
+                  type="button"
+                  class="control-pill"
+                  [class.active]="pageSize() === 25"
+                  (click)="pageSize.set(25)"
+                >
+                  25
+                </button>
+              </div>
             </div>
           </app-section-header>
 
@@ -200,7 +286,7 @@
               </div>
             } @else {
               <div class="task-stack">
-                @for (task of taskService.todayTasks(); track task.id) {
+                @for (task of processedTodayTasks(); track task.id) {
                   <app-personal-task-card
                     [task]="task"
                     [interactive]="true"
@@ -208,6 +294,13 @@
                   />
                 }
               </div>
+
+              <app-pagination
+                [totalItems]="taskService.todayTasks().length"
+                [pageSize]="pageSize()"
+                [currentPage]="currentPage()"
+                (pageChange)="currentPage.set($event)"
+              />
 
               @if (taskService.todayCompletedTasks().length > 0) {
                 <div class="completed-stack">
@@ -229,40 +322,93 @@
 
       @case ('upcoming') {
         <!-- Upcoming View: Grouped by date -->
-        <div aria-live="polite">
-          @if (taskService.loading()) {
-            <p class="status-copy">Loading your upcoming plans...</p>
-          } @else if (taskService.error()) {
-            <p class="status-copy">{{ taskService.error() }}</p>
-          } @else if (taskService.upcomingTaskGroups().length === 0) {
-            <div class="empty-state">
-              <h2>Nothing is crowding the horizon</h2>
-              <p>Upcoming work will appear here once tasks are scheduled ahead.</p>
-            </div>
-          } @else {
-            <div class="group-stack">
-              @for (group of taskService.upcomingTaskGroups(); track group.label) {
-                <section class="group-card">
-                  <app-section-header
-                    [title]="group.label"
-                    [count]="group.tasks.length + ' tasks'"
-                    size="md"
-                  />
+        <section class="task-section">
+          <app-section-header title="Planning Ahead" size="lg">
+            <div section-header-actions class="view-controls">
+              <div class="control-group">
+                <button
+                  type="button"
+                  class="control-pill"
+                  [class.active]="sortOption() === 'date'"
+                  (click)="sortOption.set('date')"
+                >
+                  Date
+                </button>
+                <button
+                  type="button"
+                  class="control-pill"
+                  [class.active]="sortOption() === 'alpha'"
+                  (click)="sortOption.set('alpha')"
+                >
+                  A-Z
+                </button>
+              </div>
 
-                  <div class="task-stack">
-                    @for (task of group.tasks; track task.id) {
-                      <app-personal-task-card
-                        [task]="task"
-                        [interactive]="true"
-                        (select)="workspace.editTask(task)"
-                      />
-                    }
-                  </div>
-                </section>
-              }
+              <div class="control-divider"></div>
+
+              <div class="control-group">
+                <button
+                  type="button"
+                  class="control-pill"
+                  [class.active]="pageSize() === 10"
+                  (click)="pageSize.set(10)"
+                >
+                  10
+                </button>
+                <button
+                  type="button"
+                  class="control-pill"
+                  [class.active]="pageSize() === 25"
+                  (click)="pageSize.set(25)"
+                >
+                  25
+                </button>
+              </div>
             </div>
-          }
-        </div>
+          </app-section-header>
+
+          <div aria-live="polite">
+            @if (taskService.loading()) {
+              <p class="status-copy">Loading your upcoming plans...</p>
+            } @else if (taskService.error()) {
+              <p class="status-copy">{{ taskService.error() }}</p>
+            } @else if (taskService.upcomingTasks().length === 0) {
+              <div class="empty-state">
+                <h2>Nothing is crowding the horizon</h2>
+                <p>Upcoming work will appear here once tasks are scheduled ahead.</p>
+              </div>
+            } @else {
+              <div class="group-stack">
+                @for (group of processedUpcomingGroups(); track group.label) {
+                  <section class="group-card">
+                    <app-section-header
+                      [title]="group.label"
+                      [count]="group.tasks.length + ' tasks'"
+                      size="md"
+                    />
+
+                    <div class="task-stack">
+                      @for (task of group.tasks; track task.id) {
+                        <app-personal-task-card
+                          [task]="task"
+                          [interactive]="true"
+                          (select)="workspace.editTask(task)"
+                        />
+                      }
+                    </div>
+                  </section>
+                }
+              </div>
+
+              <app-pagination
+                [totalItems]="taskService.upcomingTasks().length"
+                [pageSize]="pageSize()"
+                [currentPage]="currentPage()"
+                (pageChange)="currentPage.set($event)"
+              />
+            }
+          </div>
+        </section>
       }
 
       @case ('search') {
@@ -376,10 +522,52 @@
 
               @if (activeTab() === 'tasks') {
                 <section class="result-group">
-                  <app-section-header title="Tasks" [count]="results().tasks.length + ' matches'" />
+                  <app-section-header title="Tasks" [count]="results().tasks.length + ' matches'">
+                    <div section-header-actions class="view-controls">
+                      <div class="control-group">
+                        <button
+                          type="button"
+                          class="control-pill"
+                          [class.active]="sortOption() === 'date'"
+                          (click)="sortOption.set('date')"
+                        >
+                          Date
+                        </button>
+                        <button
+                          type="button"
+                          class="control-pill"
+                          [class.active]="sortOption() === 'alpha'"
+                          (click)="sortOption.set('alpha')"
+                        >
+                          A-Z
+                        </button>
+                      </div>
+
+                      <div class="control-divider"></div>
+
+                      <div class="control-group">
+                        <button
+                          type="button"
+                          class="control-pill"
+                          [class.active]="pageSize() === 10"
+                          (click)="pageSize.set(10)"
+                        >
+                          10
+                        </button>
+                        <button
+                          type="button"
+                          class="control-pill"
+                          [class.active]="pageSize() === 25"
+                          (click)="pageSize.set(25)"
+                        >
+                          25
+                        </button>
+                      </div>
+                    </div>
+                  </app-section-header>
 
                   <div class="task-stack">
-                    @for (taskResult of results().tasks; track taskResult.task.id) {
+                    @for (taskResult of taskResults(); track taskResult.task.id) {
                       <app-personal-task-card
                         [task]="taskResult.task"
                         [interactive]="true"
@@ -387,6 +575,13 @@
                       />
                     }
                   </div>
+
+                  <app-pagination
+                    [totalItems]="results().tasks.length"
+                    [pageSize]="pageSize()"
+                    [currentPage]="currentPage()"
+                    (pageChange)="currentPage.set($event)"
+                  />
                 </section>
               }
 

@@ -17,7 +17,7 @@ import { AuthStateService } from './auth-state.service';
 import { LabelService } from './label.service';
 import { ProjectService } from './project.service';
 
-type UpcomingBucket = 'This Week' | 'Next Week' | 'Later';
+export type UpcomingBucket = 'This Week' | 'Next Week' | 'Later';
 
 export interface UpcomingTaskGroup {
   label: UpcomingBucket;
@@ -233,7 +233,7 @@ export class TaskService {
     return !!dueDate && dueDate.getTime() >= startOfToday().getTime();
   }
 
-  private upcomingBucketForTask(task: Task): UpcomingBucket {
+  upcomingBucketForTask(task: Task): UpcomingBucket {
     const dueDate = toCalendarDate(task.dueDate);
     const today = startOfToday();
 
