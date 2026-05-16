@@ -1,7 +1,7 @@
 {
   "name": "yotara-monorepo",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.42.0",
   "description": "Yotara: lightweight self-hosted task manager",
   "scripts": {
     "dev": "node scripts/dev.mjs",

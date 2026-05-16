@@ -26,6 +26,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { APP_VERSION } from '../../../core/constants/version';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { TaskService } from '../../../core/services/task.service';
 import { ThemeService } from '../../../core/services/theme.service';
@@ -58,6 +59,7 @@ interface PersonalNavItem {
   templateUrl: './personal-shell.component.html',
 })
 export class PersonalShellComponent {
+  protected readonly appVersion = APP_VERSION;
   protected readonly faBars = faBars;
   protected readonly faBell = faBell;
   protected readonly faArrowRightLong = faArrowRightLong;

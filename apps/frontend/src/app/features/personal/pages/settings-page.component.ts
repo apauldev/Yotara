@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
+import { APP_VERSION } from '../../../core/constants/version';
 import { ThemeService, Theme } from '../../../core/services/theme.service';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { ChangePasswordModalComponent } from '../components/change-password-modal.component';
@@ -186,6 +187,28 @@ import { Router } from '@angular/router';
             </div>
             <span class="coming-soon">Coming soon</span>
           </button>
+        </div>
+
+        <div class="settings-section">
+          <h3 class="section-title">About</h3>
+          <div class="settings-item">
+            <div class="settings-item-copy">
+              <strong>Version</strong>
+              <span>{{ appVersion.full }}</span>
+            </div>
+          </div>
+          <div class="settings-item">
+            <div class="settings-item-copy">
+              <strong>Build date</strong>
+              <span>{{ appVersion.buildDate | date: 'longDate' }}</span>
+            </div>
+          </div>
+          <div class="settings-item">
+            <div class="settings-item-copy">
+              <strong>Status</strong>
+              <span>Alpha Release</span>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -422,6 +445,7 @@ import { Router } from '@angular/router';
   ],
 })
 export class SettingsPageComponent {
+  protected readonly appVersion = APP_VERSION;
   protected readonly themeService = inject(ThemeService);
   private readonly authState = inject(AuthStateService);
   private readonly router = inject(Router);
