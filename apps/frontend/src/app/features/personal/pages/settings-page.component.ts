@@ -43,6 +43,9 @@ import { Router } from '@angular/router';
               <option value="dark-forest">Dark Forest</option>
               <option value="coastal-calm">Coastal Calm</option>
               <option value="minimal-slate">Minimal Slate</option>
+              <option value="midnight-amethyst">Midnight Amethyst</option>
+              <option value="golden-hour">Golden Hour</option>
+              <option value="deep-trench">Deep Trench</option>
             </select>
           </div>
         </div>

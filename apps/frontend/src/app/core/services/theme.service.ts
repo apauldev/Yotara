@@ -1,6 +1,12 @@
 import { Injectable, effect, signal } from '@angular/core';
-
-export type Theme = 'light-forest' | 'dark-forest' | 'coastal-calm' | 'minimal-slate';
+export type Theme =
+  | 'light-forest'
+  | 'dark-forest'
+  | 'coastal-calm'
+  | 'minimal-slate'
+  | 'midnight-amethyst'
+  | 'golden-hour'
+  | 'deep-trench';
 
 @Injectable({
   providedIn: 'root',
@@ -16,18 +22,26 @@ export class ThemeService {
       const currentTheme = this.themeSignal();
 
       // Remove all theme classes
-      const allThemes: Theme[] = ['light-forest', 'dark-forest', 'coastal-calm', 'minimal-slate'];
+      const allThemes: Theme[] = [
+        'light-forest',
+        'dark-forest',
+        'coastal-calm',
+        'minimal-slate',
+        'midnight-amethyst',
+        'golden-hour',
+        'deep-trench',
+      ];
       document.documentElement.classList.remove(...allThemes.map((t) => `theme-${t}`));
 
       // Add current theme class
       document.documentElement.classList.add(`theme-${currentTheme}`);
 
-      // For now, let's just use a simple check for dark forest as the primary "dark" theme
-      // but coastal-calm and minimal-slate are light-ish.
-      document.documentElement.classList.toggle('dark', currentTheme === 'dark-forest');
+      // Handle dark mode class for Tailwind and system
+      const isDark = this.isThemeDark(currentTheme);
+      document.documentElement.classList.toggle('dark', isDark);
 
-      document.documentElement.style.colorScheme =
-        currentTheme === 'dark-forest' ? 'dark' : 'light';
+      const colorScheme = isDark ? 'dark' : 'light';
+      document.documentElement.style.colorScheme = colorScheme;
       localStorage.setItem(this.STORAGE_KEY, currentTheme);
     });
   }
@@ -37,26 +51,45 @@ export class ThemeService {
   }
 
   toggleTheme() {
-    this.themeSignal.update((current) =>
-      current === 'dark-forest' ? 'light-forest' : 'dark-forest',
-    );
+    this.themeSignal.update((current) => {
+      const allThemes: Theme[] = [
+        'light-forest',
+        'dark-forest',
+        'coastal-calm',
+        'minimal-slate',
+        'midnight-amethyst',
+        'golden-hour',
+        'deep-trench',
+      ];
+      const currentIndex = allThemes.indexOf(current);
+      return allThemes[(currentIndex + 1) % allThemes.length];
+    });
   }
 
   isDarkTheme(): boolean {
-    return this.themeSignal() === 'dark-forest';
+    return this.isThemeDark(this.themeSignal());
   }
 
   private isThemeDark(theme: Theme): boolean {
-    return theme === 'dark-forest';
+    return ['dark-forest', 'midnight-amethyst', 'deep-trench'].includes(theme);
   }
 
   private resolveInitialTheme(): Theme {
     const storedTheme = localStorage.getItem(this.STORAGE_KEY) as Theme;
-    if (['light-forest', 'dark-forest', 'coastal-calm', 'minimal-slate'].includes(storedTheme)) {
+    if (
+      [
+        'light-forest',
+        'dark-forest',
+        'coastal-calm',
+        'minimal-slate',
+        'midnight-amethyst',
+        'golden-hour',
+        'deep-trench',
+      ].includes(storedTheme)
+    ) {
       return storedTheme;
     }
 
-    // Fallback to old keys for migration
     const legacyTheme = localStorage.getItem(this.STORAGE_KEY);
     if (legacyTheme === 'dark') return 'dark-forest';
     if (legacyTheme === 'light') return 'light-forest';
