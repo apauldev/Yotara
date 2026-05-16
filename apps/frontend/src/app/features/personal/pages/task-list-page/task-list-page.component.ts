@@ -4,7 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Project, Task } from '@yotara/shared';
 import { ProjectService } from '../../../../core/services/project.service';
-import { TaskService } from '../../../../core/services/task.service';
+import {
+  TaskService,
+  UpcomingBucket,
+  UpcomingTaskGroup,
+} from '../../../../core/services/task.service';
 import { LabelService } from '../../../../core/services/label.service';
 import { SearchService, SearchTab } from '../../../../core/services/search.service';
 import { AuthStateService } from '../../../../core/services/auth-state.service';
@@ -12,6 +16,7 @@ import { PersonalTaskCardComponent } from '../../components/personal-task-card.c
 import { PersonalTaskWorkspaceComponent } from '../../components/personal-task-workspace.component';
 import { SectionHeaderComponent } from '../../../../shared/components/section-header/section-header.component';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { PaginationComponent } from '../../../../shared/components/pagination/pagination.component';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
@@ -20,6 +25,7 @@ import { ElementRef } from '@angular/core';
 import { parseTaskCommand } from '../../utils/task-command-parser';
 
 export type TaskListViewMode = 'inbox' | 'today' | 'upcoming' | 'search';
+export type TaskSortOption = 'date' | 'alpha';
 export type InsightType = 'clarity' | 'journal';
 
 @Component({
@@ -33,6 +39,7 @@ export type InsightType = 'clarity' | 'journal';
     PersonalTaskWorkspaceComponent,
     SectionHeaderComponent,
     PageHeaderComponent,
+    PaginationComponent,
     FontAwesomeModule,
   ],
   templateUrl: './task-list-page.component.html',
@@ -54,6 +61,11 @@ export class TaskListPageComponent implements OnInit {
   protected readonly captureInput = viewChild<ElementRef<HTMLInputElement>>('captureInput');
 
   protected lastSubmissionType: 'quick' | 'capture' | 'default' = 'default';
+
+  // --- Sorting & Pagination ---
+  protected readonly sortOption = signal<TaskSortOption>('date');
+  protected readonly pageSize = signal<10 | 25>(10);
+  protected readonly currentPage = signal(1);
 
   // --- Autocomplete & Parsing ---
   protected readonly activeTagSearch = signal<string | null>(null);
@@ -149,6 +161,71 @@ export class TaskListPageComponent implements OnInit {
   protected readonly inboxCountLabel = computed(
     () => `${this.taskService.inboxTasks().length} Tasks`,
   );
+
+  protected readonly processedInboxTasks = computed(() =>
+    this.sortAndPaginate(this.taskService.inboxTasks()),
+  );
+
+  protected readonly processedTodayTasks = computed(() =>
+    this.sortAndPaginate(this.taskService.todayTasks()),
+  );
+
+  protected readonly processedUpcomingGroups = computed<UpcomingTaskGroup[]>(() => {
+    const tasks = this.taskService.upcomingTasks();
+    const paginated = this.sortAndPaginate(tasks);
+
+    const buckets: Record<UpcomingBucket, Task[]> = {
+      'This Week': [],
+      'Next Week': [],
+      Later: [],
+    };
+
+    for (const task of paginated) {
+      buckets[this.taskService.upcomingBucketForTask(task)].push(task);
+    }
+
+    return (Object.entries(buckets) as [UpcomingBucket, Task[]][])
+      .filter(([, tasks]) => tasks.length > 0)
+      .map(([label, tasks]) => ({ label, tasks }));
+  });
+
+  protected readonly totalTasksCount = computed(() => {
+    switch (this.viewMode()) {
+      case 'inbox':
+        return this.taskService.inboxTasks().length;
+      case 'today':
+        return this.taskService.todayTasks().length;
+      case 'upcoming':
+        return this.taskService.upcomingTasks().length;
+      case 'search':
+        return this.results().tasks.length;
+      default:
+        return 0;
+    }
+  });
+
+  protected readonly totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.totalTasksCount() / this.pageSize())),
+  );
+
+  protected sortAndPaginate<T>(items: T[], getTask: (item: T) => Task = (i: any) => i): T[] {
+    const sorted = [...items].sort((a, b) => {
+      const taskA = getTask(a);
+      const taskB = getTask(b);
+
+      if (this.sortOption() === 'alpha') {
+        return taskA.title.localeCompare(taskB.title);
+      }
+
+      // Default: date (newest created for inbox, or by dueDate)
+      const dateA = new Date(taskA.dueDate || taskA.createdAt).getTime();
+      const dateB = new Date(taskB.dueDate || taskB.createdAt).getTime();
+      return dateB - dateA;
+    });
+
+    const start = (this.currentPage() - 1) * this.pageSize();
+    return sorted.slice(start, start + this.pageSize());
+  }
 
   protected readonly defaultCaptureProjectId = computed(() => {
     const inboxProject = this.projectService.projects().find((project) => project.name === 'Inbox');
@@ -325,9 +402,11 @@ export class TaskListPageComponent implements OnInit {
   protected readonly activeTab = computed(() => this.queryParamMap().tab);
   protected readonly results = computed(() => this.searchService.search(this.searchQuery()));
 
-  protected readonly taskResults = computed(() =>
-    this.activeTab() === 'all' ? this.results().tasks.slice(0, 5) : this.results().tasks,
-  );
+  protected readonly taskResults = computed(() => {
+    const raw = this.results().tasks;
+    if (this.activeTab() === 'all') return raw.slice(0, 5);
+    return this.sortAndPaginate(raw, (r) => r.task);
+  });
   protected readonly projectResults = computed(() =>
     this.activeTab() === 'all' ? this.results().projects.slice(0, 3) : this.results().projects,
   );
@@ -350,6 +429,17 @@ export class TaskListPageComponent implements OnInit {
     effect(() => {
       this.draftQuery.set(this.queryParamMap().q);
     });
+
+    // Reset pagination when view mode, sort, or page size changes
+    effect(
+      () => {
+        this.viewMode();
+        this.sortOption();
+        this.pageSize();
+        this.currentPage.set(1);
+      },
+      { allowSignalWrites: true },
+    );
   }
 
   private searchSubtitle() {
