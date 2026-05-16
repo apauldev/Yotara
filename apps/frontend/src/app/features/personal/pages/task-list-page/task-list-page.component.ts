@@ -430,12 +430,13 @@ export class TaskListPageComponent implements OnInit {
       this.draftQuery.set(this.queryParamMap().q);
     });
 
-    // Reset pagination when view mode, sort, or page size changes
+    // Reset pagination when view mode, sort, page size, or task result set changes
     effect(
       () => {
         this.viewMode();
         this.sortOption();
         this.pageSize();
+        this.totalTasksCount();
         this.currentPage.set(1);
       },
       { allowSignalWrites: true },
