@@ -5,6 +5,7 @@
   "description": "Yotara: lightweight self-hosted task manager",
   "scripts": {
     "version:gen": "node scripts/generate-version.mjs",
+    "release": "commit-and-tag-version",
     "predev": "pnpm version:gen",
     "prebuild": "pnpm version:gen",
     "pretest": "pnpm version:gen",
@@ -39,6 +40,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "all-contributors-cli": "^6.26.1",
+    "commit-and-tag-version": "^12.7.3",
     "eslint": "^10.0.3",
     "husky": "^9.1.7",
     "lint-staged": "^16.3.3",
