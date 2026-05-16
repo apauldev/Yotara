@@ -34,9 +34,9 @@
 
 ## Query and Data Access
 
-- [ ] Review task list pagination and retrieval strategy:
-  - [ ] Add cursor-based or incremental loading if task counts continue to grow
-  - [ ] Avoid repeating broad `SELECT *` queries when only partial task data is needed
+- [x] Review task list pagination and retrieval strategy:
+  - [x] Add cursor-based or incremental loading if task counts continue to grow
+  - [x] Avoid repeating broad `SELECT *` queries when only partial task data is needed
 
 - [x] Reduce repeated task/project ownership checks:
   - [x] Reuse a common ownership lookup for `GET`, `PATCH`, `DELETE`, and nested project task routes
