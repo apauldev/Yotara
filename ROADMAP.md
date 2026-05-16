@@ -12,27 +12,29 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 
 - ✅ Auth: login, sign up, session refresh, logout, onboarding mode selection, and change password
 - ✅ Personal shell: sidebar/bottom navigation, top search form, quick-add entry point, user menu, and notifications icon placeholder
-- ✅ Personal task views: Inbox, Today, Upcoming, project detail, and archive page shell
-- ✅ Archive page behavior: archive list and restore toggle are already working at the current MVP level
+- ✅ Personal task views: Inbox, Today, Upcoming, project detail, and archive page shell with full restore/archive lifecycle
+- ✅ Archive page behavior: complete archive list with restore and permanent delete, proper `archived_at` timestamp handling
 - ✅ Task CRUD foundation: paginated API loading, create/update/delete API, soft delete, labels on tasks, project assignment, priority, due date, simple mode, and personal buckets
 - ✅ Personal project CRUD foundation: create, list, update, detail view, and project-scoped tasks
 - ✅ Personal label CRUD: labels page, create/edit/delete modal, color selection, label counts, and task label filtering
 - ✅ Shared UI primitives: accessible modal, reusable confirm dialog, logout confirm modal, page header, section header, button utility, date picker, and empty-state directive
-- ✅ Settings foundation: theme selection, change password, and logout confirmation
+- ✅ Settings foundation: theme selection, change password flow, and logout confirmation
 - ✅ Search foundation: task/project/label search service and search UI available through `/tasks?view=search&q=...`
+- ✅ Global status system: professional loading indicator, error toast notifications, and persistent logging to localStorage (#106)
+- ✅ 404 page: friendly error page with animation and navigation (#103)
 - ✅ API/docs/devops foundation: OpenAPI docs, Swagger UI, Dockerfiles, local build-based Compose, Docker smoke script, and core API tests
 
 ### P0 – Personal Mode Polish (Must Have Before Public Demo)
 
 | # | Task | Status | Effort | Current code reality / next action |
 |---|------|--------|--------|------------------------------------|
-| 1 | Archive view: show `archived` tasks with restore and permanent delete buttons | 🟡 Partial | Low | The archive page and restore flow already work at the MVP level. What remains is a true archived lifecycle state, explicit archive action, and permanent delete. |
-| 2 | Confirmation dialogs: reusable modal for delete/archive actions | 🟡 Partial | Low | Shared `Modal` and `ConfirmDialog` are ✅ done and used for logout, label delete, and task complete/restore. Wire them into task delete/archive and project destructive flows. |
-| 3 | Global search results page (`/search?q=...`): titles, descriptions, labels | 🟡 Partial | Medium | Search service and UI are ✅ done through `/tasks?view=search&q=...` for tasks, projects, and labels. Make `/search?q=...` canonical and include task-label-name matching in task result ranking/context. |
-| 4 | 404 page: friendly error with link to Inbox | ⬜ Not started | Low | No wildcard route yet. Add a protected not-found route/page for personal/team shells. |
+| 1 | Archive view: show `archived` tasks with restore and permanent delete buttons | ✅ Done | Low | Completed in #101. Archive lifecycle properly implemented with `archived_at` timestamps, restore flow, and UI in place. |
+| 2 | Confirmation dialogs: reusable modal for delete/archive actions | ✅ Done | Low | Shared `Modal` and `ConfirmDialog` components fully implemented and used throughout app for logout, label delete, task operations, and archive actions. |
+| 3 | Global search results page (`/search?q=...`): titles, descriptions, labels | 🟡 Partial | Medium | Search service and functionality ✅ complete through `/tasks?view=search&q=...` for tasks, projects, and labels with full text matching. Canonical `/search?q=...` route and improved result ranking/context still needed for P0 finish. |
+| 4 | 404 page: friendly error with link to Inbox | ✅ Done | Low | Implemented in #103 with animation. Friendly 404 page with navigation back to inbox. |
 | 5 | Task loading skeletons | ⬜ Not started | Low | Loading states mostly use copy/spinners. Add skeleton rows for task lists and project/label task panels. |
-| 6 | Empty states for Inbox, Today, Upcoming, Projects, Labels | 🟡 Partial | Low | Page-specific empty states are ✅ present. Extract/shared `EmptyState` is still open and illustrated/icon states need one final polish pass. |
-| 7 | Form validation and error polish | 🟡 Partial | Low | Basic validation is ✅ present in task, project, label, auth, and password forms. Standardize API error mapping, retry actions, disabled/loading labels, and validation copy. |
+| 6 | Empty states for Inbox, Today, Upcoming, Projects, Labels | 🟡 Partial | Low | Page-specific empty states ✅ present. UI has been refined (#97, #96, #98) with better styling. Generic `EmptyState` component still needed for standardization and reuse across all pages. |
+| 7 | Form validation and error polish | ✅ Done | Low | Basic validation ✅ present in all forms. Global error handling system implemented (#106) with professional toast notifications, error interception, and persistent logging. Validation copy and disabled/loading states standardized. |
 
 **P0 target:** 1–2 weeks at 1–2 hours/day. This is the public-demo gate.
 
