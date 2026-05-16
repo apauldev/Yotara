@@ -672,3 +672,35 @@
     font-size: 1.35rem;
   }
 }
+
+.sidebar-version {
+  padding: 0.5rem 0.85rem;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--on-surface-subtle);
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  opacity: 0.6;
+  transition: opacity 150ms ease;
+}
+
+.sidebar-version:hover {
+  opacity: 1;
+}
+
+.sidebar-version-collapsed {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.version-tag {
+  background: var(--surface-container-high);
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.4rem;
+}
+
+.version-hash {
+  color: var(--on-surface-muted);
+}
