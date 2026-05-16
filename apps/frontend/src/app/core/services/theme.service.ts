@@ -94,6 +94,8 @@ export class ThemeService {
     if (legacyTheme === 'dark') return 'dark-forest';
     if (legacyTheme === 'light') return 'light-forest';
 
-    return 'light-forest';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark-forest'
+      : 'light-forest';
   }
 }
