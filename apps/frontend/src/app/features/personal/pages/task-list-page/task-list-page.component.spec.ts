@@ -7,6 +7,7 @@ import { TaskListPageComponent } from './task-list-page.component';
 import { TaskService } from '../../../../core/services/task.service';
 import { ProjectService } from '../../../../core/services/project.service';
 import { SearchService } from '../../../../core/services/search.service';
+import { LabelService } from '../../../../core/services/label.service';
 import { AuthStateService } from '../../../../core/services/auth-state.service';
 import { PersonalTaskWorkspaceComponent } from '../../components/personal-task-workspace.component';
 import { Task } from '@yotara/shared';
@@ -15,6 +16,7 @@ describe('TaskListPageComponent', () => {
   let mockTaskService: any;
   let mockProjectService: any;
   let mockSearchService: any;
+  let mockLabelService: any;
   let mockAuthStateService: any;
   let mockActivatedRoute: any;
   let mockRouter: any;
@@ -24,11 +26,14 @@ describe('TaskListPageComponent', () => {
       loading: signal(false),
       creating: signal(false),
       error: signal<string | null>(null),
+      tasks: signal([]),
       inboxTasks: signal([]),
       todayTasks: signal([]),
       todayCompletedTasks: signal([]),
       overdueTasks: signal([]),
+      upcomingTasks: signal([]),
       upcomingTaskGroups: signal([]),
+      upcomingBucketForTask: jasmine.createSpy().and.returnValue('Later'),
       createTask: jasmine.createSpy().and.returnValue(Promise.resolve({})),
     };
 
@@ -42,6 +47,10 @@ describe('TaskListPageComponent', () => {
         projects: [],
         labels: [],
       }),
+    };
+
+    mockLabelService = {
+      labels: signal([]),
     };
 
     mockAuthStateService = {
@@ -66,6 +75,7 @@ describe('TaskListPageComponent', () => {
         { provide: TaskService, useValue: mockTaskService },
         { provide: ProjectService, useValue: mockProjectService },
         { provide: SearchService, useValue: mockSearchService },
+        { provide: LabelService, useValue: mockLabelService },
         { provide: AuthStateService, useValue: mockAuthStateService },
         { provide: ActivatedRoute, useValue: mockActivatedRoute },
         { provide: Router, useValue: mockRouter },
@@ -75,6 +85,7 @@ describe('TaskListPageComponent', () => {
 
   describe('View Mode Rendering', () => {
     it('renders the inbox view by default', () => {
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
       const fixture = TestBed.createComponent(TaskListPageComponent);
       fixture.detectChanges();
 
@@ -82,18 +93,17 @@ describe('TaskListPageComponent', () => {
       expect(fixture.nativeElement.textContent).toContain('Clear skies');
     });
 
-    it('renders the today view when query param is set', () => {
+    it('renders the today view when requested', () => {
       mockActivatedRoute.queryParamMap = of(new Map([['view', 'today']]));
       const fixture = TestBed.createComponent(TaskListPageComponent);
       fixture.detectChanges();
 
       expect(fixture.nativeElement.textContent).toContain('Today');
-      // Daily Zen is replaced by Insight Panel which is randomized
       const text = fixture.nativeElement.textContent;
       expect(text.toLowerCase()).toMatch(/daily clarity|the yotara journal/);
     });
 
-    it('renders the upcoming view when query param is set', () => {
+    it('renders the upcoming view when requested', () => {
       mockActivatedRoute.queryParamMap = of(new Map([['view', 'upcoming']]));
       const fixture = TestBed.createComponent(TaskListPageComponent);
       fixture.detectChanges();
@@ -113,6 +123,7 @@ describe('TaskListPageComponent', () => {
     });
 
     it('dismisses the insight panel when the x is clicked', () => {
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
       const fixture = TestBed.createComponent(TaskListPageComponent);
       fixture.detectChanges();
       const dismissBtn = fixture.debugElement.query(By.css('.insight-dismiss'));
@@ -122,7 +133,7 @@ describe('TaskListPageComponent', () => {
       expect(panel).toBeNull();
     });
 
-    it('renders the search view when query param is set', () => {
+    it('renders the search view when requested', () => {
       mockActivatedRoute.queryParamMap = of(new Map([['view', 'search']]));
       const fixture = TestBed.createComponent(TaskListPageComponent);
       fixture.detectChanges();
@@ -135,19 +146,21 @@ describe('TaskListPageComponent', () => {
   describe('Inbox Capture', () => {
     it('quick captures a task when behavior is quick', async () => {
       mockAuthStateService.user.set({ id: 'user-1', captureBehavior: 'quick' });
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
       const fixture = TestBed.createComponent(TaskListPageComponent);
       fixture.detectChanges();
 
-      fixture.componentInstance['captureTitle'].set('Quick task');
-      await fixture.componentInstance['captureTask']();
+      (fixture.componentInstance as any).captureTitle.set('Quick task');
+      await (fixture.componentInstance as any).captureTask();
 
-      expect(mockTaskService.createTask).toHaveBeenCalledWith(
-        jasmine.objectContaining({ title: 'Quick task' }),
-      );
+      expect(mockTaskService.createTask).toHaveBeenCalled();
+      const args = mockTaskService.createTask.calls.mostRecent().args[0];
+      expect(args.title).toBe('Quick task');
     });
 
     it('opens task workspace modal when behavior is capture', () => {
       mockAuthStateService.user.set({ id: 'user-1', captureBehavior: 'capture' });
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
       const fixture = TestBed.createComponent(TaskListPageComponent);
       fixture.detectChanges();
 
@@ -157,7 +170,7 @@ describe('TaskListPageComponent', () => {
       const workspace = workspaceDebugEl.componentInstance as PersonalTaskWorkspaceComponent;
       spyOn(workspace, 'openCreateTaskModal');
 
-      fixture.componentInstance['captureTitle'].set('Capture task');
+      (fixture.componentInstance as any).captureTitle.set('Capture task');
       fixture.debugElement.query(By.css('form')).triggerEventHandler('ngSubmit', {});
       fixture.detectChanges();
 
@@ -166,6 +179,7 @@ describe('TaskListPageComponent', () => {
 
     it('always opens modal when "Add task with details" button is clicked', () => {
       mockAuthStateService.user.set({ id: 'user-1', captureBehavior: 'quick' });
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
       const fixture = TestBed.createComponent(TaskListPageComponent);
       fixture.detectChanges();
 
@@ -175,7 +189,7 @@ describe('TaskListPageComponent', () => {
       const workspace = workspaceDebugEl.componentInstance as PersonalTaskWorkspaceComponent;
       spyOn(workspace, 'openCreateTaskModal');
 
-      fixture.componentInstance['captureTitle'].set('Force capture');
+      (fixture.componentInstance as any).captureTitle.set('Force capture');
       // Simulate clicking the "Add task with details" button
       const detailsBtn = fixture.debugElement.query(By.css('.capture-submit-details'));
       detailsBtn.nativeElement.click();
@@ -186,14 +200,17 @@ describe('TaskListPageComponent', () => {
     });
 
     it('shows capture error when title is empty', () => {
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
       const fixture = TestBed.createComponent(TaskListPageComponent);
       fixture.detectChanges();
 
-      fixture.componentInstance['captureTitle'].set('   ');
+      (fixture.componentInstance as any).captureTitle.set('   ');
       fixture.debugElement.query(By.css('form')).triggerEventHandler('ngSubmit', {});
       fixture.detectChanges();
 
-      expect(fixture.componentInstance['captureError']()).toBe('Add a task title to capture it.');
+      expect((fixture.componentInstance as any).captureError()).toBe(
+        'Add a task title to capture it.',
+      );
     });
 
     it('clears capture form after successful save', () => {
@@ -285,6 +302,86 @@ describe('TaskListPageComponent', () => {
       fixture.detectChanges();
 
       expect(mockSearchService.search).toHaveBeenCalled();
+    });
+  });
+
+  describe('Sorting and Pagination', () => {
+    it('sorts inbox tasks by date by default', () => {
+      const mockTasks: Partial<Task>[] = [
+        { id: '1', title: 'Task B', createdAt: '2023-01-02T10:00:00Z', dueDate: undefined },
+        { id: '2', title: 'Task A', createdAt: '2023-01-01T10:00:00Z', dueDate: undefined },
+      ];
+      mockTaskService.inboxTasks.set(mockTasks as Task[]);
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      const processed = (fixture.componentInstance as any).processedInboxTasks();
+      expect(processed[0].id).toBe('1'); // Newest first
+    });
+
+    it('sorts inbox tasks alphabetically when requested', () => {
+      const mockTasks: Partial<Task>[] = [
+        { id: '1', title: 'Task B', createdAt: '2023-01-02T10:00:00Z', dueDate: undefined },
+        { id: '2', title: 'Task A', createdAt: '2023-01-01T10:00:00Z', dueDate: undefined },
+      ];
+      mockTaskService.inboxTasks.set(mockTasks as Task[]);
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      (fixture.componentInstance as any).sortOption.set('alpha');
+      fixture.detectChanges();
+
+      const processed = (fixture.componentInstance as any).processedInboxTasks();
+      expect(processed[0].id).toBe('2'); // Task A comes first
+    });
+
+    it('paginates inbox tasks correctly', () => {
+      const mockTasks: Partial<Task>[] = Array.from({ length: 15 }, (_, i) => ({
+        id: `${i + 1}`,
+        title: `Task ${i + 1}`,
+        createdAt: `2023-01-${15 - i}T10:00:00Z`,
+        dueDate: undefined,
+      }));
+      mockTaskService.inboxTasks.set(mockTasks as Task[]);
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      (fixture.componentInstance as any).pageSize.set(10);
+      (fixture.componentInstance as any).currentPage.set(1);
+      fixture.detectChanges();
+
+      let processed = (fixture.componentInstance as any).processedInboxTasks();
+      expect(processed.length).toBe(10);
+      expect(processed[0].id).toBe('1'); // Newest first
+
+      (fixture.componentInstance as any).currentPage.set(2);
+      fixture.detectChanges();
+
+      processed = (fixture.componentInstance as any).processedInboxTasks();
+      expect(processed.length).toBe(5);
+      expect(processed[0].id).toBe('11');
+    });
+
+    it('resets currentPage when sortOption changes', () => {
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      (fixture.componentInstance as any).currentPage.set(2);
+      (fixture.componentInstance as any).sortOption.set('alpha');
+      fixture.detectChanges();
+
+      expect((fixture.componentInstance as any).currentPage()).toBe(1);
+    });
+
+    it('resets currentPage when pageSize changes', () => {
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      (fixture.componentInstance as any).currentPage.set(2);
+      (fixture.componentInstance as any).pageSize.set(25);
+      fixture.detectChanges();
+
+      expect((fixture.componentInstance as any).currentPage()).toBe(1);
     });
   });
 
