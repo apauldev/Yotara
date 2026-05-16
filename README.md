@@ -19,11 +19,14 @@
   <a href="#contributors"><img src="https://img.shields.io/github/all-contributors/apauldev/Yotara?color=3E7B63&style=for-the-badge" alt="All Contributors" /></a>
 </p>
 
-<h3>A high-performance, self-hosted task engine for focused individuals and lean teams.</h3>
+<h3>A calm, self-hosted task manager for focused people and quiet teams.</h3>
 
 <p>
-  Yotara bridges the gap between minimalist personal to-do apps and heavyweight project management suites. 
-  It is designed to be calm, fast, and obvious for individual use, yet capable of stretching into team collaboration without the process theater.
+  Yotara is designed to feel like a clear desk and a deep breath. It sits between minimalist to-do lists and heavy project management suites, keeping the useful parts and leaving the noise behind. Built for personal flow first, with team collaboration that appears only when needed.
+</p>
+
+<p>
+  <em>Take a task, place it gently, and let the rest of the day keep its shape. 🍃</em>
 </p>
 
 ---
@@ -34,29 +37,29 @@
 
 ---
 
-## 🎨 The Yotara Experience
+## 🌿 The Yotara Experience
 
-Most productivity software forces a compromise: elegant personal tools that break when shared, or enterprise monsters that feel like a second job. **Yotara is the middle ground.**
+Most productivity tools ask you to trade calm for capability. **Yotara tries to keep both.** It is built for people who want structure without feeling managed by the software itself.
 
 <table>
   <tr>
     <td width="50%">
-      <h3>🎯 Personal First</h3>
-      <p>A workflow that centers on <i>you</i>. Inbox, Today, and Upcoming views ensure you always know what's next without the noise of an empty corporate dashboard.</p>
+      <h3>🌱 Personal First</h3>
+      <p>Inbox, Today, and Upcoming views keep the next step visible without turning your workspace into a storm of widgets. Everything stays close, readable, and easy to return to.</p>
     </td>
     <td width="50%">
       <h3>🤝 Team Ready</h3>
-      <p>Collaboration that layers onto your personal flow. Share projects and tasks when you need to, without adopting sprints, epics, or ceremony.</p>
+      <p>Share projects and tasks only when collaboration matters. No ceremony for the sake of ceremony, just enough structure for the work to move along smoothly.</p>
     </td>
   </tr>
   <tr>
     <td width="50%">
       <h3>🛡️ Sovereign Data</h3>
-      <p>Self-hosted by design. Built on a portable SQLite + Drizzle stack, giving you full control over your data, privacy, and infrastructure.</p>
+      <p>Self-hosted by design. Built on a portable SQLite + Drizzle stack so your data, privacy, and infrastructure stay in your hands.</p>
     </td>
     <td width="50%">
-      <h3>⚡ High Performance</h3>
-      <p>Zero-lag interactions driven by Angular 21 and a Fastify backend. Optimized for speed, from paginated API endpoints to local WAL-mode SQLite.</p>
+      <h3>⚡ Quiet Performance</h3>
+      <p>Fast interactions powered by Angular 21 and Fastify. The stack is tuned for low-friction navigation, responsive APIs, and a database setup that stays out of the way.</p>
     </td>
   </tr>
 </table>
@@ -69,34 +72,34 @@ Most productivity software forces a compromise: elegant personal tools that brea
 <summary><b>💎 Personal Mode & Productivity</b></summary>
 <br />
 
-- **Unified Inbox:** Capture everything, refine later. Supported by a hero quick-capture experience.
-- **Dynamic Views:** Smart filters for `Today`, `Upcoming`, and `Archive` based on real-time task metadata.
-- **Smart Metadata:** Rich task details including priorities, due dates, "Simple Mode" toggles, and personal focus buckets.
-- **Global Search:** Blazing fast search across tasks, projects, and labels with matched-context highlighting.
-- **Mindful Journaling:** Rotating daily prompts to keep your focus aligned with your long-term goals.
+- **Unified Inbox:** Capture everything now, sort it out later. A soft landing zone for incoming thoughts.
+- **Dynamic Views:** Smart filters for `Today`, `Upcoming`, and `Archive` based on live task metadata.
+- **Smart Metadata:** Priorities, due dates, `Simple Mode`, and personal focus buckets, all organized without clutter.
+- **Global Search:** Fast search across tasks, projects, and labels with matched-context highlighting.
+- **Mindful Journaling:** Rotating daily prompts to keep your attention pointed in a useful direction.
 </details>
 
 <details>
 <summary><b>🛠️ Engineering & DX Highlights</b></summary>
 <br />
 
-- **Modern Monorepo:** Clean `pnpm` workspace structure with shared packages and automated code quality.
-- **Robust Error System:** Global status tracking, automated toast notifications, and persistent local logging.
-- **API-First Design:** Fully documented OpenAPI/Swagger spec served directly from the Fastify backend.
-- **Docker First:** Multi-stage Dockerfiles and optimized Compose configurations for easy deployment.
+- **Modern Monorepo:** A clean `pnpm` workspace with shared packages and automated code quality checks.
+- **Robust Error System:** Global status tracking, toast notifications, and persistent local logging.
+- **API-First Design:** Fully documented OpenAPI/Swagger spec served from the Fastify backend.
+- **Docker First:** Multi-stage Dockerfiles and Compose setups for straightforward deployment.
 </details>
 
 ---
 
 ## 🚀 Recent Milestones
 
-> We're building fast. Here's what just landed:
+> A few fresh leaves on the branch:
 
-- ✅ **Task Pagination & Sorting:** Zero-lag handling of thousands of tasks (#107).
-- ✅ **Global Status System:** Real-time loading indicators and professional notification toasts (#106).
-- ✅ **Lifecycle Management:** Full archive, restore, and permanent delete flows with `archived_at` timestamps (#101).
+- ✅ **Task Pagination & Sorting:** Smooth handling of thousands of tasks (#107).
+- ✅ **Global Status System:** Real-time loading indicators and notification toasts (#106).
+- ✅ **Lifecycle Management:** Archive, restore, and permanent delete flows with `archived_at` timestamps (#101).
 - ✅ **Surgical UI Refinement:** Refreshed labels, projects, and task views with an integrated insight panel.
-- ✅ **Security & Settings:** settings-based password management and secure session handling.
+- ✅ **Security & Settings:** Settings-based password management and secure session handling.
 
 ---
 
@@ -112,7 +115,7 @@ Most productivity software forces a compromise: elegant personal tools that brea
 </p>
 
 <p align="center">
-  <sub><i>Current build previews showing the refined, calm personal-mode experience.</i></sub>
+  <sub><i>Current build previews showing a calmer, more settled personal-mode experience.</i></sub>
 </p>
 
 ---
@@ -158,17 +161,17 @@ pnpm dev
 
 ## 🤝 Contributing
 
-Yotara is an open-source project, and we love community involvement. 
+Yotara is an open-source project, and community care keeps it growing.
 
-1.  **Check the [ROADMAP.md](./ROADMAP.md)** to see our current priorities.
-2.  **Browse [Issues](https://github.com/apauldev/Yotara/issues)** for `good-first-issue` labels.
-3.  **Read [CONTRIBUTING.md](./CONTRIBUTING.md)** for our development standards.
+1. **Check the [ROADMAP.md](./ROADMAP.md)** to see current priorities.
+2. **Browse [Issues](https://github.com/apauldev/Yotara/issues)** for `good-first-issue` labels.
+3. **Read [CONTRIBUTING.md](./CONTRIBUTING.md)** for development standards.
 
 ---
 
 ## ✨ Contributors
 
-Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
+Thanks go to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
@@ -190,6 +193,6 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 ---
 
 <div align="center">
-  <p>Built with ❤️ for focused work.</p>
+  <p>Built with care for focused work, one quiet task at a time. 🌿</p>
   <img src="https://capsule-render.vercel.app/api?type=rect&color=173F35&height=30&section=footer" width="100%" />
 </div>
