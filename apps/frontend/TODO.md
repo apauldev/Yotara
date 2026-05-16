@@ -108,15 +108,16 @@
   - [ ] Move duplicated `requireUserId` into shared request utility/plugin
   - [ ] Reuse in `tasks` and `projects` routes
 
-- [ ] Improve frontend error handling strategy:
-  - [ ] Replace scattered `console.error` with a shared logging/error service
-  - [ ] Map known API errors to consistent user-facing messages
+- [x] Improve frontend error handling strategy:
+  - [x] Replace scattered `console.error` with a shared logging/error service
+  - [x] Map known API errors to consistent user-facing messages
+  - [x] Add global status/loading bar and toast notifications
 
 - [ ] Replace remaining `@HostBinding` usage in `apps/frontend/src/app/shared/directives/empty-state.directive.ts` with host metadata bindings to match the Angular guidance.
 
-- [ ] Improve task list scalability:
-  - [ ] Avoid fixed `pageSize=100` fetch strategy
-  - [ ] Move to paged/cursor loading and server-driven sorting
+- [x] Improve task list scalability:
+  - [x] Avoid fixed `pageSize=100` fetch strategy
+  - [x] Move to paged/cursor loading and server-driven sorting
 
 - [ ] Add an archive flow for completed tasks:
   - [ ] Keep `done` as completion state and add `archived` as the final inactive state

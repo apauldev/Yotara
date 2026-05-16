@@ -12,124 +12,67 @@
   <a href="#contributors"><img src="https://img.shields.io/github/all-contributors/apauldev/Yotara?color=3E7B63&style=for-the-badge" alt="All Contributors" /></a>
   <img src="https://img.shields.io/badge/self--hosted-yes-3E7B63?style=for-the-badge&logo=docker&logoColor=white" alt="Self-hosted" />
   <img src="https://img.shields.io/badge/open_source-MIT-7BA58D?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="MIT license" />
-  <img src="https://img.shields.io/badge/stack-Angular%20%2B%20Fastify%20%2B%20SQLite-1C5D4B?style=for-the-badge&logo=typescript&logoColor=white" alt="Tech stack" />
+  <img src="https://img.shields.io/badge/stack-Angular%2021%20%2B%20Fastify%20%2B%20SQLite-1C5D4B?style=for-the-badge&logo=typescript&logoColor=white" alt="Tech stack" />
 </p>
 
-<h3>A calm, self-hosted task manager for focused individuals and lightweight teams.</h3>
+<h3>A high-performance, self-hosted task manager built for focused individuals and lean teams.</h3>
 
 <p>
-  Yotara is built for the space between personal to-do apps and bloated team software:
-  clean enough for one person, collaborative enough for a small group, and fully under your control.
+  Yotara bridges the gap between minimalist personal to-do apps and heavyweight project management suites. 
+  It is designed to be calm, fast, and obvious for individual use, yet capable of stretching into team collaboration without the process theater.
 </p>
 
 <p>
-  <a href="./PROJECT_README.md"><strong>Run Locally</strong></a>
+  <a href="./PROJECT_README.md"><strong>Quick Start</strong></a>
   ·
-  <a href="#why-yotara"><strong>Why Yotara</strong></a>
+  <a href="#the-yotara-philosophy"><strong>Philosophy</strong></a>
   ·
-  <a href="#current-build"><strong>Current Build</strong></a>
+  <a href="#current-capabilities"><strong>Capabilities</strong></a>
   ·
-  <a href="./docs/personal-mode-mvp.md"><strong>Personal Mode MVP</strong></a>
-  ·
-  <a href="./ROADMAP.md"><strong>MVP Roadmap</strong></a>
+  <a href="./ROADMAP.md"><strong>Roadmap</strong></a>
   ·
   <a href="./CONTRIBUTING.md"><strong>Contributing</strong></a>
-  ·
-  <a href="#product-direction"><strong>Direction</strong></a>
 </p>
 
 </div>
 
 ---
 
-## Why Yotara
+## The Yotara Philosophy
 
-Most task software breaks down in one of two ways:
+Software often forces a choice: elegant personal tools that break when shared, or enterprise monsters that feel like a second job. Yotara is the middle ground.
 
-- personal apps are elegant until you need to share work
-- team tools become process-heavy before the work is even complicated
+*   **Personal First:** A workflow that centers on *you*—Inbox, Today, and Upcoming—not an empty corporate dashboard.
+*   **Team Ready:** Collaboration that layers on top of your personal flow, rather than replacing it with sprints and epics.
+*   **Sovereign Data:** Self-hosted by design. You own your data, your stack, and your privacy.
 
-Yotara is being built in the gap between those extremes. The goal is a product that feels quiet, fast, and obvious for individual use, but can stretch into small-team collaboration without turning into management software.
+## Current Capabilities
 
-<table>
-  <tr>
-    <td width="33%">
-      <h3>Personal First</h3>
-      <p>Start with a clean daily workflow instead of an empty enterprise dashboard.</p>
-    </td>
-    <td width="33%">
-      <h3>Team Ready</h3>
-      <p>Share work when needed without dragging in sprints, epics, or ceremony.</p>
-    </td>
-    <td width="33%">
-      <h3>Own Your Data</h3>
-      <p>Self-hosted by design, with a stack that stays approachable and portable.</p>
-    </td>
-  </tr>
-</table>
+Yotara is in active development, with a robust **Personal Mode** already in production-ready shape.
 
-## At A Glance
+### 💎 Personal Mode Experience
+- **Focused Shell:** Dedicated views for `Inbox`, `Today`, `Upcoming`, `Projects`, `Labels`, and `Archive`.
+- **Smart Metadata:** Capture priority, due dates, "Simple Mode" toggles, and personal buckets (Sanctuary, Deep Work, etc.).
+- **Global Search:** Fast, unified search across tasks, projects, and labels.
+- **Journaling & Clarity:** Rotating daily prompts to keep your focus aligned with your goals.
 
-<p align="center">
-  <img src="https://img.shields.io/badge/-Focused%20UI-F4F1E8?style=flat-square" alt="Focused UI" />
-  <img src="https://img.shields.io/badge/-Email%2FPassword%20Auth-E7F0EA?style=flat-square" alt="Email Password Auth" />
-  <img src="https://img.shields.io/badge/-Task%20CRUD-DDECE3?style=flat-square" alt="Task CRUD" />
-  <img src="https://img.shields.io/badge/-Personal%20Mode-EAF3EE?style=flat-square" alt="Personal mode" />
-  <img src="https://img.shields.io/badge/-Team%20Shell-D8E7DE?style=flat-square" alt="Team shell" />
-  <img src="https://img.shields.io/badge/-Onboarding%20Flow-EAF3EE?style=flat-square" alt="Onboarding flow" />
-  <img src="https://img.shields.io/badge/-SQLite%20Persistence-D8E7DE?style=flat-square" alt="SQLite persistence" />
-  <img src="https://img.shields.io/badge/-Monorepo%20DX-E2EFE8?style=flat-square" alt="Monorepo DX" />
-</p>
+### 🛠️ Architecture & DX
+- **Modern Stack:** Built with **Angular 21**, **Fastify**, **Better Auth**, and **Drizzle ORM**.
+- **Performance First:** SQLite persistence with WAL mode and paginated API endpoints for lightning-fast loads.
+- **Robust Error Management:** Global status tracking, automated toast notifications, and a persistent logging system.
+- **API-First:** Full OpenAPI/Swagger documentation served directly from the backend.
+- **Monorepo DX:** Clean pnpm workspace structure with shared packages and automated code quality tools.
 
-## Current Build
-
-What is already present in the repository today:
-
-| Area | Current State |
-| --- | --- |
-| Frontend | Angular app with standalone components, shared UI primitives, and route-based flows |
-| Auth | Better Auth email/password sign-up and sign-in |
-| Onboarding | Personal vs team mode picker |
-| Personal Mode | Dedicated shell with Inbox, Today, Upcoming, Projects, Labels, Archive, and Search |
-| Team Mode | Authenticated left-nav shell for `/dashboard` |
-| Tasks | Task CRUD plus personal metadata capture via shared modals and task cards |
-| Backend | Fastify API with protected `/tasks`, `/projects`, `/me`, and auth bridge routes |
-| Data | SQLite + Drizzle with bootstrapped schema |
-| Monorepo | pnpm workspaces with shared TypeScript package |
-
-### Implemented Flows
-
-- create an account or sign in with email and password
-- pass through onboarding and choose a personal or team workspace mode
-- land in a mode-aware authenticated shell after onboarding
-- use personal routes for `Inbox`, `Today`, `Upcoming`, `Projects`, `Labels`, `Archive`, and `Search`
-- use the team dashboard shell with desktop and mobile navigation
-- create, update, fetch, and delete user-scoped tasks through the API
-- capture richer task metadata including description, priority, due date, simple mode, buckets, and project assignment
-
-### Personal Mode Highlights
-
-- personal users now default into `/inbox`
-- Inbox supports quick capture plus a richer task modal
-- Today, Upcoming, and Archive are driven by task status and due-date selectors
-- Search covers tasks and projects from the personal shell
-- Projects, Labels, Archive, and Search are live personal-mode routes with their own UI
-- shared modal, confirm dialog, and page header primitives are used across the personal experience
-- Daily clarity and Yotara Journal prompts rotate from built-in prompt pools
-
-### Task Metadata Supported Today
-
-- title
-- description
-- status: `inbox | today | upcoming | done | archived`
-- priority: `low | medium | high`
-- due date
-- simple mode
-- bucket: `personal-sanctuary | deep-work | home | health`
-- project assignment
-- completion state
-- sort order
-- soft delete / archive timestamp
+### 🚀 Recent Progress
+- ✅ **Task Pagination & Sorting:** Handles thousands of tasks with zero lag (#107).
+- ✅ **Global Status System:** Professional loading indicators and error toast notifications (#106).
+- ✅ **Archive Lifecycle Complete:** Full archive, restore, and permanent delete flows with `archived_at` timestamps (#101).
+- ✅ **404 Page:** Friendly error page with animation and navigation (#103).
+- ✅ **Enhanced Task Capture:** Robust task input with improved UX (#102).
+- ✅ **UI & Styling Polish:** Refreshed labels, projects, and task list pages with insight panel (#97, #96, #98).
+- ✅ **Change Password Flow:** Complete settings-based password management (#99).
+- ✅ **Comprehensive UI Primitives:** Accessible modals, confirmation dialogs, and reusable page headers.
+- ✅ **Docker Ready:** Local build-based Compose deployment with health checks.
 
 ## Visual Preview
 
@@ -144,104 +87,48 @@ What is already present in the repository today:
 
 <p align="center">
   <sub>
-    Current local build previews showing the shipped personal-mode experience.
+    <i>Current build previews showing the refined personal-mode experience.</i>
   </sub>
 </p>
 
-## Product Direction
-
-Yotara is early, but the direction is intentional.
-
-**For a complete technical breakdown of all planned screens, components, and build phases, see the [MVP Roadmap](./ROADMAP.md).**
-
-### Core experience
-
-- Inbox, Today, and Upcoming task flows
-- projects, labels, priorities, subtasks, and recurring work
-- richer task details and notes
-- board and list organization
-
-### Lightweight collaboration
-
-- shared workspaces for small teams
-- assignment and comments
-- live updates without heavyweight PM workflows
-
-### What it is explicitly not trying to become
-
-- an all-in-one enterprise planning suite
-- a process-first project management tool
-- a product full of dashboards before the core workflow feels good
-
-## Stack
+## Tech Stack
 
 <p align="center">
-  <img src="https://skillicons.dev/icons?i=angular,ts,fastify,sqlite" alt="Angular TypeScript Fastify SQLite" />
+  <img src="https://skillicons.dev/icons?i=angular,ts,fastify,sqlite,docker" alt="Angular TypeScript Fastify SQLite Docker" />
 </p>
 
-<p align="center">
-  Built with <strong>Angular 21</strong>, <strong>Fastify</strong>, <strong>Better Auth</strong>, <strong>Drizzle ORM</strong>, <strong>SQLite</strong>, and <strong>pnpm workspaces</strong>.
-</p>
+- **Frontend:** Angular 21, Tailwind CSS, Spartan UI
+- **Backend:** Fastify, TypeScript, Better Auth
+- **Database:** SQLite, Drizzle ORM
+- **Operations:** Docker, Docker Compose, pnpm Workspaces
 
-## Repo Shape
+## Quick Start
 
-```text
-.
-├── apps/
-│   ├── frontend/   # Angular application
-│   └── api/        # Fastify backend
-├── packages/
-│   └── shared/     # shared auth and task types
-└── scripts/        # development helpers
+Full setup instructions, environment variables, and API details live in the [**Project Guide**](./PROJECT_README.md).
+
+```bash
+# Clone the repository
+git clone https://github.com/apauldev/Yotara.git
+cd Yotara
+
+# Install dependencies
+pnpm install
+
+# Start development environment (API, Frontend, and DB Studio)
+pnpm dev
 ```
-
-## Run And Development Guide
-
-The main README stays product-facing. Full setup, scripts, environment variables, API notes, database details, and testing instructions live in:
-
-### [`PROJECT_README.md`](./PROJECT_README.md)
-
-That guide covers:
-
-- installation and local development
-- workspace structure
-- environment variables and auth origins
-- database behavior and Drizzle Studio
-- API routes and current architecture
-- testing and verification commands
-
-Additional implementation notes:
-
-- [Personal Mode MVP](./docs/personal-mode-mvp.md)
-- [Task API examples](./PROJECT_README.md#task-api-examples)
-
-For the API request/response examples, see the [Project Guide](./PROJECT_README.md#task-api-examples).
-
----
-
-## Why Watch Or Contribute
-
-- You want a self-hosted task tool that does not feel like admin software.
-- You like modern TypeScript stacks but still want a product with a clear point of view.
-- You want to contribute while product and UX decisions are still flexible enough to matter.
 
 ## Contributing
 
-Contributions are welcome! Whether it's bug reports, feature ideas, code, or documentation, we'd love your help.
+We welcome contributions of all kinds! Whether you're fixing a bug, suggesting a feature, or improving documentation, your help is appreciated.
 
-**New to the project?** Start here:
-- [CONTRIBUTING.md](./CONTRIBUTING.md) — Setup guide, PR process, code standards
-- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) — Community guidelines
-- [ROADMAP.md](./ROADMAP.md) — What we're building and priority order
-
-**Looking for something to work on?**
-- Check issues labeled [`good-first-issue`](https://github.com/apauldev/Yotara/labels/good-first-issue)
-- Review the [ROADMAP.md](./ROADMAP.md) for planned features
-- Open a discussion if you have questions
+- **Check the [ROADMAP.md](./ROADMAP.md)** to see what we're building next.
+- **Read [CONTRIBUTING.md](./CONTRIBUTING.md)** for our development standards and PR process.
+- **Join the discussion** by opening an issue or a pull request.
 
 ## Contributors
 
-This project follows the [all-contributors](https://allcontributors.org) specification. Contributions of any kind are welcome.
+This project follows the [all-contributors](https://allcontributors.org) specification. 
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
@@ -260,16 +147,7 @@ This project follows the [all-contributors](https://allcontributors.org) specifi
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
-If you contribute and want to be added to the table, maintainers can run:
-
-```bash
-pnpm contributors:add <github-username> <contribution-type>
-pnpm contributors:generate
-```
-
-## Status
-
-Yotara is in active early development. This README reflects the current codebase and the intended direction of the product, not a claim that every planned feature is already shipped.
+---
 
 <div align="center">
   <sub>Built for focused work, not workflow theater.</sub>
