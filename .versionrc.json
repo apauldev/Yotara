@@ -1,0 +1,12 @@
+{
+  "types": [
+    { "type": "feat", "section": "Features", "bump": "minor" },
+    { "type": "fix", "section": "Bug Fixes", "bump": "patch" },
+    { "type": "docs", "section": "Documentation", "bump": "patch" },
+    { "type": "chore", "section": "Chores", "bump": "patch" },
+    { "type": "refactor", "section": "Refactoring", "bump": "patch" },
+    { "type": "misc", "section": "Miscellaneous", "bump": "patch" },
+    { "type": "perf", "section": "Performance", "bump": "patch" },
+    { "type": "test", "section": "Tests", "bump": "patch" }
+  ]
+}

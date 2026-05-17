@@ -84,30 +84,36 @@ export function classes(computed: () => ClassValue[] | string, options: ClassesO
     const sourceOrder = manager.nextOrder++;
 
     function updateClasses(): void {
+      const m = manager;
+      if (!m) return;
+
       // Get the new classes from the computed function
       const newClasses = toClassList(computed());
 
       // Update this source's classes, keeping the original order
-      manager!.sources.set(sourceId, {
+      m.sources.set(sourceId, {
         classes: new Set(newClasses),
         order: sourceOrder,
       });
 
       // Update the element
-      updateElement(manager!);
+      updateElement(m);
     }
 
     // Register cleanup with DestroyRef
     destroyRef.onDestroy(() => {
+      const m = manager;
+      if (!m) return;
+
       // Remove this source from the manager
-      manager!.sources.delete(sourceId);
+      m.sources.delete(sourceId);
 
       // If no more sources, clean up the manager
-      if (manager!.sources.size === 0) {
+      if (m.sources.size === 0) {
         cleanupManager(element);
       } else {
         // Update element without this source's classes
-        updateElement(manager!);
+        updateElement(m);
       }
     });
 
@@ -242,8 +248,9 @@ const classListCache = new Map<string, string[]>();
 
 function toClassList(className: string | ClassValue[]): string[] {
   // For simple string inputs, use cache to avoid repeated parsing
-  if (typeof className === 'string' && classListCache.has(className)) {
-    return classListCache.get(className)!;
+  if (typeof className === 'string') {
+    const cached = classListCache.get(className);
+    if (cached) return cached;
   }
 
   const result = clsx(className)

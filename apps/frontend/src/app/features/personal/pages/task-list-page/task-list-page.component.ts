@@ -208,7 +208,10 @@ export class TaskListPageComponent implements OnInit {
     Math.max(1, Math.ceil(this.totalTasksCount() / this.pageSize())),
   );
 
-  protected sortAndPaginate<T>(items: T[], getTask: (item: T) => Task = (i: any) => i): T[] {
+  protected sortAndPaginate<T>(
+    items: T[],
+    getTask: (item: T) => Task = (i: unknown) => i as Task,
+  ): T[] {
     const sorted = [...items].sort((a, b) => {
       const taskA = getTask(a);
       const taskB = getTask(b);

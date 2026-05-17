@@ -73,7 +73,10 @@
             </div>
             <div class="col-progress" role="cell">
               <div class="progress-info">
-                <span class="progress-label" [attr.aria-label]="'Progress: ' + progressPercent(project) + ' percent'">
+                <span
+                  class="progress-label"
+                  [attr.aria-label]="'Progress: ' + progressPercent(project) + ' percent'"
+                >
                   {{ progressPercent(project) }}%
                 </span>
               </div>

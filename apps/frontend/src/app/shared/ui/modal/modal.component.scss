@@ -25,7 +25,9 @@
   width: min(100%, 34rem);
   border-radius: 1.6rem;
   background: var(--surface-container-lowest);
-  box-shadow: 0 28px 60px var(--surface-dim-strong), inset 0 0 0 1px var(--outline-variant);
+  box-shadow:
+    0 28px 60px var(--surface-dim-strong),
+    inset 0 0 0 1px var(--outline-variant);
   padding: 1.35rem;
   outline: none;
 }
