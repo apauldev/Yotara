@@ -78,7 +78,9 @@
   transition:
     opacity 160ms ease,
     transform 160ms ease;
+
   /* Reserve space on the right so the sidebar toggle doesn't overlap text */
+
   /* padding-right: calc(2.25rem + 0.5rem); */
 }
 
@@ -218,16 +220,16 @@
   transition: transform 180ms ease;
 }
 
-.nav-item:hover .nav-icon {
-  transform: translateY(-1px);
-}
-
 .sidebar-collapsed .nav-icon {
   width: 100%;
 }
 
 .nav-item-active .nav-icon {
   color: currentcolor;
+}
+
+.nav-item:hover .nav-icon {
+  transform: translateY(-1px);
 }
 
 .nav-icon svg {
@@ -470,14 +472,15 @@
   display: grid;
   gap: 0.2rem;
   z-index: 5;
-  animation: menuIn 200ms cubic-bezier(0, 0, 0.2, 1);
+  animation: menu-in 200ms cubic-bezier(0, 0, 0.2, 1);
 }
 
-@keyframes menuIn {
+@keyframes menu-in {
   from {
     opacity: 0;
     transform: translateY(-8px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -560,20 +563,14 @@
   transition: all 180ms ease;
 }
 
-.icon-button:hover,
-.menu-toggle:hover {
-  background: var(--surface-container-high);
-  transform: translateY(-1px);
-}
-
-.icon-button[aria-label='Preferences'] {
-  background: color-mix(in srgb, var(--primary-solid) 12%, var(--surface-overlay));
-  color: var(--primary-solid);
-}
-
 /* Hide the mobile menu toggle by default on larger screens; enabled in mobile media query */
 .menu-toggle {
   display: none;
+}
+
+.menu-toggle:hover {
+  background: var(--surface-container-high);
+  transform: translateY(-1px);
 }
 
 .avatar {

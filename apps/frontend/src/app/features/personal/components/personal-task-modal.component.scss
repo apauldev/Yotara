@@ -44,7 +44,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 1.15rem 1.05rem 1rem;
+  padding: 1.15rem 0 1rem;
   background: var(--surface-container-low);
   box-shadow: inset 1px 0 0 0 var(--outline-variant);
 }
@@ -54,13 +54,12 @@
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding-right: 0.1rem;
-  padding-bottom: 0.35rem;
+  padding: 0 1.05rem 0.35rem;
 }
 
 .sidebar-footer {
   flex: 0 0 auto;
-  padding-top: 0.8rem;
+  padding: 0.8rem 1.05rem 0;
   margin-top: 0.5rem;
   border-top: 1px solid var(--outline-variant);
   background: linear-gradient(

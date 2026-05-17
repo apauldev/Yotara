@@ -49,11 +49,11 @@ export class LabelsPageComponent {
   protected readonly selectedLabel = computed(
     () => this.labels().find((label) => label.id === this.selectedLabelId()) ?? null,
   );
-  protected readonly filteredTasks = computed(() =>
-    this.selectedLabelId()
-      ? this.taskService.tasks().filter((task) => task.labels?.includes(this.selectedLabelId()!))
-      : [],
-  );
+  protected readonly filteredTasks = computed(() => {
+    const labelId = this.selectedLabelId();
+    if (!labelId) return [];
+    return this.taskService.tasks().filter((task) => task.labels?.includes(labelId));
+  });
 
   constructor() {
     if (!this.selectedLabelId() && this.labels().length > 0) {
