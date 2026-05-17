@@ -103,10 +103,18 @@
 }
 
 /* Professional Color Palette */
-.toast-success { color: #10b981; } /* Emerald 500 */
-.toast-error { color: var(--status-overdue, #ef4444); } /* Rose 500 */
-.toast-warning { color: #f59e0b; } /* Amber 500 */
-.toast-info { color: var(--primary-solid); }
+.toast-success {
+  color: #10b981;
+} /* Emerald 500 */
+.toast-error {
+  color: var(--status-overdue, #ef4444);
+} /* Rose 500 */
+.toast-warning {
+  color: #f59e0b;
+} /* Amber 500 */
+.toast-info {
+  color: var(--primary-solid);
+}
 
 .toast-success .toast-content,
 .toast-error .toast-content,
