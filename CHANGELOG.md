@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.43.2](https://github.com/apauldev/Yotra/compare/v0.43.1...v0.43.2) (2026-05-17)
+
+
+### Bug Fixes
+
+* Fixing github actions version update ([7ffdbc2](https://github.com/apauldev/Yotra/commit/7ffdbc2f657cffd68728fcde29303301f8fb73ed))
+
+
+### Chores
+
+* optimize github actions with parallelism and professional release notes ([45f0370](https://github.com/apauldev/Yotra/commit/45f0370e3bd8f4b22a2c2b5cd553f329f14e731f))
+
 ## [0.43.1](https://github.com/apauldev/Yotra/compare/v0.43.0...v0.43.1) (2026-05-17)
 
 ## 0.43.0 (2026-05-16)
