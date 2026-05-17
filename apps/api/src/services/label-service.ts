@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import type { CreateLabelDto, Label, UpdateLabelDto } from '@yotara/shared';
 import { db } from '../db/client.js';
-import { labels, taskLabels, tasks } from '../db/schema.js';
+import { labels, taskLabels } from '../db/schema.js';
 
 const DEFAULT_LABELS = [
   { name: 'Urgent', color: '#d44d3c' },
@@ -30,7 +30,11 @@ function toLabel(row: LabelRow & { taskCount?: number }): Label {
 }
 
 export async function seedDefaultLabelsForOwner(ownerId: string) {
-  const existing = await db.select({ id: labels.id }).from(labels).where(eq(labels.userId, ownerId)).limit(1);
+  const existing = await db
+    .select({ id: labels.id })
+    .from(labels)
+    .where(eq(labels.userId, ownerId))
+    .limit(1);
   if (existing.length > 0) {
     return;
   }
@@ -69,7 +73,11 @@ export async function listLabelsForOwner(ownerId: string): Promise<Label[]> {
 }
 
 export async function getLabelForOwner(labelId: string, ownerId: string) {
-  const [row] = await db.select().from(labels).where(and(eq(labels.id, labelId), eq(labels.userId, ownerId))).limit(1);
+  const [row] = await db
+    .select()
+    .from(labels)
+    .where(and(eq(labels.id, labelId), eq(labels.userId, ownerId)))
+    .limit(1);
   return row ?? null;
 }
 
@@ -125,7 +133,11 @@ export async function deleteLabelForOwner(ownerId: string, labelId: string) {
   return true;
 }
 
-export async function syncTaskLabels(ownerId: string, taskId: string, labelIds: string[] | undefined) {
+export async function syncTaskLabels(
+  ownerId: string,
+  taskId: string,
+  labelIds: string[] | undefined,
+) {
   if (labelIds === undefined) {
     return;
   }
@@ -174,6 +186,12 @@ export async function getTaskLabels(taskId: string) {
 
 function pickLabelColor(name: string) {
   const palette = ['#82d7a9', '#81d7e8', '#f1c582', '#c7e9b3', '#a5d3e1', '#bcd0fb'];
-  const index = Math.abs(name.toLowerCase().split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0)) % palette.length;
+  const index =
+    Math.abs(
+      name
+        .toLowerCase()
+        .split('')
+        .reduce((sum, ch) => sum + ch.charCodeAt(0), 0),
+    ) % palette.length;
   return palette[index];
 }
