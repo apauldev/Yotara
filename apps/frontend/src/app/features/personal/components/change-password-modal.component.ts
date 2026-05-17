@@ -394,8 +394,9 @@ export class ChangePasswordModalComponent {
         this.success.set(true);
         setTimeout(() => this.onClose(), 2000);
       }
-    } catch (e: any) {
-      this.error.set(e.message || 'An unexpected error occurred.');
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'An unexpected error occurred.';
+      this.error.set(message);
     }
   }
 

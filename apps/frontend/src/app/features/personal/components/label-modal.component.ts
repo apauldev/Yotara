@@ -147,28 +147,22 @@ type LabelModalMode = 'create' | 'edit';
       }
 
       .label-list {
-        padding: 1.2rem 1.05rem;
+        padding: 1.2rem 0;
         background: var(--surface-overlay);
         box-shadow: inset -1px 0 0 var(--outline-variant);
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
       }
 
-      .label-list-header h3,
-      .editor-header h3 {
-        margin: 0;
-        font-size: 1.55rem;
-        letter-spacing: -0.04em;
-      }
-
-      .label-list-header p,
-      .editor-header p {
-        margin: 0.45rem 0 0;
-        color: var(--on-surface-muted);
+      .label-list-header {
+        padding: 0 1.05rem;
+        flex: 0 0 auto;
       }
 
       .create-card {
-        width: 100%;
+        margin: 0.85rem 1.05rem 0;
         min-height: 4rem;
-        margin-top: 0.85rem;
         border-radius: 0.95rem;
         border: 1px dashed var(--outline-variant);
         background: var(--surface-overlay);
@@ -178,21 +172,13 @@ type LabelModalMode = 'create' | 'edit';
         padding: 0 1rem;
         color: var(--on-surface-muted);
         font-weight: 700;
-      }
-
-      .plus {
-        width: 1.7rem;
-        height: 1.7rem;
-        border-radius: 999px;
-        display: grid;
-        place-items: center;
-        background: var(--surface-container-high);
+        cursor: pointer;
       }
 
       .label-rail {
         display: grid;
         gap: 0.55rem;
-        margin-top: 0.85rem;
+        padding: 0.85rem 1.05rem;
       }
 
       .label-rail-item {

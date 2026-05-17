@@ -16,109 +16,109 @@
   <section class="page">
     @if (projectState() === 'ready') {
       @if (project(); as currentProject) {
-      <app-page-header [title]="currentProject.name">
-        <a
-          page-header-back
-          routerLink="/projects"
-          class="back-button"
-          [title]="'Back to Projects'"
-        >
-          <fa-icon [icon]="faArrowLeft"></fa-icon>
-        </a>
+        <app-page-header [title]="currentProject.name">
+          <a
+            page-header-back
+            routerLink="/projects"
+            class="back-button"
+            [title]="'Back to Projects'"
+          >
+            <fa-icon [icon]="faArrowLeft"></fa-icon>
+          </a>
 
-        <button
-          page-header-actions
-          type="button"
-          class="header-action-button"
-          (click)="openEditProjectModal()"
-        >
-          Edit Project
-        </button>
-      </app-page-header>
-
-      @if (currentProject.description) {
-        <p class="project-description">{{ currentProject.description }}</p>
-      }
-
-      <section class="metrics-card">
-        <div class="metric">
-          <strong>{{ currentProject.openTaskCount }}</strong>
-          <span>Remaining</span>
-        </div>
-        <div class="metric">
-          <strong>{{ currentProject.completedTaskCount }}</strong>
-          <span>Completed</span>
-        </div>
-        <div class="progress-block">
-          <div class="progress-copy">
-            <strong>{{ progressPercent(currentProject) }}% total progress</strong>
-            <span>{{ currentProject.taskCount }} tasks total</span>
-          </div>
-          <div class="progress-track">
-            <span class="progress-bar" [style.width.%]="progressPercent(currentProject)"></span>
-          </div>
-        </div>
-      </section>
-
-      <div class="actions-row">
-        <div class="view-pill">List</div>
-        <button type="button" class="action-button" (click)="workspace.openCreateTaskModal()">
-          Add Task
-        </button>
-      </div>
-
-      @if (activeProjectTasks().length === 0 && completedProjectTasks().length === 0) {
-        <section class="empty-state">
-          <div class="empty-emblem">◌</div>
-          <p class="quote">
-            “A project becomes useful the moment the next step is visible. Start with one meaningful
-            step.”
-          </p>
-          <button type="button" class="empty-button" (click)="workspace.openCreateTaskModal()">
-            Add First Task
+          <button
+            page-header-actions
+            type="button"
+            class="header-action-button"
+            (click)="openEditProjectModal()"
+          >
+            Edit Project
           </button>
-        </section>
-      } @else {
-        <section class="task-section">
-          <app-section-header title="To Do" [count]="activeProjectTasks().length" size="lg" />
+        </app-page-header>
 
-          <div class="task-stack">
-            @for (task of activeProjectTasks(); track task.id) {
-              <app-personal-task-card
-                [task]="task"
-                [interactive]="true"
-                (select)="workspace.editTask(task)"
-              />
-            }
+        @if (currentProject.description) {
+          <p class="project-description">{{ currentProject.description }}</p>
+        }
 
-            <button type="button" class="inline-create" (click)="workspace.openCreateTaskModal()">
-              + Add new task to {{ currentProject.name }}
-            </button>
+        <section class="metrics-card">
+          <div class="metric">
+            <strong>{{ currentProject.openTaskCount }}</strong>
+            <span>Remaining</span>
+          </div>
+          <div class="metric">
+            <strong>{{ currentProject.completedTaskCount }}</strong>
+            <span>Completed</span>
+          </div>
+          <div class="progress-block">
+            <div class="progress-copy">
+              <strong>{{ progressPercent(currentProject) }}% total progress</strong>
+              <span>{{ currentProject.taskCount }} tasks total</span>
+            </div>
+            <div class="progress-track">
+              <span class="progress-bar" [style.width.%]="progressPercent(currentProject)"></span>
+            </div>
           </div>
         </section>
 
-        @if (completedProjectTasks().length > 0) {
-          <section class="task-section task-section-soft">
-            <app-section-header
-              title="Completed"
-              [count]="completedProjectTasks().length"
-              size="lg"
-            />
+        <div class="actions-row">
+          <div class="view-pill">List</div>
+          <button type="button" class="action-button" (click)="workspace.openCreateTaskModal()">
+            Add Task
+          </button>
+        </div>
+
+        @if (activeProjectTasks().length === 0 && completedProjectTasks().length === 0) {
+          <section class="empty-state">
+            <div class="empty-emblem">◌</div>
+            <p class="quote">
+              “A project becomes useful the moment the next step is visible. Start with one
+              meaningful step.”
+            </p>
+            <button type="button" class="empty-button" (click)="workspace.openCreateTaskModal()">
+              Add First Task
+            </button>
+          </section>
+        } @else {
+          <section class="task-section">
+            <app-section-header title="To Do" [count]="activeProjectTasks().length" size="lg" />
 
             <div class="task-stack">
-              @for (task of completedProjectTasks(); track task.id) {
+              @for (task of activeProjectTasks(); track task.id) {
                 <app-personal-task-card
                   [task]="task"
                   [interactive]="true"
-                  [showDescription]="false"
-                  [showCompletionState]="true"
                   (select)="workspace.editTask(task)"
                 />
               }
+
+              <button type="button" class="inline-create" (click)="workspace.openCreateTaskModal()">
+                + Add new task to {{ currentProject.name }}
+              </button>
             </div>
           </section>
+
+          @if (completedProjectTasks().length > 0) {
+            <section class="task-section task-section-soft">
+              <app-section-header
+                title="Completed"
+                [count]="completedProjectTasks().length"
+                size="lg"
+              />
+
+              <div class="task-stack">
+                @for (task of completedProjectTasks(); track task.id) {
+                  <app-personal-task-card
+                    [task]="task"
+                    [interactive]="true"
+                    [showDescription]="false"
+                    [showCompletionState]="true"
+                    (select)="workspace.editTask(task)"
+                  />
+                }
+              </div>
+            </section>
+          }
         }
-      }
       }
     } @else if (projectState() === 'loading') {
       <p class="status-copy">Loading your project...</p>

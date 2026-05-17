@@ -23,7 +23,12 @@
           <ng-content select="[modal-subtitle]"></ng-content>
         </div>
 
-        <button type="button" class="close-button" [attr.aria-label]="'Close ' + title" (click)="closeFromButton()">
+        <button
+          type="button"
+          class="close-button"
+          [attr.aria-label]="'Close ' + title"
+          (click)="closeFromButton()"
+        >
           ×
         </button>
       </header>
