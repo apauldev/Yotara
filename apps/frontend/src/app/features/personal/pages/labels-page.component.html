@@ -22,7 +22,9 @@
             <div class="table-row-header" role="row">
               <div class="col-identification" role="columnheader">Label</div>
               <div class="col-count" role="columnheader">Tasks</div>
-              <div class="col-actions" role="columnheader"><span class="sr-only">Actions</span></div>
+              <div class="col-actions" role="columnheader">
+                <span class="sr-only">Actions</span>
+              </div>
             </div>
           </div>
 
@@ -95,7 +97,10 @@
                   <fa-icon [icon]="faTag"></fa-icon>
                 </div>
                 <h3>Master your focus</h3>
-                <p>Select a label to filter your workspace and concentrate on a specific category of work.</p>
+                <p>
+                  Select a label to filter your workspace and concentrate on a specific category of
+                  work.
+                </p>
               </div>
             } @else if (filteredTasks().length === 0) {
               <div class="task-empty">

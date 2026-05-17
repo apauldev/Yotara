@@ -71,7 +71,10 @@ export class SearchService {
     const labelResults = labels
       .map((label) => buildLabelResult(label, normalizedQuery))
       .filter((result): result is SearchLabelResult => result !== null)
-      .sort((left, right) => right.score - left.score || left.label.name.localeCompare(right.label.name));
+      .sort(
+        (left, right) =>
+          right.score - left.score || left.label.name.localeCompare(right.label.name),
+      );
 
     return {
       query: query.trim(),

@@ -8,7 +8,11 @@
     ></button>
   }
 
-  <aside class="sidebar" [class.sidebar-open]="mobileMenuOpen()" [class.sidebar-collapsed]="sidebarCollapsed()">
+  <aside
+    class="sidebar"
+    [class.sidebar-open]="mobileMenuOpen()"
+    [class.sidebar-collapsed]="sidebarCollapsed()"
+  >
     <div class="sidebar-top">
       <div class="sidebar-brand">
         <div class="brand-content">
@@ -35,7 +39,7 @@
               paths: 'subset',
               queryParams: 'subset',
               fragment: 'ignored',
-              matrixParams: 'ignored'
+              matrixParams: 'ignored',
             }"
             class="nav-item"
             [title]="sidebarCollapsed() ? item.label : ''"

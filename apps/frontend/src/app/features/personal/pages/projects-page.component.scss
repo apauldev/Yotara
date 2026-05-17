@@ -109,12 +109,24 @@
 }
 
 // Project color variables
-.project-card-sage { --project-accent: #4a8a63; }
-.project-card-teal { --project-accent: #2d7b75; }
-.project-card-olive { --project-accent: #667b46; }
-.project-card-clay { --project-accent: #b86e51; }
-.project-card-forest { --project-accent: #2c5a42; }
-.project-card-deep-ocean { --project-accent: #29586d; }
+.project-card-sage {
+  --project-accent: #4a8a63;
+}
+.project-card-teal {
+  --project-accent: #2d7b75;
+}
+.project-card-olive {
+  --project-accent: #667b46;
+}
+.project-card-clay {
+  --project-accent: #b86e51;
+}
+.project-card-forest {
+  --project-accent: #2c5a42;
+}
+.project-card-deep-ocean {
+  --project-accent: #29586d;
+}
 
 .project-info {
   flex: 1;
@@ -320,7 +332,8 @@
     padding: 1.25rem;
   }
 
-  .col-progress, .col-status {
+  .col-progress,
+  .col-status {
     display: none;
   }
 
