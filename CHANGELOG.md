@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.43.4](https://github.com/apauldev/Yotra/compare/v0.43.3...v0.43.4) (2026-05-17)
+
+
+### Chores
+
+* resolve merge conflicts in changelog and package.json ([549f7eb](https://github.com/apauldev/Yotra/commit/549f7eb7fa6da515b40704700bcd46e382131234))
+* sync version metadata for v0.43.3 ([72484cd](https://github.com/apauldev/Yotra/commit/72484cd04ffaa1a7143ab7c16009b2b74adb9162))
+
+
+### Performance
+
+* truly parallelize CI by removing redundant install job barrier ([d379692](https://github.com/apauldev/Yotra/commit/d3796922ee264ec702158ca894f6fe355764d769))
+
+## [0.43.2](https://github.com/apauldev/Yotra/compare/v0.43.1...v0.43.2) (2026-05-17)
+
+
+### Chores
+
+* **release:** 0.43.2 ([9ac1da8](https://github.com/apauldev/Yotra/commit/9ac1da88fd907329e14f8beec3e6afe8186dde2d))
+
 ## [0.43.3](https://github.com/apauldev/Yotra/compare/v0.43.1...v0.43.3) (2026-05-17)
 
 ### Bug Fixes
