@@ -35,7 +35,7 @@ export class LogService {
    * Log informational messages.
    */
   info(message: string, data?: unknown, context?: string) {
-    console.log(`[${context || 'Info'}] ${message}`, data);
+    console.warn(`[${context || 'Info'}] ${message}`, data);
     this.addToBuffer('info', message, context, data);
   }
 
