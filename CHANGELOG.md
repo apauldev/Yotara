@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.43.5](https://github.com/apauldev/Yotara/compare/v0.43.2...v0.43.5) (2026-05-17)
+
+
+### Chores
+
+* optimize github actions with parallelism and professional release notes ([45f0370](https://github.com/apauldev/Yotara/commit/45f0370e3bd8f4b22a2c2b5cd553f329f14e731f))
+* **release:** 0.43.2 ([7a17d46](https://github.com/apauldev/Yotara/commit/7a17d464c87cc97fd1734c9bc0c6d29c6d4b2f01))
+* **release:** 0.43.3 ([c6f8a0f](https://github.com/apauldev/Yotara/commit/c6f8a0f52932d4cf25ffa3f4fb9dc351b8d2504e))
+* **release:** 0.43.4 ([d61de51](https://github.com/apauldev/Yotara/commit/d61de519ee461948e8d3b4b88300c55397ac9a2c))
+* resolve merge conflicts in changelog and package.json ([549f7eb](https://github.com/apauldev/Yotara/commit/549f7eb7fa6da515b40704700bcd46e382131234))
+* sync version metadata for parallelized CI ([dcdfc52](https://github.com/apauldev/Yotara/commit/dcdfc52d2c5b044e189aa6657f2f05785e472b83))
+* sync version metadata for v0.43.3 ([72484cd](https://github.com/apauldev/Yotara/commit/72484cd04ffaa1a7143ab7c16009b2b74adb9162))
+
+
+### Performance
+
+* truly parallelize CI by removing redundant install job barrier ([d379692](https://github.com/apauldev/Yotara/commit/d3796922ee264ec702158ca894f6fe355764d769))
+
 ## [0.43.4](https://github.com/apauldev/Yotra/compare/v0.43.3...v0.43.4) (2026-05-17)
 
 
