@@ -133,7 +133,7 @@
   --input: 215 32% 94%;
   --ring: 215 45% 20%;
   --surface: #f7f9fc;
-  --surface-container-lowest: #ffffff;
+  --surface-container-lowest: #fff;
   --surface-container-low: #f0f4f8;
   --surface-container-high: #e6ecf2;
   --surface-container-highest: #dbe4ed;
@@ -184,7 +184,7 @@
   --input: 0 0% 94%;
   --ring: 210 7% 18%;
   --surface: #f6f6f7;
-  --surface-container-lowest: #ffffff;
+  --surface-container-lowest: #fff;
   --surface-container-low: #efeff1;
   --surface-container-high: #e7e7ea;
   --surface-container-highest: #dfdfe2;
@@ -286,7 +286,7 @@
   --input: 45 35% 92%;
   --ring: 35 60% 38%;
   --surface: #fefaf0;
-  --surface-container-lowest: #ffffff;
+  --surface-container-lowest: #fff;
   --surface-container-low: #faf4e6;
   --surface-container-high: #f0e6d2;
   --surface-container-highest: #e6dcc8;

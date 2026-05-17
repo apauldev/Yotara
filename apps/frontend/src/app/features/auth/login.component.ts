@@ -143,8 +143,9 @@ export class LoginComponent {
 
         this.router.navigateByUrl(redirectUrl);
       }
-    } catch (err: any) {
-      this.error.set(err.message || 'An unexpected error occurred');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'An unexpected error occurred';
+      this.error.set(message);
     } finally {
       this.loading.set(false);
     }

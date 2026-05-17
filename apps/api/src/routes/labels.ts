@@ -32,7 +32,10 @@ export default async function labelRoutes(fastify: FastifyInstance) {
       }),
     },
     async (request) => {
-      const userId = request.userId!;
+      const userId = request.userId;
+      if (!userId) {
+        throw new Error('User ID not found in request');
+      }
       await seedDefaultLabelsForOwner(userId);
       return listLabelsForOwner(userId);
     },
@@ -55,13 +58,20 @@ export default async function labelRoutes(fastify: FastifyInstance) {
       }),
     },
     async (request, reply) => {
-      const userId = request.userId!;
+      const userId = request.userId;
+      if (!userId) {
+        throw new Error('User ID not found in request');
+      }
       const created = await createLabelForOwner(userId, request.body);
       return reply.code(201).send(created as Label);
     },
   );
 
-  fastify.patch<{ Params: { id: string }; Body: UpdateLabelDto; Reply: Label | { message: string } }>(
+  fastify.patch<{
+    Params: { id: string };
+    Body: UpdateLabelDto;
+    Reply: Label | { message: string };
+  }>(
     '/labels/:id',
     {
       schema: withJsonResponse({
@@ -78,7 +88,10 @@ export default async function labelRoutes(fastify: FastifyInstance) {
       }),
     },
     async (request, reply) => {
-      const userId = request.userId!;
+      const userId = request.userId;
+      if (!userId) {
+        throw new Error('User ID not found in request');
+      }
       const updated = await updateLabelForOwner(userId, request.params.id, request.body);
       if (!updated) {
         return sendNotFound(reply, 'Label not found');
@@ -109,7 +122,10 @@ export default async function labelRoutes(fastify: FastifyInstance) {
       }),
     },
     async (request, reply) => {
-      const userId = request.userId!;
+      const userId = request.userId;
+      if (!userId) {
+        throw new Error('User ID not found in request');
+      }
       const deleted = await deleteLabelForOwner(userId, request.params.id);
       if (!deleted) {
         return sendNotFound(reply, 'Label not found');
