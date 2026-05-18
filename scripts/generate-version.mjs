@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,6 +8,9 @@ const rootPkgPath = join(__dirname, '../package.json');
 const outputPath = join(__dirname, '../apps/frontend/src/app/core/constants/version.ts');
 
 try {
+  // 0. Ensure directory exists
+  mkdirSync(dirname(outputPath), { recursive: true });
+
   // 1. Read version from root package.json
   const pkg = JSON.parse(readFileSync(rootPkgPath, 'utf-8'));
   const version = pkg.version || '0.0.0';
