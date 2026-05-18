@@ -601,7 +601,8 @@
 /* --- Responsive --- */
 
 @media (width <= 920px) {
-  .personal-shell {
+  .personal-shell,
+  .personal-shell.sidebar-collapsed {
     grid-template-columns: 1fr;
   }
 

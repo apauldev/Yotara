@@ -43,6 +43,7 @@
             }"
             class="nav-item"
             [title]="sidebarCollapsed() ? item.label : ''"
+            (click)="closeMobileMenu()"
           >
             <span class="nav-icon" aria-hidden="true">
               @switch (item.icon) {
