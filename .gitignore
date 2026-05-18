@@ -8,3 +8,4 @@ apps/api/.env
 apps/frontend/src/app/core/constants/version.ts
 packages/shared/tsconfig.tsbuildinfo
 .DS_Store
+audit.md
