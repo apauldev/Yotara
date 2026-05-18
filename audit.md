@@ -42,31 +42,23 @@ Generated: 2026-05-18
 - **Location:** `apps/api/src/lib/auth.ts:27`
 - **Description:** Accounts can be created without email verification, enabling spam, impersonation, and account squatting.
 
-### 8. Database path traversal possible
-- **Location:** `apps/api/src/db/client.ts:119-125`
-- **Description:** `resolve(process.cwd(), databaseUrl)` doesn't sanitize `..` segments.
-
-### 9. Debug logs in localStorage with no PII redaction
+### 8. Debug logs in localStorage with no PII redaction
 - **Location:** `apps/frontend/src/app/core/services/log.service.ts:83-89`
 - **Description:** Up to 100 log entries including error objects persisted to localStorage. Should be disabled in production.
 
-### 10. Unguarded /preview/picker route
+### 9. Unguarded /preview/picker route
 - **Location:** `apps/frontend/src/app/app.routes.ts:22-27`
 - **Description:** No guards — unauthenticated users can load the onboarding UI.
 
-### 11. Dev environment leaks secrets to child processes
-- **Location:** `scripts/dev.mjs:61-65`
-- **Description:** `env: process.env` passes the entire host environment to all child processes.
-
-### 12. .env.example incomplete
+### 10. .env.example incomplete
 - **Location:** `.env.example`
 - **Description:** Missing `BETTER_AUTH_SECRET`, `CORS_ORIGIN`, `TRUSTED_ORIGINS`, `APP_BASE_URL`.
 
-### 13. Husky PATH manipulation supply chain risk
+### 11. Husky PATH manipulation supply chain risk
 - **Location:** `.husky/_/h:16`
 - **Description:** `PATH="node_modules/.bin:$PATH"` — any npm dependency can shadow system commands during git hooks.
 
-### 14. window.open() without noopener
+### 12. window.open() without noopener
 - **Location:** `apps/frontend/src/app/features/onboarding/pages/start-screen/start-screen.component.ts:74`
 - **Description:** Missing `noopener,noreferrer`. Opened page can access `window.opener`.
 
@@ -76,17 +68,17 @@ Generated: 2026-05-18
 
 | # | Finding | Location |
 |---|---------|----------|
-| 15 | `[innerHTML]` for highlighted search text — fragile, currently safe | `task-list-page.component.html:65` |
-| 16 | Label color field has no length/format validation | `apps/api/src/services/label-service.ts:88` |
-| 17 | `throw new Error()` bypasses `sendUnauthorized()` contract | `apps/api/src/routes/tasks.ts:62-63`, `labels.ts:37` |
-| 18 | Swagger UI at `/docs` served with no authentication | `apps/api/src/docs/openapi.ts` |
-| 19 | `execSync` calls without timeout | `scripts/generate-version.mjs:27-28` |
-| 20 | `skipLibCheck: true` masks potential type errors | `tsconfig.base.json:6` |
-| 21 | No `pnpm audit` in CI, no Dependabot/Renovate | GitHub workflows |
-| 22 | `.gitignore` doesn't exclude `*.env*` (except `.env.example`), `*.pem`, `*.key` | `.gitignore` |
-| 23 | `.dockerignore` doesn't exclude `.env*` files | `.dockerignore` |
-| 24 | `server_name _` (catch-all) in nginx | `docker/nginx.conf:3` |
-| 25 | No healthchecks in Dockerfiles | Both Dockerfiles |
-| 26 | Single-stage API Dockerfile | `apps/api/Dockerfile` |
-| 27 | No resource limits on docker-compose services | `docker-compose.yml` |
-| 28 | Missing `restart: unless-stopped` in docker-compose | `docker-compose.yml` |
+| 13 | `[innerHTML]` for highlighted search text — fragile, currently safe | `task-list-page.component.html:65` |
+| 14 | Label color field has no length/format validation | `apps/api/src/services/label-service.ts:88` |
+| 15 | `throw new Error()` bypasses `sendUnauthorized()` contract | `apps/api/src/routes/tasks.ts:62-63`, `labels.ts:37` |
+| 16 | Swagger UI at `/docs` served with no authentication | `apps/api/src/docs/openapi.ts` |
+| 17 | `execSync` calls without timeout | `scripts/generate-version.mjs:27-28` |
+| 18 | `skipLibCheck: true` masks potential type errors | `tsconfig.base.json:6` |
+| 19 | `pnpm audit` in CI, no Dependabot/Renovate | GitHub workflows |
+| 20 | `.gitignore` doesn't exclude `*.env*` (except `.env.example`), `*.pem`, `*.key` | `.gitignore` |
+| 21 | `.dockerignore` doesn't exclude `.env*` files | `.dockerignore` |
+| 22 | `server_name _` (catch-all) in nginx | `docker/nginx.conf:3` |
+| 23 | No healthchecks in Dockerfiles | Both Dockerfiles |
+| 24 | Single-stage API Dockerfile | `apps/api/Dockerfile` |
+| 25 | No resource limits on docker-compose services | `docker-compose.yml` |
+| 26 | Missing `restart: unless-stopped` in docker-compose | `docker-compose.yml` |
