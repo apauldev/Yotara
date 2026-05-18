@@ -47,6 +47,7 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 | 10 | Markdown preview in task description | ⬜ Not started | Low | Task modal has a textarea only. Add preview toggle and sanitization. |
 | 11 | Browser notifications for due reminders | ⬜ Not started | Medium | Settings has disabled notification rows; no permission/scheduler/service worker flow yet. |
 | 12 | Export data: JSON and CSV from Settings | ⬜ Not started | Low | Settings has disabled export row. Implement client export first, API export later if needed. |
+| 13 | Natural Language Task Entry: date parsing, projects (#), and labels (@) | ⬜ Not started | Medium | Enhance existing regex parser with `chrono-node` for dates and align syntax with Todoist standards (#project, @label). |
 
 **P1 target:** 2–3 weeks after P0.
 
