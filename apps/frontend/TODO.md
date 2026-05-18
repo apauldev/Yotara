@@ -54,6 +54,39 @@
   - [x] Keep preferences minimal and useful: theme, density, and quick-add behavior
   - [ ] Treat keyboard support, focus states, contrast, and touch targets as part of the final product finish
 
+## Design System & Library Migration (Spartan/CDK)
+
+- [ ] Integrate Spartan/Tailwind Variables with `ThemeService`:
+  - [ ] Map Spartan standard variables (`--primary`, `--background`, etc.) to Yotara's custom theme sets.
+  - [ ] Ensure `color-mix` logic for "soft" variants is standardized in Tailwind config.
+
+- [ ] Migrate all custom Modals to `hlm-dialog`:
+  - [ ] Native support for the "Unified Mobile Sheet" design pattern (bottom-anchored, sticky footer).
+  - [ ] Target: `app-modal`, `personal-task-modal`, `confirm-dialog`, `label-modal`, `personal-project-modal`, `change-password-modal`.
+
+- [ ] Standardize the Task Card with Spartan primitives:
+  - [ ] Replace `personal-task-card` custom CSS with `hlm-card` and `hlm-badge`.
+  - [ ] Use `hlm-checkbox` (logic only) for the task completion toggle.
+  - [ ] Implement `hlm-menu` for task actions (Restore, Archive, Delete) to declutter the card.
+
+- [ ] Standardize Shell & Navigation:
+  - [ ] Use `hlm-avatar` for the user initials/profile menu trigger.
+  - [ ] Replace custom profile/preferences menus with `hlm-menu` or `hlm-popover` for robust "click outside" and positioning logic.
+  - [ ] Add `hlm-tooltip` to collapsed sidebar icons and icon-only actions for desktop accessibility.
+
+- [ ] Standardize Form Controls & Validation:
+  - [ ] Use `hlmInput`, `hlmLabel`, and `hlm-error` for consistent typography and error states across all features.
+  - [ ] Resolve CSS specificity wars by centralizing error styling in the directive.
+
+- [ ] Standardize Feedback & Feedback Loops:
+  - [ ] `hlm-skeleton`: Implement for P0 task loading states instead of spinners.
+  - [ ] `hlm-toaster`: Consolidate `app-status` into a standardized, accessible toast notification system.
+  - [ ] `hlm-empty-state`: Convert `empty-state.directive` into a full-featured component for Inbox, Projects, and Search.
+
+- [ ] Standardize Utility Components:
+  - [ ] `hlm-pagination`: Replace the custom `pagination` component with the Spartan version.
+  - [ ] `hlm-separator`: Replace ad-hoc borders with standardized separators.
+
 ## Natural Language Processing (NLP) Task Entry
 
 - [ ] Add `chrono-node` to frontend dependencies for date parsing

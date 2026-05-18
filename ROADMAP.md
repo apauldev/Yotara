@@ -35,6 +35,7 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 | 5 | Task loading skeletons | ⬜ Not started | Low | Loading states mostly use copy/spinners. Add skeleton rows for task lists and project/label task panels. |
 | 6 | Empty states for Inbox, Today, Upcoming, Projects, Labels | 🟡 Partial | Low | Page-specific empty states ✅ present. UI has been refined (#97, #96, #98) with better styling. Generic `EmptyState` component still needed for standardization and reuse across all pages. |
 | 7 | Form validation and error polish | ✅ Done | Low | Basic validation ✅ present in all forms. Global error handling system implemented (#106) with professional toast notifications, error interception, and persistent logging. Validation copy and disabled/loading states standardized. |
+| 8 | **Design System & Accessibility**: Standardize UI primitives using Spartan/CDK | ⬜ Not started | Medium | Migrate custom shells (modals, menus, buttons, cards) to library primitives. Achieve 'Premium Native Feel' by eliminating manual focus trapping and implementing robust patterns like the 'Mobile Sheet' and 'Task Card' standardization. |
 
 **P0 target:** 1–2 weeks at 1–2 hours/day. This is the public-demo gate.
 
