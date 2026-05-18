@@ -54,6 +54,19 @@
   - [x] Keep preferences minimal and useful: theme, density, and quick-add behavior
   - [ ] Treat keyboard support, focus states, contrast, and touch targets as part of the final product finish
 
+## Natural Language Processing (NLP) Task Entry
+
+- [ ] Add `chrono-node` to frontend dependencies for date parsing
+- [ ] Refactor `parseTaskCommand` utility:
+  - [ ] Integrate `chrono-node` for natural language date extraction
+  - [ ] Align syntax with Todoist standards: `#` for projects, `@` for labels, `!` for priorities
+  - [ ] Support project lookup by name during parsing
+- [ ] Enhance `TaskDetailModal` with NLP features:
+  - [ ] Real-time parsing feedback (inline highlighting or preview chips)
+  - [ ] Auto-switch "Simple Mode" off when a date is detected
+  - [ ] Pre-populate project and labels from parsed title
+- [ ] Add unit tests for complex mixed NLP commands
+
 ## Service and Component Refactors
 
 - [ ] Modernize Angular component APIs to match the project guidance:
