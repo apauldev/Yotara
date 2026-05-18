@@ -549,6 +549,12 @@ textarea {
     color: var(--on-surface);
   }
 
+  .modal-main input[name='taskTitle'].field-error {
+    color: #ba6d57;
+    text-decoration: underline wavy rgba(186, 109, 87, 0.4);
+    text-underline-offset: 0.4rem;
+  }
+
   .modal-main input[name='taskTitle']::placeholder {
     color: var(--on-surface-subtle);
     opacity: 0.5;
@@ -624,7 +630,7 @@ textarea {
     height: 2.5rem;
   }
 
-  input,
+  input:not([type='checkbox']),
   textarea,
   select,
   .status-select,
