@@ -2,6 +2,79 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 0.43.9 (2026-05-18)
+
+
+### Features
+
+* add archive nav and consistent task completion checkbox UI ([0dbf602](https://github.com/apauldev/Yotara/commit/0dbf602045be436f87a50300af6b1797e9de1c22))
+* add backend projects domain persistence with API endpoints, database schema, and comprehensive tests ([110a4ee](https://github.com/apauldev/Yotara/commit/110a4eeda9d7fcb0b8e320ebbe03c54fe2836907))
+* **frontend:** add account logout dropdown with confirmation modal ([2ae6e30](https://github.com/apauldev/Yotara/commit/2ae6e3007acf3d81830136dec1dea149e7f250c3))
+* **frontend:** add post-login left nav shell ([d87ff84](https://github.com/apauldev/Yotara/commit/d87ff84f7f6d7fc167002a0cc1e65967fc32bab5))
+* **frontend:** implement complete project management system ([79ff595](https://github.com/apauldev/Yotara/commit/79ff595f366488768490112ec6470f7c6ed99dce))
+* **frontend:** install and configure spartan-ng UI framework ([ab5afce](https://github.com/apauldev/Yotara/commit/ab5afcebdaf0a08b557a6f40f7392cc41ca52875))
+* **frontend:** standardize and reskin page headers across the sanctuary ([4b2e417](https://github.com/apauldev/Yotara/commit/4b2e417af510b90365c38353be25d2ead825f59d))
+* implement global status, error, and persistent logging system ([1c556cd](https://github.com/apauldev/Yotara/commit/1c556cd183a6a297bc94cb37e7af34f7a8360154))
+* integrate Better Auth with Fastify/Angular and Drizzle SQLite ([f1c1fd7](https://github.com/apauldev/Yotara/commit/f1c1fd75a0d4e8bbe17f6cca4aa321c3c1fee38e))
+* **personal:** add personal mode shell and task metadata flow ([e8e0fd8](https://github.com/apauldev/Yotara/commit/e8e0fd89f59f34dd6a03976cda993b715d94d1f8))
+* the task flow for mobile is now much more robust ([8cab8c2](https://github.com/apauldev/Yotara/commit/8cab8c27b1f43d48d24cb8feeda5f037436e1320))
+
+
+### Bug Fixes
+
+* added fixes for codex flagged issues in code ([6705174](https://github.com/apauldev/Yotara/commit/67051743ca7f0eb45571196bd63c92b9a55011ee))
+* codex recommendation + same menu tap closing ([9c266e2](https://github.com/apauldev/Yotara/commit/9c266e23b25c40c0bc3d5c0b7db43c0f076342a2))
+* dropdown menu issue in personal shell ([d203c78](https://github.com/apauldev/Yotara/commit/d203c78b27d6a8a64cb091f94241f685e73e295c))
+* Fixing github actions version update ([833c477](https://github.com/apauldev/Yotara/commit/833c4772140b578c194bf6d79cb4b3db8e9d3d2e))
+* **frontend:** improve mobile nav and task auth handling ([7aa2843](https://github.com/apauldev/Yotara/commit/7aa2843c01a9a72dc862a68eec3b3708e986f469))
+* Mobile fix for sidebar menu ([30c770b](https://github.com/apauldev/Yotara/commit/30c770bd42c4bcfb97cf2d489e65529c16c4b992))
+* modals were broken for mobile, fixing ([582cd9b](https://github.com/apauldev/Yotara/commit/582cd9be7889828e12a59a4e346d087d8c160a26))
+* **projects:** surface edit errors and stabilize project task order ([db88a7b](https://github.com/apauldev/Yotara/commit/db88a7ba7101bc24f6502b715c4e05a9565af938))
+
+
+### Documentation
+
+* add API documentation examples for task endpoints ([26729c9](https://github.com/apauldev/Yotara/commit/26729c9ae49c5e2b9d0ae878c38eff7cb255b8ec))
+* add Phase 6 deployment & distribution roadmap ([00da7d4](https://github.com/apauldev/Yotara/commit/00da7d4e7f4cf796cdd44651b90b2033ef82c648))
+* enhance README with comprehensive setup and development guides ([cb30a8c](https://github.com/apauldev/Yotara/commit/cb30a8c8d42530d3703406d069169e4c4e68e05c))
+* move task API examples to project guide ([3e112ec](https://github.com/apauldev/Yotara/commit/3e112ecce9635d082368dd713831cefc80cca9d3))
+* refresh repository readme ([decf334](https://github.com/apauldev/Yotara/commit/decf334721c3253cb04d8d9d497c3073641270a4))
+* remove duplicate task api examples ([622d54a](https://github.com/apauldev/Yotara/commit/622d54a4e33ec0461af065619801c4fc40e9625c))
+
+
+### Chores
+
+* add all-contributors setup ([952715a](https://github.com/apauldev/Yotara/commit/952715a254f1e679f844377e84d357b4c26aad6c))
+* add automated versioning tool ([d8b796b](https://github.com/apauldev/Yotara/commit/d8b796b897ea7e7ff9abff1d8b55374c189f81be))
+* add code quality tooling and verify coverage ([15aeb11](https://github.com/apauldev/Yotara/commit/15aeb11d90dc4299ae8bc7ecf065b507d8093d61))
+* add stylelint setup ([cd9fe2b](https://github.com/apauldev/Yotara/commit/cd9fe2b4167e75f97001043db4842acc921ba74f))
+* add vscode workspace setup ([e0969c8](https://github.com/apauldev/Yotara/commit/e0969c810d838eb20951f9bb4f0436833bd0b250))
+* automate frontend version generation and ignore artifacts ([8b53d0b](https://github.com/apauldev/Yotara/commit/8b53d0b931d6f70681c5ca44dff932cb25d9e92d))
+* bump version to 0.43.8 to resolve CI collision ([5c47a86](https://github.com/apauldev/Yotara/commit/5c47a86a1fca5209af99c9926d13170b75ff9009))
+* optimize github actions with parallelism and professional release notes ([2ec4dc0](https://github.com/apauldev/Yotara/commit/2ec4dc0ceba64073d622fe165433cf59eacbc79f))
+* **release:** 0.43.0 ([f484f80](https://github.com/apauldev/Yotara/commit/f484f801df1093df73e5adb4e485a0ee5b3cbf1e))
+* **release:** 0.43.1 ([79fff69](https://github.com/apauldev/Yotara/commit/79fff69b4ea5f1acf69867f39c613cedf1214673))
+* **release:** 0.43.2 ([662e302](https://github.com/apauldev/Yotara/commit/662e302605b6b236c42b5e71f8b06580ad4dd201))
+* **release:** 0.43.2 ([d3f6d60](https://github.com/apauldev/Yotara/commit/d3f6d60e590c1c92e8ad845172eb9a70b2dc3a57))
+* **release:** 0.43.3 ([95f9f2a](https://github.com/apauldev/Yotara/commit/95f9f2a8c2813f34d994a049ab4dfa95f20cedc3))
+* **release:** 0.43.4 ([8fb6183](https://github.com/apauldev/Yotara/commit/8fb6183d652b5b34d49af490376d7ea3373d3660))
+* **release:** 0.43.5 ([e11354f](https://github.com/apauldev/Yotara/commit/e11354f1e55ae9326f6f90155c3ec6a14e622620))
+* **release:** 0.43.6 ([6673733](https://github.com/apauldev/Yotara/commit/6673733ea0142019f106ed359cd3c5f6e934d403))
+* **release:** 0.43.7 ([98077c0](https://github.com/apauldev/Yotara/commit/98077c0b71d44d724b5bbbd9771244fb1a1fabbd))
+* resolve merge conflicts in changelog and package.json ([3b7198b](https://github.com/apauldev/Yotara/commit/3b7198b1617ef9127d9cd5e586d7430fb935042a))
+* sync version metadata for parallelized CI ([a3b4953](https://github.com/apauldev/Yotara/commit/a3b495323663373dc4a3386c9b023695b2be0d39))
+* sync version metadata for v0.43.3 ([425ee00](https://github.com/apauldev/Yotara/commit/425ee000e1049b8877c839def1bc3d9dc2f2bc00))
+
+
+### Miscellaneous
+
+* Added some planning docs ([79eed15](https://github.com/apauldev/Yotara/commit/79eed15d238ae04ef12366b9f30f9fd590a672c1))
+
+
+### Performance
+
+* truly parallelize CI by removing redundant install job barrier ([b63cccb](https://github.com/apauldev/Yotara/commit/b63cccb9ab0a2872ebe648015f0bc55ad91af48e))
+
 ## [0.43.7](https://github.com/apauldev/Yotara/compare/v0.43.6...v0.43.7) (2026-05-18)
 
 
