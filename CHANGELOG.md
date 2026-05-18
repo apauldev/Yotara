@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.43.8](https://github.com/apauldev/Yotara/compare/v0.43.7...v0.43.8) (2026-05-18)
+
+
+### Miscellaneous
+
+* added some security audit of things to fix. ([70a7ab0](https://github.com/apauldev/Yotara/commit/70a7ab025b70844b24d2d19d7ae41b451b439295))
+
 ## [0.43.7](https://github.com/apauldev/Yotara/compare/v0.43.6...v0.43.7) (2026-05-18)
 
 
