@@ -18,7 +18,7 @@
     "format:check": "prettier --check .",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
-    "prepare": "husky install",
+    "prepare": "husky install && pnpm version:gen",
     "dev:frontend": "pnpm --filter @yotara/frontend dev",
     "dev:api": "pnpm --filter @yotara/api dev",
     "dev:studio": "pnpm --filter @yotara/api db:studio",
