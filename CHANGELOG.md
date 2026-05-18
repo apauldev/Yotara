@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.43.7](https://github.com/apauldev/Yotara/compare/v0.43.6...v0.43.7) (2026-05-18)
+
+
+### Chores
+
+* automate frontend version generation and ignore artifacts ([1cdd49d](https://github.com/apauldev/Yotara/commit/1cdd49d98f3b0c6c6aca270acd357b013b725736))
+
 ## [0.43.6](https://github.com/apauldev/Yotara/compare/v0.43.5...v0.43.6) (2026-05-18)
 
 
