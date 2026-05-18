@@ -630,10 +630,6 @@
     backdrop-filter: blur(4px);
   }
 
-  .sidebar-toggle {
-    display: none;
-  }
-
   .menu-toggle {
     display: grid;
   }
