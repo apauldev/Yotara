@@ -32,11 +32,6 @@
     "docker:down": "docker compose down",
     "smoke:docker": "bash scripts/docker-smoke.sh"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "better-sqlite3"
-    ]
-  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "all-contributors-cli": "^6.26.1",

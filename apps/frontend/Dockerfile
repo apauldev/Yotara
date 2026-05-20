@@ -2,7 +2,7 @@ FROM node:22-alpine AS build
 
 WORKDIR /app
 RUN corepack enable
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 build-base
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tsconfig.base.json tsconfig.base.json
