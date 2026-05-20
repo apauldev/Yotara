@@ -55,6 +55,7 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 
 | # | Task | Status | Effort | Notes |
 |---|------|--------|--------|-------|
+| 12 | Database migration plan: move from SQLite to Postgres before team data model | ⬜ Not started | Medium | Team mode is expected to become multi-user and SaaS-like; lock the tenancy/database path before workspace tables land. |
 | 13 | Workspace data model: workspaces and memberships | ⬜ Not started | Medium | Current backend only stores `user.workspaceMode`; no workspace tables yet. |
 | 14 | Workspace switcher: create/switch workspaces | ⬜ Not started | Low | Team shell has placeholder workspace navigation/label only; no real switcher or persistence. |
 | 15 | Invite link flow: token + `/join/:token` | ⬜ Not started | Medium | No invite tables/routes/pages. |
@@ -66,6 +67,8 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 | 21 | Real-time updates: WebSockets for task changes | ⬜ Not started | High | No WebSocket layer yet. |
 
 **P2 target:** 6–8 weeks. Critical path for SaaS launch.
+
+**Database note:** If team mode is expected to become multi-user, concurrent, and SaaS-like, the relational model should move to Postgres before or alongside P2. Treat SQLite as a personal/self-hosted foundation, not the final team-mode backend.
 
 ### P3 – Deployment & Distribution
 
@@ -470,6 +473,7 @@ These features should be built as personal-mode improvements first, but they sho
 - Markdown preview in task detail
 
 ### Phase 5: Team Mode (Post-MVP)
+- Postgres-backed workspace and membership model
 - Workspaces + member management
 - Task assignment
 - Comments & activity log
@@ -491,6 +495,7 @@ These features should be built as personal-mode improvements first, but they sho
 - ✅ Workspace-mode aware routing and guards
 - ✅ Shared task state model that supports personal views and leaves room for team fields
 - ✅ Reusable modal and confirmation dialog primitives
+- ⬜ Postgres migration plan for team-mode tenancy and concurrency
 - 🟡 Empty state and async-state primitives
 - 🟡 Search/filter infrastructure that can grow into team scope
 - ⬜ GitHub Actions CI for Docker image builds and pushes
@@ -650,6 +655,7 @@ apps/frontend/src/app/
 - **Archive**: Manual archive only, or auto-archive after completion?
 - **Search**: Single global search or separate personal/team search scopes?
 - **Permissions**: What is the minimum viable team role model?
+- **Database**: Should Postgres migration happen before P2 team mode, or be treated as a hard precondition for it?
 - **Languages**: English first, then Spanish, then other locales as demand proves out?
 - **Languages**: English first, then Spanish, Hindi, Chinese, Japanese, Korean, Russian, plus easy LTR European additions like German, French, Portuguese, and Italian?
 

@@ -54,6 +54,11 @@
   - [x] Keep preferences minimal and useful: theme, density, and quick-add behavior
   - [ ] Treat keyboard support, focus states, contrast, and touch targets as part of the final product finish
 
+- [ ] Keep the frontend team-mode assumptions aligned with the future Postgres-backed tenant model:
+  - [ ] Prefer workspace-scoped routes, state, and labels over user-only thinking once team mode expands
+  - [ ] Make sure workspace switching, invites, assignment, comments, and board views can all survive concurrent multi-user usage
+  - [ ] Avoid baking in any UI copy or flow that assumes team mode is just a visual toggle
+
 ## Natural Language Processing (NLP) Task Entry
 
 - [ ] Add `chrono-node` to frontend dependencies for date parsing
@@ -166,4 +171,5 @@
 - [ ] Phase 4: `EmptyState` + `AsyncState`
 - [ ] Phase 5: Card primitives
 - [ ] Phase 6: service/component decomposition and backend/auth cleanup
-- [ ] Phase 7: CI, coverage gates, production hardening
+- [ ] Phase 7: Postgres-ready workspace/team UX assumptions
+- [ ] Phase 8: CI, coverage gates, production hardening

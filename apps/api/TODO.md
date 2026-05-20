@@ -44,6 +44,11 @@
 
 - [ ] Add a dedicated transactional layer for write flows that touch multiple tables or require stronger consistency.
 
+- [ ] Plan the Postgres migration for team mode before introducing workspaces/memberships:
+  - [ ] Treat SQLite as the personal-mode/self-hosted foundation and Postgres as the SaaS/team-mode target
+  - [ ] Define the workspace tenant model before adding team tables, invites, comments, and assignments
+  - [ ] Make sure every future shared query is scoped by workspace membership, not just user ownership
+
 ## Auth and CORS Hardening
 
 - [ ] Simplify the auth bridge plugin:
@@ -82,7 +87,8 @@
 - [x] Phase 1: shared auth helper + route cleanup
 - [x] Phase 2: extract route persistence helpers
 - [x] Phase 3: schema and contract alignment
-- [ ] Phase 4: CORS/auth bridge hardening
-- [ ] Phase 5: observability and error normalization
-- [ ] Phase 6: pagination and write-path consistency
-- [ ] Phase 7: expanded API tests and production hardening
+- [ ] Phase 4: Postgres migration plan and tenant model for team mode
+- [ ] Phase 5: CORS/auth bridge hardening
+- [ ] Phase 6: observability and error normalization
+- [ ] Phase 7: pagination and write-path consistency
+- [ ] Phase 8: expanded API tests and production hardening
