@@ -12,7 +12,7 @@ For the current personal-mode implementation details, see [`docs/personal-mode-m
 Yotara is a TypeScript monorepo with:
 
 - `apps/frontend`: Angular 21 application
-- `apps/api`: Fastify API with Better Auth and SQLite
+- `apps/api`: Fastify API with Better Auth and SQLite today, with Postgres planned before team-mode SaaS work
 - `packages/shared`: shared domain types for auth and tasks
 - `scripts/dev.mjs`: local dev runner for the frontend, API, and Drizzle Studio
 
@@ -79,7 +79,7 @@ Project records currently support:
 
 ### Storage
 
-The API uses SQLite through Drizzle and bootstraps the required tables automatically on startup:
+The API uses SQLite through Drizzle and bootstraps the required tables automatically on startup. This is a good fit for the personal-mode/self-hosted foundation, but team-mode SaaS work should move to a Postgres-backed tenant model before workspace data lands:
 
 - Better Auth tables: `user`, `session`, `account`, `verification`
 - app tables: `projects`, `tasks`
