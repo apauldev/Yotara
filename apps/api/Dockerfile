@@ -28,4 +28,4 @@ ENV TRUSTED_ORIGINS=http://localhost:8080
 
 EXPOSE 3000
 
-CMD ["node", "apps/api/dist/server.js"]
+CMD ["node", "/app/apps/api/dist/server.js"]
