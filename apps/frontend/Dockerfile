@@ -1,18 +1,22 @@
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 
 WORKDIR /app
 RUN corepack enable
+RUN apk add --no-cache python3 build-base
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tsconfig.base.json tsconfig.base.json
+COPY apps/api/package.json apps/api/package.json
 COPY apps/frontend/package.json apps/frontend/package.json
 COPY packages/shared/package.json packages/shared/package.json
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
+COPY scripts scripts
 COPY packages/shared packages/shared
 COPY apps/frontend apps/frontend
 
+RUN pnpm version:gen
 RUN pnpm --filter @yotara/shared build
 RUN pnpm --filter @yotara/frontend build
 

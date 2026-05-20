@@ -13,7 +13,16 @@ docker_request() {
   output_file="$(mktemp)"
 
   for ((attempt = 1; attempt <= attempts; attempt++)); do
-    if docker-compose exec -T "$service" node -e "
+    if ! docker compose ps "$service" --format json | grep -q '"State":"running"'; then
+      if [[ "$attempt" -eq "$attempts" ]]; then
+        printf 'Service "%s" is not running. Logs:\n' "$service" >&2
+        docker compose logs "$service" >&2
+      fi
+      sleep "$sleep_seconds"
+      continue
+    fi
+
+    if docker compose exec -T "$service" node -e "
         const url = process.argv[1];
         fetch(url)
           .then(async (response) => {

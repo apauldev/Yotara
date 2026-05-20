@@ -1,18 +1,23 @@
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 RUN corepack enable
+RUN apk add --no-cache python3 build-base
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tsconfig.base.json tsconfig.base.json
 COPY apps/api/package.json apps/api/package.json
+COPY apps/frontend/package.json apps/frontend/package.json
 COPY packages/shared/package.json packages/shared/package.json
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN pnpm rebuild --filter @yotara/api better-sqlite3
 
+COPY scripts scripts
 COPY packages/shared packages/shared
 COPY apps/api apps/api
 
+RUN pnpm version:gen
 RUN pnpm --filter @yotara/shared build
 RUN pnpm --filter @yotara/api build
 
@@ -25,4 +30,4 @@ ENV TRUSTED_ORIGINS=http://localhost:8080
 
 EXPOSE 3000
 
-CMD ["node", "apps/api/dist/apps/api/src/server.js"]
+CMD ["node", "/app/apps/api/dist/server.js"]

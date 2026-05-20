@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import corsPlugin from './plugins/cors.js';
 import authBridgePlugin, { applyCorsHeaders } from './plugins/auth-bridge.js';
@@ -44,7 +45,8 @@ export async function startServer() {
   }
 }
 
-const isDirectExecution = process.argv[1] === fileURLToPath(import.meta.url);
+const isDirectExecution =
+  process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isDirectExecution) {
   await startServer();
 }
