@@ -15,6 +15,7 @@ COPY scripts scripts
 COPY packages/shared packages/shared
 COPY apps/frontend apps/frontend
 
+RUN pnpm version:gen
 RUN pnpm --filter @yotara/shared build
 RUN pnpm --filter @yotara/frontend build
 
