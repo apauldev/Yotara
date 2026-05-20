@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.43.10](https://github.com/apauldev/Yotara/compare/v0.43.9...v0.43.10) (2026-05-20)
+
+
+### Features
+
+* **api:** standardize app-owned SQLite timestamps as ISO strings ([29ac45f](https://github.com/apauldev/Yotara/commit/29ac45fefd304b1c1373e69435e833a013e9ee27))
+
+
+### Bug Fixes
+
+* P2 Skip no-op timestamp rewrites during DB bootstrap ([ac357ff](https://github.com/apauldev/Yotara/commit/ac357ff6baa426926d772182241627a09ec9e270))
+
 ## 0.43.9 (2026-05-18)
 
 
