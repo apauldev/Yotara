@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.43.12](https://github.com/apauldev/Yotara/compare/v0.43.11...v0.43.12) (2026-05-20)
+
+
+### Features
+
+* CI- optimize workflows and fix docker entrypoints ([038b446](https://github.com/apauldev/Yotara/commit/038b4462288f110fce6ba6a77f5dfea5509e8cd2))
+
+
+### Bug Fixes
+
+* Fixed 2 p1 codex pointed ([4af3619](https://github.com/apauldev/Yotara/commit/4af3619fd7125cac2976240403d31f139795bfd1))
+* Fixed API Entry Point, Absolute CMD Path,  Better Diagnostics ([1250481](https://github.com/apauldev/Yotara/commit/1250481068a4f457ad3a72516c2059758236c704))
+* Fixed dockerfiles, made CI workflow better ([bde8d07](https://github.com/apauldev/Yotara/commit/bde8d07cd59f98f7e3a59b2f4b677de6cb75aec1))
+* Ignored Scripts on Install, Copied Build Scripts ([a66d99a](https://github.com/apauldev/Yotara/commit/a66d99a03900f19f2d2392dcc5fa95a4ebdd1d06))
+* Migrated pnpm confid, updated dockerfiles, better rebuild ([2a2dc5e](https://github.com/apauldev/Yotara/commit/2a2dc5ee03da766b23f09b88c3695dc4b662dff5))
+* Updated both Dockerfiles to install python3, make, and g++, Added RUN pnpm rebuild better-sqlite3, Monorepo Consistency ([e644705](https://github.com/apauldev/Yotara/commit/e644705118da6d0dafe3824d34d5868ff2ee7614))
+* version file was not getting generated. Fixing it. ([ef7596e](https://github.com/apauldev/Yotara/commit/ef7596e1f960a9c350c05b84985f062ed6dc2d70))
+
 ## [0.43.11](https://github.com/apauldev/Yotara/compare/v0.43.10...v0.43.11) (2026-05-20)
 
 
