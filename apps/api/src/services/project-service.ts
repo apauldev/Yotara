@@ -3,6 +3,7 @@ import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { CreateProjectDto, UpdateProjectDto } from '@yotara/shared';
 import { db } from '../db/client.js';
 import { projects, tasks } from '../db/schema.js';
+import { nowIsoTimestamp } from '../lib/timestamps.js';
 import {
   normalizeProjectCreatePayload,
   normalizeProjectUpdatePayload,
@@ -66,7 +67,7 @@ export async function seedDefaultProjectsForOwner(ownerId: string) {
     .from(projects)
     .where(eq(projects.ownerId, ownerId));
   const existingNames = new Set(existing.map((project) => project.name.toLowerCase()));
-  const now = new Date().toISOString();
+  const now = nowIsoTimestamp();
   const missingProjects = DEFAULT_PROJECTS.filter(
     (project) => !existingNames.has(project.name.toLowerCase()),
   );
@@ -118,7 +119,7 @@ export async function getProjectForOwner(projectId: string, ownerId: string) {
 
 export async function createProjectForOwner(ownerId: string, body: CreateProjectDto) {
   const payload = normalizeProjectCreatePayload(body);
-  const now = new Date().toISOString();
+  const now = nowIsoTimestamp();
   const id = randomUUID();
 
   await db.insert(projects).values({
@@ -156,7 +157,7 @@ export async function updateProjectForOwner(
           ? (patch.description ?? null)
           : (current.description ?? null),
       color: patch.color ?? current.color ?? null,
-      updatedAt: new Date().toISOString(),
+      updatedAt: nowIsoTimestamp(),
     })
     .where(eq(projects.id, projectId));
 

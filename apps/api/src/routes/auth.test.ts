@@ -74,6 +74,15 @@ test('auth routes register and login with email/password', async () => {
     assert.equal(meAfterRegister.statusCode, 200);
     assert.equal(meAfterRegister.json().user.email, TEST_EMAIL);
     assert.equal(meAfterRegister.json().user.onboardingCompleted, false);
+    assert.equal(typeof meAfterRegister.json().user.createdAt, 'string');
+    assert.match(
+      meAfterRegister.json().user.createdAt,
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+    );
+    assert.match(
+      meAfterRegister.json().user.updatedAt,
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+    );
 
     const updateMeResponse = await ctx.app.inject({
       method: 'PATCH',
@@ -135,6 +144,7 @@ test('auth routes register and login with email/password', async () => {
     assert.equal(meAfterLogin.json().user.email, TEST_EMAIL);
     assert.equal(meAfterLogin.json().user.workspaceMode, 'personal');
     assert.equal(meAfterLogin.json().user.onboardingCompleted, true);
+    assert.equal(typeof meAfterLogin.json().user.createdAt, 'string');
 
     const NEW_PASSWORD = 'NewPassword123!';
 

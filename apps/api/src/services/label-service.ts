@@ -3,6 +3,7 @@ import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import type { CreateLabelDto, Label, UpdateLabelDto } from '@yotara/shared';
 import { db } from '../db/client.js';
 import { labels, taskLabels } from '../db/schema.js';
+import { nowIsoTimestamp } from '../lib/timestamps.js';
 
 const DEFAULT_LABELS = [
   { name: 'Urgent', color: '#d44d3c' },
@@ -39,7 +40,7 @@ export async function seedDefaultLabelsForOwner(ownerId: string) {
     return;
   }
 
-  const now = new Date().toISOString();
+  const now = nowIsoTimestamp();
   await db.insert(labels).values(
     DEFAULT_LABELS.map((label) => ({
       id: randomUUID(),
@@ -82,7 +83,7 @@ export async function getLabelForOwner(labelId: string, ownerId: string) {
 }
 
 export async function createLabelForOwner(ownerId: string, body: CreateLabelDto) {
-  const now = new Date().toISOString();
+  const now = nowIsoTimestamp();
   const id = randomUUID();
   const name = body.name.trim();
   const color = body.color?.trim() || pickLabelColor(name);
@@ -114,7 +115,7 @@ export async function updateLabelForOwner(ownerId: string, labelId: string, body
     .set({
       name,
       color,
-      updatedAt: new Date().toISOString(),
+      updatedAt: nowIsoTimestamp(),
     })
     .where(eq(labels.id, labelId));
 

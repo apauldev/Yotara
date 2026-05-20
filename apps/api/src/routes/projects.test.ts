@@ -4,6 +4,8 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { eq } from 'drizzle-orm';
+import { projects } from '../db/schema.js';
 
 async function createAuthedApp() {
   const dbFile = join(tmpdir(), `yotara-projects-test-${randomUUID()}.db`);
@@ -47,6 +49,11 @@ async function signUpAndGetCookie(email: string) {
   return cookie;
 }
 
+function assertIsoTimestamp(value: unknown) {
+  assert.equal(typeof value, 'string');
+  assert.match(String(value), /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+}
+
 test('projects routes require auth and scope project data to the current user', async () => {
   const ctx = await createAuthedApp();
 
@@ -76,6 +83,21 @@ test('projects routes require auth and scope project data to the current user', 
     assert.equal(created.taskCount, 0);
     assert.equal(created.completedTaskCount, 0);
     assert.equal(created.openTaskCount, 0);
+    assertIsoTimestamp(created.createdAt);
+    assertIsoTimestamp(created.updatedAt);
+
+    const { db } = await import('../db/client.js');
+    const [storedProject] = await db
+      .select({
+        createdAt: projects.createdAt,
+        updatedAt: projects.updatedAt,
+      })
+      .from(projects)
+      .where(eq(projects.id, created.id))
+      .limit(1);
+    assert.ok(storedProject);
+    assertIsoTimestamp(storedProject.createdAt);
+    assertIsoTimestamp(storedProject.updatedAt);
 
     const ownerList = await ctx.app.inject({
       method: 'GET',
@@ -158,6 +180,8 @@ test('projects validate payloads and support updates', async () => {
     assert.equal(updateResponse.json().name, 'Website Refresh Phase 1');
     assert.equal(updateResponse.json().description, undefined);
     assert.equal(updateResponse.json().color, 'forest');
+    assertIsoTimestamp(updateResponse.json().createdAt);
+    assertIsoTimestamp(updateResponse.json().updatedAt);
 
     const emptyNamePatchResponse = await ctx.app.inject({
       method: 'PATCH',

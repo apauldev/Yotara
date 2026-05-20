@@ -28,6 +28,15 @@ const nonEmptyTextSchema = {
   pattern: '.*\\S.*',
 } as const;
 
+const dateTimeSchema = {
+  type: 'string',
+  format: 'date-time',
+} as const;
+
+const authTimestampSchema = {
+  anyOf: [dateTimeSchema, { type: 'integer' }],
+} as const;
+
 const taskSchema = {
   $id: 'Task',
   type: 'object',
@@ -61,8 +70,8 @@ const taskSchema = {
       items: { type: 'string' },
     },
     order: { type: 'integer' },
-    createdAt: { type: 'string', format: 'date-time' },
-    updatedAt: { type: 'string', format: 'date-time' },
+    createdAt: dateTimeSchema,
+    updatedAt: dateTimeSchema,
   },
 } as const;
 
@@ -142,8 +151,8 @@ const labelSchema = {
     color: { type: 'string' },
     userId: { type: 'string' },
     taskCount: { type: 'integer', minimum: 0 },
-    createdAt: { type: 'string', format: 'date-time' },
-    updatedAt: { type: 'string', format: 'date-time' },
+    createdAt: dateTimeSchema,
+    updatedAt: dateTimeSchema,
   },
 } as const;
 
@@ -196,8 +205,41 @@ const projectSchema = {
     taskCount: { type: 'integer', minimum: 0 },
     completedTaskCount: { type: 'integer', minimum: 0 },
     openTaskCount: { type: 'integer', minimum: 0 },
-    createdAt: { type: 'string', format: 'date-time' },
-    updatedAt: { type: 'string', format: 'date-time' },
+    createdAt: dateTimeSchema,
+    updatedAt: dateTimeSchema,
+  },
+} as const;
+
+const appUserSchema = {
+  $id: 'AppUser',
+  type: 'object',
+  required: [
+    'id',
+    'email',
+    'name',
+    'image',
+    'emailVerified',
+    'workspaceMode',
+    'onboardingCompleted',
+    'archiveAutoDelete',
+    'captureBehavior',
+    'createdAt',
+    'updatedAt',
+  ],
+  properties: {
+    id: { type: 'string' },
+    email: { type: 'string', format: 'email' },
+    name: { type: 'string' },
+    image: { anyOf: [{ type: 'string', format: 'uri' }, { type: 'null' }] },
+    emailVerified: { type: 'boolean' },
+    workspaceMode: {
+      anyOf: [{ type: 'string', enum: ['personal', 'team'] }, { type: 'null' }],
+    },
+    onboardingCompleted: { type: 'boolean' },
+    archiveAutoDelete: { type: 'boolean' },
+    captureBehavior: { type: 'string', enum: ['quick', 'capture'] },
+    createdAt: dateTimeSchema,
+    updatedAt: dateTimeSchema,
   },
 } as const;
 
@@ -309,15 +351,9 @@ const sessionSchema = {
   properties: {
     id: { type: 'string' },
     userId: { type: 'string' },
-    expiresAt: {
-      anyOf: [{ type: 'string', format: 'date-time' }, { type: 'integer' }],
-    },
-    createdAt: {
-      anyOf: [{ type: 'string', format: 'date-time' }, { type: 'integer' }],
-    },
-    updatedAt: {
-      anyOf: [{ type: 'string', format: 'date-time' }, { type: 'integer' }],
-    },
+    expiresAt: authTimestampSchema,
+    createdAt: authTimestampSchema,
+    updatedAt: authTimestampSchema,
     token: { type: 'string' },
     ipAddress: { type: 'string' },
     userAgent: { type: 'string' },
@@ -329,7 +365,7 @@ const meResponseSchema = {
   type: 'object',
   required: ['user'],
   properties: {
-    user: { $ref: 'User#' },
+    user: { $ref: 'AppUser#' },
   },
 } as const;
 
@@ -436,6 +472,7 @@ const sharedSchemas = [
   updateLabelSchema,
   projectColorSchema,
   projectSchema,
+  appUserSchema,
   createProjectSchema,
   updateProjectSchema,
   projectsListResponseSchema,

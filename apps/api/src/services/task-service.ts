@@ -9,6 +9,7 @@ import type {
 } from '@yotara/shared';
 import { db } from '../db/client.js';
 import { tasks, users } from '../db/schema.js';
+import { nowIsoTimestamp } from '../lib/timestamps.js';
 import { getTaskLabels, syncTaskLabels } from './label-service.js';
 import { getDefaultProjectForOwner } from './project-service.js';
 
@@ -156,7 +157,7 @@ export async function getTaskForOwner(taskId: string, ownerId: string) {
 
 export async function createTaskForOwner(ownerId: string, body: CreateTaskDto) {
   const payload = normalizeCreatePayload(body);
-  const now = new Date().toISOString();
+  const now = nowIsoTimestamp();
   const id = randomUUID();
   const defaultProject = payload.projectId ? null : await getDefaultProjectForOwner(ownerId);
   const projectId = payload.projectId ?? defaultProject?.id ?? null;
@@ -205,9 +206,9 @@ export async function updateTaskForOwner(
     (completed && !current.completed ? !archiveAutoDelete : current.permanentArchive);
   const nextArchivedAt =
     completed && !current.completed
-      ? new Date().toISOString()
+      ? nowIsoTimestamp()
       : completed
-        ? (current.archivedAt ?? new Date().toISOString())
+        ? (current.archivedAt ?? nowIsoTimestamp())
         : null;
   const nextProjectId =
     body.projectId === null
@@ -231,7 +232,7 @@ export async function updateTaskForOwner(
       status: normalizeStatusOnCompletion(status, completed),
       archivedAt: nextArchivedAt,
       permanentArchive: completed ? nextPermanentArchive : false,
-      updatedAt: new Date().toISOString(),
+      updatedAt: nowIsoTimestamp(),
     })
     .where(eq(tasks.id, taskId));
 

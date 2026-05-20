@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import * as schema from './schema.js';
+import { nowIsoTimestamp, toIsoTimestamp } from '../lib/timestamps.js';
 
 const DEFAULT_DATABASE_URL = './data/yotara.db';
 const SQLITE_BOOTSTRAP_SQL = `
@@ -116,6 +117,108 @@ const SQLITE_BOOTSTRAP_SQL = `
   );
 `;
 
+function normalizeTextTimestamp(value: unknown, fallback: string): string {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  const raw = typeof value === 'string' ? value.trim() : value;
+  if (raw === '') {
+    return fallback;
+  }
+
+  try {
+    return toIsoTimestamp(raw as string | number | Date);
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeNullableTimestamp(value: unknown): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const raw = typeof value === 'string' ? value.trim() : value;
+  if (raw === '') {
+    return null;
+  }
+
+  try {
+    return toIsoTimestamp(raw as string | number | Date);
+  } catch {
+    return null;
+  }
+}
+
+function normalizeAppTimestampStorage(sqlite: Database.Database): void {
+  const fallbackNow = nowIsoTimestamp();
+
+  const projectRows = sqlite
+    .prepare(`SELECT id, created_at, updated_at FROM projects`)
+    .all() as Array<{ id: string; created_at: unknown; updated_at: unknown }>;
+  const updateProject = sqlite.prepare(
+    `UPDATE projects SET created_at = ?, updated_at = ? WHERE id = ?`,
+  );
+  for (const row of projectRows) {
+    updateProject.run(
+      normalizeTextTimestamp(row.created_at, fallbackNow),
+      normalizeTextTimestamp(row.updated_at, fallbackNow),
+      row.id,
+    );
+  }
+
+  const taskRows = sqlite
+    .prepare(`SELECT id, created_at, updated_at, archived_at, deleted_at, completed FROM tasks`)
+    .all() as Array<{
+    id: string;
+    created_at: unknown;
+    updated_at: unknown;
+    archived_at: unknown;
+    deleted_at: unknown;
+    completed: number;
+  }>;
+  const updateTask = sqlite.prepare(
+    `UPDATE tasks SET created_at = ?, updated_at = ?, archived_at = ?, deleted_at = ? WHERE id = ?`,
+  );
+  for (const row of taskRows) {
+    const updatedAt = normalizeTextTimestamp(row.updated_at, fallbackNow);
+    updateTask.run(
+      normalizeTextTimestamp(row.created_at, fallbackNow),
+      updatedAt,
+      row.archived_at === null ||
+        row.archived_at === undefined ||
+        String(row.archived_at).trim() === ''
+        ? row.completed === 1
+          ? updatedAt
+          : null
+        : normalizeNullableTimestamp(row.archived_at),
+      normalizeNullableTimestamp(row.deleted_at),
+      row.id,
+    );
+  }
+
+  const labelRows = sqlite.prepare(`SELECT id, created_at, updated_at FROM labels`).all() as Array<{
+    id: string;
+    created_at: unknown;
+    updated_at: unknown;
+  }>;
+  const updateLabel = sqlite.prepare(
+    `UPDATE labels SET created_at = ?, updated_at = ? WHERE id = ?`,
+  );
+  for (const row of labelRows) {
+    const createdAt = normalizeNullableTimestamp(row.created_at);
+    const updatedAt = normalizeNullableTimestamp(row.updated_at);
+    const fallbackLabelNow = fallbackNow;
+
+    updateLabel.run(
+      createdAt ?? updatedAt ?? fallbackLabelNow,
+      updatedAt ?? createdAt ?? fallbackLabelNow,
+      row.id,
+    );
+  }
+}
+
 function resolveDbPath(databaseUrl: string): string {
   if (databaseUrl === ':memory:') {
     return databaseUrl;
@@ -223,6 +326,8 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
       FOREIGN KEY (label_id) REFERENCES labels(id) ON DELETE CASCADE
     )`);
   }
+
+  normalizeAppTimestampStorage(sqlite);
 }
 
 export function createDbClient(databaseUrl = process.env['DATABASE_URL'] ?? DEFAULT_DATABASE_URL) {
