@@ -2,6 +2,7 @@ FROM node:22-alpine
 
 WORKDIR /app
 RUN corepack enable
+RUN apk add --no-cache python3 make g++
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tsconfig.base.json tsconfig.base.json
@@ -10,6 +11,7 @@ COPY apps/frontend/package.json apps/frontend/package.json
 COPY packages/shared/package.json packages/shared/package.json
 
 RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN pnpm rebuild better-sqlite3
 
 COPY scripts scripts
 COPY packages/shared packages/shared
