@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.43.11](https://github.com/apauldev/Yotara/compare/v0.43.10...v0.43.11) (2026-05-20)
+
+
+### Miscellaneous
+
+* Adding more thoughts before teammode starts ([4470c75](https://github.com/apauldev/Yotara/commit/4470c7573dce8ca6d60afd176a86172764a51daa))
+
 ## [0.43.10](https://github.com/apauldev/Yotara/compare/v0.43.9...v0.43.10) (2026-05-20)
 
 
