@@ -6,6 +6,7 @@ import { faBoxArchive, faRotateLeft, faTrash } from '@fortawesome/free-solid-svg
 import { LabelService } from '../../../core/services/label.service';
 import { TaskService } from '../../../core/services/task.service';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
+import { parseCalendarDate } from '../../../shared/utils/timestamps';
 
 @Component({
   selector: 'app-personal-task-card',
@@ -460,9 +461,9 @@ export class PersonalTaskCardComponent {
   }
 
   protected dateLabel() {
-    const parsed = new Date(this.task.dueDate ?? '');
+    const parsed = parseCalendarDate(this.task.dueDate);
 
-    if (Number.isNaN(parsed.getTime())) {
+    if (!parsed) {
       return '';
     }
 

@@ -140,6 +140,10 @@ test('openapi spec includes representative response contracts and examples', asy
         .onboardingCompleted,
       false,
     );
+    assert.match(
+      spec.paths['/me'].get.responses['200'].content['application/json'].example.user.createdAt,
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+    );
     assert.ok(spec.paths['/tasks'].get.responses['200'].content['application/json'].schema);
     assert.equal(
       spec.paths['/auth/sign-in/email'].post.responses['401'].content['application/json'].example

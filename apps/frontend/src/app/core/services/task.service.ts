@@ -16,6 +16,7 @@ import { environment } from '../../../environments/environment';
 import { AuthStateService } from './auth-state.service';
 import { LabelService } from './label.service';
 import { ProjectService } from './project.service';
+import { parseCalendarDate } from '../../shared/utils/timestamps';
 
 export type UpcomingBucket = 'This Week' | 'Next Week' | 'Later';
 
@@ -256,23 +257,7 @@ export class TaskService {
 }
 
 function toCalendarDate(value?: string | null) {
-  if (!value) {
-    return null;
-  }
-
-  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (dateOnlyMatch) {
-    const [, year, month, day] = dateOnlyMatch;
-    return new Date(Number(year), Number(month) - 1, Number(day));
-  }
-
-  const parsed = new Date(value);
-
-  if (Number.isNaN(parsed.getTime())) {
-    return null;
-  }
-
-  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+  return parseCalendarDate(value);
 }
 
 function startOfToday() {

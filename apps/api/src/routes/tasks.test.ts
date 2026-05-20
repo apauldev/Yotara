@@ -55,6 +55,11 @@ function daysAgoIso(days: number) {
   return date.toISOString();
 }
 
+function assertIsoTimestamp(value: unknown) {
+  assert.equal(typeof value, 'string');
+  assert.match(String(value), /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+}
+
 test('tasks routes require auth and scope data to the current user', async () => {
   const ctx = await createAuthedApp();
 
@@ -86,6 +91,22 @@ test('tasks routes require auth and scope data to the current user', async () =>
     assert.ok(created.projectId);
     assert.equal(created.simpleMode, true);
     assert.equal(created.dueDate, undefined);
+    assertIsoTimestamp(created.createdAt);
+    assertIsoTimestamp(created.updatedAt);
+
+    const { db } = await import('../db/client.js');
+    const [storedTask] = await db
+      .select({
+        createdAt: tasks.createdAt,
+        updatedAt: tasks.updatedAt,
+        archivedAt: tasks.archivedAt,
+      })
+      .from(tasks)
+      .where(eq(tasks.id, created.id))
+      .limit(1);
+    assert.ok(storedTask);
+    assertIsoTimestamp(storedTask.createdAt);
+    assertIsoTimestamp(storedTask.updatedAt);
 
     const blankTitleResponse = await ctx.app.inject({
       method: 'POST',
@@ -266,10 +287,10 @@ test('tasks pagination validates query bounds and deleted tasks cannot be update
 
 test('temporary archived tasks are cleaned up in the database while permanent archives stay', async () => {
   const ctx = await createAuthedApp();
-  const { db } = await import('../db/client.js');
 
   try {
     const userCookie = await signUpAndGetCookie(`archive-${randomUUID()}@example.com`);
+    const { db } = await import('../db/client.js');
 
     const disableCleanupResponse = await ctx.app.inject({
       method: 'PATCH',
@@ -306,6 +327,22 @@ test('temporary archived tasks are cleaned up in the database while permanent ar
     });
     assert.equal(completeTemporary.statusCode, 200);
     assert.equal(completeTemporary.json().permanentArchive, false);
+    assertIsoTimestamp(completeTemporary.json().createdAt);
+    assertIsoTimestamp(completeTemporary.json().updatedAt);
+
+    const storedTemporary = await db
+      .select({
+        createdAt: tasks.createdAt,
+        updatedAt: tasks.updatedAt,
+        archivedAt: tasks.archivedAt,
+      })
+      .from(tasks)
+      .where(eq(tasks.id, temporaryTask.id))
+      .limit(1);
+    assert.equal(storedTemporary.length, 1);
+    assertIsoTimestamp(storedTemporary[0].createdAt);
+    assertIsoTimestamp(storedTemporary[0].updatedAt);
+    assertIsoTimestamp(storedTemporary[0].archivedAt);
 
     await db
       .update(tasks)

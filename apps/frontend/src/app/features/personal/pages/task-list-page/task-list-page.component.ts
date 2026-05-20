@@ -23,6 +23,7 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faPlus, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { ElementRef } from '@angular/core';
 import { parseTaskCommand } from '../../utils/task-command-parser';
+import { parseCalendarDate } from '../../../../shared/utils/timestamps';
 
 export type TaskListViewMode = 'inbox' | 'today' | 'upcoming' | 'search';
 export type TaskSortOption = 'date' | 'alpha';
@@ -221,8 +222,10 @@ export class TaskListPageComponent implements OnInit {
       }
 
       // Default: date (newest created for inbox, or by dueDate)
-      const dateA = new Date(taskA.dueDate || taskA.createdAt).getTime();
-      const dateB = new Date(taskB.dueDate || taskB.createdAt).getTime();
+      const dateA =
+        parseCalendarDate(taskA.dueDate)?.getTime() ?? new Date(taskA.createdAt).getTime();
+      const dateB =
+        parseCalendarDate(taskB.dueDate)?.getTime() ?? new Date(taskB.createdAt).getTime();
       return dateB - dateA;
     });
 

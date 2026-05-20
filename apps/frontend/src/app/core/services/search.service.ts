@@ -3,6 +3,7 @@ import type { Label, Project, Task } from '@yotara/shared';
 import { LabelService } from './label.service';
 import { ProjectService } from './project.service';
 import { TaskService } from './task.service';
+import { parseCalendarDate } from '../../shared/utils/timestamps';
 
 export type SearchTab = 'all' | 'tasks' | 'projects' | 'labels';
 
@@ -395,16 +396,7 @@ function formatDueDate(value?: string | null) {
 }
 
 function toCalendarDate(value?: string | null) {
-  if (!value) {
-    return null;
-  }
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return null;
-  }
-
-  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+  return parseCalendarDate(value);
 }
 
 function startOfToday() {

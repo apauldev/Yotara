@@ -26,6 +26,7 @@ import {
 } from '@spartan-ng/brain/calendar';
 import { provideNativeDateAdapter } from '@spartan-ng/brain/date-time';
 import { BrnPopover, BrnPopoverImports } from '@spartan-ng/brain/popover';
+import { parseCalendarDate } from '../../utils/timestamps';
 
 @Component({
   selector: 'app-date-picker',
@@ -374,28 +375,6 @@ export class DatePickerComponent implements OnChanges {
     this.valueChange.emit('');
     this.popover()?.close();
   }
-}
-
-function parseCalendarDate(value?: string | null) {
-  if (!value) {
-    return null;
-  }
-
-  // Handle YYYY-MM-DD
-  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (dateOnlyMatch) {
-    const [, year, month, day] = dateOnlyMatch;
-    // Use local date constructor to avoid timezone shifts
-    return new Date(Number(year), Number(month) - 1, Number(day));
-  }
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return null;
-  }
-
-  // If it's a full ISO string, we want the local date representation of that moment
-  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
 }
 
 function startOfDay(date: Date) {

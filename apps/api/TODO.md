@@ -28,9 +28,9 @@
   - [x] Ensure route schemas and normalization logic agree on required vs optional fields
   - [x] Prefer schema-driven validation over manual `if (!payload.title)` style checks where possible
 
-- [ ] Revisit timestamp storage consistency in SQLite:
-  - [ ] Standardize whether each table stores timestamps as ISO strings or epoch values
-  - [ ] Make schema and serialization choices consistent across `users`, `sessions`, `projects`, and `tasks`
+- [x] Revisit timestamp storage consistency in SQLite:
+  - [x] Standardize whether each table stores timestamps as ISO strings or epoch values
+  - [x] Make schema and serialization choices consistent across `users`, `sessions`, `projects`, and `tasks`
 
 ## Query and Data Access
 
