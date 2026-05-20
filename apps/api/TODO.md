@@ -65,6 +65,14 @@
   - [ ] Request size limits where appropriate
   - [ ] Better request/response logging for auth and write endpoints
 
+## CI and Security Hardening
+
+- [ ] Add coverage reporting to CI pipeline with minimum threshold gates.
+- [ ] Enable Dependabot for automated dependency updates.
+- [ ] Add CodeQL security scanning workflow.
+- [ ] Add Snyk or alternative vulnerability scanning.
+- [ ] Publish Docker images to GHCR or Docker Hub on release tags.
+
 ## Error Handling and Observability
 
 - [ ] Replace scattered ad hoc error handling with a centralized Fastify error strategy:

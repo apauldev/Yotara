@@ -74,11 +74,14 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 
 | # | Task | Status | Effort | Notes |
 |---|------|--------|--------|-------|
-| 22 | Pre-built Docker images pushed on tag | ⬜ Not started | Medium | Dockerfiles exist; no GitHub Actions workflow or Docker Hub release path. |
-| 23 | Docker Compose with pre-built images | 🟡 Partial | Low | Local build-based Compose is ✅ done, but pre-built image Compose is not. |
-| 24 | Render.com template (`render.yaml`) | ⬜ Not started | Medium | Not present. |
-| 25 | Railway.app template (`railway.toml`) | ⬜ Not started | Medium | Not present. |
-| 26 | Live demo instance and README link | ⬜ Not started | Medium | Not present. |
+| 22 | Pre-built Docker images pushed to GHCR or Docker Hub on release | ⬜ Not started | Medium | Dockerfiles exist; add GitHub Actions workflow to build and push multi-platform images on tag. |
+| 23 | Coverage reporting with threshold gates | ⬜ Not started | Low | Integrate c8/istanbul coverage collection; upload to Codecov; enforce minimum coverage in CI. |
+| 24 | Dependabot / Renovate for automated dependency updates | ⬜ Not started | Low | Enable Dependabot on GitHub; group minor/patch updates; review monthly. |
+| 25 | Security scanning (CodeQL + Snyk) | ⬜ Not started | Low | Add CodeQL analysis workflow; enable Dependabot security alerts; review weekly. |
+| 26 | Docker Compose with pre-built images | 🟡 Partial | Low | Local build-based Compose is ✅ done, but pre-built image Compose is not. |
+| 27 | Render.com template (`render.yaml`) | ⬜ Not started | Medium | Not present. |
+| 28 | Railway.app template (`railway.toml`) | ⬜ Not started | Medium | Not present. |
+| 29 | Live demo instance and README link | ⬜ Not started | Medium | Not present. |
 
 **P3 target:** 2–3 weeks. Can run in parallel with P2 once image publishing is stable.
 
@@ -86,12 +89,12 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 
 | # | Task | Status | Effort | Notes |
 |---|------|--------|--------|-------|
-| 27 | Kanban board with custom project statuses | ⬜ Not started | Medium | Keep post-v1 unless early users demand it. |
-| 28 | PWA installability | ⬜ Not started | Medium | No manifest/service worker yet. |
-| 29 | Localization groundwork: English + Spanish | ⬜ Not started | Medium | Current UI strings are component-local. |
-| 30 | Notification center | ⬜ Not started | Medium | Depends on notification event model. |
-| 31 | Activity log | ⬜ Not started | Low | Can share event model with comments/notifications. |
-| 32 | Cross-mode search | ⬜ Not started | Medium | Depends on team-mode data model. |
+| 30 | Kanban board with custom project statuses | ⬜ Not started | Medium | Keep post-v1 unless early users demand it. |
+| 31 | PWA installability | ⬜ Not started | Medium | No manifest/service worker yet. |
+| 32 | Localization groundwork: English + Spanish | ⬜ Not started | Medium | Current UI strings are component-local. |
+| 33 | Notification center | ⬜ Not started | Medium | Depends on notification event model. |
+| 34 | Activity log | ⬜ Not started | Low | Can share event model with comments/notifications. |
+| 35 | Cross-mode search | ⬜ Not started | Medium | Depends on team-mode data model. |
 
 ### Recommended Sprint Order
 
@@ -100,7 +103,7 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 | 1–2 | P0 Personal polish | Archive clarification, confirmation modals, canonical search route, skeletons, empty states, 404, validation polish |
 | 3–5 | P1 Personal features | Subtasks, recurring tasks, markdown preview, browser notifications, export |
 | 6–13 | P2 Team Mode | Workspaces, assignment, comments, Team Board, real-time updates in the final stretch |
-| 14–16 | P3 Deployment | Docker images, Compose with pulled images, one-click templates, live demo |
+| 14–16 | P3 Deployment & CI hardening | Docker images pushed to GHCR/Docker Hub, Compose with pulled images, coverage gates, Dependabot, security scanning, one-click templates, live demo |
 
 After week 16, Yotara should be ready for both self-hosted and SaaS v1.0. Use P4 for feedback-driven follow-up work.
 
@@ -498,7 +501,10 @@ These features should be built as personal-mode improvements first, but they sho
 - ⬜ Postgres migration plan for team-mode tenancy and concurrency
 - 🟡 Empty state and async-state primitives
 - 🟡 Search/filter infrastructure that can grow into team scope
-- ⬜ GitHub Actions CI for Docker image builds and pushes
+- ⬜ Coverage reporting with minimum threshold gates
+- ⬜ Dependabot automated dependency updates
+- ⬜ Security scanning (CodeQL + Snyk)
+- ⬜ GitHub Actions CI for Docker image builds and pushes to GHCR/Docker Hub
 - ⬜ Pre-built image Compose path and platform-specific environment docs
 - ⬜ Notification delivery pipeline with push subscriptions
 - ⬜ Localization-ready text and formatting layers
@@ -541,7 +547,10 @@ These features should be built as personal-mode improvements first, but they sho
 - Team workspace membership and assignment features
 - 404 page
 - Task loading skeletons
-- Pre-built Docker images (Phase 6)
+- Coverage reporting and threshold gates
+- Dependabot automated dependency updates
+- Security scanning (CodeQL + Snyk)
+- Pre-built Docker images on GHCR/Docker Hub (Phase 6)
 - Compose file that pulls pre-built images
 - One-click cloud deploy templates (Phase 6)
 - Workspace-level notifications and comments/activity log
