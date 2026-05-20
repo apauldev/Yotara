@@ -4,10 +4,8 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "./dist",
+    "rootDir": "src",
     "baseUrl": ".",
-    "paths": {
-      "@yotara/shared": ["../../packages/shared/src/index.ts"]
-    },
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
