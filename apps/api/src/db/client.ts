@@ -161,11 +161,14 @@ function normalizeAppTimestampStorage(sqlite: Database.Database): void {
     `UPDATE projects SET created_at = ?, updated_at = ? WHERE id = ?`,
   );
   for (const row of projectRows) {
-    updateProject.run(
-      normalizeTextTimestamp(row.created_at, fallbackNow),
-      normalizeTextTimestamp(row.updated_at, fallbackNow),
-      row.id,
-    );
+    const createdAt = normalizeTextTimestamp(row.created_at, fallbackNow);
+    const updatedAt = normalizeTextTimestamp(row.updated_at, fallbackNow);
+
+    if (row.created_at === createdAt && row.updated_at === updatedAt) {
+      continue;
+    }
+
+    updateProject.run(createdAt, updatedAt, row.id);
   }
 
   const taskRows = sqlite
@@ -183,19 +186,27 @@ function normalizeAppTimestampStorage(sqlite: Database.Database): void {
   );
   for (const row of taskRows) {
     const updatedAt = normalizeTextTimestamp(row.updated_at, fallbackNow);
-    updateTask.run(
-      normalizeTextTimestamp(row.created_at, fallbackNow),
-      updatedAt,
+    const createdAt = normalizeTextTimestamp(row.created_at, fallbackNow);
+    const archivedAt =
       row.archived_at === null ||
-        row.archived_at === undefined ||
-        String(row.archived_at).trim() === ''
+      row.archived_at === undefined ||
+      String(row.archived_at).trim() === ''
         ? row.completed === 1
           ? updatedAt
           : null
-        : normalizeNullableTimestamp(row.archived_at),
-      normalizeNullableTimestamp(row.deleted_at),
-      row.id,
-    );
+        : normalizeNullableTimestamp(row.archived_at);
+    const deletedAt = normalizeNullableTimestamp(row.deleted_at);
+
+    if (
+      row.created_at === createdAt &&
+      row.updated_at === updatedAt &&
+      row.archived_at === archivedAt &&
+      row.deleted_at === deletedAt
+    ) {
+      continue;
+    }
+
+    updateTask.run(createdAt, updatedAt, archivedAt, deletedAt, row.id);
   }
 
   const labelRows = sqlite.prepare(`SELECT id, created_at, updated_at FROM labels`).all() as Array<{
@@ -209,13 +220,14 @@ function normalizeAppTimestampStorage(sqlite: Database.Database): void {
   for (const row of labelRows) {
     const createdAt = normalizeNullableTimestamp(row.created_at);
     const updatedAt = normalizeNullableTimestamp(row.updated_at);
-    const fallbackLabelNow = fallbackNow;
+    const nextCreatedAt = createdAt ?? updatedAt ?? fallbackNow;
+    const nextUpdatedAt = updatedAt ?? createdAt ?? fallbackNow;
 
-    updateLabel.run(
-      createdAt ?? updatedAt ?? fallbackLabelNow,
-      updatedAt ?? createdAt ?? fallbackLabelNow,
-      row.id,
-    );
+    if (row.created_at === nextCreatedAt && row.updated_at === nextUpdatedAt) {
+      continue;
+    }
+
+    updateLabel.run(nextCreatedAt, nextUpdatedAt, row.id);
   }
 }
 
