@@ -21,7 +21,7 @@ The API container stores SQLite data in a named volume so data survives restarts
 - Docker
 - Docker Compose
 
-I tested the stack locally with `docker-compose` plus Colima on macOS.
+I tested the stack locally with `docker compose` plus Colima on macOS.
 
 ## Start
 
@@ -42,7 +42,7 @@ pnpm smoke:docker
 If you prefer the raw Compose command:
 
 ```bash
-docker-compose up --build -d
+docker compose up --build -d
 ```
 
 ## Stop
@@ -54,7 +54,7 @@ pnpm docker:down
 Or:
 
 ```bash
-docker-compose down
+docker compose down
 ```
 
 ## What I Verified

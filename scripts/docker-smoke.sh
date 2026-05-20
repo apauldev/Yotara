@@ -13,7 +13,7 @@ docker_request() {
   output_file="$(mktemp)"
 
   for ((attempt = 1; attempt <= attempts; attempt++)); do
-    if docker-compose exec -T "$service" node -e "
+    if docker compose exec -T "$service" node -e "
         const url = process.argv[1];
         fetch(url)
           .then(async (response) => {

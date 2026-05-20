@@ -7,4 +7,7 @@ apps/api/data/*.db-*
 apps/api/.env
 apps/frontend/src/app/core/constants/version.ts
 packages/shared/tsconfig.tsbuildinfo
+packages/shared/src/*.js
+packages/shared/src/*.d.ts
+packages/shared/src/*.js.map
 .DS_Store

@@ -28,8 +28,8 @@
     "contributors:add": "all-contributors add",
     "contributors:generate": "all-contributors generate",
     "contributors:check": "all-contributors check",
-    "docker:up": "docker-compose up --build -d",
-    "docker:down": "docker-compose down",
+    "docker:up": "docker compose up --build -d",
+    "docker:down": "docker compose down",
     "smoke:docker": "bash scripts/docker-smoke.sh"
   },
   "pnpm": {
