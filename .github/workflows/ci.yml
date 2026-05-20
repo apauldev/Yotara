@@ -85,6 +85,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Create docker-compose.ci.yml
+        run: |
+          cat <<EOF > docker-compose.ci.yml
+          services:
+            api:
+              image: yotara-api:latest
+              build: !reset
+            frontend:
+              image: yotara-frontend:latest
+              build: !reset
+          EOF
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -114,17 +126,6 @@ jobs:
       # However, docker-compose.yml has 'build' sections.
       # If we run 'docker-compose up -d', it might try to rebuild.
       # We can create a temporary override to point to the images we just built.
-      - name: Create docker-compose.ci.yml
-        run: |
-          cat <<EOF > docker-compose.ci.yml
-          services:
-            api:
-              image: yotara-api:latest
-              build: !reset
-            frontend:
-              image: yotara-frontend:latest
-              build: !reset
-          EOF
 
       - name: Install pnpm (for smoke test scripts)
         uses: pnpm/action-setup@v4
@@ -148,4 +149,9 @@ jobs:
 
       - name: Logs on failure
         if: failure()
-        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml logs
+        run: |
+          if [ -f docker-compose.ci.yml ]; then
+            docker compose -f docker-compose.yml -f docker-compose.ci.yml logs
+          else
+            docker compose -f docker-compose.yml logs
+          fi
