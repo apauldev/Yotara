@@ -9,8 +9,9 @@ COPY apps/api/package.json apps/api/package.json
 COPY apps/frontend/package.json apps/frontend/package.json
 COPY packages/shared/package.json packages/shared/package.json
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
+COPY scripts scripts
 COPY packages/shared packages/shared
 COPY apps/api apps/api
 
