@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.43.14](https://github.com/apauldev/Yotara/compare/v0.43.13...v0.43.14) (2026-05-21)
+
+
+### Refactoring
+
+* add back navigation support to PageHeaderComponent ([2527657](https://github.com/apauldev/Yotara/commit/2527657900d05e17ea67ce667f998545d1d22b1c))
+
 ## [0.43.13](https://github.com/apauldev/Yotara/compare/v0.43.12...v0.43.13) (2026-05-21)
 
 
