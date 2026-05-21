@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.43.15](https://github.com/apauldev/Yotara/compare/v0.43.14...v0.43.15) (2026-05-21)
+
+
+### Features
+
+* (frontend) implement generic EmptyStateComponent ([2ede374](https://github.com/apauldev/Yotara/commit/2ede3743c66335f175eb45154005ea3d0f30e599))
+
 ## [0.43.14](https://github.com/apauldev/Yotara/compare/v0.43.13...v0.43.14) (2026-05-21)
 
 
