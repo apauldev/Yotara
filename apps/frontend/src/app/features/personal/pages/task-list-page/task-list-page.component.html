@@ -185,10 +185,11 @@
             } @else if (taskService.error()) {
               <p class="status-copy">{{ taskService.error() }}</p>
             } @else if (taskService.inboxTasks().length === 0) {
-              <div class="empty-state">
-                <h3>Clear skies</h3>
-                <p>Your inbox is empty. Capture the next idea or task above to keep moving.</p>
-              </div>
+              <app-empty-state
+                title="Clear skies"
+                description="Your inbox is empty. Capture the next idea or task above to keep moving."
+                [icon]="faCloud"
+              />
             } @else {
               <div class="task-stack">
                 @for (task of processedInboxTasks(); track task.id) {
@@ -285,10 +286,11 @@
               taskService.todayCompletedTasks().length === 0 &&
               taskService.overdueTasks().length === 0
             ) {
-              <div class="empty-state">
-                <h3>You are clear for today</h3>
-                <p>Nothing urgent is waiting. Capture a new task or plan the next focus block.</p>
-              </div>
+              <app-empty-state
+                title="You are clear for today"
+                description="Nothing urgent is waiting. Capture a new task or plan the next focus block."
+                [icon]="faSun"
+              />
             } @else {
               <div class="task-stack">
                 @for (task of processedTodayTasks(); track task.id) {
@@ -378,10 +380,11 @@
             } @else if (taskService.error()) {
               <p class="status-copy">{{ taskService.error() }}</p>
             } @else if (taskService.upcomingTasks().length === 0) {
-              <div class="empty-state">
-                <h2>Nothing is crowding the horizon</h2>
-                <p>Upcoming work will appear here once tasks are scheduled ahead.</p>
-              </div>
+              <app-empty-state
+                title="Nothing is crowding the horizon"
+                description="Upcoming work will appear here once tasks are scheduled ahead."
+                [icon]="faCalendarDay"
+              />
             } @else {
               <div class="group-stack">
                 @for (group of processedUpcomingGroups(); track group.label) {
@@ -459,18 +462,17 @@
 
           <div aria-live="polite">
             @if (!searchQuery()) {
-              <section class="empty-state">
-                <h2>Start with a title, project, or keyword</h2>
-                <p>
-                  Search looks through task titles, descriptions, project names, and status keywords
-                  like inbox, today, upcoming, done, and archived.
-                </p>
-              </section>
+              <app-empty-state
+                title="Start with a title, project, or keyword"
+                description="Search looks through task titles, descriptions, project names, and status keywords like inbox, today, upcoming, done, and archived."
+                [icon]="faMagnifyingGlass"
+              />
             } @else if (resultCount() === 0) {
-              <section class="empty-state">
-                <h2>No matches found</h2>
-                <p>Try a different phrase, project name, or status keyword.</p>
-              </section>
+              <app-empty-state
+                title="No matches found"
+                description="Try a different phrase, project name, or status keyword."
+                [icon]="faMagnifyingGlass"
+              />
             } @else {
               @if (activeTab() === 'all') {
                 @if (taskResults().length > 0) {

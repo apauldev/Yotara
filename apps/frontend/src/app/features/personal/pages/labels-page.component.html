@@ -92,24 +92,17 @@
 
           <div class="task-pane-content">
             @if (!selectedLabel()) {
-              <div class="task-empty">
-                <div class="empty-icon-shell">
-                  <fa-icon [icon]="faTag"></fa-icon>
-                </div>
-                <h3>Master your focus</h3>
-                <p>
-                  Select a label to filter your workspace and concentrate on a specific category of
-                  work.
-                </p>
-              </div>
+              <app-empty-state
+                title="Master your focus"
+                description="Select a label to filter your workspace and concentrate on a specific category of work."
+                [icon]="faTag"
+              />
             } @else if (filteredTasks().length === 0) {
-              <div class="task-empty">
-                <div class="empty-icon-shell">
-                  <fa-icon [icon]="faInbox"></fa-icon>
-                </div>
-                <h3>Clear Focus</h3>
-                <p>There are no active tasks for this label. You're all caught up here!</p>
-              </div>
+              <app-empty-state
+                title="Clear Focus"
+                description="There are no active tasks for this label. You're all caught up here!"
+                [icon]="faInbox"
+              />
             } @else {
               <div class="task-stack">
                 @for (task of filteredTasks(); track task.id) {

@@ -5,6 +5,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import type { CreateProjectDto, Project, Task } from '@yotara/shared';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { faFolderOpen, faTriangleExclamation, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { ProjectService } from '../../../core/services/project.service';
 import { TaskService } from '../../../core/services/task.service';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
@@ -12,6 +13,7 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
 import { PersonalProjectModalComponent } from '../components/personal-project-modal.component';
 import { SectionHeaderComponent } from '../../../shared/components/section-header/section-header.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { projectPaletteFor, projectProgressPercent } from '../project-presentation';
 
 type ProjectLoadState = 'loading' | 'ready' | 'not-found' | 'error';
@@ -28,11 +30,15 @@ type ProjectLoadState = 'loading' | 'ready' | 'not-found' | 'error';
     PersonalTaskWorkspaceComponent,
     SectionHeaderComponent,
     PageHeaderComponent,
+    EmptyStateComponent,
   ],
   templateUrl: './project-detail-page.component.html',
   styleUrl: './project-detail-page.component.scss',
 })
 export class ProjectDetailPageComponent {
+  protected readonly faFolderOpen = faFolderOpen;
+  protected readonly faTriangleExclamation = faTriangleExclamation;
+  protected readonly faXmark = faXmark;
   protected readonly projectService = inject(ProjectService);
   private readonly taskService = inject(TaskService);
   private readonly route = inject(ActivatedRoute);

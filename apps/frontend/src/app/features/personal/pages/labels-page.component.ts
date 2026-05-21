@@ -10,6 +10,7 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
 import { PersonalTaskWorkspaceComponent } from '../components/personal-task-workspace.component';
 import { LabelModalComponent } from '../components/label-modal.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faEdit, faTag, faInbox } from '@fortawesome/free-solid-svg-icons';
@@ -24,6 +25,7 @@ import { faEdit, faTag, faInbox } from '@fortawesome/free-solid-svg-icons';
     PersonalTaskWorkspaceComponent,
     LabelModalComponent,
     FontAwesomeModule,
+    EmptyStateComponent,
   ],
   templateUrl: './labels-page.component.html',
   styleUrl: './labels-page.component.scss',
