@@ -173,21 +173,24 @@ Use the [PR template](./.github/pull_request_template.md) (it will auto-populate
 
 ## Conventional Commits
 
-We follow [Conventional Commits](https://www.conventionalcommits.org/) for clear history:
+We follow [Conventional Commits](https://www.conventionalcommits.org/) for clear history and automated versioning. **This is enforced via `commitlint` hooks.**
 
-- `feat:` — new feature
-- `fix:` — bug fix
-- `docs:` — documentation
-- `test:` — test coverage
-- `refactor:` — code improvements (no functional change)
-- `chore:` — dependency updates, tooling, etc.
+- `feat:` — new feature (Minor bump)
+- `fix:` — bug fix (Patch bump)
+- `docs:` — documentation (Patch bump)
+- `test:` — test coverage (Patch bump)
+- `refactor:` — code improvements (Patch bump)
+- `chore:` — maintenance (Patch bump)
+- `feat!:` or `fix!:` — **Breaking Change** (Major bump)
 
 Example:
+```bash
+git commit -m "feat(tasks): add priority levels to task detail modal"
+git commit -m "fix(auth): redirect to onboarding after signup"
+git commit -m "feat!: migration to a new core engine" # Breaking change!
 ```
-feat(tasks): add priority levels to task detail modal
-fix(auth): redirect to onboarding after signup
-test(api): improve task service integration tests
-```
+
+If your commit message doesn't follow this format, the commit will be rejected by our Git hooks.
 
 ---
 

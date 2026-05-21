@@ -192,16 +192,29 @@ Thanks go to these wonderful people ([emoji key](https://allcontributors.org/doc
 
 ---
 
-## 🏷️ Versioning Policy
+## 🏷️ Versioning & Release Policy
 
-Yotara follows a **Semantic Versioning (SemVer)** strategy combined with Git build metadata.
+Yotara uses **Semantic Versioning (SemVer)** powered by **Conventional Commits** and automated release workflows.
 
-- **Format:** `v[Major].[Minor].[Patch]+[ShortSHA]`
-- **Bumping Rules (Main Branch):**
-  - **Minor (`+0.1.0`):** Triggered by `feat:` commits/merges.
-  - **Patch (`+0.0.1`):** Triggered by `fix:`, `docs:`, `chore:`, `refactor:`, or `misc:` commits/merges.
-  - **Major (`+1.0.0`):** Reserved for public stable releases.
-- **Automation:** Versioning is automatically injected into the UI during the build process, ensuring that the footer and settings menu always reflect the exact build state.
+### 📝 Commit Standards
+To keep our versioning "no-bother" and automated, we enforce the [Conventional Commits](https://www.conventionalcommits.org/) specification via `commitlint`. Every commit must be prefixed with a type:
+
+- `feat:` – New features (auto-bumps **Minor**)
+- `fix:` – Bug fixes (auto-bumps **Patch**)
+- `feat!:` or `fix!:` – **Breaking Changes** (auto-bumps **Major** or Minor in 0.x)
+- `docs:`, `chore:`, `refactor:`, `test:` – Maintenance (auto-bumps **Patch**)
+
+### 🚀 Automated Releases
+Our CI/CD pipeline automatically handles the release process when code is merged into `main`:
+1.  **Version Bump**: Calculated automatically based on the commit history.
+2.  **Changelog**: Generated automatically from commit messages.
+3.  **Tags & GitHub Release**: Created and pushed with build artifacts.
+
+### 🛠️ Manual Release Commands
+If you need to manually trigger or override a version bump:
+- `pnpm release` – Standard automated bump based on commits.
+- `pnpm release:major` – Force a jump to the next major version (e.g., `1.0.0`).
+- `pnpm release:minor` / `pnpm release:patch` – Explicit overrides.
 
 ---
 
