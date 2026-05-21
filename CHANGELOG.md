@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.43.13](https://github.com/apauldev/Yotara/compare/v0.43.12...v0.43.13) (2026-05-21)
+
+
+### Miscellaneous
+
+* Updated planning for CI/CD ([4cbeb46](https://github.com/apauldev/Yotara/commit/4cbeb46819a26a289969c52c48b0f6cb8d12af7f))
+
 ## [0.43.12](https://github.com/apauldev/Yotara/compare/v0.43.11...v0.43.12) (2026-05-20)
 
 
