@@ -157,6 +157,8 @@
   - [ ] Optional matrix by package where useful
 
 - [ ] Add coverage reporting and minimum threshold gates
+- [ ] Add Dependabot for automated dependency updates
+- [ ] Add security scanning (CodeQL + Snyk) to CI
 
 - [ ] Add production hardening for API deployment:
   - [ ] Rate limiting
