@@ -5,7 +5,6 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import type { CreateProjectDto, Project, Task } from '@yotara/shared';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { ProjectService } from '../../../core/services/project.service';
 import { TaskService } from '../../../core/services/task.service';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
@@ -38,7 +37,6 @@ export class ProjectDetailPageComponent {
   private readonly taskService = inject(TaskService);
   private readonly route = inject(ActivatedRoute);
   private readonly workspace = viewChild(PersonalTaskWorkspaceComponent);
-  protected readonly faArrowLeft = faArrowLeft;
   protected readonly projectModalOpen = signal(false);
   protected readonly projectState = signal<ProjectLoadState>('loading');
   protected readonly loadError = signal<string | null>(null);

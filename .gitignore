@@ -11,3 +11,4 @@ packages/shared/src/*.js
 packages/shared/src/*.d.ts
 packages/shared/src/*.js.map
 .DS_Store
+.commandcode/taste/taste.md
