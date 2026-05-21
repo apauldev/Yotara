@@ -16,16 +16,11 @@
   <section class="page">
     @if (projectState() === 'ready') {
       @if (project(); as currentProject) {
-        <app-page-header [title]="currentProject.name">
-          <a
-            page-header-back
-            routerLink="/projects"
-            class="back-button"
-            [title]="'Back to Projects'"
-          >
-            <fa-icon [icon]="faArrowLeft"></fa-icon>
-          </a>
-
+        <app-page-header
+          [title]="currentProject.name"
+          backRoute="/projects"
+          backTitle="Back to Projects"
+        >
           <button
             page-header-actions
             type="button"

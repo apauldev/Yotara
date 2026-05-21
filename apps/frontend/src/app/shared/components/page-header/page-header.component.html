@@ -4,6 +4,11 @@
       <p class="eyebrow">{{ eyebrow }}</p>
     }
     <div class="title-row">
+      @if (backRoute) {
+        <a [routerLink]="backRoute" class="back-button" [title]="backTitle">
+          <fa-icon [icon]="faArrowLeft"></fa-icon>
+        </a>
+      }
       <ng-content select="[page-header-back]" />
       <h1>{{ title }}</h1>
     </div>
