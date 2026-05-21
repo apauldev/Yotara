@@ -24,10 +24,10 @@
   - [x] Inputs: `title`, `count`, `accent/tone`
   - [x] Replace repeated `section-heading` markup
 
-- [ ] Create a generic `EmptyState` component:
-  - [ ] Inputs: `title`, `description`, optional icon/illustration
-  - [ ] Optional CTA slot/button
-  - [ ] Replace repeated `empty-state` blocks in inbox/today/upcoming/project pages
+- [x] Create a generic `EmptyState` component:
+  - [x] Inputs: `title`, `description`, optional icon/illustration
+  - [x] Optional CTA slot/button
+  - [x] Replace repeated `empty-state` blocks in inbox/today/upcoming/project pages
 
 - [ ] Create a generic async state helper (`StatusMessage` or `AsyncState`):
   - [ ] Handle loading / error / empty / content states

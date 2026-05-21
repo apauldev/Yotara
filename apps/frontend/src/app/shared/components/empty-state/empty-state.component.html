@@ -1,0 +1,16 @@
+<div class="empty-state">
+  @if (icon) {
+    <div class="empty-icon-shell" aria-hidden="true">
+      <fa-icon [icon]="icon"></fa-icon>
+    </div>
+  } @else {
+    <div class="empty-orb" aria-hidden="true">+</div>
+  }
+
+  <h2>{{ title }}</h2>
+  <p>{{ description }}</p>
+
+  <div class="empty-actions">
+    <ng-content select="[empty-state-actions]"></ng-content>
+  </div>
+</div>

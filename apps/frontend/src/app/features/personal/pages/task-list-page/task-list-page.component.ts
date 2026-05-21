@@ -20,10 +20,18 @@ import { PaginationComponent } from '../../../../shared/components/pagination/pa
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faPlus, faXmark } from '@fortawesome/free-solid-svg-icons';
+import {
+  faPlus,
+  faXmark,
+  faSun,
+  faCalendarDay,
+  faMagnifyingGlass,
+  faCloud,
+} from '@fortawesome/free-solid-svg-icons';
 import { ElementRef } from '@angular/core';
 import { parseTaskCommand } from '../../utils/task-command-parser';
 import { parseCalendarDate } from '../../../../shared/utils/timestamps';
+import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 
 export type TaskListViewMode = 'inbox' | 'today' | 'upcoming' | 'search';
 export type TaskSortOption = 'date' | 'alpha';
@@ -42,6 +50,7 @@ export type InsightType = 'clarity' | 'journal';
     PageHeaderComponent,
     PaginationComponent,
     FontAwesomeModule,
+    EmptyStateComponent,
   ],
   templateUrl: './task-list-page.component.html',
   styleUrl: './task-list-page.component.scss',
@@ -57,6 +66,10 @@ export class TaskListPageComponent implements OnInit {
 
   protected readonly faPlus = faPlus;
   protected readonly faXmark = faXmark;
+  protected readonly faSun = faSun;
+  protected readonly faCalendarDay = faCalendarDay;
+  protected readonly faMagnifyingGlass = faMagnifyingGlass;
+  protected readonly faCloud = faCloud;
 
   private readonly workspace = viewChild(PersonalTaskWorkspaceComponent);
   protected readonly captureInput = viewChild<ElementRef<HTMLInputElement>>('captureInput');

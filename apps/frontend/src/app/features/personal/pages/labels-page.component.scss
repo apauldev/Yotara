@@ -257,43 +257,6 @@
   gap: 0.65rem;
 }
 
-.task-empty {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 3rem 2rem;
-
-  .empty-icon-shell {
-    width: 3.5rem;
-    height: 3.5rem;
-    border-radius: 1rem;
-    background: var(--surface-container-high);
-    color: var(--on-surface-subtle);
-    display: grid;
-    place-items: center;
-    font-size: 1.5rem;
-    margin-bottom: 1.5rem;
-  }
-
-  h3 {
-    margin: 0;
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: var(--on-surface);
-  }
-
-  p {
-    margin: 0.6rem 0 0;
-    font-size: 0.88rem;
-    color: var(--on-surface-muted);
-    line-height: 1.5;
-    max-width: 18rem;
-  }
-}
-
 /* --- Utilities --- */
 
 .status-copy {

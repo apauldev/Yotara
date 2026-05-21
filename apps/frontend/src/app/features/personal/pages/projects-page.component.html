@@ -28,12 +28,14 @@
   } @else if (projectService.error() && projects().length === 0) {
     <p class="status-copy">{{ projectService.error() }}</p>
   } @else if (projects().length === 0) {
-    <section class="empty-shell">
-      <div class="empty-orb">+</div>
-      <h2>Start your first project</h2>
-      <p>A project becomes useful the moment the next step has a home.</p>
-      <button type="button" class="empty-button" (click)="openCreateModal()">Create Project</button>
-    </section>
+    <app-empty-state
+      title="Start your first project"
+      description="A project becomes useful the moment the next step has a home."
+    >
+      <button empty-state-actions type="button" class="empty-button" (click)="openCreateModal()">
+        Create Project
+      </button>
+    </app-empty-state>
   } @else {
     <section class="projects-table-container" role="table" aria-label="Projects">
       <div class="table-header" role="rowgroup">

@@ -5,6 +5,7 @@ import type { CreateProjectDto, Project } from '@yotara/shared';
 import { ProjectService } from '../../../core/services/project.service';
 import { PersonalProjectModalComponent } from '../components/personal-project-modal.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { projectPaletteFor, projectProgressPercent } from '../project-presentation';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faEdit } from '@fortawesome/free-solid-svg-icons';
@@ -12,7 +13,13 @@ import { faEdit } from '@fortawesome/free-solid-svg-icons';
 @Component({
   selector: 'app-projects-page',
   standalone: true,
-  imports: [CommonModule, PersonalProjectModalComponent, PageHeaderComponent, FontAwesomeModule],
+  imports: [
+    CommonModule,
+    PersonalProjectModalComponent,
+    PageHeaderComponent,
+    FontAwesomeModule,
+    EmptyStateComponent,
+  ],
   templateUrl: './projects-page.component.html',
   styleUrl: './projects-page.component.scss',
 })

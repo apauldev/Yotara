@@ -63,16 +63,20 @@
         </div>
 
         @if (activeProjectTasks().length === 0 && completedProjectTasks().length === 0) {
-          <section class="empty-state">
-            <div class="empty-emblem">◌</div>
-            <p class="quote">
-              “A project becomes useful the moment the next step is visible. Start with one
-              meaningful step.”
-            </p>
-            <button type="button" class="empty-button" (click)="workspace.openCreateTaskModal()">
+          <app-empty-state
+            title="Start with one meaningful step"
+            description="A project becomes useful the moment the next step is visible."
+            [icon]="faFolderOpen"
+          >
+            <button
+              empty-state-actions
+              type="button"
+              class="empty-button"
+              (click)="workspace.openCreateTaskModal()"
+            >
               Add First Task
             </button>
-          </section>
+          </app-empty-state>
         } @else {
           <section class="task-section">
             <app-section-header title="To Do" [count]="activeProjectTasks().length" size="lg" />
@@ -118,17 +122,23 @@
     } @else if (projectState() === 'loading') {
       <p class="status-copy">Loading your project...</p>
     } @else if (projectState() === 'error') {
-      <section class="empty-state">
-        <h2>We could not load this project</h2>
-        <p>{{ loadError() }}</p>
-        <button type="button" class="empty-button" (click)="retryLoad()">Try Again</button>
-      </section>
+      <app-empty-state
+        title="We could not load this project"
+        [description]="loadError() || 'An unexpected error occurred.'"
+        [icon]="faTriangleExclamation"
+      >
+        <button empty-state-actions type="button" class="empty-button" (click)="retryLoad()">
+          Try Again
+        </button>
+      </app-empty-state>
     } @else {
-      <section class="empty-state">
-        <h2>Project not found</h2>
-        <p>This project may have moved, or it is not available in your sanctuary yet.</p>
-        <a routerLink="/projects" class="empty-button">Back to Projects</a>
-      </section>
+      <app-empty-state
+        title="Project not found"
+        description="This project may have moved, or it is not available in your sanctuary yet."
+        [icon]="faFolderOpen"
+      >
+        <a empty-state-actions routerLink="/projects" class="empty-button">Back to Projects</a>
+      </app-empty-state>
     }
   </section>
 </app-personal-task-workspace>
