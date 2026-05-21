@@ -33,17 +33,27 @@ try {
       .toString()
       .trim();
     try {
-      tag = execSync('git describe --tags --abbrev=0', { stdio: ['ignore', 'pipe', 'ignore'] })
+      tag = execSync('git describe --tags --exact-match', { stdio: ['ignore', 'pipe', 'ignore'] })
         .toString()
         .trim();
     } catch (tagError) {
-      // Tags might not exist yet
+      // Not on a tag
     }
   } catch (e) {
     if (process.env.CI) {
-      // In CI, we usually want metadata, but some environments (like shallow clones) might fail.
-      // We'll warn instead of crashing unless it's a critical release build.
-      console.warn('⚠️ Could not retrieve Git metadata in CI. Check fetch-depth.');
+      // Fallback for GitHub Actions or generic CI
+      hash = (process.env.GITHUB_SHA || '').substring(0, 7) || 'unknown';
+      branch = process.env.GITHUB_REF_NAME || 'unknown';
+      if (process.env.GITHUB_REF_TYPE === 'tag') {
+        tag = process.env.GITHUB_REF_NAME;
+      }
+
+      if (hash === 'unknown' || branch === 'unknown') {
+        throw new Error(
+          'Critical: Could not retrieve Git metadata in CI via git or env vars (GITHUB_SHA/GITHUB_REF_NAME). Traceability is required for CI builds.',
+        );
+      }
+      console.warn('⚠️ Git commands failed; fell back to CI environment variables for metadata.');
     } else {
       console.warn('⚠️ Could not get Git metadata, defaulting to "unknown"');
     }
