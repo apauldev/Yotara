@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.43.16](https://github.com/apauldev/Yotara/compare/v0.43.15...v0.43.16) (2026-05-21)
+
+
+### Features
+
+* (versioning) enforce git metadata integrity in CI with environment fallbacks ([31e9bbb](https://github.com/apauldev/Yotara/commit/31e9bbb10e448b2689f4d02a33ddf4979ae1e712))
+* **versioning:** implement robust automated release system and commit enforcement ([4cb742a](https://github.com/apauldev/Yotara/commit/4cb742a174b308ddf3501b66f3ce4dd9849dde6a))
+
 ## [0.43.15](https://github.com/apauldev/Yotara/compare/v0.43.14...v0.43.15) (2026-05-21)
 
 
