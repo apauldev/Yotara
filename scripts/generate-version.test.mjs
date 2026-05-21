@@ -27,6 +27,7 @@ test('Version Generator Script (Final Polish)', async (t) => {
       assert.match(content, /isDetached: (true|false)/);
       assert.match(content, /nodeEnv: ["'](development|production|test)["']/);
       assert.match(content, /version: ["']\d+\.\d+\.\d+/);
+      assert.match(content, /tag: ["'][a-zA-Z0-9.\-/]+["']|["']unknown["']/);
       assert.match(content, /hash: ["'][a-f0-9]{7,40}["']|["']unknown["']/);
       assert.match(content, /branch: ["'][a-zA-Z0-9\-/._]+["']|["']unknown["']/);
       assert.match(content, /buildDate: ["']\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
