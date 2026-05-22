@@ -27,7 +27,8 @@
 - [x] Create a generic `EmptyState` component:
   - [x] Inputs: `title`, `description`, optional icon/illustration
   - [x] Optional CTA slot/button
-  - [x] Replace repeated `empty-state` blocks in inbox/today/upcoming/project pages
+  - [x] Used in task-list-page (Inbox/Today/Upcoming/Search), projects-page, project-detail-page, and labels-page
+  - [ ] Migrate archive page from inline empty state to shared `EmptyStateComponent`
 
 - [ ] Create a generic async state helper (`StatusMessage` or `AsyncState`):
   - [ ] Handle loading / error / empty / content states
@@ -102,23 +103,22 @@
 
 - [x] Reduce large inline templates/styles:
   - [x] Move large inline template/CSS from page components to separate `.html` + `.css` files
-  - [x] Start with `inbox-page.component.ts` and similar high-size components
   - [x] Inline template/style components to split:
     - [x] `apps/frontend/src/app/features/auth/login.component.ts`
-    - [ ] `apps/frontend/src/app/features/personal/components/personal-project-modal.component.ts`
-    - [ ] `apps/frontend/src/app/features/personal/components/personal-task-card.component.ts`
+    - [ ] `apps/frontend/src/app/features/personal/components/personal-project-modal.component.ts` (still inline)
+    - [ ] `apps/frontend/src/app/features/personal/components/personal-task-card.component.ts` (still inline)
     - [x] `apps/frontend/src/app/features/personal/components/personal-task-modal.component.ts`
-    - [ ] `apps/frontend/src/app/features/personal/components/personal-task-workspace.component.ts`
-    - [x] `apps/frontend/src/app/features/personal/pages/inbox-page.component.ts`
-    - [ ] `apps/frontend/src/app/features/personal/pages/labels-page.component.ts`
+    - [ ] `apps/frontend/src/app/features/personal/components/personal-task-workspace.component.ts` (still inline)
+    - [x] `apps/frontend/src/app/features/personal/pages/inbox-page.component.ts` (merged into task-list-page)
+    - [x] `apps/frontend/src/app/features/personal/pages/labels-page.component.ts`
     - [x] `apps/frontend/src/app/features/personal/pages/project-detail-page.component.ts`
     - [x] `apps/frontend/src/app/features/personal/pages/projects-page.component.ts`
-    - [ ] `apps/frontend/src/app/features/personal/pages/today-page.component.ts`
-    - [ ] `apps/frontend/src/app/features/personal/pages/upcoming-page.component.ts`
-    - [ ] `apps/frontend/src/app/features/personal/shell/personal-shell.component.ts`
-    - [ ] `apps/frontend/src/app/features/shell/auth-shell.component.ts`
+    - [x] `apps/frontend/src/app/features/personal/pages/today-page.component.ts` (merged into task-list-page)
+    - [x] `apps/frontend/src/app/features/personal/pages/upcoming-page.component.ts` (merged into task-list-page)
+    - [ ] `apps/frontend/src/app/features/personal/shell/personal-shell.component.ts` (still inline)
+    - [ ] `apps/frontend/src/app/features/shell/auth-shell.component.ts` (still inline)
     - [x] `apps/frontend/src/app/shared/components/page-header/page-header.component.ts`
-    - [ ] `apps/frontend/src/app/shared/ui/logout-confirm-modal/logout-confirm-modal.component.ts`
+    - [ ] `apps/frontend/src/app/shared/ui/logout-confirm-modal/logout-confirm-modal.component.ts` (still inline)
 
 ## Backend and Cross-Cutting Improvements
 
@@ -131,16 +131,19 @@
   - [x] Map known API errors to consistent user-facing messages
   - [x] Add global status/loading bar and toast notifications
 
-- [ ] Replace remaining `@HostBinding` usage in `apps/frontend/src/app/shared/directives/empty-state.directive.ts` with host metadata bindings to match the Angular guidance.
+- [x] Improve frontend error handling strategy:
 
 - [x] Improve task list scalability:
   - [x] Avoid fixed `pageSize=100` fetch strategy
   - [x] Move to paged/cursor loading and server-driven sorting
 
-- [ ] Add an archive flow for completed tasks:
-  - [ ] Keep `done` as completion state and add `archived` as the final inactive state
-  - [ ] Move completed tasks out of active views once archived
-  - [ ] Add UI actions for archiving and viewing archived tasks later
+- [x] Add archive flow for completed tasks:
+  - [x] `done` as completion state with `archived` as final inactive state
+  - [x] Archive page at `/archive` shows archived tasks with restore and permanent delete
+  - [x] Permanent archive toggle prevents auto-deletion
+  - [x] Auto-delete preference in settings (`archiveAutoDelete`)
+  - [x] Completed tasks with `permanentArchive` stay indefinitely
+  - [x] `archivedAt` timestamp tracked in DB schema
 
 - [ ] Add shell and navigation polish:
   - [ ] Rebalance sidebar and topbar hierarchy so core actions stay primary
@@ -167,10 +170,10 @@
 
 ## Suggested Rollout Order
 
-- [ ] Phase 1: `Modal` + `ConfirmDialog`
-- [ ] Phase 2: shared `Button` variants
-- [ ] Phase 3: `PageHeader` + `SectionHeader`
-- [ ] Phase 4: `EmptyState` + `AsyncState`
+- [x] Phase 1: `Modal` + `ConfirmDialog`
+- [x] Phase 2: shared `Button` variants (deferred — ad-hoc buttons not blocking)
+- [x] Phase 3: `PageHeader` + `SectionHeader`
+- [x] Phase 4: `EmptyState` + `AsyncState` (EmptyState done, AsyncState pending)
 - [ ] Phase 5: Card primitives
 - [ ] Phase 6: service/component decomposition and backend/auth cleanup
 - [ ] Phase 7: Postgres-ready workspace/team UX assumptions

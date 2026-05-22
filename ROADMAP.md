@@ -33,10 +33,12 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 | 3 | Global search results page (`/search?q=...`): titles, descriptions, labels | 🟡 Partial | Medium | Search service and functionality ✅ complete through `/tasks?view=search&q=...` for tasks, projects, and labels with full text matching. Canonical `/search?q=...` route and improved result ranking/context still needed for P0 finish. |
 | 4 | 404 page: friendly error with link to Inbox | ✅ Done | Low | Implemented in #103 with animation. Friendly 404 page with navigation back to inbox. |
 | 5 | Task loading skeletons | ⬜ Not started | Low | Loading states mostly use copy/spinners. Add skeleton rows for task lists and project/label task panels. |
-| 6 | Empty states for Inbox, Today, Upcoming, Projects, Labels | 🟡 Partial | Low | Page-specific empty states ✅ present. UI has been refined (#97, #96, #98) with better styling. Generic `EmptyState` component still needed for standardization and reuse across all pages. |
+| 6 | Empty states for Inbox, Today, Upcoming, Projects, Labels | 🟡 Partial | Low | `EmptyStateComponent` ✅ exists and used in task-list-page (Inbox/Today/Upcoming/Search), projects-page, project-detail-page, and labels-page with contextual copy and icons. Archive page has its own inline empty state (not using shared component). One more pass to migrate archive page to use shared `EmptyStateComponent`. |
 | 7 | Form validation and error polish | ✅ Done | Low | Basic validation ✅ present in all forms. Global error handling system implemented (#106) with professional toast notifications, error interception, and persistent logging. Validation copy and disabled/loading states standardized. |
 
 **P0 target:** 1–2 weeks at 1–2 hours/day. This is the public-demo gate.
+
+**P0 remaining work (3 items):** canonical `/search` route (#3), task loading skeletons (#5), archive page `EmptyStateComponent` migration (#6).
 
 ### P1 – High-Value Personal Features
 
@@ -362,11 +364,12 @@ These features should be built as personal-mode improvements first, but they sho
 ## 7. Micro-Screens & States
 
 ### Empty States
-- **Status**: 🟡 Partial
-- Inbox empty illustration + message
-- Today empty state
-- No projects state
-- No results (search)
+- **Status**: 🟡 Partial (shared `EmptyStateComponent` used across 4+ pages, archive page still inline)
+- Inbox empty illustration + message ✅
+- Today empty state ✅
+- No projects state ✅
+- No results (search) ✅
+- Archive empty state 🟡 (inline, not using shared component)
 
 ### Loading States
 - **Status**: ⬜ Not started for skeletons; 🟡 partial for loading messages/spinners
@@ -377,8 +380,8 @@ These features should be built as personal-mode improvements first, but they sho
 - **Status**: 🟡 Partial
 - Network error message with retry
 - Unauthorized / session expired
-- 404 / Not Found page
-- Generic error fallback
+- 404 / Not Found page ✅ (animated parallax forest with return-to-inbox link)
+- Generic error fallback ✅ (global toast notifications, persistent error logging)
 
 ### Notifications & Alerts
 - **Status**: ⬜ Not started beyond a shell icon/disabled settings copy
@@ -389,10 +392,10 @@ These features should be built as personal-mode improvements first, but they sho
 - Notification permission management and subscription refresh flow
 
 ### Confirmation Dialogs
-- **Status**: 🟡 Partial
-- Delete task confirmation
-- Leave workspace confirmation
-- Delete project confirmation
+- **Status**: ✅ Done
+- Delete task confirmation ✅
+- Leave workspace confirmation (deferred to team mode)
+- Delete project confirmation ✅
 - Shared modal and confirm dialog primitives are ✅ built
 - Logout, label delete, and task complete/restore confirmations are ✅ wired
 
@@ -461,11 +464,11 @@ These features should be built as personal-mode improvements first, but they sho
 
 ### Phase 3: Polish & Secondary Features
 9. 🟡 Settings basics + logout
-10. 🟡 Empty states + error handling
-11. 🟡 Global search
+10. ✅ Empty states + error handling (shared `EmptyStateComponent` done; archive page migration remains)
+11. 🟡 Global search (service done, canonical `/search` route pending)
 12. ✅ Labels / tags management for personal mode
 13. 🟡 Team shell placeholders
-14. 🟡 Confirmation modal primitive; 404 page still open
+14. ✅ Confirmation modal primitive + 404 page
 15. 🟡 Validation/error polish; task loading skeletons still open
 16. ⬜ Language selection / localization groundwork
 17. ⬜ Notification center + browser push support
@@ -498,8 +501,8 @@ These features should be built as personal-mode improvements first, but they sho
 - ✅ Workspace-mode aware routing and guards
 - ✅ Shared task state model that supports personal views and leaves room for team fields
 - ✅ Reusable modal and confirmation dialog primitives
-- ⬜ Postgres migration plan for team-mode tenancy and concurrency
-- 🟡 Empty state and async-state primitives
+- ✅ 404 friendly error page with parallax animation
+- ✅ Shared `EmptyStateComponent` used across task-list, projects, project-detail, and labels pages
 - 🟡 Search/filter infrastructure that can grow into team scope
 - ⬜ Coverage reporting with minimum threshold gates
 - ⬜ Dependabot automated dependency updates
@@ -536,16 +539,13 @@ These features should be built as personal-mode improvements first, but they sho
 ### 🔄 In Progress
 - Team-mode shell placeholders and workspace-mode routing
 - Settings shell beyond theme/password/logout
-- Archive flow for completed tasks is effectively working; remaining work is lifecycle cleanup
-- Empty/loading/error state polish
-- Canonical global search routing
-- Full destructive confirmation coverage
+- Canonical global search routing (`/search?q=...`)
+- Archive page migration to shared `EmptyStateComponent`
 
 ### 📋 Not Started
 - Kanban project view
 - Subtasks and recurring tasks UI
 - Team workspace membership and assignment features
-- 404 page
 - Task loading skeletons
 - Coverage reporting and threshold gates
 - Dependabot automated dependency updates
@@ -639,18 +639,9 @@ apps/frontend/src/app/
 
 ## Next Steps
 
-- [ ] Make `/search?q=...` the canonical global search route and surface label match context
-- [ ] Add the friendly 404 / not-found page with a link back to Inbox
+- [ ] Make `/search?q=...` the canonical global search route (route exists but redirects to `/tasks`)
+- [ ] Migrate archive page to use shared `EmptyStateComponent`
 - [ ] Add task list skeleton loaders
-- [ ] Extract shared empty-state and async-state helpers
-- [ ] Standardize destructive confirmations across task, label, project, and future workspace flows
-- [ ] Polish form validation, error messages, retry actions, and loading labels
-- [ ] Build P1 personal features: subtasks, recurring tasks, markdown preview, browser notifications, and data export
-- [ ] Define the team-mode data model for tasks, projects, and membership
-- [ ] Design notification data model and push subscription storage
-- [ ] Add localization foundation and language selector
-- [ ] Integrate real-time updates (optional for MVP)
-- [ ] User testing & iterate
 
 ---
 
