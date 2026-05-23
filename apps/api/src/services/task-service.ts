@@ -362,7 +362,8 @@ export async function updateTaskForOwner(
         : (current.recurrenceRule ?? undefined);
 
   // Recurrence materialization: create next instance when a recurring task is completed
-  if (completed && !current.completed && current.recurrenceRule) {
+  // Don't materialize if the caller is explicitly clearing the recurrence rule
+  if (completed && !current.completed && current.recurrenceRule && body.recurrenceRule !== null) {
     const rule: RecurrenceRule = JSON.parse(current.recurrenceRule);
 
     const useNow =

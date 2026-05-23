@@ -169,6 +169,35 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       assert.ok(nextDaily.dueDate?.startsWith(expectedPrefix));
     });
 
+    await t.test('Complete + recurrenceRule: null does NOT materialize new instance', async () => {
+      const task = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'End Recurring Task',
+        dueDate: '2026-06-01T00:00:00Z',
+        recurrenceRule: { frequency: 'daily', interval: 1 },
+      });
+      assert.ok(task);
+
+      // Complete AND clear the recurrence rule
+      await ctx.taskService.updateTaskForOwner(ownerId, task.id, {
+        completed: true,
+        recurrenceRule: null,
+      });
+
+      // Verify no new instance was created
+      const allTasks = await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true);
+      const next = allTasks.data.find((t) => t.title === 'End Recurring Task' && !t.completed);
+      assert.equal(
+        next,
+        undefined,
+        'Should not create instance when recurrenceRule is explicitly cleared',
+      );
+
+      // Verify the original task is completed and has no recurrence rule
+      const updated = await ctx.taskService.getTaskForOwner(task.id, ownerId);
+      assert.ok(updated?.completed);
+      assert.equal(updated?.recurrenceRule, null);
+    });
+
     await t.test('Weekdays recurrence skips weekends', async () => {
       const task = await ctx.taskService.createTaskForOwner(ownerId, {
         title: 'Weekday Task',
