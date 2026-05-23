@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.43.18](https://github.com/apauldev/Yotara/compare/v0.43.17...v0.43.18) (2026-05-23)
+
+
+### Features
+
+* added recurring and subtasks, work in progress ([eec29b8](https://github.com/apauldev/Yotara/commit/eec29b8efcac9335b6a13dfa3aef6e277d80f75a))
+* propagate labels and simpleMode to subtasks, show labels on card ([5575387](https://github.com/apauldev/Yotara/commit/557538760a45d2adb13a26a17c384cee428646bb))
+* repeat refine with days, enddate, calendar, layout fixes ([c59e1b8](https://github.com/apauldev/Yotara/commit/c59e1b8c152c662b111271943521378d6a2af38a))
+
+
+### Bug Fixes
+
+* blocked subtask of subtask creation at service level ([f10e8c6](https://github.com/apauldev/Yotara/commit/f10e8c6ffa49ce103e903e89d33ecde6be8639cb))
+* ci is fixed, github was trying to access a merge that didn't exist ([052b4d7](https://github.com/apauldev/Yotara/commit/052b4d76afe87e32c484c254ad889be91fb0a6e9))
+* ci/ cd errors fixed ([e110786](https://github.com/apauldev/Yotara/commit/e1107863b2c26aff809c15e8185bd8e28bb0f780))
+* cleaned dead code ([865c7e5](https://github.com/apauldev/Yotara/commit/865c7e584edfa46608016c061eb0d5132bfb858a))
+* dates were not robust, fixed with luxon, tests updated, edge cases handled ([f5101f2](https://github.com/apauldev/Yotara/commit/f5101f24361dfc75ad540084d7347b27999ec9be))
+* p1 - write null to clear parent/recurrence fields on update ([c6eca5b](https://github.com/apauldev/Yotara/commit/c6eca5bc43d84d230d166efaa631f11ec204e9d0))
+* projectid null assigns default project ([6ebf507](https://github.com/apauldev/Yotara/commit/6ebf5075bdd3f3dd19f7ccdf74de3cb918d07dd1))
+* recurrance materialization fixed ([82eab4f](https://github.com/apauldev/Yotara/commit/82eab4f8fd1465fc476d372149f3466d3f81dcc8))
+
+
+### Documentation
+
+* updated tasks docs ([ab7ea63](https://github.com/apauldev/Yotara/commit/ab7ea633dcdd6362a07ced1a81209bfe0c862d3f))
+
 ## [0.43.17](https://github.com/apauldev/Yotara/compare/v0.43.16...v0.43.17) (2026-05-23)
 
 
