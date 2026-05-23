@@ -97,6 +97,15 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 | 33 | Notification center | ⬜ Not started | Medium | Depends on notification event model. |
 | 34 | Activity log | ⬜ Not started | Low | Can share event model with comments/notifications. |
 | 35 | Cross-mode search | ⬜ Not started | Medium | Depends on team-mode data model. |
+| 36 | Natural language task entry in title bar (Todoist-style `every day`, `#project`, `@label`) | ⬜ Not started | Medium | Enhance existing `parseTaskCommand` with chrono-node and full syntax |
+| 37 | Drag-and-drop reorder for subtasks inline | ⬜ Not started | Low | Subtasks ordered by `createdAt` only |
+| 38 | "Repeat on due date" vs "repeat on completion" toggle | ⬜ Not started | Low | Currently always materializes on completion |
+| 39 | Recurring subtasks (subtasks with their own repeat rules) | ⬜ Not started | Low | Subtask repeat field currently disabled |
+| 40 | Skip / snooze single recurrence occurrence | ⬜ Not started | Low | No way to skip an instance without deleting |
+| 41 | Multi-level subtask nesting (>1 level deep) | ⬜ Not started | Medium | Hard-coded to 1 level |
+| 42 | Expand/collapse toggle on parent task card for subtasks | ⬜ Not started | Low | Subtasks always visible below parent |
+| 43 | Recurring template separated from normal task lists | ⬜ Not started | Low | Template and instances currently mixed |
+| 44 | Activity log for past completions of recurring tasks | ⬜ Not started | Low | Show history of completed instances |
 
 ### Recommended Sprint Order
 

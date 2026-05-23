@@ -120,6 +120,22 @@
     - [x] `apps/frontend/src/app/shared/components/page-header/page-header.component.ts`
     - [ ] `apps/frontend/src/app/shared/ui/logout-confirm-modal/logout-confirm-modal.component.ts`
 
+## Recurring & Subtask Nice-to-Haves (From Market Comparison)
+
+Gaps vs Todoist/TickTick/Things 3 — deliberate MVP limits or future enhancements:
+
+- [x] **Natural language recurring setup** (`every day`, `every weekday`, `every Mon,Wed,Fri`) — basic frequency dropdown always existed; weekdays + custom day-of-week toggles now added
+- [ ] **Natural language in title bar** — parse `"Buy groceries every Friday until June 1st"` from the title input like Todoist
+- [ ] **Drag-and-drop reorder** for subtasks (inline in list view)
+- [ ] **"Repeat on due date" vs "repeat on completion" toggle** — currently always materializes on completion
+- [ ] **Recurring subtasks** — subtasks currently cannot have their own recurrence rule (field is disabled)
+- [ ] **Skip / snooze single occurrence** — "Don't do this one, move to next"
+- [ ] **Activity log for past completions** — show history of completed instances
+- [ ] **Recurring template in a separate view** — don't show the template mixed into normal task lists
+- [ ] **Multi-level subtask nesting** (currently 1 level only)
+- [ ] **Expand/collapse toggle** on parent task card to show/hide subtasks inline
+- [ ] **Quick-add recurring from title** — set frequency via a smart action chip or inline command
+
 ## Backend and Cross-Cutting Improvements
 
 - [ ] Centralize backend auth user extraction:
