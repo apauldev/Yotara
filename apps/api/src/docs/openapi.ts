@@ -498,7 +498,7 @@ const authErrorSchema = {
 const recurrenceFrequencySchema = {
   $id: 'RecurrenceFrequency',
   type: 'string',
-  enum: ['daily', 'weekly', 'monthly', 'yearly'],
+  enum: ['daily', 'weekdays', 'weekly', 'monthly', 'yearly'],
 } as const;
 
 const recurrenceRuleSchema = {
@@ -508,6 +508,11 @@ const recurrenceRuleSchema = {
   properties: {
     frequency: { $ref: 'RecurrenceFrequency#' },
     interval: { type: 'integer', minimum: 1 },
+    endDate: { type: 'string', format: 'date' },
+    daysOfWeek: {
+      type: 'array',
+      items: { type: 'integer', minimum: 0, maximum: 6 },
+    },
   },
 } as const;
 

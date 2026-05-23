@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, computed, inject, signal } from '@angular/core';
 import { Task } from '@yotara/shared';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faBoxArchive, faRotateLeft, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faBoxArchive, faRotate, faRotateLeft, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { LabelService } from '../../../core/services/label.service';
 import { TaskService } from '../../../core/services/task.service';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
@@ -91,7 +91,8 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
 
               @if (task.recurrenceRule) {
                 <span class="meta-pill meta-pill-recurring" [attr.title]="recurrenceLabel()">
-                  &#x21BB; {{ recurrenceLabel() }}
+                  <fa-icon [icon]="faRotate" class="recurring-icon" />
+                  {{ recurrenceLabel() }}
                 </span>
               }
 
@@ -445,6 +446,14 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
       .meta-pill-recurring {
         background: var(--accent-soft);
         color: var(--accent-strong);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.2rem;
+      }
+
+      .recurring-icon {
+        font-size: 0.7rem;
+        line-height: 1;
       }
 
       .priority-chip-high {
@@ -486,7 +495,7 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
 
         .meta-pill,
         .priority-chip {
-          font-size: 0.58rem;
+          font-size: 0.65rem;
           padding: 0.1rem 0.35rem;
         }
 
@@ -502,6 +511,7 @@ export class PersonalTaskCardComponent {
   private readonly labelService = inject(LabelService);
   protected readonly completeConfirmOpen = signal(false);
   protected readonly completing = signal(false);
+  protected readonly faRotate = faRotate;
   protected readonly faRotateLeft = faRotateLeft;
   protected readonly faBoxArchive = faBoxArchive;
   protected readonly faTrash = faTrash;
@@ -575,7 +585,18 @@ export class PersonalTaskCardComponent {
     const rule = this.task.recurrenceRule;
     if (!rule) return '';
 
-    const { frequency, interval } = rule;
+    const { frequency, interval, daysOfWeek } = rule;
+
+    if (frequency === 'weekdays') {
+      return 'Weekdays';
+    }
+
+    if (frequency === 'weekly' && daysOfWeek && daysOfWeek.length > 0) {
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const label = daysOfWeek.map((d) => dayNames[d]).join(', ');
+      return interval > 1 ? `Every ${interval} weeks (${label})` : label;
+    }
+
     const label = frequency.charAt(0).toUpperCase() + frequency.slice(1);
     return interval > 1 ? `Every ${interval} ${frequency}` : label;
   }

@@ -6,11 +6,13 @@ export type TaskStatus = 'inbox' | 'today' | 'upcoming' | 'done' | 'archived';
 export type WorkspaceMode = 'personal' | 'team';
 export type TaskBucket = 'personal-sanctuary' | 'deep-work' | 'home' | 'health';
 export type ProjectColor = 'sage' | 'teal' | 'olive' | 'clay' | 'forest' | 'deep-ocean';
-export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+export type RecurrenceFrequency = 'daily' | 'weekdays' | 'weekly' | 'monthly' | 'yearly';
 
 export interface RecurrenceRule {
   frequency: RecurrenceFrequency;
   interval: number;
+  endDate?: string; // ISO date — repeat stops after this date
+  daysOfWeek?: number[]; // 0=Sun, 1=Mon...6=Sat. For weekly with specific days or weekdays frequency
 }
 
 // ─── Core Domain Types ───────────────────────────────────────────────────────

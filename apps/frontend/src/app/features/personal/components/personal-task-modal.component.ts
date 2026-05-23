@@ -69,9 +69,13 @@ export class PersonalTaskModalComponent implements OnDestroy {
   protected readonly newLabelName = signal('');
   protected readonly draftRecurrenceFrequency = signal<RecurrenceFrequency | null>(null);
   protected readonly draftRecurrenceInterval = signal(1);
+  protected readonly draftRecurrenceEndDate = signal('');
+  protected readonly draftRecurrenceDaysOfWeek = signal<number[]>([]);
+  protected readonly weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   protected readonly recurrenceFrequencies: (RecurrenceFrequency | null)[] = [
     null,
     'daily',
+    'weekdays',
     'weekly',
     'monthly',
     'yearly',
@@ -128,9 +132,16 @@ export class PersonalTaskModalComponent implements OnDestroy {
     return projectName ?? 'Select a project';
   }
 
+  protected toggleDay(day: number) {
+    this.draftRecurrenceDaysOfWeek.update((days) =>
+      days.includes(day) ? days.filter((d) => d !== day) : [...days, day].sort(),
+    );
+  }
+
   protected recurrenceFrequencyLabel() {
     const freq = this.draftRecurrenceFrequency();
     if (!freq) return 'None';
+    if (freq === 'weekdays') return 'Weekdays';
     const label = freq.charAt(0).toUpperCase() + freq.slice(1);
     const interval = this.draftRecurrenceInterval();
     return interval > 1 ? `Every ${interval} ${freq}` : label;
@@ -268,9 +279,22 @@ export class PersonalTaskModalComponent implements OnDestroy {
       return;
     }
 
+    const freq = this.draftRecurrenceFrequency();
+    const daysOfWeek =
+      freq === 'weekdays'
+        ? [1, 2, 3, 4, 5]
+        : freq === 'weekly' && this.draftRecurrenceDaysOfWeek().length > 0
+          ? this.draftRecurrenceDaysOfWeek()
+          : undefined;
+
     const recurrenceRule =
-      this.draftRecurrenceFrequency() && !this.isRecurrenceDisabled()
-        ? { frequency: this.draftRecurrenceFrequency()!, interval: this.draftRecurrenceInterval() }
+      freq && !this.isRecurrenceDisabled()
+        ? {
+            frequency: freq,
+            interval: this.draftRecurrenceInterval(),
+            endDate: this.draftRecurrenceEndDate() || undefined,
+            daysOfWeek,
+          }
         : null;
 
     const payload: CreateTaskDto = {
@@ -366,6 +390,8 @@ export class PersonalTaskModalComponent implements OnDestroy {
     this.draftCompleted.set(this.task?.completed ?? false);
     this.draftRecurrenceFrequency.set(this.task?.recurrenceRule?.frequency ?? null);
     this.draftRecurrenceInterval.set(this.task?.recurrenceRule?.interval ?? 1);
+    this.draftRecurrenceEndDate.set(this.task?.recurrenceRule?.endDate ?? '');
+    this.draftRecurrenceDaysOfWeek.set(this.task?.recurrenceRule?.daysOfWeek ?? []);
     this.newLabelName.set('');
     this.newLabelColor.set(this.palette[0]);
     this.subtaskEntryMode.set(false);

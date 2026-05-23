@@ -276,11 +276,12 @@
             >
               <option [ngValue]="null">None</option>
               <option value="daily">Daily</option>
+              <option value="weekdays">Weekdays</option>
               <option value="weekly">Weekly</option>
               <option value="monthly">Monthly</option>
               <option value="yearly">Yearly</option>
             </select>
-            @if (draftRecurrenceFrequency()) {
+            @if (draftRecurrenceFrequency() && draftRecurrenceFrequency() !== 'weekdays') {
               <label class="recurrence-interval-row">
                 <span>Every</span>
                 <input
@@ -301,6 +302,33 @@
                         : 'year(s)'
                 }}</span>
               </label>
+              <app-date-picker
+                class="compact-field"
+                [value]="draftRecurrenceEndDate()"
+                (valueChange)="draftRecurrenceEndDate.set($event)"
+                label="End repeat"
+              />
+            }
+
+            @if (draftRecurrenceFrequency() === 'weekly') {
+              <div class="day-picker-row">
+                @for (name of weekdayNames; track $index) {
+                  <button
+                    type="button"
+                    class="day-chip"
+                    [class.day-chip-active]="draftRecurrenceDaysOfWeek().includes($index)"
+                    (click)="toggleDay($index)"
+                  >
+                    {{ name }}
+                  </button>
+                }
+              </div>
+            }
+
+            @if (draftRecurrenceFrequency() === 'weekdays') {
+              <div class="day-picker-row day-picker-row-preset">
+                <span>Mon–Fri</span>
+              </div>
             }
           </div>
 

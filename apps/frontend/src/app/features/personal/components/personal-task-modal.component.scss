@@ -345,6 +345,46 @@ textarea {
   font-size: 0.84rem;
 }
 
+.day-picker-row {
+  display: flex;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+}
+
+.day-chip {
+  flex: 1;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--surface-container-low);
+  color: var(--on-surface-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.4rem 0;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.day-chip:hover {
+  background: var(--surface-container-high);
+}
+
+.day-chip-active {
+  background: var(--primary-soft);
+  color: var(--primary-solid);
+}
+
+.day-picker-row-preset {
+  justify-content: center;
+  span {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--primary-solid);
+    background: var(--primary-soft);
+    padding: 0.3rem 0.8rem;
+    border-radius: 0.5rem;
+  }
+}
+
 /* ── Subtasks section ── */
 
 .subtasks-section {

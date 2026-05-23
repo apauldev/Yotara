@@ -140,6 +140,93 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       assert.ok(nextDaily.dueDate?.startsWith(expectedPrefix));
     });
 
+    await t.test('Weekdays recurrence skips weekends', async () => {
+      const task = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Weekday Task',
+        recurrenceRule: { frequency: 'weekdays', interval: 1 },
+      });
+
+      await ctx.taskService.updateTaskForOwner(ownerId, task!.id, { completed: true });
+
+      const allTasks = await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true);
+      const next = allTasks.data.find((t) => t.title === 'Weekday Task' && !t.completed);
+      assert.ok(next);
+
+      // Due date must be a weekday (Mon=1 .. Fri=5)
+      const day = new Date(next.dueDate!).getUTCDay();
+      assert.ok(day >= 1 && day <= 5, `Expected weekday, got ${day}`);
+    });
+
+    await t.test('Weekly with custom daysOfWeek', async () => {
+      const task = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Mon Wed Fri Task',
+        recurrenceRule: {
+          frequency: 'weekly',
+          interval: 1,
+          daysOfWeek: [1, 3, 5], // Mon, Wed, Fri
+        },
+      });
+
+      await ctx.taskService.updateTaskForOwner(ownerId, task!.id, { completed: true });
+
+      const allTasks = await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true);
+      const next = allTasks.data.find((t) => t.title === 'Mon Wed Fri Task' && !t.completed);
+      assert.ok(next);
+
+      // Due date must be Mon(1), Wed(3), or Fri(5)
+      const day = new Date(next.dueDate!).getUTCDay();
+      assert.ok(day === 1 || day === 3 || day === 5, `Expected Mon/Wed/Fri, got ${day}`);
+    });
+
+    await t.test('endDate stops recurrence when past', async () => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const endDate = yesterday.toISOString().split('T')[0]; // YYYY-MM-DD
+
+      const task = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Ended Task',
+        recurrenceRule: {
+          frequency: 'daily',
+          interval: 1,
+          endDate,
+        },
+      });
+
+      await ctx.taskService.updateTaskForOwner(ownerId, task!.id, { completed: true });
+
+      // No new instance should exist — past the end date
+      const allTasks = await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true);
+      const next = allTasks.data.find((t) => t.title === 'Ended Task' && !t.completed);
+      assert.equal(next, undefined, 'Should not create instance past endDate');
+    });
+
+    await t.test('endDate in future still creates instances', async () => {
+      const nextWeek = new Date();
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      const endDate = nextWeek.toISOString().split('T')[0];
+
+      const task = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Future Ended Task',
+        recurrenceRule: {
+          frequency: 'daily',
+          interval: 1,
+          endDate,
+        },
+      });
+
+      await ctx.taskService.updateTaskForOwner(ownerId, task!.id, { completed: true });
+
+      // Instance should exist — still within endDate window
+      const allTasks = await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true);
+      const next = allTasks.data.find((t) => t.title === 'Future Ended Task' && !t.completed);
+      assert.ok(next);
+
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const expectedPrefix = tomorrow.toISOString().split('T')[0];
+      assert.ok(next.dueDate?.startsWith(expectedPrefix));
+    });
+
     await t.test('Cascade deletion', async () => {
       const parent = await ctx.taskService.createTaskForOwner(ownerId, {
         title: 'Parent to delete',
@@ -174,6 +261,28 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       // Instance should be gone too
       const instanceCheck = await ctx.taskService.getTaskForOwner(instance.id, ownerId);
       assert.equal(instanceCheck, null);
+    });
+
+    await t.test('Weekdays + endDate combined', async () => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const endDate = yesterday.toISOString().split('T')[0];
+
+      const task = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Weekday Ended Task',
+        recurrenceRule: {
+          frequency: 'weekdays',
+          interval: 1,
+          endDate,
+        },
+      });
+
+      await ctx.taskService.updateTaskForOwner(ownerId, task!.id, { completed: true });
+
+      // No new instance — past end date
+      const allTasks = await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true);
+      const next = allTasks.data.find((t) => t.title === 'Weekday Ended Task' && !t.completed);
+      assert.equal(next, undefined, 'Weekday recurrence should respect endDate');
     });
   } finally {
     ctx.cleanup();

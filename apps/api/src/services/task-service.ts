@@ -192,12 +192,29 @@ export async function listSubtasks(parentId: string, ownerId: string): Promise<T
 
 function advanceDueDate(from: string, rule: RecurrenceRule): string {
   const d = new Date(from);
-  const { frequency, interval } = rule;
+  const { frequency, interval, daysOfWeek } = rule;
   const n = interval || 1;
 
   let year = d.getUTCFullYear();
   let month = d.getUTCMonth();
   let day = d.getUTCDate();
+
+  // Helper: find the next date from a given date that matches one of the target days
+  function nextOnDay(fromDay: number, targetDays: number[]): { y: number; m: number; d: number } {
+    const cursor = new Date(Date.UTC(year, month, fromDay));
+    for (let i = 0; i < 8; i++) {
+      if (targetDays.includes(cursor.getUTCDay())) {
+        return {
+          y: cursor.getUTCFullYear(),
+          m: cursor.getUTCMonth(),
+          d: cursor.getUTCDate(),
+        };
+      }
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    // Fallback (shouldn't reach here with valid input)
+    return { y: year, m: month, d: day + 1 };
+  }
 
   switch (frequency) {
     case 'daily': {
@@ -207,11 +224,28 @@ function advanceDueDate(from: string, rule: RecurrenceRule): string {
       day = next.getUTCDate();
       break;
     }
+    case 'weekdays': {
+      // Start from tomorrow, skip Sat(6) and Sun(0)
+      const next = nextOnDay(day + 1, [1, 2, 3, 4, 5]);
+      year = next.y;
+      month = next.m;
+      day = next.d;
+      break;
+    }
     case 'weekly': {
-      const next = new Date(Date.UTC(year, month, day + 7 * n));
-      year = next.getUTCFullYear();
-      month = next.getUTCMonth();
-      day = next.getUTCDate();
+      if (daysOfWeek && daysOfWeek.length > 0) {
+        // Repeat on specific days of the week — find the next one
+        const next = nextOnDay(day + 1, daysOfWeek);
+        year = next.y;
+        month = next.m;
+        day = next.d;
+      } else {
+        // Standard interval-based weekly
+        const next = new Date(Date.UTC(year, month, day + 7 * n));
+        year = next.getUTCFullYear();
+        month = next.getUTCMonth();
+        day = next.getUTCDate();
+      }
       break;
     }
     case 'monthly': {
@@ -348,23 +382,44 @@ export async function updateTaskForOwner(
   if (completed && !current.completed && current.recurrenceRule) {
     const rule: RecurrenceRule = JSON.parse(current.recurrenceRule);
 
-    const anchorDate =
-      rule.frequency === 'daily' ? nowIsoTimestamp() : (current.dueDate ?? nowIsoTimestamp());
+    const useNow =
+      rule.frequency === 'daily' ||
+      rule.frequency === 'weekdays' ||
+      (rule.frequency === 'weekly' && rule.daysOfWeek && rule.daysOfWeek.length > 0);
+    const anchorDate = useNow ? nowIsoTimestamp() : (current.dueDate ?? nowIsoTimestamp());
 
     const nextDueDate = advanceDueDate(anchorDate, rule);
-    const currentLabels = (await getTaskLabels(current.id)).map((l) => l.id);
 
-    await createTaskForOwner(ownerId, {
-      title: current.title,
-      description: current.description ?? undefined,
-      priority: (current.priority ?? 'medium') as Priority,
-      dueDate: nextDueDate,
-      simpleMode: current.simpleMode,
-      projectId: current.projectId ?? undefined,
-      recurrenceRule: rule,
-      baseTaskId: current.baseTaskId ?? current.id, // link to template
-      labels: currentLabels,
-    });
+    // Stop recurring if the next instance would be past the end date
+    // Compare just the date portion since endDate is YYYY-MM-DD
+    if (rule.endDate && nextDueDate.split('T')[0] > rule.endDate) {
+      // Recurrence ends here — no more instances
+    } else {
+      // Hard cap: at most 365 instances per template to prevent runaway DB growth
+      const templateId = current.baseTaskId ?? current.id;
+      const [{ instanceCount }] = await db
+        .select({ instanceCount: sql<number>`count(*)` })
+        .from(tasks)
+        .where(eq(tasks.baseTaskId, templateId));
+
+      if (instanceCount >= 365) {
+        // Max instances reached — stop recurring
+      } else {
+        const currentLabels = (await getTaskLabels(current.id)).map((l) => l.id);
+
+        await createTaskForOwner(ownerId, {
+          title: current.title,
+          description: current.description ?? undefined,
+          priority: (current.priority ?? 'medium') as Priority,
+          dueDate: nextDueDate,
+          simpleMode: current.simpleMode,
+          projectId: current.projectId ?? undefined,
+          recurrenceRule: rule,
+          baseTaskId: current.baseTaskId ?? current.id, // link to template
+          labels: currentLabels,
+        });
+      }
+    }
   }
 
   await db
