@@ -9,6 +9,7 @@ import {
   PLATFORM_ID,
   inject,
   signal,
+  computed,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
@@ -16,11 +17,13 @@ import {
   Label,
   Priority,
   Project,
+  RecurrenceFrequency,
   Task,
   TaskStatus,
   UpdateTaskDto,
 } from '@yotara/shared';
 import { LabelService } from '../../../core/services/label.service';
+import { TaskService } from '../../../core/services/task.service';
 import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
 import { parseCalendarDate } from '../../../shared/utils/timestamps';
 import { parseTaskCommand } from '../utils/task-command-parser';
@@ -38,6 +41,7 @@ type SavePayload =
 })
 export class PersonalTaskModalComponent implements OnDestroy {
   private readonly labelService = inject(LabelService);
+  private readonly taskService = inject(TaskService);
   private readonly platformId = inject(PLATFORM_ID);
   private bodyScrollLocked = false;
   private previousBodyOverflow = '';
@@ -63,6 +67,19 @@ export class PersonalTaskModalComponent implements OnDestroy {
   protected readonly draftCompleted = signal(false);
   protected readonly draftLabels = signal<string[]>([]);
   protected readonly newLabelName = signal('');
+  protected readonly draftRecurrenceFrequency = signal<RecurrenceFrequency | null>(null);
+  protected readonly draftRecurrenceInterval = signal(1);
+  protected readonly draftRecurrenceEndDate = signal('');
+  protected readonly draftRecurrenceDaysOfWeek = signal<number[]>([]);
+  protected readonly weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  protected readonly recurrenceFrequencies: (RecurrenceFrequency | null)[] = [
+    null,
+    'daily',
+    'weekdays',
+    'weekly',
+    'monthly',
+    'yearly',
+  ];
   protected readonly labels = this.labelService.labels;
   protected readonly palette = [
     '#82d7a9',
@@ -77,6 +94,14 @@ export class PersonalTaskModalComponent implements OnDestroy {
     '#b9a3f4',
   ];
   protected readonly newLabelColor = signal(this.palette[0]);
+
+  // Subtask state
+  protected readonly subtasks = signal<Task[]>([]);
+  protected readonly subtaskLoading = signal(false);
+  protected readonly newSubtaskTitle = signal('');
+  protected readonly newSubtaskCreating = signal(false);
+  protected readonly subtaskEntryMode = signal(false);
+  protected readonly draftSubtasks = signal<{ title: string; completed: boolean }[]>([]);
 
   // Validation state
   protected readonly titleError = signal<string | null>(null);
@@ -105,6 +130,87 @@ export class PersonalTaskModalComponent implements OnDestroy {
   protected selectedContextLabel() {
     const projectName = this.projects.find((project) => project.id === this.draftProjectId())?.name;
     return projectName ?? 'Select a project';
+  }
+
+  protected toggleDay(day: number) {
+    this.draftRecurrenceDaysOfWeek.update((days) =>
+      days.includes(day) ? days.filter((d) => d !== day) : [...days, day].sort(),
+    );
+  }
+
+  protected recurrenceFrequencyLabel() {
+    const freq = this.draftRecurrenceFrequency();
+    if (!freq) return 'None';
+    if (freq === 'weekdays') return 'Weekdays';
+    const label = freq.charAt(0).toUpperCase() + freq.slice(1);
+    const interval = this.draftRecurrenceInterval();
+    return interval > 1 ? `Every ${interval} ${freq}` : label;
+  }
+
+  protected subtaskCount = computed(() => this.subtasks().length + this.draftSubtasks().length);
+
+  protected isRecurrenceDisabled() {
+    return !!this.task?.parentId;
+  }
+
+  protected doneSubtaskCount = computed(() => {
+    return (
+      this.subtasks().filter((s) => s.completed).length +
+      this.draftSubtasks().filter((s) => s.completed).length
+    );
+  });
+
+  protected allSubtasksDone = computed(() => {
+    const total = this.subtaskCount();
+    return total > 0 && this.doneSubtaskCount() === total;
+  });
+
+  protected async loadSubtasks(taskId: string) {
+    this.subtaskLoading.set(true);
+    try {
+      const tasks = await this.taskService.fetchSubtasks(taskId);
+      this.subtasks.set(tasks);
+    } finally {
+      this.subtaskLoading.set(false);
+    }
+  }
+
+  protected async toggleSubtask(subtask: Task) {
+    if (!this.task) return;
+    await this.taskService.updateTask(subtask.id, { completed: !subtask.completed });
+    this.loadSubtasks(this.task.id);
+  }
+
+  protected toggleDraftSubtask(index: number) {
+    this.draftSubtasks.update((subs) => {
+      const next = [...subs];
+      if (next[index]) {
+        next[index] = { ...next[index], completed: !next[index].completed };
+      }
+      return next;
+    });
+  }
+
+  protected toggleSubtaskEntry() {
+    this.subtaskEntryMode.update((m) => !m);
+    if (!this.subtaskEntryMode()) {
+      this.newSubtaskTitle.set('');
+    }
+  }
+
+  protected quickAddSubtask() {
+    const title = this.newSubtaskTitle().trim();
+    if (!title) {
+      this.subtaskEntryMode.set(false);
+      return;
+    }
+
+    this.draftSubtasks.update((subs) => [...subs, { title, completed: false }]);
+    this.newSubtaskTitle.set('');
+  }
+
+  protected removeDraftSubtask(index: number) {
+    this.draftSubtasks.update((subs) => subs.filter((_, i) => i !== index));
   }
 
   protected onSimpleModeChange(value: boolean) {
@@ -174,7 +280,25 @@ export class PersonalTaskModalComponent implements OnDestroy {
       return;
     }
 
-    const payload = {
+    const freq = this.draftRecurrenceFrequency();
+    const daysOfWeek =
+      freq === 'weekdays'
+        ? [1, 2, 3, 4, 5]
+        : freq === 'weekly' && this.draftRecurrenceDaysOfWeek().length > 0
+          ? this.draftRecurrenceDaysOfWeek()
+          : undefined;
+
+    const recurrenceRule =
+      freq && !this.isRecurrenceDisabled()
+        ? {
+            frequency: freq,
+            interval: this.draftRecurrenceInterval(),
+            endDate: this.draftRecurrenceEndDate() || undefined,
+            daysOfWeek,
+          }
+        : null;
+
+    const payload: CreateTaskDto = {
       title: this.draftTitle(),
       description: this.draftDescription().trim() || undefined,
       status: this.draftStatus(),
@@ -183,6 +307,8 @@ export class PersonalTaskModalComponent implements OnDestroy {
       simpleMode: this.draftSimpleMode(),
       projectId: this.draftProjectId() || undefined,
       labels: this.draftLabels(),
+      recurrenceRule: recurrenceRule ?? undefined,
+      subtasks: this.draftSubtasks().length > 0 ? this.draftSubtasks() : undefined,
     };
 
     if (this.task) {
@@ -194,6 +320,7 @@ export class PersonalTaskModalComponent implements OnDestroy {
           projectId: this.draftProjectId() || null,
           completed: this.draftCompleted(),
           labels: this.draftLabels(),
+          recurrenceRule: this.isRecurrenceDisabled() ? undefined : recurrenceRule,
         },
       });
       return;
@@ -262,11 +389,23 @@ export class PersonalTaskModalComponent implements OnDestroy {
       this.task?.projectId ?? this.initialProjectId ?? this.projects[0]?.id ?? '',
     );
     this.draftCompleted.set(this.task?.completed ?? false);
+    this.draftRecurrenceFrequency.set(this.task?.recurrenceRule?.frequency ?? null);
+    this.draftRecurrenceInterval.set(this.task?.recurrenceRule?.interval ?? 1);
+    this.draftRecurrenceEndDate.set(this.task?.recurrenceRule?.endDate ?? '');
+    this.draftRecurrenceDaysOfWeek.set(this.task?.recurrenceRule?.daysOfWeek ?? []);
     this.newLabelName.set('');
     this.newLabelColor.set(this.palette[0]);
-
+    this.subtaskEntryMode.set(false);
+    this.draftSubtasks.set([]);
     // Clear validation errors when modal opens
     this.clearValidationErrors();
+
+    // Load subtasks when editing an existing task
+    if (this.task) {
+      this.loadSubtasks(this.task.id);
+    } else {
+      this.subtasks.set([]);
+    }
   }
 
   private clearValidationErrors() {
@@ -316,18 +455,10 @@ function toDateInputValue(value?: string | null) {
     return '';
   }
 
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
-    date.getDate(),
-  ).padStart(2, '0')}`;
+  return date.toFormat('yyyy-MM-dd');
 }
 
 function normalizeDateInputValue(value: string) {
   const date = parseCalendarDate(value);
-  return date ? formatDateInputValue(date) : undefined;
-}
-
-function formatDateInputValue(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
-    date.getDate(),
-  ).padStart(2, '0')}`;
+  return date ? date.toFormat('yyyy-MM-dd') : undefined;
 }

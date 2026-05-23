@@ -3,12 +3,15 @@ import { and, asc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import type {
   CreateTaskDto,
   PaginatedResponse,
+  Priority,
+  RecurrenceRule,
   Task,
   TaskStatus,
   UpdateTaskDto,
 } from '@yotara/shared';
 import { db } from '../db/client.js';
 import { tasks, users } from '../db/schema.js';
+import { DateTime } from 'luxon';
 import { nowIsoTimestamp } from '../lib/timestamps.js';
 import { getTaskLabels, syncTaskLabels } from './label-service.js';
 import { getDefaultProjectForOwner } from './project-service.js';
@@ -58,6 +61,11 @@ export function toTask(task: TaskRow, labelIds: string[] = []): Task {
     dueDate: task.dueDate ?? undefined,
     simpleMode: task.simpleMode,
     projectId: task.projectId ?? undefined,
+    parentId: task.parentId ?? undefined,
+    recurrenceRule: task.recurrenceRule
+      ? (JSON.parse(task.recurrenceRule) as RecurrenceRule)
+      : undefined,
+    baseTaskId: task.baseTaskId ?? undefined,
     archivedAt: task.archivedAt ?? undefined,
     permanentArchive: task.permanentArchive,
     labels: labelIds,
@@ -99,9 +107,20 @@ export async function listTasksForOwner(
   ownerId: string,
   page: number,
   pageSize: number,
+  includeSubtasks = false,
+  parentId?: string,
 ): Promise<PaginatedResponse<Task[]>> {
   const offset = (page - 1) * pageSize;
-  const whereClause = and(eq(tasks.userId, ownerId), isNull(tasks.deletedAt));
+  const baseWhere = and(eq(tasks.userId, ownerId), isNull(tasks.deletedAt));
+
+  // If parentId is provided, we specifically want subtasks for that parent.
+  // If parentId is NOT provided, we filter based on the includeSubtasks toggle.
+  const whereClause = parentId
+    ? and(baseWhere, eq(tasks.parentId, parentId))
+    : includeSubtasks
+      ? baseWhere
+      : and(baseWhere, isNull(tasks.parentId));
+
   const [{ total }] = await db
     .select({ total: sql<number>`count(*)` })
     .from(tasks)
@@ -155,10 +174,94 @@ export async function getTaskForOwner(taskId: string, ownerId: string) {
   } as TaskRow & { labels: string[] };
 }
 
+export async function listSubtasks(parentId: string, ownerId: string): Promise<Task[]> {
+  const rows = await db
+    .select()
+    .from(tasks)
+    .where(and(eq(tasks.parentId, parentId), eq(tasks.userId, ownerId), isNull(tasks.deletedAt)))
+    .orderBy(asc(tasks.order), asc(tasks.createdAt));
+
+  return Promise.all(
+    rows.map(async (row) =>
+      toTask(
+        row,
+        (await getTaskLabels(row.id)).map((l) => l.id),
+      ),
+    ),
+  );
+}
+
+function advanceDueDate(from: string, rule: RecurrenceRule): string {
+  const dt = DateTime.fromISO(from, { zone: 'utc' });
+  const { frequency, interval, daysOfWeek } = rule;
+  const n = interval || 1;
+
+  let next: DateTime;
+
+  switch (frequency) {
+    case 'daily': {
+      next = dt.plus({ days: n });
+      break;
+    }
+    case 'weekdays': {
+      next = dt.plus({ days: 1 });
+      while (next.weekday > 5) next = next.plus({ days: 1 });
+      break;
+    }
+    case 'weekly': {
+      if (daysOfWeek && daysOfWeek.length > 0) {
+        // RRULE: count weeks from DTSTART (dt), find next BYDAY in week where weekNum % n === 0
+        next = dt.plus({ days: 1 });
+        for (let i = 0; i < 60; i++) {
+          const hoursSinceDtstart = next.diff(dt, 'hours').hours;
+          const weekNum = Math.floor(hoursSinceDtstart / 24 / 7);
+          const jsDay = next.weekday === 7 ? 0 : next.weekday;
+          if (weekNum % n === 0 && daysOfWeek.includes(jsDay)) break;
+          next = next.plus({ days: 1 });
+        }
+      } else {
+        next = dt.plus({ weeks: n });
+      }
+      break;
+    }
+    case 'monthly': {
+      next = dt.plus({ months: n });
+      break;
+    }
+    case 'yearly': {
+      next = dt.plus({ years: n });
+      break;
+    }
+    default:
+      next = dt;
+  }
+
+  const result = next.toISO({ suppressMilliseconds: true });
+  if (!result) throw new Error('Failed to format date');
+  return result;
+}
+
 export async function createTaskForOwner(ownerId: string, body: CreateTaskDto) {
   const payload = normalizeCreatePayload(body);
   const now = nowIsoTimestamp();
   const id = randomUUID();
+
+  if (payload.parentId) {
+    if (payload.parentId === id) {
+      throw new Error('A task cannot be its own parent');
+    }
+    const parent = await getTaskForOwner(payload.parentId, ownerId);
+    if (!parent) {
+      throw new Error('Parent task not found');
+    }
+    if (parent.parentId) {
+      throw new Error('Subtasks cannot have subtasks — only one level of nesting is supported');
+    }
+    if (!payload.projectId) {
+      payload.projectId = parent.projectId ?? undefined;
+    }
+  }
+
   const defaultProject = payload.projectId ? null : await getDefaultProjectForOwner(ownerId);
   const projectId = payload.projectId ?? defaultProject?.id ?? null;
 
@@ -172,6 +275,9 @@ export async function createTaskForOwner(ownerId: string, body: CreateTaskDto) {
     dueDate: payload.dueDate,
     simpleMode: payload.simpleMode ?? false,
     projectId,
+    parentId: payload.parentId ?? null,
+    recurrenceRule: payload.recurrenceRule ? JSON.stringify(payload.recurrenceRule) : null,
+    baseTaskId: payload.baseTaskId ?? null,
     completed: false,
     archivedAt: null,
     permanentArchive: false,
@@ -182,6 +288,30 @@ export async function createTaskForOwner(ownerId: string, body: CreateTaskDto) {
   });
 
   await syncTaskLabels(ownerId, id, payload.labels);
+
+  // Bulk create subtasks if provided
+  if (payload.subtasks?.length) {
+    for (const sub of payload.subtasks) {
+      const subId = randomUUID();
+      await db.insert(tasks).values({
+        id: subId,
+        userId: ownerId,
+        title: sub.title,
+        status: payload.status, // Inherit status for visibility
+        priority: 'medium',
+        simpleMode: payload.simpleMode ?? false, // Inherit simpleMode from parent
+        projectId,
+        parentId: id,
+        completed: sub.completed ?? false,
+        archivedAt: sub.completed ? now : null,
+        order: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+      // Inherit labels from parent
+      await syncTaskLabels(ownerId, subId, payload.labels);
+    }
+  }
 
   return getTaskForOwner(id, ownerId);
 }
@@ -212,11 +342,72 @@ export async function updateTaskForOwner(
         : null;
   const nextProjectId =
     body.projectId === null
-      ? ((await getDefaultProjectForOwner(ownerId))?.id ?? current.projectId ?? null)
+      ? null
       : (body.projectId ??
         current.projectId ??
         (await getDefaultProjectForOwner(ownerId))?.id ??
         null);
+  const nextParentId =
+    body.parentId === null ? null : (body.parentId ?? current.parentId ?? undefined);
+
+  // Validate no nested subtasks: if we're setting a parent, that parent must not be a subtask itself
+  if (nextParentId && nextParentId !== current.parentId) {
+    const newParent = await getTaskForOwner(nextParentId, ownerId);
+    if (newParent?.parentId) {
+      throw new Error('Subtasks cannot have subtasks — only one level of nesting is supported');
+    }
+  }
+  const nextRecurrenceRule =
+    body.recurrenceRule === null
+      ? null
+      : body.recurrenceRule !== undefined
+        ? JSON.stringify(body.recurrenceRule)
+        : (current.recurrenceRule ?? undefined);
+
+  // Recurrence materialization: create next instance when a recurring task is completed
+  // Don't materialize if the caller is explicitly clearing the recurrence rule
+  if (completed && !current.completed && current.recurrenceRule && body.recurrenceRule !== null) {
+    const rule: RecurrenceRule = JSON.parse(current.recurrenceRule);
+
+    const useNow =
+      rule.frequency === 'daily' ||
+      rule.frequency === 'weekdays' ||
+      (rule.frequency === 'weekly' && rule.daysOfWeek && rule.daysOfWeek.length > 0);
+    const anchorDate = useNow ? nowIsoTimestamp() : (current.dueDate ?? nowIsoTimestamp());
+
+    const nextDueDate = advanceDueDate(anchorDate, rule);
+
+    // Stop recurring if the next instance would be past the end date
+    // Compare just the date portion since endDate is YYYY-MM-DD
+    if (rule.endDate && nextDueDate.split('T')[0] > rule.endDate) {
+      // Recurrence ends here — no more instances
+    } else {
+      // Hard cap: at most 365 instances per template to prevent runaway DB growth
+      const templateId = current.baseTaskId ?? current.id;
+      const [{ instanceCount }] = await db
+        .select({ instanceCount: sql<number>`count(*)` })
+        .from(tasks)
+        .where(eq(tasks.baseTaskId, templateId));
+
+      if (instanceCount >= 365) {
+        // Max instances reached — stop recurring
+      } else {
+        const currentLabels = (await getTaskLabels(current.id)).map((l) => l.id);
+
+        await createTaskForOwner(ownerId, {
+          title: current.title,
+          description: current.description ?? undefined,
+          priority: (current.priority ?? 'medium') as Priority,
+          dueDate: nextDueDate,
+          simpleMode: current.simpleMode,
+          projectId: current.projectId ?? undefined,
+          recurrenceRule: rule,
+          baseTaskId: current.baseTaskId ?? current.id, // link to template
+          labels: currentLabels,
+        });
+      }
+    }
+  }
 
   await db
     .update(tasks)
@@ -227,6 +418,8 @@ export async function updateTaskForOwner(
       dueDate: simpleMode ? null : (body.dueDate ?? current.dueDate),
       simpleMode,
       projectId: nextProjectId,
+      parentId: nextParentId,
+      recurrenceRule: nextRecurrenceRule,
       order: body.order ?? current.order,
       completed,
       status: normalizeStatusOnCompletion(status, completed),
@@ -237,6 +430,33 @@ export async function updateTaskForOwner(
     .where(eq(tasks.id, taskId));
 
   await syncTaskLabels(ownerId, taskId, body.labels);
+
+  // Bulk create NEW subtasks if provided during update
+  if (body.subtasks?.length) {
+    const now = nowIsoTimestamp();
+    // Determine labels to propagate to subtasks
+    const subtaskLabels = body.labels ?? (await getTaskLabels(taskId)).map((l) => l.id);
+    for (const sub of body.subtasks) {
+      const subId = randomUUID();
+      await db.insert(tasks).values({
+        id: subId,
+        userId: ownerId,
+        title: sub.title,
+        status: status, // Match current task status
+        priority: 'medium',
+        simpleMode, // Inherit simpleMode from parent
+        projectId: nextProjectId,
+        parentId: taskId,
+        completed: sub.completed ?? false,
+        archivedAt: sub.completed ? now : null,
+        order: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+      // Inherit labels from parent
+      await syncTaskLabels(ownerId, subId, subtaskLabels);
+    }
+  }
 
   return getTaskForOwner(taskId, ownerId);
 }
@@ -250,6 +470,12 @@ export async function deleteTaskForOwner(
   if (!row) {
     return null;
   }
+
+  // Cascade-delete subtasks
+  await db.delete(tasks).where(and(eq(tasks.parentId, taskId), eq(tasks.userId, ownerId)));
+
+  // Cascade-delete materialized instances (if this is a recurring template)
+  await db.delete(tasks).where(and(eq(tasks.baseTaskId, taskId), eq(tasks.userId, ownerId)));
 
   await db.delete(tasks).where(and(eq(tasks.id, taskId), eq(tasks.userId, ownerId)));
 

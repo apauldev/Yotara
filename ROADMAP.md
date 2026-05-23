@@ -15,6 +15,8 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 - ✅ Personal task views: Inbox, Today, Upcoming, project detail, and archive page shell with full restore/archive lifecycle
 - ✅ Archive page behavior: complete archive list with restore and permanent delete, proper `archived_at` timestamp handling
 - ✅ Task CRUD foundation: paginated API loading, create/update/delete API, soft delete, labels on tasks, project assignment, priority, due date, simple mode, and personal buckets
+- ✅ Subtasks: hierarchical task management (1-level deep) with automatic progress tracking (completed/total counts) and parent project inheritance
+- ✅ Recurring tasks: automated task materialization for daily, weekly, monthly, and yearly frequencies with robust calendar-based date math
 - ✅ Personal project CRUD foundation: create, list, update, detail view, and project-scoped tasks
 - ✅ Personal label CRUD: labels page, create/edit/delete modal, color selection, label counts, and task label filtering
 - ✅ Shared UI primitives: accessible modal, reusable confirm dialog, logout confirm modal, page header, section header, button utility, date picker, and empty-state directive
@@ -44,8 +46,8 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 
 | # | Task | Status | Effort | Current code reality / next action |
 |---|------|--------|--------|------------------------------------|
-| 8 | Subtasks UI: checklist inside task modal | ⬜ Not started | Medium | Shared DTOs mention `parentTaskId`, but DB schema and UI do not support subtasks yet. Start with one-level subtasks. |
-| 9 | Recurring tasks: daily/weekly/monthly | ⬜ Not started | Medium | No recurrence model yet. Add schema/API first, then modal controls and task materialization rules. |
+| 8 | Subtasks UI: checklist inside task modal | ✅ Done | Medium | Hierarchical task management implemented. Subtasks inherit parent project and are excluded from main lists by default. Modal includes subtask creation and completion tracking. |
+| 9 | Recurring tasks: daily/weekly/monthly | ✅ Done | Medium | Automated materialization logic implemented in API service. Supports daily, weekly, monthly, and yearly cycles. New instances generated upon completion of the previous instance. |
 | 10 | Markdown preview in task description | ⬜ Not started | Low | Task modal has a textarea only. Add preview toggle and sanitization. |
 | 11 | Browser notifications for due reminders | ⬜ Not started | Medium | Settings has disabled notification rows; no permission/scheduler/service worker flow yet. |
 | 12 | Export data: JSON and CSV from Settings | ⬜ Not started | Low | Settings has disabled export row. Implement client export first, API export later if needed. |
@@ -97,6 +99,15 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 | 33 | Notification center | ⬜ Not started | Medium | Depends on notification event model. |
 | 34 | Activity log | ⬜ Not started | Low | Can share event model with comments/notifications. |
 | 35 | Cross-mode search | ⬜ Not started | Medium | Depends on team-mode data model. |
+| 36 | Natural language task entry in title bar (Todoist-style `every day`, `#project`, `@label`) | ⬜ Not started | Medium | Enhance existing `parseTaskCommand` with chrono-node and full syntax |
+| 37 | Drag-and-drop reorder for subtasks inline | ⬜ Not started | Low | Subtasks ordered by `createdAt` only |
+| 38 | "Repeat on due date" vs "repeat on completion" toggle | ⬜ Not started | Low | Currently always materializes on completion |
+| 39 | Recurring subtasks (subtasks with their own repeat rules) | ⬜ Not started | Low | Subtask repeat field currently disabled |
+| 40 | Skip / snooze single recurrence occurrence | ⬜ Not started | Low | No way to skip an instance without deleting |
+| 41 | Multi-level subtask nesting (>1 level deep) | ⬜ Not started | Medium | Hard-coded to 1 level |
+| 42 | Expand/collapse toggle on parent task card for subtasks | ⬜ Not started | Low | Subtasks always visible below parent |
+| 43 | Recurring template separated from normal task lists | ⬜ Not started | Low | Template and instances currently mixed |
+| 44 | Activity log for past completions of recurring tasks | ⬜ Not started | Low | Show history of completed instances |
 
 ### Recommended Sprint Order
 

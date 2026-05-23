@@ -14,6 +14,7 @@ import {
   cleanupExpiredArchivedTasks,
   deleteTaskForOwner,
   getTaskForOwner,
+  listSubtasks,
   listTasksForOwner,
   toTask,
   updateTaskForOwner,
@@ -33,7 +34,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get<{
-    Querystring: { page?: number; pageSize?: number };
+    Querystring: { page?: number; pageSize?: number; includeSubtasks?: boolean; parentId?: string };
     Reply: PaginatedResponse<Task[]> | { message: string };
   }>(
     '/tasks',
@@ -47,6 +48,8 @@ export default async function taskRoutes(fastify: FastifyInstance) {
           properties: {
             page: { type: 'integer', minimum: 1, default: 1 },
             pageSize: { type: 'integer', minimum: 1, maximum: 100, default: 50 },
+            includeSubtasks: { type: 'boolean', default: false },
+            parentId: { type: 'string' },
           },
         },
         response: {
@@ -66,7 +69,9 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       const userId = request.userId;
       const page = Math.max(1, request.query.page ?? 1);
       const pageSize = Math.min(100, Math.max(1, request.query.pageSize ?? 50));
-      return listTasksForOwner(userId, page, pageSize);
+      const includeSubtasks = String(request.query.includeSubtasks) === 'true';
+      const parentId = request.query.parentId;
+      return listTasksForOwner(userId, page, pageSize, includeSubtasks, parentId);
     },
   );
 
@@ -99,7 +104,12 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         return sendNotFound(reply, 'Task not found');
       }
 
-      return toTask(row, row.labels);
+      const task = toTask(row, row.labels);
+      const subtasks = await listSubtasks(request.params.id, userId);
+      task.subtaskCount = subtasks.length;
+      task.subtaskCompletedCount = subtasks.filter((s) => s.completed).length;
+
+      return task;
     },
   );
 

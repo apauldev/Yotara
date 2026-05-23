@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, computed, inject, signal } from '@angular/core';
 import { Task } from '@yotara/shared';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faBoxArchive, faRotateLeft, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faBoxArchive, faRotate, faRotateLeft, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { LabelService } from '../../../core/services/label.service';
 import { TaskService } from '../../../core/services/task.service';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
@@ -18,6 +18,7 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
       [class.task-card-overdue]="tone === 'overdue'"
       [class.task-card-complete]="task.completed"
       [class.task-card-interactive]="interactive"
+      [class.task-card-compact]="mode === 'compact'"
       [attr.role]="interactive ? 'button' : null"
       [attr.tabindex]="interactive ? 0 : null"
       [attr.aria-label]="interactive ? 'Open task details for ' + task.title : null"
@@ -28,53 +29,86 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
         type="button"
         class="task-check"
         [class.task-check-complete]="task.completed"
+        [class.task-check-compact]="mode === 'compact'"
         [attr.aria-label]="task.completed ? 'Task completed' : 'Mark task complete'"
         (click)="requestComplete($event)"
         (keydown)="$event.stopPropagation()"
       >
-        <span class="task-check-box" aria-hidden="true">
+        <span
+          class="task-check-box"
+          aria-hidden="true"
+          [class.task-check-box-compact]="mode === 'compact'"
+        >
           @if (task.completed) {
-            <span class="task-check-mark"></span>
+            <span
+              class="task-check-mark"
+              [class.task-check-mark-compact]="mode === 'compact'"
+            ></span>
           }
         </span>
       </button>
 
       <div class="task-copy">
         <div class="task-title-row">
-          <h3>{{ task.title }}</h3>
+          <h3 [class.h3-compact]="mode === 'compact'">{{ task.title }}</h3>
 
-          <div class="task-badges">
-            @if (task.labels?.length) {
-              @for (labelId of task.labels?.slice(0, 1) ?? []; track labelId) {
+          @if (task.labels?.length) {
+            <div class="task-badges-labels">
+              @for (labelId of task.labels ?? []; track labelId) {
                 <span class="meta-pill meta-pill-label">{{ labelName(labelId) }}</span>
               }
-            }
+            </div>
+          }
 
-            @if (task.dueDate) {
-              <span class="meta-pill meta-pill-date">
-                {{ dateLabel() }}
-              </span>
-            }
+          @if (mode === 'default') {
+            <div class="task-badges">
+              @if (task.dueDate) {
+                <span class="meta-pill meta-pill-date">
+                  {{ dateLabel() }}
+                </span>
+              }
 
-            <span class="meta-pill meta-pill-muted">{{ statusLabel() }}</span>
-            <span class="priority-chip priority-chip-{{ task.priority }}">{{
-              priorityLabel()
-            }}</span>
+              <span class="meta-pill meta-pill-muted">{{ statusLabel() }}</span>
+              <span class="priority-chip priority-chip-{{ task.priority }}">{{
+                priorityLabel()
+              }}</span>
 
-            @if (task.bucket) {
-              <span class="meta-pill meta-pill-bucket">{{ bucketLabel() }}</span>
-            }
+              @if (task.bucket) {
+                <span class="meta-pill meta-pill-bucket">{{ bucketLabel() }}</span>
+              }
 
-            @if (task.simpleMode) {
-              <span class="meta-pill meta-pill-simple">Simple mode</span>
-            }
+              @if (task.simpleMode) {
+                <span class="meta-pill meta-pill-simple">Simple mode</span>
+              }
 
-            @if (showCompletionState && task.completed) {
-              <span class="meta-pill meta-pill-complete">Done</span>
-            }
-          </div>
+              @if (task.parentId) {
+                <span class="meta-pill meta-pill-subtask">Subtask</span>
+              }
 
-          @if (task.completed) {
+              @if (subtaskCount() > 0) {
+                <span
+                  class="meta-pill"
+                  [class.subtask-pill-done]="subtaskAllDone()"
+                  [class.subtask-pill-partial]="!subtaskAllDone() && subtaskDoneCount() > 0"
+                >
+                  {{ subtaskDoneCount() }} / {{ subtaskCount() }}
+                </span>
+              }
+
+              @if (task.recurrenceRule) {
+                <span class="meta-pill meta-pill-recurring" [attr.title]="recurrenceLabel()">
+                  <fa-icon [icon]="faRotate" class="recurring-icon" />
+                  {{ recurrenceLabel() }}
+                </span>
+              }
+
+              @if (showCompletionState && task.completed) {
+                <span class="meta-pill meta-pill-complete">Done</span>
+              }
+            </div>
+          }
+
+          @if (task.completed && mode === 'default') {
             <div class="completion-group">
               <span class="completion-chip completion-chip-complete">Completed</span>
               <button
@@ -120,7 +154,7 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
           }
         </div>
 
-        @if (showDescription && task.description) {
+        @if (mode === 'default' && showDescription && task.description) {
           <p class="task-description">
             {{
               task.description.length > 120
@@ -184,6 +218,17 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
         opacity: 0.76;
       }
 
+      .task-card-compact {
+        padding: 0.35rem 0.65rem;
+        box-shadow: none;
+        background: transparent;
+        border-radius: 0.6rem;
+      }
+
+      .task-card-compact:hover {
+        background: var(--surface-container-low);
+      }
+
       .task-check {
         appearance: none;
         padding: 0;
@@ -195,6 +240,11 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
         cursor: pointer;
         display: grid;
         place-items: center;
+      }
+
+      .task-check-compact {
+        width: 1rem;
+        height: 1rem;
       }
 
       .task-check-box {
@@ -211,6 +261,12 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
           box-shadow 120ms ease;
       }
 
+      .task-check-box-compact {
+        width: 0.85rem;
+        height: 0.85rem;
+        border-radius: 0.18rem;
+      }
+
       .task-check-complete .task-check-box {
         background: var(--primary-solid);
         box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
@@ -222,6 +278,11 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
         border-right: 2px solid #fff;
         border-bottom: 2px solid #fff;
         transform: translateY(-0.05rem) rotate(45deg);
+      }
+
+      .task-check-mark-compact {
+        width: 0.25rem;
+        height: 0.45rem;
       }
 
       .task-copy {
@@ -320,6 +381,12 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
         font-weight: 600;
       }
 
+      .h3-compact {
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--on-surface-muted);
+      }
+
       .task-card-complete h3 {
         text-decoration: line-through;
       }
@@ -372,6 +439,34 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
         color: var(--on-surface-muted);
       }
 
+      .meta-pill-subtask {
+        background: var(--accent-soft);
+        color: var(--accent-strong);
+      }
+
+      .subtask-pill-done {
+        background: var(--success-soft);
+        color: var(--success-strong);
+      }
+
+      .subtask-pill-partial {
+        background: var(--warning-soft);
+        color: var(--status-pending);
+      }
+
+      .meta-pill-recurring {
+        background: var(--accent-soft);
+        color: var(--accent-strong);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.2rem;
+      }
+
+      .recurring-icon {
+        font-size: 0.7rem;
+        line-height: 1;
+      }
+
       .priority-chip-high {
         background: var(--danger-soft);
         color: var(--status-overdue);
@@ -411,7 +506,7 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
 
         .meta-pill,
         .priority-chip {
-          font-size: 0.58rem;
+          font-size: 0.65rem;
           padding: 0.1rem 0.35rem;
         }
 
@@ -427,11 +522,13 @@ export class PersonalTaskCardComponent {
   private readonly labelService = inject(LabelService);
   protected readonly completeConfirmOpen = signal(false);
   protected readonly completing = signal(false);
+  protected readonly faRotate = faRotate;
   protected readonly faRotateLeft = faRotateLeft;
   protected readonly faBoxArchive = faBoxArchive;
   protected readonly faTrash = faTrash;
 
   @Input({ required: true }) task!: Task;
+  @Input() mode: 'default' | 'compact' = 'default';
   @Input() tone: 'default' | 'overdue' = 'default';
   @Input() showDescription = true;
   @Input() showCompletionState = false;
@@ -467,7 +564,9 @@ export class PersonalTaskCardComponent {
       return '';
     }
 
-    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(parsed);
+    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(
+      parsed.toJSDate(),
+    );
   }
 
   protected labelName(labelId: string) {
@@ -487,6 +586,32 @@ export class PersonalTaskCardComponent {
       default:
         return this.task.bucket || '';
     }
+  }
+
+  protected subtaskCount = computed(() => this.task.subtaskCount ?? 0);
+  protected subtaskDoneCount = computed(() => this.task.subtaskCompletedCount ?? 0);
+  protected subtaskAllDone = computed(
+    () => this.subtaskCount() > 0 && this.subtaskDoneCount() === this.subtaskCount(),
+  );
+
+  protected recurrenceLabel() {
+    const rule = this.task.recurrenceRule;
+    if (!rule) return '';
+
+    const { frequency, interval, daysOfWeek } = rule;
+
+    if (frequency === 'weekdays') {
+      return 'Weekdays';
+    }
+
+    if (frequency === 'weekly' && daysOfWeek && daysOfWeek.length > 0) {
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const label = daysOfWeek.map((d) => dayNames[d]).join(', ');
+      return interval > 1 ? `Every ${interval} weeks (${label})` : label;
+    }
+
+    const label = frequency.charAt(0).toUpperCase() + frequency.slice(1);
+    return interval > 1 ? `Every ${interval} ${frequency}` : label;
   }
 
   requestComplete(event: MouseEvent) {

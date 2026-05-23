@@ -89,6 +89,9 @@ const SQLITE_BOOTSTRAP_SQL = `
     simple_mode INTEGER NOT NULL DEFAULT 0,
     bucket TEXT DEFAULT 'personal-sanctuary',
     project_id TEXT,
+    parent_id TEXT REFERENCES tasks(id) ON DELETE SET NULL,
+    recurrence_rule TEXT,
+    base_task_id TEXT REFERENCES tasks(id) ON DELETE SET NULL,
     deleted_at TEXT,
     archived_at TEXT,
     permanent_archive INTEGER NOT NULL DEFAULT 0,
@@ -302,6 +305,25 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
   if (!taskColumnNames.has('permanent_archive')) {
     sqlite.exec(`ALTER TABLE tasks ADD COLUMN permanent_archive INTEGER NOT NULL DEFAULT 0`);
   }
+
+  if (!taskColumnNames.has('parent_id')) {
+    sqlite.exec(
+      `ALTER TABLE tasks ADD COLUMN parent_id TEXT REFERENCES tasks(id) ON DELETE SET NULL`,
+    );
+  }
+
+  if (!taskColumnNames.has('recurrence_rule')) {
+    sqlite.exec(`ALTER TABLE tasks ADD COLUMN recurrence_rule TEXT`);
+  }
+
+  if (!taskColumnNames.has('base_task_id')) {
+    sqlite.exec(
+      `ALTER TABLE tasks ADD COLUMN base_task_id TEXT REFERENCES tasks(id) ON DELETE SET NULL`,
+    );
+  }
+
+  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_parent_id ON tasks(parent_id)`);
+  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_base_task_id ON tasks(base_task_id)`);
 
   const labelColumns = sqlite.prepare(`PRAGMA table_info('labels')`).all() as Array<{
     name: string;

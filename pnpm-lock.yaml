@@ -53,6 +53,9 @@ importers:
       '@fastify/swagger-ui':
         specifier: ^5.2.3
         version: 5.2.5
+      '@types/luxon':
+        specifier: ^3.7.1
+        version: 3.7.1
       '@yotara/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -68,6 +71,9 @@ importers:
       fastify:
         specifier: ^5.8.1
         version: 5.8.1
+      luxon:
+        specifier: ^3.7.2
+        version: 3.7.2
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7.6.13
@@ -132,6 +138,9 @@ importers:
       '@spartan-ng/brain':
         specifier: 0.0.1-alpha.646
         version: 0.0.1-alpha.646(429244e3510478ec5a6ee303dc10e0e5)
+      '@types/luxon':
+        specifier: ^3.7.1
+        version: 3.7.1
       '@yotara/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -144,6 +153,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      luxon:
+        specifier: ^3.7.2
+        version: 3.7.2
       rxjs:
         specifier: ~7.8.0
         version: 7.8.2
@@ -3408,6 +3420,9 @@ packages:
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
+
+  '@types/luxon@3.7.1':
+    resolution: {integrity: sha512-H3iskjFIAn5SlJU7OuxUmTEpebK6TKB8rxZShDslBMZJ5u9S//KM1sbdAisiSrqwLQncVjnpi2OK2J51h+4lsg==}
 
   '@types/mime@1.3.5':
     resolution: {integrity: sha512-/pyBZWSLD2n0dcHE3hq8s8ZvcETHtEuF+3E7XVt0Ig2nvsVQXdghHVcEkIWjy9A0wKfTn97a/PSDYohKIlnP/w==}
@@ -12780,6 +12795,8 @@ snapshots:
   '@types/jasmine@5.1.15': {}
 
   '@types/json-schema@7.0.15': {}
+
+  '@types/luxon@3.7.1': {}
 
   '@types/mime@1.3.5': {}
 

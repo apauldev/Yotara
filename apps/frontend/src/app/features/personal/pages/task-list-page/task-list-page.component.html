@@ -193,11 +193,28 @@
             } @else {
               <div class="task-stack">
                 @for (task of processedInboxTasks(); track task.id) {
-                  <app-personal-task-card
-                    [task]="task"
-                    [interactive]="true"
-                    (select)="workspace.editTask(task)"
-                  />
+                  <div class="task-group">
+                    <app-personal-task-card
+                      [task]="task"
+                      [interactive]="true"
+                      (select)="workspace.editTask(task)"
+                    />
+
+                    @if (subtasksByParent().get(task.id); as subtasks) {
+                      <div class="subtask-nested-list">
+                        @for (subtask of subtasks; track subtask.id) {
+                          <div class="subtask-item-wrapper">
+                            <app-personal-task-card
+                              [task]="subtask"
+                              mode="compact"
+                              [interactive]="true"
+                              (select)="workspace.editTask(subtask)"
+                            />
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
                 }
               </div>
 
@@ -219,13 +236,28 @@
             <app-section-header title="Overdue" size="lg" tone="accent" />
 
             <div class="task-stack">
-              @for (task of taskService.overdueTasks(); track task.id) {
-                <app-personal-task-card
-                  [task]="task"
-                  tone="overdue"
-                  [interactive]="true"
-                  (select)="editTask(task)"
-                />
+              @for (task of taskService.overdueTasks().filter(t => !t.parentId); track task.id) {
+                <div class="task-group">
+                  <app-personal-task-card
+                    [task]="task"
+                    tone="overdue"
+                    [interactive]="true"
+                    (select)="editTask(task)"
+                  />
+
+                  @if (subtasksByParent().get(task.id); as subtasks) {
+                    <div class="subtask-nested-list">
+                      @for (subtask of subtasks; track subtask.id) {
+                        <app-personal-task-card
+                          [task]="subtask"
+                          mode="compact"
+                          [interactive]="true"
+                          (select)="editTask(subtask)"
+                        />
+                      }
+                    </div>
+                  }
+                </div>
               }
             </div>
           </section>
@@ -294,11 +326,26 @@
             } @else {
               <div class="task-stack">
                 @for (task of processedTodayTasks(); track task.id) {
-                  <app-personal-task-card
-                    [task]="task"
-                    [interactive]="true"
-                    (select)="editTask(task)"
-                  />
+                  <div class="task-group">
+                    <app-personal-task-card
+                      [task]="task"
+                      [interactive]="true"
+                      (select)="editTask(task)"
+                    />
+
+                    @if (subtasksByParent().get(task.id); as subtasks) {
+                      <div class="subtask-nested-list">
+                        @for (subtask of subtasks; track subtask.id) {
+                          <app-personal-task-card
+                            [task]="subtask"
+                            mode="compact"
+                            [interactive]="true"
+                            (select)="editTask(subtask)"
+                          />
+                        }
+                      </div>
+                    }
+                  </div>
                 }
               </div>
 
@@ -311,14 +358,35 @@
 
               @if (taskService.todayCompletedTasks().length > 0) {
                 <div class="completed-stack">
-                  @for (task of taskService.todayCompletedTasks(); track task.id) {
-                    <app-personal-task-card
-                      [task]="task"
-                      [interactive]="true"
-                      [showDescription]="false"
-                      [showCompletionState]="true"
-                      (select)="editTask(task)"
-                    />
+                  @for (
+                    task of taskService.todayCompletedTasks().filter(t => !t.parentId);
+                    track task.id
+                  ) {
+                    <div class="task-group">
+                      <app-personal-task-card
+                        [task]="task"
+                        [interactive]="true"
+                        [showDescription]="false"
+                        [showCompletionState]="true"
+                        (select)="editTask(task)"
+                      />
+
+                      @if (subtasksByParent().get(task.id); as subtasks) {
+                        <div class="subtask-nested-list">
+                          @for (subtask of subtasks; track subtask.id) {
+                            <div class="subtask-item-wrapper">
+                              <app-personal-task-card
+                                [task]="subtask"
+                                mode="compact"
+                                [interactive]="true"
+                                [showCompletionState]="true"
+                                (select)="editTask(subtask)"
+                              />
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
                   }
                 </div>
               }
@@ -397,11 +465,26 @@
 
                     <div class="task-stack">
                       @for (task of group.tasks; track task.id) {
-                        <app-personal-task-card
-                          [task]="task"
-                          [interactive]="true"
-                          (select)="workspace.editTask(task)"
-                        />
+                        <div class="task-group">
+                          <app-personal-task-card
+                            [task]="task"
+                            [interactive]="true"
+                            (select)="workspace.editTask(task)"
+                          />
+
+                          @if (subtasksByParent().get(task.id); as subtasks) {
+                            <div class="subtask-nested-list">
+                              @for (subtask of subtasks; track subtask.id) {
+                                <app-personal-task-card
+                                  [task]="subtask"
+                                  mode="compact"
+                                  [interactive]="true"
+                                  (select)="workspace.editTask(subtask)"
+                                />
+                              }
+                            </div>
+                          }
+                        </div>
                       }
                     </div>
                   </section>
@@ -484,11 +567,30 @@
 
                     <div class="task-stack">
                       @for (taskResult of taskResults(); track taskResult.task.id) {
-                        <app-personal-task-card
-                          [task]="taskResult.task"
-                          [interactive]="true"
-                          (select)="editTask(taskResult.task)"
-                        />
+                        @if (!taskResult.task.parentId) {
+                          <div class="task-group">
+                            <app-personal-task-card
+                              [task]="taskResult.task"
+                              [interactive]="true"
+                              (select)="editTask(taskResult.task)"
+                            />
+
+                            @if (subtasksByParent().get(taskResult.task.id); as subtasks) {
+                              <div class="subtask-nested-list">
+                                @for (subtask of subtasks; track subtask.id) {
+                                  <div class="subtask-item-wrapper">
+                                    <app-personal-task-card
+                                      [task]="subtask"
+                                      mode="compact"
+                                      [interactive]="true"
+                                      (select)="editTask(subtask)"
+                                    />
+                                  </div>
+                                }
+                              </div>
+                            }
+                          </div>
+                        }
                       }
                     </div>
                   </section>
@@ -575,11 +677,30 @@
 
                   <div class="task-stack">
                     @for (taskResult of taskResults(); track taskResult.task.id) {
-                      <app-personal-task-card
-                        [task]="taskResult.task"
-                        [interactive]="true"
-                        (select)="editTask(taskResult.task)"
-                      />
+                      @if (!taskResult.task.parentId) {
+                        <div class="task-group">
+                          <app-personal-task-card
+                            [task]="taskResult.task"
+                            [interactive]="true"
+                            (select)="editTask(taskResult.task)"
+                          />
+
+                          @if (subtasksByParent().get(taskResult.task.id); as subtasks) {
+                            <div class="subtask-nested-list">
+                              @for (subtask of subtasks; track subtask.id) {
+                                <div class="subtask-item-wrapper">
+                                  <app-personal-task-card
+                                    [task]="subtask"
+                                    mode="compact"
+                                    [interactive]="true"
+                                    (select)="editTask(subtask)"
+                                  />
+                                </div>
+                              }
+                            </div>
+                          }
+                        </div>
+                      }
                     }
                   </div>
 

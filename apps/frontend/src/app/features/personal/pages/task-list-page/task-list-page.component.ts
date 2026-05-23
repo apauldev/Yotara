@@ -172,6 +172,19 @@ export class TaskListPageComponent implements OnInit {
   protected readonly captureProjectId = signal('');
   protected readonly captureError = signal('');
 
+  protected readonly subtasksByParent = computed(() => {
+    const all = this.taskService.tasks();
+    const map = new Map<string, Task[]>();
+    for (const task of all) {
+      if (task.parentId) {
+        const list = map.get(task.parentId) ?? [];
+        list.push(task);
+        map.set(task.parentId, list);
+      }
+    }
+    return map;
+  });
+
   protected readonly inboxCountLabel = computed(
     () => `${this.taskService.inboxTasks().length} Tasks`,
   );
@@ -236,9 +249,9 @@ export class TaskListPageComponent implements OnInit {
 
       // Default: date (newest created for inbox, or by dueDate)
       const dateA =
-        parseCalendarDate(taskA.dueDate)?.getTime() ?? new Date(taskA.createdAt).getTime();
+        parseCalendarDate(taskA.dueDate)?.toMillis() ?? new Date(taskA.createdAt).getTime();
       const dateB =
-        parseCalendarDate(taskB.dueDate)?.getTime() ?? new Date(taskB.createdAt).getTime();
+        parseCalendarDate(taskB.dueDate)?.toMillis() ?? new Date(taskB.createdAt).getTime();
       return dateB - dateA;
     });
 

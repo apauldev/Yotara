@@ -343,12 +343,16 @@ export class DatePickerComponent implements OnChanges {
 
   private readonly minSignal = signal<string | null>(null);
   private readonly maxSignal = signal<string | null>(null);
-  protected readonly minDate = computed(() => parseCalendarDate(this.minSignal()));
-  protected readonly maxDate = computed(() => parseCalendarDate(this.maxSignal()));
+  protected readonly minDate = computed(
+    () => parseCalendarDate(this.minSignal())?.toJSDate() ?? null,
+  );
+  protected readonly maxDate = computed(
+    () => parseCalendarDate(this.maxSignal())?.toJSDate() ?? null,
+  );
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['value']) {
-      this.selectedDate.set(parseCalendarDate(this.value));
+      this.selectedDate.set(parseCalendarDate(this.value)?.toJSDate() ?? null);
     }
     if (changes['min']) {
       this.minSignal.set(this.min);

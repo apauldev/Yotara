@@ -19,10 +19,21 @@
 
 /* --- Shared Elements --- */
 .task-stack,
-.completed-stack,
 .group-stack {
   display: grid;
-  gap: 0.95rem;
+  gap: 1.25rem;
+}
+
+.task-group {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.subtask-nested-list {
+  margin-left: 1.4rem;
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.25rem 0 0.5rem;
 }
 
 .completed-stack {
