@@ -299,6 +299,7 @@ export async function createTaskForOwner(ownerId: string, body: CreateTaskDto) {
         title: sub.title,
         status: payload.status, // Inherit status for visibility
         priority: 'medium',
+        simpleMode: payload.simpleMode ?? false, // Inherit simpleMode from parent
         projectId,
         parentId: id,
         completed: sub.completed ?? false,
@@ -307,6 +308,8 @@ export async function createTaskForOwner(ownerId: string, body: CreateTaskDto) {
         createdAt: now,
         updatedAt: now,
       });
+      // Inherit labels from parent
+      await syncTaskLabels(ownerId, subId, payload.labels);
     }
   }
 
@@ -431,6 +434,8 @@ export async function updateTaskForOwner(
   // Bulk create NEW subtasks if provided during update
   if (body.subtasks?.length) {
     const now = nowIsoTimestamp();
+    // Determine labels to propagate to subtasks
+    const subtaskLabels = body.labels ?? (await getTaskLabels(taskId)).map((l) => l.id);
     for (const sub of body.subtasks) {
       const subId = randomUUID();
       await db.insert(tasks).values({
@@ -439,6 +444,7 @@ export async function updateTaskForOwner(
         title: sub.title,
         status: status, // Match current task status
         priority: 'medium',
+        simpleMode, // Inherit simpleMode from parent
         projectId: nextProjectId,
         parentId: taskId,
         completed: sub.completed ?? false,
@@ -447,6 +453,8 @@ export async function updateTaskForOwner(
         createdAt: now,
         updatedAt: now,
       });
+      // Inherit labels from parent
+      await syncTaskLabels(ownerId, subId, subtaskLabels);
     }
   }
 

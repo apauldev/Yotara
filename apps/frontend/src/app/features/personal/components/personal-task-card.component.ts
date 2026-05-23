@@ -52,14 +52,16 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
         <div class="task-title-row">
           <h3 [class.h3-compact]="mode === 'compact'">{{ task.title }}</h3>
 
+          @if (task.labels?.length) {
+            <div class="task-badges-labels">
+              @for (labelId of task.labels ?? []; track labelId) {
+                <span class="meta-pill meta-pill-label">{{ labelName(labelId) }}</span>
+              }
+            </div>
+          }
+
           @if (mode === 'default') {
             <div class="task-badges">
-              @if (task.labels?.length) {
-                @for (labelId of task.labels?.slice(0, 1) ?? []; track labelId) {
-                  <span class="meta-pill meta-pill-label">{{ labelName(labelId) }}</span>
-                }
-              }
-
               @if (task.dueDate) {
                 <span class="meta-pill meta-pill-date">
                   {{ dateLabel() }}
@@ -77,6 +79,10 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
 
               @if (task.simpleMode) {
                 <span class="meta-pill meta-pill-simple">Simple mode</span>
+              }
+
+              @if (task.parentId) {
+                <span class="meta-pill meta-pill-subtask">Subtask</span>
               }
 
               @if (subtaskCount() > 0) {
@@ -431,6 +437,11 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
       .meta-pill-simple {
         background: var(--info-soft);
         color: var(--on-surface-muted);
+      }
+
+      .meta-pill-subtask {
+        background: var(--accent-soft);
+        color: var(--accent-strong);
       }
 
       .subtask-pill-done {
