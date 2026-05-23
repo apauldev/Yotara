@@ -455,18 +455,10 @@ function toDateInputValue(value?: string | null) {
     return '';
   }
 
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
-    date.getDate(),
-  ).padStart(2, '0')}`;
+  return date.toFormat('yyyy-MM-dd');
 }
 
 function normalizeDateInputValue(value: string) {
   const date = parseCalendarDate(value);
-  return date ? formatDateInputValue(date) : undefined;
-}
-
-function formatDateInputValue(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
-    date.getDate(),
-  ).padStart(2, '0')}`;
+  return date ? date.toFormat('yyyy-MM-dd') : undefined;
 }

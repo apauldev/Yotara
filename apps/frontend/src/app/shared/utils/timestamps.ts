@@ -1,4 +1,12 @@
-export function parseCalendarDate(value?: string | null): Date | null {
+import { DateTime } from 'luxon';
+
+/**
+ * Parse an ISO date or date-only string into a Luxon DateTime.
+ * Date-only strings ('2026-05-20') are parsed in the local timezone.
+ * Full ISO strings are parsed and then converted to start-of-day in local timezone.
+ * Returns null for invalid or empty input.
+ */
+export function parseCalendarDate(value?: string | null): DateTime | null {
   if (!value) {
     return null;
   }
@@ -6,13 +14,18 @@ export function parseCalendarDate(value?: string | null): Date | null {
   const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (dateOnlyMatch) {
     const [, year, month, day] = dateOnlyMatch;
-    return new Date(Number(year), Number(month) - 1, Number(day));
+    return DateTime.local(Number(year), Number(month), Number(day));
   }
 
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
+  const dt = DateTime.fromISO(value);
+  if (!dt.isValid) {
     return null;
   }
 
-  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+  return DateTime.local(dt.year, dt.month, dt.day);
+}
+
+export function startOfToday(): DateTime {
+  const now = DateTime.local();
+  return DateTime.local(now.year, now.month, now.day);
 }

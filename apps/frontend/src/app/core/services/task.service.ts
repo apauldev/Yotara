@@ -16,7 +16,7 @@ import { environment } from '../../../environments/environment';
 import { AuthStateService } from './auth-state.service';
 import { LabelService } from './label.service';
 import { ProjectService } from './project.service';
-import { parseCalendarDate } from '../../shared/utils/timestamps';
+import { parseCalendarDate, startOfToday } from '../../shared/utils/timestamps';
 
 export type UpcomingBucket = 'This Week' | 'Next Week' | 'Later';
 
@@ -214,21 +214,21 @@ export class TaskService {
   }
 
   formatTaskDate(value?: string | null, options?: Intl.DateTimeFormatOptions) {
-    const date = toCalendarDate(value);
-    if (!date) {
+    const dt = parseCalendarDate(value);
+    if (!dt) {
       return '';
     }
 
     return new Intl.DateTimeFormat('en-US', options ?? { month: 'short', day: 'numeric' }).format(
-      date,
+      dt.toJSDate(),
     );
   }
 
   isTaskOverdue(task: Task) {
-    const dueDate = toCalendarDate(task.dueDate);
+    const dueDate = parseCalendarDate(task.dueDate);
     const today = startOfToday();
 
-    return !!dueDate && dueDate.getTime() < today.getTime() && !task.completed;
+    return !!dueDate && dueDate < today && !task.completed;
   }
 
   isTaskToday(task: Task) {
@@ -236,8 +236,8 @@ export class TaskService {
       return true;
     }
 
-    const dueDate = toCalendarDate(task.dueDate);
-    return task.status === 'today' || (!!dueDate && dueDate.getTime() === startOfToday().getTime());
+    const dueDate = parseCalendarDate(task.dueDate);
+    return task.status === 'today' || (!!dueDate && dueDate.equals(startOfToday()));
   }
 
   isTaskUpcoming(task: Task) {
@@ -245,26 +245,24 @@ export class TaskService {
       return false;
     }
 
-    const dueDate = toCalendarDate(task.dueDate);
-    return (
-      task.status === 'upcoming' || (!!dueDate && dueDate.getTime() > startOfToday().getTime())
-    );
+    const dueDate = parseCalendarDate(task.dueDate);
+    return task.status === 'upcoming' || (!!dueDate && dueDate > startOfToday());
   }
 
   private hasScheduledDate(task: Task) {
-    const dueDate = toCalendarDate(task.dueDate);
-    return !!dueDate && dueDate.getTime() >= startOfToday().getTime();
+    const dueDate = parseCalendarDate(task.dueDate);
+    return !!dueDate && dueDate >= startOfToday();
   }
 
   upcomingBucketForTask(task: Task): UpcomingBucket {
-    const dueDate = toCalendarDate(task.dueDate);
+    const dueDate = parseCalendarDate(task.dueDate);
     const today = startOfToday();
 
     if (!dueDate) {
       return 'Later';
     }
 
-    const dayDiff = Math.floor((dueDate.getTime() - today.getTime()) / 86_400_000);
+    const dayDiff = Math.floor(dueDate.diff(today, 'days').days);
 
     if (dayDiff <= 7) {
       return 'This Week';
@@ -276,13 +274,4 @@ export class TaskService {
 
     return 'Later';
   }
-}
-
-function toCalendarDate(value?: string | null) {
-  return parseCalendarDate(value);
-}
-
-function startOfToday() {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }

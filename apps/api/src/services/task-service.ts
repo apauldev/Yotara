@@ -11,6 +11,7 @@ import type {
 } from '@yotara/shared';
 import { db } from '../db/client.js';
 import { tasks, users } from '../db/schema.js';
+import { DateTime } from 'luxon';
 import { nowIsoTimestamp } from '../lib/timestamps.js';
 import { getTaskLabels, syncTaskLabels } from './label-service.js';
 import { getDefaultProjectForOwner } from './project-service.js';
@@ -191,82 +192,53 @@ export async function listSubtasks(parentId: string, ownerId: string): Promise<T
 }
 
 function advanceDueDate(from: string, rule: RecurrenceRule): string {
-  const d = new Date(from);
+  const dt = DateTime.fromISO(from, { zone: 'utc' });
   const { frequency, interval, daysOfWeek } = rule;
   const n = interval || 1;
 
-  let year = d.getUTCFullYear();
-  let month = d.getUTCMonth();
-  let day = d.getUTCDate();
-
-  // Helper: find the next date from a given date that matches one of the target days
-  function nextOnDay(fromDay: number, targetDays: number[]): { y: number; m: number; d: number } {
-    const cursor = new Date(Date.UTC(year, month, fromDay));
-    for (let i = 0; i < 8; i++) {
-      if (targetDays.includes(cursor.getUTCDay())) {
-        return {
-          y: cursor.getUTCFullYear(),
-          m: cursor.getUTCMonth(),
-          d: cursor.getUTCDate(),
-        };
-      }
-      cursor.setUTCDate(cursor.getUTCDate() + 1);
-    }
-    // Fallback (shouldn't reach here with valid input)
-    return { y: year, m: month, d: day + 1 };
-  }
+  let next: DateTime;
 
   switch (frequency) {
     case 'daily': {
-      const next = new Date(Date.UTC(year, month, day + n));
-      year = next.getUTCFullYear();
-      month = next.getUTCMonth();
-      day = next.getUTCDate();
+      next = dt.plus({ days: n });
       break;
     }
     case 'weekdays': {
-      // Start from tomorrow, skip Sat(6) and Sun(0)
-      const next = nextOnDay(day + 1, [1, 2, 3, 4, 5]);
-      year = next.y;
-      month = next.m;
-      day = next.d;
+      next = dt.plus({ days: 1 });
+      while (next.weekday > 5) next = next.plus({ days: 1 });
       break;
     }
     case 'weekly': {
       if (daysOfWeek && daysOfWeek.length > 0) {
-        // Repeat on specific days of the week — find the next one
-        const next = nextOnDay(day + 1, daysOfWeek);
-        year = next.y;
-        month = next.m;
-        day = next.d;
+        // RRULE: count weeks from DTSTART (dt), find next BYDAY in week where weekNum % n === 0
+        next = dt.plus({ days: 1 });
+        for (let i = 0; i < 60; i++) {
+          const hoursSinceDtstart = next.diff(dt, 'hours').hours;
+          const weekNum = Math.floor(hoursSinceDtstart / 24 / 7);
+          const jsDay = next.weekday === 7 ? 0 : next.weekday;
+          if (weekNum % n === 0 && daysOfWeek.includes(jsDay)) break;
+          next = next.plus({ days: 1 });
+        }
       } else {
-        // Standard interval-based weekly
-        const next = new Date(Date.UTC(year, month, day + 7 * n));
-        year = next.getUTCFullYear();
-        month = next.getUTCMonth();
-        day = next.getUTCDate();
+        next = dt.plus({ weeks: n });
       }
       break;
     }
     case 'monthly': {
-      month += n;
-      while (month > 11) {
-        year++;
-        month -= 12;
-      }
-      const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-      day = Math.min(day, lastDay);
+      next = dt.plus({ months: n });
       break;
     }
     case 'yearly': {
-      year += n;
-      const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-      day = Math.min(day, lastDay);
+      next = dt.plus({ years: n });
       break;
     }
+    default:
+      next = dt;
   }
 
-  return new Date(Date.UTC(year, month, day)).toISOString().split('.')[0] + 'Z';
+  const result = next.toISO({ suppressMilliseconds: true });
+  if (!result) throw new Error('Failed to format date');
+  return result;
 }
 
 export async function createTaskForOwner(ownerId: string, body: CreateTaskDto) {

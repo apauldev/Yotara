@@ -20,11 +20,13 @@
     "@fastify/cors": "^11.2.0",
     "@fastify/swagger": "^9.5.1",
     "@fastify/swagger-ui": "^5.2.3",
+    "@types/luxon": "^3.7.1",
     "@yotara/shared": "workspace:*",
     "better-auth": "^1.5.4",
     "better-sqlite3": "^12.6.2",
     "drizzle-orm": "^0.45.1",
-    "fastify": "^5.8.1"
+    "fastify": "^5.8.1",
+    "luxon": "^3.7.2"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

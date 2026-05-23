@@ -3,7 +3,7 @@ import type { Label, Project, Task } from '@yotara/shared';
 import { LabelService } from './label.service';
 import { ProjectService } from './project.service';
 import { TaskService } from './task.service';
-import { parseCalendarDate } from '../../shared/utils/timestamps';
+import { parseCalendarDate, startOfToday } from '../../shared/utils/timestamps';
 
 export type SearchTab = 'all' | 'tasks' | 'projects' | 'labels';
 
@@ -287,12 +287,12 @@ function urgencyScore(task: Task) {
     return -12;
   }
 
-  const dueDate = toCalendarDate(task.dueDate);
+  const dueDate = parseCalendarDate(task.dueDate);
   if (!dueDate) {
     return 0;
   }
 
-  const dayDiff = Math.floor((dueDate.getTime() - startOfToday().getTime()) / 86_400_000);
+  const dayDiff = Math.floor(dueDate.diff(startOfToday(), 'days').days);
 
   if (dayDiff < 0) {
     return 22;
@@ -387,19 +387,12 @@ function formatStatus(status: Task['status']) {
 }
 
 function formatDueDate(value?: string | null) {
-  const date = toCalendarDate(value);
+  const date = parseCalendarDate(value);
   if (!date) {
     return '';
   }
 
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(date);
-}
-
-function toCalendarDate(value?: string | null) {
-  return parseCalendarDate(value);
-}
-
-function startOfToday() {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(
+    date.toJSDate(),
+  );
 }

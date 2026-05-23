@@ -553,7 +553,9 @@ export class PersonalTaskCardComponent {
       return '';
     }
 
-    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(parsed);
+    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(
+      parsed.toJSDate(),
+    );
   }
 
   protected labelName(labelId: string) {

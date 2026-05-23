@@ -304,6 +304,120 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       const next = allTasks.data.find((t) => t.title === 'Weekday Ended Task' && !t.completed);
       assert.equal(next, undefined, 'Weekday recurrence should respect endDate');
     });
+
+    // ── Boundary / Leap Year Tests ─────────────────────────────────────────
+
+    await t.test('Monthly overflow: Jan 31 → clamps to Feb last day', async () => {
+      const task = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Monthly Jan 31',
+        dueDate: '2025-01-31T00:00:00Z',
+        recurrenceRule: { frequency: 'monthly', interval: 1 },
+      });
+
+      assert.ok(task);
+      await ctx.taskService.updateTaskForOwner(ownerId, task.id, { completed: true });
+
+      const allTasks = await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true);
+      const next = allTasks.data.find((t) => t.title === 'Monthly Jan 31' && !t.completed);
+      assert.ok(next);
+      assert.equal(next.dueDate, '2025-02-28T00:00:00Z');
+
+      // Complete the Feb 28 instance — should advance to Mar 28 (not jump to Mar 31)
+      await ctx.taskService.updateTaskForOwner(ownerId, next.id, { completed: true });
+
+      const allTasks2 = await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true);
+      const third = allTasks2.data.find((t) => t.title === 'Monthly Jan 31' && !t.completed);
+      assert.ok(third);
+      assert.equal(third.dueDate, '2025-03-28T00:00:00Z');
+    });
+
+    await t.test('Monthly overflow: Mar 31 → clamps to Apr 30', async () => {
+      const task = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Monthly Mar 31',
+        dueDate: '2025-03-31T00:00:00Z',
+        recurrenceRule: { frequency: 'monthly', interval: 1 },
+      });
+
+      assert.ok(task);
+      await ctx.taskService.updateTaskForOwner(ownerId, task.id, { completed: true });
+
+      const allTasks = await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true);
+      const next = allTasks.data.find((t) => t.title === 'Monthly Mar 31' && !t.completed);
+      assert.ok(next);
+      assert.equal(next.dueDate, '2025-04-30T00:00:00Z');
+    });
+
+    await t.test('Monthly: Dec 31 wraps to next year', async () => {
+      const task = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Monthly Dec 31',
+        dueDate: '2025-12-31T00:00:00Z',
+        recurrenceRule: { frequency: 'monthly', interval: 1 },
+      });
+
+      assert.ok(task);
+      await ctx.taskService.updateTaskForOwner(ownerId, task.id, { completed: true });
+
+      const allTasks = await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true);
+      const next = allTasks.data.find((t) => t.title === 'Monthly Dec 31' && !t.completed);
+      assert.ok(next);
+      assert.equal(next.dueDate, '2026-01-31T00:00:00Z');
+    });
+
+    await t.test('Yearly overflow: Feb 29 leap day → Feb 28 non-leap year', async () => {
+      const task = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Yearly Feb 29',
+        dueDate: '2024-02-29T00:00:00Z',
+        recurrenceRule: { frequency: 'yearly', interval: 1 },
+      });
+
+      assert.ok(task);
+      await ctx.taskService.updateTaskForOwner(ownerId, task.id, { completed: true });
+
+      const allTasks = await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true);
+      const next = allTasks.data.find((t) => t.title === 'Yearly Feb 29' && !t.completed);
+      assert.ok(next);
+      assert.equal(next.dueDate, '2025-02-28T00:00:00Z');
+    });
+
+    await t.test('Yearly: Dec 31 wraps to Dec 31 next year', async () => {
+      const task = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Yearly Dec 31',
+        dueDate: '2025-12-31T00:00:00Z',
+        recurrenceRule: { frequency: 'yearly', interval: 1 },
+      });
+
+      assert.ok(task);
+      await ctx.taskService.updateTaskForOwner(ownerId, task.id, { completed: true });
+
+      const allTasks = await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true);
+      const next = allTasks.data.find((t) => t.title === 'Yearly Dec 31' && !t.completed);
+      assert.ok(next);
+      assert.equal(next.dueDate, '2026-12-31T00:00:00Z');
+    });
+
+    await t.test(
+      'Daily: next occurrence is always tomorrow regardless of dueDate year',
+      async () => {
+        const task = await ctx.taskService.createTaskForOwner(ownerId, {
+          title: 'Daily Anchored',
+          dueDate: '2020-01-01T00:00:00Z', // Way in the past
+          recurrenceRule: { frequency: 'daily', interval: 1 },
+        });
+
+        assert.ok(task);
+        await ctx.taskService.updateTaskForOwner(ownerId, task.id, { completed: true });
+
+        const allTasks = await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true);
+        const next = allTasks.data.find((t) => t.title === 'Daily Anchored' && !t.completed);
+        assert.ok(next);
+
+        // Due date should be tomorrow (not the year 2020)
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const expectedPrefix = tomorrow.toISOString().split('T')[0];
+        assert.ok(next.dueDate?.startsWith(expectedPrefix));
+      },
+    );
   } finally {
     ctx.cleanup();
   }

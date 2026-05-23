@@ -249,9 +249,9 @@ export class TaskListPageComponent implements OnInit {
 
       // Default: date (newest created for inbox, or by dueDate)
       const dateA =
-        parseCalendarDate(taskA.dueDate)?.getTime() ?? new Date(taskA.createdAt).getTime();
+        parseCalendarDate(taskA.dueDate)?.toMillis() ?? new Date(taskA.createdAt).getTime();
       const dateB =
-        parseCalendarDate(taskB.dueDate)?.getTime() ?? new Date(taskB.createdAt).getTime();
+        parseCalendarDate(taskB.dueDate)?.toMillis() ?? new Date(taskB.createdAt).getTime();
       return dateB - dateA;
     });
 
