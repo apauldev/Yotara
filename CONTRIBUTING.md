@@ -194,6 +194,69 @@ If your commit message doesn't follow this format, the commit will be rejected b
 
 ---
 
+## Versioning & Releases
+
+### How version bumps work
+
+Every merge to `main` triggers the [Release workflow](.github/workflows/release.yml), which runs `pnpm release` (`scripts/release.mjs`). That script does three things:
+
+1. **Gathers all commits** since the last tagged release — it traverses through merge commits so commits from every merged branch are analysed, not just the merge message itself.
+2. **Classifies them** by conventional-commit type and determines the bump:
+
+   | At least one commit of type | Bump | Example |
+   |---|---|---|
+   | `feat!:` / `BREAKING CHANGE` | **Major** | `0.43.19 → 1.0.0` |
+   | `feat:` | **Minor** | `0.43.19 → 0.44.0` |
+   | only `fix:`, `docs:`, etc. | **Patch** | `0.43.19 → 0.43.20` |
+
+3. **Runs `commit-and-tag-version`** with the correct `--release-as` flag, which updates the CHANGELOG, creates a Git tag, and commits the bump.
+
+The version lands in `package.json` and is propagated to the frontend at build time via `scripts/generate-version.mjs`.
+
+### What triggers a release
+
+The Release workflow runs automatically on every push to `main` **unless** the commit message contains `chore(release)` — this prevents infinite loops (the release commit itself doesn't trigger another release).
+
+### Manual overrides
+
+If you need to force a specific bump (e.g., promoting to 1.0.0):
+
+```bash
+pnpm release:major   # force major bump
+pnpm release:minor   # force minor bump
+pnpm release:patch   # force patch bump
+```
+
+These bypass the commit analysis and use `commit-and-tag-version` directly with the given release type.
+
+### Testing a release locally
+
+```bash
+pnpm release -- --dry-run
+```
+
+This shows what `commit-and-tag-version` would do (changelog diff, new version number, tag name) without modifying any files.
+
+### Version audit & recovery
+
+If the version ever feels out of sync with the work done (e.g., many features landed but only the patch number moved), you can audit the full release history:
+
+```bash
+node scripts/version-audit.mjs
+```
+
+This walks every tagged release, recalculates what the bump *should* have been (without the pre-1.0.0 downgrade that was active early on), and compares it against what actually happened. It prints a table showing every mismatch.
+
+To apply the corrected version:
+
+```bash
+node scripts/version-audit.mjs --apply
+```
+
+This updates `package.json` to the suggested version. After that, `pnpm release` will bump correctly from the new baseline.
+
+---
+
 ## Project Structure
 
 Understanding the monorepo layout helps:
