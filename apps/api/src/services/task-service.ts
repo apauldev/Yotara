@@ -370,10 +370,10 @@ export async function updateTaskForOwner(
         (await getDefaultProjectForOwner(ownerId))?.id ??
         null);
   const nextParentId =
-    body.parentId === null ? undefined : (body.parentId ?? current.parentId ?? undefined);
+    body.parentId === null ? null : (body.parentId ?? current.parentId ?? undefined);
   const nextRecurrenceRule =
     body.recurrenceRule === null
-      ? undefined
+      ? null
       : body.recurrenceRule !== undefined
         ? JSON.stringify(body.recurrenceRule)
         : (current.recurrenceRule ?? undefined);
