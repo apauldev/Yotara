@@ -515,11 +515,15 @@ These features should be built as personal-mode improvements first, but they sho
 - ✅ 404 friendly error page with parallax animation
 - ✅ Shared `EmptyStateComponent` used across task-list, projects, project-detail, and labels pages
 - 🟡 Search/filter infrastructure that can grow into team scope
+- ⬜ Release gating: release workflow waits for CI checks to pass before publishing (currently triggers on push regardless of CI status)
+- ⬜ Dependency vulnerability scan: add `pnpm audit` to CI lint/test step for early CVE detection
+- ⬜ GitHub Release body: trim to latest release notes instead of attaching the full CHANGELOG.md
 - ⬜ Coverage reporting with minimum threshold gates
 - ⬜ Dependabot automated dependency updates
 - ⬜ Security scanning (CodeQL + Snyk)
 - ⬜ GitHub Actions CI for Docker image builds and pushes to GHCR/Docker Hub
 - ⬜ Pre-built image Compose path and platform-specific environment docs
+- ⬜ Selective Docker smoke: only run Docker build + smoke on PRs that touch Dockerfiles, compose, or API/frontend source (currently runs on every push)
 - ⬜ Notification delivery pipeline with push subscriptions
 - ⬜ Localization-ready text and formatting layers
 - ⬜ PWA installability for mobile web users
