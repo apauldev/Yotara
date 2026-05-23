@@ -254,6 +254,9 @@ export async function createTaskForOwner(ownerId: string, body: CreateTaskDto) {
     if (!parent) {
       throw new Error('Parent task not found');
     }
+    if (parent.parentId) {
+      throw new Error('Subtasks cannot have subtasks — only one level of nesting is supported');
+    }
     if (!payload.projectId) {
       payload.projectId = parent.projectId ?? undefined;
     }
@@ -343,6 +346,14 @@ export async function updateTaskForOwner(
         null);
   const nextParentId =
     body.parentId === null ? null : (body.parentId ?? current.parentId ?? undefined);
+
+  // Validate no nested subtasks: if we're setting a parent, that parent must not be a subtask itself
+  if (nextParentId && nextParentId !== current.parentId) {
+    const newParent = await getTaskForOwner(nextParentId, ownerId);
+    if (newParent?.parentId) {
+      throw new Error('Subtasks cannot have subtasks — only one level of nesting is supported');
+    }
+  }
   const nextRecurrenceRule =
     body.recurrenceRule === null
       ? null

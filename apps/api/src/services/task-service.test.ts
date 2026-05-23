@@ -72,6 +72,29 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
           }),
         /Parent task not found/,
       );
+
+      // 4. Nested subtask rejection
+      await assert.rejects(
+        () =>
+          ctx.taskService.createTaskForOwner(ownerId, {
+            title: 'Nested subtask',
+            parentId: subtask.id,
+          }),
+        /Subtasks cannot have subtasks/,
+      );
+
+      // 5. Reparenting a task to a subtask should also be rejected
+      const anotherParent = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Another parent',
+      });
+      assert.ok(anotherParent);
+      await assert.rejects(
+        () =>
+          ctx.taskService.updateTaskForOwner(ownerId, anotherParent.id, {
+            parentId: subtask.id,
+          }),
+        /Subtasks cannot have subtasks/,
+      );
     });
 
     await t.test('List filtering and subtask counts', async () => {
