@@ -1,11 +1,11 @@
 {
   "name": "yotara-monorepo",
   "private": true,
-  "version": "0.43.19",
+  "version": "0.49.1",
   "description": "Yotara: lightweight self-hosted task manager",
   "scripts": {
     "version:gen": "node scripts/generate-version.mjs",
-    "release": "commit-and-tag-version",
+    "release": "node scripts/release.mjs",
     "release:major": "commit-and-tag-version --release-as major",
     "release:minor": "commit-and-tag-version --release-as minor",
     "release:patch": "commit-and-tag-version --release-as patch",
