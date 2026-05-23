@@ -76,13 +76,17 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
 
     await t.test('List filtering and subtask counts', async () => {
       const parent = await ctx.taskService.createTaskForOwner(ownerId, { title: 'Parent 2' });
-      await ctx.taskService.createTaskForOwner(ownerId, { title: 'Sub 1', parentId: parent!.id });
+      assert.ok(parent);
+      const parentId = parent.id;
+      await ctx.taskService.createTaskForOwner(ownerId, { title: 'Sub 1', parentId });
       const sub2 = await ctx.taskService.createTaskForOwner(ownerId, {
         title: 'Sub 2',
-        parentId: parent!.id,
+        parentId,
       });
+      assert.ok(sub2);
       // Complete Sub 2 properly via updateTaskForOwner
-      await ctx.taskService.updateTaskForOwner(ownerId, sub2!.id, { completed: true });
+      const sub2Id = sub2.id;
+      await ctx.taskService.updateTaskForOwner(ownerId, sub2Id, { completed: true });
 
       // 1. Default list excludes subtasks
       const list = await ctx.taskService.listTasksForOwner(ownerId, 1, 50);
@@ -97,7 +101,7 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       assert.ok(allTitles.includes('Sub 2'));
 
       // 3. listSubtasks helper
-      const subtasks = await ctx.taskService.listSubtasks(parent!.id, ownerId);
+      const subtasks = await ctx.taskService.listSubtasks(parentId, ownerId);
       assert.equal(subtasks.length, 2);
       assert.equal(subtasks.filter((s) => s.completed).length, 1);
     });
@@ -111,7 +115,8 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
         recurrenceRule: { frequency: 'weekly', interval: 1 },
       });
 
-      await ctx.taskService.updateTaskForOwner(ownerId, weeklyTask!.id, { completed: true });
+      assert.ok(weeklyTask);
+      await ctx.taskService.updateTaskForOwner(ownerId, weeklyTask.id, { completed: true });
 
       // Check if new instance exists
       const allTasks = await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true);
@@ -126,7 +131,8 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
         recurrenceRule: { frequency: 'daily', interval: 1 },
       });
 
-      await ctx.taskService.updateTaskForOwner(ownerId, dailyTask!.id, { completed: true });
+      assert.ok(dailyTask);
+      await ctx.taskService.updateTaskForOwner(ownerId, dailyTask.id, { completed: true });
 
       const nextDaily = (await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true)).data.find(
         (t) => t.title === 'Daily Task' && !t.completed,
@@ -146,14 +152,17 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
         recurrenceRule: { frequency: 'weekdays', interval: 1 },
       });
 
-      await ctx.taskService.updateTaskForOwner(ownerId, task!.id, { completed: true });
+      assert.ok(task);
+      await ctx.taskService.updateTaskForOwner(ownerId, task.id, { completed: true });
 
       const allTasks = await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true);
       const next = allTasks.data.find((t) => t.title === 'Weekday Task' && !t.completed);
       assert.ok(next);
+      const dueDate = next.dueDate;
+      assert.ok(dueDate);
 
       // Due date must be a weekday (Mon=1 .. Fri=5)
-      const day = new Date(next.dueDate!).getUTCDay();
+      const day = new Date(dueDate).getUTCDay();
       assert.ok(day >= 1 && day <= 5, `Expected weekday, got ${day}`);
     });
 
@@ -167,14 +176,17 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
         },
       });
 
-      await ctx.taskService.updateTaskForOwner(ownerId, task!.id, { completed: true });
+      assert.ok(task);
+      await ctx.taskService.updateTaskForOwner(ownerId, task.id, { completed: true });
 
       const allTasks = await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true);
       const next = allTasks.data.find((t) => t.title === 'Mon Wed Fri Task' && !t.completed);
       assert.ok(next);
+      const dueDate = next.dueDate;
+      assert.ok(dueDate);
 
       // Due date must be Mon(1), Wed(3), or Fri(5)
-      const day = new Date(next.dueDate!).getUTCDay();
+      const day = new Date(dueDate).getUTCDay();
       assert.ok(day === 1 || day === 3 || day === 5, `Expected Mon/Wed/Fri, got ${day}`);
     });
 
@@ -192,7 +204,8 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
         },
       });
 
-      await ctx.taskService.updateTaskForOwner(ownerId, task!.id, { completed: true });
+      assert.ok(task);
+      await ctx.taskService.updateTaskForOwner(ownerId, task.id, { completed: true });
 
       // No new instance should exist — past the end date
       const allTasks = await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true);
@@ -214,7 +227,8 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
         },
       });
 
-      await ctx.taskService.updateTaskForOwner(ownerId, task!.id, { completed: true });
+      assert.ok(task);
+      await ctx.taskService.updateTaskForOwner(ownerId, task.id, { completed: true });
 
       // Instance should exist — still within endDate window
       const allTasks = await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true);
@@ -231,16 +245,19 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       const parent = await ctx.taskService.createTaskForOwner(ownerId, {
         title: 'Parent to delete',
       });
+      assert.ok(parent);
+      const parentId = parent.id;
       const sub = await ctx.taskService.createTaskForOwner(ownerId, {
         title: 'Sub to die',
-        parentId: parent!.id,
+        parentId,
       });
+      assert.ok(sub);
 
       // Delete parent
-      await ctx.taskService.deleteTaskForOwner(ownerId, parent!.id);
+      await ctx.taskService.deleteTaskForOwner(ownerId, parentId);
 
       // Verify both are gone
-      const subCheck = await ctx.taskService.getTaskForOwner(sub!.id, ownerId);
+      const subCheck = await ctx.taskService.getTaskForOwner(sub.id, ownerId);
       assert.equal(subCheck, null);
 
       // Recurring instance cascade
@@ -248,7 +265,9 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
         title: 'Template',
         recurrenceRule: { frequency: 'daily', interval: 1 },
       });
-      await ctx.taskService.updateTaskForOwner(ownerId, template!.id, { completed: true });
+      assert.ok(template);
+      const templateId = template.id;
+      await ctx.taskService.updateTaskForOwner(ownerId, templateId, { completed: true });
 
       const instance = (await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true)).data.find(
         (t) => t.title === 'Template' && !t.completed,
@@ -256,7 +275,7 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       assert.ok(instance);
 
       // Delete template
-      await ctx.taskService.deleteTaskForOwner(ownerId, template!.id);
+      await ctx.taskService.deleteTaskForOwner(ownerId, templateId);
 
       // Instance should be gone too
       const instanceCheck = await ctx.taskService.getTaskForOwner(instance.id, ownerId);
@@ -277,7 +296,8 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
         },
       });
 
-      await ctx.taskService.updateTaskForOwner(ownerId, task!.id, { completed: true });
+      assert.ok(task);
+      await ctx.taskService.updateTaskForOwner(ownerId, task.id, { completed: true });
 
       // No new instance — past end date
       const allTasks = await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true);

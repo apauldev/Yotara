@@ -89,7 +89,7 @@ describe('TaskService', () => {
     tick();
 
     expect(service.tasks()).toEqual([]);
-    http.expectNone('http://localhost:3000/tasks?page=1&pageSize=100');
+    http.expectNone('http://localhost:3000/tasks?page=1&pageSize=100&includeSubtasks=true');
   }));
 
   it('does not request tasks when the user is not authenticated', fakeAsync(() => {
@@ -100,7 +100,7 @@ describe('TaskService', () => {
     tick();
 
     expect(service.tasks()).toEqual([]);
-    http.expectNone('http://localhost:3000/tasks?page=1&pageSize=100');
+    http.expectNone('http://localhost:3000/tasks?page=1&pageSize=100&includeSubtasks=true');
   }));
 
   it('clears the previous user data and refetches when the active account changes', fakeAsync(() => {
@@ -112,7 +112,7 @@ describe('TaskService', () => {
     currentUserId.set('user-1');
     tick();
 
-    http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100').flush(
+    http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100&includeSubtasks=true').flush(
       paginated([
         {
           id: 'user-1-task',
@@ -137,13 +137,13 @@ describe('TaskService', () => {
     tick();
 
     expect(service.tasks()).toEqual([]);
-    http.expectNone('http://localhost:3000/tasks?page=1&pageSize=100');
+    http.expectNone('http://localhost:3000/tasks?page=1&pageSize=100&includeSubtasks=true');
 
     isAuthenticated.set(true);
     currentUserId.set('user-2');
     tick();
 
-    http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100').flush(
+    http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100&includeSubtasks=true').flush(
       paginated([
         {
           id: 'user-2-task',
@@ -173,7 +173,9 @@ describe('TaskService', () => {
     currentUserId.set('user-1');
     tick();
 
-    const request = http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100');
+    const request = http.expectOne(
+      'http://localhost:3000/tasks?page=1&pageSize=100&includeSubtasks=true',
+    );
     expect(request.request.withCredentials).toBeTrue();
     request.flush({ message: 'Unauthorized' }, { status: 401, statusText: 'Unauthorized' });
     tick();
@@ -298,7 +300,9 @@ describe('TaskService', () => {
       },
     ];
 
-    http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100').flush(paginated(tasks));
+    http
+      .expectOne('http://localhost:3000/tasks?page=1&pageSize=100&includeSubtasks=true')
+      .flush(paginated(tasks));
     tick();
 
     expect(service.inboxTasks().map((task) => task.id)).toEqual([
@@ -343,7 +347,7 @@ describe('TaskService', () => {
     currentUserId.set('user-1');
     tick();
 
-    http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100').flush(
+    http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100&includeSubtasks=true').flush(
       paginated([
         {
           id: 'date-only-today',
@@ -402,7 +406,9 @@ describe('TaskService', () => {
       },
     ];
 
-    http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100').flush(paginated(tasks));
+    http
+      .expectOne('http://localhost:3000/tasks?page=1&pageSize=100&includeSubtasks=true')
+      .flush(paginated(tasks));
     tick();
 
     expect(service.archivedTasks().map((task) => task.id)).toEqual(['recent-done', 'old-done']);
@@ -417,7 +423,9 @@ describe('TaskService', () => {
     currentUserId.set('user-1');
     tick();
 
-    http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100').flush(paginated([]));
+    http
+      .expectOne('http://localhost:3000/tasks?page=1&pageSize=100&includeSubtasks=true')
+      .flush(paginated([]));
     tick();
 
     let createdTask: Task | undefined;
@@ -450,7 +458,9 @@ describe('TaskService', () => {
     });
     tick();
 
-    const refreshRequest = http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100');
+    const refreshRequest = http.expectOne(
+      'http://localhost:3000/tasks?page=1&pageSize=100&includeSubtasks=true',
+    );
     refreshRequest.flush(
       paginated([
         {
@@ -484,7 +494,9 @@ describe('TaskService', () => {
     currentUserId.set('user-1');
     tick();
 
-    http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100').flush(paginated([]));
+    http
+      .expectOne('http://localhost:3000/tasks?page=1&pageSize=100&includeSubtasks=true')
+      .flush(paginated([]));
     tick();
 
     void service.updateTask('task-1', {
@@ -512,7 +524,9 @@ describe('TaskService', () => {
     });
     tick();
 
-    const refreshRequest = http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100');
+    const refreshRequest = http.expectOne(
+      'http://localhost:3000/tasks?page=1&pageSize=100&includeSubtasks=true',
+    );
     refreshRequest.flush(
       paginated([
         {
@@ -547,7 +561,9 @@ describe('TaskService', () => {
     currentUserId.set('user-1');
     tick();
 
-    http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100').flush(paginated([]));
+    http
+      .expectOne('http://localhost:3000/tasks?page=1&pageSize=100&includeSubtasks=true')
+      .flush(paginated([]));
     tick();
 
     void service.deleteTask('task-to-delete');
@@ -558,7 +574,9 @@ describe('TaskService', () => {
     deleteRequest.flush({ ok: true });
     tick();
 
-    const refreshRequest = http.expectOne('http://localhost:3000/tasks?page=1&pageSize=100');
+    const refreshRequest = http.expectOne(
+      'http://localhost:3000/tasks?page=1&pageSize=100&includeSubtasks=true',
+    );
     refreshRequest.flush(paginated([]));
     tick();
 

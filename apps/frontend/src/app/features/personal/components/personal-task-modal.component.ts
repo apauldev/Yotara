@@ -176,8 +176,9 @@ export class PersonalTaskModalComponent implements OnDestroy {
   }
 
   protected async toggleSubtask(subtask: Task) {
+    if (!this.task) return;
     await this.taskService.updateTask(subtask.id, { completed: !subtask.completed });
-    this.loadSubtasks(this.task!.id);
+    this.loadSubtasks(this.task.id);
   }
 
   protected toggleDraftSubtask(index: number) {
