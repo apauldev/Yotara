@@ -232,10 +232,6 @@ export class TaskService {
   }
 
   isTaskToday(task: Task) {
-    if (task.completed && task.status === 'today') {
-      return true;
-    }
-
     const dueDate = parseCalendarDate(task.dueDate);
     return task.status === 'today' || (!!dueDate && dueDate.equals(startOfToday()));
   }
