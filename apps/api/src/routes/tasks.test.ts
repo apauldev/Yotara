@@ -508,7 +508,7 @@ test('tasks support owned project assignment and reject foreign project referenc
       },
     });
     assert.equal(clearProjectResponse.statusCode, 200);
-    assert.ok(clearProjectResponse.json().projectId);
+    assert.equal(clearProjectResponse.json().projectId, undefined);
 
     const foreignPatchResponse = await ctx.app.inject({
       method: 'PATCH',
@@ -526,7 +526,7 @@ test('tasks support owned project assignment and reject foreign project referenc
       headers: { cookie: firstUserCookie },
     });
     assert.equal(listResponse.statusCode, 200);
-    assert.ok(listResponse.json().data[0].projectId);
+    assert.equal(listResponse.json().data[0].projectId, undefined);
   } finally {
     await ctx.cleanup();
   }

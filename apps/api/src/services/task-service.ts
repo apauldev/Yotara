@@ -339,7 +339,7 @@ export async function updateTaskForOwner(
         : null;
   const nextProjectId =
     body.projectId === null
-      ? ((await getDefaultProjectForOwner(ownerId))?.id ?? current.projectId ?? null)
+      ? null
       : (body.projectId ??
         current.projectId ??
         (await getDefaultProjectForOwner(ownerId))?.id ??
