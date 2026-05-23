@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.50.0](https://github.com/apauldev/Yotara/compare/v0.43.19...v0.50.0) (2026-05-23)
+
+
+### Features
+
+* new release script to make sure versioning is correct ([6087a1f](https://github.com/apauldev/Yotara/commit/6087a1f5c1ac51c0fa3c19f0bd87da5a17ef5d1e))
+
+
+### Chores
+
+* align version to 0.49.1 ([c712fdc](https://github.com/apauldev/Yotara/commit/c712fdccb580854373faf74d50e9d0ec2e984a25))
+
 ## [0.43.19](https://github.com/apauldev/Yotara/compare/v0.43.18...v0.43.19) (2026-05-23)
 
 
