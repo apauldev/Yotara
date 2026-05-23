@@ -53,9 +53,12 @@ export class TaskService {
         this.errorState.set(null);
 
         return this.http
-          .get<PaginatedResponse<Task[]>>(`${this.baseUrl}/tasks?page=1&pageSize=100`, {
-            withCredentials: true,
-          })
+          .get<PaginatedResponse<Task[]>>(
+            `${this.baseUrl}/tasks?page=1&pageSize=100&includeSubtasks=true`,
+            {
+              withCredentials: true,
+            },
+          )
           .pipe(
             map((response) => [...response.data].sort((left, right) => left.order - right.order)),
             catchError((error: unknown) => {
@@ -82,9 +85,11 @@ export class TaskService {
   readonly error = this.errorState.asReadonly();
   readonly revision = this.refreshState.asReadonly();
   readonly activeTasks = computed(() =>
-    this.tasks().filter((task) => !task.completed && task.status !== 'archived'),
+    this.tasks().filter((task) => !task.completed && task.status !== 'archived' && !task.parentId),
   );
-  readonly pendingTasks = computed(() => this.tasks().filter((task) => !task.completed));
+  readonly pendingTasks = computed(() =>
+    this.tasks().filter((task) => !task.completed && !task.parentId),
+  );
   readonly completedTasks = computed(() => this.tasks().filter((task) => task.completed));
   readonly archivedTasks = computed(() => this.completedTasks());
   readonly inboxTasks = computed(() =>
@@ -100,7 +105,9 @@ export class TaskService {
     this.activeTasks().filter((task) => this.isTaskToday(task) && !this.isTaskOverdue(task)),
   );
   readonly todayCompletedTasks = computed(() =>
-    this.completedTasks().filter((task) => this.isTaskToday(task) || this.isTaskOverdue(task)),
+    this.completedTasks().filter(
+      (task) => (this.isTaskToday(task) || this.isTaskOverdue(task)) && !task.parentId,
+    ),
   );
   readonly upcomingTasks = computed(() =>
     this.activeTasks().filter((task) => this.isTaskUpcoming(task)),
@@ -184,6 +191,21 @@ export class TaskService {
       throw error;
     } finally {
       this.creatingState.set(false);
+    }
+  }
+
+  async fetchSubtasks(parentId: string): Promise<Task[]> {
+    try {
+      const response = await firstValueFrom(
+        this.http.get<PaginatedResponse<Task[]>>(
+          `${this.baseUrl}/tasks?parentId=${parentId}&pageSize=100`,
+          { withCredentials: true },
+        ),
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch subtasks', error);
+      return [];
     }
   }
 

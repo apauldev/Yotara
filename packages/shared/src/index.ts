@@ -6,6 +6,12 @@ export type TaskStatus = 'inbox' | 'today' | 'upcoming' | 'done' | 'archived';
 export type WorkspaceMode = 'personal' | 'team';
 export type TaskBucket = 'personal-sanctuary' | 'deep-work' | 'home' | 'health';
 export type ProjectColor = 'sage' | 'teal' | 'olive' | 'clay' | 'forest' | 'deep-ocean';
+export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+export interface RecurrenceRule {
+  frequency: RecurrenceFrequency;
+  interval: number;
+}
 
 // ─── Core Domain Types ───────────────────────────────────────────────────────
 
@@ -54,22 +60,17 @@ export interface Task {
   simpleMode?: boolean;
   bucket?: TaskBucket;
   projectId?: string;
-  assigneeId?: string;
-  parentTaskId?: string; // for subtasks
+  parentId?: string;
+  recurrenceRule?: RecurrenceRule;
+  baseTaskId?: string;
+  subtaskCount?: number;
+  subtaskCompletedCount?: number;
   archivedAt?: string;
   permanentArchive?: boolean;
   labels?: string[]; // label IDs
   order: number;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface Comment {
-  id: string;
-  taskId: string;
-  authorId: string;
-  content: string;
-  createdAt: string;
 }
 
 // ─── API Response Wrappers ───────────────────────────────────────────────────
@@ -114,8 +115,11 @@ export interface CreateTaskDto {
   simpleMode?: boolean;
   bucket?: TaskBucket;
   projectId?: string;
-  parentTaskId?: string;
+  parentId?: string;
+  recurrenceRule?: RecurrenceRule;
+  baseTaskId?: string;
   labels?: string[];
+  subtasks?: { title: string; completed?: boolean }[];
 }
 
 export interface UpdateTaskDto {
@@ -127,11 +131,13 @@ export interface UpdateTaskDto {
   simpleMode?: boolean;
   bucket?: TaskBucket;
   projectId?: string | null;
-  parentTaskId?: string;
+  parentId?: string | null;
+  recurrenceRule?: RecurrenceRule | null;
   permanentArchive?: boolean;
   labels?: string[];
   completed?: boolean;
   order?: number;
+  subtasks?: { title: string; completed?: boolean }[];
 }
 
 export interface CreateLabelDto {

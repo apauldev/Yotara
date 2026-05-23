@@ -19,10 +19,63 @@
 
 /* --- Shared Elements --- */
 .task-stack,
-.completed-stack,
 .group-stack {
   display: grid;
-  gap: 0.95rem;
+  gap: 1.25rem;
+}
+
+.task-group {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.4rem;
+  margin: -0.4rem;
+  border-radius: 1.15rem;
+  border: 1px solid transparent;
+  transition: all 180ms ease;
+}
+
+.task-group:hover {
+  background: var(--surface-container-lowest);
+  border-color: var(--outline-variant);
+  box-shadow: 0 4px 12px var(--surface-dim);
+}
+
+.subtask-nested-list {
+  margin-left: 1.4rem; // Align line with the center of the parent checkbox area
+  padding-left: 1.65rem;
+  border-left: 2px solid var(--outline-variant);
+  display: grid;
+  gap: 0.1rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.5rem;
+  position: relative;
+}
+
+.subtask-item-wrapper {
+  position: relative;
+}
+
+/* L-shaped connector */
+.subtask-item-wrapper::before {
+  content: '';
+  position: absolute;
+  left: -1.65rem;
+  top: 1.1rem; // Center vertically on the compact card
+  width: 1.1rem;
+  height: 2px;
+  background: var(--outline-variant);
+  border-bottom-left-radius: 4px;
+}
+
+.subtask-item-wrapper:last-child::after {
+  content: '';
+  position: absolute;
+  left: -1.8rem;
+  top: 1.1rem;
+  width: 4px;
+  height: 100%;
+  background: var(--surface-container-low); // Hide the vertical line below the last L-connector
+  z-index: 1;
 }
 
 .completed-stack {

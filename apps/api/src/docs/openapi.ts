@@ -61,8 +61,11 @@ const taskSchema = {
       enum: ['personal-sanctuary', 'deep-work', 'home', 'health'],
     },
     projectId: { type: 'string', format: 'uuid' },
-    assigneeId: { type: 'string' },
-    parentTaskId: { type: 'string' },
+    parentId: { type: 'string' },
+    recurrenceRule: { $ref: 'RecurrenceRule#' },
+    baseTaskId: { type: 'string' },
+    subtaskCount: { type: 'integer', minimum: 0 },
+    subtaskCompletedCount: { type: 'integer', minimum: 0 },
     archivedAt: { type: 'string', format: 'date-time' },
     permanentArchive: { type: 'boolean' },
     labels: {
@@ -97,10 +100,23 @@ const createTaskSchema = {
       enum: ['personal-sanctuary', 'deep-work', 'home', 'health'],
     },
     projectId: { type: 'string', format: 'uuid' },
-    parentTaskId: { type: 'string' },
+    parentId: { type: 'string' },
+    recurrenceRule: { $ref: 'RecurrenceRule#' },
+    baseTaskId: { type: 'string' },
     labels: {
       type: 'array',
       items: { type: 'string' },
+    },
+    subtasks: {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: ['title'],
+        properties: {
+          title: { type: 'string' },
+          completed: { type: 'boolean' },
+        },
+      },
     },
   },
   additionalProperties: false,
@@ -129,7 +145,12 @@ const updateTaskSchema = {
     projectId: {
       anyOf: [{ type: 'string', format: 'uuid' }, { type: 'null' }],
     },
-    parentTaskId: { type: 'string' },
+    parentId: {
+      anyOf: [{ type: 'string' }, { type: 'null' }],
+    },
+    recurrenceRule: {
+      anyOf: [{ $ref: 'RecurrenceRule#' }, { type: 'null' }],
+    },
     labels: {
       type: 'array',
       items: { type: 'string' },
@@ -137,6 +158,17 @@ const updateTaskSchema = {
     completed: { type: 'boolean' },
     order: { type: 'integer' },
     permanentArchive: { type: 'boolean' },
+    subtasks: {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: ['title'],
+        properties: {
+          title: { type: 'string' },
+          completed: { type: 'boolean' },
+        },
+      },
+    },
   },
   additionalProperties: false,
 } as const;
@@ -463,10 +495,28 @@ const authErrorSchema = {
   additionalProperties: true,
 } as const;
 
+const recurrenceFrequencySchema = {
+  $id: 'RecurrenceFrequency',
+  type: 'string',
+  enum: ['daily', 'weekly', 'monthly', 'yearly'],
+} as const;
+
+const recurrenceRuleSchema = {
+  $id: 'RecurrenceRule',
+  type: 'object',
+  required: ['frequency', 'interval'],
+  properties: {
+    frequency: { $ref: 'RecurrenceFrequency#' },
+    interval: { type: 'integer', minimum: 1 },
+  },
+} as const;
+
 const sharedSchemas = [
   taskSchema,
   createTaskSchema,
   updateTaskSchema,
+  recurrenceFrequencySchema,
+  recurrenceRuleSchema,
   labelSchema,
   createLabelSchema,
   updateLabelSchema,
@@ -521,6 +571,10 @@ export const examples = {
     priority: 'high',
     dueDate: '2026-03-18',
     projectId: '16f9232b-1dc3-4a8b-afec-0d6df02a4aa2',
+    recurrenceRule: {
+      frequency: 'weekly',
+      interval: 2,
+    },
   },
   updateTask: {
     completed: true,

@@ -172,6 +172,19 @@ export class TaskListPageComponent implements OnInit {
   protected readonly captureProjectId = signal('');
   protected readonly captureError = signal('');
 
+  protected readonly subtasksByParent = computed(() => {
+    const all = this.taskService.tasks();
+    const map = new Map<string, Task[]>();
+    for (const task of all) {
+      if (task.parentId) {
+        const list = map.get(task.parentId) ?? [];
+        list.push(task);
+        map.set(task.parentId, list);
+      }
+    }
+    return map;
+  });
+
   protected readonly inboxCountLabel = computed(
     () => `${this.taskService.inboxTasks().length} Tasks`,
   );

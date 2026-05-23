@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { integer, sqliteTable, text, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
 import type { ProjectColor, TaskBucket } from '@yotara/shared';
 
 const TASK_BUCKET_VALUES = [
@@ -110,6 +110,9 @@ export const tasks = sqliteTable('tasks', {
     enum: TASK_BUCKET_VALUES,
   }).default('personal-sanctuary'),
   projectId: text('project_id').references(() => projects.id, { onDelete: 'set null' }),
+  parentId: text('parent_id').references((): AnySQLiteColumn => tasks.id),
+  recurrenceRule: text('recurrence_rule'),
+  baseTaskId: text('base_task_id').references((): AnySQLiteColumn => tasks.id),
   deletedAt: text('deleted_at'),
   archivedAt: text('archived_at'),
   permanentArchive: integer('permanent_archive', { mode: 'boolean' }).notNull().default(false),

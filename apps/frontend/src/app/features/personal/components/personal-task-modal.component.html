@@ -58,6 +58,119 @@
             <p class="field-error-message">{{ descriptionError() }}</p>
           }
         </label>
+
+        @if (!task?.parentId) {
+          <section class="subtasks-section">
+            <div class="subtasks-header">
+              <h3>Subtasks</h3>
+              @if (subtaskCount() > 0) {
+                <span
+                  class="subtask-count"
+                  [class.subtask-count-done]="allSubtasksDone()"
+                  [class.subtask-count-partial]="!allSubtasksDone() && doneSubtaskCount() > 0"
+                >
+                  {{ doneSubtaskCount() }} / {{ subtaskCount() }}
+                </span>
+              }
+            </div>
+
+            @if (subtaskLoading()) {
+              <p class="subtask-loading">Loading...</p>
+            } @else {
+              <ul class="subtask-list">
+                <!-- Existing subtasks from DB -->
+                @for (subtask of subtasks(); track subtask.id) {
+                  <li class="subtask-row">
+                    <span class="checkbox-control">
+                      <input
+                        type="checkbox"
+                        [checked]="subtask.completed"
+                        (change)="toggleSubtask(subtask)"
+                      />
+                      <span class="checkbox-box" aria-hidden="true">
+                        @if (subtask.completed) {
+                          <span class="checkbox-mark"></span>
+                        }
+                      </span>
+                    </span>
+                    <span
+                      class="subtask-title"
+                      [class.subtask-title-done]="subtask.completed"
+                      (click)="$event.stopPropagation()"
+                    >
+                      {{ subtask.title }}
+                    </span>
+                  </li>
+                }
+
+                <!-- Draft subtasks not yet saved -->
+                @for (draft of draftSubtasks(); track $index; let i = $index) {
+                  <li class="subtask-row draft-subtask">
+                    <span class="checkbox-control">
+                      <input
+                        type="checkbox"
+                        [checked]="draft.completed"
+                        (change)="toggleDraftSubtask(i)"
+                      />
+                      <span class="checkbox-box" aria-hidden="true">
+                        @if (draft.completed) {
+                          <span class="checkbox-mark"></span>
+                        }
+                      </span>
+                    </span>
+                    <span class="subtask-title" [class.subtask-title-done]="draft.completed">
+                      {{ draft.title }}
+                    </span>
+                    <button
+                      type="button"
+                      class="remove-draft-button"
+                      (click)="removeDraftSubtask(i)"
+                      aria-label="Remove draft subtask"
+                    >
+                      ×
+                    </button>
+                  </li>
+                }
+              </ul>
+
+              <div class="subtask-actions">
+                @if (!subtaskEntryMode()) {
+                  <button type="button" class="add-subtask-button" (click)="toggleSubtaskEntry()">
+                    <span class="plus-icon">+</span>
+                    <span>Add subtask</span>
+                  </button>
+                } @else {
+                  <div class="subtask-entry">
+                    <input
+                      #subtaskInput
+                      type="text"
+                      placeholder="What needs to be done?"
+                      [ngModel]="newSubtaskTitle()"
+                      (ngModelChange)="newSubtaskTitle.set($event)"
+                      (keydown.enter)="quickAddSubtask()"
+                      (keydown.escape)="toggleSubtaskEntry()"
+                      [disabled]="newSubtaskCreating()"
+                      autofocus
+                    />
+                    <div class="entry-actions">
+                      <button
+                        type="button"
+                        class="entry-save"
+                        (click)="quickAddSubtask()"
+                        [disabled]="!newSubtaskTitle().trim() || newSubtaskCreating()"
+                      >
+                        Add
+                      </button>
+                      <button type="button" class="entry-cancel" (click)="toggleSubtaskEntry()">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </section>
+        }
       </div>
 
       <aside class="modal-sidebar">
@@ -150,6 +263,44 @@
             />
             @if (dueDateError()) {
               <p class="field-error-message">{{ dueDateError() }}</p>
+            }
+          </div>
+
+          <div class="sidebar-section">
+            <span class="field-label">Repeat</span>
+            <select
+              class="status-select"
+              [ngModel]="draftRecurrenceFrequency()"
+              (ngModelChange)="draftRecurrenceFrequency.set($event)"
+              [disabled]="isRecurrenceDisabled()"
+            >
+              <option [ngValue]="null">None</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+            @if (draftRecurrenceFrequency()) {
+              <label class="recurrence-interval-row">
+                <span>Every</span>
+                <input
+                  type="number"
+                  class="recurrence-interval-input"
+                  [ngModel]="draftRecurrenceInterval()"
+                  (ngModelChange)="draftRecurrenceInterval.set($event)"
+                  min="1"
+                  max="30"
+                />
+                <span>{{
+                  draftRecurrenceFrequency() === 'daily'
+                    ? 'day(s)'
+                    : draftRecurrenceFrequency() === 'weekly'
+                      ? 'week(s)'
+                      : draftRecurrenceFrequency() === 'monthly'
+                        ? 'month(s)'
+                        : 'year(s)'
+                }}</span>
+              </label>
             }
           </div>
 

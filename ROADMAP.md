@@ -15,6 +15,8 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 - ✅ Personal task views: Inbox, Today, Upcoming, project detail, and archive page shell with full restore/archive lifecycle
 - ✅ Archive page behavior: complete archive list with restore and permanent delete, proper `archived_at` timestamp handling
 - ✅ Task CRUD foundation: paginated API loading, create/update/delete API, soft delete, labels on tasks, project assignment, priority, due date, simple mode, and personal buckets
+- ✅ Subtasks: hierarchical task management (1-level deep) with automatic progress tracking (completed/total counts) and parent project inheritance
+- ✅ Recurring tasks: automated task materialization for daily, weekly, monthly, and yearly frequencies with robust calendar-based date math
 - ✅ Personal project CRUD foundation: create, list, update, detail view, and project-scoped tasks
 - ✅ Personal label CRUD: labels page, create/edit/delete modal, color selection, label counts, and task label filtering
 - ✅ Shared UI primitives: accessible modal, reusable confirm dialog, logout confirm modal, page header, section header, button utility, date picker, and empty-state directive
@@ -42,8 +44,8 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 
 | # | Task | Status | Effort | Current code reality / next action |
 |---|------|--------|--------|------------------------------------|
-| 8 | Subtasks UI: checklist inside task modal | ⬜ Not started | Medium | Shared DTOs mention `parentTaskId`, but DB schema and UI do not support subtasks yet. Start with one-level subtasks. |
-| 9 | Recurring tasks: daily/weekly/monthly | ⬜ Not started | Medium | No recurrence model yet. Add schema/API first, then modal controls and task materialization rules. |
+| 8 | Subtasks UI: checklist inside task modal | ✅ Done | Medium | Hierarchical task management implemented. Subtasks inherit parent project and are excluded from main lists by default. Modal includes subtask creation and completion tracking. |
+| 9 | Recurring tasks: daily/weekly/monthly | ✅ Done | Medium | Automated materialization logic implemented in API service. Supports daily, weekly, monthly, and yearly cycles. New instances generated upon completion of the previous instance. |
 | 10 | Markdown preview in task description | ⬜ Not started | Low | Task modal has a textarea only. Add preview toggle and sanitization. |
 | 11 | Browser notifications for due reminders | ⬜ Not started | Medium | Settings has disabled notification rows; no permission/scheduler/service worker flow yet. |
 | 12 | Export data: JSON and CSV from Settings | ⬜ Not started | Low | Settings has disabled export row. Implement client export first, API export later if needed. |
