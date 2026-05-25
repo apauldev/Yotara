@@ -396,15 +396,13 @@ export class TaskListPageComponent implements OnInit {
   });
 
   constructor() {
-    effect(
-      () => {
-        this.sortOption();
-        this.pageSize();
-        this.totalTasksCount();
-        this.currentPage.set(1);
-      },
-      { allowSignalWrites: true },
-    );
+    effect(() => {
+      this.viewMode();
+      this.sortOption();
+      this.pageSize();
+      this.totalTasksCount();
+      this.currentPage.set(1);
+    });
   }
 
   // --- Shared Actions ---
