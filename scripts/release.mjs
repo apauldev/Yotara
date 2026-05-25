@@ -171,7 +171,61 @@ console.log(`  → Bump type:      ${bumpType}`);
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
 // ---------------------------------------------------------------------------
-// 6. Delegate to commit-and-tag-version
+// 6. Idempotency: clean up existing tag for the target version
+// ---------------------------------------------------------------------------
+//
+// If the release was partially run (e.g. CI retry or post-release step
+// failed), the tag for the target version may already exist. We need to
+// handle two scenarios:
+//
+//   A) Tag exists only locally (push step never ran) — delete & retag.
+//   B) Tag exists on the remote too (push succeeded, later step failed) —
+//      skip this version entirely since it was already released.
+//
+// fetch remote so a fresh runner sees a previously-pushed tag.
+
+try {
+  run('git fetch --tags --force 2>/dev/null');
+} catch {
+  /* no remote */
+}
+
+const [major, minor, patch] = currentVersion.split('.').map(Number);
+const targetVersion =
+  bumpType === 'major'
+    ? `${major + 1}.0.0`
+    : bumpType === 'minor'
+      ? `${major}.${minor + 1}.0`
+      : `${major}.${minor}.${patch + 1}`;
+
+const targetTag = `v${targetVersion}`;
+
+// Check remote first (scenario B).
+let remoteExists = false;
+try {
+  remoteExists = !!run(`git ls-remote --tags origin "${targetTag}"`);
+} catch {
+  /* no remote configured */
+}
+
+if (remoteExists) {
+  console.log(`  Tag ${targetTag} already exists on remote — release was already completed.`);
+  console.log(`  Nothing to do.`);
+  process.exit(0);
+}
+
+// Delete local tag if present (scenario A).
+try {
+  const localExists = run(`git tag -l "${targetTag}"`);
+  if (localExists) {
+    run(`git tag -d "${targetTag}" 2>/dev/null`);
+  }
+} catch {
+  // tag -l returned empty
+}
+
+// ---------------------------------------------------------------------------
+// 7. Delegate to commit-and-tag-version
 // ---------------------------------------------------------------------------
 
 const dryRunFlag = dryRun ? ' --dry-run' : '';
