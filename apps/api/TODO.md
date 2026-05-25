@@ -42,7 +42,11 @@
   - [x] Reuse a common ownership lookup for `GET`, `PATCH`, `DELETE`, and nested project task routes
   - [x] Consider fetching the row once and reusing it for update/delete paths
 
-- [ ] Add a dedicated transactional layer for write flows that touch multiple tables or require stronger consistency.
+- [ ] Add a dedicated transactional layer for write flows (transactions) to ensure atomicity in multi-table operations (e.g., task + labels + subtasks).
+
+- [ ] Optimize task listing performance to resolve N+1 query issues:
+  - [ ] Replace per-row label fetching in `listTasksForOwner` with a joined query or batched lookup.
+  - [ ] Ensure paginated results remain performant as task and label counts grow.
 
 - [ ] Plan the Postgres migration for team mode before introducing workspaces/memberships:
   - [ ] Treat SQLite as the personal-mode/self-hosted foundation and Postgres as the SaaS/team-mode target
