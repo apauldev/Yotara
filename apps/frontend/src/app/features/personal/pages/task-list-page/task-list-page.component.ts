@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal, viewChild, OnInit, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Project, Task } from '@yotara/shared';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Task } from '@yotara/shared';
 import { ProjectService } from '../../../../core/services/project.service';
 import {
   TaskService,
@@ -10,7 +10,6 @@ import {
   UpcomingTaskGroup,
 } from '../../../../core/services/task.service';
 import { LabelService } from '../../../../core/services/label.service';
-import { SearchService, SearchTab } from '../../../../core/services/search.service';
 import { AuthStateService } from '../../../../core/services/auth-state.service';
 import { PersonalTaskCardComponent } from '../../components/personal-task-card.component';
 import { PersonalTaskWorkspaceComponent } from '../../components/personal-task-workspace.component';
@@ -20,20 +19,13 @@ import { PaginationComponent } from '../../../../shared/components/pagination/pa
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import {
-  faPlus,
-  faXmark,
-  faSun,
-  faCalendarDay,
-  faMagnifyingGlass,
-  faCloud,
-} from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faXmark, faSun, faCalendarDay, faCloud } from '@fortawesome/free-solid-svg-icons';
 import { ElementRef } from '@angular/core';
 import { parseTaskCommand } from '../../utils/task-command-parser';
 import { parseCalendarDate } from '../../../../shared/utils/timestamps';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 
-export type TaskListViewMode = 'inbox' | 'today' | 'upcoming' | 'search';
+export type TaskListViewMode = 'inbox' | 'today' | 'upcoming';
 export type TaskSortOption = 'date' | 'alpha';
 export type InsightType = 'clarity' | 'journal';
 
@@ -43,7 +35,6 @@ export type InsightType = 'clarity' | 'journal';
   imports: [
     CommonModule,
     FormsModule,
-    RouterLink,
     PersonalTaskCardComponent,
     PersonalTaskWorkspaceComponent,
     SectionHeaderComponent,
@@ -59,7 +50,6 @@ export class TaskListPageComponent implements OnInit {
   protected readonly taskService = inject(TaskService);
   protected readonly projectService = inject(ProjectService);
   protected readonly labelService = inject(LabelService);
-  protected readonly searchService = inject(SearchService);
   protected readonly authState = inject(AuthStateService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -68,7 +58,6 @@ export class TaskListPageComponent implements OnInit {
   protected readonly faXmark = faXmark;
   protected readonly faSun = faSun;
   protected readonly faCalendarDay = faCalendarDay;
-  protected readonly faMagnifyingGlass = faMagnifyingGlass;
   protected readonly faCloud = faCloud;
 
   private readonly workspace = viewChild(PersonalTaskWorkspaceComponent);
@@ -132,7 +121,6 @@ export class TaskListPageComponent implements OnInit {
     if (path.endsWith('/inbox')) return 'inbox';
     if (path.endsWith('/today')) return 'today';
     if (path.endsWith('/upcoming')) return 'upcoming';
-    if (path.endsWith('/search')) return 'search';
     return null;
   }
 
@@ -145,8 +133,6 @@ export class TaskListPageComponent implements OnInit {
         return 'Today';
       case 'upcoming':
         return 'Upcoming';
-      case 'search':
-        return 'Search';
       default:
         return 'Tasks';
     }
@@ -160,8 +146,6 @@ export class TaskListPageComponent implements OnInit {
         return `${this.dateLabel()} - ${this.progressLabel()}`;
       case 'upcoming':
         return 'See what is approaching and space it out before it becomes noisy.';
-      case 'search':
-        return this.searchSubtitle();
       default:
         return '';
     }
@@ -224,8 +208,6 @@ export class TaskListPageComponent implements OnInit {
         return this.taskService.todayTasks().length;
       case 'upcoming':
         return this.taskService.upcomingTasks().length;
-      case 'search':
-        return this.results().tasks.length;
       default:
         return 0;
     }
@@ -413,98 +395,13 @@ export class TaskListPageComponent implements OnInit {
     return total === 0 ? 'a clear page' : `${completed} of ${total} done`;
   });
 
-  // --- Search Logic ---
-  private readonly queryParamMap = toSignal(
-    this.route.queryParamMap.pipe(
-      map((params) => ({
-        q: params.get('q')?.trim() ?? '',
-        tab: normalizeTab(params.get('tab')),
-      })),
-    ),
-    {
-      initialValue: {
-        q: this.route.snapshot.queryParamMap.get('q')?.trim() ?? '',
-        tab: normalizeTab(this.route.snapshot.queryParamMap.get('tab')),
-      },
-    },
-  );
-
-  protected readonly searchQuery = computed(() => this.queryParamMap().q);
-  protected readonly draftQuery = signal(this.queryParamMap().q);
-  protected readonly activeTab = computed(() => this.queryParamMap().tab);
-  protected readonly results = computed(() => this.searchService.search(this.searchQuery()));
-
-  protected readonly taskResults = computed(() => {
-    const raw = this.results().tasks;
-    if (this.activeTab() === 'all') return raw.slice(0, 5);
-    return this.sortAndPaginate(raw, (r) => r.task);
-  });
-  protected readonly projectResults = computed(() =>
-    this.activeTab() === 'all' ? this.results().projects.slice(0, 3) : this.results().projects,
-  );
-  protected readonly labelResults = computed(() =>
-    this.activeTab() === 'all' ? this.results().labels.slice(0, 5) : this.results().labels,
-  );
-  protected readonly resultCount = computed(
-    () =>
-      this.results().tasks.length + this.results().projects.length + this.results().labels.length,
-  );
-
-  protected readonly tabItems: { value: SearchTab; label: string; count?: () => number }[] = [
-    { value: 'all', label: 'All' },
-    { value: 'tasks', label: 'Tasks', count: () => this.results().tasks.length },
-    { value: 'projects', label: 'Projects', count: () => this.results().projects.length },
-    { value: 'labels', label: 'Labels', count: () => this.results().labels.length },
-  ];
-
   constructor() {
     effect(() => {
-      this.draftQuery.set(this.queryParamMap().q);
-    });
-
-    // Reset pagination when view mode, sort, page size, or task result set changes
-    effect(
-      () => {
-        this.viewMode();
-        this.sortOption();
-        this.pageSize();
-        this.totalTasksCount();
-        this.currentPage.set(1);
-      },
-      { allowSignalWrites: true },
-    );
-  }
-
-  private searchSubtitle() {
-    const query = this.queryParamMap().q;
-    if (!query) {
-      return 'Search tasks and projects from the sanctuary.';
-    }
-    return `Results for “${query}”.`;
-  }
-
-  protected async submitSearch() {
-    await this.navigateToSearchQuery(this.draftQuery().trim(), this.activeTab());
-  }
-
-  protected async chooseSearchTab(tab: SearchTab) {
-    await this.navigateToSearchQuery(this.draftQuery().trim(), tab);
-  }
-
-  protected projectLabel(project: Project) {
-    if (project.openTaskCount === 1) {
-      return '1 open task';
-    }
-    return `${project.openTaskCount} open tasks`;
-  }
-
-  private async navigateToSearchQuery(query: string, tab: SearchTab) {
-    await this.router.navigate(['/tasks'], {
-      queryParams: {
-        view: 'search',
-        q: query || null,
-        tab: tab === 'all' ? null : tab,
-      },
+      this.viewMode();
+      this.sortOption();
+      this.pageSize();
+      this.totalTasksCount();
+      this.currentPage.set(1);
     });
   }
 
@@ -520,14 +417,6 @@ export class TaskListPageComponent implements OnInit {
   ngOnInit() {
     // Initial data load if needed
   }
-}
-
-// --- Helper Functions ---
-function normalizeTab(value: string | null): SearchTab {
-  if (value === 'tasks' || value === 'projects' || value === 'labels') {
-    return value;
-  }
-  return 'all';
 }
 
 // --- Prompts (Copied from InboxPageComponent) ---
@@ -566,39 +455,39 @@ const DAILY_CLARITY_PROMPTS = [
   'One task at a time is still progress.',
   'The next step is usually smaller than it feels.',
   'A list that fits your day beats a list that judges it.',
-  "You don't need to clear it all — just begin somewhere.",
+  "You don't need to clear it all - just begin somewhere.",
 ];
 
 const YOTARA_JOURNAL_PROMPTS = [
-  '“Within you, there is a stillness and a sanctuary to which you can retreat at any time.” — Eckhart Tolle',
-  '“A calm mind brings inner strength and self-confidence.” — Dalai Lama',
-  '“Peace of mind comes when you stop trying to control everything.” — Eckhart Tolle',
-  '“Your mind is for having ideas, not holding them.” — David Allen',
-  '“Simplicity is the ultimate sophistication.” — Leonardo da Vinci',
-  '“Focus and simplicity. Simple can be harder than complex.” — Steve Jobs',
-  '“The clearer the vision, the fewer the options.” — Andy Stanley',
-  '“Calmness is the cradle of power.” — Josiah Gilbert Holland',
-  '“You must use your mind to get things off your mind.” — David Allen',
-  '“A quiet mind is able to hear intuition over fear.” — Unknown',
-  '“The present moment is the only time over which we have dominion.” — Thích Nhất Hạnh',
-  '“Simplicity is the keynote of all true elegance.” — Coco Chanel',
-  '“In the midst of movement and chaos, keep stillness inside of you.” — Deepak Chopra',
-  '“The things you are passionate about are not random. They are your calling.” — Fabienne Fredrickson',
-  '“Stillness is where creativity and solutions to problems are found.” — Eckhart Tolle',
-  '“Less is more.” — Ludwig Mies van der Rohe',
-  '“The soul usually knows what to do to heal itself. The challenge is to silence the mind.” — Caroline Myss',
-  '“Order is the shape upon which beauty depends.” — Pearl S. Buck',
-  '“To be calm is the highest achievement of the self.” — Zen Proverb',
-  '“The unexamined life is not worth living.” — Socrates',
-  '“He who is contented is rich.” — Lao Tzu',
-  '“Silence is the language of God.” — Rumi',
-  '“The quieter you become, the more you can hear.” — Ram Dass',
-  '“Do not let the behavior of others destroy your inner peace.” — Dalai Lama',
-  '“Everything you need is already inside you.” — Thích Nhất Hạnh',
-  '“The greatest weapon against stress is our ability to choose one thought over another.” — William James',
-  '“A cluttered mind is a cluttered life.” — Unknown',
-  '“True simplicity is when the inner and outer are aligned.” — Eckhart Tolle',
-  '“Let go of the need to control. Trust the process.” — Unknown',
+  '\u201CWithin you, there is a stillness and a sanctuary to which you can retreat at any time.\u201D \u2014 Eckhart Tolle',
+  '\u201CA calm mind brings inner strength and self-confidence.\u201D \u2014 Dalai Lama',
+  '\u201CPeace of mind comes when you stop trying to control everything.\u201D \u2014 Eckhart Tolle',
+  '\u201CYour mind is for having ideas, not holding them.\u201D \u2014 David Allen',
+  '\u201CSimplicity is the ultimate sophistication.\u201D \u2014 Leonardo da Vinci',
+  '\u201CFocus and simplicity. Simple can be harder than complex.\u201D \u2014 Steve Jobs',
+  '\u201CThe clearer the vision, the fewer the options.\u201D \u2014 Andy Stanley',
+  '\u201CCalmness is the cradle of power.\u201D \u2014 Josiah Gilbert Holland',
+  '\u201CYou must use your mind to get things off your mind.\u201D \u2014 David Allen',
+  '\u201CA quiet mind is able to hear intuition over fear.\u201D \u2014 Unknown',
+  '\u201CThe present moment is the only time over which we have dominion.\u201D \u2014 Th\u00EDch Nh\u1EA5t H\u1EA1nh',
+  '\u201CSimplicity is the keynote of all true elegance.\u201D \u2014 Coco Chanel',
+  '\u201CIn the midst of movement and chaos, keep stillness inside of you.\u201D \u2014 Deepak Chopra',
+  '\u201CThe things you are passionate about are not random. They are your calling.\u201D \u2014 Fabienne Fredrickson',
+  '\u201CStillness is where creativity and solutions to problems are found.\u201D \u2014 Eckhart Tolle',
+  '\u201CLess is more.\u201D \u2014 Ludwig Mies van der Rohe',
+  '\u201CThe soul usually knows what to do to heal itself. The challenge is to silence the mind.\u201D \u2014 Caroline Myss',
+  '\u201COrder is the shape upon which beauty depends.\u201D \u2014 Pearl S. Buck',
+  '\u201CTo be calm is the highest achievement of the self.\u201D \u2014 Zen Proverb',
+  '\u201CThe unexamined life is not worth living.\u201D \u2014 Socrates',
+  '\u201CHe who is contented is rich.\u201D \u2014 Lao Tzu',
+  '\u201CSilence is the language of God.\u201D \u2014 Rumi',
+  '\u201CThe quieter you become, the more you can hear.\u201D \u2014 Ram Dass',
+  '\u201CDo not let the behavior of others destroy your inner peace.\u201D \u2014 Dalai Lama',
+  '\u201CEverything you need is already inside you.\u201D \u2014 Th\u00EDch Nh\u1EA5t H\u1EA1nh',
+  '\u201CThe greatest weapon against stress is our ability to choose one thought over another.\u201D \u2014 William James',
+  '\u201CA cluttered mind is a cluttered life.\u201D \u2014 Unknown',
+  '\u201CTrue simplicity is when the inner and outer are aligned.\u201D \u2014 Eckhart Tolle',
+  '\u201CLet go of the need to control. Trust the process.\u201D \u2014 Unknown',
 ];
 
 function pickRandomPrompt(prompts: readonly string[]) {

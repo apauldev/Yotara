@@ -123,8 +123,8 @@ export class PersonalShellComponent {
   protected async submitSearch() {
     const query = this.searchQuery().trim();
 
-    await this.router.navigate(['/tasks'], {
-      queryParams: query ? { view: 'search', q: query } : { view: 'search' },
+    await this.router.navigate(['/search'], {
+      queryParams: query ? { q: query } : {},
     });
   }
 

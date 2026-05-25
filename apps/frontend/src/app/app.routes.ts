@@ -98,8 +98,10 @@ export const routes: Routes = [
       },
       {
         path: 'search',
-        redirectTo: 'tasks',
-        pathMatch: 'full',
+        loadComponent: () =>
+          import('./features/personal/pages/search-page/search-page.component').then(
+            (m) => m.SearchPageComponent,
+          ),
       },
       {
         path: '**',

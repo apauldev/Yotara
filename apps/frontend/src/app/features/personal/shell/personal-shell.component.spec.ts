@@ -20,9 +20,12 @@ class SearchStubComponent {}
 describe('PersonalShellComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [PersonalShellComponent, InboxStubComponent],
+      imports: [PersonalShellComponent, InboxStubComponent, SearchStubComponent],
       providers: [
-        provideRouter([{ path: 'tasks', component: InboxStubComponent }]),
+        provideRouter([
+          { path: 'tasks', component: InboxStubComponent },
+          { path: 'search', component: SearchStubComponent },
+        ]),
         {
           provide: AuthStateService,
           useValue: {
@@ -102,6 +105,6 @@ describe('PersonalShellComponent', () => {
     tick();
     fixture.detectChanges();
 
-    expect(router.url).toContain('/tasks?view=search&q=Launch%20Yotara');
+    expect(router.url).toContain('/search?q=Launch%20Yotara');
   }));
 });
