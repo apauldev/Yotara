@@ -6,7 +6,6 @@ import { of } from 'rxjs';
 import { TaskListPageComponent } from './task-list-page.component';
 import { TaskService } from '../../../../core/services/task.service';
 import { ProjectService } from '../../../../core/services/project.service';
-import { SearchService } from '../../../../core/services/search.service';
 import { LabelService } from '../../../../core/services/label.service';
 import { AuthStateService } from '../../../../core/services/auth-state.service';
 import { PersonalTaskWorkspaceComponent } from '../../components/personal-task-workspace.component';
@@ -15,7 +14,6 @@ import { Task } from '@yotara/shared';
 describe('TaskListPageComponent', () => {
   let mockTaskService: any;
   let mockProjectService: any;
-  let mockSearchService: any;
   let mockLabelService: any;
   let mockAuthStateService: any;
   let mockActivatedRoute: any;
@@ -39,14 +37,6 @@ describe('TaskListPageComponent', () => {
 
     mockProjectService = {
       projects: signal([{ id: '1', name: 'Inbox' }]),
-    };
-
-    mockSearchService = {
-      search: jasmine.createSpy().and.returnValue({
-        tasks: [],
-        projects: [],
-        labels: [],
-      }),
     };
 
     mockLabelService = {
@@ -74,7 +64,6 @@ describe('TaskListPageComponent', () => {
       providers: [
         { provide: TaskService, useValue: mockTaskService },
         { provide: ProjectService, useValue: mockProjectService },
-        { provide: SearchService, useValue: mockSearchService },
         { provide: LabelService, useValue: mockLabelService },
         { provide: AuthStateService, useValue: mockAuthStateService },
         { provide: ActivatedRoute, useValue: mockActivatedRoute },
@@ -132,15 +121,6 @@ describe('TaskListPageComponent', () => {
       const panel = fixture.debugElement.query(By.css('.insight-panel'));
       expect(panel).toBeNull();
     });
-
-    it('renders the search view when requested', () => {
-      mockActivatedRoute.queryParamMap = of(new Map([['view', 'search']]));
-      const fixture = TestBed.createComponent(TaskListPageComponent);
-      fixture.detectChanges();
-
-      expect(fixture.nativeElement.textContent).toContain('Search');
-      expect(fixture.nativeElement.textContent).toContain('Start with a title');
-    });
   });
 
   describe('Inbox Capture', () => {
@@ -190,7 +170,6 @@ describe('TaskListPageComponent', () => {
       spyOn(workspace, 'openCreateTaskModal');
 
       (fixture.componentInstance as any).captureTitle.set('Force capture');
-      // Simulate clicking the "Add task with details" button
       const detailsBtn = fixture.debugElement.query(By.css('.capture-submit-details'));
       detailsBtn.nativeElement.click();
       fixture.detectChanges();
@@ -228,7 +207,6 @@ describe('TaskListPageComponent', () => {
       const fixture = TestBed.createComponent(TaskListPageComponent);
       fixture.detectChanges();
 
-      // Verify at least one type of prompt is rendered
       const text = fixture.nativeElement.textContent;
       const foundClarity = text.includes('Daily Clarity');
       const foundJournal = text.includes('The Yotara Journal');
@@ -280,31 +258,6 @@ describe('TaskListPageComponent', () => {
     });
   });
 
-  describe('Search Functionality', () => {
-    it('renders search view with empty state', () => {
-      mockActivatedRoute.queryParamMap = of(new Map([['view', 'search']]));
-      const fixture = TestBed.createComponent(TaskListPageComponent);
-      fixture.detectChanges();
-
-      expect(fixture.nativeElement.textContent).toContain('Start with a title');
-    });
-
-    it('calls search service when searching', () => {
-      mockActivatedRoute.queryParamMap = of(
-        new Map([
-          ['view', 'search'],
-          ['q', 'meeting'],
-        ]),
-      );
-      mockSearchService.search.and.returnValue({ tasks: [], projects: [], labels: [] });
-
-      const fixture = TestBed.createComponent(TaskListPageComponent);
-      fixture.detectChanges();
-
-      expect(mockSearchService.search).toHaveBeenCalled();
-    });
-  });
-
   describe('Sorting and Pagination', () => {
     it('sorts inbox tasks by date by default', () => {
       const mockTasks: Partial<Task>[] = [
@@ -316,7 +269,7 @@ describe('TaskListPageComponent', () => {
       fixture.detectChanges();
 
       const processed = (fixture.componentInstance as any).processedInboxTasks();
-      expect(processed[0].id).toBe('1'); // Newest first
+      expect(processed[0].id).toBe('1');
     });
 
     it('sorts inbox tasks alphabetically when requested', () => {
@@ -332,7 +285,7 @@ describe('TaskListPageComponent', () => {
       fixture.detectChanges();
 
       const processed = (fixture.componentInstance as any).processedInboxTasks();
-      expect(processed[0].id).toBe('2'); // Task A comes first
+      expect(processed[0].id).toBe('2');
     });
 
     it('paginates inbox tasks correctly', () => {
@@ -352,7 +305,7 @@ describe('TaskListPageComponent', () => {
 
       let processed = (fixture.componentInstance as any).processedInboxTasks();
       expect(processed.length).toBe(10);
-      expect(processed[0].id).toBe('1'); // Newest first
+      expect(processed[0].id).toBe('1');
 
       (fixture.componentInstance as any).currentPage.set(2);
       fixture.detectChanges();
