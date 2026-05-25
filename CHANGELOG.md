@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.51.0](https://github.com/apauldev/Yotara/compare/v0.50.1...v0.51.0) (2026-05-25)
+
+
+### Features
+
+* added search as a standalone component ([8f0da50](https://github.com/apauldev/Yotara/commit/8f0da500242b1aa7921c8ea742f9ac1be4587b0c))
+
+
+### Bug Fixes
+
+* build failed half way and brought up an edge case that was fixed ([7041dad](https://github.com/apauldev/Yotara/commit/7041dad574ccc61add60decd585c182ecfa55a48))
+* p2 regression- view mode issues between inbox/today/upcoming ([c19bd08](https://github.com/apauldev/Yotara/commit/c19bd0848f6463d812f24d324acc28d26ce2c2e6))
+* p2- dry run is fixed, no state mutations ([0f35321](https://github.com/apauldev/Yotara/commit/0f35321b4ddd75a0b5da9441af6d71c0ce5da747))
+
+
+### Documentation
+
+* added some more thoughts for harderning ([0e69ab7](https://github.com/apauldev/Yotara/commit/0e69ab7020bc43b191a058c8d31463479522d098))
+
 ## [0.50.1](https://github.com/apauldev/Yotara/compare/v0.50.0...v0.50.1) (2026-05-23)
 
 
