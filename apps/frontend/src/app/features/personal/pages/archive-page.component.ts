@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faBoxArchive, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { TaskService } from '../../../core/services/task.service';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
@@ -15,6 +16,7 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
     CommonModule,
     FontAwesomeModule,
     ConfirmDialogComponent,
+    EmptyStateComponent,
     PageHeaderComponent,
     PersonalTaskCardComponent,
     PersonalTaskWorkspaceComponent,
@@ -33,10 +35,11 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
         } @else if (taskService.error()) {
           <p class="status-copy">{{ taskService.error() }}</p>
         } @else if (taskService.archivedTasks().length === 0) {
-          <div class="empty-state">
-            <h2>Nothing archived yet</h2>
-            <p>Completed work will appear here, and permanent archives stay put.</p>
-          </div>
+          <app-empty-state
+            title="Nothing archived yet"
+            description="Completed work will appear here, and permanent archives stay put."
+            [icon]="faBoxArchive"
+          />
         } @else {
           <div class="archive-summary">
             <span>{{ taskService.archivedTasks().length }} archived tasks</span>
@@ -134,28 +137,13 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
         font-size: 1.35rem;
       }
 
-      .task-stack,
-      .empty-state {
+      .task-stack {
         border-radius: 1.5rem;
         background: var(--surface-card);
         box-shadow: inset 0 0 0 1px var(--outline-variant);
         padding: 1.25rem;
-      }
-
-      .task-stack {
         display: grid;
         gap: 0.85rem;
-      }
-
-      .empty-state h2 {
-        margin: 0;
-        font-size: 1.7rem;
-        letter-spacing: -0.04em;
-      }
-
-      .empty-state p {
-        margin: 0.55rem 0 0;
-        color: var(--on-surface-muted);
       }
     `,
   ],
@@ -163,6 +151,7 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
 export class ArchivePageComponent {
   protected readonly taskService = inject(TaskService);
   protected readonly faTrash = faTrash;
+  protected readonly faBoxArchive = faBoxArchive;
   protected readonly deletingTask = signal(false);
   protected readonly deleteConfirmOpen = signal(false);
   protected readonly taskPendingDelete = signal<{
