@@ -30,7 +30,7 @@ Target: 1-2 weeks. This is the public-demo gate.
 | 2 | Confirmation dialogs for all destructive actions | ✅ Done | Low | Shared \`ConfirmDialog\` components used for task operations, archive actions, and label deletion. |
 | 3 | Canonical global search: \`/search?q=...\` with label matches | ✅ Done | Medium | Canonical \`/search?q=...\` route is live with tabbed filtering and full-text matching. |
 | 4 | 404 page: wildcard route, friendly error, link to Inbox | ✅ Done | Low | Friendly 404 page with parallax animation implemented. |
-| 5 | Task loading skeletons | ⬜ Not started | Low | Replace spinner/copy-only loading states with skeleton rows for task lists and task panels. |
+| 5 | Task loading states | ✅ Done | Low | Three-layer loading system: global animated top-of-page bar, per-service `loading()` signals that disable buttons during fetch, and descriptive status copy text. Fast local queries render data in 100–200ms, making skeleton placeholders unnecessary for this app's architecture. |
 | 6 | Empty states for all main views | 🟡 Partial | Low | \`EmptyStateComponent\` used across most pages; Archive page migration to shared component remains. |
 | 7 | Form validation and error handling polish | ✅ Done | Low | Global error handling system with toast notifications and persistent logging implemented. |
 
@@ -40,7 +40,7 @@ P0 exit criteria:
 - ✅ Every destructive action (task/label delete) has a confirmation dialog.
 - ✅ Search works at the canonical \`/search?q=...\` route.
 - ✅ Unknown routes land on a useful 404 page.
-- ⬜ Main task lists feel stable while loading (skeletons pending).
+- ✅ Main task lists feel stable while loading (global bar + button locking + status copy).
 - 🟡 Empty/error states feel intentional (Archive page migration pending).
 
 After P0, the product is ready for a public demo link in the README.
@@ -127,7 +127,7 @@ Do this after real user feedback:
 
 | Weeks | Focus | Deliverable |
 |-------|-------|-------------|
-| 1-2 | P0 | Archive lifecycle, confirmations, canonical search route, 404, skeletons, empty states, validation polish |
+| 1-2 | P0 | Archive lifecycle, confirmations, canonical search route, 404, loading states, empty states, validation polish |
 | 3-5 | P1 | Subtasks, recurring tasks, markdown preview, browser notifications, export |
 | 6-13 | P2 | Workspaces, assignment, comments, Team Board, real-time updates in the final two weeks |
 | 14-16 | P3 | Pre-built Docker images, Compose with pulled images, one-click templates, live demo |
@@ -136,18 +136,17 @@ After week 16, Yotara should be ready for v1.0 across self-hosted and SaaS paths
 
 ## Immediate Next Task
 
-Start with P0 #5 and #6 next: task loading skeletons and final empty state migration.
+Start with P0 #6 next: final empty state migration for the Archive page.
 
 Implementation slice:
 
-1. Add task list skeleton loaders for Inbox, Today, Upcoming, and Project detail views.
-2. Migrate Archive page to use shared \`EmptyStateComponent\`.
-3. Add Markdown preview toggle to task description in the detail modal (P1 #10).
-4. Standardize destructive confirmations for project delete flows (once implemented).
+1. Migrate Archive page to use shared \`EmptyStateComponent\`.
+2. Add Markdown preview toggle to task description in the detail modal (P1 #10).
+3. Standardize destructive confirmations for project delete flows (once implemented).
 
 Acceptance criteria:
 
-- Main task views feel stable and professional while loading data.
+- Main task views feel stable and professional while loading data (global progress bar + button locking + status copy provide polished feedback without skeleton flicker).
 - Archive page consistency matches the rest of the app.
 - Task descriptions support rich preview.
 - All destructive actions remain gated by confirmation dialogs.

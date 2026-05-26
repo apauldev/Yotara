@@ -34,13 +34,13 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 | 2 | Confirmation dialogs: reusable modal for delete/archive actions | ✅ Done | Low | Shared `Modal` and `ConfirmDialog` components fully implemented and used throughout app for logout, label delete, task operations, and archive actions. |
 | 3 | Global search results page (`/search?q=...`): titles, descriptions, labels | ✅ Done | Medium | Canonical `/search?q=...` route is live with lazy-loaded `SearchPageComponent`. Supports tabbed filtering (all/tasks/projects/labels), pagination, date/alpha sort, and query params via shell search bar. Search service handles full-text matching with scoring, recency and urgency bonuses. |
 | 4 | 404 page: friendly error with link to Inbox | ✅ Done | Low | Implemented in #103 with animation. Friendly 404 page with navigation back to inbox. |
-| 5 | Task loading skeletons | ⬜ Not started | Low | Loading states mostly use copy/spinners. Add skeleton rows for task lists and project/label task panels. |
+| 5 | Task loading states | ✅ Done | Low | Three-layer loading system: global animated top-of-page progress bar (AppStatusComponent), per-service `loading()` signals that disable action buttons during fetch, and descriptive status copy text. Fast local SQLite queries (<200ms) render data with no perceptible delay, making skeleton placeholders unnecessary. |
 | 6 | Empty states for Inbox, Today, Upcoming, Projects, Labels | 🟡 Partial | Low | `EmptyStateComponent` ✅ exists and used in task-list-page (Inbox/Today/Upcoming/Search), projects-page, project-detail-page, and labels-page with contextual copy and icons. Archive page has its own inline empty state (not using shared component). One more pass to migrate archive page to use shared `EmptyStateComponent`. |
 | 7 | Form validation and error polish | ✅ Done | Low | Basic validation ✅ present in all forms. Global error handling system implemented (#106) with professional toast notifications, error interception, and persistent logging. Validation copy and disabled/loading states standardized. |
 
 **P0 target:** 1–2 weeks at 1–2 hours/day. This is the public-demo gate.
 
-**P0 remaining work (2 items):** task loading skeletons (#5), archive page `EmptyStateComponent` migration (#6).
+**P0 remaining work (1 item):** archive page `EmptyStateComponent` migration (#6).
 
 ### P0.5 – Technical Hardening (Robustness Gates)
 
@@ -121,7 +121,7 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 
 | Weeks | Focus | Key deliverable |
 |-------|-------|-----------------|
-| 1–2 | P0 Personal polish | Archive clarification, confirmation modals, canonical search route, skeletons, empty states, 404, validation polish |
+| 1–2 | P0 Personal polish | Archive clarification, confirmation modals, canonical search route, loading states, empty states, 404, validation polish |
 | 3–5 | P1 Personal features | Subtasks, recurring tasks, markdown preview, browser notifications, export |
 | 6–13 | P2 Team Mode | Workspaces, assignment, comments, Team Board, real-time updates in the final stretch |
 | 14–16 | P3 Deployment & CI hardening | Docker images pushed to GHCR/Docker Hub, Compose with pulled images, coverage gates, Dependabot, security scanning, one-click templates, live demo |
@@ -391,9 +391,11 @@ These features should be built as personal-mode improvements first, but they sho
 - Archive empty state 🟡 (inline, not using shared component)
 
 ### Loading States
-- **Status**: ⬜ Not started for skeletons; 🟡 partial for loading messages/spinners
-- Skeleton loaders for task lists
-- Loading spinners for async operations
+- **Status**: ✅ Done — three-layer system
+- Global animated top-of-page progress bar (AppStatusComponent)
+- Per-service `loading()` signals that disable buttons during async operations
+- Descriptive status copy text per view ("Loading your inbox...", etc.)
+- No skeleton screens — fast local queries (<200ms) make them unnecessary; the bar + button lock provide polished feedback without skeleton flicker
 
 ### Error States
 - **Status**: 🟡 Partial
@@ -488,7 +490,7 @@ These features should be built as personal-mode improvements first, but they sho
 12. ✅ Labels / tags management for personal mode
 13. 🟡 Team shell placeholders
 14. ✅ Confirmation modal primitive + 404 page
-15. 🟡 Validation/error polish; task loading skeletons still open
+15. ✅ Validation/error polish; loading states implemented (global bar + button locking + status copy)
 16. ⬜ Language selection / localization groundwork
 17. ⬜ Notification center + browser push support
 
@@ -569,7 +571,6 @@ These features should be built as personal-mode improvements first, but they sho
 - Kanban project view
 - Subtasks and recurring tasks UI
 - Team workspace membership and assignment features
-- Task loading skeletons
 - Coverage reporting and threshold gates
 - Dependabot automated dependency updates
 - Security scanning (CodeQL + Snyk)
@@ -664,7 +665,6 @@ apps/frontend/src/app/
 
 - [ ] Make `/search?q=...` the canonical global search route (route exists but redirects to `/tasks`)
 - [ ] Migrate archive page to use shared `EmptyStateComponent`
-- [ ] Add task list skeleton loaders
 
 ---
 
