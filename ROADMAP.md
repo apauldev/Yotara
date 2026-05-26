@@ -21,7 +21,7 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 - ✅ Personal label CRUD: labels page, create/edit/delete modal, color selection, label counts, and task label filtering
 - ✅ Shared UI primitives: accessible modal, reusable confirm dialog, logout confirm modal, page header, section header, button utility, date picker, and empty-state directive
 - ✅ Settings foundation: theme selection, change password flow, and logout confirmation
-- ✅ Search foundation: task/project/label search service and search UI available through `/tasks?view=search&q=...`
+- ✅ Search foundation: task/project/label search service and canonical `/search?q=...` route
 - ✅ Global status system: professional loading indicator, error toast notifications, and persistent logging to localStorage (#106)
 - ✅ 404 page: friendly error page with animation and navigation (#103)
 - ✅ API/docs/devops foundation: OpenAPI docs, Swagger UI, Dockerfiles, local build-based Compose, Docker smoke script, and core API tests
@@ -32,7 +32,7 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 |---|------|--------|--------|------------------------------------|
 | 1 | Archive view: show `archived` tasks with restore and permanent delete buttons | ✅ Done | Low | Completed in #101. Archive lifecycle properly implemented with `archived_at` timestamps, restore flow, and UI in place. |
 | 2 | Confirmation dialogs: reusable modal for delete/archive actions | ✅ Done | Low | Shared `Modal` and `ConfirmDialog` components fully implemented and used throughout app for logout, label delete, task operations, and archive actions. |
-| 3 | Global search results page (`/search?q=...`): titles, descriptions, labels | 🟡 Partial | Medium | Search service and functionality ✅ complete through `/tasks?view=search&q=...` for tasks, projects, and labels with full text matching. Canonical `/search?q=...` route and improved result ranking/context still needed for P0 finish. |
+| 3 | Global search results page (`/search?q=...`): titles, descriptions, labels | ✅ Done | Medium | Canonical `/search?q=...` route is live with lazy-loaded `SearchPageComponent`. Supports tabbed filtering (all/tasks/projects/labels), pagination, date/alpha sort, and query params via shell search bar. Search service handles full-text matching with scoring, recency and urgency bonuses. |
 | 4 | 404 page: friendly error with link to Inbox | ✅ Done | Low | Implemented in #103 with animation. Friendly 404 page with navigation back to inbox. |
 | 5 | Task loading skeletons | ⬜ Not started | Low | Loading states mostly use copy/spinners. Add skeleton rows for task lists and project/label task panels. |
 | 6 | Empty states for Inbox, Today, Upcoming, Projects, Labels | 🟡 Partial | Low | `EmptyStateComponent` ✅ exists and used in task-list-page (Inbox/Today/Upcoming/Search), projects-page, project-detail-page, and labels-page with contextual copy and icons. Archive page has its own inline empty state (not using shared component). One more pass to migrate archive page to use shared `EmptyStateComponent`. |
@@ -40,7 +40,7 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 
 **P0 target:** 1–2 weeks at 1–2 hours/day. This is the public-demo gate.
 
-**P0 remaining work (3 items):** canonical `/search` route (#3), task loading skeletons (#5), archive page `EmptyStateComponent` migration (#6).
+**P0 remaining work (2 items):** task loading skeletons (#5), archive page `EmptyStateComponent` migration (#6).
 
 ### P0.5 – Technical Hardening (Robustness Gates)
 
@@ -354,14 +354,14 @@ These features should be built as personal-mode improvements first, but they sho
 - Filter labels and view matching tasks
 
 ### Global Search Results
-- **Status**: 🟡 Partial
+- **Status**: ✅ Done
 - Triggered from top bar search icon
-- Current route: `/tasks?view=search&q=...`
-- Target route: `/search?q=...`
+- Canonical route: `/search?q=...`
 - Results grouped by:
   - Project
   - Due date
   - Completion status
+  - Tabbed filtering (all / tasks / projects / labels)
 
 ### Notifications Center
 - **Status**: ⬜ Not started
@@ -550,7 +550,7 @@ These features should be built as personal-mode improvements first, but they sho
 - Task API with pagination and soft delete
 - Project create + project detail screens
 - Personal labels page and label CRUD
-- Personal search service and search UI within `/tasks?view=search`
+- Personal search service and canonical `/search?q=...` route
 - Shared modal and confirmation dialog primitives
 - Logout, label delete, and task complete/restore confirmation flows
 - Settings foundation: theme selection, change password, logout
@@ -686,3 +686,4 @@ apps/frontend/src/app/
 
 For detailed technical setup, see [PROJECT_README.md](./PROJECT_README.md).
 For testing patterns, see [testing.md](./testing.md).
+patterns, see [testing.md](./testing.md).
