@@ -35,12 +35,10 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 | 3 | Global search results page (`/search?q=...`): titles, descriptions, labels | ✅ Done | Medium | Canonical `/search?q=...` route is live with lazy-loaded `SearchPageComponent`. Supports tabbed filtering (all/tasks/projects/labels), pagination, date/alpha sort, and query params via shell search bar. Search service handles full-text matching with scoring, recency and urgency bonuses. |
 | 4 | 404 page: friendly error with link to Inbox | ✅ Done | Low | Implemented in #103 with animation. Friendly 404 page with navigation back to inbox. |
 | 5 | Task loading states | ✅ Done | Low | Three-layer loading system: global animated top-of-page progress bar (AppStatusComponent), per-service `loading()` signals that disable action buttons during fetch, and descriptive status copy text. Fast local SQLite queries (<200ms) render data with no perceptible delay, making skeleton placeholders unnecessary. |
-| 6 | Empty states for Inbox, Today, Upcoming, Projects, Labels | 🟡 Partial | Low | `EmptyStateComponent` ✅ exists and used in task-list-page (Inbox/Today/Upcoming/Search), projects-page, project-detail-page, and labels-page with contextual copy and icons. Archive page has its own inline empty state (not using shared component). One more pass to migrate archive page to use shared `EmptyStateComponent`. |
+| 6 | Empty states for Inbox, Today, Upcoming, Projects, Labels, Archive | ✅ Done | Low | `EmptyStateComponent` used across every main view: Inbox/Today/Upcoming with contextual icons and copy (faCloud, faSun, faCalendarDay), projects-page, project-detail-page, labels-page, search-page, and archive-page. All empty states are consistent and intentional. |
 | 7 | Form validation and error polish | ✅ Done | Low | Basic validation ✅ present in all forms. Global error handling system implemented (#106) with professional toast notifications, error interception, and persistent logging. Validation copy and disabled/loading states standardized. |
 
-**P0 target:** 1–2 weeks at 1–2 hours/day. This is the public-demo gate.
-
-**P0 remaining work (1 item):** archive page `EmptyStateComponent` migration (#6).
+**P0 target:** 1–2 weeks at 1–2 hours/day. This is the public-demo gate. **P0 is now complete.**
 
 ### P0.5 – Technical Hardening (Robustness Gates)
 
@@ -383,12 +381,12 @@ These features should be built as personal-mode improvements first, but they sho
 ## 7. Micro-Screens & States
 
 ### Empty States
-- **Status**: 🟡 Partial (shared `EmptyStateComponent` used across 4+ pages, archive page still inline)
+- **Status**: ✅ Done (shared `EmptyStateComponent` used across all pages: Inbox, Today, Upcoming, Projects, Labels, Search, Project Detail, Archive)
 - Inbox empty illustration + message ✅
 - Today empty state ✅
 - No projects state ✅
 - No results (search) ✅
-- Archive empty state 🟡 (inline, not using shared component)
+- Archive empty state ✅ (migrated to shared EmptyStateComponent)
 
 ### Loading States
 - **Status**: ✅ Done — three-layer system
@@ -485,7 +483,7 @@ These features should be built as personal-mode improvements first, but they sho
 
 ### Phase 3: Polish & Secondary Features
 9. 🟡 Settings basics + logout
-10. ✅ Empty states + error handling (shared `EmptyStateComponent` done; archive page migration remains)
+10. ✅ Empty states + error handling (shared `EmptyStateComponent` used across all pages)
 11. 🟡 Global search (service done, canonical `/search` route pending)
 12. ✅ Labels / tags management for personal mode
 13. 🟡 Team shell placeholders
@@ -664,7 +662,7 @@ apps/frontend/src/app/
 ## Next Steps
 
 - [ ] Make `/search?q=...` the canonical global search route (route exists but redirects to `/tasks`)
-- [ ] Migrate archive page to use shared `EmptyStateComponent`
+- [x] Migrate archive page to use shared `EmptyStateComponent`
 
 ---
 

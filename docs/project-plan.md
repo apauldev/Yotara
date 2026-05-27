@@ -31,7 +31,7 @@ Target: 1-2 weeks. This is the public-demo gate.
 | 3 | Canonical global search: \`/search?q=...\` with label matches | ✅ Done | Medium | Canonical \`/search?q=...\` route is live with tabbed filtering and full-text matching. |
 | 4 | 404 page: wildcard route, friendly error, link to Inbox | ✅ Done | Low | Friendly 404 page with parallax animation implemented. |
 | 5 | Task loading states | ✅ Done | Low | Three-layer loading system: global animated top-of-page bar, per-service `loading()` signals that disable buttons during fetch, and descriptive status copy text. Fast local queries render data in 100–200ms, making skeleton placeholders unnecessary for this app's architecture. |
-| 6 | Empty states for all main views | 🟡 Partial | Low | \`EmptyStateComponent\` used across most pages; Archive page migration to shared component remains. |
+| 6 | Empty states for all main views | ✅ Done | Low | \`EmptyStateComponent\` used across every main view: Inbox/Today/Upcoming with contextual icons, projects-page, project-detail-page, labels-page, search-page, and archive-page (\`faBoxArchive\`). All empty states are consistent and intentional. |
 | 7 | Form validation and error handling polish | ✅ Done | Low | Global error handling system with toast notifications and persistent logging implemented. |
 
 P0 exit criteria:
@@ -41,7 +41,7 @@ P0 exit criteria:
 - ✅ Search works at the canonical \`/search?q=...\` route.
 - ✅ Unknown routes land on a useful 404 page.
 - ✅ Main task lists feel stable while loading (global bar + button locking + status copy).
-- 🟡 Empty/error states feel intentional (Archive page migration pending).
+- ✅ Empty/error states feel intentional (Archive page now uses shared EmptyStateComponent — all views consistent).
 
 After P0, the product is ready for a public demo link in the README.
 
@@ -136,13 +136,12 @@ After week 16, Yotara should be ready for v1.0 across self-hosted and SaaS paths
 
 ## Immediate Next Task
 
-Start with P0 #6 next: final empty state migration for the Archive page.
+Start with P1 #10 next: markdown preview in the task detail modal.
 
 Implementation slice:
 
-1. Migrate Archive page to use shared \`EmptyStateComponent\`.
-2. Add Markdown preview toggle to task description in the detail modal (P1 #10).
-3. Standardize destructive confirmations for project delete flows (once implemented).
+1. Add Markdown preview toggle to task description in the detail modal (P1 #10).
+2. Standardize destructive confirmations for project delete flows (once implemented).
 
 Acceptance criteria:
 
