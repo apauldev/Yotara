@@ -3,6 +3,8 @@ import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { ArchivePageComponent } from './archive-page.component';
 import { TaskService } from '../../../core/services/task.service';
+import { ProjectService } from '../../../core/services/project.service';
+import { LabelService } from '../../../core/services/label.service';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { Task } from '@yotara/shared';
 
@@ -49,9 +51,29 @@ describe('ArchivePageComponent', () => {
       deleteTask: jasmine.createSpy('deleteTask').and.resolveTo(undefined),
     };
 
+    const projectServiceStub = {
+      projects: signal([{ id: 'project-1', name: 'Inbox' }]),
+      saving: signal(false),
+      error: signal<string | null>(null),
+      getProject: jasmine.createSpy('getProject').and.resolveTo(null),
+      getProjectTasks: jasmine.createSpy('getProjectTasks').and.resolveTo([]),
+      updateProject: jasmine.createSpy('updateProject'),
+      refreshProjects: jasmine.createSpy('refreshProjects'),
+      createProject: jasmine.createSpy('createProject'),
+      deleteProject: jasmine.createSpy('deleteProject'),
+    };
+
+    const labelServiceStub = {
+      labels: signal([]),
+    };
+
     await TestBed.configureTestingModule({
       imports: [ArchivePageComponent],
-      providers: [{ provide: TaskService, useValue: mockTaskService }],
+      providers: [
+        { provide: TaskService, useValue: mockTaskService },
+        { provide: ProjectService, useValue: projectServiceStub },
+        { provide: LabelService, useValue: labelServiceStub },
+      ],
     }).compileComponents();
   });
 
