@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.51.3](https://github.com/apauldev/Yotara/compare/v0.51.2...v0.51.3) (2026-05-27)
+
+
+### Bug Fixes
+
+* p2 - provide workspace dependencies in archive specs ([62a2d3f](https://github.com/apauldev/Yotara/commit/62a2d3f9aa92de394818d3a1c59ba5f9644d9b0d))
+
+
+### Chores
+
+* migrate Archive page to shared EmptyStateComponent, close P0 ([660da3c](https://github.com/apauldev/Yotara/commit/660da3c7af76a17bcba4c8db153664c0be3995a9)), closes [#5](https://github.com/apauldev/Yotara/issues/5) [#6](https://github.com/apauldev/Yotara/issues/6)
+
 ## [0.51.2](https://github.com/apauldev/Yotara/compare/v0.51.1...v0.51.2) (2026-05-26)
 
 
