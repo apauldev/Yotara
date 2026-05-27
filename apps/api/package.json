@@ -23,7 +23,7 @@
     "@types/luxon": "^3.7.1",
     "@yotara/shared": "workspace:*",
     "better-auth": "^1.5.4",
-    "better-sqlite3": "^12.6.2",
+    "better-sqlite3": "^12.10.0",
     "drizzle-orm": "^0.45.1",
     "fastify": "^5.8.1",
     "luxon": "^3.7.2"
