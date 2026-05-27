@@ -1,0 +1,25 @@
+<div class="markdown-editor" [class.markdown-editor-preview]="previewMode()">
+  @if (!previewMode()) {
+    <textarea
+      #textareaRef
+      class="markdown-textarea"
+      [attr.rows]="rows"
+      [ngModel]="value"
+      (ngModelChange)="onValueChange($event)"
+      [placeholder]="placeholder"
+      [attr.aria-label]="'Description'"
+    ></textarea>
+    <app-format-toolbar (insertSyntax)="onInsertSyntax($event)" (togglePreview)="togglePreview()" />
+  } @else {
+    <div
+      class="markdown-preview"
+      role="region"
+      aria-label="Markdown preview"
+      title="Switch to edit mode to make changes"
+    >
+      <markdown [data]="value || '*Nothing to preview.*'" />
+      <span class="preview-badge">Preview — click Edit to make changes</span>
+    </div>
+    <app-format-toolbar [previewMode]="true" (togglePreview)="togglePreview()" />
+  }
+</div>

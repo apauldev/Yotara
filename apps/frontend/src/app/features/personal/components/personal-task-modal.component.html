@@ -46,14 +46,12 @@
 
         <label class="field">
           <span class="field-label">Description</span>
-          <textarea
-            name="taskDescription"
-            rows="7"
-            [ngModel]="draftDescription()"
-            (ngModelChange)="draftDescription.set($event)"
-            [class.field-error]="descriptionError()"
+          <app-markdown-editor
+            [value]="draftDescription()"
+            (valueChange)="draftDescription.set($event)"
             placeholder="Capture extra context, constraints, or subtasks here."
-          ></textarea>
+            [rows]="7"
+          />
           @if (descriptionError()) {
             <p class="field-error-message">{{ descriptionError() }}</p>
           }

@@ -1,6 +1,7 @@
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
+import { provideMarkdown } from 'ngx-markdown';
 import { BehaviorSubject } from 'rxjs';
 import { SearchPageComponent } from './search-page.component';
 import { SearchService } from '../../../../core/services/search.service';
@@ -92,6 +93,7 @@ describe('SearchPageComponent', () => {
       imports: [SearchPageComponent],
       providers: [
         provideRouter([]),
+        provideMarkdown(),
         {
           provide: ActivatedRoute,
           useValue: {

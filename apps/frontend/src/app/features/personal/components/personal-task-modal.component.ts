@@ -25,6 +25,7 @@ import {
 import { LabelService } from '../../../core/services/label.service';
 import { TaskService } from '../../../core/services/task.service';
 import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
+import { MarkdownEditorComponent } from '../../../shared/ui/markdown-editor/markdown-editor.component';
 import { parseCalendarDate } from '../../../shared/utils/timestamps';
 import { parseTaskCommand } from '../utils/task-command-parser';
 
@@ -35,7 +36,7 @@ type SavePayload =
 @Component({
   selector: 'app-personal-task-modal',
   standalone: true,
-  imports: [CommonModule, DatePickerComponent, FormsModule],
+  imports: [CommonModule, DatePickerComponent, FormsModule, MarkdownEditorComponent],
   templateUrl: './personal-task-modal.component.html',
   styleUrl: './personal-task-modal.component.scss',
 })

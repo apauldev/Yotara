@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
+import { provideMarkdown } from 'ngx-markdown';
 import { of } from 'rxjs';
 import { TaskListPageComponent } from './task-list-page.component';
 import { TaskService } from '../../../../core/services/task.service';
@@ -62,6 +63,7 @@ describe('TaskListPageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [TaskListPageComponent],
       providers: [
+        provideMarkdown(),
         { provide: TaskService, useValue: mockTaskService },
         { provide: ProjectService, useValue: mockProjectService },
         { provide: LabelService, useValue: mockLabelService },

@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { signal } from '@angular/core';
+import { provideMarkdown } from 'ngx-markdown';
 import { CreateTaskDto, Task, UpdateTaskDto } from '@yotara/shared';
 import { PersonalTaskModalComponent } from './personal-task-modal.component';
 import { PersonalTaskWorkspaceComponent } from './personal-task-workspace.component';
@@ -81,6 +82,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
     await TestBed.configureTestingModule({
       imports: [WorkspaceHostComponent],
       providers: [
+        provideMarkdown(),
         { provide: ProjectService, useValue: projectService },
         { provide: TaskService, useValue: taskService },
       ],

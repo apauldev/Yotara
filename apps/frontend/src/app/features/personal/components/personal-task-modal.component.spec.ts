@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import { provideMarkdown } from 'ngx-markdown';
 import { PersonalTaskModalComponent } from './personal-task-modal.component';
 
 describe('PersonalTaskModalComponent', () => {
@@ -9,6 +10,7 @@ describe('PersonalTaskModalComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [PersonalTaskModalComponent],
+      providers: [provideMarkdown()],
     }).compileComponents();
 
     fixture = TestBed.createComponent(PersonalTaskModalComponent);

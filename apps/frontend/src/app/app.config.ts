@@ -7,6 +7,8 @@ import {
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { provideMarkdown, SANITIZE } from 'ngx-markdown';
+import DOMPurify from 'dompurify';
 import { configureAuthClient } from '@yotara/shared';
 import { environment } from '../environments/environment';
 import { routes } from './app.routes';
@@ -20,6 +22,7 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
     provideAnimationsAsync(),
+    provideMarkdown(),
     provideHttpClient(
       withFetch(),
       withInterceptors([apiPrefixInterceptor, loadingInterceptor, errorInterceptor]),
@@ -34,6 +37,10 @@ export const appConfig: ApplicationConfig = {
           return authState.initialize();
         };
       },
+    },
+    {
+      provide: SANITIZE,
+      useValue: (html: string) => DOMPurify.sanitize(html),
     },
   ],
 };
