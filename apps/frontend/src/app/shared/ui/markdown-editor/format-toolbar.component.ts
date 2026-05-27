@@ -1,4 +1,4 @@
-import { Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {
   faBold,
@@ -15,8 +15,6 @@ import {
   faSquareCheck,
   faMinus,
   faImage,
-  faChevronLeft,
-  faChevronRight,
 } from '@fortawesome/free-solid-svg-icons';
 
 export interface SyntaxInsert {
@@ -31,10 +29,7 @@ export interface SyntaxInsert {
   imports: [FontAwesomeModule],
   template: `
     <div class="format-toolbar" role="toolbar" aria-label="Formatting toolbar">
-      <button type="button" class="scroll-button" aria-label="Scroll left" (click)="scrollLeft()">
-        <fa-icon [icon]="faChevronLeft" />
-      </button>
-      <div #scrollContainer class="toolbar-scroll">
+      <div class="toolbar-scroll">
         <div class="toolbar-group">
           <button
             type="button"
@@ -86,7 +81,6 @@ export interface SyntaxInsert {
           >
             <fa-icon [icon]="faCode" />
           </button>
-          <span class="tb-sep"></span>
           <button
             type="button"
             class="tb"
@@ -127,7 +121,6 @@ export interface SyntaxInsert {
           >
             <fa-icon [icon]="faSquareCheck" />
           </button>
-          <span class="tb-sep"></span>
           <button
             type="button"
             class="tb"
@@ -171,9 +164,6 @@ export interface SyntaxInsert {
           </button>
         </div>
       </div>
-      <button type="button" class="scroll-button" aria-label="Scroll right" (click)="scrollRight()">
-        <fa-icon [icon]="faChevronRight" />
-      </button>
       <div class="tb-group-end">
         <button
           type="button"
@@ -197,8 +187,8 @@ export interface SyntaxInsert {
       .format-toolbar {
         display: flex;
         align-items: center;
-        gap: 0.15rem;
-        padding: 0.3rem 0.35rem;
+        gap: 0.25rem;
+        padding: 0.35rem;
         border-radius: 0.6rem;
         background: var(--surface-container-low);
         box-shadow: inset 0 0 0 1px var(--outline-variant);
@@ -206,26 +196,20 @@ export interface SyntaxInsert {
 
       .toolbar-scroll {
         flex: 1 1 auto;
-        overflow-x: auto;
-        overflow-y: hidden;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-      }
-
-      .toolbar-scroll::-webkit-scrollbar {
-        display: none;
+        min-width: 0;
+        overflow: visible;
       }
 
       .toolbar-group {
         display: flex;
         align-items: center;
-        gap: 0.1rem;
-        white-space: nowrap;
+        gap: 0.2rem;
+        flex-wrap: wrap;
       }
 
       .tb-group-end {
         flex: 0 0 auto;
-        margin-left: auto;
+        margin-left: 0;
         display: flex;
         align-items: center;
       }
@@ -259,25 +243,6 @@ export interface SyntaxInsert {
         background: var(--surface-container-highest);
       }
 
-      .tb:hover::after {
-        content: attr(data-syntax);
-        position: absolute;
-        top: calc(100% + 0.3rem);
-        left: 50%;
-        transform: translateX(-50%);
-        padding: 0.15rem 0.4rem;
-        border-radius: 0.3rem;
-        background: var(--primary-solid);
-        color: var(--surface-container-lowest);
-        font-family: ui-monospace, 'SF Mono', monospace;
-        font-size: 0.65rem;
-        font-weight: 500;
-        white-space: nowrap;
-        pointer-events: none;
-        z-index: 60;
-        box-shadow: 0 2px 6px var(--surface-dim-strong);
-      }
-
       .tb-active {
         background: var(--primary-soft);
         color: var(--primary-solid);
@@ -288,35 +253,40 @@ export interface SyntaxInsert {
         color: var(--primary-solid);
       }
 
-      .tb-sep {
-        display: inline-block;
-        width: 1px;
-        height: 1.15rem;
-        margin: 0 0.2rem;
-        background: var(--outline-variant);
-        flex-shrink: 0;
-      }
+      @media (max-width: 720px) {
+        .format-toolbar {
+          align-items: stretch;
+          gap: 0.25rem;
+          padding: 0.28rem;
+          border-radius: 0.55rem;
+        }
 
-      .scroll-button {
-        appearance: none;
-        border: 0;
-        width: 1.4rem;
-        height: 2rem;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 0.35rem;
-        background: transparent;
-        color: var(--on-surface-muted);
-        font-size: 0.7rem;
-        cursor: pointer;
-        flex-shrink: 0;
-        transition: background-color 120ms ease;
-      }
+        .toolbar-scroll {
+          flex: 1 1 100%;
+          overflow: visible;
+        }
 
-      .scroll-button:hover {
-        background: var(--surface-container-high);
-        color: var(--on-surface);
+        .toolbar-group {
+          flex-wrap: wrap;
+          white-space: normal;
+          gap: 0.2rem;
+        }
+
+        .tb-group-end {
+          width: 100%;
+          margin-left: 0;
+          justify-content: flex-end;
+        }
+
+        .tb {
+          width: 1.95rem;
+          height: 1.95rem;
+          border-radius: 0.35rem;
+        }
+
+        .tb-sep {
+          display: none;
+        }
       }
     `,
   ],
@@ -325,8 +295,6 @@ export class FormatToolbarComponent {
   @Input() previewMode = false;
   @Output() readonly insertSyntax = new EventEmitter<SyntaxInsert>();
   @Output() readonly togglePreview = new EventEmitter<void>();
-
-  @ViewChild('scrollContainer') scrollContainer?: ElementRef<HTMLElement>;
 
   protected readonly faBold = faBold;
   protected readonly faItalic = faItalic;
@@ -342,23 +310,11 @@ export class FormatToolbarComponent {
   protected readonly faSquareCheck = faSquareCheck;
   protected readonly faMinus = faMinus;
   protected readonly faImage = faImage;
-  protected readonly faChevronLeft = faChevronLeft;
-  protected readonly faChevronRight = faChevronRight;
 
   // Used in template where backtick can't appear in template literal
   protected readonly backtickSyntax = '`code`';
 
   protected onInlineCode() {
     this.insertSyntax.emit({ prefix: '`', suffix: '`' });
-  }
-
-  protected scrollLeft() {
-    const el = this.scrollContainer?.nativeElement;
-    if (el) el.scrollBy({ left: -140, behavior: 'smooth' });
-  }
-
-  protected scrollRight() {
-    const el = this.scrollContainer?.nativeElement;
-    if (el) el.scrollBy({ left: 140, behavior: 'smooth' });
   }
 }

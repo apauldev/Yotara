@@ -182,22 +182,10 @@ describe('FormatToolbarComponent', () => {
     });
   });
 
-  describe('Scroll buttons', () => {
-    it('should render scroll left button', () => {
-      const scrollBtn = fixture.debugElement.query(By.css('[aria-label="Scroll left"]'));
-      expect(scrollBtn).toBeTruthy();
-    });
-
-    it('should render scroll right button', () => {
-      const scrollBtn = fixture.debugElement.query(By.css('[aria-label="Scroll right"]'));
-      expect(scrollBtn).toBeTruthy();
-    });
-  });
-
   describe('Toolbar separators', () => {
     it('should render separator elements', () => {
       const separators = fixture.debugElement.queryAll(By.css('.tb-sep'));
-      expect(separators.length).toBe(2);
+      expect(separators.length).toBe(0);
     });
   });
 });
