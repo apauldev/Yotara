@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.51.4](https://github.com/apauldev/Yotara/compare/v0.51.3...v0.51.4) (2026-05-27)
+
+
+### Bug Fixes
+
+* version compatibility fixed ([70a94a3](https://github.com/apauldev/Yotara/commit/70a94a3eea874a4d3813727822c63ef4dc508652))
+
 ## [0.51.3](https://github.com/apauldev/Yotara/compare/v0.51.2...v0.51.3) (2026-05-27)
 
 
