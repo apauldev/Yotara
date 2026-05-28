@@ -1,4 +1,4 @@
-import { downloadCsv, CsvColumn } from './export';
+import { downloadCsv, downloadJson, CsvColumn } from './export';
 
 describe('downloadCsv', () => {
   let anchor: { href: string; download: string; click: jasmine.Spy };
@@ -157,5 +157,78 @@ describe('downloadCsv', () => {
     const lines = content.trim().split('\n');
     expect(lines.length).toBe(1);
     expect(lines[0]).toContain('Name');
+  });
+});
+
+describe('downloadJson', () => {
+  let anchor: { href: string; download: string; click: jasmine.Spy };
+  let createObjectURLSpy: jasmine.Spy;
+  let revokeObjectURLSpy: jasmine.Spy;
+  let createElementSpy: jasmine.Spy;
+
+  beforeEach(() => {
+    anchor = { href: '', download: '', click: jasmine.createSpy('click') };
+    createObjectURLSpy = spyOn(URL, 'createObjectURL').and.returnValue('blob:json');
+    revokeObjectURLSpy = spyOn(URL, 'revokeObjectURL').and.returnValue();
+    createElementSpy = spyOn(document, 'createElement').and.returnValue(
+      anchor as unknown as HTMLElement,
+    );
+  });
+
+  function lastBlob(): Blob {
+    const blob = createObjectURLSpy.calls.mostRecent().args[0] as Blob;
+    expect(blob).toBeInstanceOf(Blob);
+    return blob;
+  }
+
+  async function lastJsonContent(): Promise<string> {
+    return await lastBlob().text();
+  }
+
+  it('creates an anchor and triggers a download', () => {
+    downloadJson([{ name: 'Alice' }], 'test.json');
+
+    expect(createElementSpy).toHaveBeenCalledWith('a');
+    expect(anchor.download).toBe('test.json');
+    expect(anchor.click).toHaveBeenCalledTimes(1);
+    expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:json');
+  });
+
+  it('serialises data as pretty-printed JSON', async () => {
+    const data = [{ name: 'Alice', age: 30 }];
+
+    downloadJson(data, 'test.json');
+    const content = await lastJsonContent();
+
+    expect(content).toBe('[\n  {\n    "name": "Alice",\n    "age": 30\n  }\n]');
+  });
+
+  it('preserves nested objects and arrays', async () => {
+    const data = [{ name: 'Alice', tags: ['urgent', 'design'], meta: { role: 'dev' } }];
+
+    downloadJson(data, 'test.json');
+    const content = await lastJsonContent();
+
+    expect(content).toContain('"tags"');
+    expect(content).toContain('"urgent"');
+    expect(content).toContain('"role"');
+    expect(content).toContain('"dev"');
+  });
+
+  it('handles an empty array', async () => {
+    downloadJson([], 'empty.json');
+    const content = await lastJsonContent();
+
+    expect(content).toBe('[]');
+  });
+
+  it('handles null and undefined values', async () => {
+    const data = [{ name: 'Alice', role: null, description: undefined }];
+
+    downloadJson(data, 'test.json');
+    const content = await lastJsonContent();
+
+    expect(content).toContain('"role": null');
+    expect(content).not.toContain('"description"');
   });
 });

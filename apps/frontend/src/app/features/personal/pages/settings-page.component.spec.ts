@@ -165,7 +165,10 @@ describe('SettingsPageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [SettingsPageComponent],
       providers: [
-        { provide: TaskService, useValue: { tasks: tasksSignal } },
+        {
+          provide: TaskService,
+          useValue: { tasks: tasksSignal, fetchAllTasks: () => Promise.resolve([...mockTasks]) },
+        },
         { provide: ProjectService, useValue: { projects: projectsSignal } },
         { provide: LabelService, useValue: { labels: labelsSignal } },
         { provide: AuthStateService, useValue: mockAuthState },
@@ -187,10 +190,11 @@ describe('SettingsPageComponent', () => {
   });
 
   describe('export tasks', () => {
-    it('triggers a CSV download when Export tasks is clicked', () => {
+    it('triggers a CSV download when Export tasks is clicked', async () => {
       const btn = findButtonByText(fixture, 'Export tasks');
       expect(btn).not.toBeNull();
       btn!.click();
+      await fixture.whenStable();
 
       expect(anchor.download).toBe('yotara-tasks.csv');
       expect(anchor.click).toHaveBeenCalledTimes(1);
@@ -198,7 +202,7 @@ describe('SettingsPageComponent', () => {
     });
 
     it('includes all task types by default', async () => {
-      comp.exportTasks();
+      await comp.exportTasks();
       const content = await lastBlobContent();
       const lines = content.trim().split('\n');
 
@@ -212,7 +216,7 @@ describe('SettingsPageComponent', () => {
 
     it('excludes completed tasks when toggle is off', async () => {
       comp.includeCompleted.set(false);
-      comp.exportTasks();
+      await comp.exportTasks();
       const content = await lastBlobContent();
 
       expect(content).toContain('Active task');
@@ -222,7 +226,7 @@ describe('SettingsPageComponent', () => {
 
     it('excludes subtasks when toggle is off', async () => {
       comp.includeSubtasks.set(false);
-      comp.exportTasks();
+      await comp.exportTasks();
       const content = await lastBlobContent();
       const dataLines = content.trim().split('\n').slice(1);
 
@@ -232,7 +236,7 @@ describe('SettingsPageComponent', () => {
 
     it('excludes archived items when toggle is off', async () => {
       comp.includeArchived.set(false);
-      comp.exportTasks();
+      await comp.exportTasks();
       const content = await lastBlobContent();
 
       expect(content).toContain('Active task');
@@ -241,7 +245,7 @@ describe('SettingsPageComponent', () => {
 
     it('omits the description column when toggle is off', async () => {
       comp.includeDescriptions.set(false);
-      comp.exportTasks();
+      await comp.exportTasks();
 
       const content = await lastBlobContent();
       expect(content).not.toContain('Description');
@@ -249,14 +253,14 @@ describe('SettingsPageComponent', () => {
 
     it('omits the recurrence column when toggle is off', async () => {
       comp.includeRecurrence.set(false);
-      comp.exportTasks();
+      await comp.exportTasks();
 
       const content = await lastBlobContent();
       expect(content).not.toContain('Recurrence');
     });
 
     it('resolves project IDs to project names', async () => {
-      comp.exportTasks();
+      await comp.exportTasks();
       const content = await lastBlobContent();
       const lines = content.trim().split('\n');
 
@@ -266,7 +270,7 @@ describe('SettingsPageComponent', () => {
     });
 
     it('resolves label IDs to label names', async () => {
-      comp.exportTasks();
+      await comp.exportTasks();
       const content = await lastBlobContent();
       const lines = content.trim().split('\n');
 
@@ -278,7 +282,7 @@ describe('SettingsPageComponent', () => {
     it('writes a header row matching the toggled columns', async () => {
       comp.includeDescriptions.set(false);
       comp.includeRecurrence.set(false);
-      comp.exportTasks();
+      await comp.exportTasks();
 
       const content = await lastBlobContent();
       const header = content.trim().split('\n')[0];
@@ -303,7 +307,7 @@ describe('SettingsPageComponent', () => {
     });
 
     it('formats the completed column as Yes/No', async () => {
-      comp.exportTasks();
+      await comp.exportTasks();
       const content = await lastBlobContent();
       const lines = content.trim().split('\n');
 

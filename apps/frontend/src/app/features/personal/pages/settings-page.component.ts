@@ -10,7 +10,7 @@ import { Router } from '@angular/router';
 import { TaskService } from '../../../core/services/task.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { LabelService } from '../../../core/services/label.service';
-import { downloadCsv, CsvColumn } from '../../../shared/utils/export';
+import { downloadCsv, downloadJson, CsvColumn } from '../../../shared/utils/export';
 import { Task, Project, Label } from '@yotara/shared';
 
 @Component({
@@ -167,21 +167,21 @@ import { Task, Project, Label } from '@yotara/shared';
           <button type="button" class="settings-item settings-link" (click)="exportTasks()">
             <div class="settings-item-copy">
               <strong>Export tasks</strong>
-              <span>Download your tasks as a CSV file.</span>
+              <span>Download your tasks as {{ exportFormat() | uppercase }}.</span>
             </div>
           </button>
 
           <button type="button" class="settings-item settings-link" (click)="exportProjects()">
             <div class="settings-item-copy">
               <strong>Export projects</strong>
-              <span>Download your projects as a CSV file.</span>
+              <span>Download your projects as {{ exportFormat() | uppercase }}.</span>
             </div>
           </button>
 
           <button type="button" class="settings-item settings-link" (click)="exportLabels()">
             <div class="settings-item-copy">
               <strong>Export labels</strong>
-              <span>Download your labels as a CSV file.</span>
+              <span>Download your labels as {{ exportFormat() | uppercase }}.</span>
             </div>
           </button>
 
@@ -229,6 +229,28 @@ import { Task, Project, Label } from '@yotara/shared';
                 <span>Recurrence rules</span>
               </label>
             </div>
+            <div class="export-format-row">
+              <span class="export-format-label">Format</span>
+              <button
+                type="button"
+                class="export-format-btn"
+                [class.active]="exportFormat() === 'csv'"
+                (click)="exportFormat.set('csv')"
+              >
+                CSV
+              </button>
+              <button
+                type="button"
+                class="export-format-btn"
+                [class.active]="exportFormat() === 'json'"
+                (click)="exportFormat.set('json')"
+              >
+                JSON
+              </button>
+            </div>
+            <p class="export-note">
+              Exports all tasks (limit: 10,000). For larger datasets, use a database-level export.
+            </p>
           </details>
 
           <button type="button" class="settings-item settings-link" disabled>
@@ -572,6 +594,48 @@ import { Task, Project, Label } from '@yotara/shared';
         outline-offset: 2px;
       }
 
+      .export-note {
+        margin: 0.5rem 0.5rem 0;
+        font-size: 0.78rem;
+        color: var(--on-surface-subtle);
+      }
+
+      .export-format-row {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.5rem 0.5rem 0;
+      }
+
+      .export-format-label {
+        font-size: 0.85rem;
+        color: var(--on-surface-muted);
+        font-weight: 600;
+      }
+
+      .export-format-btn {
+        appearance: none;
+        border: 0;
+        padding: 0.25rem 0.6rem;
+        border-radius: 0.35rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        background: var(--surface-container-high);
+        color: var(--on-surface-muted);
+        cursor: pointer;
+        transition: all 120ms ease;
+      }
+
+      .export-format-btn.active {
+        background: var(--primary-solid);
+        color: hsl(var(--primary-foreground));
+      }
+
+      .export-format-btn:hover:not(.active) {
+        background: var(--surface-container-highest);
+        color: var(--on-surface);
+      }
+
       @media (max-width: 640px) {
         .settings-card {
           padding: 1rem;
@@ -613,6 +677,10 @@ export class SettingsPageComponent {
   protected readonly isSavingArchiveCleanup = signal(false);
   protected readonly isSavingCaptureBehavior = signal(false);
 
+  protected readonly exportFormat = signal<'csv' | 'json'>('csv');
+
+  protected readonly isExporting = signal(false);
+
   protected readonly includeCompleted = signal(true);
   protected readonly includeSubtasks = signal(true);
   protected readonly includeDescriptions = signal(true);
@@ -635,91 +703,155 @@ export class SettingsPageComponent {
     return map;
   });
 
-  protected exportTasks() {
-    const labels = this.labelMap();
+  protected async exportTasks() {
+    this.isExporting.set(true);
+    try {
+      const labels = this.labelMap();
+      const all = await this.taskService.fetchAllTasks();
 
-    const exportable = this.taskService.tasks().filter((task) => {
-      if (!this.includeCompleted() && task.completed) return false;
-      if (!this.includeSubtasks() && task.parentId) return false;
-      if (!this.includeArchived() && task.status === 'archived') return false;
-      return true;
-    });
+      const exportable = all.filter((task) => {
+        if (!this.includeCompleted() && task.completed) return false;
+        if (!this.includeSubtasks() && task.parentId) return false;
+        if (!this.includeArchived() && task.status === 'archived') return false;
+        return true;
+      });
 
-    const columns: CsvColumn<Task>[] = [
-      { key: 'id', label: 'ID' },
-      { key: 'title', label: 'Title' },
-      ...(this.includeDescriptions()
-        ? [{ key: 'description' as const, label: 'Description' } as CsvColumn<Task>]
-        : []),
-      { key: 'status', label: 'Status' },
-      { key: 'priority', label: 'Priority' },
-      {
-        key: 'completed',
-        label: 'Completed',
-        format: (row: Task) => (row.completed ? 'Yes' : 'No'),
-      },
-      { key: 'dueDate', label: 'Due Date' },
-      {
-        key: 'projectId',
-        label: 'Project',
-        format: (row: Task) => this.projectMap().get(row.projectId ?? '') ?? '',
-      },
-      {
-        key: 'labels',
-        label: 'Labels',
-        format: (row: Task) => (row.labels ?? []).map((id) => labels.get(id) ?? id).join('; '),
-      },
-      { key: 'bucket', label: 'Bucket' },
-      { key: 'parentId', label: 'Parent Task ID' },
-      { key: 'subtaskCount', label: 'Subtasks' },
-      { key: 'subtaskCompletedCount', label: 'Subtasks Done' },
-      ...(this.includeRecurrence()
-        ? [
-            {
-              key: 'recurrenceRule' as const,
-              label: 'Recurrence',
-              format: (row: Task) =>
-                row.recurrenceRule
-                  ? `${row.recurrenceRule.frequency} every ${row.recurrenceRule.interval}`
-                  : '',
-            } as CsvColumn<Task>,
-          ]
-        : []),
-      { key: 'archivedAt', label: 'Archived At' },
-      { key: 'createdAt', label: 'Created At' },
-      { key: 'updatedAt', label: 'Updated At' },
-    ];
-
-    downloadCsv(exportable, columns, 'yotara-tasks.csv');
+      if (this.exportFormat() === 'csv') {
+        const columns: CsvColumn<Task>[] = [
+          { key: 'id', label: 'ID' },
+          { key: 'title', label: 'Title' },
+          ...(this.includeDescriptions()
+            ? [{ key: 'description' as const, label: 'Description' } as CsvColumn<Task>]
+            : []),
+          { key: 'status', label: 'Status' },
+          { key: 'priority', label: 'Priority' },
+          {
+            key: 'completed',
+            label: 'Completed',
+            format: (row: Task) => (row.completed ? 'Yes' : 'No'),
+          },
+          { key: 'dueDate', label: 'Due Date' },
+          {
+            key: 'projectId',
+            label: 'Project',
+            format: (row: Task) => this.projectMap().get(row.projectId ?? '') ?? '',
+          },
+          {
+            key: 'labels',
+            label: 'Labels',
+            format: (row: Task) => (row.labels ?? []).map((id) => labels.get(id) ?? id).join('; '),
+          },
+          { key: 'bucket', label: 'Bucket' },
+          { key: 'parentId', label: 'Parent Task ID' },
+          { key: 'subtaskCount', label: 'Subtasks' },
+          { key: 'subtaskCompletedCount', label: 'Subtasks Done' },
+          ...(this.includeRecurrence()
+            ? [
+                {
+                  key: 'recurrenceRule' as const,
+                  label: 'Recurrence',
+                  format: (row: Task) =>
+                    row.recurrenceRule
+                      ? `${row.recurrenceRule.frequency} every ${row.recurrenceRule.interval}`
+                      : '',
+                } as CsvColumn<Task>,
+              ]
+            : []),
+          { key: 'archivedAt', label: 'Archived At' },
+          { key: 'createdAt', label: 'Created At' },
+          { key: 'updatedAt', label: 'Updated At' },
+        ];
+        downloadCsv(exportable, columns, 'yotara-tasks.csv');
+      } else {
+        const projectMap = this.projectMap();
+        const data = exportable.map((task) => ({
+          id: task.id,
+          title: task.title,
+          ...(this.includeDescriptions() ? { description: task.description } : {}),
+          status: task.status,
+          priority: task.priority,
+          completed: task.completed,
+          dueDate: task.dueDate ?? null,
+          project: projectMap.get(task.projectId ?? '') ?? null,
+          labels: (task.labels ?? []).map((id) => labels.get(id) ?? id),
+          bucket: task.bucket ?? null,
+          parentId: task.parentId ?? null,
+          subtaskCount: task.subtaskCount ?? 0,
+          subtaskCompletedCount: task.subtaskCompletedCount ?? 0,
+          ...(this.includeRecurrence()
+            ? {
+                recurrence: task.recurrenceRule
+                  ? `${task.recurrenceRule.frequency} every ${task.recurrenceRule.interval}`
+                  : null,
+              }
+            : {}),
+          archivedAt: task.archivedAt ?? null,
+          createdAt: task.createdAt,
+          updatedAt: task.updatedAt,
+        }));
+        downloadJson(data, 'yotara-tasks.json');
+      }
+    } finally {
+      this.isExporting.set(false);
+    }
   }
 
   protected exportProjects() {
-    const columns: CsvColumn<Project>[] = [
-      { key: 'id', label: 'ID' },
-      { key: 'name', label: 'Name' },
-      { key: 'description', label: 'Description' },
-      { key: 'color', label: 'Color' },
-      { key: 'taskCount', label: 'Total Tasks' },
-      { key: 'completedTaskCount', label: 'Completed Tasks' },
-      { key: 'openTaskCount', label: 'Open Tasks' },
-      { key: 'createdAt', label: 'Created At' },
-      { key: 'updatedAt', label: 'Updated At' },
-    ];
+    const data = this.projectService.projects();
 
-    downloadCsv(this.projectService.projects(), columns, 'yotara-projects.csv');
+    if (this.exportFormat() === 'csv') {
+      const columns: CsvColumn<Project>[] = [
+        { key: 'id', label: 'ID' },
+        { key: 'name', label: 'Name' },
+        { key: 'description', label: 'Description' },
+        { key: 'color', label: 'Color' },
+        { key: 'taskCount', label: 'Total Tasks' },
+        { key: 'completedTaskCount', label: 'Completed Tasks' },
+        { key: 'openTaskCount', label: 'Open Tasks' },
+        { key: 'createdAt', label: 'Created At' },
+        { key: 'updatedAt', label: 'Updated At' },
+      ];
+      downloadCsv(data, columns, 'yotara-projects.csv');
+    } else {
+      const json = data.map((p) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description ?? null,
+        color: p.color ?? null,
+        taskCount: p.taskCount ?? 0,
+        completedTaskCount: p.completedTaskCount ?? 0,
+        openTaskCount: p.openTaskCount ?? 0,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
+      }));
+      downloadJson(json, 'yotara-projects.json');
+    }
   }
 
   protected exportLabels() {
-    const columns: CsvColumn<Label>[] = [
-      { key: 'id', label: 'ID' },
-      { key: 'name', label: 'Name' },
-      { key: 'color', label: 'Color' },
-      { key: 'taskCount', label: 'Tasks' },
-      { key: 'createdAt', label: 'Created At' },
-      { key: 'updatedAt', label: 'Updated At' },
-    ];
+    const data = this.labelService.labels();
 
-    downloadCsv(this.labelService.labels(), columns, 'yotara-labels.csv');
+    if (this.exportFormat() === 'csv') {
+      const columns: CsvColumn<Label>[] = [
+        { key: 'id', label: 'ID' },
+        { key: 'name', label: 'Name' },
+        { key: 'color', label: 'Color' },
+        { key: 'taskCount', label: 'Tasks' },
+        { key: 'createdAt', label: 'Created At' },
+        { key: 'updatedAt', label: 'Updated At' },
+      ];
+      downloadCsv(data, columns, 'yotara-labels.csv');
+    } else {
+      const json = data.map((l) => ({
+        id: l.id,
+        name: l.name,
+        color: l.color ?? null,
+        taskCount: l.taskCount ?? 0,
+        createdAt: l.createdAt,
+        updatedAt: l.updatedAt,
+      }));
+      downloadJson(json, 'yotara-labels.json');
+    }
   }
 
   protected onThemeChange(event: Event) {

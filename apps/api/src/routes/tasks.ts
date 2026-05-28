@@ -34,7 +34,13 @@ export default async function taskRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get<{
-    Querystring: { page?: number; pageSize?: number; includeSubtasks?: boolean; parentId?: string };
+    Querystring: {
+      page?: number;
+      pageSize?: number;
+      includeSubtasks?: boolean;
+      parentId?: string;
+      export?: boolean;
+    };
     Reply: PaginatedResponse<Task[]> | { message: string };
   }>(
     '/tasks',
@@ -50,6 +56,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
             pageSize: { type: 'integer', minimum: 1, maximum: 100, default: 50 },
             includeSubtasks: { type: 'boolean', default: false },
             parentId: { type: 'string' },
+            export: { type: 'boolean', default: false },
           },
         },
         response: {
@@ -67,9 +74,10 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       }
 
       const userId = request.userId;
+      const isExport = request.query.export === true;
       const page = Math.max(1, request.query.page ?? 1);
-      const pageSize = Math.min(100, Math.max(1, request.query.pageSize ?? 50));
-      const includeSubtasks = String(request.query.includeSubtasks) === 'true';
+      const pageSize = isExport ? 10000 : Math.min(100, Math.max(1, request.query.pageSize ?? 50));
+      const includeSubtasks = isExport ? true : String(request.query.includeSubtasks) === 'true';
       const parentId = request.query.parentId;
       return listTasksForOwner(userId, page, pageSize, includeSubtasks, parentId);
     },
