@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { APP_VERSION } from '../../../core/constants/version';
 import { ThemeService, Theme } from '../../../core/services/theme.service';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
@@ -7,6 +7,11 @@ import { ChangePasswordModalComponent } from '../components/change-password-moda
 import { LogoutConfirmModalComponent } from '../../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { Router } from '@angular/router';
+import { TaskService } from '../../../core/services/task.service';
+import { ProjectService } from '../../../core/services/project.service';
+import { LabelService } from '../../../core/services/label.service';
+import { downloadCsv, downloadJson, CsvColumn } from '../../../shared/utils/export';
+import { Task, Project, Label } from '@yotara/shared';
 
 @Component({
   selector: 'app-settings-page',
@@ -158,13 +163,96 @@ import { Router } from '@angular/router';
 
         <div class="settings-section">
           <h3 class="section-title">Data</h3>
-          <button type="button" class="settings-item settings-link" disabled>
+
+          <button type="button" class="settings-item settings-link" (click)="exportTasks()">
             <div class="settings-item-copy">
-              <strong>Export data</strong>
-              <span>Download your tasks and projects as JSON.</span>
+              <strong>Export tasks</strong>
+              <span>Download your tasks as {{ exportFormat() | uppercase }}.</span>
             </div>
-            <span class="coming-soon">Coming soon</span>
           </button>
+
+          <button type="button" class="settings-item settings-link" (click)="exportProjects()">
+            <div class="settings-item-copy">
+              <strong>Export projects</strong>
+              <span>Download your projects as {{ exportFormat() | uppercase }}.</span>
+            </div>
+          </button>
+
+          <button type="button" class="settings-item settings-link" (click)="exportLabels()">
+            <div class="settings-item-copy">
+              <strong>Export labels</strong>
+              <span>Download your labels as {{ exportFormat() | uppercase }}.</span>
+            </div>
+          </button>
+
+          <details class="export-options">
+            <summary class="export-options-summary">Export options</summary>
+            <div class="export-options-grid">
+              <label class="export-checkbox">
+                <input
+                  type="checkbox"
+                  [checked]="includeCompleted()"
+                  (change)="includeCompleted.set($any($event.target).checked)"
+                />
+                <span>Completed tasks</span>
+              </label>
+              <label class="export-checkbox">
+                <input
+                  type="checkbox"
+                  [checked]="includeSubtasks()"
+                  (change)="includeSubtasks.set($any($event.target).checked)"
+                />
+                <span>Subtasks</span>
+              </label>
+              <label class="export-checkbox">
+                <input
+                  type="checkbox"
+                  [checked]="includeDescriptions()"
+                  (change)="includeDescriptions.set($any($event.target).checked)"
+                />
+                <span>Descriptions</span>
+              </label>
+              <label class="export-checkbox">
+                <input
+                  type="checkbox"
+                  [checked]="includeArchived()"
+                  (change)="includeArchived.set($any($event.target).checked)"
+                />
+                <span>Archived items</span>
+              </label>
+              <label class="export-checkbox">
+                <input
+                  type="checkbox"
+                  [checked]="includeRecurrence()"
+                  (change)="includeRecurrence.set($any($event.target).checked)"
+                />
+                <span>Recurrence rules</span>
+              </label>
+            </div>
+            <div class="export-format-row">
+              <span class="export-format-label">Format</span>
+              <button
+                type="button"
+                class="export-format-btn"
+                [class.active]="exportFormat() === 'csv'"
+                (click)="exportFormat.set('csv')"
+              >
+                CSV
+              </button>
+              <button
+                type="button"
+                class="export-format-btn"
+                [class.active]="exportFormat() === 'json'"
+                (click)="exportFormat.set('json')"
+              >
+                JSON
+              </button>
+            </div>
+            <p class="export-note">
+              Exports all tasks (limit: 10,000). For larger datasets, use a database-level export.
+            </p>
+          </details>
+
           <button type="button" class="settings-item settings-link" disabled>
             <div class="settings-item-copy">
               <strong>Import data</strong>
@@ -421,6 +509,133 @@ import { Router } from '@angular/router';
         opacity: 0.7;
       }
 
+      .export-options {
+        margin-top: 0;
+        border-radius: 0.75rem;
+        background: var(--surface-container-low);
+        padding: 0 0.5rem;
+      }
+
+      .export-options-summary {
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--on-surface-subtle);
+        padding: 0.75rem 0.5rem;
+        border-radius: 0.5rem;
+        user-select: none;
+      }
+
+      .export-options-summary:hover {
+        color: var(--on-surface);
+        background: var(--surface-container-high);
+      }
+
+      .export-options-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.25rem;
+        padding: 0 0.5rem 0.75rem;
+      }
+
+      .export-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 0.5rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-size: 0.9rem;
+        color: var(--on-surface);
+        transition: background-color 0.15s ease;
+      }
+
+      .export-checkbox:hover {
+        background: var(--surface-container-high);
+      }
+
+      .export-checkbox input[type='checkbox'] {
+        appearance: none;
+        width: 1.1rem;
+        height: 1.1rem;
+        border-radius: 0.3rem;
+        background: var(--surface-container-high);
+        box-shadow: inset 0 0 0 1px var(--outline-variant);
+        cursor: pointer;
+        flex: 0 0 auto;
+        transition: all 0.15s ease;
+        position: relative;
+      }
+
+      .export-checkbox input[type='checkbox']::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0.5rem;
+        height: 0.5rem;
+        transform: translate(-50%, -50%) scale(0);
+        border-radius: 0.1rem;
+        background: var(--primary-solid);
+        transition: transform 0.15s ease;
+      }
+
+      .export-checkbox input[type='checkbox']:checked {
+        background: var(--primary-soft);
+        box-shadow: inset 0 0 0 1px var(--primary-soft-strong);
+      }
+
+      .export-checkbox input[type='checkbox']:checked::after {
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      .export-checkbox input[type='checkbox']:focus-visible {
+        outline: 2px solid var(--primary-solid);
+        outline-offset: 2px;
+      }
+
+      .export-note {
+        margin: 0.5rem 0.5rem 0;
+        font-size: 0.78rem;
+        color: var(--on-surface-subtle);
+      }
+
+      .export-format-row {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.5rem 0.5rem 0;
+      }
+
+      .export-format-label {
+        font-size: 0.85rem;
+        color: var(--on-surface-muted);
+        font-weight: 600;
+      }
+
+      .export-format-btn {
+        appearance: none;
+        border: 0;
+        padding: 0.25rem 0.6rem;
+        border-radius: 0.35rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        background: var(--surface-container-high);
+        color: var(--on-surface-muted);
+        cursor: pointer;
+        transition: all 120ms ease;
+      }
+
+      .export-format-btn.active {
+        background: var(--primary-solid);
+        color: hsl(var(--primary-foreground));
+      }
+
+      .export-format-btn:hover:not(.active) {
+        background: var(--surface-container-highest);
+        color: var(--on-surface);
+      }
+
       @media (max-width: 640px) {
         .settings-card {
           padding: 1rem;
@@ -452,12 +667,192 @@ export class SettingsPageComponent {
   protected readonly themeService = inject(ThemeService);
   private readonly authState = inject(AuthStateService);
   private readonly router = inject(Router);
+  private readonly taskService = inject(TaskService);
+  private readonly projectService = inject(ProjectService);
+  private readonly labelService = inject(LabelService);
 
   protected readonly isChangePasswordOpen = signal(false);
   protected readonly isLogoutConfirmOpen = signal(false);
   protected readonly isLoggingOut = signal(false);
   protected readonly isSavingArchiveCleanup = signal(false);
   protected readonly isSavingCaptureBehavior = signal(false);
+
+  protected readonly exportFormat = signal<'csv' | 'json'>('csv');
+
+  protected readonly isExporting = signal(false);
+
+  protected readonly includeCompleted = signal(true);
+  protected readonly includeSubtasks = signal(true);
+  protected readonly includeDescriptions = signal(true);
+  protected readonly includeArchived = signal(true);
+  protected readonly includeRecurrence = signal(true);
+
+  protected readonly projectMap = computed(() => {
+    const map = new Map<string, string>();
+    for (const p of this.projectService.projects()) {
+      map.set(p.id, p.name);
+    }
+    return map;
+  });
+
+  protected readonly labelMap = computed(() => {
+    const map = new Map<string, string>();
+    for (const l of this.labelService.labels()) {
+      map.set(l.id, l.name);
+    }
+    return map;
+  });
+
+  protected async exportTasks() {
+    this.isExporting.set(true);
+    try {
+      const labels = this.labelMap();
+      const all = await this.taskService.fetchAllTasks();
+
+      const exportable = all.filter((task) => {
+        if (!this.includeCompleted() && task.completed) return false;
+        if (!this.includeSubtasks() && task.parentId) return false;
+        if (!this.includeArchived() && task.archivedAt) return false;
+        return true;
+      });
+
+      if (this.exportFormat() === 'csv') {
+        const columns: CsvColumn<Task>[] = [
+          { key: 'id', label: 'ID' },
+          { key: 'title', label: 'Title' },
+          ...(this.includeDescriptions()
+            ? [{ key: 'description' as const, label: 'Description' } as CsvColumn<Task>]
+            : []),
+          { key: 'status', label: 'Status' },
+          { key: 'priority', label: 'Priority' },
+          {
+            key: 'completed',
+            label: 'Completed',
+            format: (row: Task) => (row.completed ? 'Yes' : 'No'),
+          },
+          { key: 'dueDate', label: 'Due Date' },
+          {
+            key: 'projectId',
+            label: 'Project',
+            format: (row: Task) => this.projectMap().get(row.projectId ?? '') ?? '',
+          },
+          {
+            key: 'labels',
+            label: 'Labels',
+            format: (row: Task) => (row.labels ?? []).map((id) => labels.get(id) ?? id).join('; '),
+          },
+          { key: 'bucket', label: 'Bucket' },
+          { key: 'parentId', label: 'Parent Task ID' },
+          { key: 'subtaskCount', label: 'Subtasks' },
+          { key: 'subtaskCompletedCount', label: 'Subtasks Done' },
+          ...(this.includeRecurrence()
+            ? [
+                {
+                  key: 'recurrenceRule' as const,
+                  label: 'Recurrence',
+                  format: (row: Task) =>
+                    row.recurrenceRule
+                      ? `${row.recurrenceRule.frequency} every ${row.recurrenceRule.interval}`
+                      : '',
+                } as CsvColumn<Task>,
+              ]
+            : []),
+          { key: 'archivedAt', label: 'Archived At' },
+          { key: 'createdAt', label: 'Created At' },
+          { key: 'updatedAt', label: 'Updated At' },
+        ];
+        downloadCsv(exportable, columns, 'yotara-tasks.csv');
+      } else {
+        const projectMap = this.projectMap();
+        const data = exportable.map((task) => ({
+          id: task.id,
+          title: task.title,
+          ...(this.includeDescriptions() ? { description: task.description } : {}),
+          status: task.status,
+          priority: task.priority,
+          completed: task.completed,
+          dueDate: task.dueDate ?? null,
+          project: projectMap.get(task.projectId ?? '') ?? null,
+          labels: (task.labels ?? []).map((id) => labels.get(id) ?? id),
+          bucket: task.bucket ?? null,
+          parentId: task.parentId ?? null,
+          subtaskCount: task.subtaskCount ?? 0,
+          subtaskCompletedCount: task.subtaskCompletedCount ?? 0,
+          ...(this.includeRecurrence()
+            ? {
+                recurrence: task.recurrenceRule
+                  ? `${task.recurrenceRule.frequency} every ${task.recurrenceRule.interval}`
+                  : null,
+              }
+            : {}),
+          archivedAt: task.archivedAt ?? null,
+          createdAt: task.createdAt,
+          updatedAt: task.updatedAt,
+        }));
+        downloadJson(data, 'yotara-tasks.json');
+      }
+    } finally {
+      this.isExporting.set(false);
+    }
+  }
+
+  protected exportProjects() {
+    const data = this.projectService.projects();
+
+    if (this.exportFormat() === 'csv') {
+      const columns: CsvColumn<Project>[] = [
+        { key: 'id', label: 'ID' },
+        { key: 'name', label: 'Name' },
+        { key: 'description', label: 'Description' },
+        { key: 'color', label: 'Color' },
+        { key: 'taskCount', label: 'Total Tasks' },
+        { key: 'completedTaskCount', label: 'Completed Tasks' },
+        { key: 'openTaskCount', label: 'Open Tasks' },
+        { key: 'createdAt', label: 'Created At' },
+        { key: 'updatedAt', label: 'Updated At' },
+      ];
+      downloadCsv(data, columns, 'yotara-projects.csv');
+    } else {
+      const json = data.map((p) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description ?? null,
+        color: p.color ?? null,
+        taskCount: p.taskCount ?? 0,
+        completedTaskCount: p.completedTaskCount ?? 0,
+        openTaskCount: p.openTaskCount ?? 0,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
+      }));
+      downloadJson(json, 'yotara-projects.json');
+    }
+  }
+
+  protected exportLabels() {
+    const data = this.labelService.labels();
+
+    if (this.exportFormat() === 'csv') {
+      const columns: CsvColumn<Label>[] = [
+        { key: 'id', label: 'ID' },
+        { key: 'name', label: 'Name' },
+        { key: 'color', label: 'Color' },
+        { key: 'taskCount', label: 'Tasks' },
+        { key: 'createdAt', label: 'Created At' },
+        { key: 'updatedAt', label: 'Updated At' },
+      ];
+      downloadCsv(data, columns, 'yotara-labels.csv');
+    } else {
+      const json = data.map((l) => ({
+        id: l.id,
+        name: l.name,
+        color: l.color ?? null,
+        taskCount: l.taskCount ?? 0,
+        createdAt: l.createdAt,
+        updatedAt: l.updatedAt,
+      }));
+      downloadJson(json, 'yotara-labels.json');
+    }
+  }
 
   protected onThemeChange(event: Event) {
     const select = event.target as HTMLSelectElement;

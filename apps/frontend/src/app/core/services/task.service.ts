@@ -128,6 +128,19 @@ export class TaskService {
       .map(([label, tasks]) => ({ label, tasks }));
   });
 
+  /** Fetch all tasks for export (bypasses the 100-task cached page).
+   *  Returns up to 10,000 tasks — enough for any reasonable power user.
+   *  Beyond that, a database-level export is more appropriate. */
+  fetchAllTasks(): Promise<Task[]> {
+    return firstValueFrom(
+      this.http
+        .get<PaginatedResponse<Task[]>>(`${this.baseUrl}/tasks?export=true`, {
+          withCredentials: true,
+        })
+        .pipe(map((res) => res.data)),
+    );
+  }
+
   async createTask(payload: CreateTaskDto) {
     this.creatingState.set(true);
     this.errorState.set(null);
