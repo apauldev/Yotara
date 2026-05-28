@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { convertToParamMap, ActivatedRoute, provideRouter } from '@angular/router';
+import { provideMarkdown } from 'ngx-markdown';
 import { of } from 'rxjs';
 import { ProjectDetailPageComponent } from './project-detail-page.component';
 import { ProjectService } from '../../../core/services/project.service';
@@ -93,6 +94,7 @@ describe('ProjectDetailPageComponent', () => {
       imports: [ProjectDetailPageComponent],
       providers: [
         provideRouter([]),
+        provideMarkdown(),
         {
           provide: ActivatedRoute,
           useValue: {

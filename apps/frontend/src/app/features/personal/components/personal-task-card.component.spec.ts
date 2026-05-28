@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import { provideMarkdown } from 'ngx-markdown';
 import { PersonalTaskCardComponent } from './personal-task-card.component';
 import { Task } from '@yotara/shared';
 import { TaskService } from '../../../core/services/task.service';
@@ -29,7 +30,7 @@ describe('PersonalTaskCardComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [PersonalTaskCardComponent],
-      providers: [{ provide: TaskService, useValue: taskServiceSpy }],
+      providers: [{ provide: TaskService, useValue: taskServiceSpy }, provideMarkdown()],
     }).compileComponents();
 
     fixture = TestBed.createComponent(PersonalTaskCardComponent);
@@ -72,9 +73,10 @@ describe('PersonalTaskCardComponent', () => {
       expect(priorityChip.nativeElement.classList.contains('priority-chip-medium')).toBe(true);
     });
 
-    it('should render task description when showDescription is true', () => {
+    it('should render task description when showDescription is true', async () => {
       component.showDescription = true;
       fixture.detectChanges();
+      await fixture.whenStable();
       const description = fixture.debugElement.query(By.css('.task-description'));
       expect(description.nativeElement.textContent).toContain('Reflect on the day ahead');
     });

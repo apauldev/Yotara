@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import { provideMarkdown } from 'ngx-markdown';
 import { ArchivePageComponent } from './archive-page.component';
 import { TaskService } from '../../../core/services/task.service';
 import { ProjectService } from '../../../core/services/project.service';
@@ -70,6 +71,7 @@ describe('ArchivePageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ArchivePageComponent],
       providers: [
+        provideMarkdown(),
         { provide: TaskService, useValue: mockTaskService },
         { provide: ProjectService, useValue: projectServiceStub },
         { provide: LabelService, useValue: labelServiceStub },

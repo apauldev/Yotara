@@ -3,6 +3,7 @@ import { Component, EventEmitter, Input, Output, computed, inject, signal } from
 import { Task } from '@yotara/shared';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faBoxArchive, faRotate, faRotateLeft, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { MarkdownComponent } from 'ngx-markdown';
 import { LabelService } from '../../../core/services/label.service';
 import { TaskService } from '../../../core/services/task.service';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
@@ -11,7 +12,7 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
 @Component({
   selector: 'app-personal-task-card',
   standalone: true,
-  imports: [CommonModule, ConfirmDialogComponent, FontAwesomeModule],
+  imports: [CommonModule, ConfirmDialogComponent, FontAwesomeModule, MarkdownComponent],
   template: `
     <article
       class="task-card"
@@ -155,13 +156,7 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
         </div>
 
         @if (mode === 'default' && showDescription && task.description) {
-          <p class="task-description">
-            {{
-              task.description.length > 120
-                ? (task.description | slice: 0 : 120) + '...'
-                : task.description
-            }}
-          </p>
+          <markdown class="task-description" [data]="truncatedDescription()"></markdown>
         }
       </div>
     </article>
@@ -396,6 +391,11 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
         color: var(--on-surface-muted);
         font-size: 0.88rem;
         line-height: 1.35;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        word-break: break-word;
       }
 
       .meta-pill,
@@ -593,6 +593,14 @@ export class PersonalTaskCardComponent {
   protected subtaskAllDone = computed(
     () => this.subtaskCount() > 0 && this.subtaskDoneCount() === this.subtaskCount(),
   );
+
+  /** Truncate description at 500 chars to avoid perf issues with markdown parser on card preview.
+   *  CSS line-clamp handles visual truncation; this prevents processing very long strings. */
+  protected truncatedDescription() {
+    const desc = this.task?.description;
+    if (!desc || desc.length <= 500) return desc;
+    return desc.slice(0, 497) + '...';
+  }
 
   protected recurrenceLabel() {
     const rule = this.task.recurrenceRule;
