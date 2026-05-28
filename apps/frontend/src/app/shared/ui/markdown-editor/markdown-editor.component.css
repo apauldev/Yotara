@@ -44,12 +44,10 @@
   color: var(--on-surface);
   font-size: 0.96rem;
   line-height: 1.6;
-  overflow-y: auto;
-  overflow-x: auto;
+  overflow: auto;
   cursor: default;
   position: relative;
   overflow-wrap: anywhere;
-  word-break: break-word;
 }
 
 .markdown-editor-preview .markdown-preview:hover {
@@ -88,7 +86,7 @@
   white-space: pre-wrap;
 }
 
-@media (max-width: 720px) {
+@media (width <= 720px) {
   .markdown-editor {
     gap: 0.35rem;
   }
@@ -115,7 +113,6 @@
 
   .markdown-editor-preview .markdown-preview :where(pre, code, table) {
     white-space: pre-wrap;
-    word-break: break-word;
     overflow-x: hidden;
   }
 
