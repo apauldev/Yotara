@@ -2,6 +2,20 @@
 
 This document outlines the complete list of screens, pages, and modals needed for the Yotara MVP. Items are grouped by priority and logical build order—with the first 8–10 screens forming the foundation for a usable personal task manager.
 
+### Competitive Recommendations
+
+Based on the current product direction versus comparable task managers, the next best improvements are:
+
+- Make the quick-add flow the clear hero interaction everywhere, especially in the personal shell and inbox.
+- Keep the task modal lightweight by default and reveal advanced metadata progressively.
+- Continue the mobile finish pass so task detail, markdown, and toolbar controls feel thumb-friendly rather than desktop-shaped.
+- Strengthen post-capture triage with smarter defaults for project, labels, priority, and due date suggestions.
+- Improve search and resurfacing so richer task metadata feels valuable after the initial entry.
+- Add keyboard-first shortcuts and faster command-style actions for power users.
+- Keep low-level features like subtasks and markdown, but avoid letting them dominate the main task entry path.
+- Treat mobile density, spacing, and touch targets as core product quality, not cosmetic polish.
+- Prioritize “what should I do next?” clarity over exposing every metadata field at once.
+
 ---
 
 ## Implementation-Aware Priority Roadmap
@@ -54,44 +68,54 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 |---|------|--------|--------|------------------------------------|
 | 8 | Subtasks UI: checklist inside task modal | ✅ Done | Medium | Hierarchical task management implemented. Subtasks inherit parent project and are excluded from main lists by default. Modal includes subtask creation and completion tracking. |
 | 9 | Recurring tasks: daily/weekly/monthly | ✅ Done | Medium | Automated materialization logic implemented in API service. Supports daily, weekly, monthly, and yearly cycles. New instances generated upon completion of the previous instance. |
-| 10 | Markdown preview in task description | ⬜ Not started | Low | Task modal has a textarea only. Add preview toggle and sanitization. |
+| 10 | Markdown preview in task description | ✅ Done | Low | Markdown editor with format toolbar, preview toggle, and DOMPurify sanitization implemented. |
 | 11 | Browser notifications for due reminders | ⬜ Not started | Medium | Settings has disabled notification rows; no permission/scheduler/service worker flow yet. |
 | 12 | Export data: JSON and CSV from Settings | ⬜ Not started | Low | Settings has disabled export row. Implement client export first, API export later if needed. |
-| 13 | Natural Language Task Entry: date parsing, projects (#), and labels (@) | ⬜ Not started | Medium | Enhance existing regex parser with `chrono-node` for dates and align syntax with Todoist standards (#project, @label). |
+| 13 | Natural Language Task Entry: date parsing, projects (#), and labels (@) | ⬜ Not started | Medium | Enhance existing regex parser with `chrono-node` for dates and align syntax with standard conventions (#project, @label). |
 
 **P1 target:** 2–3 weeks after P0.
 
-### P2 – Team Mode MVP (Core for SaaS / Non-Profits)
+### P2a – Team Mode Foundation (Core for SaaS / Non-Profits)
 
 | # | Task | Status | Effort | Notes |
 |---|------|--------|--------|-------|
-| 12 | Database migration plan: move from SQLite to Postgres before team data model | ⬜ Not started | Medium | Team mode is expected to become multi-user and SaaS-like; lock the tenancy/database path before workspace tables land. |
-| 13 | Workspace data model: workspaces and memberships | ⬜ Not started | Medium | Current backend only stores `user.workspaceMode`; no workspace tables yet. |
-| 14 | Workspace switcher: create/switch workspaces | ⬜ Not started | Low | Team shell has placeholder workspace navigation/label only; no real switcher or persistence. |
-| 15 | Invite link flow: token + `/join/:token` | ⬜ Not started | Medium | No invite tables/routes/pages. |
-| 16 | Task assignment: `assigneeId` and avatar in lists | ⬜ Not started | Low | Shared/OpenAPI mention `assigneeId`, but DB schema and task UI do not persist/render it. |
-| 17 | “Assigned to me” smart list | ⬜ Not started | Low | Depends on assignment. |
-| 18 | Comments on tasks | ⬜ Not started | Medium | Shared `Comment` type exists; no DB/API/UI. |
-| 19 | Team Board: columns per member, drag to reassign | ⬜ Not started | Medium | Depends on workspaces, membership, and assignment. |
-| 20 | Workspace settings: members list + remove member | ⬜ Not started | Low | Depends on workspace membership. |
-| 21 | Real-time updates: WebSockets for task changes | ⬜ Not started | High | No WebSocket layer yet. |
+| 12 | **Database migration: SQLite → Postgres** | ⬜ Not started | Medium | Hard prerequisite for team mode. Lock tenancy/database path before workspace tables land. SQLite remains the personal/self-hosted backend. |
+| 13 | **Permissions: owner vs member roles** | ⬜ Not started | Medium | MVP team mode needs at least `owner` (invite, remove, delete workspace) and `member` (manage tasks, comment). Add a `role` field to workspace membership. |
+| 14 | **Workspace data model: workspaces and memberships** | ⬜ Not started | Medium | Current backend only stores `user.workspaceMode`; no workspace tables yet. |
+| 15 | **Workspace-scoped labels and projects** | ⬜ Not started | Low | Clarify and implement: labels and projects are workspace-scoped in team mode, user-scoped in personal mode. Affects the data model — decide early. |
+| 16 | **Workspace switcher: create/switch workspaces** | ⬜ Not started | Low | Team shell has placeholder workspace navigation/label only; no real switcher or persistence. |
+| 17 | **Workspace settings: members list + remove member** | ⬜ Not started | Low | Depends on workspace membership. |
+| 18 | **Invite link flow: token + `/join/:token`** | ⬜ Not started | Medium | No invite tables/routes/pages. |
+| 19 | **Task assignment: `assigneeId` and avatar in lists** | ⬜ Not started | Low | Shared/OpenAPI mention `assigneeId`, but DB schema and task UI do not persist/render it. |
+| 20 | **"Assigned to me" smart list** | ⬜ Not started | Low | Depends on assignment. |
+| 21 | **Activity log for workspace changes** | ⬜ Not started | Medium | Basic audit trail: who changed what, when. Needed for accountability in shared workspaces. Shares event model with comments/notifications. |
 
-**P2 target:** 6–8 weeks. Critical path for SaaS launch.
+**P2a target:** 4–6 weeks. Workspace, roles, assignment, and invite are the critical path for a usable team mode.
 
-**Database note:** If team mode is expected to become multi-user, concurrent, and SaaS-like, the relational model should move to Postgres before or alongside P2. Treat SQLite as a personal/self-hosted foundation, not the final team-mode backend.
+### P2b – Team Collaboration (Post-Foundation)
+
+| # | Task | Status | Effort | Notes |
+|---|------|--------|--------|-------|
+| 22 | **Comments on tasks (flat, simple)** | ⬜ Not started | Medium | Shared `Comment` type exists; no DB/API/UI. Start with flat comments, edit/delete, no threading. Markdown support optional for MVP. |
+| 23 | **Team Board: columns per member, drag to reassign** | ⬜ Not started | Medium | Depends on workspaces, membership, and assignment. Basic kanban with drag-to-reassign as the hero team interaction. |
+| 24 | **Real-time updates: polling** | ⬜ Not started | Medium | Instead of WebSockets, use polling (10–30s interval) for task changes in team mode. Dramatically simpler, sufficient for small teams. Upgrade to WebSockets later if demand warrants. |
+
+**P2b target:** 3–4 weeks after P2a. Comments, board, and basic live sync complete the team experience.
+
+**Database note:** Postgres migration is a hard gate before any P2a work. Treat SQLite as a personal/self-hosted foundation, not the final team-mode backend. Use an ORM-level migration (Drizzle Kit) to keep schema portable.
 
 ### P3 – Deployment & Distribution
 
 | # | Task | Status | Effort | Notes |
 |---|------|--------|--------|-------|
-| 22 | Pre-built Docker images pushed to GHCR or Docker Hub on release | ⬜ Not started | Medium | Dockerfiles exist; add GitHub Actions workflow to build and push multi-platform images on tag. |
-| 23 | Coverage reporting with threshold gates | ⬜ Not started | Low | Integrate c8/istanbul coverage collection; upload to Codecov; enforce minimum coverage in CI. |
-| 24 | Dependabot / Renovate for automated dependency updates | ⬜ Not started | Low | Enable Dependabot on GitHub; group minor/patch updates; review monthly. |
-| 25 | Security scanning (CodeQL + Snyk) | ⬜ Not started | Low | Add CodeQL analysis workflow; enable Dependabot security alerts; review weekly. |
-| 26 | Docker Compose with pre-built images | 🟡 Partial | Low | Local build-based Compose is ✅ done, but pre-built image Compose is not. |
-| 27 | Render.com template (`render.yaml`) | ⬜ Not started | Medium | Not present. |
-| 28 | Railway.app template (`railway.toml`) | ⬜ Not started | Medium | Not present. |
-| 29 | Live demo instance and README link | ⬜ Not started | Medium | Not present. |
+| 25 | Pre-built Docker images pushed to GHCR or Docker Hub on release | ⬜ Not started | Medium | Dockerfiles exist; add GitHub Actions workflow to build and push multi-platform images on tag. |
+| 26 | Coverage reporting with threshold gates | ⬜ Not started | Low | Integrate c8/istanbul coverage collection; upload to Codecov; enforce minimum coverage in CI. |
+| 27 | Dependabot / Renovate for automated dependency updates | ⬜ Not started | Low | Enable Dependabot on GitHub; group minor/patch updates; review monthly. |
+| 28 | Security scanning (CodeQL + Snyk) | ⬜ Not started | Low | Add CodeQL analysis workflow; enable Dependabot security alerts; review weekly. |
+| 29 | Docker Compose with pre-built images | 🟡 Partial | Low | Local build-based Compose is ✅ done, but pre-built image Compose is not. |
+| 30 | Render.com template (`render.yaml`) | ⬜ Not started | Medium | Not present. |
+| 31 | Railway.app template (`railway.toml`) | ⬜ Not started | Medium | Not present. |
+| 32 | Live demo instance and README link | ⬜ Not started | Medium | Not present. |
 
 **P3 target:** 2–3 weeks. Can run in parallel with P2 once image publishing is stable.
 
@@ -99,29 +123,29 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 
 | # | Task | Status | Effort | Notes |
 |---|------|--------|--------|-------|
-| 30 | Kanban board with custom project statuses | ⬜ Not started | Medium | Keep post-v1 unless early users demand it. |
-| 31 | PWA installability | ⬜ Not started | Medium | No manifest/service worker yet. |
-| 32 | Localization groundwork: English + Spanish | ⬜ Not started | Medium | Current UI strings are component-local. |
-| 33 | Notification center | ⬜ Not started | Medium | Depends on notification event model. |
-| 34 | Activity log | ⬜ Not started | Low | Can share event model with comments/notifications. |
-| 35 | Cross-mode search | ⬜ Not started | Medium | Depends on team-mode data model. |
-| 36 | Natural language task entry in title bar (Todoist-style `every day`, `#project`, `@label`) | ⬜ Not started | Medium | Enhance existing `parseTaskCommand` with chrono-node and full syntax |
-| 37 | Drag-and-drop reorder for subtasks inline | ⬜ Not started | Low | Subtasks ordered by `createdAt` only |
-| 38 | "Repeat on due date" vs "repeat on completion" toggle | ⬜ Not started | Low | Currently always materializes on completion |
-| 39 | Recurring subtasks (subtasks with their own repeat rules) | ⬜ Not started | Low | Subtask repeat field currently disabled |
-| 40 | Skip / snooze single recurrence occurrence | ⬜ Not started | Low | No way to skip an instance without deleting |
-| 41 | Multi-level subtask nesting (>1 level deep) | ⬜ Not started | Medium | Hard-coded to 1 level |
-| 42 | Expand/collapse toggle on parent task card for subtasks | ⬜ Not started | Low | Subtasks always visible below parent |
-| 43 | Recurring template separated from normal task lists | ⬜ Not started | Low | Template and instances currently mixed |
-| 44 | Activity log for past completions of recurring tasks | ⬜ Not started | Low | Show history of completed instances |
+| 33 | Kanban board with custom project statuses | ⬜ Not started | Medium | Keep post-v1 unless early users demand it. |
+| 34 | PWA installability | ⬜ Not started | Medium | No manifest/service worker yet. |
+| 35 | Localization groundwork: English + Spanish | ⬜ Not started | Medium | Current UI strings are component-local. |
+| 36 | Notification center | ⬜ Not started | Medium | Depends on notification event model. |
+| 37 | Cross-mode search | ⬜ Not started | Medium | Depends on team-mode data model. |
+| 38 | Natural language task entry in title bar (`every day`, `#project`, `@label`) | ⬜ Not started | Medium | Enhance existing `parseTaskCommand` with chrono-node and full syntax |
+| 39 | Drag-and-drop reorder for subtasks inline | ⬜ Not started | Low | Subtasks ordered by `createdAt` only |
+| 40 | "Repeat on due date" vs "repeat on completion" toggle | ⬜ Not started | Low | Currently always materializes on completion |
+| 41 | Recurring subtasks (subtasks with their own repeat rules) | ⬜ Not started | Low | Subtask repeat field currently disabled |
+| 42 | Skip / snooze single recurrence occurrence | ⬜ Not started | Low | No way to skip an instance without deleting |
+| 43 | Multi-level subtask nesting (>1 level deep) | ⬜ Not started | Medium | Hard-coded to 1 level |
+| 44 | Expand/collapse toggle on parent task card for subtasks | ⬜ Not started | Low | Subtasks always visible below parent |
+| 45 | Recurring template separated from normal task lists | ⬜ Not started | Low | Template and instances currently mixed |
+| 46 | Activity log for past completions of recurring tasks | ⬜ Not started | Low | Show history of completed instances |
 
 ### Recommended Sprint Order
 
 | Weeks | Focus | Key deliverable |
 |-------|-------|-----------------|
 | 1–2 | P0 Personal polish | Archive clarification, confirmation modals, canonical search route, loading states, empty states, 404, validation polish |
-| 3–5 | P1 Personal features | Subtasks, recurring tasks, markdown preview, browser notifications, export |
-| 6–13 | P2 Team Mode | Workspaces, assignment, comments, Team Board, real-time updates in the final stretch |
+| 3–5 | P1 Personal features | Subtasks, recurring tasks, markdown preview ✅, browser notifications, export |
+| 6–10 | P2a Team Foundation | Postgres migration, workspaces, roles, invite, assignment, "Assigned to me", workspace-scoped labels/projects |
+| 11–13 | P2b Team Collaboration | Comments, Team Board with drag-to-reassign, polling-based live sync |
 | 14–16 | P3 Deployment & CI hardening | Docker images pushed to GHCR/Docker Hub, Compose with pulled images, coverage gates, Dependabot, security scanning, one-click templates, live demo |
 
 After week 16, Yotara should be ready for both self-hosted and SaaS v1.0. Use P4 for feedback-driven follow-up work.
@@ -214,7 +238,7 @@ After week 16, Yotara should be ready for both self-hosted and SaaS v1.0. Use P4
 - **Core fields**:
   - Title (editable)
   - Checkbox + completed state
-  - Description textarea (markdown preview is P1)
+  - Description textarea with markdown editor, format toolbar, and live preview
   - Due date picker
   - Priority selector (Low | Medium | High)
   - Labels / tags multi-select
@@ -495,15 +519,21 @@ These features should be built as personal-mode improvements first, but they sho
 ### Phase 4: Enhanced UX
 - Kanban view for projects
 - Subtasks and recurring tasks UI
-- Markdown preview in task detail
+- ✅ Markdown preview in task detail
 
-### Phase 5: Team Mode (Post-MVP)
-- Postgres-backed workspace and membership model
-- Workspaces + member management
-- Task assignment
-- Comments & activity log
-- Real-time collaboration
-- Shared notification preferences
+### Phase 5: Team Mode Foundation (Post-MVP)
+- Postgres migration from SQLite
+- Workspace data model with owner/member roles
+- Workspace switcher and settings
+- Workspace-scoped labels and projects
+- Invite link flow
+- Task assignment and "Assigned to me" smart list
+- Basic activity log for workspace changes
+
+### Phase 5b: Team Collaboration (Post-Foundation)
+- Flat comments on tasks
+- Team Board with drag-to-reassign
+- Polling-based live sync (upgrade to WebSockets later if needed)
 
 ### Phase 6: Deployment & Distribution (Growth)
 - Pre-built Docker images on Docker Hub
@@ -568,14 +598,21 @@ These features should be built as personal-mode improvements first, but they sho
 ### 📋 Not Started
 - Kanban project view
 - Subtasks and recurring tasks UI
-- Team workspace membership and assignment features
+- Postgres migration (P2a hard prerequisite)
+- Workspace data model, roles, and membership (P2a)
+- Workspace-scoped labels and projects (P2a)
+- Invite link flow (P2a)
+- Task assignment and "Assigned to me" (P2a)
+- Activity log for workspace changes (P2a)
+- Comments on tasks (P2b)
+- Team Board with drag-to-reassign (P2b)
+- Polling-based live sync (P2b)
 - Coverage reporting and threshold gates
 - Dependabot automated dependency updates
 - Security scanning (CodeQL + Snyk)
 - Pre-built Docker images on GHCR/Docker Hub (Phase 6)
 - Compose file that pulls pre-built images
 - One-click cloud deploy templates (Phase 6)
-- Workspace-level notifications and comments/activity log
 - Preference settings beyond theme
 - Export / data and privacy controls
 - Cross-mode search and filter enhancements
@@ -653,9 +690,10 @@ apps/frontend/src/app/
 | Task Create Modal | 1.5-2 | Most complex: forms, date pickers, subtasks |
 | Project Detail + Kanban | 1.5-2 | Fallback to list view for MVP |
 | Settings + Account | 1-1.5 | Plus theme toggle |
-| Team Mode Shell | 1.5-2 | Workspaces switcher, member list |
+| P2a: Postgres + Workspaces | 4-5 | Database migration, data model, invite, assignment |
+| P2b: Board + Comments | 2-3 | Team Board, flat comments, polling |
 | Polish & Testing | 1-1.5 | Empty states, error handling |
-| **Total** | **~9-11 days** | 2-week sprint with buffer |
+| **Total** | **~13-17 days** | 2.5–3.5 week sprint with buffer |
 
 ---
 
@@ -672,11 +710,12 @@ apps/frontend/src/app/
 - **Subtasks**: Full nesting support or just one level?
 - **Kanban**: Include in MVP or as Phase 4?
 - **Team mode**: Hide completely or show greyed-out tab in MVP?
-- **Notifications**: Real-time via WebSocket or polling?
+- **Real-time**: Polling (10–30s) for team MVP; upgrade to WebSockets if demand warrants — ✅ decided for P2b.
 - **Archive**: Manual archive only, or auto-archive after completion?
 - **Search**: Single global search or separate personal/team search scopes?
-- **Permissions**: What is the minimum viable team role model?
-- **Database**: Should Postgres migration happen before P2 team mode, or be treated as a hard precondition for it?
+- **Permissions**: Owner vs member roles in MVP — ✅ decided for P2a.
+- **Database**: Postgres migration before P2a work — ✅ decided as hard prerequisite.
+- **Workspace-scoped labels/projects**: Yes, workspace-scoped in team mode, user-scoped in personal mode — ✅ decided for P2a.
 - **Languages**: English first, then Spanish, then other locales as demand proves out?
 - **Languages**: English first, then Spanish, Hindi, Chinese, Japanese, Korean, Russian, plus easy LTR European additions like German, French, Portuguese, and Italian?
 
