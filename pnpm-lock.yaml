@@ -190,9 +190,6 @@ importers:
       '@spartan-ng/cli':
         specifier: 0.0.1-alpha.646
         version: 0.0.1-alpha.646(217b41e6d33c7d5c14c8a0708a343d70)
-      '@types/dompurify':
-        specifier: ^3.2.0
-        version: 3.2.0
       '@types/jasmine':
         specifier: ~5.1.0
         version: 5.1.15
@@ -3390,10 +3387,6 @@ packages:
 
   '@types/cors@2.8.19':
     resolution: {integrity: sha512-mFNylyeyqN93lfe/9CSxOGREz8cpzAhH+E93xJ4xWQf62V8sQ/24reV2nyzUWM6H6Xji+GGHpkbLe7pVoUEskg==}
-
-  '@types/dompurify@3.2.0':
-    resolution: {integrity: sha512-Fgg31wv9QbLDA0SpTOXO3MaxySc4DKGLi8sna4/Utjo4r3ZRPdCt4UQee8BWr+Q5z21yifghREPJGYaEOEIACg==}
-    deprecated: This is a stub types definition. dompurify provides its own type definitions, so you do not need this installed.
 
   '@types/eslint-scope@3.7.7':
     resolution: {integrity: sha512-MzMFlSLBqNF2gcHWO0G1vP/YQyfvrxZ0bF+u7mzUdZ1/xK4A4sru+nraZz5i3iEIk1l1uyicaDVTB4QbbEkAYg==}
@@ -12812,10 +12805,6 @@ snapshots:
   '@types/cors@2.8.19':
     dependencies:
       '@types/node': 22.19.13
-
-  '@types/dompurify@3.2.0':
-    dependencies:
-      dompurify: 3.4.7
 
   '@types/eslint-scope@3.7.7':
     dependencies:
