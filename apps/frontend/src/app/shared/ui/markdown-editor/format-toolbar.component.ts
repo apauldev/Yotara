@@ -35,7 +35,7 @@ export interface SyntaxInsert {
             type="button"
             class="tb"
             aria-label="Heading"
-            title="Heading"
+            data-label="Heading"
             data-syntax="# text"
             (click)="insertSyntax.emit({ prefix: '# ', suffix: '', multiline: true })"
           >
@@ -45,7 +45,7 @@ export interface SyntaxInsert {
             type="button"
             class="tb"
             aria-label="Bold"
-            title="Bold"
+            data-label="Bold"
             data-syntax="**text**"
             (click)="insertSyntax.emit({ prefix: '**', suffix: '**' })"
           >
@@ -55,7 +55,7 @@ export interface SyntaxInsert {
             type="button"
             class="tb"
             aria-label="Italic"
-            title="Italic"
+            data-label="Italic"
             data-syntax="_text_"
             (click)="insertSyntax.emit({ prefix: '_', suffix: '_' })"
           >
@@ -65,7 +65,7 @@ export interface SyntaxInsert {
             type="button"
             class="tb"
             aria-label="Strikethrough"
-            title="Strikethrough"
+            data-label="Strikethrough"
             data-syntax="~~text~~"
             (click)="insertSyntax.emit({ prefix: '~~', suffix: '~~' })"
           >
@@ -75,7 +75,7 @@ export interface SyntaxInsert {
             type="button"
             class="tb"
             aria-label="Inline code"
-            title="Inline code"
+            data-label="Inline code"
             [attr.data-syntax]="backtickSyntax"
             (click)="onInlineCode()"
           >
@@ -85,7 +85,7 @@ export interface SyntaxInsert {
             type="button"
             class="tb"
             aria-label="Blockquote"
-            title="Blockquote"
+            data-label="Blockquote"
             data-syntax="> text"
             (click)="insertSyntax.emit({ prefix: '> ', suffix: '', multiline: true })"
           >
@@ -95,7 +95,7 @@ export interface SyntaxInsert {
             type="button"
             class="tb"
             aria-label="Bullet list"
-            title="Bullet list"
+            data-label="Bullet list"
             data-syntax="- item"
             (click)="insertSyntax.emit({ prefix: '- ', suffix: '', multiline: true })"
           >
@@ -105,7 +105,7 @@ export interface SyntaxInsert {
             type="button"
             class="tb"
             aria-label="Numbered list"
-            title="Numbered list"
+            data-label="Numbered list"
             data-syntax="1. item"
             (click)="insertSyntax.emit({ prefix: '1. ', suffix: '', multiline: true })"
           >
@@ -115,7 +115,7 @@ export interface SyntaxInsert {
             type="button"
             class="tb"
             aria-label="Checklist"
-            title="Checklist"
+            data-label="Checklist"
             data-syntax="- [ ] item"
             (click)="insertSyntax.emit({ prefix: '- [ ] ', suffix: '', multiline: true })"
           >
@@ -125,7 +125,7 @@ export interface SyntaxInsert {
             type="button"
             class="tb"
             aria-label="Insert link"
-            title="Link"
+            data-label="Insert link"
             data-syntax="[text](url)"
             (click)="insertSyntax.emit({ prefix: '[', suffix: '](url)' })"
           >
@@ -135,7 +135,7 @@ export interface SyntaxInsert {
             type="button"
             class="tb"
             aria-label="Insert image"
-            title="Image"
+            data-label="Insert image"
             data-syntax="![alt](url)"
             (click)="insertSyntax.emit({ prefix: '![alt](', suffix: ')' })"
           >
@@ -145,7 +145,7 @@ export interface SyntaxInsert {
             type="button"
             class="tb"
             aria-label="Horizontal rule"
-            title="Horizontal rule"
+            data-label="Horizontal rule"
             data-syntax="---"
             (click)="
               insertSyntax.emit({
@@ -239,8 +239,30 @@ export interface SyntaxInsert {
         color: var(--on-surface);
       }
 
+      .tb:hover ::ng-deep svg {
+        color: var(--on-surface);
+      }
+
       .tb:active {
         background: var(--surface-container-highest);
+      }
+
+      .tb:hover::after {
+        content: attr(data-label) ' — ' attr(data-syntax);
+        position: absolute;
+        top: calc(100% + 0.3rem);
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 0.2rem 0.5rem;
+        border-radius: 0.35rem;
+        background: var(--surface-container-high);
+        color: var(--on-surface);
+        font-size: 0.68rem;
+        font-weight: 600;
+        white-space: nowrap;
+        pointer-events: none;
+        z-index: 60;
+        box-shadow: 0 2px 6px var(--surface-dim);
       }
 
       .tb-active {

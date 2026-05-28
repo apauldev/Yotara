@@ -90,6 +90,63 @@ describe('FormatToolbarComponent', () => {
   });
 
   describe('Syntax insertion', () => {
+    it('should emit insertSyntax with strikethrough syntax when strikethrough button is clicked', () => {
+      spyOn(component.insertSyntax, 'emit');
+      const btn = fixture.debugElement.query(By.css('[data-syntax="~~text~~"]'));
+      btn.nativeElement.click();
+      expect(component.insertSyntax.emit).toHaveBeenCalledWith({ prefix: '~~', suffix: '~~' });
+    });
+
+    it('should emit insertSyntax with numbered list syntax when numbered list button is clicked', () => {
+      spyOn(component.insertSyntax, 'emit');
+      const btn = fixture.debugElement.query(By.css('[data-syntax="1. item"]'));
+      btn.nativeElement.click();
+      expect(component.insertSyntax.emit).toHaveBeenCalledWith({
+        prefix: '1. ',
+        suffix: '',
+        multiline: true,
+      });
+    });
+
+    it('should emit insertSyntax with checklist syntax when checklist button is clicked', () => {
+      spyOn(component.insertSyntax, 'emit');
+      const btn = fixture.debugElement.query(By.css('[data-syntax="- [ ] item"]'));
+      btn.nativeElement.click();
+      expect(component.insertSyntax.emit).toHaveBeenCalledWith({
+        prefix: '- [ ] ',
+        suffix: '',
+        multiline: true,
+      });
+    });
+
+    it('should emit insertSyntax with image syntax when image button is clicked', () => {
+      spyOn(component.insertSyntax, 'emit');
+      const btn = fixture.debugElement.query(By.css('[data-syntax="![alt](url)"]'));
+      btn.nativeElement.click();
+      expect(component.insertSyntax.emit).toHaveBeenCalledWith({ prefix: '![alt](', suffix: ')' });
+    });
+
+    it('should emit insertSyntax with horizontal rule syntax when horizontal rule button is clicked', () => {
+      spyOn(component.insertSyntax, 'emit');
+      const btn = fixture.debugElement.query(By.css('[data-syntax="---"]'));
+      btn.nativeElement.click();
+      expect(component.insertSyntax.emit).toHaveBeenCalledWith({
+        prefix: '\n\n---\n\n',
+        suffix: '',
+        multiline: true,
+      });
+    });
+
+    it('should emit insertSyntax with inline code syntax when inline code button is clicked', () => {
+      spyOn(component.insertSyntax, 'emit');
+      const codeBtn = fixture.debugElement
+        .queryAll(By.css('.tb'))
+        .find((el) => el.nativeElement.getAttribute('aria-label') === 'Inline code');
+      expect(codeBtn).toBeTruthy();
+      codeBtn!.nativeElement.click();
+      expect(component.insertSyntax.emit).toHaveBeenCalledWith({ prefix: '`', suffix: '`' });
+    });
+
     it('should emit insertSyntax with heading syntax when heading button is clicked', () => {
       spyOn(component.insertSyntax, 'emit');
       const btn = fixture.debugElement.query(By.css('[data-syntax="# text"]'));
@@ -157,14 +214,14 @@ describe('FormatToolbarComponent', () => {
       component.previewMode = false;
       fixture.detectChanges();
       const previewBtn = fixture.debugElement.query(By.css('.tb-toggle'));
-      expect(previewBtn.nativeElement.getAttribute('title')).toBe('Preview');
+      expect(previewBtn.nativeElement.getAttribute('aria-label')).toBe('Preview rendered markdown');
     });
 
     it('should show edit icon when previewMode is true', () => {
       component.previewMode = true;
       fixture.detectChanges();
       const previewBtn = fixture.debugElement.query(By.css('.tb-toggle'));
-      expect(previewBtn.nativeElement.getAttribute('title')).toBe('Edit — make changes');
+      expect(previewBtn.nativeElement.getAttribute('aria-label')).toBe('Switch to edit mode');
     });
 
     it('should add active class when in preview mode', () => {
