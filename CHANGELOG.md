@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.52.0](https://github.com/apauldev/Yotara/compare/v0.51.4...v0.52.0) (2026-05-28)
+
+
+### Features
+
+* markdown support added wip ([2695172](https://github.com/apauldev/Yotara/commit/26951729e9ca97091cd520e134293bfa21b147bd))
+
+
+### Bug Fixes
+
+* add css tooltips, missing z-index, and toolbar spec coverage ([a4cf767](https://github.com/apauldev/Yotara/commit/a4cf7674a8faf6badc4b4f7febe2440f3c9c65b9))
+* linting issues fixed ([7460cdd](https://github.com/apauldev/Yotara/commit/7460cdd8382981a8a6983fddc690aadeb4375faf))
+* lockfile was out of date, because of new packages and no new pnpm install ([8ac96dd](https://github.com/apauldev/Yotara/commit/8ac96dda86733c80f0f28fbf349a374155bd68f5))
+* made mobile stronger for the modal ([16a3ee4](https://github.com/apauldev/Yotara/commit/16a3ee4b1d2d1a2d054819353d06c6c351675952))
+
 ## [0.51.4](https://github.com/apauldev/Yotara/compare/v0.51.3...v0.51.4) (2026-05-27)
 
 
