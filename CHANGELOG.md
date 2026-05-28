@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.53.0](https://github.com/apauldev/Yotara/compare/v0.52.0...v0.53.0) (2026-05-28)
+
+
+### Features
+
+* add CSV data export for tasks, projects, and labels ([e471e92](https://github.com/apauldev/Yotara/commit/e471e92c010df1c5677ecc8380ed7155866969f7))
+* **settings:** implement robust JSON and CSV data export ([bf495a6](https://github.com/apauldev/Yotara/commit/bf495a67584495b409e0e6d6e25cf5c233cabd87))
+
+
+### Bug Fixes
+
+* exclude archived tasks by archive state ([ad1d8b3](https://github.com/apauldev/Yotara/commit/ad1d8b3f27902b5ee3ca1fb2c5ca144cb63c5224))
+
 ## [0.52.0](https://github.com/apauldev/Yotara/compare/v0.51.4...v0.52.0) (2026-05-28)
 
 
