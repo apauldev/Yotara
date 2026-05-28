@@ -78,7 +78,7 @@ const mockTasks: Task[] = [
   {
     id: 'task-4',
     title: 'Archived task',
-    status: 'archived',
+    status: 'done',
     priority: 'low',
     completed: true,
     order: 3,

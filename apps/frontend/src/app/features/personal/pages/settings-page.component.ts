@@ -712,7 +712,7 @@ export class SettingsPageComponent {
       const exportable = all.filter((task) => {
         if (!this.includeCompleted() && task.completed) return false;
         if (!this.includeSubtasks() && task.parentId) return false;
-        if (!this.includeArchived() && task.status === 'archived') return false;
+        if (!this.includeArchived() && task.archivedAt) return false;
         return true;
       });
 
