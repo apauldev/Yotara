@@ -1,5 +1,17 @@
 # Frontend Refactor TODO
 
+## Recently Completed (v0.51–v0.54)
+
+- [x] **Search as standalone component** — tabbed filtering (all/tasks/projects/labels), pagination, date/alpha sort
+- [x] **Markdown editor** — format toolbar, preview toggle, DOMPurify sanitization, mobile-strong modal
+- [x] **Data export** — JSON and CSV export from Settings with granular toggles (subtasks, descriptions, archived items)
+- [x] **Insights panel** — daily productivity insights with Font Awesome icons, localStorage persistence, settings toggle to re-enable
+- [x] **Task list refactor** — page decomposed into components, smooth list animations, proper pagination, page reset on task total changes
+- [x] **"Don't show again" on complete confirmation** — persistence for task completion dialog dismissal
+- [x] **Archive migrated to shared EmptyStateComponent**
+- [x] **LogService sanitization** — circular reference safety, mock console in tests
+- [x] **CI fixes** — circular data logging error resolved, test isolation improved
+
 ## Shared UI and Generic Components
 
 - [x] Build a generic modal primitive in `shared/ui/modal` with:
@@ -28,7 +40,7 @@
   - [x] Inputs: `title`, `description`, optional icon/illustration
   - [x] Optional CTA slot/button
   - [x] Used in task-list-page (Inbox/Today/Upcoming/Search), projects-page, project-detail-page, and labels-page
-  - [ ] Migrate archive page from inline empty state to shared `EmptyStateComponent`
+  - [x] Migrate archive page from inline empty state to shared `EmptyStateComponent`
 
 - [ ] Create a generic async state helper (`StatusMessage` or `AsyncState`):
   - [ ] Handle loading / error / empty / content states
@@ -46,14 +58,20 @@
 - [ ] Add personal-mode product design polish tasks:
   - [ ] Make Inbox quick capture the primary hero interaction
   - [ ] Use progressive disclosure in the task modal so simple tasks stay lightweight
+  - [ ] Add smarter capture defaults: suggest project, labels, and priority from the current context
+  - [ ] Add lightweight “what next?” guidance after capture so users can triage a task in one pass
+  - [ ] Keep advanced metadata tucked behind secondary actions on mobile so the main flow stays thumb-friendly
   - [ ] Clarify the mental model for done vs archived vs simple mode vs bucket
   - [ ] Strengthen empty states for Inbox, Today, Upcoming, Projects, Labels, Search, and Archive
   - [ ] Reduce visual weight of secondary shell controls so capture and navigation stay dominant
   - [ ] Make the personal/team mode switch communicate intent more clearly
   - [ ] Improve search-result confidence with better surfaced match context
   - [ ] Tighten spacing, elevation, and visual hierarchy so the shell feels calmer and less dashboard-like
+  - [ ] Add keyboard-first shortcuts for quick add, modal actions, and search to match power-user expectations
+  - [ ] Treat mobile density, touch targets, and form sizing as first-class design constraints
   - [x] Keep preferences minimal and useful: theme, density, and quick-add behavior
   - [ ] Treat keyboard support, focus states, contrast, and touch targets as part of the final product finish
+  - [ ] Add mobile regression QA pass: verify modal scroll, keyboard, bottom-sheet, and form input behavior across breakpoints
 
 - [ ] Keep the frontend team-mode assumptions aligned with the future Postgres-backed tenant model:
   - [ ] Prefer workspace-scoped routes, state, and labels over user-only thinking once team mode expands
@@ -65,7 +83,7 @@
 - [ ] Add `chrono-node` to frontend dependencies for date parsing
 - [ ] Refactor `parseTaskCommand` utility:
   - [ ] Integrate `chrono-node` for natural language date extraction
-  - [ ] Align syntax with Todoist standards: `#` for projects, `@` for labels, `!` for priorities
+  - [ ] Align syntax with common conventions: `#` for projects, `@` for labels, `!` for priorities
   - [ ] Support project lookup by name during parsing
 - [ ] Enhance `TaskDetailModal` with NLP features:
   - [ ] Real-time parsing feedback (inline highlighting or preview chips)
@@ -122,10 +140,10 @@
 
 ## Recurring & Subtask Nice-to-Haves (From Market Comparison)
 
-Gaps vs Todoist/TickTick/Things 3 — deliberate MVP limits or future enhancements:
+Gaps vs comparable task managers — deliberate MVP limits or future enhancements:
 
 - [x] **Natural language recurring setup** (`every day`, `every weekday`, `every Mon,Wed,Fri`) — basic frequency dropdown always existed; weekdays + custom day-of-week toggles now added
-- [ ] **Natural language in title bar** — parse `"Buy groceries every Friday until June 1st"` from the title input like Todoist
+- [ ] **Natural language in title bar** — parse `"Buy groceries every Friday until June 1st"` from the title input
 - [ ] **Drag-and-drop reorder** for subtasks (inline in list view)
 - [ ] **"Repeat on due date" vs "repeat on completion" toggle** — currently always materializes on completion
 - [ ] **Recurring subtasks** — subtasks currently cannot have their own recurrence rule (field is disabled)
@@ -147,11 +165,23 @@ Gaps vs Todoist/TickTick/Things 3 — deliberate MVP limits or future enhancemen
   - [x] Map known API errors to consistent user-facing messages
   - [x] Add global status/loading bar and toast notifications
 
-- [x] Improve frontend error handling strategy:
+- [ ] **P2 — Add structured field-level validation error handling from backend**
+  - `HttpErrorResponse` is caught generically with a toast — no per-field error binding for forms
+  - If API returns `{ message: 'Project name is required' }`, it can't surface next to the input field
 
-- [x] Improve task list scalability:
-  - [x] Avoid fixed `pageSize=100` fetch strategy
-  - [x] Move to paged/cursor loading and server-driven sorting
+- [ ] **P2 — Remove or integrate `fetchSubtasks` redundancy**
+  - `fetchSubtasks(parentId)` is a one-off Promise that doesn't update any signal
+  - The main `tasks` signal already fetches with `includeSubtasks=true`
+
+- [ ] **P2 — Debounce search input**
+  - `SearchService` runs synchronous tokenization/scoring on every keystroke
+  - Fine for ~100 tasks, but should be debounced for larger datasets
+
+- [ ] **PRIORITY: Fix task list scalability — 100-task hard limit is a blocking red flag**
+  - [ ] Replace single `pageSize=100&includeSubtasks=true` fetch in `task.service.ts` with server-driven per-page requests
+  - [ ] Wire `currentPage` / `pageSize` signals in `task-list-page.component.ts` to actual API pagination params
+  - [ ] Audit all `computed()` filters (inboxTasks, todayTasks, overdueTasks, etc.) — they assume full dataset in memory
+  - [ ] Update mutation methods (create, update, delete) to work with partial/paginated dataset instead of full re-fetch
 
 - [x] Add archive flow for completed tasks:
   - [x] `done` as completion state with `archived` as final inactive state
