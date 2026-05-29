@@ -1,175 +1,41 @@
 <app-personal-task-workspace
   #workspace
-  [initialTitle]="viewMode() === 'inbox' ? captureTitle() : ''"
+  [initialTitle]="viewMode() === 'inbox' ? (captureBar()?.getTitle() ?? '') : ''"
   (taskSaved)="handleTaskSaved($event)"
-  (taskSaveFailed)="captureError.set($event)"
 >
   <section class="page" [attr.data-view]="viewMode()">
     <app-page-header eyebrow="Personal Sanctuary" [title]="pageTitle()" [subtitle]="pageSubtitle()">
-      <!-- Unified Insight Panel -->
       @if (
         insightPanelVisible() &&
         (viewMode() === 'inbox' || viewMode() === 'today' || viewMode() === 'upcoming')
       ) {
-        <div
+        <app-insight-panel
           page-header-actions
-          class="insight-panel"
-          role="complementary"
-          aria-label="Daily Insight"
-        >
-          <button
-            type="button"
-            class="insight-dismiss"
-            (click)="dismissInsight()"
-            aria-label="Dismiss insight"
-          >
-            <fa-icon [icon]="faXmark"></fa-icon>
-          </button>
-
-          @if (activeInsightType() === 'clarity') {
-            <div class="insight-content">
-              <div class="insight-icon" aria-hidden="true">✦</div>
-              <div>
-                <strong>Daily Clarity</strong>
-                <p>{{ dailyClarityPrompt() }}</p>
-              </div>
-            </div>
-          } @else {
-            <div class="insight-content">
-              <div class="insight-icon" aria-hidden="true">✍︎</div>
-              <div>
-                <strong>The Yotara Journal</strong>
-                <p>{{ journalPrompt() }}</p>
-              </div>
-            </div>
-          }
-        </div>
+          [type]="activeInsightType()"
+          [prompt]="insightPrompt()"
+          (dismiss)="dismissInsight()"
+        />
       }
     </app-page-header>
 
     @switch (viewMode()) {
       @case ('inbox') {
-        <!-- Inbox View: Capture Bar + List -->
-        <form id="capture" class="capture-bar" (ngSubmit)="captureTask()">
-          <div class="capture-input-container">
-            <div
-              class="capture-highlighter"
-              aria-hidden="true"
-              [innerHTML]="highlightedTitle()"
-            ></div>
-            <input
-              #captureInput
-              type="text"
-              name="captureTitle"
-              [ngModel]="captureTitle()"
-              (ngModelChange)="captureTitle.set($event)"
-              (input)="onCaptureInput()"
-              (keydown)="onCaptureKeyDown($event)"
-              placeholder="What's on your mind today?"
-              autocomplete="off"
-              [attr.aria-invalid]="captureError() ? 'true' : 'false'"
-              [attr.aria-describedby]="captureError() ? 'capture-error' : null"
-              (keydown.enter)="lastSubmissionType = 'default'"
-            />
-
-            @if (activeTagSearch() !== null && tagSuggestions().length > 0) {
-              <ul class="tag-suggestions" role="listbox">
-                @for (suggestion of tagSuggestions(); track suggestion.id; let i = $index) {
-                  <li
-                    [class.suggestion-active]="i === selectedSuggestionIndex()"
-                    (click)="selectSuggestion(suggestion.name)"
-                    role="option"
-                  >
-                    <span class="suggestion-hash">#</span>{{ suggestion.name }}
-                  </li>
-                }
-              </ul>
-            }
-          </div>
-
-          <div class="capture-actions">
-            <label class="capture-project">
-              <span class="sr-only">Project</span>
-              <select
-                [ngModel]="captureProjectId() || defaultCaptureProjectId()"
-                (ngModelChange)="captureProjectId.set($event)"
-                name="captureProjectId"
-                aria-label="Choose project"
-              >
-                @for (project of projectService.projects(); track project.id) {
-                  <option [value]="project.id">{{ project.name }}</option>
-                }
-              </select>
-            </label>
-          </div>
-
-          <div class="capture-button-group">
-            <button
-              type="submit"
-              class="capture-submit capture-submit-quick"
-              [disabled]="taskService.creating()"
-              (click)="lastSubmissionType = 'quick'"
-            >
-              Add Task
-            </button>
-            <button
-              type="submit"
-              class="capture-submit capture-submit-details"
-              [disabled]="taskService.creating()"
-              (click)="lastSubmissionType = 'capture'"
-            >
-              Add task with details
-            </button>
-          </div>
-        </form>
-
-        @if (captureError()) {
-          <p id="capture-error" class="capture-error" role="alert">{{ captureError() }}</p>
-        }
+        <app-capture-bar
+          [projects]="projectService.projects()"
+          [creating]="taskService.creating()"
+          [defaultProjectId]="defaultCaptureProjectId()"
+          (submit)="handleCapture()"
+        />
 
         <section class="list-section">
           <app-section-header title="Task List" [count]="inboxCountLabel()" size="sm">
-            <div section-header-actions class="view-controls">
-              <div class="control-group">
-                <button
-                  type="button"
-                  class="control-pill"
-                  [class.active]="sortOption() === 'date'"
-                  (click)="sortOption.set('date')"
-                >
-                  Date
-                </button>
-                <button
-                  type="button"
-                  class="control-pill"
-                  [class.active]="sortOption() === 'alpha'"
-                  (click)="sortOption.set('alpha')"
-                >
-                  A-Z
-                </button>
-              </div>
-
-              <div class="control-divider"></div>
-
-              <div class="control-group">
-                <button
-                  type="button"
-                  class="control-pill"
-                  [class.active]="pageSize() === 10"
-                  (click)="pageSize.set(10)"
-                >
-                  10
-                </button>
-                <button
-                  type="button"
-                  class="control-pill"
-                  [class.active]="pageSize() === 25"
-                  (click)="pageSize.set(25)"
-                >
-                  25
-                </button>
-              </div>
-            </div>
+            <app-task-view-controls
+              section-header-actions
+              [sortOption]="sortOption()"
+              [pageSize]="pageSize()"
+              (sortOptionChange)="onSortOptionChange($event)"
+              (pageSizeChange)="onPageSizeChange($event)"
+            />
           </app-section-header>
 
           <div aria-live="polite">
@@ -184,38 +50,17 @@
                 [icon]="faCloud"
               />
             } @else {
-              <div class="task-stack">
-                @for (task of processedInboxTasks(); track task.id) {
-                  <div class="task-group">
-                    <app-personal-task-card
-                      [task]="task"
-                      [interactive]="true"
-                      (select)="workspace.editTask(task)"
-                    />
-
-                    @if (subtasksByParent().get(task.id); as subtasks) {
-                      <div class="subtask-nested-list">
-                        @for (subtask of subtasks; track subtask.id) {
-                          <div class="subtask-item-wrapper">
-                            <app-personal-task-card
-                              [task]="subtask"
-                              mode="compact"
-                              [interactive]="true"
-                              (select)="workspace.editTask(subtask)"
-                            />
-                          </div>
-                        }
-                      </div>
-                    }
-                  </div>
-                }
-              </div>
+              <app-task-stack
+                [tasks]="processedInboxTasks()"
+                [subtasksByParent]="subtasksByParent()"
+                [taskCard]="taskCardTpl"
+              />
 
               <app-pagination
                 [totalItems]="taskService.inboxTasks().length"
                 [pageSize]="pageSize()"
                 [currentPage]="currentPage()"
-                (pageChange)="currentPage.set($event)"
+                (pageChange)="onPageChange($event)"
               />
             }
           </div>
@@ -223,82 +68,27 @@
       }
 
       @case ('today') {
-        <!-- Today View: Overdue + Today + Completed -->
         @if (taskService.overdueTasks().length > 0) {
           <section class="task-section">
             <app-section-header title="Overdue" size="lg" tone="accent" />
 
-            <div class="task-stack">
-              @for (task of taskService.overdueTasks().filter(t => !t.parentId); track task.id) {
-                <div class="task-group">
-                  <app-personal-task-card
-                    [task]="task"
-                    tone="overdue"
-                    [interactive]="true"
-                    (select)="editTask(task)"
-                  />
-
-                  @if (subtasksByParent().get(task.id); as subtasks) {
-                    <div class="subtask-nested-list">
-                      @for (subtask of subtasks; track subtask.id) {
-                        <app-personal-task-card
-                          [task]="subtask"
-                          mode="compact"
-                          [interactive]="true"
-                          (select)="editTask(subtask)"
-                        />
-                      }
-                    </div>
-                  }
-                </div>
-              }
-            </div>
+            <app-task-stack
+              [tasks]="taskService.overdueTasks().filter(t => !t.parentId)"
+              [subtasksByParent]="subtasksByParent()"
+              [taskCard]="overdueTaskCardTpl"
+            />
           </section>
         }
 
         <section class="task-section">
           <app-section-header title="Due Today" size="lg">
-            <div section-header-actions class="view-controls">
-              <div class="control-group">
-                <button
-                  type="button"
-                  class="control-pill"
-                  [class.active]="sortOption() === 'date'"
-                  (click)="sortOption.set('date')"
-                >
-                  Date
-                </button>
-                <button
-                  type="button"
-                  class="control-pill"
-                  [class.active]="sortOption() === 'alpha'"
-                  (click)="sortOption.set('alpha')"
-                >
-                  A-Z
-                </button>
-              </div>
-
-              <div class="control-divider"></div>
-
-              <div class="control-group">
-                <button
-                  type="button"
-                  class="control-pill"
-                  [class.active]="pageSize() === 10"
-                  (click)="pageSize.set(10)"
-                >
-                  10
-                </button>
-                <button
-                  type="button"
-                  class="control-pill"
-                  [class.active]="pageSize() === 25"
-                  (click)="pageSize.set(25)"
-                >
-                  25
-                </button>
-              </div>
-            </div>
+            <app-task-view-controls
+              section-header-actions
+              [sortOption]="sortOption()"
+              [pageSize]="pageSize()"
+              (sortOptionChange)="onSortOptionChange($event)"
+              (pageSizeChange)="onPageSizeChange($event)"
+            />
           </app-section-header>
 
           <div aria-live="polite">
@@ -317,70 +107,26 @@
                 [icon]="faSun"
               />
             } @else {
-              <div class="task-stack">
-                @for (task of processedTodayTasks(); track task.id) {
-                  <div class="task-group">
-                    <app-personal-task-card
-                      [task]="task"
-                      [interactive]="true"
-                      (select)="editTask(task)"
-                    />
-
-                    @if (subtasksByParent().get(task.id); as subtasks) {
-                      <div class="subtask-nested-list">
-                        @for (subtask of subtasks; track subtask.id) {
-                          <app-personal-task-card
-                            [task]="subtask"
-                            mode="compact"
-                            [interactive]="true"
-                            (select)="editTask(subtask)"
-                          />
-                        }
-                      </div>
-                    }
-                  </div>
-                }
-              </div>
+              <app-task-stack
+                [tasks]="processedTodayTasks()"
+                [subtasksByParent]="subtasksByParent()"
+                [taskCard]="taskCardTpl"
+              />
 
               <app-pagination
                 [totalItems]="taskService.todayTasks().length"
                 [pageSize]="pageSize()"
                 [currentPage]="currentPage()"
-                (pageChange)="currentPage.set($event)"
+                (pageChange)="onPageChange($event)"
               />
 
               @if (taskService.todayCompletedTasks().length > 0) {
                 <div class="completed-stack">
-                  @for (
-                    task of taskService.todayCompletedTasks().filter(t => !t.parentId);
-                    track task.id
-                  ) {
-                    <div class="task-group">
-                      <app-personal-task-card
-                        [task]="task"
-                        [interactive]="true"
-                        [showDescription]="false"
-                        [showCompletionState]="true"
-                        (select)="editTask(task)"
-                      />
-
-                      @if (subtasksByParent().get(task.id); as subtasks) {
-                        <div class="subtask-nested-list">
-                          @for (subtask of subtasks; track subtask.id) {
-                            <div class="subtask-item-wrapper">
-                              <app-personal-task-card
-                                [task]="subtask"
-                                mode="compact"
-                                [interactive]="true"
-                                [showCompletionState]="true"
-                                (select)="editTask(subtask)"
-                              />
-                            </div>
-                          }
-                        </div>
-                      }
-                    </div>
-                  }
+                  <app-task-stack
+                    [tasks]="taskService.todayCompletedTasks().filter(t => !t.parentId)"
+                    [subtasksByParent]="subtasksByParent()"
+                    [taskCard]="completedTaskCardTpl"
+                  />
                 </div>
               }
             }
@@ -389,51 +135,8 @@
       }
 
       @case ('upcoming') {
-        <!-- Upcoming View: Grouped by date -->
         <section class="task-section">
-          <app-section-header title="Planning Ahead" size="lg">
-            <div section-header-actions class="view-controls">
-              <div class="control-group">
-                <button
-                  type="button"
-                  class="control-pill"
-                  [class.active]="sortOption() === 'date'"
-                  (click)="sortOption.set('date')"
-                >
-                  Date
-                </button>
-                <button
-                  type="button"
-                  class="control-pill"
-                  [class.active]="sortOption() === 'alpha'"
-                  (click)="sortOption.set('alpha')"
-                >
-                  A-Z
-                </button>
-              </div>
-
-              <div class="control-divider"></div>
-
-              <div class="control-group">
-                <button
-                  type="button"
-                  class="control-pill"
-                  [class.active]="pageSize() === 10"
-                  (click)="pageSize.set(10)"
-                >
-                  10
-                </button>
-                <button
-                  type="button"
-                  class="control-pill"
-                  [class.active]="pageSize() === 25"
-                  (click)="pageSize.set(25)"
-                >
-                  25
-                </button>
-              </div>
-            </div>
-          </app-section-header>
+          <app-section-header title="Planning Ahead" size="lg" />
 
           <div aria-live="polite">
             @if (taskService.loading()) {
@@ -456,40 +159,14 @@
                       size="md"
                     />
 
-                    <div class="task-stack">
-                      @for (task of group.tasks; track task.id) {
-                        <div class="task-group">
-                          <app-personal-task-card
-                            [task]="task"
-                            [interactive]="true"
-                            (select)="workspace.editTask(task)"
-                          />
-
-                          @if (subtasksByParent().get(task.id); as subtasks) {
-                            <div class="subtask-nested-list">
-                              @for (subtask of subtasks; track subtask.id) {
-                                <app-personal-task-card
-                                  [task]="subtask"
-                                  mode="compact"
-                                  [interactive]="true"
-                                  (select)="workspace.editTask(subtask)"
-                                />
-                              }
-                            </div>
-                          }
-                        </div>
-                      }
-                    </div>
+                    <app-task-stack
+                      [tasks]="group.tasks"
+                      [subtasksByParent]="subtasksByParent()"
+                      [taskCard]="taskCardTpl"
+                    />
                   </section>
                 }
               </div>
-
-              <app-pagination
-                [totalItems]="taskService.upcomingTasks().length"
-                [pageSize]="pageSize()"
-                [currentPage]="currentPage()"
-                (pageChange)="currentPage.set($event)"
-              />
             }
           </div>
         </section>
@@ -508,3 +185,34 @@
     </button>
   </section>
 </app-personal-task-workspace>
+
+<!-- Templates for Task Cards -->
+<ng-template #taskCardTpl let-task let-compact="compact">
+  <app-personal-task-card
+    [task]="task"
+    [mode]="compact ? 'compact' : 'default'"
+    [interactive]="true"
+    (select)="editTask(task)"
+  />
+</ng-template>
+
+<ng-template #overdueTaskCardTpl let-task let-compact="compact">
+  <app-personal-task-card
+    [task]="task"
+    [mode]="compact ? 'compact' : 'default'"
+    tone="overdue"
+    [interactive]="true"
+    (select)="editTask(task)"
+  />
+</ng-template>
+
+<ng-template #completedTaskCardTpl let-task let-compact="compact">
+  <app-personal-task-card
+    [task]="task"
+    [mode]="compact ? 'compact' : 'default'"
+    [interactive]="true"
+    [showDescription]="false"
+    [showCompletionState]="true"
+    (select)="editTask(task)"
+  />
+</ng-template>
