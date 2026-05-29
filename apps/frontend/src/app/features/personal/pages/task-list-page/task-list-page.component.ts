@@ -307,6 +307,7 @@ export class TaskListPageComponent implements OnInit {
       this.viewMode();
       this.sortOption();
       this.pageSize();
+      this.totalTasksCount();
       this.currentPage.set(1);
     });
   }
