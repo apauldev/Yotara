@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.54.1](https://github.com/apauldev/Yotara/compare/v0.54.0...v0.54.1) (2026-05-29)
+
+
+### Documentation
+
+* docs are updated with new work ([d716903](https://github.com/apauldev/Yotara/commit/d71690316f2cb306f09d66578daea8fa844ecee4))
+* update docs to take care of 2 p2's ([503baef](https://github.com/apauldev/Yotara/commit/503baef30f49779289e49a9ad130082ed6154e6a))
+* updated roadmap with issues ([91ed32b](https://github.com/apauldev/Yotara/commit/91ed32b38b2714301aad0a390bf5a82e446c34a5))
+
 ## [0.54.0](https://github.com/apauldev/Yotara/compare/v0.53.0...v0.54.0) (2026-05-29)
 
 
