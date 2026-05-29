@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.54.0](https://github.com/apauldev/Yotara/compare/v0.53.0...v0.54.0) (2026-05-29)
+
+
+### Features
+
+* add "don't show again" option to complete task confirmation ([7224958](https://github.com/apauldev/Yotara/commit/7224958095635b87581d94dd12078502cdcda71c))
+* **insights:** polish UI and add persistence with settings toggle ([a02d8f4](https://github.com/apauldev/Yotara/commit/a02d8f4e42fcf231ec06c5959580ca66398e64bf))
+
+
+### Bug Fixes
+
+* **ci:** resolve circular data logging error and improve test isolation ([9a6d9fe](https://github.com/apauldev/Yotara/commit/9a6d9fe88dc8acd0a75cc93a4a06259c17cd493d))
+* restore page reset when task totals change ([b9bd18c](https://github.com/apauldev/Yotara/commit/b9bd18c3068d3e3af0f569493742099d1085eec9))
+* smooth list animation, fix duplicate task creation ([d5c87b3](https://github.com/apauldev/Yotara/commit/d5c87b372deb1146241d0aaaa91c22b678f59d9e))
+
+
+### Refactoring
+
+* **task-list:** decompose page into components, fix error swallowing and pagination ([6829caf](https://github.com/apauldev/Yotara/commit/6829caf21883d8f27a522e542c88da9dde8665e6))
+
 ## [0.53.0](https://github.com/apauldev/Yotara/compare/v0.52.0...v0.53.0) (2026-05-28)
 
 
