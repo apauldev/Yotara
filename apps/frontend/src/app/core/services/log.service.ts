@@ -27,7 +27,8 @@ export class LogService {
    * Log an error to the console and persistent storage.
    */
   error(message: string, error?: unknown, context?: string) {
-    console.error(`[${context || 'Error'}] ${message}`, error);
+    const sanitizedData = this.sanitizeData(error);
+    console.error(`[${context || 'Error'}] ${message}`, sanitizedData);
     this.addToBuffer('error', message, context, error);
   }
 
@@ -35,7 +36,8 @@ export class LogService {
    * Log informational messages.
    */
   info(message: string, data?: unknown, context?: string) {
-    console.warn(`[${context || 'Info'}] ${message}`, data);
+    const sanitizedData = this.sanitizeData(data);
+    console.warn(`[${context || 'Info'}] ${message}`, sanitizedData);
     this.addToBuffer('info', message, context, data);
   }
 
@@ -43,7 +45,8 @@ export class LogService {
    * Log warning messages.
    */
   warn(message: string, data?: unknown, context?: string) {
-    console.warn(`[${context || 'Warning'}] ${message}`, data);
+    const sanitizedData = this.sanitizeData(data);
+    console.warn(`[${context || 'Warning'}] ${message}`, sanitizedData);
     this.addToBuffer('warn', message, context, data);
   }
 

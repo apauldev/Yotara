@@ -9,6 +9,11 @@ describe('LogService', () => {
     localStorage.clear();
     TestBed.configureTestingModule({});
     service = TestBed.inject(LogService);
+
+    // Spy on console to prevent test failures from expected error/warn logs
+    spyOn(console, 'error');
+    spyOn(console, 'warn');
+    spyOn(console, 'info');
   });
 
   afterEach(() => {

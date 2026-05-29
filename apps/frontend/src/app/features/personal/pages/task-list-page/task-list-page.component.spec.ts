@@ -23,6 +23,7 @@ describe('TaskListPageComponent', () => {
   let mockRouter: any;
 
   beforeEach(async () => {
+    localStorage.clear();
     mockTaskService = {
       loading: signal(false),
       creating: signal(false),
