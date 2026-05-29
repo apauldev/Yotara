@@ -18,7 +18,10 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 4. **Board is a view, not an identity.** The task is the atomic unit. The board
    is one way to see it.
 5. **Self-hosted as a feature.** A single binary that runs a whole 30-person
-   company on a $5 VPS. No Postgres, no Redis, no queue workers.
+   company on a $5 VPS with SQLite, no Redis, no queue workers. For the
+   managed cloud version, a hosted database (Turso or Postgres) enables
+   multi-tenancy and team isolation. The self-hosted path stays zero-infra;
+   the cloud path adds only the DB it needs.
 
 ---
 
@@ -283,12 +286,12 @@ critical path to a shippable team product.
 
 A new user should be able to do this in under 5 minutes:
 
-1. Sign up → land in personal inbox ✅
-2. Create a project → add a few tasks ✅
-3. Invite a teammate by email → they accept ✅
-4. Assign a task to them → they see it ✅
-5. Open the board → drag a task to "done" ✅
-6. Write a post in the project → teammate replies ✅
-7. See all this in the activity feed ✅
+1. Sign up → land in personal inbox
+2. Create a project → add a few tasks
+3. Invite a teammate by email → they accept
+4. Assign a task to them → they see it
+5. Open the board → drag a task to "done"
+6. Write a post in the project → teammate replies
+7. See all this in the activity feed
 
 If this flow exists and feels fast, Phase 1 is shippable.

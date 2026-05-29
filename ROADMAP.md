@@ -87,7 +87,7 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 
 | # | Task | Status | Effort | Notes |
 |---|------|--------|--------|-------|
-| 12 | **Database migration: SQLite → Postgres** | ⬜ Not started | Medium | Hard prerequisite for team mode. Lock tenancy/database path before workspace tables land. SQLite remains the personal/self-hosted backend. |
+| 12 | **Database strategy for team mode:** SQLite for self-hosted, Turso or Postgres for cloud SaaS | ⬜ Not started | Medium | Self-hosted instances keep SQLite (one DB per company, works at 30-person scale with WAL mode). Cloud SaaS needs a hosted database for multi-tenancy and team isolation. Turso is the leading candidate — keeps the SQLite dialect, adds replication and edge distribution. |
 | 13 | **Permissions: owner vs member roles** | ⬜ Not started | Medium | MVP team mode needs at least `owner` (invite, remove, delete workspace) and `member` (manage tasks, comment). Add a `role` field to workspace membership. |
 | 14 | **Workspace data model: workspaces and memberships** | ⬜ Not started | Medium | Current backend only stores `user.workspaceMode`; no workspace tables yet. |
 | 15 | **Workspace-scoped labels and projects** | ⬜ Not started | Low | Clarify and implement: labels and projects are workspace-scoped in team mode, user-scoped in personal mode. Affects the data model — decide early. |
@@ -110,7 +110,7 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 
 **P2b target:** 3–4 weeks after P2a. Comments, board, and basic live sync complete the team experience.
 
-**Database note:** Postgres migration is a hard gate before any P2a work. Treat SQLite as a personal/self-hosted foundation, not the final team-mode backend. Use an ORM-level migration (Drizzle Kit) to keep schema portable.
+**Database note:** Self-hosted instances keep SQLite — one DB per company, sufficient for 30-person teams with WAL mode. The managed cloud version needs a hosted database (Turso or Postgres) for multi-tenancy and team isolation. Use Drizzle so the schema stays portable across backends.
 
 ### P3 – Deployment & Distribution
 
@@ -152,7 +152,7 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 |-------|-------|-----------------|
 | 1–2 | P0 Personal polish | Archive clarification, confirmation modals, canonical search route, loading states, empty states, 404, validation polish |
 | 3–5 | P1 Personal features | Subtasks ✅, recurring tasks ✅, markdown preview ✅, browser notifications ⬜, export ✅ |
-| 6–10 | P2a Team Foundation | Postgres migration, workspaces, roles, invite, assignment, "Assigned to me", workspace-scoped labels/projects |
+| 6–10 | P2a Team Foundation | DB strategy (SQLite self-hosted, Turso/Postgres cloud), workspaces, roles, invite, assignment, "Assigned to me", workspace-scoped labels/projects |
 | 11–13 | P2b Team Collaboration | Comments, Team Board with drag-to-reassign, polling-based live sync |
 | 14–16 | P3 Deployment & CI hardening | Docker images pushed to GHCR/Docker Hub, Compose with pulled images, coverage gates, Dependabot, security scanning, one-click templates, live demo |
 
@@ -531,7 +531,7 @@ These features should be built as personal-mode improvements first, but they sho
 - ✅ Markdown preview in task detail
 
 ### Phase 5: Team Mode Foundation (Post-MVP)
-- Postgres migration from SQLite
+- DB strategy for team mode (SQLite self-hosted, Turso/Postgres cloud)
 - Workspace data model with owner/member roles
 - Workspace switcher and settings
 - Workspace-scoped labels and projects
@@ -612,7 +612,7 @@ These features should be built as personal-mode improvements first, but they sho
 - Team-mode shell placeholders and workspace-mode routing
 
 ### 📋 Not Started
-- Postgres migration (P2a hard prerequisite)
+- DB strategy for team mode (SQLite self-hosted, Turso/Postgres cloud)
 - Workspace data model, roles, and membership (P2a)
 - Workspace-scoped labels and projects (P2a)
 - Invite link flow (P2a)
@@ -706,7 +706,7 @@ apps/frontend/src/app/
 | Task Create Modal | 1.5-2 | Most complex: forms, date pickers, subtasks |
 | Project Detail + Kanban | 1.5-2 | Fallback to list view for MVP |
 | Settings + Account | 1-1.5 | Plus theme toggle |
-| P2a: Postgres + Workspaces | 4-5 | Database migration, data model, invite, assignment |
+| P2a: DB strategy + Workspaces | 4-5 | DB strategy (SQLite self-hosted, Turso/Postgres cloud), data model, invite, assignment |
 | P2b: Board + Comments | 2-3 | Team Board, flat comments, polling |
 | Polish & Testing | 1-1.5 | Empty states, error handling |
 | **Total** | **~13-17 days** | 2.5–3.5 week sprint with buffer |
@@ -732,7 +732,7 @@ apps/frontend/src/app/
 - **Archive**: Manual archive only, or auto-archive after completion?
 - **Search**: Single global search or separate personal/team search scopes?
 - **Permissions**: Owner vs member roles in MVP — ✅ decided for P2a.
-- **Database**: Postgres migration before P2a work — ✅ decided as hard prerequisite.
+- **Database**: SQLite for self-hosted (one DB per company, works at 30-person scale with WAL mode). Turso or Postgres for cloud SaaS multi-tenancy — ✅ decided.
 - **Workspace-scoped labels/projects**: Yes, workspace-scoped in team mode, user-scoped in personal mode — ✅ decided for P2a.
 - **Languages**: English first, then Spanish, then other locales as demand proves out?
 - **Languages**: English first, then Spanish, Hindi, Chinese, Japanese, Korean, Russian, plus easy LTR European additions like German, French, Portuguese, and Italian?

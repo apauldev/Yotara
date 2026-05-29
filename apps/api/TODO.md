@@ -48,8 +48,9 @@
   - [ ] Replace per-row label fetching in `listTasksForOwner` with a joined query or batched lookup.
   - [ ] Ensure paginated results remain performant as task and label counts grow.
 
-- [ ] Plan the Postgres migration for team mode before introducing workspaces/memberships:
-  - [ ] Treat SQLite as the personal-mode/self-hosted foundation and Postgres as the SaaS/team-mode target
+- [ ] Plan the database strategy for team mode before introducing workspaces/memberships:
+  - [ ] Keep SQLite for self-hosted instances (one DB per company, sufficient for 30-person teams with WAL mode)
+  - [ ] Evaluate Turso or Postgres for the cloud SaaS multi-tenant backend
   - [ ] Define the workspace tenant model before adding team tables, invites, comments, and assignments
   - [ ] Make sure every future shared query is scoped by workspace membership, not just user ownership
 
@@ -131,7 +132,7 @@
 - [x] Phase 1: shared auth helper + route cleanup
 - [x] Phase 2: extract route persistence helpers
 - [x] Phase 3: schema and contract alignment
-- [ ] Phase 4: Postgres migration plan and tenant model for team mode
+- [ ] Phase 4: DB strategy and tenant model for team mode
 - [ ] Phase 5: CORS/auth bridge hardening
 - [ ] Phase 6: observability and error normalization
 - [ ] Phase 7: pagination and write-path consistency
