@@ -47,6 +47,7 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 | H1 | **Database Transactions:** Wrap multi-step writes (create/update task + labels + subtasks) in atomic transactions | ⬜ Not started | Low | Prevents partial data corruption if one step in a multi-table write fails. |
 | H2 | **N+1 Query Optimization:** Optimize task list retrieval to batch label fetching | ⬜ Not started | Medium | Current `Promise.all` per-row DB calls will lag at scale. Move to a single joined or batched query. |
 | H3 | **Structured Error Handling:** Implement custom API error classes and global Fastify error mapping | ⬜ Not started | Low | Replace `new Error()` strings with typed errors (e.g., `TaskValidationError`) for consistent HTTP status codes. |
+| H4 | **Task List Scalability:** Replace single `pageSize=100&includeSubtasks=true` fetch with server-driven per-page requests | ⬜ Not started | Medium | Current `task.service.ts` fetches all tasks+subtasks in one call, then slices client-side. All `computed()` filters assume full dataset in memory. Tasks beyond 100 are invisible. |
 
 ### P1 – High-Value Personal Features
 

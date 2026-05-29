@@ -147,11 +147,25 @@ Gaps vs Todoist/TickTick/Things 3 — deliberate MVP limits or future enhancemen
   - [x] Map known API errors to consistent user-facing messages
   - [x] Add global status/loading bar and toast notifications
 
+- [ ] **P2 — Add structured field-level validation error handling from backend**
+  - `HttpErrorResponse` is caught generically with a toast — no per-field error binding for forms
+  - If API returns `{ message: 'Project name is required' }`, it can't surface next to the input field
+
+- [ ] **P2 — Remove or integrate `fetchSubtasks` redundancy**
+  - `fetchSubtasks(parentId)` is a one-off Promise that doesn't update any signal
+  - The main `tasks` signal already fetches with `includeSubtasks=true`
+
+- [ ] **P2 — Debounce search input**
+  - `SearchService` runs synchronous tokenization/scoring on every keystroke
+  - Fine for ~100 tasks, but should be debounced for larger datasets
+
 - [x] Improve frontend error handling strategy:
 
-- [x] Improve task list scalability:
-  - [x] Avoid fixed `pageSize=100` fetch strategy
-  - [x] Move to paged/cursor loading and server-driven sorting
+- [ ] **PRIORITY: Fix task list scalability — 100-task hard limit is a blocking red flag**
+  - [ ] Replace single `pageSize=100&includeSubtasks=true` fetch in `task.service.ts` with server-driven per-page requests
+  - [ ] Wire `currentPage` / `pageSize` signals in `task-list-page.component.ts` to actual API pagination params
+  - [ ] Audit all `computed()` filters (inboxTasks, todayTasks, overdueTasks, etc.) — they assume full dataset in memory
+  - [ ] Update mutation methods (create, update, delete) to work with partial/paginated dataset instead of full re-fetch
 
 - [x] Add archive flow for completed tasks:
   - [x] `done` as completion state with `archived` as final inactive state

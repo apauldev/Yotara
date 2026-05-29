@@ -77,6 +77,37 @@
 - [ ] Add Snyk or alternative vulnerability scanning.
 - [ ] Publish Docker images to GHCR or Docker Hub on release tags.
 
+## Code Quality Issues (from review)
+
+- [ ] **P0 — Fix error handling mismatch between services and routes**
+  - Services throw `new Error('Parent task not found')` but routes only check for `null` returns
+  - Validation errors become opaque 500s instead of 400s with meaningful messages
+  - Either add a Fastify `setErrorHandler` that maps known error patterns to HTTP status codes
+  - Or switch services to return discriminated result types (`{ ok: true, data } | { ok: false, error }`)
+
+- [ ] **P1 — Remove `as Label` / `as TaskRow` type assertions in route handlers**
+  - `createLabelForOwner` returns `typeof labels.$inferSelect | null` but routes do `as Label` which papers over the `null` case
+  - Add proper `toLabel()` mapper (like `toTask()` and `toProject()` already exist)
+
+- [ ] **P1 — Consolidate duplicate `loadProjectById` / `getProjectById`**
+  - `project-service.ts` has `loadProjectById()`, `project-utils.ts` has `getProjectById()` — same JOIN + GROUP BY query
+  - Make project-service the single source of truth
+
+- [ ] **P2 — Add duplicate name check in `createLabelForOwner`**
+  - Projects prevent duplicates via `seedDefaultProjectsForOwner` but labels don't
+
+- [ ] **P2 — Move `listTasksForProject` sort from JS to SQL**
+  - Currently fetches ALL tasks and sorts in JavaScript, should use `orderBy()` in Drizzle
+
+- [ ] **P2 — Extract shared test helpers**
+  - `createAuthedApp()` and `signUpAndGetCookie()` duplicated across every test file (~40 lines each)
+
+- [ ] **P2 — Add request body size limits and rate limiting**
+  - No `bodyLimit` config; `export=true` returns up to 10,000 tasks
+
+- [ ] **P3 — Document `simpleMode` semantics**
+  - Field appears in DTOs, DB schema, route tests, and frontend — no explanation of what it means
+
 ## Error Handling and Observability
 
 - [ ] Replace scattered ad hoc error handling with a centralized Fastify error strategy:
