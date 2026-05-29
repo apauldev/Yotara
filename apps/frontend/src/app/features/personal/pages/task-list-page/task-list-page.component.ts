@@ -11,6 +11,7 @@ import { LabelService } from '../../../../core/services/label.service';
 import { AuthStateService } from '../../../../core/services/auth-state.service';
 import { PersonalTaskWorkspaceComponent } from '../../components/personal-task-workspace.component';
 import { PersonalTaskCardComponent } from '../../components/personal-task-card.component';
+import { StatusService } from '../../../../core/services/status.service';
 import { InsightPanelComponent } from '../../components/insight-panel.component';
 import { CaptureBarComponent } from '../../components/capture-bar.component';
 import { SectionHeaderComponent } from '../../../../shared/components/section-header/section-header.component';
@@ -200,7 +201,11 @@ export class TaskListPageComponent implements OnInit {
   protected readonly activeInsightType = signal<InsightType>(
     Math.random() > 0.5 ? 'clarity' : 'journal',
   );
-  protected readonly insightPanelVisible = signal(true);
+  private readonly INSIGHT_DISMISSED_KEY = 'yotara_insightDismissed';
+  protected readonly insightPanelVisible = signal(
+    localStorage.getItem('yotara_insightDismissed') !== 'true',
+  );
+  private readonly statusService = inject(StatusService);
 
   protected readonly insightPrompt = computed(() =>
     this.activeInsightType() === 'clarity' ? this.dailyClarityPrompt() : this.journalPrompt(),
@@ -274,6 +279,8 @@ export class TaskListPageComponent implements OnInit {
 
   protected dismissInsight() {
     this.insightPanelVisible.set(false);
+    localStorage.setItem(this.INSIGHT_DISMISSED_KEY, 'true');
+    this.statusService.show('Insights can be re-enabled in Settings.', 'info', 4000);
   }
 
   // --- Today Logic ---
