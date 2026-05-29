@@ -71,6 +71,7 @@
 
 ## CI and Security Hardening
 
+- [x] Automated release script with semver analysis (`scripts/release.mjs`). Dry-run support, idempotency, breaking-change detection.
 - [ ] Add coverage reporting to CI pipeline with minimum threshold gates.
 - [ ] Enable Dependabot for automated dependency updates.
 - [ ] Add CodeQL security scanning workflow.
