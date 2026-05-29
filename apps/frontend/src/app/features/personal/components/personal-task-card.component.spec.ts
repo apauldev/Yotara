@@ -27,6 +27,7 @@ describe('PersonalTaskCardComponent', () => {
 
   beforeEach(async () => {
     taskServiceSpy = jasmine.createSpyObj<TaskService>('TaskService', ['updateTask']);
+    localStorage.clear();
 
     await TestBed.configureTestingModule({
       imports: [PersonalTaskCardComponent],
@@ -305,6 +306,58 @@ describe('PersonalTaskCardComponent', () => {
       const card = fixture.debugElement.query(By.css('.task-card'));
       card.nativeElement.click();
       expect(component.select.emit).toHaveBeenCalledWith();
+    });
+
+    it('should skip the confirm dialog when localStorage skip flag is set', async () => {
+      localStorage.setItem('yotara_skipCompleteConfirm', 'true');
+      component.task = mockTask;
+      fixture.detectChanges();
+
+      const checkButton = fixture.debugElement.query(By.css('.task-check'));
+      await checkButton.nativeElement.click();
+      fixture.detectChanges();
+
+      expect(taskServiceSpy.updateTask).toHaveBeenCalledWith('task-1', { completed: true });
+      expect((component as any).completeConfirmOpen()).toBeFalse();
+    });
+
+    it('should save skip preference to localStorage when checkbox is checked and confirmed', async () => {
+      localStorage.clear();
+      component.task = mockTask;
+      fixture.detectChanges();
+
+      const checkButton = fixture.debugElement.query(By.css('.task-check'));
+      checkButton.nativeElement.click();
+      fixture.detectChanges();
+
+      const checkbox = fixture.debugElement.query(
+        By.css('.skip-confirm-label input[type="checkbox"]'),
+      );
+      checkbox.nativeElement.click();
+      fixture.detectChanges();
+
+      const confirmButton = fixture.debugElement.query(By.css('.primary-button'));
+      await confirmButton.nativeElement.click();
+      fixture.detectChanges();
+
+      expect(localStorage.getItem('yotara_skipCompleteConfirm')).toBe('true');
+      expect(taskServiceSpy.updateTask).toHaveBeenCalledWith('task-1', { completed: true });
+    });
+
+    it('should not save skip preference when checkbox is unchecked and confirmed', async () => {
+      localStorage.clear();
+      component.task = mockTask;
+      fixture.detectChanges();
+
+      const checkButton = fixture.debugElement.query(By.css('.task-check'));
+      checkButton.nativeElement.click();
+      fixture.detectChanges();
+
+      const confirmButton = fixture.debugElement.query(By.css('.primary-button'));
+      await confirmButton.nativeElement.click();
+      fixture.detectChanges();
+
+      expect(localStorage.getItem('yotara_skipCompleteConfirm')).toBeNull();
     });
   });
 

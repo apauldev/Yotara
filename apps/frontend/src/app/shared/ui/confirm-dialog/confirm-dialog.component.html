@@ -6,6 +6,10 @@
 
     <p class="confirm-description">{{ description }}</p>
 
+    <div class="confirm-extra">
+      <ng-content select="[confirm-extra]"></ng-content>
+    </div>
+
     <div class="confirm-actions">
       <button type="button" class="secondary-button" [disabled]="loading" (click)="cancel.emit()">
         {{ cancelLabel }}

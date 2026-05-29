@@ -123,6 +123,10 @@ function findButtonByText(
 describe('SettingsPageComponent', () => {
   let fixture: ComponentFixture<SettingsPageComponent>;
   let comp: any;
+
+  beforeEach(() => {
+    localStorage.clear();
+  });
   let tasksSignal: ReturnType<typeof signal<Task[]>>;
   const originalCreateElement = document.createElement.bind(document);
   let projectsSignal: ReturnType<typeof signal<Project[]>>;
@@ -409,6 +413,61 @@ describe('SettingsPageComponent', () => {
       expect(checkboxes[0].nativeElement.checked).toBeFalse();
       expect(checkboxes[3].nativeElement.checked).toBeFalse();
       expect(checkboxes[1].nativeElement.checked).toBeTrue();
+    });
+  });
+
+  function getCompleteConfirmToggle(): HTMLInputElement | null {
+    const toggles = fixture.debugElement.queryAll(By.css('.settings-toggle'));
+    for (const toggle of toggles) {
+      const strong = toggle.query(By.css('.settings-item-copy strong'));
+      if (strong?.nativeElement.textContent.includes('Complete task confirmation')) {
+        return toggle.query(By.css('input[type="checkbox"]'))?.nativeElement ?? null;
+      }
+    }
+    return null;
+  }
+
+  describe('Complete task confirmation toggle', () => {
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it('renders the complete task confirmation toggle', () => {
+      expect(getCompleteConfirmToggle()).toBeTruthy();
+    });
+
+    it('defaults to showing confirmation when no localStorage key is set', () => {
+      expect(getCompleteConfirmToggle()?.checked).toBeFalse();
+    });
+
+    it('reflects localStorage key when already set before component creation', () => {
+      localStorage.setItem('yotara_skipCompleteConfirm', 'true');
+      fixture = TestBed.createComponent(SettingsPageComponent);
+      comp = fixture.componentInstance as any;
+      fixture.detectChanges();
+
+      expect(getCompleteConfirmToggle()?.checked).toBeTrue();
+    });
+
+    it('saves to localStorage when toggled on', () => {
+      getCompleteConfirmToggle()?.click();
+      fixture.detectChanges();
+
+      expect(localStorage.getItem('yotara_skipCompleteConfirm')).toBe('true');
+      expect(getCompleteConfirmToggle()?.checked).toBeTrue();
+    });
+
+    it('removes from localStorage when toggled off', () => {
+      localStorage.setItem('yotara_skipCompleteConfirm', 'true');
+      fixture = TestBed.createComponent(SettingsPageComponent);
+      comp = fixture.componentInstance as any;
+      fixture.detectChanges();
+
+      getCompleteConfirmToggle()?.click();
+      fixture.detectChanges();
+
+      expect(localStorage.getItem('yotara_skipCompleteConfirm')).toBe('false');
+      expect(getCompleteConfirmToggle()?.checked).toBeFalse();
     });
   });
 });

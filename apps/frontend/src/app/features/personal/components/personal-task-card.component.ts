@@ -176,7 +176,14 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
       (confirm)="completeTask()"
       (cancel)="closeCompleteConfirm()"
       (close)="closeCompleteConfirm()"
-    />
+    >
+      @if (!task.completed) {
+        <label confirm-extra class="skip-confirm-label">
+          <input type="checkbox" #dontShowCheck (change)="dontShowAgain = dontShowCheck.checked" />
+          Don&#39;t show this again
+        </label>
+      }
+    </app-confirm-dialog>
   `,
   styles: [
     `
@@ -515,13 +522,34 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
         }
       }
     `,
+    `
+      .skip-confirm-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+        color: var(--on-surface-muted);
+        cursor: pointer;
+        justify-content: center;
+        margin-top: 0.25rem;
+      }
+
+      .skip-confirm-label input[type='checkbox'] {
+        width: 1rem;
+        height: 1rem;
+        cursor: pointer;
+      }
+    `,
   ],
 })
 export class PersonalTaskCardComponent {
   private readonly taskService = inject(TaskService);
   private readonly labelService = inject(LabelService);
+  private readonly SKIP_COMPLETE_KEY = 'yotara_skipCompleteConfirm';
+
   protected readonly completeConfirmOpen = signal(false);
   protected readonly completing = signal(false);
+  protected dontShowAgain = false;
   protected readonly faRotate = faRotate;
   protected readonly faRotateLeft = faRotateLeft;
   protected readonly faBoxArchive = faBoxArchive;
@@ -624,6 +652,12 @@ export class PersonalTaskCardComponent {
 
   requestComplete(event: MouseEvent) {
     event.stopPropagation();
+
+    if (localStorage.getItem(this.SKIP_COMPLETE_KEY) === 'true') {
+      this.completeTask();
+      return;
+    }
+
     this.completeConfirmOpen.set(true);
   }
 
@@ -648,6 +682,10 @@ export class PersonalTaskCardComponent {
     try {
       await this.taskService.updateTask(this.task.id, { completed: !this.task.completed });
       this.completeConfirmOpen.set(false);
+
+      if (this.dontShowAgain) {
+        localStorage.setItem(this.SKIP_COMPLETE_KEY, 'true');
+      }
     } finally {
       this.completing.set(false);
     }

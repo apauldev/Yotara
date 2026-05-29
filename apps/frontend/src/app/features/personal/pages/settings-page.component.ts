@@ -89,6 +89,34 @@ import { Task, Project, Label } from '@yotara/shared';
             </select>
           </div>
 
+          <label class="settings-item settings-toggle">
+            <div class="settings-item-copy">
+              <strong>Complete task confirmation</strong>
+              <span>When disabled, tasks complete immediately without a confirmation dialog.</span>
+            </div>
+            <input
+              type="checkbox"
+              class="toggle-input"
+              [checked]="skipCompleteConfirm()"
+              (change)="onSkipCompleteConfirmChange($event)"
+              aria-label="Toggle complete confirmation dialog"
+            />
+          </label>
+
+          <label class="settings-item settings-toggle">
+            <div class="settings-item-copy">
+              <strong>Daily insights</strong>
+              <span>Show Daily Clarity and Yotara Journal prompts in the page header.</span>
+            </div>
+            <input
+              type="checkbox"
+              class="toggle-input"
+              [checked]="showInsights()"
+              (change)="onShowInsightsChange($event)"
+              aria-label="Toggle daily insights"
+            />
+          </label>
+
           <div class="settings-item settings-item-disabled">
             <div class="settings-item-copy">
               <strong>Desktop notifications</strong>
@@ -676,6 +704,16 @@ export class SettingsPageComponent {
   protected readonly isLoggingOut = signal(false);
   protected readonly isSavingArchiveCleanup = signal(false);
   protected readonly isSavingCaptureBehavior = signal(false);
+  private readonly SKIP_COMPLETE_KEY = 'yotara_skipCompleteConfirm';
+
+  protected readonly skipCompleteConfirm = signal(
+    localStorage.getItem('yotara_skipCompleteConfirm') === 'true',
+  );
+  private readonly INSIGHT_DISMISSED_KEY = 'yotara_insightDismissed';
+
+  protected readonly showInsights = signal(
+    localStorage.getItem('yotara_insightDismissed') !== 'true',
+  );
 
   protected readonly exportFormat = signal<'csv' | 'json'>('csv');
 
@@ -891,6 +929,18 @@ export class SettingsPageComponent {
     } finally {
       this.isSavingCaptureBehavior.set(false);
     }
+  }
+
+  protected onSkipCompleteConfirmChange(event: Event) {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.skipCompleteConfirm.set(checked);
+    localStorage.setItem(this.SKIP_COMPLETE_KEY, checked ? 'true' : 'false');
+  }
+
+  protected onShowInsightsChange(event: Event) {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.showInsights.set(checked);
+    localStorage.setItem(this.INSIGHT_DISMISSED_KEY, checked ? 'false' : 'true');
   }
 
   protected async onLogout() {

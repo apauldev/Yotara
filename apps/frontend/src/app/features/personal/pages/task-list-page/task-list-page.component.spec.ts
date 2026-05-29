@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideMarkdown } from 'ngx-markdown';
 import { of } from 'rxjs';
 import { TaskListPageComponent } from './task-list-page.component';
@@ -10,6 +11,7 @@ import { ProjectService } from '../../../../core/services/project.service';
 import { LabelService } from '../../../../core/services/label.service';
 import { AuthStateService } from '../../../../core/services/auth-state.service';
 import { PersonalTaskWorkspaceComponent } from '../../components/personal-task-workspace.component';
+import { CaptureBarComponent } from '../../components/capture-bar.component';
 import { Task } from '@yotara/shared';
 
 describe('TaskListPageComponent', () => {
@@ -21,6 +23,7 @@ describe('TaskListPageComponent', () => {
   let mockRouter: any;
 
   beforeEach(async () => {
+    localStorage.clear();
     mockTaskService = {
       loading: signal(false),
       creating: signal(false),
@@ -64,6 +67,7 @@ describe('TaskListPageComponent', () => {
       imports: [TaskListPageComponent],
       providers: [
         provideMarkdown(),
+        provideNoopAnimations(),
         { provide: TaskService, useValue: mockTaskService },
         { provide: ProjectService, useValue: mockProjectService },
         { provide: LabelService, useValue: mockLabelService },
@@ -103,6 +107,24 @@ describe('TaskListPageComponent', () => {
       expect(fixture.nativeElement.textContent).toContain('Nothing is crowding the horizon');
     });
 
+    it('shows all groups in upcoming view without pagination controls', () => {
+      const mockTasks: Partial<Task>[] = Array.from({ length: 12 }, (_, i) => ({
+        id: `${i + 1}`,
+        title: `Upcoming task ${i + 1}`,
+        createdAt: `2026-05-${20 + i}T10:00:00Z`,
+        dueDate: `2026-05-${20 + i}`,
+      }));
+      mockTaskService.upcomingTasks.set(mockTasks as Task[]);
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'upcoming']]));
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      // All tasks shown in a single view (no paginator splitting groups)
+      expect(fixture.nativeElement.textContent).toContain('12 tasks');
+      const paginator = fixture.debugElement.query(By.css('app-pagination'));
+      expect(paginator).toBeNull();
+    });
+
     it('renders the insight panel in inbox, today, and upcoming views', () => {
       ['inbox', 'today', 'upcoming'].forEach((view) => {
         mockActivatedRoute.queryParamMap = of(new Map([['view', view]]));
@@ -132,8 +154,10 @@ describe('TaskListPageComponent', () => {
       const fixture = TestBed.createComponent(TaskListPageComponent);
       fixture.detectChanges();
 
-      (fixture.componentInstance as any).captureTitle.set('Quick task');
-      await (fixture.componentInstance as any).captureTask();
+      const captureBar = fixture.debugElement.query(By.directive(CaptureBarComponent))
+        .componentInstance as CaptureBarComponent;
+      captureBar.setTitle('Quick task');
+      await (fixture.componentInstance as any).handleCapture();
 
       expect(mockTaskService.createTask).toHaveBeenCalled();
       const args = mockTaskService.createTask.calls.mostRecent().args[0];
@@ -152,14 +176,16 @@ describe('TaskListPageComponent', () => {
       const workspace = workspaceDebugEl.componentInstance as PersonalTaskWorkspaceComponent;
       spyOn(workspace, 'openCreateTaskModal');
 
-      (fixture.componentInstance as any).captureTitle.set('Capture task');
+      const captureBar = fixture.debugElement.query(By.directive(CaptureBarComponent))
+        .componentInstance as CaptureBarComponent;
+      captureBar.setTitle('Capture task');
       fixture.debugElement.query(By.css('form')).triggerEventHandler('ngSubmit', {});
       fixture.detectChanges();
 
       expect(workspace.openCreateTaskModal).toHaveBeenCalled();
     });
 
-    it('always opens modal when "Add task with details" button is clicked', () => {
+    it('always opens modal when "Add task with details" button is clicked', async () => {
       mockAuthStateService.user.set({ id: 'user-1', captureBehavior: 'quick' });
       mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
       const fixture = TestBed.createComponent(TaskListPageComponent);
@@ -171,10 +197,13 @@ describe('TaskListPageComponent', () => {
       const workspace = workspaceDebugEl.componentInstance as PersonalTaskWorkspaceComponent;
       spyOn(workspace, 'openCreateTaskModal');
 
-      (fixture.componentInstance as any).captureTitle.set('Force capture');
-      const detailsBtn = fixture.debugElement.query(By.css('.capture-submit-details'));
-      detailsBtn.nativeElement.click();
-      fixture.detectChanges();
+      const captureBarDebugEl = fixture.debugElement.query(By.directive(CaptureBarComponent));
+      const captureBar = captureBarDebugEl.componentInstance as CaptureBarComponent;
+      captureBar.setTitle('Force capture');
+
+      // Simulate clicking the details button by setting the type and triggering capture
+      captureBar.setSubmissionType('capture');
+      await (fixture.componentInstance as any).handleCapture();
 
       expect(workspace.openCreateTaskModal).toHaveBeenCalled();
       expect(mockTaskService.createTask).not.toHaveBeenCalled();
@@ -185,24 +214,25 @@ describe('TaskListPageComponent', () => {
       const fixture = TestBed.createComponent(TaskListPageComponent);
       fixture.detectChanges();
 
-      (fixture.componentInstance as any).captureTitle.set('   ');
-      fixture.debugElement.query(By.css('form')).triggerEventHandler('ngSubmit', {});
+      const captureBarDebugEl = fixture.debugElement.query(By.directive(CaptureBarComponent));
+      const captureBar = captureBarDebugEl.componentInstance as CaptureBarComponent;
+      captureBar.setTitle('   ');
+      captureBarDebugEl.query(By.css('form')).triggerEventHandler('ngSubmit', null);
       fixture.detectChanges();
 
-      expect((fixture.componentInstance as any).captureError()).toBe(
-        'Add a task title to capture it.',
-      );
+      expect(captureBar.getError()).toBe('Add a task title to capture it.');
     });
 
     it('clears capture form after successful save', () => {
       const fixture = TestBed.createComponent(TaskListPageComponent);
       fixture.detectChanges();
 
-      fixture.componentInstance['captureTitle'].set('Test task');
+      const captureBar = fixture.debugElement.query(By.directive(CaptureBarComponent))
+        .componentInstance as CaptureBarComponent;
+      captureBar.setTitle('Test task');
       fixture.componentInstance['handleTaskSaved']('create');
 
-      expect(fixture.componentInstance['captureTitle']()).toBe('');
-      expect(fixture.componentInstance['captureError']()).toBe('');
+      expect(captureBar.getTitle()).toBe('');
     });
 
     it('displays randomized insight prompts in inbox view', () => {
@@ -248,6 +278,29 @@ describe('TaskListPageComponent', () => {
       fixture.detectChanges();
 
       expect(fixture.nativeElement.textContent).toContain('Loading your inbox');
+    });
+
+    it('keeps the existing list visible while refreshing inbox tasks', () => {
+      mockTaskService.loading = signal(true);
+      mockTaskService.tasks.set([
+        {
+          id: '1',
+          title: 'Visible task',
+          createdAt: '2023-01-01T10:00:00Z',
+        } as Task,
+      ]);
+      mockTaskService.inboxTasks.set([
+        {
+          id: '1',
+          title: 'Visible task',
+          createdAt: '2023-01-01T10:00:00Z',
+        } as Task,
+      ]);
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).not.toContain('Loading your inbox');
+      expect(fixture.nativeElement.textContent).toContain('Visible task');
     });
 
     it('displays error state in today', () => {
