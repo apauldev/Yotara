@@ -1,5 +1,6 @@
 import { Component, Input, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { trigger, transition, style, animate } from '@angular/animations';
 import { Task } from '@yotara/shared';
 
 @Component({
@@ -9,7 +10,7 @@ import { Task } from '@yotara/shared';
   template: `
     <div class="task-stack">
       @for (task of tasks; track task.id) {
-        <div class="task-group">
+        <div class="task-group" @taskSlide>
           <ng-container
             *ngTemplateOutlet="taskCard; context: { $implicit: task, compact: false }"
           />
@@ -17,7 +18,7 @@ import { Task } from '@yotara/shared';
           @if (subtasksByParent?.get(task.id); as subtasks) {
             <div class="subtask-nested-list">
               @for (subtask of subtasks; track subtask.id) {
-                <div class="subtask-item-wrapper">
+                <div class="subtask-item-wrapper" @taskSlide>
                   <ng-container
                     *ngTemplateOutlet="taskCard; context: { $implicit: subtask, compact: true }"
                   />
@@ -51,6 +52,15 @@ import { Task } from '@yotara/shared';
       padding: 0.25rem 0 0.5rem;
     }
   `,
+  animations: [
+    trigger('taskSlide', [
+      transition(':enter', [
+        style({ transform: 'translateY(6px)' }),
+        animate('180ms ease-out', style({ transform: 'translateY(0)' })),
+      ]),
+      transition(':leave', [animate('140ms ease-in', style({ transform: 'translateY(6px)' }))]),
+    ]),
+  ],
 })
 export class TaskStackComponent {
   @Input({ required: true }) tasks: Task[] = [];

@@ -39,7 +39,7 @@
           </app-section-header>
 
           <div aria-live="polite">
-            @if (taskService.loading()) {
+            @if (showInitialLoading()) {
               <p class="status-copy">Loading your inbox...</p>
             } @else if (taskService.error()) {
               <p class="status-copy">{{ taskService.error() }}</p>
@@ -92,7 +92,7 @@
           </app-section-header>
 
           <div aria-live="polite">
-            @if (taskService.loading()) {
+            @if (showInitialLoading()) {
               <p class="status-copy">Loading your focused list...</p>
             } @else if (taskService.error()) {
               <p class="status-copy">{{ taskService.error() }}</p>
@@ -139,7 +139,7 @@
           <app-section-header title="Planning Ahead" size="lg" />
 
           <div aria-live="polite">
-            @if (taskService.loading()) {
+            @if (showInitialLoading()) {
               <p class="status-copy">Loading your upcoming plans...</p>
             } @else if (taskService.error()) {
               <p class="status-copy">{{ taskService.error() }}</p>

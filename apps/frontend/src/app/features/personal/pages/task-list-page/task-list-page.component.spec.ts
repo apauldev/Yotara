@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideMarkdown } from 'ngx-markdown';
 import { of } from 'rxjs';
 import { TaskListPageComponent } from './task-list-page.component';
@@ -65,6 +66,7 @@ describe('TaskListPageComponent', () => {
       imports: [TaskListPageComponent],
       providers: [
         provideMarkdown(),
+        provideNoopAnimations(),
         { provide: TaskService, useValue: mockTaskService },
         { provide: ProjectService, useValue: mockProjectService },
         { provide: LabelService, useValue: mockLabelService },
@@ -277,6 +279,29 @@ describe('TaskListPageComponent', () => {
       expect(fixture.nativeElement.textContent).toContain('Loading your inbox');
     });
 
+    it('keeps the existing list visible while refreshing inbox tasks', () => {
+      mockTaskService.loading = signal(true);
+      mockTaskService.tasks.set([
+        {
+          id: '1',
+          title: 'Visible task',
+          createdAt: '2023-01-01T10:00:00Z',
+        } as Task,
+      ]);
+      mockTaskService.inboxTasks.set([
+        {
+          id: '1',
+          title: 'Visible task',
+          createdAt: '2023-01-01T10:00:00Z',
+        } as Task,
+      ]);
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).not.toContain('Loading your inbox');
+      expect(fixture.nativeElement.textContent).toContain('Visible task');
+    });
+
     it('displays error state in today', () => {
       mockActivatedRoute.queryParamMap = of(new Map([['view', 'today']]));
       mockTaskService.error = signal('Failed to load tasks');
@@ -361,19 +386,6 @@ describe('TaskListPageComponent', () => {
 
       (fixture.componentInstance as any).currentPage.set(2);
       (fixture.componentInstance as any).pageSize.set(25);
-      fixture.detectChanges();
-
-      expect((fixture.componentInstance as any).currentPage()).toBe(1);
-    });
-
-    it('resets currentPage when the task count changes', () => {
-      const fixture = TestBed.createComponent(TaskListPageComponent);
-      fixture.detectChanges();
-
-      (fixture.componentInstance as any).currentPage.set(2);
-      mockTaskService.inboxTasks.set([
-        { id: '1', title: 'Task 1', createdAt: '2023-01-01T10:00:00Z' } as Task,
-      ]);
       fixture.detectChanges();
 
       expect((fixture.componentInstance as any).currentPage()).toBe(1);

@@ -185,6 +185,10 @@ export class TaskListPageComponent implements OnInit {
     }
   });
 
+  protected readonly showInitialLoading = computed(
+    () => this.taskService.loading() && this.taskService.tasks().length === 0,
+  );
+
   protected readonly defaultCaptureProjectId = computed(() => {
     const inboxProject = this.projectService.projects().find((project) => project.name === 'Inbox');
     return inboxProject?.id ?? this.projectService.projects()[0]?.id ?? '';
@@ -203,51 +207,59 @@ export class TaskListPageComponent implements OnInit {
   );
 
   // --- Capture Bar ---
+  private capturing = false;
+
   protected async handleCapture() {
-    const bar = this.captureBar();
-    if (!bar) return;
+    if (this.capturing) return;
+    this.capturing = true;
+    try {
+      const bar = this.captureBar();
+      if (!bar) return;
 
-    const rawValue = bar.getTitle().trim();
+      const rawValue = bar.getTitle().trim();
 
-    if (!rawValue) {
-      bar.setError('Add a task title to capture it.');
-      return;
-    }
-
-    const { title, priority, labelNames } = parseTaskCommand(rawValue);
-
-    const resolvedLabels = this.labelService
-      .labels()
-      .filter((l) => labelNames.some((name) => name.toLowerCase() === l.name.toLowerCase()))
-      .map((l) => l.id);
-
-    const behavior =
-      bar.getLastSubmissionType() === 'default'
-        ? this.authState.user()?.captureBehavior || 'quick'
-        : bar.getLastSubmissionType();
-
-    bar.clearError();
-
-    if (behavior === 'quick') {
-      try {
-        await this.taskService.createTask({
-          title,
-          priority: priority || 'medium',
-          labels: resolvedLabels,
-          projectId: bar.getProjectId() || this.defaultCaptureProjectId() || undefined,
-          status: 'inbox',
-        });
-        bar.clearTitle();
-      } catch (_) {
-        bar.setError('Failed to quick capture task.');
+      if (!rawValue) {
+        bar.setError('Add a task title to capture it.');
+        return;
       }
-    } else {
-      this.workspace()?.openCreateTaskModal(
-        bar.getProjectId() || this.defaultCaptureProjectId() || null,
-      );
-    }
 
-    bar.resetSubmissionType();
+      const { title, priority, labelNames } = parseTaskCommand(rawValue);
+
+      const resolvedLabels = this.labelService
+        .labels()
+        .filter((l) => labelNames.some((name) => name.toLowerCase() === l.name.toLowerCase()))
+        .map((l) => l.id);
+
+      const behavior =
+        bar.getLastSubmissionType() === 'default'
+          ? this.authState.user()?.captureBehavior || 'quick'
+          : bar.getLastSubmissionType();
+
+      bar.clearError();
+
+      if (behavior === 'quick') {
+        try {
+          await this.taskService.createTask({
+            title,
+            priority: priority || 'medium',
+            labels: resolvedLabels,
+            projectId: bar.getProjectId() || this.defaultCaptureProjectId() || undefined,
+            status: 'inbox',
+          });
+          bar.clearTitle();
+        } catch (_) {
+          bar.setError('Failed to quick capture task.');
+        }
+      } else {
+        this.workspace()?.openCreateTaskModal(
+          bar.getProjectId() || this.defaultCaptureProjectId() || null,
+        );
+      }
+
+      bar.resetSubmissionType();
+    } finally {
+      this.capturing = false;
+    }
   }
 
   protected handleTaskSaved(mode: 'create' | 'update') {
@@ -288,7 +300,6 @@ export class TaskListPageComponent implements OnInit {
       this.viewMode();
       this.sortOption();
       this.pageSize();
-      this.totalTasksCount();
       this.currentPage.set(1);
     });
   }
