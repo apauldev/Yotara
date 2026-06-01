@@ -6,10 +6,12 @@ import {
   catchError,
   combineLatest,
   distinctUntilChanged,
+  expand,
   finalize,
   firstValueFrom,
   map,
   of,
+  reduce,
   switchMap,
 } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -37,6 +39,25 @@ export class TaskService {
   private creatingState = signal(false);
   private errorState = signal<string | null>(null);
 
+  private fetchActiveTasks$() {
+    return this.http
+      .get<
+        PaginatedResponse<Task[]>
+      >(`${this.baseUrl}/tasks?page=1&pageSize=100&completed=false&includeSubtasks=true`, { withCredentials: true })
+      .pipe(
+        expand((response) => {
+          if (response.meta.hasNextPage && response.data.length > 0) {
+            return this.http.get<PaginatedResponse<Task[]>>(
+              `${this.baseUrl}/tasks?page=${response.meta.page + 1}&pageSize=100&completed=false&includeSubtasks=true`,
+              { withCredentials: true },
+            );
+          }
+          return of();
+        }),
+        reduce((acc, response) => [...acc, ...response.data], [] as Task[]),
+      );
+  }
+
   readonly tasks = toSignal(
     combineLatest([
       toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
@@ -52,28 +73,45 @@ export class TaskService {
         this.loadingState.set(true);
         this.errorState.set(null);
 
-        return this.http
-          .get<PaginatedResponse<Task[]>>(
-            `${this.baseUrl}/tasks?page=1&pageSize=100&includeSubtasks=true`,
-            {
-              withCredentials: true,
-            },
-          )
-          .pipe(
-            map((response) => [...response.data].sort((left, right) => left.order - right.order)),
-            catchError((error: unknown) => {
-              if (error instanceof HttpErrorResponse && error.status === 401) {
-                this.errorState.set(null);
-                return of([] as Task[]);
-              }
-
-              console.error('Failed to load tasks', error);
-              this.errorState.set('Could not load your tasks right now.');
+        return this.fetchActiveTasks$().pipe(
+          map((tasks) => tasks.sort((left, right) => left.order - right.order)),
+          catchError((error: unknown) => {
+            if (error instanceof HttpErrorResponse && error.status === 401) {
+              this.errorState.set(null);
               return of([] as Task[]);
-            }),
-            finalize(() => {
-              this.loadingState.set(false);
-            }),
+            }
+
+            console.error('Failed to load tasks', error);
+            this.errorState.set('Could not load your tasks right now.');
+            return of([] as Task[]);
+          }),
+          finalize(() => {
+            this.loadingState.set(false);
+          }),
+        );
+      }),
+    ),
+    { initialValue: [] as Task[] },
+  );
+
+  readonly recentlyCompleted = toSignal(
+    combineLatest([
+      toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
+      toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
+      toObservable(this.refreshState),
+    ]).pipe(
+      switchMap(([initialized, currentUserId]) => {
+        if (!initialized || !currentUserId) {
+          return of([] as Task[]);
+        }
+
+        return this.http
+          .get<
+            PaginatedResponse<Task[]>
+          >(`${this.baseUrl}/tasks?page=1&pageSize=100&completed=true&includeSubtasks=true`, { withCredentials: true })
+          .pipe(
+            map((response) => response.data),
+            catchError(() => of([] as Task[])),
           );
       }),
     ),
@@ -84,14 +122,22 @@ export class TaskService {
   readonly creating = this.creatingState.asReadonly();
   readonly error = this.errorState.asReadonly();
   readonly revision = this.refreshState.asReadonly();
+
   readonly activeTasks = computed(() =>
     this.tasks().filter((task) => !task.completed && task.status !== 'archived' && !task.parentId),
   );
   readonly pendingTasks = computed(() =>
     this.tasks().filter((task) => !task.completed && !task.parentId),
   );
-  readonly completedTasks = computed(() => this.tasks().filter((task) => task.completed));
-  readonly archivedTasks = computed(() => this.completedTasks());
+  readonly completedTasks = computed(() => this.recentlyCompleted());
+  readonly archivedTasks = computed(() => this.recentlyCompleted());
+
+  getArchivedTasks(page: number, pageSize: number) {
+    return this.http.get<PaginatedResponse<Task[]>>(
+      `${this.baseUrl}/tasks?page=${page}&pageSize=${pageSize}&completed=true&includeSubtasks=true`,
+      { withCredentials: true },
+    );
+  }
   readonly inboxTasks = computed(() =>
     this.activeTasks().filter(
       (task) =>

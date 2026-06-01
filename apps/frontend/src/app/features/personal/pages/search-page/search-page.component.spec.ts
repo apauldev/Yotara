@@ -2,7 +2,7 @@ import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 import { provideMarkdown } from 'ngx-markdown';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, of } from 'rxjs';
 import { SearchPageComponent } from './search-page.component';
 import { SearchService } from '../../../../core/services/search.service';
 import { TaskService } from '../../../../core/services/task.service';
@@ -105,10 +105,26 @@ describe('SearchPageComponent', () => {
           provide: TaskService,
           useValue: {
             tasks: mockTasks,
+            recentlyCompleted: signal([]),
             error: signal<string | null>(null),
             creating: signal(false),
             createTask: jasmine.createSpy('createTask').and.resolveTo(undefined),
             updateTask: jasmine.createSpy('updateTask').and.resolveTo(undefined),
+            getArchivedTasks: jasmine
+              .createSpy('getArchivedTasks')
+              .and.returnValue(
+                of({
+                  data: [],
+                  meta: {
+                    total: 0,
+                    page: 1,
+                    pageSize: 100,
+                    totalPages: 0,
+                    hasNextPage: false,
+                    hasPreviousPage: false,
+                  },
+                }),
+              ),
           },
         },
         {
@@ -324,4 +340,27 @@ describe('SearchPageComponent', () => {
       replaceUrl: true,
     });
   }));
+
+  describe('Archive search', () => {
+    it('shows archive promo when a regular search yields results', fakeAsync(() => {
+      queryParams$.next(convertToParamMap({ q: 'search', tab: 'tasks' }));
+      const fixture = TestBed.createComponent(SearchPageComponent);
+      fixture.detectChanges();
+      tick();
+      fixture.detectChanges();
+
+      const text = fixture.nativeElement.textContent;
+      expect(text).toContain("Don't see what you're looking for");
+      expect(text).toContain('Search Archive');
+    }));
+
+    it('hides archive promo when there is no search query', () => {
+      const fixture = TestBed.createComponent(SearchPageComponent);
+      fixture.detectChanges();
+
+      const text = fixture.nativeElement.textContent;
+      expect(text).not.toContain("Don't see what you're looking for");
+      expect(text).not.toContain('Search Archive');
+    });
+  });
 });

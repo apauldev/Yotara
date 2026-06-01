@@ -1,9 +1,11 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 import { SearchService } from './search.service';
 import { ProjectService } from './project.service';
 import { TaskService } from './task.service';
 import { LabelService } from './label.service';
+import type { Task } from '@yotara/shared';
 
 describe('SearchService', () => {
   const projects = signal([
@@ -348,6 +350,140 @@ describe('SearchService', () => {
     const service = TestBed.inject(SearchService);
     const results = service.search('  Search  ');
     expect(results.normalizedQuery).toBe('search');
+  });
+
+  // ── searchArchive ──────────────────────────────────────────────
+
+  function paginatedArchive(tasks: Task[]) {
+    return {
+      data: tasks,
+      meta: {
+        total: tasks.length,
+        page: 1,
+        pageSize: 100,
+        totalPages: tasks.length === 0 ? 0 : 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      },
+    };
+  }
+
+  it('searchArchive calls getArchivedTasks and filters results', async () => {
+    const archiveTasks: Task[] = [
+      {
+        id: 'archive-1',
+        title: 'Finished the blog post',
+        description: 'Published the weekly update.',
+        status: 'archived' as const,
+        priority: 'medium' as const,
+        completed: true,
+        simpleMode: false,
+        bucket: 'deep-work' as const,
+        order: 0,
+        createdAt: '2026-05-01T10:00:00.000Z',
+        updatedAt: '2026-05-03T10:00:00.000Z',
+      },
+      {
+        id: 'archive-2',
+        title: 'Old grocery run',
+        description: '',
+        status: 'done' as const,
+        priority: 'low' as const,
+        completed: true,
+        simpleMode: true,
+        bucket: 'home' as const,
+        order: 1,
+        createdAt: '2026-04-01T10:00:00.000Z',
+        updatedAt: '2026-04-01T10:00:00.000Z',
+      },
+    ];
+
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      providers: [
+        SearchService,
+        { provide: ProjectService, useValue: { projects } },
+        {
+          provide: TaskService,
+          useValue: {
+            tasks: signal([]),
+            getArchivedTasks: () => of(paginatedArchive(archiveTasks)),
+          },
+        },
+        { provide: LabelService, useValue: { labels } },
+      ],
+    }).compileComponents();
+
+    const service = TestBed.inject(SearchService);
+    const results = await service.searchArchive('blog');
+
+    expect(results.tasks.map((r) => r.task.id)).toEqual(['archive-1']);
+    expect(results.total).toBe(1);
+  });
+
+  it('searchArchive returns empty for empty query', async () => {
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      providers: [
+        SearchService,
+        { provide: ProjectService, useValue: { projects } },
+        {
+          provide: TaskService,
+          useValue: {
+            tasks: signal([]),
+            getArchivedTasks: () => of(paginatedArchive([])),
+          },
+        },
+        { provide: LabelService, useValue: { labels } },
+      ],
+    }).compileComponents();
+
+    const service = TestBed.inject(SearchService);
+    const results = await service.searchArchive('');
+
+    expect(results.tasks).toEqual([]);
+    expect(results.total).toBe(0);
+  });
+
+  it('searchArchive returns results from the first 100 archive tasks', async () => {
+    const archiveTasks = Array.from(
+      { length: 5 },
+      (_, i) =>
+        ({
+          id: `done-${i + 1}`,
+          title: `Completed task ${i + 1}`,
+          description: '',
+          status: 'done' as const,
+          priority: 'medium' as const,
+          completed: true,
+          simpleMode: true,
+          bucket: 'home' as const,
+          order: i,
+          createdAt: '2026-05-01T10:00:00.000Z',
+          updatedAt: '2026-05-01T10:00:00.000Z',
+        }) as Task,
+    );
+
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      providers: [
+        SearchService,
+        { provide: ProjectService, useValue: { projects } },
+        {
+          provide: TaskService,
+          useValue: {
+            tasks: signal([]),
+            getArchivedTasks: () => of(paginatedArchive(archiveTasks)),
+          },
+        },
+        { provide: LabelService, useValue: { labels } },
+      ],
+    }).compileComponents();
+
+    const service = TestBed.inject(SearchService);
+    const results = await service.searchArchive('Completed');
+    expect(results.tasks.length).toBe(5);
+    expect(results.total).toBe(5);
   });
 
   it('includes scores on every result', () => {

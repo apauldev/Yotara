@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import type { Label, Project, Task } from '@yotara/shared';
 import { LabelService } from './label.service';
 import { ProjectService } from './project.service';
@@ -32,6 +33,11 @@ export interface SearchLabelResult {
   label: Label;
   score: number;
   matchReasons: string[];
+}
+
+export interface SearchArchiveResults {
+  tasks: SearchTaskResult[];
+  total: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -83,6 +89,26 @@ export class SearchService {
       tasks: taskResults,
       projects: projectResults,
       labels: labelResults,
+    };
+  }
+
+  async searchArchive(query: string): Promise<SearchArchiveResults> {
+    const normalizedQuery = normalize(query);
+    if (!normalizedQuery) return { tasks: [], total: 0 };
+
+    const projects = this.projectService.projects();
+    const projectById = new Map(projects.map((project) => [project.id, project] as const));
+
+    const response = await firstValueFrom(this.taskService.getArchivedTasks(1, 100));
+
+    const taskResults = response.data
+      .map((task) => buildTaskResult(task, normalizedQuery, projectById.get(task.projectId ?? '')))
+      .filter((result): result is SearchTaskResult => result !== null)
+      .sort((left, right) => compareSearchResults(left.score, right.score, left.task, right.task));
+
+    return {
+      tasks: taskResults,
+      total: taskResults.length,
     };
   }
 }

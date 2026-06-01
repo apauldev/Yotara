@@ -718,6 +718,7 @@ apps/frontend/src/app/
 - [x] Make `/search?q=...` the canonical global search route — standalone component shipped in v0.51.0
 - [x] Migrate archive page to use shared `EmptyStateComponent`
 - [ ] Fix 100-task hard limit with server-driven pagination (H4)
+- [ ] Fix archive search — currently fetches 100 recent completed tasks and filters client-side; build server-side search endpoint to find matches without a data limit
 - [ ] Fix error handling mismatch between services and routes (H3 / API P0)
 
 ---
