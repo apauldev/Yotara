@@ -3,7 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faBoxArchive, faTrash } from '@fortawesome/free-solid-svg-icons';
-import { catchError, combineLatest, finalize, of, switchMap } from 'rxjs';
+import { catchError, combineLatest, finalize, of, switchMap, tap } from 'rxjs';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { TaskService } from '../../../core/services/task.service';
@@ -39,12 +39,30 @@ import { PaginatedResponse, Task } from '@yotara/shared';
           <p class="status-copy">Loading your recent completions...</p>
         } @else if (archiveError()) {
           <p class="status-copy">{{ archiveError() }}</p>
-        } @else if (archiveResponse().data.length === 0) {
+        } @else if (archiveResponse().data.length === 0 && totalArchived() === 0) {
           <app-empty-state
             title="Nothing archived yet"
             description="Completed work will appear here, and permanent archives stay put."
             [icon]="faBoxArchive"
           />
+        } @else if (archiveResponse().data.length === 0 && totalArchived() > 0) {
+          <div class="archive-summary">
+            <span>{{ totalArchived() }} archived tasks</span>
+            <p>Use the permanent archive tag to keep a task from being auto-cleared.</p>
+          </div>
+
+          <p class="status-copy">This page is empty — try a different page.</p>
+
+          @if (totalArchived() > pageSize()) {
+            <div class="pagination-wrap">
+              <app-pagination
+                [currentPage]="currentPage()"
+                [pageSize]="pageSize()"
+                [totalItems]="totalArchived()"
+                (pageChange)="onPageChange($event)"
+              />
+            </div>
+          }
         } @else {
           <div class="archive-summary">
             <span>{{ totalArchived() }} archived tasks</span>
@@ -196,6 +214,17 @@ export class ArchivePageComponent {
         this.loadingArchive.set(true);
         this.archiveError.set(null);
         return this.taskService.getArchivedTasks(page, size).pipe(
+          tap((response) => {
+            // If the requested page is empty but there are archived tasks,
+            // clamp currentPage so the user isn't stranded on a page that no longer exists.
+            // The combineLatest re-emission will trigger the refetch.
+            if (response.data.length === 0 && response.meta.total > 0) {
+              const lastPage = Math.max(1, Math.ceil(response.meta.total / size));
+              if (page > lastPage) {
+                this.currentPage.set(lastPage);
+              }
+            }
+          }),
           catchError((error: unknown) => {
             console.error('Failed to load archive', error);
             this.archiveError.set('Could not load archive right now.');
