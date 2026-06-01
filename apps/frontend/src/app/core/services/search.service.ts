@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import type { Label, Project, Task } from '@yotara/shared';
 import { LabelService } from './label.service';
 import { ProjectService } from './project.service';
@@ -32,6 +33,12 @@ export interface SearchLabelResult {
   label: Label;
   score: number;
   matchReasons: string[];
+}
+
+export interface SearchArchiveResults {
+  tasks: SearchTaskResult[];
+  total: number;
+  truncated?: boolean; // True when there are more pages we didn't search
 }
 
 @Injectable({ providedIn: 'root' })
@@ -83,6 +90,48 @@ export class SearchService {
       tasks: taskResults,
       projects: projectResults,
       labels: labelResults,
+    };
+  }
+
+  async searchArchive(query: string): Promise<SearchArchiveResults> {
+    const normalizedQuery = normalize(query);
+    if (!normalizedQuery) return { tasks: [], total: 0 };
+
+    const projects = this.projectService.projects();
+    const projectById = new Map(projects.map((project) => [project.id, project] as const));
+    const allMatches: SearchTaskResult[] = [];
+    const pageSize = 100;
+    const maxPages = 10; // Searches up to 1,000 completed tasks
+    let searchedAllPages = true;
+
+    for (let page = 1; page <= maxPages; page++) {
+      const response = await firstValueFrom(this.taskService.getArchivedTasks(page, pageSize));
+
+      const pageMatches = response.data
+        .map((task) =>
+          buildTaskResult(task, normalizedQuery, projectById.get(task.projectId ?? '')),
+        )
+        .filter((result): result is SearchTaskResult => result !== null);
+
+      allMatches.push(...pageMatches);
+
+      if (!response.meta.hasNextPage) {
+        break;
+      }
+
+      if (page === maxPages) {
+        searchedAllPages = false;
+      }
+    }
+
+    const sorted = allMatches.sort((left, right) =>
+      compareSearchResults(left.score, right.score, left.task, right.task),
+    );
+
+    return {
+      tasks: sorted,
+      total: allMatches.length,
+      truncated: !searchedAllPages,
     };
   }
 }

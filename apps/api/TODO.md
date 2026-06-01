@@ -17,6 +17,10 @@
 
 - [x] Add a shared request-context or response helper for the repeated `Unauthorized` / `Not found` / `Failed to ...` responses.
 
+## Future: Archive Search Endpoint
+
+- [ ] **Server-side archive search** — Currently the frontend fetches the 100 most recent completed tasks and filters them locally. A proper search endpoint (`GET /tasks/search?q=...`) would let the server look through all completed tasks by title, description, and project name — faster, no limit, and works for any number of tasks.
+
 ## Schema and Contract Hygiene
 
 - [x] Reconcile OpenAPI schemas with actual runtime payloads:

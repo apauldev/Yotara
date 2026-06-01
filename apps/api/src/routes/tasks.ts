@@ -40,6 +40,9 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       includeSubtasks?: boolean;
       parentId?: string;
       export?: boolean;
+      status?: string;
+      completed?: string;
+      overdue?: string;
     };
     Reply: PaginatedResponse<Task[]> | { message: string };
   }>(
@@ -57,6 +60,9 @@ export default async function taskRoutes(fastify: FastifyInstance) {
             includeSubtasks: { type: 'boolean', default: false },
             parentId: { type: 'string' },
             export: { type: 'boolean', default: false },
+            status: { type: 'string', enum: ['inbox', 'today', 'upcoming', 'done', 'archived'] },
+            completed: { type: 'string', enum: ['true', 'false'] },
+            overdue: { type: 'string', enum: ['true', 'false'] },
           },
         },
         response: {
@@ -79,7 +85,19 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       const pageSize = isExport ? 10000 : Math.min(100, Math.max(1, request.query.pageSize ?? 50));
       const includeSubtasks = isExport ? true : String(request.query.includeSubtasks) === 'true';
       const parentId = request.query.parentId;
-      return listTasksForOwner(userId, page, pageSize, includeSubtasks, parentId);
+
+      const filters = {
+        status: request.query.status as any,
+        completed:
+          request.query.completed === 'true'
+            ? true
+            : request.query.completed === 'false'
+              ? false
+              : undefined,
+        overdue: request.query.overdue === 'true',
+      };
+
+      return listTasksForOwner(userId, page, pageSize, includeSubtasks, parentId, filters);
     },
   );
 

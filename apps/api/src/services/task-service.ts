@@ -103,23 +103,52 @@ export async function cleanupExpiredArchivedTasks(ownerId: string) {
   return 1;
 }
 
+export interface TaskFilters {
+  status?: TaskStatus;
+  completed?: boolean;
+  overdue?: boolean; // dueDate < now AND completed = false
+  hasDueDate?: boolean;
+}
+
 export async function listTasksForOwner(
   ownerId: string,
   page: number,
   pageSize: number,
   includeSubtasks = false,
   parentId?: string,
+  filters?: TaskFilters,
 ): Promise<PaginatedResponse<Task[]>> {
   const offset = (page - 1) * pageSize;
   const baseWhere = and(eq(tasks.userId, ownerId), isNull(tasks.deletedAt));
 
   // If parentId is provided, we specifically want subtasks for that parent.
   // If parentId is NOT provided, we filter based on the includeSubtasks toggle.
-  const whereClause = parentId
+  let whereClause = parentId
     ? and(baseWhere, eq(tasks.parentId, parentId))
     : includeSubtasks
       ? baseWhere
       : and(baseWhere, isNull(tasks.parentId));
+
+  if (filters) {
+    if (filters.status) {
+      whereClause = and(whereClause, eq(tasks.status, filters.status));
+    }
+    if (filters.completed !== undefined) {
+      whereClause = and(whereClause, eq(tasks.completed, filters.completed));
+    }
+    if (filters.hasDueDate !== undefined) {
+      whereClause = filters.hasDueDate
+        ? and(whereClause, isNotNull(tasks.dueDate))
+        : and(whereClause, isNull(tasks.dueDate));
+    }
+    if (filters.overdue) {
+      whereClause = and(
+        whereClause,
+        eq(tasks.completed, false),
+        sql`date(${tasks.dueDate}) < date('now')`,
+      );
+    }
+  }
 
   const [{ total }] = await db
     .select({ total: sql<number>`count(*)` })

@@ -5,7 +5,11 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Project, Task } from '@yotara/shared';
 import { ProjectService } from '../../../../core/services/project.service';
 import { TaskService } from '../../../../core/services/task.service';
-import { SearchService, SearchTab } from '../../../../core/services/search.service';
+import {
+  SearchService,
+  SearchTab,
+  SearchTaskResult,
+} from '../../../../core/services/search.service';
 import { PersonalTaskCardComponent } from '../../components/personal-task-card.component';
 import { PersonalTaskWorkspaceComponent } from '../../components/personal-task-workspace.component';
 import { SectionHeaderComponent } from '../../../../shared/components/section-header/section-header.component';
@@ -103,6 +107,12 @@ export class SearchPageComponent {
       this.results().tasks.length + this.results().projects.length + this.results().labels.length,
   );
 
+  protected readonly searchingArchive = signal(false);
+  protected readonly archiveResults = signal<SearchTaskResult[]>([]);
+  protected readonly totalArchiveMatches = signal(0);
+  protected readonly archiveTruncated = signal(false);
+  protected readonly archiveSearched = signal(false);
+
   protected readonly tabItems: { value: SearchTab; label: string; count?: () => number }[] = [
     { value: 'all', label: 'All' },
     { value: 'tasks', label: 'Tasks', count: () => this.results().tasks.length },
@@ -176,6 +186,10 @@ export class SearchPageComponent {
   }
 
   private async navigateToSearchQuery(query: string, tab: SearchTab) {
+    this.archiveResults.set([]);
+    this.totalArchiveMatches.set(0);
+    this.archiveTruncated.set(false);
+    this.archiveSearched.set(false);
     await this.router.navigate(['/search'], {
       queryParams: {
         q: query || null,
@@ -191,6 +205,23 @@ export class SearchPageComponent {
 
   protected editTask(task: Task) {
     this.workspace()?.editTask(task);
+  }
+
+  protected async searchArchive() {
+    if (this.searchingArchive() || !this.searchQuery()) return;
+
+    this.searchingArchive.set(true);
+    try {
+      const results = await this.searchService.searchArchive(this.searchQuery());
+      this.archiveResults.set(results.tasks);
+      this.totalArchiveMatches.set(results.total);
+      this.archiveTruncated.set(results.truncated ?? false);
+      this.archiveSearched.set(true);
+    } catch (error) {
+      console.error('Failed to search archive', error);
+    } finally {
+      this.searchingArchive.set(false);
+    }
   }
 
   protected handleTaskSaved(_mode: 'create' | 'update') {}

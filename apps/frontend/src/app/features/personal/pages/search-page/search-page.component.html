@@ -47,6 +47,26 @@
         }
       </nav>
 
+      @if (
+        searchQuery() && (activeTab() === 'all' || activeTab() === 'tasks') && !archiveSearched()
+      ) {
+        <div class="archive-promo">
+          <p>Don't see what you're looking for?</p>
+          <button
+            type="button"
+            class="search-archive-button"
+            [disabled]="searchingArchive()"
+            (click)="searchArchive()"
+          >
+            @if (searchingArchive()) {
+              <span>Searching...</span>
+            } @else {
+              <span>Search Archive</span>
+            }
+          </button>
+        </div>
+      }
+
       <div aria-live="polite">
         @if (!searchQuery()) {
           <app-empty-state
@@ -54,7 +74,7 @@
             description="Search looks through task titles, descriptions, project names, and status keywords like inbox, today, upcoming, done, and archived."
             [icon]="faMagnifyingGlass"
           />
-        } @else if (resultCount() === 0) {
+        } @else if (resultCount() === 0 && !archiveSearched()) {
           <app-empty-state
             title="No matches found"
             description="Try a different phrase, project name, or status keyword."
@@ -262,6 +282,39 @@
                   </article>
                 }
               </div>
+            </section>
+          }
+
+          @if (archiveSearched() && archiveResults().length > 0) {
+            <section class="result-group archive-results">
+              <app-section-header
+                title="Archive Matches"
+                [count]="totalArchiveMatches() + ' matches'"
+              />
+
+              @if (archiveTruncated()) {
+                <p class="refine-hint">
+                  Searched the 1,000 most recent completed tasks — refine your search for more
+                  specific results.
+                </p>
+              }
+
+              <div class="task-stack">
+                @for (taskResult of archiveResults(); track taskResult.task.id) {
+                  <div class="task-group">
+                    <app-personal-task-card
+                      [task]="taskResult.task"
+                      [interactive]="true"
+                      (select)="editTask(taskResult.task)"
+                    />
+                  </div>
+                }
+              </div>
+            </section>
+          } @else if (archiveSearched() && archiveResults().length === 0) {
+            <section class="result-group archive-results">
+              <app-section-header title="Archive Matches" count="No matches" />
+              <p class="no-results-copy">We couldn't find any matching tasks in your archive.</p>
             </section>
           }
         }

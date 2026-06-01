@@ -12,6 +12,15 @@
 - [x] **LogService sanitization** — circular reference safety, mock console in tests
 - [x] **CI fixes** — circular data logging error resolved, test isolation improved
 
+## Future: Server-side Archive Search
+
+- [ ] **Server does the searching (instead of client-side filtering)** — Currently the archive search fetches the 100 most recently completed tasks and filters them on your device. This works for casual use but won't find older matches. The proper fix is a server search endpoint: you type a query, the server finds matching tasks in its database, and returns only those results. Scales to any number of tasks, no data limits.
+
+## Noted from review (not addressed here)
+
+- [ ] **Overdue filter timezone mismatch** — Backend uses SQLite `date('now')` (UTC), frontend uses Luxon `startOfToday()` (local time). A task due today in the user's timezone can be overdue or not depending on UTC offset. Fix: align both sides to the same timezone (e.g. store/store dates as UTC midnight, or pass the user's timezone to the API).
+- [ ] **Archive promo disappears after tab switch on search page** — The "Search Archive" promo is gated by `!archiveSearched()`. If a user clicks it on the 'all' tab then switches to 'tasks', both the promo and the archive results vanish with no way to bring them back. Fix: persist archive results across tab switches, or reset `archiveSearched` on tab change.
+
 ## Shared UI and Generic Components
 
 - [x] Build a generic modal primitive in `shared/ui/modal` with:
