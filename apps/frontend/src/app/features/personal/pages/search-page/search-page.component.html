@@ -292,9 +292,10 @@
                 [count]="totalArchiveMatches() + ' matches'"
               />
 
-              @if (totalArchiveMatches() >= 100) {
+              @if (archiveTruncated()) {
                 <p class="refine-hint">
-                  Showing top 100 — refine your search for more specific results.
+                  Searched the 1,000 most recent completed tasks — refine your search for more
+                  specific results.
                 </p>
               }
 

@@ -110,6 +110,7 @@ export class SearchPageComponent {
   protected readonly searchingArchive = signal(false);
   protected readonly archiveResults = signal<SearchTaskResult[]>([]);
   protected readonly totalArchiveMatches = signal(0);
+  protected readonly archiveTruncated = signal(false);
   protected readonly archiveSearched = signal(false);
 
   protected readonly tabItems: { value: SearchTab; label: string; count?: () => number }[] = [
@@ -187,6 +188,7 @@ export class SearchPageComponent {
   private async navigateToSearchQuery(query: string, tab: SearchTab) {
     this.archiveResults.set([]);
     this.totalArchiveMatches.set(0);
+    this.archiveTruncated.set(false);
     this.archiveSearched.set(false);
     await this.router.navigate(['/search'], {
       queryParams: {
@@ -213,6 +215,7 @@ export class SearchPageComponent {
       const results = await this.searchService.searchArchive(this.searchQuery());
       this.archiveResults.set(results.tasks);
       this.totalArchiveMatches.set(results.total);
+      this.archiveTruncated.set(results.truncated ?? false);
       this.archiveSearched.set(true);
     } catch (error) {
       console.error('Failed to search archive', error);
