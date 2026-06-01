@@ -110,21 +110,19 @@ describe('SearchPageComponent', () => {
             creating: signal(false),
             createTask: jasmine.createSpy('createTask').and.resolveTo(undefined),
             updateTask: jasmine.createSpy('updateTask').and.resolveTo(undefined),
-            getArchivedTasks: jasmine
-              .createSpy('getArchivedTasks')
-              .and.returnValue(
-                of({
-                  data: [],
-                  meta: {
-                    total: 0,
-                    page: 1,
-                    pageSize: 100,
-                    totalPages: 0,
-                    hasNextPage: false,
-                    hasPreviousPage: false,
-                  },
-                }),
-              ),
+            getArchivedTasks: jasmine.createSpy('getArchivedTasks').and.returnValue(
+              of({
+                data: [],
+                meta: {
+                  total: 0,
+                  page: 1,
+                  pageSize: 100,
+                  totalPages: 0,
+                  hasNextPage: false,
+                  hasPreviousPage: false,
+                },
+              }),
+            ),
           },
         },
         {
