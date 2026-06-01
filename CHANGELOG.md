@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.55.0](https://github.com/apauldev/Yotara/compare/v0.54.1...v0.55.0) (2026-06-01)
+
+
+### Features
+
+* add paginated archive browsing, search, and backend task filters ([29aff6a](https://github.com/apauldev/Yotara/commit/29aff6a3b99947d6531b2fe09d69110a22ddd083))
+
+
+### Bug Fixes
+
+*  clamp archive page after totals shrink ([c29b4e1](https://github.com/apauldev/Yotara/commit/c29b4e154c303e1b38fdc8fc05152ebae00d65d6))
+* paginate archive search across multiple pages ([d200eb0](https://github.com/apauldev/Yotara/commit/d200eb0a3b156f79f69eba4c67c74c255993e399))
+* prettier issues were fixed ([34392ce](https://github.com/apauldev/Yotara/commit/34392ce0a995054c809609324a2c6adfa08ad223))
+
 ## [0.54.1](https://github.com/apauldev/Yotara/compare/v0.54.0...v0.54.1) (2026-05-29)
 
 
