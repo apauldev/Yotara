@@ -1,5 +1,9 @@
 # Yotara Project Plan
 
+> **Superseded by [docs/ARCHITECTURE.md](./ARCHITECTURE.md).** This document is kept as a historical snapshot and is no longer maintained. The live source of architectural decisions, runtime anti-patterns, and priority ordering is `docs/ARCHITECTURE.md`. New work goes to GitHub Issues. Last meaningful update: 2026-06-01.
+>
+> **Known drift in this file:** the P1 table below shows Markdown preview (#10) and Data export (#12) as ⬜ Not started, but both shipped in 0.51.0 and 0.52.0 respectively. The "Immediate Next Task" at the bottom of this file is therefore stale. Read `docs/ARCHITECTURE.md` → "Recommended roadmap" → Sprint 0 for the current next actions.
+
 This plan translates the implementation-aware roadmap into a project manager's action plan. It assumes a current pace of 1-2 hours per day and treats the personal-mode MVP as functionally complete, with remaining work focused on public-demo polish, high-value personal features, team mode, and distribution.
 
 Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
@@ -53,9 +57,9 @@ Target: 2-3 weeks after P0.
 |---|------|--------|--------|-------------|
 | 8 | Subtasks, one level | ✅ Done | Medium | Hierarchical task management with checklist UI and progress tracking implemented. |
 | 9 | Recurring tasks: daily, weekly, monthly | ✅ Done | Medium | Automated materialization logic for recurring frequencies (daily to yearly) implemented. |
-| 10 | Markdown preview in task description | ⬜ Not started | Low | Add a sanitized preview toggle beside the existing description textarea. |
+| 10 | Markdown preview in task description | ✅ Done (0.51.0) | Low | Markdown editor with format toolbar, preview toggle, and DOMPurify sanitization. |
 | 11 | Browser notifications for due reminders | ⬜ Not started | Medium | Add permission management and a simple page-load or interval scheduler for due reminders. |
-| 12 | Export data: JSON and CSV | ⬜ Not started | Low | Start with client-side export from Settings using already-loaded tasks, projects, and labels. |
+| 12 | Export data: JSON and CSV | ✅ Done (0.52.0/0.53.0) | Low | JSON/CSV export from Settings with granular toggles for subtasks, descriptions, and archived items. |
 | 13 | Natural Language Task Entry: date parsing, projects (#), and labels (@) | ⬜ Not started | Medium | Enhance existing regex parser with \`chrono-node\` for dates. |
 
 
@@ -136,16 +140,9 @@ After week 16, Yotara should be ready for v1.0 across self-hosted and SaaS paths
 
 ## Immediate Next Task
 
-Start with P1 #10 next: markdown preview in the task detail modal.
+> Stale: this section suggested "Start with P1 #10 (markdown preview)" but that work shipped in 0.51.0. The current next actions are in `docs/ARCHITECTURE.md` → "Recommended roadmap" → Sprint 0.
 
-Implementation slice:
+Historical next task (for context only):
 
-1. Add Markdown preview toggle to task description in the detail modal (P1 #10).
+1. ~~Add Markdown preview toggle to task description in the detail modal (P1 #10).~~ Shipped 0.51.0.
 2. Standardize destructive confirmations for project delete flows (once implemented).
-
-Acceptance criteria:
-
-- Main task views feel stable and professional while loading data (global progress bar + button locking + status copy provide polished feedback without skeleton flicker).
-- Archive page consistency matches the rest of the app.
-- Task descriptions support rich preview.
-- All destructive actions remain gated by confirmation dialogs.

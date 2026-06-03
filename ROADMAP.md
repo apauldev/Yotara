@@ -1,5 +1,7 @@
 # Yotara MVP Roadmap
 
+> **Superseded by [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).** This document is kept as a historical snapshot of the planned MVP surface area. The live source of architectural decisions, runtime anti-patterns, and priority ordering is `docs/ARCHITECTURE.md`. New work goes to GitHub Issues, not this file. Last meaningful update: 2026-05-29.
+
 This document outlines the complete list of screens, pages, and modals needed for the Yotara MVP. Items are grouped by priority and logical build order—with the first 8–10 screens forming the foundation for a usable personal task manager.
 
 ### Competitive Recommendations
@@ -85,28 +87,32 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 
 ### P2a – Team Mode Foundation (Core for SaaS / Non-Profits)
 
+> Items in this section are numbered `P2a-N` to disambiguate from the `12`/`13` used in P1 (a historical duplicate-numbering bug, kept here for back-compat with the original MVP scope).
+
 | # | Task | Status | Effort | Notes |
 |---|------|--------|--------|-------|
-| 12 | **Database strategy for team mode:** SQLite for self-hosted, Turso or Postgres for cloud SaaS | ⬜ Not started | Medium | Self-hosted instances keep SQLite (one DB per company, works at 30-person scale with WAL mode). Cloud SaaS needs a hosted database for multi-tenancy and team isolation. Turso is the leading candidate — keeps the SQLite dialect, adds replication and edge distribution. |
-| 13 | **Permissions: owner vs member roles** | ⬜ Not started | Medium | MVP team mode needs at least `owner` (invite, remove, delete workspace) and `member` (manage tasks, comment). Add a `role` field to workspace membership. |
-| 14 | **Workspace data model: workspaces and memberships** | ⬜ Not started | Medium | Current backend only stores `user.workspaceMode`; no workspace tables yet. |
-| 15 | **Workspace-scoped labels and projects** | ⬜ Not started | Low | Clarify and implement: labels and projects are workspace-scoped in team mode, user-scoped in personal mode. Affects the data model — decide early. |
-| 16 | **Workspace switcher: create/switch workspaces** | ⬜ Not started | Low | Team shell has placeholder workspace navigation/label only; no real switcher or persistence. |
-| 17 | **Workspace settings: members list + remove member** | ⬜ Not started | Low | Depends on workspace membership. |
-| 18 | **Invite link flow: token + `/join/:token`** | ⬜ Not started | Medium | No invite tables/routes/pages. |
-| 19 | **Task assignment: `assigneeId` and avatar in lists** | ⬜ Not started | Low | Shared/OpenAPI mention `assigneeId`, but DB schema and task UI do not persist/render it. |
-| 20 | **"Assigned to me" smart list** | ⬜ Not started | Low | Depends on assignment. |
-| 21 | **Activity log for workspace changes** | ⬜ Not started | Medium | Basic audit trail: who changed what, when. Needed for accountability in shared workspaces. Shares event model with comments/notifications. |
+| P2a-1 | **Database strategy for team mode:** SQLite for self-hosted, Turso or Postgres for cloud SaaS | ⬜ Not started | Medium | Self-hosted instances keep SQLite (one DB per company, works at 30-person scale with WAL mode). Cloud SaaS needs a hosted database for multi-tenancy and team isolation. Turso is the leading candidate — keeps the SQLite dialect, adds replication and edge distribution. |
+| P2a-2 | **Permissions: owner vs member roles** | ⬜ Not started | Medium | MVP team mode needs at least `owner` (invite, remove, delete workspace) and `member` (manage tasks, comment). Add a `role` field to workspace membership. |
+| P2a-3 | **Workspace data model: workspaces and memberships** | ⬜ Not started | Medium | Current backend only stores `user.workspaceMode`; no workspace tables yet. |
+| P2a-4 | **Workspace-scoped labels and projects** | ⬜ Not started | Low | Clarify and implement: labels and projects are workspace-scoped in team mode, user-scoped in personal mode. Affects the data model — decide early. |
+| P2a-5 | **Workspace switcher: create/switch workspaces** | ⬜ Not started | Low | Team shell has placeholder workspace navigation/label only; no real switcher or persistence. |
+| P2a-6 | **Workspace settings: members list + remove member** | ⬜ Not started | Low | Depends on workspace membership. |
+| P2a-7 | **Invite link flow: token + `/join/:token`** | ⬜ Not started | Medium | No invite tables/routes/pages. |
+| P2a-8 | **Task assignment: `assigneeId` and avatar in lists** | ⬜ Not started | Low | Shared/OpenAPI mention `assigneeId`, but DB schema and task UI do not persist/render it. |
+| P2a-9 | **"Assigned to me" smart list** | ⬜ Not started | Low | Depends on assignment. |
+| P2a-10 | **Activity log for workspace changes** | ⬜ Not started | Medium | Basic audit trail: who changed what, when. Needed for accountability in shared workspaces. Shares event model with comments/notifications. |
 
 **P2a target:** 4–6 weeks. Workspace, roles, assignment, and invite are the critical path for a usable team mode.
 
 ### P2b – Team Collaboration (Post-Foundation)
 
+> Numbered `P2b-N` for consistency with the P2a fix.
+
 | # | Task | Status | Effort | Notes |
 |---|------|--------|--------|-------|
-| 22 | **Comments on tasks (flat, simple)** | ⬜ Not started | Medium | Shared `Comment` type exists; no DB/API/UI. Start with flat comments, edit/delete, no threading. Markdown support optional for MVP. |
-| 23 | **Team Board: columns per member, drag to reassign** | ⬜ Not started | Medium | Depends on workspaces, membership, and assignment. Basic kanban with drag-to-reassign as the hero team interaction. |
-| 24 | **Real-time updates: polling** | ⬜ Not started | Medium | Instead of WebSockets, use polling (10–30s interval) for task changes in team mode. Dramatically simpler, sufficient for small teams. Upgrade to WebSockets later if demand warrants. |
+| P2b-1 | **Comments on tasks (flat, simple)** | ⬜ Not started | Medium | Shared `Comment` type exists; no DB/API/UI. Start with flat comments, edit/delete, no threading. Markdown support optional for MVP. |
+| P2b-2 | **Team Board: columns per member, drag to reassign** | ⬜ Not started | Medium | Depends on workspaces, membership, and assignment. Basic kanban with drag-to-reassign as the hero team interaction. |
+| P2b-3 | **Real-time updates: polling** | ⬜ Not started | Medium | Instead of WebSockets, use polling (10–30s interval) for task changes in team mode. Dramatically simpler, sufficient for small teams. Upgrade to WebSockets later if demand warrants. |
 
 **P2b target:** 3–4 weeks after P2a. Comments, board, and basic live sync complete the team experience.
 
@@ -114,37 +120,41 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 
 ### P3 – Deployment & Distribution
 
+> Numbered `P3-N`. Most of these items are now Sprint 0 in `docs/ARCHITECTURE.md`.
+
 | # | Task | Status | Effort | Notes |
 |---|------|--------|--------|-------|
-| 25 | Pre-built Docker images pushed to GHCR or Docker Hub on release | ⬜ Not started | Medium | Dockerfiles exist; add GitHub Actions workflow to build and push multi-platform images on tag. |
-| 26 | Coverage reporting with threshold gates | ⬜ Not started | Low | Integrate c8/istanbul coverage collection; upload to Codecov; enforce minimum coverage in CI. |
-| 27 | Dependabot / Renovate for automated dependency updates | ⬜ Not started | Low | Enable Dependabot on GitHub; group minor/patch updates; review monthly. |
-| 28 | Security scanning (CodeQL + Snyk) | ⬜ Not started | Low | Add CodeQL analysis workflow; enable Dependabot security alerts; review weekly. |
-| 29 | Docker Compose with pre-built images | 🟡 Partial | Low | Local build-based Compose is ✅ done, but pre-built image Compose is not. |
-| 30 | Render.com template (`render.yaml`) | ⬜ Not started | Medium | Not present. |
-| 31 | Railway.app template (`railway.toml`) | ⬜ Not started | Medium | Not present. |
-| 32 | Live demo instance and README link | ⬜ Not started | Medium | Not present. |
+| P3-1 | Pre-built Docker images pushed to GHCR or Docker Hub on release | ⬜ Not started | Medium | Dockerfiles exist; add GitHub Actions workflow to build and push multi-platform images on tag. |
+| P3-2 | Coverage reporting with threshold gates | ⬜ Not started | Low | Integrate c8/istanbul coverage collection; upload to Codecov; enforce minimum coverage in CI. |
+| P3-3 | Dependabot / Renovate for automated dependency updates | ⬜ Not started | Low | Enable Dependabot on GitHub; group minor/patch updates; review monthly. |
+| P3-4 | Security scanning (CodeQL + Snyk) | ⬜ Not started | Low | Add CodeQL analysis workflow; enable Dependabot security alerts; review weekly. |
+| P3-5 | Docker Compose with pre-built images | 🟡 Partial | Low | Local build-based Compose is ✅ done, but pre-built image Compose is not. |
+| P3-6 | Render.com template (`render.yaml`) | ⬜ Not started | Medium | Not present. |
+| P3-7 | Railway.app template (`railway.toml`) | ⬜ Not started | Medium | Not present. |
+| P3-8 | Live demo instance and README link | ⬜ Not started | Medium | Not present. |
 
 **P3 target:** 2–3 weeks. Can run in parallel with P2 once image publishing is stable.
 
 ### P4 – Polish & Nice-to-Haves (Post-v1)
 
+> Numbered `P4-N`. Most items are intentionally deferred — see `docs/ARCHITECTURE.md` for the runtime anti-patterns that should be closed before adding any of this.
+
 | # | Task | Status | Effort | Notes |
 |---|------|--------|--------|-------|
-| 33 | Kanban board with custom project statuses | ⬜ Not started | Medium | Keep post-v1 unless early users demand it. |
-| 34 | PWA installability | ⬜ Not started | Medium | No manifest/service worker yet. |
-| 35 | Localization groundwork: English + Spanish | ⬜ Not started | Medium | Current UI strings are component-local. |
-| 36 | Notification center | ⬜ Not started | Medium | Depends on notification event model. |
-| 37 | Cross-mode search | ⬜ Not started | Medium | Depends on team-mode data model. |
-| 38 | Natural language task entry in title bar (`every day`, `#project`, `@label`) | ⬜ Not started | Medium | Enhance existing `parseTaskCommand` with chrono-node and full syntax |
-| 39 | Drag-and-drop reorder for subtasks inline | ⬜ Not started | Low | Subtasks ordered by `createdAt` only |
-| 40 | "Repeat on due date" vs "repeat on completion" toggle | ⬜ Not started | Low | Currently always materializes on completion |
-| 41 | Recurring subtasks (subtasks with their own repeat rules) | ⬜ Not started | Low | Subtask repeat field currently disabled |
-| 42 | Skip / snooze single recurrence occurrence | ⬜ Not started | Low | No way to skip an instance without deleting |
-| 43 | Multi-level subtask nesting (>1 level deep) | ⬜ Not started | Medium | Hard-coded to 1 level |
-| 44 | Expand/collapse toggle on parent task card for subtasks | ⬜ Not started | Low | Subtasks always visible below parent |
-| 45 | Recurring template separated from normal task lists | ⬜ Not started | Low | Template and instances currently mixed |
-| 46 | Activity log for past completions of recurring tasks | ⬜ Not started | Low | Show history of completed instances |
+| P4-1 | Kanban board with custom project statuses | ⬜ Not started | Medium | Keep post-v1 unless early users demand it. |
+| P4-2 | PWA installability | ⬜ Not started | Medium | No manifest/service worker yet. |
+| P4-3 | Localization groundwork: English + Spanish | ⬜ Not started | Medium | Current UI strings are component-local. |
+| P4-4 | Notification center | ⬜ Not started | Medium | Depends on notification event model. |
+| P4-5 | Cross-mode search | ⬜ Not started | Medium | Depends on team-mode data model. |
+| P4-6 | Natural language task entry in title bar (`every day`, `#project`, `@label`) | ⬜ Not started | Medium | Enhance existing `parseTaskCommand` with chrono-node and full syntax |
+| P4-7 | Drag-and-drop reorder for subtasks inline | ⬜ Not started | Low | Subtasks ordered by `createdAt` only |
+| P4-8 | "Repeat on due date" vs "repeat on completion" toggle | ⬜ Not started | Low | Currently always materializes on completion |
+| P4-9 | Recurring subtasks (subtasks with their own repeat rules) | ⬜ Not started | Low | Subtask repeat field currently disabled |
+| P4-10 | Skip / snooze single recurrence occurrence | ⬜ Not started | Low | No way to skip an instance without deleting |
+| P4-11 | Multi-level subtask nesting (>1 level deep) | ⬜ Not started | Medium | Hard-coded to 1 level |
+| P4-12 | Expand/collapse toggle on parent task card for subtasks | ⬜ Not started | Low | Subtasks always visible below parent |
+| P4-13 | Recurring template separated from normal task lists | ⬜ Not started | Low | Template and instances currently mixed |
+| P4-14 | Activity log for past completions of recurring tasks | ⬜ Not started | Low | Show history of completed instances |
 
 ### Recommended Sprint Order
 
@@ -713,12 +723,30 @@ apps/frontend/src/app/
 
 ---
 
+## Pre-Launch Priorities
+
+### 1. Push filtering to the API (highest impact)
+
+The frontend fetches all tasks and filters in JavaScript with computed signals. The backend already supports `status`, `completed`, and `overdue` query params. Using them per-view eliminates the expand loop, removes most computed signals, and makes the app scale to any number of tasks.
+
+Tracked in: `apps/frontend/TODO.md` (Pre-Launch section), `apps/api/TODO.md` (Pre-Launch section)
+
+### 2. Server-side archive search
+
+Archive search currently fetches 100 recent completed tasks and filters client-side. Build `GET /tasks/search?q=...` so the server finds matches without a data limit.
+
+### 3. Remove stale frontend complexity
+
+After #1 and #2, remove the active-task expand loop, stale alias signals (`archivedTasks`, `completedTasks`), and consolidate the auth-gate boilerplate shared across services.
+
 ## Next Steps
 
 - [x] Make `/search?q=...` the canonical global search route — standalone component shipped in v0.51.0
 - [x] Migrate archive page to use shared `EmptyStateComponent`
-- [ ] Fix 100-task hard limit with server-driven pagination (H4)
-- [ ] Fix archive search — currently fetches 100 recent completed tasks and filters client-side; build server-side search endpoint to find matches without a data limit
+- [x] Fix 100-task hard limit with server-driven pagination (H4) — archive page done; full fix requires pushing filtering to API
+- [x] Fix archive page clamp — when deleting the last task on a page, currentPage now clamps to the last valid page and pagination stays visible
+- [ ] Push filtering to the API — see #1 above
+- [ ] Build server-side archive search — see #2 above
 - [ ] Fix error handling mismatch between services and routes (H3 / API P0)
 
 ---
