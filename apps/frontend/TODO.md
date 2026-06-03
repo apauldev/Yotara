@@ -1,5 +1,22 @@
 # Frontend Refactor TODO
 
+> **Superseded by [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md).** This file is kept for historical reference only and should be migrated to GitHub Issues. The live source of architectural decisions, runtime anti-patterns, and priority ordering is `docs/ARCHITECTURE.md`. The recommended next actions are the items in `docs/ARCHITECTURE.md` → "Recommended roadmap" → Sprint 0, then Sprint 1. Last meaningful update: 2026-06-01.
+
+> **Migration note:** Before deleting this file, every unchecked item below should be moved to a GitHub Issue with the label `from-frontend-todo`. The "Recently Completed (v0.51–v0.54)" section duplicates `CHANGELOG.md` and should not be migrated. The "Noted from review (not addressed here)" section contains live product bugs (notably the UTC vs local timezone mismatch) that should become issues with `bug` label.
+
+## Pre-Launch: Push filtering to the API (remove computed signals)
+
+The frontend currently fetches all active tasks into memory and uses computed signals to filter views (today, overdue, inbox, upcoming). The backend already supports `status`, `completed`, and `overdue` query params. We need to use them.
+
+- [ ] **Today view** — `GET /tasks?status=today` instead of filtering all tasks client-side
+- [ ] **Overdue view** — `GET /tasks?overdue=true` (already works, just not called)
+- [ ] **Inbox view** — `GET /tasks?status=inbox&hasDueDate=false`
+- [ ] **Upcoming view** — `GET /tasks?status=upcoming`
+- [ ] **Today's completions** — `GET /tasks?completedSince=<today>` instead of filtering all completed tasks
+- [ ] **Remove stale signals** — after each view is migrated, delete the corresponding `computed()` from TaskService
+- [ ] **Remove active-task expand loop** — once all views use their own API calls, the full `tasks` signal and its expand loop can be removed entirely
+- [ ] **Consolidate refresh pattern** — extract the repeated auth-gate + refreshState boilerplate into a shared helper so new endpoints don't copy-paste
+
 ## Recently Completed (v0.51–v0.54)
 
 - [x] **Search as standalone component** — tabbed filtering (all/tasks/projects/labels), pagination, date/alpha sort
@@ -15,6 +32,10 @@
 ## Future: Server-side Archive Search
 
 - [ ] **Server does the searching (instead of client-side filtering)** — Currently the archive search fetches the 100 most recently completed tasks and filters them on your device. This works for casual use but won't find older matches. The proper fix is a server search endpoint: you type a query, the server finds matching tasks in its database, and returns only those results. Scales to any number of tasks, no data limits.
+
+## Fixed in this branch
+
+- [x] **Archive page clamp on empty page** — When deleting the last task on a page, the refresh could return `data: []` with `meta.total > 0`, leaving the user stranded. Fixed with a `tap` that clamps `currentPage` to the last valid page and defense-in-depth template showing pagination even when data is empty.
 
 ## Noted from review (not addressed here)
 

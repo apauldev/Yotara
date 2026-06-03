@@ -1,5 +1,21 @@
 # Fastify API TODO
 
+> **Superseded by [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md).** This file is kept for historical reference only and should be migrated to GitHub Issues. The live source of architectural decisions, runtime anti-patterns, and priority ordering is `docs/ARCHITECTURE.md`. The recommended next actions are the items in `docs/ARCHITECTURE.md` → "Recommended roadmap" → Sprint 0, then Sprint 1. Last meaningful update: 2026-06-01.
+
+> **Migration note:** Before deleting this file, every unchecked item below should be moved to a GitHub Issue with the label `from-api-todo`. The "Verify" items in the Pre-Launch section are not TODOs — they are missing integration tests, and should be filed as issues with the `test-gap` label. The "Code Quality Issues (from review)" section contains real bugs (notably the error-handling mismatch in the P0 entry and the `as Label` / `as TaskRow` type assertions in the P1 entries) that should be filed with the `bug` label.
+
+## Pre-Launch: Support per-view queries (mostly done, verify)
+
+The frontend currently fetches all tasks and filters client-side. The backend already supports the query params it needs — verify they work correctly for production use.
+
+- [ ] **Verify `GET /tasks?status=today`** returns only today's tasks (no overdue leaking in)
+- [ ] **Verify `GET /tasks?overdue=true`** — already exists from the recent branch, check edge cases (timezone)
+- [ ] **Verify `GET /tasks?status=inbox`** — returns inbox tasks without a scheduled date
+- [ ] **Verify `GET /tasks?status=upcoming`** returns upcoming tasks
+- [ ] **Add `completedSince` param** — `GET /tasks?completedSince=2026-06-01` for today's completions view
+- [ ] **Add search endpoint** — `GET /tasks/search?q=...` with SQL full-text or ILIKE search across title, description, project name. Eliminates the client-side scoring logic entirely.
+- [ ] **Test with realistic data volumes** — 1,000+ tasks, 10,000+ completed. Make sure filtered queries stay fast.
+
 ## Route Structure and Reuse
 
 - [x] Centralize authenticated user lookup into a reusable Fastify helper or hook:
