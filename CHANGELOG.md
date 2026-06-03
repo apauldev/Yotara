@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.55.1](https://github.com/apauldev/Yotara/compare/v0.55.0...v0.55.1) (2026-06-03)
+
+
+### Documentation
+
+* consolidate planning docs into ARCHITECTURE.md, add CI security tooling ([302f6e6](https://github.com/apauldev/Yotara/commit/302f6e640043beb3d45e31d72bdf0ce42d749dc9))
+* fixed frontend and backend docs issue ([223849f](https://github.com/apauldev/Yotara/commit/223849fa26d0d8f39a37e1656c4d3689580ea22e))
+
 ## [0.55.0](https://github.com/apauldev/Yotara/compare/v0.54.1...v0.55.0) (2026-06-01)
 
 
