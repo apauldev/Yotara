@@ -37,10 +37,10 @@ The backend already supports `status`, `completed`, and `overdue` query params (
 
 | View | What the frontend does | What the backend could do |
 |---|---|---|
-| Today's tasks | Fetches ALL active tasks, filters by `status: 'today'` or date math | `GET /tasks?status=today` — returns exactly today's tasks |
+| Today's tasks | Fetches ALL active tasks, filters by `status: 'today'` or date math | `GET /tasks?view=today` — `status = 'today' OR dueDate = today` |
 | Overdue tasks | Filters ALL active tasks for `dueDate < today` | `GET /tasks?overdue=true` — **already exists**, frontend doesn't use it |
-| Inbox tasks | Filters ALL active tasks for `status: 'inbox'` + no due date | `GET /tasks?status=inbox` |
-| Upcoming tasks | Filters ALL active tasks + groups by week | `GET /tasks?status=upcoming` |
+| Inbox tasks | Filters ALL active tasks for `status: 'inbox'` + no due date | `GET /tasks?view=inbox` — `status = 'inbox' AND dueDate IS NULL` |
+| Upcoming tasks | Filters ALL active tasks + groups by week | `GET /tasks?view=upcoming` — `status = 'upcoming' OR dueDate > today` |
 | Search | 250 lines of scoring math in JS | `GET /tasks/search?q=...` — SQL full-text search |
 | Today's completions | Filters ALL completed tasks for today's date | `GET /tasks?completedSince=<date>` |
 
@@ -384,16 +384,20 @@ This sprint order supersedes the P0/P1/P2/P3 priority lanes in `ROADMAP.md`. Tra
 **Why:** Eliminates the expand loop, removes most computed signals, makes the app scale.
 
 **Frontend tasks:**
-- [ ] `getTodayTasks()` → `GET /tasks?status=today`
+- [ ] `getTodayTasks()` → `GET /tasks?view=today`
 - [ ] `getOverdueTasks()` → `GET /tasks?overdue=true`
-- [ ] `getInboxTasks()` → `GET /tasks?status=inbox`
-- [ ] `getUpcomingTasks()` → `GET /tasks?status=upcoming`
+- [ ] `getInboxTasks()` → `GET /tasks?view=inbox`
+- [ ] `getUpcomingTasks()` → `GET /tasks?view=upcoming`
 - [ ] `getTodayCompletedTasks()` → `GET /tasks?completedSince=<date>`
 - [ ] Remove each `computed()` signal after migrating its view
 
 **Backend tasks:**
-- [ ] Verify all status filters work correctly with integration tests (replace the "verify" checkboxes in the API TODO with real tests)
+- [ ] Add `view=today|inbox|upcoming` query param with compound predicates:
+  - `view=today` → `status = 'today' OR dueDate = today`
+  - `view=inbox` → `status = 'inbox' AND (dueDate IS NULL OR dueDate = '')`
+  - `view=upcoming` → `status = 'upcoming' OR dueDate > today`
 - [ ] Add `completedSince` query param
+- [ ] Verify all status filters work correctly with integration tests (replace the "verify" checkboxes in the API TODO with real tests)
 - [ ] Tighten input validation on the new query params (closes A3)
 
 ### Sprint 2: Clean up TaskService
