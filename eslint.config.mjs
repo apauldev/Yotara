@@ -44,6 +44,14 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-non-null-assertion': 'warn',
       'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'no-restricted-syntax': [
+        'warn',
+        {
+          selector: 'TSAsExpression',
+          message:
+            'Prefer type guards or explicit types over "as" casts. Consider a type guard or unknown assertion instead.',
+        },
+      ],
       'prefer-const': 'error',
       'no-var': 'error',
     },
