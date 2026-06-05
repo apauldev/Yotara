@@ -45,6 +45,9 @@ jobs:
         run: pnpm lint
       - name: Typecheck
         run: pnpm typecheck
+      - name: Audit
+        continue-on-error: true
+        run: pnpm audit --audit-level=moderate
 
   test:
     runs-on: ubuntu-latest

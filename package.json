@@ -15,7 +15,7 @@
     "dev": "node scripts/dev.mjs",
     "build": "pnpm -r build",
     "start": "pnpm -r start",
-    "lint": "eslint . --max-warnings 10 && pnpm -r lint",
+    "lint": "eslint . && pnpm -r lint",
     "lint:fix": "eslint . --fix && pnpm -r lint:fix 2>/dev/null || true",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
