@@ -55,7 +55,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Push changes
-        run: git push --follow-tags origin main
+        run: git push --follow-tags origin HEAD:main
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
