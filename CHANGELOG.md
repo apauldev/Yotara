@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.56.0](https://github.com/apauldev/Yotara/compare/v0.55.1...v0.56.0) (2026-06-05)
+
+
+### Features
+
+* **security:** harden CI/CD pipeline with security scanning and release gating ([62c43a2](https://github.com/apauldev/Yotara/commit/62c43a27b21443c69ef171a3f92e7f3901213bdd))
+
+
+### Bug Fixes
+
+* check out main before release, use npm for dependabot ([992943c](https://github.com/apauldev/Yotara/commit/992943cfcc402a6ec6680ae3248ae533e46f2ca5))
+
 ## [0.55.1](https://github.com/apauldev/Yotara/compare/v0.55.0...v0.55.1) (2026-06-03)
 
 
