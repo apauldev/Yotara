@@ -6,4 +6,7 @@ dist
 coverage
 **/coverage
 .DS_Store
+.angular
+**/.angular
+.reasonix
 apps/api/data

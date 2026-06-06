@@ -538,6 +538,11 @@ Items in the "Explicit non-goals" subsection are deliberately not on the roadmap
 - [ ] Trim GitHub Release body to latest release notes, not full `CHANGELOG.md`. [ROADMAP §Delivery]
 - [ ] `docs/RELEASING.md` — release verification checklist. (Sprint 0.) [arch]
 - [x] Add `.reasonix/` to `.gitignore`. (Sprint 4.) [arch]
+- [x] API Docker image multi-stage build — python3/build-base stripped from production stage. Build context shrunk from 10.5 GB to 5 MB (`.angular` cache was being sent). API image reduced from 2.73 GB to ~600 MB. Frontend image stays at 78 MB (already lean via nginx multi-stage). [arch §Docker]
+- [ ] Use `pnpm deploy --prod` in build stage — copy production `node_modules` directly to prod stage, skipping prod re-install. Estimated ~50-100 MB savings + faster builds. [arch §Docker]
+- [ ] Try distroless base (`gcr.io/distroless/nodejs22-debian12`) — ~80 MB vs ~100 MB alpine. Verify `better-sqlite3` compatibility (needs glibc; distroless has it). [arch §Docker]
+- [ ] Pin better-sqlite3 binary path dynamically at build time — avoid hardcoded version in COPY path. [arch §Docker]
+- [ ] Consider `npm pack` for production deps — pack as tarball, extract in prod stage (avoids pnpm store overhead). [arch §Docker]
 - [ ] Docker Compose for local development (Sprint 6). [arch]
 - [ ] One-command dev setup script (Sprint 6). [arch]
 
