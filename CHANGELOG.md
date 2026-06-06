@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.57.0](https://github.com/apauldev/Yotara/compare/v0.56.0...v0.57.0) (2026-06-06)
+
+
+### Features
+
+* **docker:** optimize API image with multi-stage build, fix .dockerignore ([8a4c37f](https://github.com/apauldev/Yotara/commit/8a4c37ffd39ae0dee9ad0a3089aafb372499d77f))
+
 ## [0.56.0](https://github.com/apauldev/Yotara/compare/v0.55.1...v0.56.0) (2026-06-05)
 
 
