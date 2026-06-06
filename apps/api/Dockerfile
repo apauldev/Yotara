@@ -41,10 +41,9 @@ COPY packages/shared/package.json packages/shared/package.json
 
 RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
-# Copy the compiled native binary from the build stage
-# better-sqlite3's install script was skipped, so prebuilds aren't in .pnpm store
-COPY --from=build /app/node_modules/.pnpm/better-sqlite3@12.10.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node \
-    /app/node_modules/.pnpm/better-sqlite3@12.10.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node
+# Rebuild native module — runs prebuild-install which downloads a prebuilt binary
+# (no python/build-base needed; uses the workspace filter to find the dependency)
+RUN pnpm rebuild --filter @yotara/api better-sqlite3
 
 # Copy built artifacts (no source files)
 COPY --from=build /app/packages/shared/dist /app/packages/shared/dist
