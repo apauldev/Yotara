@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.57.1](https://github.com/apauldev/Yotara/compare/v0.57.0...v0.57.1) (2026-06-06)
+
+
+### Bug Fixes
+
+* **docker:** add architecture-agnostic fallback for native binary ([ae27834](https://github.com/apauldev/Yotara/commit/ae278340146098c40656c44797c906ad0acdf555))
+* **docker:** replace hardcoded better-sqlite3 path with dynamic pnpm rebuild ([c76d457](https://github.com/apauldev/Yotara/commit/c76d4577f0d1582da11657c378aa48443d4f78c6))
+
 ## [0.57.0](https://github.com/apauldev/Yotara/compare/v0.56.0...v0.57.0) (2026-06-06)
 
 
