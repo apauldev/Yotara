@@ -16,8 +16,12 @@ COPY packages/shared/package.json packages/shared/package.json
 # Skip lifecycle scripts during install (prepare script needs git + scripts/ dir)
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
-# Compile native modules
+# Compile native modules (build stage has python/build-base for node-gyp fallback)
 RUN pnpm rebuild --filter @yotara/api better-sqlite3
+
+# Save compiled binary to a version-independent path for the production stage
+RUN mkdir -p /app/native && \
+    cp "$(find /app/node_modules/.pnpm -path '*/better-sqlite3/build/Release/better_sqlite3.node' | head -1)" /app/native/
 
 COPY scripts scripts
 COPY packages/shared packages/shared
@@ -41,10 +45,18 @@ COPY packages/shared/package.json packages/shared/package.json
 
 RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
-# Copy the compiled native binary from the build stage
-# better-sqlite3's install script was skipped, so prebuilds aren't in .pnpm store
-COPY --from=build /app/node_modules/.pnpm/better-sqlite3@12.10.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node \
-    /app/node_modules/.pnpm/better-sqlite3@12.10.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node
+# Try to rebuild native module — prebuild-install works on amd64/arm64
+# On architectures without prebuilds (e.g. s390x), this fails and we use the
+# build-stage binary instead (compiled with python/build-base available).
+RUN pnpm rebuild --filter @yotara/api better-sqlite3 2>/dev/null; exit 0
+
+# Fallback: copy the build-stage binary if production rebuild didn't produce one
+COPY --from=build /app/native/better_sqlite3.node /tmp/
+RUN PKG_DIR="$(find /app/node_modules/.pnpm -path '*/node_modules/better-sqlite3' -type d | head -1)" && \
+    if [ ! -f "$PKG_DIR/build/Release/better_sqlite3.node" ]; then \
+      mkdir -p "$PKG_DIR/build/Release" && \
+      cp /tmp/better_sqlite3.node "$PKG_DIR/build/Release/better_sqlite3.node"; \
+    fi
 
 # Copy built artifacts (no source files)
 COPY --from=build /app/packages/shared/dist /app/packages/shared/dist
