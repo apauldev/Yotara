@@ -83,4 +83,17 @@ describe('LogService', () => {
     const logs = service.getLogs();
     expect(logs[0].data).toBe('[Unserializable Data]');
   });
+
+  it('should sanitize Error objects preserving key properties', () => {
+    const error = new Error('Test Error Message');
+    error.name = 'CustomError';
+
+    service.error('Logged Error', error);
+    const logs = service.getLogs();
+    const data = logs[0].data as any;
+
+    expect(data.name).toBe('CustomError');
+    expect(data.message).toBe('Test Error Message');
+    expect(data.stack).toBeDefined();
+  });
 });
