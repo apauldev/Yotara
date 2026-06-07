@@ -28,6 +28,7 @@ export class LogService {
    */
   error(message: string, error?: unknown, context?: string) {
     const sanitizedData = this.sanitizeData(error);
+    // eslint-disable-next-line no-console
     console.error(`[${context || 'Error'}] ${message}`, sanitizedData);
     this.addToBuffer('error', message, context, error);
   }

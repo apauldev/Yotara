@@ -7,6 +7,7 @@ import { catchError, combineLatest, finalize, of, switchMap, tap } from 'rxjs';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { TaskService } from '../../../core/services/task.service';
+import { LogService } from '../../../core/services/log.service';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
 import { PersonalTaskWorkspaceComponent } from '../components/personal-task-workspace.component';
@@ -190,6 +191,7 @@ import { PaginatedResponse, Task } from '@yotara/shared';
 })
 export class ArchivePageComponent {
   protected readonly taskService = inject(TaskService);
+  private readonly logService = inject(LogService);
   protected readonly faTrash = faTrash;
   protected readonly faBoxArchive = faBoxArchive;
   protected readonly deletingTask = signal(false);
@@ -226,7 +228,7 @@ export class ArchivePageComponent {
             }
           }),
           catchError((error: unknown) => {
-            console.error('Failed to load archive', error);
+            this.logService.error('Failed to load archive', error, 'ArchivePage');
             this.archiveError.set('Could not load archive right now.');
             return of({
               data: [],

@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { AuthService } from '@yotara/shared';
 import { AuthStateService } from './auth-state.service';
+import { LogService } from './log.service';
 
 describe('AuthStateService', () => {
   beforeEach(() => {
@@ -12,7 +13,7 @@ describe('AuthStateService', () => {
   });
 
   it('falls back to unauthenticated state when initial session refresh fails', async () => {
-    spyOn(console, 'error');
+    spyOn(TestBed.inject(LogService), 'error');
     spyOn(AuthService, 'getSession').and.rejectWith(new Error('network down'));
     spyOn(AuthService, 'getProfile');
 
@@ -26,7 +27,7 @@ describe('AuthStateService', () => {
     expect(service.user()).toBeNull();
     expect(AuthService.getSession).toHaveBeenCalledTimes(1);
     expect(AuthService.getProfile).not.toHaveBeenCalled();
-    expect(console.error).toHaveBeenCalled();
+    expect(TestBed.inject(LogService).error).toHaveBeenCalled();
   });
 
   it('returns the onboarding route for authenticated users who have not completed setup', async () => {

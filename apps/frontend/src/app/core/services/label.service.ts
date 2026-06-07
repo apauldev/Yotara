@@ -14,11 +14,13 @@ import {
 } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthStateService } from './auth-state.service';
+import { LogService } from './log.service';
 
 @Injectable({ providedIn: 'root' })
 export class LabelService {
   private readonly http = inject(HttpClient);
   private readonly authState = inject(AuthStateService);
+  private readonly logService = inject(LogService);
   private readonly baseUrl = environment.apiBaseUrl;
   private readonly refreshState = signal(0);
   private readonly loadingState = signal(false);
@@ -43,7 +45,7 @@ export class LabelService {
               return of([] as Label[]);
             }
 
-            console.error('Failed to load labels', error);
+            this.logService.error('Failed to load labels', error, 'LabelService');
             this.errorState.set('Could not load labels right now.');
             return of([] as Label[]);
           }),

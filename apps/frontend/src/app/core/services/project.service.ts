@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { CreateProjectDto, Project, Task, UpdateProjectDto } from '@yotara/shared';
+import { LogService } from './log.service';
 import {
   catchError,
   combineLatest,
@@ -19,6 +20,7 @@ import { AuthStateService } from './auth-state.service';
 export class ProjectService {
   private http = inject(HttpClient);
   private authState = inject(AuthStateService);
+  private logService = inject(LogService);
   private baseUrl = environment.apiBaseUrl;
   private refreshState = signal(0);
   private loadingState = signal(false);
@@ -50,7 +52,7 @@ export class ProjectService {
               return of([] as Project[]);
             }
 
-            console.error('Failed to load projects', error);
+            this.logService.error('Failed to load projects', error, 'ProjectService');
             this.errorState.set('Could not load your projects right now.');
             return of([] as Project[]);
           }),
@@ -109,7 +111,7 @@ export class ProjectService {
       this.refreshProjects();
       return created;
     } catch (error) {
-      console.error('Failed to create project', error);
+      this.logService.error('Failed to create project', error, 'ProjectService');
       this.errorState.set('Could not create your project right now.');
       throw error;
     } finally {
@@ -130,7 +132,7 @@ export class ProjectService {
       this.refreshProjects();
       return updated;
     } catch (error) {
-      console.error('Failed to update project', error);
+      this.logService.error('Failed to update project', error, 'ProjectService');
       this.errorState.set('Could not update your project right now.');
       throw error;
     } finally {
