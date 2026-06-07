@@ -6,6 +6,7 @@ import { LogService } from '../services/log.service';
 export const authGuard: CanActivateFn = async () => {
   const router = inject(Router);
   const authState = inject(AuthStateService);
+  const logService = inject(LogService);
 
   try {
     await authState.initialize();
@@ -14,7 +15,7 @@ export const authGuard: CanActivateFn = async () => {
       return true;
     }
   } catch (error) {
-    inject(LogService).error('Session validation error', error, 'AuthGuard');
+    logService.error('Session validation error', error, 'AuthGuard');
     return router.parseUrl('/login');
   }
 

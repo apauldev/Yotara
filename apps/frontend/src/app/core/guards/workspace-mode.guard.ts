@@ -14,6 +14,7 @@ function shouldDeferToAuthGuards(authState: AuthStateService) {
 export const personalModeMatchGuard: CanMatchFn = async (_route, segments) => {
   const router = inject(Router);
   const authState = inject(AuthStateService);
+  const logService = inject(LogService);
 
   try {
     await authState.initialize();
@@ -31,11 +32,7 @@ export const personalModeMatchGuard: CanMatchFn = async (_route, segments) => {
 
     return path === '/dashboard' ? false : router.parseUrl('/dashboard');
   } catch (error) {
-    inject(LogService).error(
-      'Personal mode match guard validation error',
-      error,
-      'WorkspaceModeGuard',
-    );
+    logService.error('Personal mode match guard validation error', error, 'WorkspaceModeGuard');
     return router.parseUrl('/login');
   }
 };
@@ -43,6 +40,7 @@ export const personalModeMatchGuard: CanMatchFn = async (_route, segments) => {
 export const teamModeMatchGuard: CanMatchFn = async (_route, _segments) => {
   const router = inject(Router);
   const authState = inject(AuthStateService);
+  const logService = inject(LogService);
 
   try {
     await authState.initialize();
@@ -59,7 +57,7 @@ export const teamModeMatchGuard: CanMatchFn = async (_route, _segments) => {
 
     return router.parseUrl('/inbox');
   } catch (error) {
-    inject(LogService).error('Team mode match guard validation error', error, 'WorkspaceModeGuard');
+    logService.error('Team mode match guard validation error', error, 'WorkspaceModeGuard');
     return router.parseUrl('/login');
   }
 };
