@@ -155,6 +155,14 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 | P4-12 | Expand/collapse toggle on parent task card for subtasks | ⬜ Not started | Low | Subtasks always visible below parent |
 | P4-13 | Recurring template separated from normal task lists | ⬜ Not started | Low | Template and instances currently mixed |
 | P4-14 | Activity log for past completions of recurring tasks | ⬜ Not started | Low | Show history of completed instances |
+| P4-15 | Task duplication | ⬜ Not started | Low | Copy a task (title, description, labels, project, priority) as new. Covers unplanned repeat work. |
+| P4-16 | Data import (JSON/CSV) | ⬜ Not started | Medium | Accept the same format export already generates. Migration path from Todoist/TickTick/Things. |
+| P4-17 | Drag-to-reorder tasks in list views | ⬜ Not started | Medium | `order` column exists in schema but never written. Users need visual priority beyond sort-by-date. |
+| P4-18 | Bulk actions (multi-select + action bar) | ⬜ Not started | Medium | Checkbox select on task cards → action bar for Move to Today/Upcoming, Add label, Archive. |
+| P4-19 | "Add to Today" from capture bar | ⬜ Not started | Low | Third button or `^today` inline command. Cuts 3-click triage flow to 1 click. |
+| P4-20 | Calendar view (monthly/weekly) | ⬜ Not started | Medium | Needs `GET /tasks?from=...&to=...` endpoint. Recurring needs "repeat on due date" first. |
+| P4-21 | Undo toast for archive/delete/complete | ⬜ Not started | Low | 5-second toast with undo. Data model already soft-delete; pure UI wrapper. |
+| P4-22 | Keyboard shortcuts | ⬜ Not started | Low | `N`=capture bar, `?`=reference, `J`/`K`=navigate, `Enter`=open, `1-4`=switch views. |
 
 ### Recommended Sprint Order
 
@@ -645,6 +653,14 @@ These features should be built as personal-mode improvements first, but they sho
 - Skip / snooze recurrence occurrences
 - Recurring subtasks
 - Multi-level subtask nesting
+- Task duplication (P4-15)
+- Data import (P4-16)
+- Drag-to-reorder tasks in list views (P4-17)
+- Bulk actions (P4-18)
+- "Add to Today" from capture bar (P4-19)
+- Calendar view (P4-20)
+- Undo toast (P4-21)
+- Keyboard shortcuts (P4-22)
 
 ---
 

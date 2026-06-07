@@ -470,6 +470,12 @@ Items in the "Explicit non-goals" subsection are deliberately not on the roadmap
 - [ ] Drag-and-drop reorder for subtasks inline. [ROADMAP P4 #39]
 - [ ] Recurring template separated from normal task lists. [ROADMAP P4 #45]
 - [ ] Quick-add recurring from title via smart action chip or inline command. [ROADMAP §Recurring]
+- [ ] Task duplication — copy an existing task (title, description, labels, project, priority) as a new task. The #1 unplanned feature for people who do similar tasks regularly; recurring tasks only help when you know in advance. [arch]
+- [ ] Data import — accept the same JSON/CSV format the export already generates. Migration blocker for users switching from Todoist/TickTick/Things. [arch]
+- [ ] Drag-to-reorder tasks in list views — the `order` column exists in the schema but is never written to besides default 0. Users need visual priority ordering ("do this first, then this, then this") beyond sort-by-date/priority. [arch]
+- [ ] Bulk actions — multi-select mode on task cards with action bar (Move to Today/Upcoming, Add label, Archive). Critical for inbox triage sessions where user captures 15 items and needs to process them in one pass. [arch]
+- [ ] "Add to Today" from capture bar — third button or `^today` inline command to skip the inbox→modal→status change cycle. Cuts a 3-click triage flow to 1 click. [arch]
+- [ ] Calendar view — monthly/weekly grid showing tasks by due date. Needs a `GET /tasks?from=...&to=...` endpoint. Recurring task materialization currently happens on-completion, not on-schedule, so recurring tasks won't render correctly in future months without first addressing the "repeat on due date" option above. Keep the view simple — read-only grid, click to open task, no drag-to-reschedule in v1. [arch]
 
 ### UX and design polish
 
@@ -480,9 +486,10 @@ Items in the "Explicit non-goals" subsection are deliberately not on the roadmap
 - [ ] Reduce visual weight of secondary shell controls so capture and navigation stay dominant. [ROADMAP §4]
 - [ ] Make personal/team mode switch communicate intent more clearly. [ROADMAP §4]
 - [ ] Improve search-result confidence with better surfaced match context. [ROADMAP §4]
-- [ ] Keyboard-first shortcuts — quick add, modal actions, search. [ROADMAP §4]
+- [ ] Keyboard-first shortcuts — `N` to focus capture bar, `?` for shortcut reference, `J`/`K` to navigate task list, `Enter` to open selected, `1-4` to switch views. Power users expect this; bounce risk without it. [ROADMAP §4] [arch]
 - [ ] Mobile density, touch targets, form sizing as first-class design constraints. [ROADMAP §4]
 - [ ] Clarify the mental model for done vs archived vs simple mode vs bucket. [ROADMAP §4]
+- [ ] Undo toast — 5-second toast with undo button on archive/delete/complete actions. Data model already supports soft-delete; this is purely a UI wrapper. Every modern task app has this. [arch]
 - [ ] `AsyncState` component — shared loading/error/empty/content helper. [fe §Shared UI]
 - [ ] Standardize button variants — primary/secondary/danger/ghost. [fe §Shared UI]
 - [ ] Card primitives — shared card shell for modal/list/promo. [fe §Shared UI]
