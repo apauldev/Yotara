@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.57.2](https://github.com/apauldev/Yotara/compare/v0.57.1...v0.57.2) (2026-06-08)
+
+
+### Bug Fixes
+
+* **frontend:** properly serialize Error objects in LogService ([c2a4f41](https://github.com/apauldev/Yotara/commit/c2a4f4157de4598875066672609d15fd988ff4b1))
+
+
+### Documentation
+
+* p2- no new information added in old doc ([8bd5ce6](https://github.com/apauldev/Yotara/commit/8bd5ce6c925f73fbeb8036e83a667254bbb42d70))
+* updated docs for more single mode ([0c12a78](https://github.com/apauldev/Yotara/commit/0c12a78fc0dff78f627e99ef4b7c5f2fdcd896aa))
+
+
+### Chores
+
+* **frontend:** suppress console.error lint warning in main.ts ([75a5bc7](https://github.com/apauldev/Yotara/commit/75a5bc7c85dcfe3617c32b30a8f5e836988a6203))
+
+
+### Refactoring
+
+* **frontend:** migrate console.error sites to LogService ([d135406](https://github.com/apauldev/Yotara/commit/d13540610c0a5612e1f1250b5ddd2820a1ee1c7a))
+* migrate console.error to LogService across frontend ([9a8b9cf](https://github.com/apauldev/Yotara/commit/9a8b9cfb6be5b16079389fbd3b9a5c49e01e4588))
+
 ## [0.57.1](https://github.com/apauldev/Yotara/compare/v0.57.0...v0.57.1) (2026-06-06)
 
 
