@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { CreateTaskDto, PaginatedResponse, Task, UpdateTaskDto } from '@yotara/shared';
+import { LogService } from './log.service';
 import {
   catchError,
   combineLatest,
@@ -33,6 +34,7 @@ export class TaskService {
   private authState = inject(AuthStateService);
   private labelService = inject(LabelService);
   private projectService = inject(ProjectService);
+  private logService = inject(LogService);
   private baseUrl = environment.apiBaseUrl;
   private refreshState = signal(0);
   private loadingState = signal(false);
@@ -81,7 +83,7 @@ export class TaskService {
               return of([] as Task[]);
             }
 
-            console.error('Failed to load tasks', error);
+            this.logService.error('Failed to load tasks', error, 'TaskService');
             this.errorState.set('Could not load your tasks right now.');
             return of([] as Task[]);
           }),
@@ -200,7 +202,7 @@ export class TaskService {
       this.projectService.refreshProjects();
       return createdTask;
     } catch (error) {
-      console.error('Failed to create task', error);
+      this.logService.error('Failed to create task', error, 'TaskService');
       this.errorState.set('Could not save your task right now.');
       throw error;
     } finally {
@@ -223,7 +225,7 @@ export class TaskService {
       this.projectService.refreshProjects();
       return updatedTask;
     } catch (error) {
-      console.error('Failed to update task', error);
+      this.logService.error('Failed to update task', error, 'TaskService');
       this.errorState.set('Could not update your task right now.');
       throw error;
     } finally {
@@ -245,7 +247,7 @@ export class TaskService {
       this.labelService.refreshLabels();
       this.projectService.refreshProjects();
     } catch (error) {
-      console.error('Failed to delete task', error);
+      this.logService.error('Failed to delete task', error, 'TaskService');
       this.errorState.set('Could not delete your task right now.');
       throw error;
     } finally {
@@ -263,7 +265,7 @@ export class TaskService {
       );
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch subtasks', error);
+      this.logService.error('Failed to fetch subtasks', error, 'TaskService');
       return [];
     }
   }

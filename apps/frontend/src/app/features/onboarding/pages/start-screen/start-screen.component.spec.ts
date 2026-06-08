@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { StartScreenComponent } from './start-screen.component';
 import { AuthStateService } from '../../../../core/services/auth-state.service';
+import { LogService } from '../../../../core/services/log.service';
 
 describe('StartScreenComponent', () => {
   let fixture: ComponentFixture<StartScreenComponent>;
@@ -94,7 +95,7 @@ describe('StartScreenComponent', () => {
   });
 
   it('shows an error when onboarding cannot be saved', async () => {
-    spyOn(console, 'error');
+    spyOn(TestBed.inject(LogService), 'error');
     authState.completeOnboarding.and.rejectWith(new Error('save failed'));
 
     await component.continue();
@@ -102,6 +103,6 @@ describe('StartScreenComponent', () => {
     expect(router.navigateByUrl).not.toHaveBeenCalled();
     expect(component.error()).toBe('Could not save your workspace mode');
     expect(component.loading()).toBeFalse();
-    expect(console.error).toHaveBeenCalled();
+    expect(TestBed.inject(LogService).error).toHaveBeenCalled();
   });
 });

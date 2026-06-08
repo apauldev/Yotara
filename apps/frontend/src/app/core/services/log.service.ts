@@ -28,6 +28,7 @@ export class LogService {
    */
   error(message: string, error?: unknown, context?: string) {
     const sanitizedData = this.sanitizeData(error);
+    // eslint-disable-next-line no-console
     console.error(`[${context || 'Error'}] ${message}`, sanitizedData);
     this.addToBuffer('error', message, context, error);
   }
@@ -105,6 +106,15 @@ export class LogService {
 
   private sanitizeData(data: unknown): unknown {
     if (!data) return undefined;
+
+    if (data instanceof Error) {
+      return {
+        ...data,
+        name: data.name,
+        message: data.message,
+        stack: data.stack,
+      };
+    }
 
     try {
       // Circular check / structure check

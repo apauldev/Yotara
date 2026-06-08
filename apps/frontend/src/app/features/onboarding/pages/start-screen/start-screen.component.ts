@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthStateService } from '../../../../core/services/auth-state.service';
+import { LogService } from '../../../../core/services/log.service';
 
 type WorkspaceType = 'personal' | 'team';
 
@@ -22,6 +23,7 @@ export class StartScreenComponent {
   private authState = inject(AuthStateService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private logService = inject(LogService);
 
   selectedWorkspace = signal<WorkspaceType>('team');
   loading = signal(false);
@@ -62,7 +64,7 @@ export class StartScreenComponent {
       localStorage.setItem('onboardingCompleted', 'true');
       await this.router.navigateByUrl(this.authState.getPostAuthRedirectUrl());
     } catch (error) {
-      console.error('Failed to complete onboarding', error);
+      this.logService.error('Failed to complete onboarding', error, 'StartScreen');
       this.error.set('Could not save your workspace mode');
     } finally {
       this.loading.set(false);

@@ -1,10 +1,12 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthStateService } from '../services/auth-state.service';
+import { LogService } from '../services/log.service';
 
 export const loginRedirectGuard: CanActivateFn = async () => {
   const router = inject(Router);
   const authState = inject(AuthStateService);
+  const logService = inject(LogService);
 
   try {
     await authState.initialize();
@@ -15,7 +17,7 @@ export const loginRedirectGuard: CanActivateFn = async () => {
 
     return router.parseUrl(authState.getPostAuthRedirectUrl());
   } catch (error) {
-    console.error('Login redirect guard validation error', error);
+    logService.error('Login redirect guard validation error', error, 'LoginRedirectGuard');
     return true;
   }
 };

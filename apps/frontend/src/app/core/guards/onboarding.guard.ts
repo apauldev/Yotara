@@ -1,10 +1,12 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthStateService } from '../services/auth-state.service';
+import { LogService } from '../services/log.service';
 
 export const onboardingGuard: CanActivateFn = async (_route, state) => {
   const router = inject(Router);
   const authState = inject(AuthStateService);
+  const logService = inject(LogService);
 
   try {
     await authState.initialize();
@@ -26,7 +28,7 @@ export const onboardingGuard: CanActivateFn = async (_route, state) => {
 
     return true;
   } catch (error) {
-    console.error('Onboarding guard validation error', error);
+    logService.error('Onboarding guard validation error', error, 'OnboardingGuard');
     return router.parseUrl('/login');
   }
 };

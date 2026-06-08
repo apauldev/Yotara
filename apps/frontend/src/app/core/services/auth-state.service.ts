@@ -1,5 +1,6 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { AuthService } from '@yotara/shared';
+import { LogService } from './log.service';
 
 type SessionResponse = Awaited<ReturnType<typeof AuthService.getSession>>;
 type SessionData = NonNullable<SessionResponse['data']>;
@@ -11,6 +12,7 @@ export class AuthStateService {
   private userState = signal<ProfileUser | null>(null);
   private initializedState = signal(false);
   private loadingState = signal(false);
+  private logService = inject(LogService);
   private initPromise: Promise<SessionResponse> | null = null;
 
   readonly session = this.sessionState.asReadonly();
@@ -41,7 +43,7 @@ export class AuthStateService {
     try {
       return await this.initPromise;
     } catch (error) {
-      console.error('Initial session refresh failed', error);
+      this.logService.error('Initial session refresh failed', error, 'AuthStateService');
       this.sessionState.set(null);
       this.userState.set(null);
       return null;

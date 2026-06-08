@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Project, Task } from '@yotara/shared';
 import { ProjectService } from '../../../../core/services/project.service';
 import { TaskService } from '../../../../core/services/task.service';
+import { LogService } from '../../../../core/services/log.service';
 import {
   SearchService,
   SearchTab,
@@ -47,6 +48,7 @@ export class SearchPageComponent {
   protected readonly taskService = inject(TaskService);
   private readonly projectService = inject(ProjectService);
   private readonly searchService = inject(SearchService);
+  private readonly logService = inject(LogService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -218,7 +220,7 @@ export class SearchPageComponent {
       this.archiveTruncated.set(results.truncated ?? false);
       this.archiveSearched.set(true);
     } catch (error) {
-      console.error('Failed to search archive', error);
+      this.logService.error('Failed to search archive', error, 'SearchPage');
     } finally {
       this.searchingArchive.set(false);
     }
