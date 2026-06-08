@@ -27,14 +27,13 @@ export async function buildApp() {
       return reply.code(error.statusCode).send({ message: error.message });
     }
 
-    // Fastify validation errors
-    if (error.validation) {
-      return reply.code(400).send({ message: error.message });
+    // Fastify validation errors and other known error shapes
+    const known = error as { validation?: unknown; statusCode?: number; message?: string };
+    if (known.validation) {
+      return reply.code(400).send({ message: known.message ?? 'Validation error' });
     }
-
-    // Rate limit errors, etc.
-    if (error.statusCode && error.statusCode < 500) {
-      return reply.code(error.statusCode).send({ message: error.message });
+    if (known.statusCode && known.statusCode < 500) {
+      return reply.code(known.statusCode).send({ message: known.message ?? 'Error' });
     }
 
     request.log.error(error);
