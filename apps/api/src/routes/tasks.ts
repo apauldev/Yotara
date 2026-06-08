@@ -200,6 +200,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
             description: 'Task updated',
             $ref: 'Task#',
           },
+          400: errorResponseSchema('Invalid update payload', 'Bad request'),
           401: errorResponseSchema('Authentication required', 'Unauthorized'),
           404: errorResponseSchema('Task was not found', 'Task not found'),
           500: errorResponseSchema('Task could not be updated', 'Failed to update task'),
