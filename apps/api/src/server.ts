@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { AppError } from './lib/app-error.js';
 import corsPlugin from './plugins/cors.js';
 import authBridgePlugin, { applyCorsHeaders } from './plugins/auth-bridge.js';
 import { registerOpenApi } from './docs/openapi.js';
@@ -19,6 +20,25 @@ export async function buildApp() {
   await app.register(authBridgePlugin);
   app.addHook('onRequest', async (request, reply) => {
     applyCorsHeaders(reply, request.headers.origin);
+  });
+
+  app.setErrorHandler((error, request, reply) => {
+    if (error instanceof AppError) {
+      return reply.code(error.statusCode).send({ message: error.message });
+    }
+
+    // Fastify validation errors
+    if (error.validation) {
+      return reply.code(400).send({ message: error.message });
+    }
+
+    // Rate limit errors, etc.
+    if (error.statusCode && error.statusCode < 500) {
+      return reply.code(error.statusCode).send({ message: error.message });
+    }
+
+    request.log.error(error);
+    return reply.code(500).send({ message: 'Internal server error' });
   });
 
   await app.register(healthRoutes);
