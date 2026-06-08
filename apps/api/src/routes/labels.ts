@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { CreateLabelDto, Label, UpdateLabelDto } from '@yotara/shared';
 import { authCookieSecurity, errorResponseSchema, withJsonResponse } from '../docs/openapi.js';
+import { UnauthorizedError } from '../lib/app-error.js';
 import { sendNotFound } from '../lib/api-errors.js';
 import requireAuthenticatedUser from '../plugins/auth-required.js';
 import {
@@ -34,7 +35,7 @@ export default async function labelRoutes(fastify: FastifyInstance) {
     async (request) => {
       const userId = request.userId;
       if (!userId) {
-        throw new Error('User ID not found in request');
+        throw new UnauthorizedError();
       }
       await seedDefaultLabelsForOwner(userId);
       return listLabelsForOwner(userId);
@@ -60,7 +61,7 @@ export default async function labelRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const userId = request.userId;
       if (!userId) {
-        throw new Error('User ID not found in request');
+        throw new UnauthorizedError();
       }
       const created = await createLabelForOwner(userId, request.body);
       return reply.code(201).send(created as Label);
@@ -90,7 +91,7 @@ export default async function labelRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const userId = request.userId;
       if (!userId) {
-        throw new Error('User ID not found in request');
+        throw new UnauthorizedError();
       }
       const updated = await updateLabelForOwner(userId, request.params.id, request.body);
       if (!updated) {
@@ -124,7 +125,7 @@ export default async function labelRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const userId = request.userId;
       if (!userId) {
-        throw new Error('User ID not found in request');
+        throw new UnauthorizedError();
       }
       const deleted = await deleteLabelForOwner(userId, request.params.id);
       if (!deleted) {

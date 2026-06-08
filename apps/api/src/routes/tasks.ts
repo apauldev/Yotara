@@ -6,6 +6,7 @@ import {
   idParamSchema,
   withJsonResponse,
 } from '../docs/openapi.js';
+import { UnauthorizedError } from '../lib/app-error.js';
 import { sendNotFound } from '../lib/api-errors.js';
 import requireAuthenticatedUser from '../plugins/auth-required.js';
 import { getProjectForOwner } from '../services/project-service.js';
@@ -76,7 +77,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       if (!request.userId) {
-        throw new Error('Authentication required');
+        throw new UnauthorizedError();
       }
 
       const userId = request.userId;
@@ -199,6 +200,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
             description: 'Task updated',
             $ref: 'Task#',
           },
+          400: errorResponseSchema('Invalid update payload', 'Bad request'),
           401: errorResponseSchema('Authentication required', 'Unauthorized'),
           404: errorResponseSchema('Task was not found', 'Task not found'),
           500: errorResponseSchema('Task could not be updated', 'Failed to update task'),

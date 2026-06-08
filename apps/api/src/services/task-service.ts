@@ -13,6 +13,7 @@ import { db } from '../db/client.js';
 import { tasks, users } from '../db/schema.js';
 import { DateTime } from 'luxon';
 import { nowIsoTimestamp } from '../lib/timestamps.js';
+import { AppError, BadRequestError, NotFoundError } from '../lib/app-error.js';
 import { getTaskLabels, syncTaskLabels } from './label-service.js';
 import { getDefaultProjectForOwner } from './project-service.js';
 
@@ -266,7 +267,7 @@ function advanceDueDate(from: string, rule: RecurrenceRule): string {
   }
 
   const result = next.toISO({ suppressMilliseconds: true });
-  if (!result) throw new Error('Failed to format date');
+  if (!result) throw new AppError(500, 'Failed to format date');
   return result;
 }
 
@@ -277,14 +278,16 @@ export async function createTaskForOwner(ownerId: string, body: CreateTaskDto) {
 
   if (payload.parentId) {
     if (payload.parentId === id) {
-      throw new Error('A task cannot be its own parent');
+      throw new BadRequestError('A task cannot be its own parent');
     }
     const parent = await getTaskForOwner(payload.parentId, ownerId);
     if (!parent) {
-      throw new Error('Parent task not found');
+      throw new NotFoundError('Parent task not found');
     }
     if (parent.parentId) {
-      throw new Error('Subtasks cannot have subtasks — only one level of nesting is supported');
+      throw new BadRequestError(
+        'Subtasks cannot have subtasks — only one level of nesting is supported',
+      );
     }
     if (!payload.projectId) {
       payload.projectId = parent.projectId ?? undefined;
@@ -383,7 +386,9 @@ export async function updateTaskForOwner(
   if (nextParentId && nextParentId !== current.parentId) {
     const newParent = await getTaskForOwner(nextParentId, ownerId);
     if (newParent?.parentId) {
-      throw new Error('Subtasks cannot have subtasks — only one level of nesting is supported');
+      throw new BadRequestError(
+        'Subtasks cannot have subtasks — only one level of nesting is supported',
+      );
     }
   }
   const nextRecurrenceRule =

@@ -369,14 +369,15 @@ This sprint order supersedes the P0/P1/P2/P3 priority lanes in `ROADMAP.md`. Tra
 
 **Why:** Closes the highest-leverage runtime anti-patterns (A1–A3, A7) and stops the docs from drifting again. Cheap, high-confidence work that compounds.
 
-- [ ] Migrate 26 `console.error` sites to `LogService`; add ESLint `no-console` rule
+- [x] Migrate 26 `console.error` sites to `LogService`; add ESLint `no-console` rule
 - [ ] Replace `throw new Error('string')` in services with typed errors; add Fastify `setErrorHandler`
 - [ ] Fix `as any` on `request.query.status` at the trust boundary
 - [ ] Add `PreferencesStore` (or extend `ThemeService`'s pattern) and migrate the three `localStorage` magic-string keys
 - [ ] Replace the 4 problematic `setTimeout` UI hacks with signal-driven state
 - [ ] Fix the UTC vs local timezone bug; add `?tz=` to per-view queries
 - [x] Add a `no-restricted-syntax` ESLint rule against `as any` (warn-only, applied to all `.ts` files)
-- [ ] Add "Superseded" notices to `ROADMAP.md` and `docs/project-plan.md`; delete `apps/frontend/TODO.md` and `apps/api/TODO.md`; create initial GitHub Issues from the surviving priorities
+- [x] Add "Superseded" notices to `ROADMAP.md`, `docs/project-plan.md`, `apps/frontend/TODO.md`, and `apps/api/TODO.md`
+- [ ] Delete `apps/frontend/TODO.md` and `apps/api/TODO.md`; create initial GitHub Issues from the surviving priorities
 - [ ] Write `docs/RELEASING.md` (checklist for what to verify before cutting a release, since the release script is automated but the verification is not)
 
 ### Sprint 1: Push filtering to the API (highest impact)
