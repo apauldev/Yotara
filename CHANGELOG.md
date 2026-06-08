@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.58.0](https://github.com/apauldev/Yotara/compare/v0.57.2...v0.58.0) (2026-06-08)
+
+
+### Features
+
+* **api:** replace bare `throw new Error` with typed error hierarchy ([61ed6a7](https://github.com/apauldev/Yotara/commit/61ed6a7082a46c3242c0d8273b14b38fff1c29a4))
+
+
+### Bug Fixes
+
+* **api:** declare 400 response in PATCH /tasks/:id schema ([e27a996](https://github.com/apauldev/Yotara/commit/e27a9967192a2a4898a9503eec9365084c55a67a))
+* **api:** narrow unknown error type in setErrorHandler for Fastify v5 ([3f8208e](https://github.com/apauldev/Yotara/commit/3f8208ecd0addd9b87ea4747ee8e72b69fc79f5e))
+
+
+### Documentation
+
+* **ARCHITECTURE:** mark Sprint 0 items complete in checklist ([3370480](https://github.com/apauldev/Yotara/commit/337048041b7e5fa560f34db80b0b0b150106b57e))
+
 ## [0.57.2](https://github.com/apauldev/Yotara/compare/v0.57.1...v0.57.2) (2026-06-08)
 
 
