@@ -4,11 +4,13 @@ import { provideMarkdown } from 'ngx-markdown';
 import { PersonalTaskCardComponent } from './personal-task-card.component';
 import { Task } from '@yotara/shared';
 import { TaskService } from '../../../core/services/task.service';
+import { PreferencesStore } from '../../../core/services/preferences-store.service';
 
 describe('PersonalTaskCardComponent', () => {
   let component: PersonalTaskCardComponent;
   let fixture: ComponentFixture<PersonalTaskCardComponent>;
   let taskServiceSpy: jasmine.SpyObj<TaskService>;
+  let preferences: PreferencesStore;
 
   const mockTask: Task = {
     id: 'task-1',
@@ -36,6 +38,7 @@ describe('PersonalTaskCardComponent', () => {
 
     fixture = TestBed.createComponent(PersonalTaskCardComponent);
     component = fixture.componentInstance;
+    preferences = TestBed.inject(PreferencesStore);
   });
 
   describe('Component initialization', () => {
@@ -309,7 +312,7 @@ describe('PersonalTaskCardComponent', () => {
     });
 
     it('should skip the confirm dialog when localStorage skip flag is set', async () => {
-      localStorage.setItem('yotara_skipCompleteConfirm', 'true');
+      preferences.setSkipCompleteConfirm(true);
       component.task = mockTask;
       fixture.detectChanges();
 
@@ -322,7 +325,7 @@ describe('PersonalTaskCardComponent', () => {
     });
 
     it('should save skip preference to localStorage when checkbox is checked and confirmed', async () => {
-      localStorage.clear();
+      preferences.setSkipCompleteConfirm(false);
       component.task = mockTask;
       fixture.detectChanges();
 
@@ -340,12 +343,12 @@ describe('PersonalTaskCardComponent', () => {
       await confirmButton.nativeElement.click();
       fixture.detectChanges();
 
-      expect(localStorage.getItem('yotara_skipCompleteConfirm')).toBe('true');
+      expect(preferences.getSkipCompleteConfirm()).toBeTrue();
       expect(taskServiceSpy.updateTask).toHaveBeenCalledWith('task-1', { completed: true });
     });
 
     it('should not save skip preference when checkbox is unchecked and confirmed', async () => {
-      localStorage.clear();
+      preferences.setSkipCompleteConfirm(false);
       component.task = mockTask;
       fixture.detectChanges();
 
@@ -357,7 +360,7 @@ describe('PersonalTaskCardComponent', () => {
       await confirmButton.nativeElement.click();
       fixture.detectChanges();
 
-      expect(localStorage.getItem('yotara_skipCompleteConfirm')).toBeNull();
+      expect(preferences.getSkipCompleteConfirm()).toBeFalse();
     });
   });
 

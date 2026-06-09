@@ -3,12 +3,14 @@ import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { StartScreenComponent } from './start-screen.component';
 import { AuthStateService } from '../../../../core/services/auth-state.service';
 import { LogService } from '../../../../core/services/log.service';
+import { PreferencesStore } from '../../../../core/services/preferences-store.service';
 
 describe('StartScreenComponent', () => {
   let fixture: ComponentFixture<StartScreenComponent>;
   let component: StartScreenComponent;
   let authState: jasmine.SpyObj<AuthStateService>;
   let router: jasmine.SpyObj<Router>;
+  let preferences: PreferencesStore;
   let activatedRoute: { snapshot: { queryParamMap: ReturnType<typeof convertToParamMap> } };
 
   beforeEach(async () => {
@@ -34,6 +36,7 @@ describe('StartScreenComponent', () => {
 
     fixture = TestBed.createComponent(StartScreenComponent);
     component = fixture.componentInstance;
+    preferences = TestBed.inject(PreferencesStore);
     fixture.detectChanges();
   });
 
@@ -87,8 +90,8 @@ describe('StartScreenComponent', () => {
     await component.continue();
 
     expect(authState.completeOnboarding).toHaveBeenCalledOnceWith('personal');
-    expect(localStorage.getItem('workspaceType')).toBe('personal');
-    expect(localStorage.getItem('onboardingCompleted')).toBe('true');
+    expect(preferences.getWorkspaceType()).toBe('personal');
+    expect(preferences.isOnboardingCompleted()).toBeTrue();
     expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/inbox');
     expect(component.error()).toBe('');
     expect(component.loading()).toBeFalse();
