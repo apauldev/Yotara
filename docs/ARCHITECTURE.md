@@ -370,8 +370,8 @@ This sprint order supersedes the P0/P1/P2/P3 priority lanes in `ROADMAP.md`. Tra
 **Why:** Closes the highest-leverage runtime anti-patterns (A1–A3, A7) and stops the docs from drifting again. Cheap, high-confidence work that compounds.
 
 - [x] Migrate 26 `console.error` sites to `LogService`; add ESLint `no-console` rule
-- [ ] Replace `throw new Error('string')` in services with typed errors; add Fastify `setErrorHandler`
-- [ ] Fix `as any` on `request.query.status` at the trust boundary
+- [x] Replace `throw new Error('string')` in services with typed errors; add Fastify `setErrorHandler`
+- [x] Fix `as any` on `request.query.status` at the trust boundary
 - [ ] Add `PreferencesStore` (or extend `ThemeService`'s pattern) and migrate the three `localStorage` magic-string keys
 - [ ] Replace the 4 problematic `setTimeout` UI hacks with signal-driven state
 - [ ] Fix the UTC vs local timezone bug; add `?tz=` to per-view queries

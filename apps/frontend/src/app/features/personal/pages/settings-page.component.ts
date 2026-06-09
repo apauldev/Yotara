@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { APP_VERSION } from '../../../core/constants/version';
+import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { ThemeService, Theme } from '../../../core/services/theme.service';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { ChangePasswordModalComponent } from '../components/change-password-modal.component';
@@ -704,16 +705,11 @@ export class SettingsPageComponent {
   protected readonly isLoggingOut = signal(false);
   protected readonly isSavingArchiveCleanup = signal(false);
   protected readonly isSavingCaptureBehavior = signal(false);
-  private readonly SKIP_COMPLETE_KEY = 'yotara_skipCompleteConfirm';
+  private readonly preferences = inject(PreferencesStore);
 
-  protected readonly skipCompleteConfirm = signal(
-    localStorage.getItem('yotara_skipCompleteConfirm') === 'true',
-  );
-  private readonly INSIGHT_DISMISSED_KEY = 'yotara_insightDismissed';
+  protected readonly skipCompleteConfirm = signal(this.preferences.getSkipCompleteConfirm());
 
-  protected readonly showInsights = signal(
-    localStorage.getItem('yotara_insightDismissed') !== 'true',
-  );
+  protected readonly showInsights = signal(!this.preferences.isInsightDismissed());
 
   protected readonly exportFormat = signal<'csv' | 'json'>('csv');
 
@@ -934,13 +930,13 @@ export class SettingsPageComponent {
   protected onSkipCompleteConfirmChange(event: Event) {
     const checked = (event.target as HTMLInputElement).checked;
     this.skipCompleteConfirm.set(checked);
-    localStorage.setItem(this.SKIP_COMPLETE_KEY, checked ? 'true' : 'false');
+    this.preferences.setSkipCompleteConfirm(checked);
   }
 
   protected onShowInsightsChange(event: Event) {
     const checked = (event.target as HTMLInputElement).checked;
     this.showInsights.set(checked);
-    localStorage.setItem(this.INSIGHT_DISMISSED_KEY, checked ? 'false' : 'true');
+    this.preferences.setInsightDismissed(!checked);
   }
 
   protected async onLogout() {
