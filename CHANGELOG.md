@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.58.2](https://github.com/apauldev/Yotara/compare/v0.58.1...v0.58.2) (2026-06-09)
+
+
+### Refactoring
+
+* **frontend:** centralize localStorage access in PreferencesStore ([972d160](https://github.com/apauldev/Yotara/commit/972d1606e6ea20241964443ff19068de25767905))
+
 ## [0.58.1](https://github.com/apauldev/Yotara/compare/v0.58.0...v0.58.1) (2026-06-09)
 
 
