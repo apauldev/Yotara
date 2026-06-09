@@ -5,6 +5,7 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faBoxArchive, faRotate, faRotateLeft, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { MarkdownComponent } from 'ngx-markdown';
 import { LabelService } from '../../../core/services/label.service';
+import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { TaskService } from '../../../core/services/task.service';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 import { parseCalendarDate } from '../../../shared/utils/timestamps';
@@ -545,7 +546,7 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
 export class PersonalTaskCardComponent {
   private readonly taskService = inject(TaskService);
   private readonly labelService = inject(LabelService);
-  private readonly SKIP_COMPLETE_KEY = 'yotara_skipCompleteConfirm';
+  private readonly preferences = inject(PreferencesStore);
 
   protected readonly completeConfirmOpen = signal(false);
   protected readonly completing = signal(false);
@@ -653,7 +654,7 @@ export class PersonalTaskCardComponent {
   requestComplete(event: MouseEvent) {
     event.stopPropagation();
 
-    if (localStorage.getItem(this.SKIP_COMPLETE_KEY) === 'true') {
+    if (this.preferences.getSkipCompleteConfirm()) {
       this.completeTask();
       return;
     }
@@ -684,7 +685,7 @@ export class PersonalTaskCardComponent {
       this.completeConfirmOpen.set(false);
 
       if (this.dontShowAgain) {
-        localStorage.setItem(this.SKIP_COMPLETE_KEY, 'true');
+        this.preferences.setSkipCompleteConfirm(true);
       }
     } finally {
       this.completing.set(false);

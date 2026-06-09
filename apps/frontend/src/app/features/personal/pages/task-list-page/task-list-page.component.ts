@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal, viewChild, OnInit, effect } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Task } from '@yotara/shared';
+import { PreferencesStore } from '../../../../core/services/preferences-store.service';
 import { ProjectService } from '../../../../core/services/project.service';
 import {
   TaskService,
@@ -59,6 +60,7 @@ export class TaskListPageComponent implements OnInit {
   protected readonly authState = inject(AuthStateService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly preferences = inject(PreferencesStore);
 
   protected readonly faPlus = faPlus;
   protected readonly faSun = faSun;
@@ -201,10 +203,7 @@ export class TaskListPageComponent implements OnInit {
   protected readonly activeInsightType = signal<InsightType>(
     Math.random() > 0.5 ? 'clarity' : 'journal',
   );
-  private readonly INSIGHT_DISMISSED_KEY = 'yotara_insightDismissed';
-  protected readonly insightPanelVisible = signal(
-    localStorage.getItem('yotara_insightDismissed') !== 'true',
-  );
+  protected readonly insightPanelVisible = signal(!this.preferences.isInsightDismissed());
   private readonly statusService = inject(StatusService);
 
   protected readonly insightPrompt = computed(() =>
@@ -279,7 +278,7 @@ export class TaskListPageComponent implements OnInit {
 
   protected dismissInsight() {
     this.insightPanelVisible.set(false);
-    localStorage.setItem(this.INSIGHT_DISMISSED_KEY, 'true');
+    this.preferences.setInsightDismissed(true);
     this.statusService.show('Insights can be re-enabled in Settings.', 'info', 4000);
   }
 
