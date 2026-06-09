@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.58.1](https://github.com/apauldev/Yotara/compare/v0.58.0...v0.58.1) (2026-06-09)
+
+
+### Bug Fixes
+
+* **api:** replace as any cast on status query param with TaskStatus type ([86ba1c1](https://github.com/apauldev/Yotara/commit/86ba1c1f9ce52f2936ba32655c8759c41b2e3fc7))
+
 ## [0.58.0](https://github.com/apauldev/Yotara/compare/v0.57.2...v0.58.0) (2026-06-08)
 
 
