@@ -1,5 +1,11 @@
 import type { FastifyInstance } from 'fastify';
-import type { CreateTaskDto, PaginatedResponse, Task, UpdateTaskDto } from '@yotara/shared';
+import type {
+  CreateTaskDto,
+  PaginatedResponse,
+  Task,
+  TaskStatus,
+  UpdateTaskDto,
+} from '@yotara/shared';
 import {
   authCookieSecurity,
   errorResponseSchema,
@@ -41,7 +47,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       includeSubtasks?: boolean;
       parentId?: string;
       export?: boolean;
-      status?: string;
+      status?: TaskStatus;
       completed?: string;
       overdue?: string;
     };
@@ -88,7 +94,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       const parentId = request.query.parentId;
 
       const filters = {
-        status: request.query.status as any,
+        status: request.query.status,
         completed:
           request.query.completed === 'true'
             ? true
