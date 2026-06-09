@@ -9,6 +9,7 @@ import { ProjectService } from '../../../core/services/project.service';
 import { LabelService } from '../../../core/services/label.service';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { ThemeService } from '../../../core/services/theme.service';
+import { PreferencesStore } from '../../../core/services/preferences-store.service';
 
 const mockProjects: Project[] = [
   {
@@ -123,6 +124,7 @@ function findButtonByText(
 describe('SettingsPageComponent', () => {
   let fixture: ComponentFixture<SettingsPageComponent>;
   let comp: any;
+  let preferences: PreferencesStore;
 
   beforeEach(() => {
     localStorage.clear();
@@ -186,6 +188,7 @@ describe('SettingsPageComponent', () => {
 
     fixture = TestBed.createComponent(SettingsPageComponent);
     comp = fixture.componentInstance as any;
+    preferences = TestBed.inject(PreferencesStore);
     fixture.detectChanges();
   });
 
@@ -441,7 +444,7 @@ describe('SettingsPageComponent', () => {
     });
 
     it('reflects localStorage key when already set before component creation', () => {
-      localStorage.setItem('yotara_skipCompleteConfirm', 'true');
+      preferences.setSkipCompleteConfirm(true);
       fixture = TestBed.createComponent(SettingsPageComponent);
       comp = fixture.componentInstance as any;
       fixture.detectChanges();
@@ -453,12 +456,12 @@ describe('SettingsPageComponent', () => {
       getCompleteConfirmToggle()?.click();
       fixture.detectChanges();
 
-      expect(localStorage.getItem('yotara_skipCompleteConfirm')).toBe('true');
+      expect(preferences.getSkipCompleteConfirm()).toBeTrue();
       expect(getCompleteConfirmToggle()?.checked).toBeTrue();
     });
 
     it('removes from localStorage when toggled off', () => {
-      localStorage.setItem('yotara_skipCompleteConfirm', 'true');
+      preferences.setSkipCompleteConfirm(true);
       fixture = TestBed.createComponent(SettingsPageComponent);
       comp = fixture.componentInstance as any;
       fixture.detectChanges();
@@ -466,7 +469,7 @@ describe('SettingsPageComponent', () => {
       getCompleteConfirmToggle()?.click();
       fixture.detectChanges();
 
-      expect(localStorage.getItem('yotara_skipCompleteConfirm')).toBe('false');
+      expect(preferences.getSkipCompleteConfirm()).toBeFalse();
       expect(getCompleteConfirmToggle()?.checked).toBeFalse();
     });
   });
