@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.58.3](https://github.com/apauldev/Yotara/compare/v0.58.2...v0.58.3) (2026-06-09)
+
+
+### Tests
+
+* **frontend:** update specs to use PreferencesStore instead of direct localStorage ([1072907](https://github.com/apauldev/Yotara/commit/107290765d080b13e14204726d4f8e914092f9a7))
+
 ## [0.58.2](https://github.com/apauldev/Yotara/compare/v0.58.1...v0.58.2) (2026-06-09)
 
 
