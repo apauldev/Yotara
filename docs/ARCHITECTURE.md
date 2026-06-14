@@ -361,7 +361,7 @@ This eliminates ~20 lines per service.
 
 ---
 
-## Recommended roadmap (7 sprints, ordered by impact)
+## Recommended roadmap (8 sprints, ordered by impact)
 
 This sprint order supersedes the P0/P1/P2/P3 priority lanes in `ROADMAP.md`. Track progress in GitHub Issues; close a sprint by closing its issue.
 
@@ -400,6 +400,37 @@ This sprint order supersedes the P0/P1/P2/P3 priority lanes in `ROADMAP.md`. Tra
 - [ ] Add `completedSince` query param
 - [ ] Verify all status filters work correctly with integration tests (replace the "verify" checkboxes in the API TODO with real tests)
 - [ ] Tighten input validation on the new query params (closes A3)
+
+### Sprint 1a: Remove setTimeout UI hacks (completed)
+
+**Why:** 4 `setTimeout` calls were used as workarounds for change-detection timing, async close delays, and scrolling. These are fragile and untestable.
+
+**Changes:**
+- [x] **Change password modal** — replaced `setTimeout(() => onClose(), 2000)` with `effect()` + `onCleanup()` for auto-closing after success
+- [x] **Loading interceptor** — removed `setTimeout(250)` minimum-display hack; replaced with CSS leave animation (250ms fade-out) on `app-status` component
+- [x] **Capture bar** — replaced `setTimeout(0)` cursor positioning with `requestAnimationFrame`
+- [x] **Labels page** — replaced `setTimeout(50)` + `document.querySelector('.task-pane')` with `viewChild('taskPane')` + `requestAnimationFrame` for smooth scroll
+
+### Sprint 1b: Forgot password / password reset flow
+
+**Why:** The "Forgot password?" link on the login screen is a dead button. Users who forget their password are locked out. The DB schema already has a `verifications` table (required by Better Auth for reset tokens), and the auth-bridge proxies `/auth/*` to Better Auth — so the backend plumbing is half-ready.
+
+**Backend tasks:**
+- [ ] Configure Better Auth `forgetPassword` in `apps/api/src/lib/auth.ts` — add `forgetPassword` block with `sendResetPassword` callback
+- [ ] Add email sending infrastructure (Resend or SMTP via nodemailer)
+- [ ] Add `RESEND_API_KEY` (or SMTP env vars) to `apps/api/.env.example` and wrangler config
+- [ ] Add `FORGET_PASSWORD_CALLBACK_URL` env var — the frontend URL where reset links point
+
+**Shared package tasks:**
+- [ ] Add `forgetPassword(email)` and `resetPassword(token, newPassword)` methods to `AuthService` in `packages/shared/src/auth.ts`
+
+**Frontend tasks:**
+- [ ] Add `forgetPassword()` and `resetPassword()` methods to `AuthStateService`
+- [ ] Wire up the "Forgot password?" button on the login page — open a modal or navigate to a `/forgot-password` route with an email input form
+- [ ] Create a "Check your email" confirmation screen after submitting the forgot-password form
+- [ ] Create a `/reset-password` route with a token-based form (new password + confirm) — reads token from query param
+- [ ] Add success/error handling for both flows (toast on success, inline error on failure)
+- [ ] Add route guards to redirect authenticated users away from reset-password pages
 
 ### Sprint 2: Clean up TaskService
 
