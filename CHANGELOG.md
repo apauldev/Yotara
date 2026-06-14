@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.58.4](https://github.com/apauldev/Yotara/compare/v0.58.3...v0.58.4) (2026-06-14)
+
+
+### Bug Fixes
+
+* **frontend:** preserve 250ms minimum loading-bar display interval ([2753145](https://github.com/apauldev/Yotara/commit/275314571caa78fd98e73811439e13425366fad2))
+* **frontend:** replace 4 setTimeout UI hacks with signal-driven state ([4a29052](https://github.com/apauldev/Yotara/commit/4a2905275d9cb07f27794ae2f8ec6e3decc92cc1))
+
+
+### Documentation
+
+* add Sprint 1a (setTimeout removal) to roadmap ([994dcac](https://github.com/apauldev/Yotara/commit/994dcacd9ab39f6af9892d6d65e7568adcf28da0))
+
 ## [0.58.3](https://github.com/apauldev/Yotara/compare/v0.58.2...v0.58.3) (2026-06-09)
 
 
