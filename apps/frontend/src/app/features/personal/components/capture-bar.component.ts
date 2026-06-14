@@ -477,13 +477,15 @@ export class CaptureBarComponent {
 
     if (lastHash !== -1) {
       const newValue = value.substring(0, lastHash) + '#' + labelName + ' ' + value.substring(pos);
+      const newPos = lastHash + labelName.length + 2;
       this.title.set(newValue);
       this.activeTagSearch.set(null);
 
-      setTimeout(() => {
-        const newPos = lastHash + labelName.length + 2;
-        input.setSelectionRange(newPos, newPos);
-        input.focus();
+      requestAnimationFrame(() => {
+        const el = this.captureInput()?.nativeElement;
+        if (!el) return;
+        el.setSelectionRange(newPos, newPos);
+        el.focus();
       });
     }
   }

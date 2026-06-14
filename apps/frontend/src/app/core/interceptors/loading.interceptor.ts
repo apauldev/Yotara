@@ -16,10 +16,5 @@ export const loadingInterceptor: HttpInterceptorFn = (req, next) => {
 
   statusService.startLoading();
 
-  return next(req).pipe(
-    finalize(() => {
-      // Small timeout to prevent flickering on ultra-fast cached requests
-      setTimeout(() => statusService.stopLoading(), 250);
-    }),
-  );
+  return next(req).pipe(finalize(() => statusService.stopLoading()));
 };

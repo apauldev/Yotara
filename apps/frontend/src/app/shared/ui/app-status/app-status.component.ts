@@ -17,6 +17,9 @@ import { StatusService } from '../../../core/services/status.service';
   templateUrl: './app-status.component.html',
   styleUrl: './app-status.component.css',
   animations: [
+    trigger('loadingBar', [
+      transition(':leave', [animate('250ms ease-out', style({ opacity: 0 }))]),
+    ]),
     trigger('toastAnimation', [
       transition(':enter', [
         style({ opacity: 0, transform: 'translateY(-10px) scale(0.95)' }),
