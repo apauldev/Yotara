@@ -14,7 +14,19 @@ export const loadingInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req);
   }
 
+  const MIN_DISPLAY_MS = 250;
+  const startedAt = performance.now();
   statusService.startLoading();
 
-  return next(req).pipe(finalize(() => statusService.stopLoading()));
+  return next(req).pipe(
+    finalize(() => {
+      const elapsed = performance.now() - startedAt;
+      const remaining = Math.max(0, MIN_DISPLAY_MS - elapsed);
+      if (remaining > 0) {
+        setTimeout(() => statusService.stopLoading(), remaining);
+      } else {
+        statusService.stopLoading();
+      }
+    }),
+  );
 };
