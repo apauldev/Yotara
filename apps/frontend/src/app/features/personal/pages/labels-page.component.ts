@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, signal, viewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
@@ -39,6 +39,7 @@ export class LabelsPageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly workspace = viewChild(PersonalTaskWorkspaceComponent);
+  protected readonly taskPane = viewChild<ElementRef<HTMLElement>>('taskPane');
 
   protected readonly labels = this.labelService.labels;
   protected readonly labelModalOpen = signal(false);
@@ -72,10 +73,9 @@ export class LabelsPageComponent {
 
     // On mobile, scroll to the task pane so the user sees the filtered tasks
     if (window.innerWidth <= 1200) {
-      setTimeout(() => {
-        const taskPane = document.querySelector('.task-pane');
-        taskPane?.scrollIntoView({ behavior: 'smooth' });
-      }, 50);
+      requestAnimationFrame(() => {
+        this.taskPane()?.nativeElement.scrollIntoView({ behavior: 'smooth' });
+      });
     }
   }
 

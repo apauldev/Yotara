@@ -1,5 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { ModalComponent } from '../../../shared/ui/modal/modal.component';
@@ -370,6 +379,13 @@ export class ChangePasswordModalComponent {
     );
   });
 
+  private readonly _autoClose = effect((onCleanup) => {
+    if (this.success()) {
+      const timer = setTimeout(() => this.onClose(), 2000);
+      onCleanup(() => clearTimeout(timer));
+    }
+  });
+
   protected onClose() {
     if (this.loading()) return;
     this.reset();
@@ -392,7 +408,6 @@ export class ChangePasswordModalComponent {
         this.error.set(result.error.message || 'Failed to change password.');
       } else {
         this.success.set(true);
-        setTimeout(() => this.onClose(), 2000);
       }
     } catch (e) {
       const message = e instanceof Error ? e.message : 'An unexpected error occurred.';
