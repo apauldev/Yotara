@@ -118,6 +118,20 @@ import { Task, Project, Label } from '@yotara/shared';
             />
           </label>
 
+          <label class="settings-item settings-toggle">
+            <div class="settings-item-copy">
+              <strong>Show suggestions</strong>
+              <span>Display helpful tooltips across the app to guide you through features.</span>
+            </div>
+            <input
+              type="checkbox"
+              class="toggle-input"
+              [checked]="suggestionsEnabled()"
+              (change)="onSuggestionsEnabledChange($event)"
+              aria-label="Toggle suggestions tooltips"
+            />
+          </label>
+
           <div class="settings-item settings-item-disabled">
             <div class="settings-item-copy">
               <strong>Desktop notifications</strong>
@@ -708,6 +722,7 @@ export class SettingsPageComponent {
   private readonly preferences = inject(PreferencesStore);
 
   protected readonly skipCompleteConfirm = signal(this.preferences.getSkipCompleteConfirm());
+  protected readonly suggestionsEnabled = signal(this.preferences.areSuggestionsEnabled());
 
   protected readonly showInsights = signal(!this.preferences.isInsightDismissed());
 
@@ -937,6 +952,15 @@ export class SettingsPageComponent {
     const checked = (event.target as HTMLInputElement).checked;
     this.showInsights.set(checked);
     this.preferences.setInsightDismissed(!checked);
+  }
+
+  protected onSuggestionsEnabledChange(event: Event) {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.suggestionsEnabled.set(checked);
+    this.preferences.setSuggestionsEnabled(checked);
+    if (checked) {
+      this.preferences.resetAllSuggestions();
+    }
   }
 
   protected async onLogout() {
