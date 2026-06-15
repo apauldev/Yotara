@@ -71,8 +71,8 @@ APP_BASE_URL=https://your-domain.com/api
 TRUSTED_ORIGINS=https://your-domain.com
 ```
 
-The compose file uses `${VAR:-default}` interpolation, so a `.env` file at the
-project root supplies the replacement values.
+Docker Compose reads the root `.env` file automatically to supply
+`${VAR:-default}` interpolation values in the compose file.
 
 Alternatively, create a `docker-compose.override.yml` to add or replace
 environment variables, ports, or volumes without modifying the base file:

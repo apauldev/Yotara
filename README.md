@@ -72,7 +72,6 @@ Yotara is a self-hosted task manager built for people who want structure without
 ```bash
 git clone https://github.com/apauldev/Yotara.git
 cd Yotara
-cp .env.example .env
 pnpm install
 pnpm dev
 ```
@@ -81,6 +80,9 @@ This starts:
 - **Frontend:** http://localhost:4200
 - **API:** http://localhost:3000
 - **Drizzle Studio:** https://local.drizzle.studio
+
+Environment variables (`BETTER_AUTH_SECRET`, `DATABASE_URL`, etc.) can be
+set in your shell or sourced from [`apps/api/.env.example`](./apps/api/.env.example).
 
 For Docker deployment, see [DOCKER.md](./DOCKER.md).
 

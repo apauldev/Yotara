@@ -157,11 +157,13 @@ Default local database path:
 ```bash
 git clone https://github.com/apauldev/Yotara.git
 cd Yotara
-cp .env.example .env
 pnpm install
 ```
 
 The root `prepare` script installs Husky Git hooks automatically during install.
+
+Environment variables (`BETTER_AUTH_SECRET`, `DATABASE_URL`, etc.) can be
+set in your shell or sourced from [`apps/api/.env.example`](./apps/api/.env.example).
 
 ## Running Locally
 
