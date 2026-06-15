@@ -19,7 +19,7 @@ Yotara is a TypeScript monorepo with:
 
 The Angular app contains:
 
-- Login and sign-up flow with email verification
+- Login and sign-up flow
 - Auth guard for protected routes
 - Onboarding mode picker (personal and team)
 - Personal shell with task list, projects, labels, archive, search, and settings
