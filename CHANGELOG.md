@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.59.0](https://github.com/apauldev/Yotara/compare/v0.58.4...v0.59.0) (2026-06-15)
+
+
+### Features
+
+* **frontend:** add post-login tip popup with 30 productivity tips ([40a3636](https://github.com/apauldev/Yotara/commit/40a3636065ed6ac463827f92f842837648cfc6fa))
+
 ## [0.58.4](https://github.com/apauldev/Yotara/compare/v0.58.3...v0.58.4) (2026-06-14)
 
 
