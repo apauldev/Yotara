@@ -1,76 +1,160 @@
-# Docker
+# Docker Deployment
 
-This repo ships a two-container Docker setup:
+This document covers the Docker setup for Yotara.
 
-- `api`: Fastify + SQLite + Better Auth
-- `frontend`: Angular served by Nginx, proxying API traffic to the API container
+## Architecture
 
-## What It Runs
+Two-container setup:
 
-The compose stack exposes:
+- **api**: Fastify + SQLite + Better Auth
+- **frontend**: Angular served by Nginx, proxying API traffic to the API container
 
-- `http://localhost:8080` for the frontend
-- `http://localhost:8080/api` for API requests
-- `http://localhost:8080/docs` for Swagger UI
-- `http://localhost:8080/docs/openapi.json` for the raw OpenAPI document
+## Endpoints
 
-The API container stores SQLite data in a named volume so data survives restarts.
+| URL | Description |
+|:---|:---|
+| `http://localhost:8080` | Frontend |
+| `http://localhost:8080/api` | API requests |
+| `http://localhost:8080/docs` | Swagger UI |
+| `http://localhost:8080/docs/openapi.json` | OpenAPI spec |
+
+Data persists in a named Docker volume.
 
 ## Requirements
 
 - Docker
 - Docker Compose
 
-I tested the stack locally with `docker compose` plus Colima on macOS.
-
-## Start
-
-From the repository root:
+## Quick Start
 
 ```bash
-pnpm docker:up
+pnpm docker:up       # Build and start
+pnpm smoke:docker    # Verify stack
+pnpm docker:down     # Stop
 ```
 
-That command builds both images and starts the stack in detached mode.
-
-To verify the live stack after it starts:
-
-```bash
-pnpm smoke:docker
-```
-
-If you prefer the raw Compose command:
+Or using Docker Compose directly:
 
 ```bash
 docker compose up --build -d
-```
-
-## Stop
-
-```bash
-pnpm docker:down
-```
-
-Or:
-
-```bash
 docker compose down
 ```
 
-## What I Verified
+## Smoke Test
 
-Expected responses:
+`pnpm smoke:docker` verifies:
 
 - `/` returns `200`
 - `/api/health` returns `200`
-- `/docs` returns the Swagger UI HTML
-- `/docs/openapi.json` returns the API spec JSON
-- `/api/tasks` returns `401 Unauthorized` when you are not signed in
+- `/docs` returns Swagger UI HTML
+- `/docs/openapi.json` returns API spec JSON
+- `/api/tasks` returns `401 Unauthorized` when not signed in
 
-`pnpm smoke:docker` checks all of the above automatically.
+## Environment Variables
 
-## Notes
+The compose file sets these by default:
 
-- The API container needs `BETTER_AUTH_SECRET`; the compose file sets a local development value.
-- The API build must include the repo root `tsconfig.base.json`, otherwise the TypeScript build inside Docker will fail.
-- The API entry point is the compiled file at `apps/api/dist/apps/api/src/server.js`.
+| Variable | Value | Purpose |
+|:---|:---|:---|
+| `BETTER_AUTH_SECRET` | Development secret | Session signing |
+| `DATABASE_URL` | `/data/yotara.db` | SQLite path inside container |
+| `APP_BASE_URL` | `http://localhost:8080` | Base URL for Better Auth |
+| `TRUSTED_ORIGINS` | `http://localhost:8080` | Allowed auth origins |
+| `PORT` | `3000` | API port |
+
+For production, override any variable by creating a `.env` file in the project root:
+
+```bash
+BETTER_AUTH_SECRET=your-secure-random-secret
+DATABASE_URL=/data/yotara.db
+APP_BASE_URL=https://your-domain.com/api
+TRUSTED_ORIGINS=https://your-domain.com
+```
+
+Docker Compose reads the root `.env` file automatically to supply
+`${VAR:-default}` interpolation values in the compose file.
+
+Alternatively, create a `docker-compose.override.yml` to add or replace
+environment variables, ports, or volumes without modifying the base file:
+
+## Troubleshooting
+
+### Build fails with TypeScript errors
+
+The API build requires the root `tsconfig.base.json`. Ensure you're building from the repository root:
+
+```bash
+docker compose up --build
+```
+
+### Port 8080 already in use
+
+Change the port mapping in `docker-compose.yml`:
+
+```yaml
+services:
+  frontend:
+    ports:
+      - "9090:80"  # Change 8080 to 9090
+```
+
+### API container crashes on startup
+
+Check logs:
+
+```bash
+docker compose logs api
+```
+
+Common causes:
+- Missing `BETTER_AUTH_SECRET` environment variable
+- SQLite directory not writable
+
+### Database not persisting
+
+The API stores data in a named volume. To reset the database:
+
+```bash
+docker compose down -v  # -v removes volumes
+docker compose up --build
+```
+
+### Frontend can't reach API
+
+Verify the Nginx proxy is configured correctly:
+
+```bash
+docker compose exec frontend cat /etc/nginx/conf.d/default.conf
+```
+
+The proxy pass should point to `http://api:3000`.
+
+### Slow first build
+
+The first build compiles TypeScript and installs dependencies. Subsequent builds use Docker cache. Use `--mount=type=cache` in Dockerfile for faster rebuilds.
+
+### Checking container health
+
+```bash
+docker compose ps           # Show container status
+docker compose logs -f      # Follow all logs
+docker compose exec api sh  # Shell into API container
+```
+
+## Production Considerations
+
+- Change `BETTER_AUTH_SECRET` to a secure random value
+- Use HTTPS with a reverse proxy (Traefik, Caddy, nginx)
+- Set `NODE_ENV=production` for secure cookies
+- Use a managed SQLite solution or migrate to Postgres for multi-user deployments
+- Configure backup for the Docker volume
+
+## API Entry Point
+
+The API entry point is at:
+
+```
+apps/api/dist/server.js
+```
+
+This is the compiled output. The Dockerfile builds TypeScript before starting the server.

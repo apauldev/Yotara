@@ -1,62 +1,329 @@
-# Testing Guide for Yotara
+# Testing Guide
 
-This document outlines the testing strategies and patterns used across the Yotara monorepo.
+This document covers the testing strategies, patterns, and commands used across the Yotara monorepo.
+
+## Quick Reference
+
+| Command | Description |
+|:---|:---|
+| `pnpm test` | Run all test suites |
+| `pnpm --filter @yotara/api test` | API tests only |
+| `pnpm --filter @yotara/frontend test` | Frontend tests only |
 
 ## 1. Backend Testing (`apps/api`)
 
-The backend uses the **Node.js native test runner** and `tsx` for execution.
+The backend uses the **Node.js native test runner** with `tsx` for TypeScript execution.
 
-### Integration Tests
-Integration tests spin up a Fastify instance and use `app.inject()` to simulate HTTP requests against a temporary SQLite database.
+### Location
 
-- **Location**: `apps/api/src/**/*.test.ts`
-- **Execution**: `pnpm run test` (from root or `apps/api`)
+```
+apps/api/src/**/*.test.ts
+```
 
-#### Patterns & Best Practices.
-1. **Dynamic DB Path**: Always use a unique temporary database file for each test run to ensure isolation.
-   ```typescript
-   const dbFile = join(tmpdir(), `yotara-test-${randomUUID()}.db`);
-   process.env['DATABASE_URL'] = dbFile;
-   ```
-2. **Schema Injection**: Since integration tests use a fresh DB, you must manually inject the schema using `sqlite.exec()` or run migrations before the tests start.
-3. **Auth Mocking**: For protected routes, you can set `BETTER_AUTH_SECRET` to a constant value in tests and use the `AuthService` to generate test sessions or bypass auth via a test-only middleware if needed.
+### Test Isolation
 
----
+Every test file creates a fresh SQLite database in the system temp directory. This ensures complete isolation between tests.
+
+```typescript
+import { randomUUID } from 'node:crypto';
+import { rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+
+const dbFile = join(tmpdir(), `yotara-test-${randomUUID()}.db`);
+process.env['DATABASE_URL'] = dbFile;
+```
+
+### Authentication Setup
+
+Tests create authenticated sessions by calling Better Auth directly:
+
+```typescript
+async function signUpAndGetCookie(email: string) {
+  const { auth } = await import('../lib/auth.js');
+  const response = await auth.api.signUpEmail({
+    body: {
+      email,
+      password: 'Password123!',
+      name: email.split('@')[0],
+    },
+    asResponse: true,
+  });
+
+  const cookie = response.headers.get('set-cookie');
+  return cookie;
+}
+```
+
+### Making HTTP Requests
+
+Use `app.inject()` for HTTP testing without starting a real server:
+
+```typescript
+const response = await ctx.app.inject({
+  method: 'POST',
+  url: '/tasks',
+  headers: { cookie: userCookie },
+  payload: { title: 'Test task', status: 'inbox' },
+});
+
+assert.equal(response.statusCode, 201);
+```
+
+### Cleanup
+
+Always clean up in a `finally` block:
+
+```typescript
+test('example', async () => {
+  const ctx = await createAuthedApp();
+  try {
+    // test logic
+  } finally {
+    await ctx.cleanup();
+  }
+});
+```
+
+The cleanup function:
+1. Closes the Fastify server
+2. Deletes the temporary SQLite file
+3. Removes environment variables
+
+### Running Backend Tests
+
+```bash
+pnpm --filter @yotara/api test
+```
 
 ## 2. Frontend Testing (`apps/frontend`)
 
-The frontend uses **Karma and Jasmine** provided by the Angular CLI.
+The frontend uses **Karma + Jasmine** via Angular CLI.
 
-### Component & Service Tests
-- **Location**: `apps/frontend/src/app/**/*.spec.ts`
-- **Execution**: `pnpm run test`
+### Location
 
-#### Patterns & Best Practices
-1. **Mocking External Services**: Always mock the `AuthService` (from `@yotara/shared`) and `HttpClient` using `provideHttpClientTesting()`.
-2. **Signal Testing**: Since we use Angular Signals, use the `effect()` or `computed()` utilities carefully in tests, ensuring you trigger change detection.
+```
+apps/frontend/src/app/**/*.spec.ts
+```
 
----
+### Test Setup
+
+Angular tests use `TestBed.configureTestingModule()`:
+
+```typescript
+import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { Component } from '@angular/core';
+import { PersonalShellComponent } from './personal-shell.component';
+import { AuthStateService } from '../../../core/services/auth-state.service';
+import { PreferencesStore } from '../../../core/services/preferences-store.service';
+
+// Define stub components for routed child routes
+@Component({ template: '', standalone: true })
+class InboxStubComponent {}
+
+describe('PersonalShellComponent', () => {
+  beforeEach(async () => {
+    localStorage.clear();
+
+    await TestBed.configureTestingModule({
+      imports: [PersonalShellComponent],
+      providers: [
+        provideRouter([{ path: 'tasks', component: InboxStubComponent }]),
+        {
+          provide: AuthStateService,
+          useValue: {
+            user: () => ({
+              id: 'user-1',
+              email: 'test@example.com',
+              name: 'Test User',
+              onboardingCompleted: true,
+              workspaceMode: 'personal',
+            }),
+          },
+        },
+        PreferencesStore,
+      ],
+    }).compileComponents();
+  });
+});
+```
+
+### Mocking Services
+
+Always mock external services. Common patterns:
+
+**AuthStateService mock:**
+
+```typescript
+{
+  provide: AuthStateService,
+  useValue: {
+    user: () => ({
+      id: 'user-1',
+      email: 'test@example.com',
+      name: 'Test User',
+      onboardingCompleted: true,
+      workspaceMode: 'personal',
+    }),
+  },
+}
+```
+
+**HttpClient mock:**
+
+```typescript
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideHttpClient } from '@angular/common/http';
+
+providers: [
+  provideHttpClient(),
+  provideHttpClientTesting(),
+]
+```
+
+### Testing Signals
+
+Angular signals require triggering change detection:
+
+```typescript
+it('shows tip popup after login', fakeAsync(() => {
+  const fixture = TestBed.createComponent(PersonalShellComponent);
+  fixture.detectChanges();
+
+  tick(100);
+  fixture.detectChanges();
+
+  expect(fixture.componentInstance.showTip()).toBeTrue();
+}));
+```
+
+### Querying Elements
+
+Use `By.css()` and `DebugElement`:
+
+```typescript
+import { By } from '@angular/platform-browser';
+
+// Query single element
+const title = fixture.debugElement.query(By.css('.page-title')).nativeElement;
+expect(title.textContent.trim()).toBe('Tasks');
+
+// Query multiple elements
+const navItems = fixture.debugElement
+  .queryAll(By.css('.nav-item'))
+  .map(el => el.nativeElement.textContent.trim());
+
+expect(navItems).toEqual(['Inbox', 'Today', 'Upcoming']);
+```
+
+### Running Frontend Tests
+
+```bash
+pnpm --filter @yotara/frontend test
+```
+
+Tests run once in ChromeHeadless. No watch mode by default.
 
 ## 3. Shared Package Testing (`packages/shared`)
 
-Testing in the shared package should focus on pure logic, data transformations, and type validation.
+The shared package contains domain types and DTOs. Currently minimal testing is needed.
 
-- **Recommendation**: Add `vitest` or `node:test` to `packages/shared` if complex logic is added to the domain types.
-
----
+**Recommendation:** Add `vitest` or `node:test` if complex logic is added to the shared package.
 
 ## 4. E2E Testing (Recommended)
 
-While not yet implemented, **Playwright** is recommended for cross-service verification.
+Not yet implemented. **Playwright** is recommended for cross-service verification.
 
-- **Focus**: User flows (Sign up -> Add Task -> Mark Complete -> Sign Out).
-- **Setup**: Should run against a dev-like environment with a known seed database.
+**Focus areas:**
+- User flows: Sign up → Add Task → Mark Complete → Sign Out
+- Cross-browser testing
+- Visual regression
 
----
+**Setup:** Should run against a dev-like environment with a known seed database.
 
 ## 5. CI/CD Integration
 
-Every Pull Request should trigger:
-1. `pnpm typecheck` (Ensures cross-package type safety).
-2. `pnpm lint` (Ensures code style consistency).
-3. `pnpm -r test` (Runs all test suites).
+Every Pull Request triggers:
+
+1. `pnpm lint` — ESLint across workspace
+2. `pnpm format:check` — Prettier validation
+3. `pnpm typecheck` — TypeScript validation
+4. `pnpm test` — All test suites
+
+## 6. Writing Good Tests
+
+### Principles
+
+- **Isolation:** Each test should be independent. No shared state between tests.
+- **Fast:** Tests should complete quickly. Avoid real network calls.
+- **Deterministic:** Same input should always produce the same output.
+- **Clear:** Test names should describe the expected behavior.
+
+### Naming Convention
+
+```typescript
+describe('TaskService', () => {
+  describe('createTask', () => {
+    it('creates a task with default values', () => { ... });
+    it('rejects empty titles', () => { ... });
+    it('assigns to the correct user', () => { ... });
+  });
+});
+```
+
+### AAA Pattern
+
+```typescript
+it('calculates task counts', () => {
+  // Arrange
+  const tasks = [
+    { completed: true },
+    { completed: false },
+    { completed: false },
+  ];
+
+  // Act
+  const counts = calculateCounts(tasks);
+
+  // Assert
+  expect(counts.total).toBe(3);
+  expect(counts.completed).toBe(1);
+  expect(counts.open).toBe(2);
+});
+```
+
+### Common Anti-Patterns
+
+| Anti-Pattern | Better Approach |
+|:---|:---|
+| Testing implementation details | Test public API behavior |
+| Shared mutable state between tests | Create fresh data per test |
+| `setTimeout` in tests | Use `fakeAsync` + `tick` |
+| Hardcoded URLs | Use environment variables |
+| Catching and ignoring errors | Assert specific error cases |
+
+## 7. Debugging Tests
+
+### Frontend
+
+```bash
+# Run with browser visible (not headless)
+pnpm --filter @yotara/frontend test -- --watch --browsers=Chrome
+```
+
+### Backend
+
+```bash
+# Run with more verbose output
+node --test --import tsx apps/api/src/routes/tasks.test.ts
+```
+
+### Common Issues
+
+| Issue | Solution |
+|:---|:---|
+| ChromeHeadless not found | Install Chrome or use `CHROME_BIN` env var |
+| Test timeout | Increase timeout or check for infinite loops |
+| Flaky tests | Ensure proper cleanup and isolation |
+| Missing mocks | Mock all external dependencies |

@@ -2,87 +2,144 @@
 
 This document is the technical companion to the main repository page.
 
-For the product overview and project positioning, start with [`README.md`](./README.md).
-For the current personal-mode implementation details, see [`docs/personal-mode-mvp.md`](./docs/personal-mode-mvp.md).
-
-**For a detailed technical roadmap of all planned screens, components, build phases, and effort estimates, see the [MVP Roadmap](./ROADMAP.md).**
+For the product overview and project positioning, start with [`README.md`](./README.md). For the technical roadmap and anti-pattern registry, see [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
 
 ## Overview
 
 Yotara is a TypeScript monorepo with:
 
-- `apps/frontend`: Angular 21 application
-- `apps/api`: Fastify API with Better Auth and SQLite today, with Postgres planned before team-mode SaaS work
-- `packages/shared`: shared domain types for auth and tasks
+- `apps/frontend`: Angular 21 application (standalone components, signals, lazy routes)
+- `apps/api`: Fastify API with Better Auth and SQLite, with Postgres planned for team-mode SaaS
+- `packages/shared`: shared domain types, DTOs, and auth client
 - `scripts/dev.mjs`: local dev runner for the frontend, API, and Drizzle Studio
 
 ## What Exists Today
 
 ### Frontend
 
-The Angular app currently contains:
+The Angular app contains:
 
-- login and sign-up flow
-- auth guard for protected routes
-- onboarding mode picker with personal and team options
-- team dashboard shell
-- personal shell with Inbox, Today, Upcoming, Projects, and Labels
-- task list UI backed by the task service
-- task detail modal for personal-mode create and edit flows
+- Login and sign-up flow
+- Auth guard for protected routes
+- Onboarding mode picker (personal and team)
+- Personal shell with task list, projects, labels, archive, search, and settings
+- Team shell with dashboard
+- Task detail modal for create and edit flows
+- Subtask management with one-level nesting
+- Recurring task configuration (daily, weekly, monthly, yearly)
+- Multi-label assignment per task
+- 7 color themes with dark mode
+- Login tip popup with 30 productivity tips
+- Real-time loading indicators and notification toasts
+- Full-text search across tasks, projects, and labels
+- Keyboard shortcuts for navigation
 
-Current route map:
+### Current Route Map
 
-- `/login`
-- `/onboarding`
-- `/preview/picker`
-- `/inbox`
-- `/today`
-- `/upcoming`
-- `/projects`
-- `/labels`
-- `/dashboard`
+| Route | Component | Description |
+|:---|:---|:---|
+| `/login` | LoginComponent | Email/password sign-in |
+| `/onboarding` | StartScreenComponent | Workspace mode selection |
+| `/preview/picker` | StartScreenComponent | Mode preview |
+| `/tasks` | TaskListPageComponent | Unified task list with sidebar filters |
+| `/tasks?filter=today` | TaskListPageComponent | Tasks due today |
+| `/tasks?filter=upcoming` | TaskListPageComponent | Upcoming tasks by date |
+| `/projects` | ProjectsPageComponent | Project grid |
+| `/projects/:id` | ProjectDetailPageComponent | Single project with task list |
+| `/labels` | LabelsPageComponent | Label management |
+| `/archive` | ArchivePageComponent | Completed and archived tasks |
+| `/settings` | SettingsPageComponent | Account and behavior settings |
+| `/search` | SearchPageComponent | Full-text search |
+| `/dashboard` | TasksPageComponent | Team dashboard (team mode) |
+
+Legacy routes (`/inbox`, `/today`, `/upcoming`) redirect to `/tasks`.
 
 ### Backend
 
-The Fastify API currently exposes:
+The Fastify API exposes:
 
-- `/` basic API metadata
-- `/health` health endpoint
-- `/auth/*` Better Auth endpoints
-- `/me` current authenticated user
-- `/projects` personal project CRUD endpoints
-- `/tasks` CRUD endpoints for user-owned tasks
-- `/docs` Swagger UI for API consumers
-- `/docs/openapi.json` raw OpenAPI document
+- `GET /` — API metadata
+- `GET /health` — Health check
+- `POST /auth/sign-up/email` — Create account
+- `POST /auth/sign-in/email` — Sign in
+- `POST /auth/sign-out` — Sign out
+- `GET /auth/session` — Current session
+- `GET /me` — Authenticated user profile
+- `PATCH /me` — Update user (display_name, timezone)
+- `PATCH /me/password` — Change password
+- `GET /tasks` — List tasks (paginated, filterable by status, completion, overdue)
+- `GET /tasks/:id` — Get task
+- `POST /tasks` — Create task
+- `PATCH /tasks/:id` — Update task
+- `DELETE /tasks/:id` — Permanent delete
+- `POST /tasks/:id/labels/:labelId` — Assign label
+- `DELETE /tasks/:id/labels/:labelId` — Unassign label
+- `GET /projects` — List projects
+- `GET /projects/:id` — Get project
+- `POST /projects` — Create project
+- `PATCH /projects/:id` — Update project
+- `DELETE /projects/:id` — Soft delete project
+- `POST /projects/:id/restore` — Restore soft-deleted project
+- `GET /labels` — List labels
+- `GET /labels/:id` — Get label
+- `POST /labels` — Create label
+- `PATCH /labels/:id` — Update label
+- `DELETE /labels/:id` — Delete label
+- `GET /docs` — Swagger UI
+- `GET /docs/openapi.json` — Raw OpenAPI spec
 
-Task records currently support:
+### Task Fields
 
-- title
-- description
-- status: `inbox | today | upcoming | done | archived`
-- priority: `low | medium | high`
-- simple mode
-- bucket: `personal-sanctuary | deep-work | home | health`
-- completion state
-- due date
-- sort order
-- soft delete timestamp (`deleted_at` in SQLite)
-- optional project assignment through `projectId`
+| Field | Type | Description |
+|:---|:---|:---|
+| `id` | UUID | Primary key |
+| `title` | string | Task title |
+| `description` | string | Markdown description |
+| `status` | enum | `inbox \| today \| upcoming \| done \| archived` |
+| `priority` | enum | `low \| medium \| high` |
+| `bucket` | enum | `personal-sanctuary \| deep-work \| home \| health` |
+| `completed` | boolean | Completion state |
+| `simpleMode` | boolean | Simplified task view |
+| `dueDate` | date | Due date with recurrence generation |
+| `sortOrder` | integer | Position within filter |
+| `recurrence` | enum | `none \| daily \| weekly \| monthly \| yearly` |
+| `nextDueDate` | date | Next occurrence for recurring tasks |
+| `projectId` | UUID | Parent project (optional) |
+| `labels` | relation | Many-to-many with labels table |
+| `deletedAt` | timestamp | Soft delete |
+| `createdAt` | timestamp | Creation time |
+| `updatedAt` | timestamp | Last modification time |
 
-Project records currently support:
+### Project Fields
 
-- name
-- description
-- color token: `sage | teal | olive | clay | forest | deep-ocean`
-- owner scoping
-- derived task counts for total, completed, and open tasks
+| Field | Type | Description |
+|:---|:---|:---|
+| `id` | UUID | Primary key |
+| `name` | string | Project name |
+| `description` | string | Project description |
+| `color` | enum | `sage \| teal \| olive \| clay \| forest \| deep-ocean` |
+| `ownerId` | UUID | Owning user |
+| `taskCount` | integer | Derived: total tasks |
+| `completedCount` | integer | Derived: completed tasks |
+| `openCount` | integer | Derived: open tasks |
+| `deletedAt` | timestamp | Soft delete |
+
+### Label Fields
+
+| Field | Type | Description |
+|:---|:---|:---|
+| `id` | UUID | Primary key |
+| `name` | string | Label name (unique per user) |
+| `color` | string | Hex color |
+| `ownerId` | UUID | Owning user |
 
 ### Storage
 
-The API uses SQLite through Drizzle and bootstraps the required tables automatically on startup. This is a good fit for the personal-mode/self-hosted foundation, but team-mode SaaS work should move to a Postgres-backed tenant model before workspace data lands:
+The API uses SQLite through Drizzle and bootstraps the required tables automatically on startup.
 
-- Better Auth tables: `user`, `session`, `account`, `verification`
-- app tables: `projects`, `tasks`
+**Tables:**
+- Better Auth: `user`, `session`, `account`, `verification`
+- App: `projects`, `tasks`, `labels`, `task_labels`
 
 Default local database path:
 
@@ -98,349 +155,175 @@ Default local database path:
 ## Installation
 
 ```bash
-git clone <repository-url>
-cd Yotra
+git clone https://github.com/apauldev/Yotara.git
+cd Yotara
 pnpm install
 ```
 
-The root `prepare` script installs the Husky Git hooks automatically during install.
-If you ever need to restore them manually, run:
+The root `prepare` script installs Husky Git hooks automatically during install.
 
-```bash
-pnpm prepare
-```
+Environment variables (`BETTER_AUTH_SECRET`, `DATABASE_URL`, etc.) can be
+set in your shell or sourced from [`apps/api/.env.example`](./apps/api/.env.example).
 
 ## Running Locally
 
 ### Recommended flow
 
-For normal day-to-day development, use the root workspace scripts from the repository root.
-
-Typical startup:
-
-```bash
-pnpm install
-pnpm dev
-```
-
-Use individual package commands only when you want to isolate one service.
-
-### Docker Compose deployment
-
-For a containerized setup with persisted SQLite data:
-
-```bash
-pnpm docker:up
-```
-
-This starts:
-
-- frontend at `http://localhost:8080`
-- API behind the frontend proxy at `http://localhost:8080/api`
-- API docs at `http://localhost:8080/docs`
-
-To stop containers:
-
-```bash
-pnpm docker:down
-```
-
-### Start everything
-
 ```bash
 pnpm dev
 ```
 
 This starts:
+- Frontend: `http://localhost:4200`
+- API: `http://localhost:3000`
+- Drizzle Studio: `https://local.drizzle.studio`
 
-- frontend on `http://localhost:4200`
-- API on `http://localhost:3000`
-- Drizzle Studio, announced locally as `https://local.drizzle.studio`
-
-The root `dev` script uses [`scripts/dev.mjs`](./scripts/dev.mjs) to run all three processes together and shut them down cleanly.
-
-### Start services individually
+### Individual services
 
 ```bash
 pnpm dev:frontend
 pnpm dev:api
 pnpm db:studio
 ```
+
+### Docker Compose deployment
+
+```bash
+pnpm docker:up    # Build and start
+pnpm docker:down  # Stop
+```
+
+See [DOCKER.md](./DOCKER.md) for details.
 
 ## Workspace Commands
 
 ### From the repo root
 
-```bash
-pnpm dev
-pnpm build
-pnpm start
-pnpm lint
-pnpm lint:fix
-pnpm format
-pnpm format:check
-pnpm typecheck
-pnpm test
-pnpm prepare
-pnpm dev:frontend
-pnpm dev:api
-pnpm db:studio
-```
+| Command | Description |
+|:---|:---|
+| `pnpm dev` | Start all services |
+| `pnpm build` | Build all packages |
+| `pnpm start` | Start production builds |
+| `pnpm lint` | Run ESLint across workspace |
+| `pnpm lint:fix` | Auto-fix lint issues |
+| `pnpm format` | Format with Prettier |
+| `pnpm format:check` | Check formatting without changes |
+| `pnpm typecheck` | TypeScript validation |
+| `pnpm test` | Run all test suites |
+| `pnpm prepare` | Install Husky Git hooks |
 
-Recommended pre-PR verification:
-
-```bash
-pnpm lint
-pnpm format:check
-pnpm typecheck
-pnpm test
-```
-
-If you want the repo to auto-correct style issues first:
+### Pre-PR verification
 
 ```bash
 pnpm format
 pnpm lint:fix
-```
-
-### API commands
-
-From `apps/api` or via `pnpm --filter @yotara/api <command>`:
-
-```bash
-pnpm dev
-pnpm build
-pnpm start
-pnpm lint
+pnpm format:check
 pnpm typecheck
 pnpm test
-pnpm docs:check
-pnpm db:generate
-pnpm db:push
-pnpm db:studio
 ```
 
-### Frontend commands
-
-From `apps/frontend` or via `pnpm --filter @yotara/frontend <command>`:
+### API commands (from `apps/api`)
 
 ```bash
-pnpm dev
-pnpm start
-pnpm build
-pnpm watch
-pnpm test
-pnpm lint
-pnpm typecheck
+pnpm dev              # Start API server
+pnpm build            # Compile TypeScript
+pnpm test             # Run API tests
+pnpm docs:check       # Validate OpenAPI spec
+pnpm db:generate      # Generate Drizzle migration
+pnpm db:push          # Push schema to database
+pnpm db:studio        # Open Drizzle Studio
 ```
 
-Frontend test behavior:
+### Frontend commands (from `apps/frontend`)
 
-- `pnpm test` runs once in `ChromeHeadless`
-- it does not stay in watch mode, which makes it safe for root-level verification and CI
-
-## Code Quality
-
-The repository now has a root-level code quality workflow that should be used before merges.
-
-### Tooling
-
-- ESLint flat config: [`eslint.config.mjs`](./eslint.config.mjs)
-- Prettier config: [`.prettierrc.json`](./.prettierrc.json)
-- Prettier ignore rules: [`.prettierignore`](./.prettierignore)
-- Husky hook: [`.husky/pre-commit`](./.husky/pre-commit)
-- lint-staged config: [`.lintstagedrc.json`](./.lintstagedrc.json)
-
-### What runs on commit
-
-The pre-commit hook runs `lint-staged`, which currently does the following:
-
-- staged `*.ts` files: `eslint --fix`, then `prettier --write`
-- staged `*.js`, `*.json`, and `*.md` files: `prettier --write`
-
-That means some files may be rewritten automatically during commit if they are staged.
-
-### Root command behavior
-
-- `pnpm lint`: runs root ESLint, then package-level lint scripts
-- `pnpm lint:fix`: runs root ESLint auto-fixes, then attempts package-level lint fixes where available
-- `pnpm format`: rewrites supported files with Prettier
-- `pnpm format:check`: validates formatting without changing files
-- `pnpm typecheck`: runs workspace TypeScript validation
-- `pnpm test`: runs all workspace test suites
-
-### Current expectations
-
-- a healthy branch should pass `pnpm lint`, `pnpm format:check`, `pnpm typecheck`, and `pnpm test`
-- root lint currently allows a small warning budget with `--max-warnings 10`
-- frontend `lint` is a TypeScript compile check for the app project rather than a separate ESLint pass inside `apps/frontend`
+```bash
+pnpm dev              # Start dev server
+pnpm build            # Production build
+pnpm test             # Run Karma tests (ChromeHeadless)
+pnpm lint             # TypeScript compile check
+```
 
 ## Environment Variables
 
 ### API environment
 
-The API reads these environment variables:
-
 | Variable | Default | Purpose |
-| --- | --- | --- |
+|:---|:---|:---|
 | `DATABASE_URL` | `./data/yotara.db` | SQLite file path |
-| `APP_BASE_URL` | `http://localhost:3000` | Base URL used by Better Auth |
-| `TRUSTED_ORIGINS` | `http://localhost:4200,http://127.0.0.1:4200` | Allowed auth origins |
+| `APP_BASE_URL` | `http://localhost:3000` | Base URL for Better Auth |
+| `TRUSTED_ORIGINS` | `http://localhost:4200,...` | Allowed auth origins |
 | `CORS_ORIGIN` | inherits trusted origins | Extra CORS origins |
 | `PORT` | `3000` | API port |
 | `HOST` | `0.0.0.0` | API bind host |
 | `NODE_ENV` | unset | Enables secure cookies in production |
+| `BETTER_AUTH_SECRET` | required | Session signing secret |
 
 Notes:
-
-- Better Auth secure cookies are enabled automatically when `NODE_ENV=production` or `APP_BASE_URL` starts with `https://`.
-- The API bootstraps the SQLite schema on startup, so a fresh local setup does not require a separate migration step just to run.
-- If you deploy frontend and API on different origins, update `APP_BASE_URL`, `TRUSTED_ORIGINS`, and `CORS_ORIGIN` together.
-
-Example:
-
-```bash
-APP_BASE_URL=http://localhost:3001 \
-TRUSTED_ORIGINS=http://localhost:4200 \
-CORS_ORIGIN=http://localhost:4200 \
-PORT=3001 \
-pnpm dev:api
-```
+- Better Auth secure cookies are enabled when `NODE_ENV=production` or `APP_BASE_URL` starts with `https://`.
+- The API bootstraps the SQLite schema on startup.
+- If frontend and API run on different origins, update `APP_BASE_URL`, `TRUSTED_ORIGINS`, and `CORS_ORIGIN` together.
 
 ### Frontend environment
 
-Frontend environment files live in:
+| Environment | API Base URL | File |
+|:---|:---|:---|
+| Development | `http://localhost:3000` | `apps/frontend/src/environments/environment.ts` |
+| Production | `/api` | `apps/frontend/src/environments/environment.prod.ts` |
 
-- [`apps/frontend/src/environments/environment.ts`](./apps/frontend/src/environments/environment.ts)
-- [`apps/frontend/src/environments/environment.prod.ts`](./apps/frontend/src/environments/environment.prod.ts)
-
-Current values:
-
-- development API base URL: `http://localhost:3000`
-- production API base URL: `/api`
-
-That production setting assumes the frontend and API are served behind the same origin with `/api` routed to the backend.
+The production setting assumes the frontend and API are served behind the same origin with `/api` routed to the backend.
 
 ## Project Structure
 
 ```text
 .
-├── apps
-│   ├── api
-│   │   ├── src
-│   │   │   ├── db
-│   │   │   ├── lib
-│   │   │   ├── plugins
-│   │   │   ├── routes
-│   │   │   └── server.ts
-│   │   ├── drizzle
+├── apps/
+│   ├── api/                    Fastify + Drizzle backend
+│   │   ├── src/
+│   │   │   ├── db/             Database client and schema
+│   │   │   ├── docs/           OpenAPI spec and validation
+│   │   │   ├── lib/            Auth origins, CORS utilities
+│   │   │   ├── plugins/        Fastify plugins (CORS, auth)
+│   │   │   ├── routes/         API routes (tasks, labels, user, etc.)
+│   │   │   ├── services/       Business logic (tasks, labels, projects)
+│   │   │   └── server.ts       Entry point
+│   │   ├── drizzle/            Generated migrations
 │   │   └── drizzle.config.ts
-│   └── frontend
-│       ├── src/app
-│       │   ├── core
-│       │   ├── features
-│       │   └── shared
-│       └── src/environments
-├── packages
-│   └── shared
-└── scripts
+│   └── frontend/               Angular 21 application
+│       └── src/app/
+│           ├── core/           Guards, interceptors, services
+│           ├── features/       Feature modules (auth, error, onboarding, personal, shell, tasks)
+│           └── shared/         Shared components and pipes
+├── packages/
+│   └── shared/                 Domain types, DTOs, auth client
+├── docs/
+│   └── ARCHITECTURE.md         Technical roadmap and anti-patterns
+├── scripts/                    Release automation
+└── testing.md                  Testing guide
 ```
 
-## API Surface
+## API Examples
 
-Interactive API documentation is now served by the API itself:
-
-- Swagger UI: `http://localhost:3000/docs`
-- OpenAPI JSON: `http://localhost:3000/docs/openapi.json`
-
-The generated spec includes app-owned routes plus the configured Better Auth endpoints:
-
-- `GET /`
-- `GET /health`
-- `GET /me`
-- `GET /tasks`
-- `GET /tasks/:id`
-- `POST /tasks`
-- `PATCH /tasks/:id`
-- `DELETE /tasks/:id`
-- `POST /auth/sign-up/email`
-- `POST /auth/sign-in/email`
-- `POST /auth/sign-out`
-- `GET /auth/session`
-
-Use the generated docs as the source of truth for request/response shapes and examples. Keep this README limited to high-level notes that are not duplicated in OpenAPI.
-
-## Task API Examples
-
-All task endpoints require authentication.
-
-- Use a session cookie for every request.
-- In a browser app that is already signed in, `fetch(..., { credentials: 'include' })` is enough.
-- In Node.js or other server-side clients, send the cookie explicitly with a `Cookie` header.
-
-The API runs at `http://localhost:3000` by default.
+All task endpoints require authentication via session cookie.
 
 ### Create a task
 
 ```bash
 curl -X POST http://localhost:3000/tasks \
   -H "Content-Type: application/json" \
-  -b "better-auth.session_token=YOUR_SESSION_TOKEN" \
+  -b "better-auth.session_token=YOUR_TOKEN" \
   -d '{
-    "title": "Write contribution guide",
+    "title": "Write docs",
     "status": "today",
     "priority": "high",
     "bucket": "deep-work"
   }'
 ```
 
-```js
-const res = await fetch("http://localhost:3000/tasks", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Cookie: "better-auth.session_token=YOUR_SESSION_TOKEN",
-  },
-  body: JSON.stringify({
-    title: "Write contribution guide",
-    status: "today",
-    priority: "high",
-    bucket: "deep-work",
-  }),
-});
-const task = await res.json();
-```
-
-### List tasks
+### List tasks with filters
 
 ```bash
-curl http://localhost:3000/tasks?page=1&pageSize=10 \
-  -b "better-auth.session_token=YOUR_SESSION_TOKEN"
-```
-
-```js
-const res = await fetch("http://localhost:3000/tasks?page=1&pageSize=10", {
-  headers: {
-    Cookie: "better-auth.session_token=YOUR_SESSION_TOKEN",
-  },
-});
-const { data, meta } = await res.json();
-```
-
-### Fetch a single task
-
-```bash
-curl http://localhost:3000/tasks/TASK_ID \
-  -b "better-auth.session_token=YOUR_SESSION_TOKEN"
-```
-
-```js
-const res = await fetch("http://localhost:3000/tasks/TASK_ID", {
-  headers: {
-    Cookie: "better-auth.session_token=YOUR_SESSION_TOKEN",
-  },
-});
-const task = await res.json();
+curl "http://localhost:3000/tasks?page=1&pageSize=10&status=today&priority=high" \
+  -b "better-auth.session_token=YOUR_TOKEN"
 ```
 
 ### Update a task
@@ -448,58 +331,54 @@ const task = await res.json();
 ```bash
 curl -X PATCH http://localhost:3000/tasks/TASK_ID \
   -H "Content-Type: application/json" \
-  -b "better-auth.session_token=YOUR_SESSION_TOKEN" \
-  -d '{
-    "completed": true,
-    "priority": "low"
-  }'
-```
-
-```js
-const res = await fetch("http://localhost:3000/tasks/TASK_ID", {
-  method: "PATCH",
-  headers: {
-    "Content-Type": "application/json",
-    Cookie: "better-auth.session_token=YOUR_SESSION_TOKEN",
-  },
-  body: JSON.stringify({ completed: true, priority: "low" }),
-});
-const updated = await res.json();
+  -b "better-auth.session_token=YOUR_TOKEN" \
+  -d '{ "completed": true, "priority": "low" }'
 ```
 
 ### Delete a task
 
 ```bash
 curl -X DELETE http://localhost:3000/tasks/TASK_ID \
-  -b "better-auth.session_token=YOUR_SESSION_TOKEN"
+  -b "better-auth.session_token=YOUR_TOKEN"
 ```
 
-```js
-const res = await fetch("http://localhost:3000/tasks/TASK_ID", {
-  method: "DELETE",
-  headers: {
-    Cookie: "better-auth.session_token=YOUR_SESSION_TOKEN",
-  },
-});
-const result = await res.json();
+### Assign a label to a task
+
+```bash
+curl -X POST http://localhost:3000/tasks/TASK_ID/labels/LABEL_ID \
+  -b "better-auth.session_token=YOUR_TOKEN"
 ```
 
-If you are testing from the frontend in a browser after signing in, use the same endpoint paths with `credentials: 'include'` instead of a manual `Cookie` header.
+### Create a project
 
-## Database And Drizzle
+```bash
+curl -X POST http://localhost:3000/projects \
+  -H "Content-Type: application/json" \
+  -b "better-auth.session_token=YOUR_TOKEN" \
+  -d '{ "name": "Documentation", "color": "teal" }'
+```
+
+### Create a label
+
+```bash
+curl -X POST http://localhost:3000/labels \
+  -H "Content-Type: application/json" \
+  -b "better-auth.session_token=YOUR_TOKEN" \
+  -d '{ "name": "urgent", "color": "#e74c3c" }'
+```
+
+## Database and Drizzle
 
 The database client lives in [`apps/api/src/db/client.ts`](./apps/api/src/db/client.ts).
 
-Important behavior:
+Behavior:
+- Creates the SQLite directory if it does not exist
+- Bootstraps required tables if the database is new
+- Enables SQLite WAL mode
 
-- creates the SQLite directory if it does not exist
-- bootstraps required tables if the database is new
-- enables SQLite WAL mode
-
-Drizzle artifacts live under:
-
-- [`apps/api/drizzle`](./apps/api/drizzle)
-- [`apps/api/drizzle.config.ts`](./apps/api/drizzle.config.ts)
+Drizzle artifacts:
+- [`apps/api/drizzle`](./apps/api/drizzle) — generated migrations
+- [`apps/api/drizzle.config.ts`](./apps/api/drizzle.config.ts) — Drizzle config
 
 Useful commands:
 
@@ -511,68 +390,34 @@ pnpm --filter @yotara/api db:studio
 
 ## Testing
 
-There is already a repo-level testing guide in [`testing.md`](./testing.md). The practical summary is:
+See [`testing.md`](./testing.md) for the full guide.
 
-- API tests use the Node test runner with `tsx`
-- frontend tests use Karma + Jasmine
-- root validation should include formatting, linting, type-checking, and tests
+| Suite | Framework | Location |
+|:---|:---|:---|
+| API | Node test runner + tsx | `apps/api/src/**/*.test.ts` |
+| Frontend | Karma + Jasmine | `apps/frontend/src/app/**/*.spec.ts` |
 
-Common verification commands:
+Quick verification:
 
 ```bash
-pnpm format:check
-pnpm typecheck
 pnpm lint
-pnpm test
-```
-
-Recommended full cleanup-and-verify flow:
-
-```bash
-pnpm format
-pnpm lint:fix
 pnpm format:check
 pnpm typecheck
 pnpm test
 ```
 
-API tests live in:
+## Code Quality
 
-- [`apps/api/src/routes/tasks.test.ts`](./apps/api/src/routes/tasks.test.ts)
-- [`apps/api/src/routes/auth.test.ts`](./apps/api/src/routes/auth.test.ts)
-- [`apps/api/src/lib/auth-origins.test.ts`](./apps/api/src/lib/auth-origins.test.ts)
-- [`apps/api/src/plugins/cors.test.ts`](./apps/api/src/plugins/cors.test.ts)
-
-Frontend tests include:
-
-- [`apps/frontend/src/app/app.component.spec.ts`](./apps/frontend/src/app/app.component.spec.ts)
-- [`apps/frontend/src/app/core/services/auth-state.service.spec.ts`](./apps/frontend/src/app/core/services/auth-state.service.spec.ts)
-
-Practical notes:
-
-- API tests cover auth flows, auth-origin handling, CORS handling, and task scoping behavior
-- frontend tests now validate the router-shell app structure and auth state services
-- frontend tests require `ChromeHeadless` to be available on the machine
+- ESLint flat config: [`eslint.config.mjs`](./eslint.config.mjs)
+- Prettier: [`.prettierrc.json`](./.prettierrc.json)
+- Husky pre-commit: runs lint-staged (eslint --fix + prettier --write)
+- Root lint budget: `--max-warnings 10`
 
 ## Local Development Notes
 
-- The frontend dev server binds to `0.0.0.0` on port `4200`.
-- The API binds to `0.0.0.0` on port `3000` by default.
-- Auth and task routes assume cookies and browser-based session flows.
-- Onboarding currently stores the selected workspace type in `localStorage` before navigating to the dashboard.
-- Drizzle Studio is started from the root dev runner and is intended for local inspection, not production use.
-- If frontend and API run on different origins, keep frontend environment values and API trusted origin settings aligned.
-
-## Suggested First Checks
-
-After `pnpm install`, a quick sanity pass is:
-
-```bash
-pnpm dev
-pnpm format:check
-pnpm lint
-pnpm typecheck
-pnpm test
-```
-
-If the app boots, auth pages load, and the checks pass, your local setup is in good shape.
+- Frontend binds to `0.0.0.0:4200`
+- API binds to `0.0.0.0:3000`
+- Auth uses session cookies and browser-based flows
+- Onboarding stores workspace type in localStorage
+- Drizzle Studio is for local inspection only
+- If frontend and API run on different origins, align environment values and trusted origins
