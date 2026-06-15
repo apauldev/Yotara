@@ -136,12 +136,34 @@ If the release fails partway through:
 
 ### CI workflow failed after push
 
-If the GitHub Actions workflow fails after you pushed the tag:
+If the GitHub Actions workflow fails after you pushed the tag — for example the
+"Create GitHub Release" step fails — the version-bump commit and tag are already
+on `main`. **Do not re-run `pnpm release`** — it would analyze commits since the
+deleted tag and create another version bump.
+
+Instead:
+
 1. Check the workflow logs
 2. Fix the issue
-3. Delete the remote tag: `git push origin :refs/tags/vX.Y.Z`
-4. Delete the local tag: `git tag -d vX.Y.Z`
-5. Re-run the release
+3. **Re-run the failed CI job** — GitHub Actions lets you re-run failed
+   workflows. This retries the GitHub Release creation without a new version bump.
+4. If re-running the CI job isn't an option (e.g. the workflow needs a tag push
+   to trigger), re-push the existing tag:
+   ```bash
+   git push origin vX.Y.Z
+   ```
+   This triggers the CI workflow again without creating a new commit or tag.
+
+Only delete and re-create the release if you need to change the tag target
+commit (e.g. the wrong commit was tagged). In that case:
+1. Delete the remote tag: `git push origin :refs/tags/vX.Y.Z`
+2. Delete the local tag: `git tag -d vX.Y.Z`
+3. If the version-bump commit is on `main`, revert it:
+   ```bash
+   git revert HEAD --no-edit
+   git push origin main
+   ```
+4. Re-run `pnpm release` and push again.
 
 ## Commit Message Examples
 
