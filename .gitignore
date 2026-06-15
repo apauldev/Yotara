@@ -13,3 +13,4 @@ packages/shared/src/*.js.map
 .DS_Store
 .reasonix/
 .commandcode/taste/taste.md
+.codegraph/
