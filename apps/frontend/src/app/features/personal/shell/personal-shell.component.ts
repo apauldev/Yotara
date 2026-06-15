@@ -23,6 +23,8 @@ import {
   faTag,
   faChevronLeft,
   faChevronRight,
+  faLightbulb,
+  faXmark,
 } from '@fortawesome/free-solid-svg-icons';
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -30,8 +32,42 @@ import { APP_VERSION } from '../../../core/constants/version';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { TaskService } from '../../../core/services/task.service';
 import { ThemeService } from '../../../core/services/theme.service';
+import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { LogoutConfirmModalComponent } from '../../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
 import { AppStatusComponent } from '../../../shared/ui/app-status/app-status.component';
+
+const TIPS = [
+  'Press `#` in the task input to quickly add labels to any task.',
+  'Use projects to group related tasks together into meaningful collections.',
+  'Mark tasks as "Today" to focus on what matters right now.',
+  'Completed tasks move to your archive automatically for a clean workspace.',
+  'Recurring tasks repeat daily, weekly, monthly, or yearly — no need to recreate them.',
+  'Use the search bar to find any task across all your projects instantly.',
+  'Break big tasks into smaller subtasks to make progress feel achievable.',
+  'Dark mode reduces eye strain during late-night productivity sessions.',
+  'Your data stays private — everything is stored securely and never shared.',
+  'Labels help you categorize tasks across different projects and views.',
+  'Use the Inbox to capture ideas quickly before organizing them into projects.',
+  'The Today view shows everything due or marked for today in one place.',
+  'The Upcoming view helps you plan your week and spot busy days ahead.',
+  'Archive old tasks to keep your workspace focused on what is active.',
+  'Press Enter to quickly add a task from the capture bar without touching your mouse.',
+  'Batch-complete several tasks at once to clear your list faster.',
+  'Overdue tasks are highlighted so nothing slips through the cracks.',
+  'Schedule tasks for specific dates to plan your work ahead of time.',
+  'The sidebar collapses to give you a distraction-free writing and planning area.',
+  'Review your completed tasks to reflect on progress and celebrate wins.',
+  'Use batch actions to update multiple tasks at once and save clicks.',
+  'Projects support custom colors to make them easy to spot at a glance.',
+  'You can reorder tasks with drag and drop to prioritize your day.',
+  'Empty states show encouraging messages instead of blank screens.',
+  'The app adapts to seven themes so you can match your mood or environment.',
+  'Keyboard shortcuts speed up navigation — try `?` to see the full list.',
+  'Focus on a single task at a time to reduce cognitive load.',
+  'Set due dates to track deadlines rather than just start dates.',
+  'Your preferences sync across sessions so your setup stays consistent.',
+  'Take breaks between tasks — sustained focus works best with short rests.',
+];
 
 type PersonalIcon = 'inbox' | 'today' | 'upcoming' | 'projects' | 'labels' | 'archive';
 
@@ -72,12 +108,17 @@ export class PersonalShellComponent {
   protected readonly faTag = faTag;
   protected readonly faChevronLeft = faChevronLeft;
   protected readonly faChevronRight = faChevronRight;
+  protected readonly faLightbulb = faLightbulb;
+  protected readonly faXmark = faXmark;
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private authState = inject(AuthStateService);
   protected readonly taskService = inject(TaskService);
   protected readonly themeService = inject(ThemeService);
   protected readonly searchQuery = signal(this.route.snapshot.queryParamMap.get('q') ?? '');
+  protected readonly showTip = signal<string | null>(null);
+  protected readonly tipDontShowAgain = signal(false);
+  private preferences = inject(PreferencesStore);
 
   protected readonly navItems: PersonalNavItem[] = [
     { label: 'Inbox', route: '/tasks', icon: 'inbox', queryParams: { view: 'inbox' } },
@@ -118,6 +159,24 @@ export class PersonalShellComponent {
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
       this.searchQuery.set(params.get('q') ?? '');
     });
+
+    if (!this.preferences.isLoginTipDismissed()) {
+      this.showTip.set(TIPS[Math.floor(Math.random() * TIPS.length)]);
+    }
+  }
+
+  protected onTipCheckboxChange(event: Event) {
+    const target = event.target;
+    if (target instanceof HTMLInputElement) {
+      this.tipDontShowAgain.set(target.checked);
+    }
+  }
+
+  protected dismissTip() {
+    if (this.tipDontShowAgain()) {
+      this.preferences.setLoginTipDismissed(true);
+    }
+    this.showTip.set(null);
   }
 
   protected async submitSearch() {

@@ -702,3 +702,107 @@
 .version-hash {
   color: var(--on-surface-muted);
 }
+
+.tip-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgb(0 0 0 / 35%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.tip-popup {
+  width: min(100%, 24rem);
+  background: var(--surface-card);
+  box-shadow:
+    inset 0 0 0 1px var(--outline-variant),
+    0 12px 32px rgb(0 0 0 / 18%);
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+}
+
+.tip-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.tip-icon {
+  color: var(--primary-solid);
+  font-size: 1rem;
+}
+
+.tip-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--on-surface);
+  flex: 1;
+}
+
+.tip-close {
+  border: 0;
+  background: transparent;
+  color: var(--on-surface-subtle);
+  cursor: pointer;
+  padding: 0.3rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.tip-close:hover {
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+}
+
+.tip-text {
+  margin: 0 0 1rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--on-surface-muted);
+}
+
+.tip-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.tip-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--on-surface-subtle);
+  cursor: pointer;
+  margin: 0;
+  font-weight: 400;
+}
+
+.tip-checkbox {
+  width: 0.9rem;
+  height: 0.9rem;
+  accent-color: var(--primary-solid);
+  cursor: pointer;
+}
+
+.tip-gotit {
+  border: 0;
+  background: var(--primary-gradient);
+  color: hsl(var(--primary-foreground));
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.45rem 1rem;
+  border-radius: 0.6rem;
+  flex-shrink: 0;
+}
+
+.tip-gotit:hover {
+  opacity: 0.9;
+}

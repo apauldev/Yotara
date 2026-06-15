@@ -4,6 +4,7 @@ import { By } from '@angular/platform-browser';
 import { Router, provideRouter } from '@angular/router';
 import { PersonalShellComponent } from './personal-shell.component';
 import { AuthStateService } from '../../../core/services/auth-state.service';
+import { PreferencesStore } from '../../../core/services/preferences-store.service';
 
 @Component({
   standalone: true,
@@ -18,7 +19,11 @@ class InboxStubComponent {}
 class SearchStubComponent {}
 
 describe('PersonalShellComponent', () => {
+  let preferences: PreferencesStore;
+
   beforeEach(async () => {
+    localStorage.clear();
+
     await TestBed.configureTestingModule({
       imports: [PersonalShellComponent, InboxStubComponent, SearchStubComponent],
       providers: [
@@ -39,8 +44,11 @@ describe('PersonalShellComponent', () => {
             }),
           },
         },
+        PreferencesStore,
       ],
     }).compileComponents();
+
+    preferences = TestBed.inject(PreferencesStore);
   });
 
   it('renders the personal navigation in the planned order', () => {
@@ -107,4 +115,71 @@ describe('PersonalShellComponent', () => {
 
     expect(router.url).toContain('/search?q=Launch%20Yotara');
   }));
+
+  describe('Login tip popup', () => {
+    it('shows a random tip when not previously dismissed', () => {
+      const fixture = TestBed.createComponent(PersonalShellComponent);
+      fixture.detectChanges();
+
+      expect(fixture.debugElement.query(By.css('.tip-popup'))).toBeTruthy();
+      expect(
+        fixture.debugElement.query(By.css('.tip-text')).nativeElement.textContent.trim(),
+      ).toBeTruthy();
+    });
+
+    it('does not show tip when previously dismissed', () => {
+      preferences.setLoginTipDismissed(true);
+
+      const fixture = TestBed.createComponent(PersonalShellComponent);
+      fixture.detectChanges();
+
+      expect(fixture.debugElement.query(By.css('.tip-popup'))).toBeNull();
+    });
+
+    it('dismisses the tip when Got it is clicked', () => {
+      const fixture = TestBed.createComponent(PersonalShellComponent);
+      fixture.detectChanges();
+
+      fixture.debugElement.query(By.css('.tip-gotit')).nativeElement.click();
+      fixture.detectChanges();
+
+      expect(fixture.debugElement.query(By.css('.tip-popup'))).toBeNull();
+      expect(preferences.isLoginTipDismissed()).toBeFalse();
+    });
+
+    it("persists dismissal when Don't show again is checked before clicking Got it", () => {
+      const fixture = TestBed.createComponent(PersonalShellComponent);
+      fixture.detectChanges();
+
+      const checkbox = fixture.debugElement.query(By.css('.tip-checkbox')).nativeElement;
+      checkbox.click();
+      fixture.detectChanges();
+
+      fixture.debugElement.query(By.css('.tip-gotit')).nativeElement.click();
+      fixture.detectChanges();
+
+      expect(fixture.debugElement.query(By.css('.tip-popup'))).toBeNull();
+      expect(preferences.isLoginTipDismissed()).toBeTrue();
+    });
+
+    it('dismisses the tip when backdrop is clicked', () => {
+      const fixture = TestBed.createComponent(PersonalShellComponent);
+      fixture.detectChanges();
+
+      fixture.debugElement.query(By.css('.tip-backdrop')).nativeElement.click();
+      fixture.detectChanges();
+
+      expect(fixture.debugElement.query(By.css('.tip-popup'))).toBeNull();
+    });
+
+    it('dismisses the tip when X button is clicked', () => {
+      const fixture = TestBed.createComponent(PersonalShellComponent);
+      fixture.detectChanges();
+
+      fixture.debugElement.query(By.css('.tip-close')).nativeElement.click();
+      fixture.detectChanges();
+
+      expect(fixture.debugElement.query(By.css('.tip-popup'))).toBeNull();
+    });
+  });
 });

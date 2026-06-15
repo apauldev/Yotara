@@ -118,6 +118,20 @@ import { Task, Project, Label } from '@yotara/shared';
             />
           </label>
 
+          <label class="settings-item settings-toggle">
+            <div class="settings-item-copy">
+              <strong>Show login tips</strong>
+              <span>Display productivity tips after signing in.</span>
+            </div>
+            <input
+              type="checkbox"
+              class="toggle-input"
+              [checked]="showLoginTips()"
+              (change)="onShowLoginTipsChange($event)"
+              aria-label="Toggle login tips"
+            />
+          </label>
+
           <div class="settings-item settings-item-disabled">
             <div class="settings-item-copy">
               <strong>Desktop notifications</strong>
@@ -711,6 +725,8 @@ export class SettingsPageComponent {
 
   protected readonly showInsights = signal(!this.preferences.isInsightDismissed());
 
+  protected readonly showLoginTips = signal(!this.preferences.isLoginTipDismissed());
+
   protected readonly exportFormat = signal<'csv' | 'json'>('csv');
 
   protected readonly isExporting = signal(false);
@@ -937,6 +953,12 @@ export class SettingsPageComponent {
     const checked = (event.target as HTMLInputElement).checked;
     this.showInsights.set(checked);
     this.preferences.setInsightDismissed(!checked);
+  }
+
+  protected onShowLoginTipsChange(event: Event) {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.showLoginTips.set(checked);
+    this.preferences.setLoginTipDismissed(!checked);
   }
 
   protected async onLogout() {

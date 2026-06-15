@@ -6,6 +6,7 @@ import { Injectable } from '@angular/core';
 export class PreferencesStore {
   readonly SKIP_COMPLETE_KEY = 'yotara_skipCompleteConfirm';
   readonly INSIGHT_DISMISSED_KEY = 'yotara_insightDismissed';
+  readonly LOGIN_TIP_DISMISSED = 'yotara_loginTipDismissed';
   readonly ONBOARDING_COMPLETED = 'onboardingCompleted';
   readonly WORKSPACE_TYPE = 'workspaceType';
 
@@ -39,5 +40,13 @@ export class PreferencesStore {
 
   setWorkspaceType(value: string): void {
     localStorage.setItem(this.WORKSPACE_TYPE, value);
+  }
+
+  isLoginTipDismissed(): boolean {
+    return localStorage.getItem(this.LOGIN_TIP_DISMISSED) === 'true';
+  }
+
+  setLoginTipDismissed(value: boolean): void {
+    localStorage.setItem(this.LOGIN_TIP_DISMISSED, value ? 'true' : 'false');
   }
 }
