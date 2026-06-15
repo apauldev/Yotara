@@ -40,7 +40,7 @@
 }
 
 .hero-leaf {
-  fill: currentColor;
+  fill: currentcolor;
 }
 
 .hero-vein {
@@ -189,7 +189,7 @@ input::placeholder {
   text-align: center;
 }
 
-@media (max-width: 640px) {
+@media (width <= 640px) {
   .login-screen {
     justify-content: flex-start;
     padding-top: 1rem;

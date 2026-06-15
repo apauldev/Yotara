@@ -258,4 +258,31 @@
   (confirm)="confirmLogout()"
 />
 
+@if (showTip(); as tip) {
+  <div class="tip-backdrop" (click)="dismissTip()">
+    <div class="tip-popup" (click)="$event.stopPropagation()">
+      <div class="tip-header">
+        <fa-icon class="tip-icon" [icon]="faLightbulb" aria-hidden="true"></fa-icon>
+        <span class="tip-title">Tip</span>
+        <button type="button" class="tip-close" aria-label="Dismiss tip" (click)="dismissTip()">
+          <fa-icon [icon]="faXmark"></fa-icon>
+        </button>
+      </div>
+      <p class="tip-text">{{ tip }}</p>
+      <div class="tip-actions">
+        <label class="tip-checkbox-label">
+          <input
+            type="checkbox"
+            class="tip-checkbox"
+            [checked]="tipDontShowAgain()"
+            (change)="onTipCheckboxChange($event)"
+          />
+          Don't show again
+        </label>
+        <button type="button" class="tip-gotit" (click)="dismissTip()">Got it</button>
+      </div>
+    </div>
+  </div>
+}
+
 <app-status />
