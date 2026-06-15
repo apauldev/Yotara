@@ -60,8 +60,22 @@ The compose file sets these by default:
 | `DATABASE_URL` | `/data/yotara.db` | SQLite path inside container |
 | `APP_BASE_URL` | `http://localhost:8080` | Base URL for Better Auth |
 | `TRUSTED_ORIGINS` | `http://localhost:8080` | Allowed auth origins |
+| `PORT` | `3000` | API port |
 
-For production, override these in a `.env` file or your compose override.
+For production, override any variable by creating a `.env` file in the project root:
+
+```bash
+BETTER_AUTH_SECRET=your-secure-random-secret
+DATABASE_URL=/data/yotara.db
+APP_BASE_URL=https://your-domain.com/api
+TRUSTED_ORIGINS=https://your-domain.com
+```
+
+The compose file uses `${VAR:-default}` interpolation, so a `.env` file at the
+project root supplies the replacement values.
+
+Alternatively, create a `docker-compose.override.yml` to add or replace
+environment variables, ports, or volumes without modifying the base file:
 
 ## Troubleshooting
 
