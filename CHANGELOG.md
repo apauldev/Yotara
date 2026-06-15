@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.59.2](https://github.com/apauldev/Yotara/compare/v0.59.1...v0.59.2) (2026-06-15)
+
+
+### Documentation
+
+* fix README inaccuracies and add env file loading to dev runner ([0f50a0b](https://github.com/apauldev/Yotara/commit/0f50a0ba4ec6957df86ef2862bee31c6f4de227a))
+* readme improved ([4cf70da](https://github.com/apauldev/Yotara/commit/4cf70da0f02b0b44ea301cd0651b794d168af31b))
+
 ## [0.59.1](https://github.com/apauldev/Yotara/compare/v0.59.0...v0.59.1) (2026-06-15)
 
 
