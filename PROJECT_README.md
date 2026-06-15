@@ -67,7 +67,7 @@ The Fastify API exposes:
 - `GET /me` — Authenticated user profile
 - `PATCH /me` — Update user (display_name, timezone)
 - `PATCH /me/password` — Change password
-- `GET /tasks` — List tasks (paginated, filterable by status, project, priority, bucket, label, completion, overdue)
+- `GET /tasks` — List tasks (paginated, filterable by status, completion, overdue)
 - `GET /tasks/:id` — Get task
 - `POST /tasks` — Create task
 - `PATCH /tasks/:id` — Update task
