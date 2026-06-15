@@ -8,6 +8,8 @@ export class PreferencesStore {
   readonly INSIGHT_DISMISSED_KEY = 'yotara_insightDismissed';
   readonly ONBOARDING_COMPLETED = 'onboardingCompleted';
   readonly WORKSPACE_TYPE = 'workspaceType';
+  readonly DISMISSED_SUGGESTIONS_KEY = 'yotara_dismissedSuggestions';
+  readonly SUGGESTIONS_ENABLED_KEY = 'yotara_suggestionsEnabled';
 
   getSkipCompleteConfirm(): boolean {
     return localStorage.getItem(this.SKIP_COMPLETE_KEY) === 'true';
@@ -39,5 +41,42 @@ export class PreferencesStore {
 
   setWorkspaceType(value: string): void {
     localStorage.setItem(this.WORKSPACE_TYPE, value);
+  }
+
+  getDismissedSuggestions(): string[] {
+    try {
+      const raw = localStorage.getItem(this.DISMISSED_SUGGESTIONS_KEY);
+      return raw ? (JSON.parse(raw) as string[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private saveDismissedSuggestions(ids: string[]): void {
+    localStorage.setItem(this.DISMISSED_SUGGESTIONS_KEY, JSON.stringify(ids));
+  }
+
+  isSuggestionDismissed(id: string): boolean {
+    return this.getDismissedSuggestions().includes(id);
+  }
+
+  dismissSuggestion(id: string): void {
+    const dismissed = this.getDismissedSuggestions();
+    if (!dismissed.includes(id)) {
+      dismissed.push(id);
+      this.saveDismissedSuggestions(dismissed);
+    }
+  }
+
+  resetAllSuggestions(): void {
+    this.saveDismissedSuggestions([]);
+  }
+
+  areSuggestionsEnabled(): boolean {
+    return localStorage.getItem(this.SUGGESTIONS_ENABLED_KEY) !== 'false';
+  }
+
+  setSuggestionsEnabled(enabled: boolean): void {
+    localStorage.setItem(this.SUGGESTIONS_ENABLED_KEY, enabled ? 'true' : 'false');
   }
 }
