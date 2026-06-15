@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.59.1](https://github.com/apauldev/Yotara/compare/v0.59.0...v0.59.1) (2026-06-15)
+
+
+### Bug Fixes
+
+* make docker-compose.yml respect .env overrides via variable interpolation ([099b63d](https://github.com/apauldev/Yotara/commit/099b63dd117d546e5b2910edd4f73ecae16ebff9))
+* remove root .env.example — no auto-load mechanism exists ([2b99c23](https://github.com/apauldev/Yotara/commit/2b99c233b0f4613b8d8736970e881081404558d4))
+
+
+### Documentation
+
+* fix CI recovery — re-run the workflow, not pnpm release ([22b7196](https://github.com/apauldev/Yotara/commit/22b71968404a708061cee16faf84d4f9c379499b))
+* fix doc issues from review — broken links, wrong paths, incomplete lists ([6b18a6a](https://github.com/apauldev/Yotara/commit/6b18a6a6cdf98ab3673e95af542f15f2e72c19f2))
+* fix documented task filters to match implementation ([c69ed20](https://github.com/apauldev/Yotara/commit/c69ed209376edf33ad2bd2c5ca158ef9b45598bf))
+* remove email verification claim — not implemented ([4cf786b](https://github.com/apauldev/Yotara/commit/4cf786b0cb1345f3cebe60419f7b74e7e2d92f03))
+
 ## [0.59.0](https://github.com/apauldev/Yotara/compare/v0.58.4...v0.59.0) (2026-06-15)
 
 
