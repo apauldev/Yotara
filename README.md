@@ -49,8 +49,8 @@ Most productivity tools ask you to trade calm for capability. Yotara tries to ke
       <p>Inbox, Today, and Upcoming views keep the next step visible without turning your workspace into a storm of widgets. Everything stays close, readable, and easy to return to.</p>
     </td>
     <td width="50%">
-      <h3>Team Ready</h3>
-      <p>Share projects and tasks only when collaboration matters. No ceremony for the sake of ceremony, just enough structure for the work to move along smoothly.</p>
+      <h3>Team Mode (Planned)</h3>
+      <p>Personal mode is the focus today. Team mode is planned.</p>
     </td>
   </tr>
   <tr>
@@ -141,7 +141,7 @@ A few fresh leaves on the branch. Yotara is actively developed and improving eve
 - Typed Error Hierarchy -- replaced bare `throw new Error` with typed, HTTP-aware errors across the entire API.
 - Preferences Store -- centralized all `localStorage` access into a single injectable service instead of scattered magic strings.
 - Signal-Driven UI -- replaced `setTimeout` hacks with proper Angular signals for loading bars and state transitions.
-- Docker CI Smoke Tests -- every PR builds images and runs a full stack smoke test before merge.
+- Docker CI Smoke Tests -- code PRs build images and run a full stack smoke test before merge. Docs-only and screenshot-only changes skip CI.
 - OpenAPI Docs -- auto-generated Swagger UI served at `/docs` with full request/response schemas.
 - Task Pagination -- server-side pagination for smooth handling of thousands of tasks.
 - Lifecycle Management -- archive, restore, and permanent delete with `archived_at` timestamps.
@@ -209,14 +209,14 @@ This starts three services in parallel:
 
 ### Environment
 
+The dev runner (`pnpm dev`) loads `apps/api/.env` automatically. To configure:
+
 ```bash
 cp apps/api/.env.example apps/api/.env
-# Or set in your shell:
-export BETTER_AUTH_SECRET="your-secret"
-export DATABASE_URL="./data/yotara.db"
+# Then edit apps/api/.env to set your values
 ```
 
-For Docker deployment (production-ready multi-stage builds), see [DOCKER.md](./DOCKER.md).
+For Docker deployment, see [DOCKER.md](./DOCKER.md).
 
 ---
 
@@ -289,9 +289,9 @@ Yotara follows Semantic Versioning powered by Conventional Commits and automated
 | `feat:` | Minor | `feat: add recurring task support` |
 | `fix:` | Patch | `fix: correct date overflow in February` |
 | `feat!:` or `fix!:` | Major | `feat!: redesign task data model` |
-| `docs:`, `refactor:`, `test:` | Patch | `docs: update API examples` |
+| `docs:`, `refactor:`, `test:` | Patch | `refactor: extract PreferencesStore` |
 
-Automated releases run via GitHub Actions on every merge to `main`: version bump, changelog generation, tag creation, and GitHub Release. All hands-off.
+Automated releases run via GitHub Actions when code is merged to `main`. Docs-only and screenshot-only changes are skipped. The release workflow: version bump, changelog, tag, and GitHub Release. All hands-off.
 
 ---
 

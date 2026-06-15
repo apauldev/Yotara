@@ -1,4 +1,31 @@
 import { spawn } from 'node:child_process';
+import { readFileSync, existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+function loadEnvFile(filePath) {
+  const resolved = resolve(filePath);
+  if (!existsSync(resolved)) return;
+  const text = readFileSync(resolved, 'utf-8');
+  for (const line of text.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const sep = trimmed.indexOf('=');
+    if (sep === -1) continue;
+    const key = trimmed.slice(0, sep).trim();
+    let value = trimmed.slice(sep + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    if (key && !process.env[key]) {
+      process.env[key] = value;
+    }
+  }
+}
+
+loadEnvFile('apps/api/.env');
 
 const processes = [
   { name: 'frontend', args: ['--filter', '@yotara/frontend', 'dev'] },
