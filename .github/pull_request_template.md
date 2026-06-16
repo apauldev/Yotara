@@ -58,7 +58,7 @@ Closes: #
 
 ## Contributor License Agreement
 
-By submitting this PR, you agree to the [Yotara CLA](./CLA.md).
+By submitting this PR, you agree to the [Yotara CLA](https://github.com/apauldev/Yotara/blob/main/CLA.md).
 
 - [ ] I have read and agree to the Yotara Contributor License Agreement
 - [ ] I have signed-off my commits (`git commit -s`) to certify the [Developer Certificate of Origin](https://developercertificate.org/)
