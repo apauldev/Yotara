@@ -8,6 +8,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test --watch=false --browsers ChromeHeadless",
+    "test:coverage": "ng test --watch=false --browsers ChromeHeadless --code-coverage --karma-config karma.conf.js",
     "lint": "tsc -p tsconfig.app.json --noEmit && stylelint \"src/**/*.css\"",
     "lint:css": "stylelint \"src/**/*.css\"",
     "lint:css:fix": "stylelint \"src/**/*.css\" --fix",

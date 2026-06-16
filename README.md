@@ -9,6 +9,7 @@
 <br />
 
 <a href="https://github.com/apauldev/Yotara/actions"><img src="https://img.shields.io/github/actions/workflow/status/apauldev/Yotara/ci.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=CI&color=3E7B63" alt="CI" /></a>
+<a href="https://codecov.io/gh/apauldev/Yotara"><img src="https://img.shields.io/codecov/c/github/apauldev/Yotara?style=for-the-badge&logo=codecov&logoColor=white&color=7BA58D" alt="Coverage" /></a>
 <a href="https://github.com/apauldev/Yotara/releases"><img src="https://img.shields.io/github/v/release/apauldev/Yotara?style=for-the-badge&logo=github&color=173F35" alt="Release" /></a>
 <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-7BA58D?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="License" /></a>
 <a href="https://github.com/apauldev/Yotara/security"><img src="https://img.shields.io/badge/security-CodeQL-1C5D4B?style=for-the-badge&logo=github&logoColor=white" alt="Security" /></a>
