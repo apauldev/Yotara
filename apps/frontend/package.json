@@ -49,7 +49,7 @@
     "@angular/cli": "^21.2.0",
     "@angular/compiler-cli": "^21.2.0",
     "@spartan-ng/cli": "0.0.1-alpha.646",
-    "@types/jasmine": "~5.1.0",
+    "@types/jasmine": "~6.0.0",
     "autoprefixer": "^10.4.27",
     "jasmine-core": "~5.6.0",
     "karma": "~6.4.0",
