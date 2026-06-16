@@ -1,5 +1,6 @@
 node_modules
 dist
+coverage
 out-tsc
 package-lock.json
 apps/api/data/*.db

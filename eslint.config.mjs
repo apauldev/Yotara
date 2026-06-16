@@ -20,6 +20,7 @@ export default [
       '**/*.config.mjs',
       'scripts/**',
       'tailwind.config.js',
+      '**/karma.conf.js',
     ],
   },
   js.configs.recommended,

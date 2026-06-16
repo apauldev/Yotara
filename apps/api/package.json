@@ -10,6 +10,7 @@
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts",
+    "test:coverage": "c8 --reporter=lcov --reporter=text tsx --test src/**/*.test.ts",
     "docs:check": "tsx --test src/docs/openapi.test.ts",
     "docs:export": "tsx src/scripts/export-openapi.ts",
     "db:generate": "drizzle-kit generate",
@@ -31,6 +32,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22",
+    "c8": "^11.0.0",
     "drizzle-kit": "^0.31.9",
     "rimraf": "^6.0.1",
     "tsx": "^4.21.0",
