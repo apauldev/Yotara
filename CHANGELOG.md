@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.59.3](https://github.com/apauldev/Yotara/compare/v0.59.2...v0.59.3) (2026-06-16)
+
+
+### Bug Fixes
+
+* use absolute URL for CLA link in PR template and contributing guide ([198a973](https://github.com/apauldev/Yotara/commit/198a973ee7fd87fb20219753c52cd569aed03dea))
+
+
+### Chores
+
+* add CLA with DCO and CLAassistant setup ([b8e02e3](https://github.com/apauldev/Yotara/commit/b8e02e390e3430a7c2101dcda8e85e5b4067abb4))
+* add code coverage with c8 and Codecov ([1d8459b](https://github.com/apauldev/Yotara/commit/1d8459b227d8ac0dd72a37f9ed1b4fd98400e35e))
+
 ## [0.59.2](https://github.com/apauldev/Yotara/compare/v0.59.1...v0.59.2) (2026-06-15)
 
 
