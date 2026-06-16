@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.59.4](https://github.com/apauldev/Yotara/compare/v0.59.3...v0.59.4) (2026-06-16)
+
+
+### Bug Fixes
+
+* drop explicit version from pnpm/action-setup ([fae438b](https://github.com/apauldev/Yotara/commit/fae438b28956eb4e298a8fbf057cfbee848ee741))
+* pin pnpm version and fix prettier formatting ([af305ee](https://github.com/apauldev/Yotara/commit/af305ee82906dea2b73d9e58e35047c8e2c5f99e))
+
+
+### Chores
+
+* **deps-dev:** bump drizzle-kit from 0.31.9 to 0.31.10 ([818ec14](https://github.com/apauldev/Yotara/commit/818ec1460b77cc60b721ec2f7e0756378ac99c64))
+* **deps-dev:** bump prettier from 3.8.1 to 3.8.4 ([124de94](https://github.com/apauldev/Yotara/commit/124de9434d36a4dd54dd79ef67ec30e4b21d2351))
+* **deps-dev:** bump the commitlint group across 1 directory with 2 updates ([89c532b](https://github.com/apauldev/Yotara/commit/89c532b68efa9b1960e509769c524b4032c10ac5))
+* **deps-dev:** bump the eslint group across 1 directory with 2 updates ([2639724](https://github.com/apauldev/Yotara/commit/26397249497b7b7ac203efcf84e7f08003c09989))
+* **deps:** bump dompurify from 3.4.7 to 3.4.8 ([7edffa6](https://github.com/apauldev/Yotara/commit/7edffa64159b1c4ccb3216b4472a0a35a3259865))
+* **deps:** bump tailwind-merge from 3.5.0 to 3.6.0 ([dd08189](https://github.com/apauldev/Yotara/commit/dd08189e56554f62d2e0a0f123e1b07753e5d401))
+* regenerate lockfile after dependabot bumps ([825d829](https://github.com/apauldev/Yotara/commit/825d8296045142f9ff53c92c62b490a55cd43644))
+
 ## [0.59.3](https://github.com/apauldev/Yotara/compare/v0.59.2...v0.59.3) (2026-06-16)
 
 
