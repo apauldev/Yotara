@@ -196,6 +196,10 @@ pnpm release                 # Create release
 - [Conventional Commits](https://www.conventionalcommits.org/) -- Commit message format
 - [Yotara on GitHub](https://github.com/apauldev/Yotara)
 
+## Contributor License Agreement
+
+Before your first PR is merged, you will need to sign the [Yotara CLA](https://github.com/apauldev/Yotara/blob/main/CLA.md). This gives the project the rights to distribute your contributions under any license (MIT or future alternatives). CLAassistant will prompt you automatically on your first pull request.
+
 ## Questions or Need Help?
 
 - **GitHub Issues**: Open an issue with the `question` label
