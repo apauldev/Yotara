@@ -654,7 +654,7 @@ export class PersonalTaskCardComponent {
   requestComplete(event: MouseEvent) {
     event.stopPropagation();
 
-    if (this.preferences.getSkipCompleteConfirm()) {
+    if (this.preferences.skipCompleteConfirm()) {
       this.completeTask();
       return;
     }

@@ -721,11 +721,13 @@ export class SettingsPageComponent {
   protected readonly isSavingCaptureBehavior = signal(false);
   private readonly preferences = inject(PreferencesStore);
 
-  protected readonly skipCompleteConfirm = signal(this.preferences.getSkipCompleteConfirm());
+  protected readonly skipCompleteConfirm = this.preferences.skipCompleteConfirm;
 
-  protected readonly showInsights = signal(!this.preferences.isInsightDismissed());
+  protected readonly showInsights = computed(() => !this.preferences.insightDismissed());
 
-  protected readonly showLoginTips = signal(!this.preferences.isLoginTipDismissed());
+  protected readonly showLoginTips = computed(
+    () => localStorage.getItem('yotara_loginTipDismissed') !== 'true',
+  );
 
   protected readonly exportFormat = signal<'csv' | 'json'>('csv');
 
@@ -944,21 +946,15 @@ export class SettingsPageComponent {
   }
 
   protected onSkipCompleteConfirmChange(event: Event) {
-    const checked = (event.target as HTMLInputElement).checked;
-    this.skipCompleteConfirm.set(checked);
-    this.preferences.setSkipCompleteConfirm(checked);
+    this.preferences.setSkipCompleteConfirm((event.target as HTMLInputElement).checked);
   }
 
   protected onShowInsightsChange(event: Event) {
-    const checked = (event.target as HTMLInputElement).checked;
-    this.showInsights.set(checked);
-    this.preferences.setInsightDismissed(!checked);
+    this.preferences.setInsightDismissed(!(event.target as HTMLInputElement).checked);
   }
 
   protected onShowLoginTipsChange(event: Event) {
-    const checked = (event.target as HTMLInputElement).checked;
-    this.showLoginTips.set(checked);
-    this.preferences.setLoginTipDismissed(!checked);
+    this.preferences.setLoginTipDismissed(!(event.target as HTMLInputElement).checked, true);
   }
 
   protected async onLogout() {

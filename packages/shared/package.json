@@ -13,7 +13,8 @@
   "scripts": {
     "build": "tsc",
     "lint": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:coverage": "echo 'No tests in shared package'"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

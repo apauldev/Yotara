@@ -1,6 +1,6 @@
 # Architecture Guide — Yotara
 
-> **Status:** Living document. Last updated 2026-06-03.
+> **Status:** Living document. Last updated 2026-06-17.
 > **Owner:** @apauldev
 > **Supersedes:** [ROADMAP.md](../ROADMAP.md) and the planning sections of [apps/frontend/TODO.md](../apps/frontend/TODO.md) and [apps/api/TODO.md](../apps/api/TODO.md). The older docs are kept as historical snapshots and are no longer maintained. Cross-references from the older docs now point here.
 >
@@ -372,7 +372,7 @@ This sprint order supersedes the P0/P1/P2/P3 priority lanes in `ROADMAP.md`. Tra
 - [x] Migrate 26 `console.error` sites to `LogService`; add ESLint `no-console` rule
 - [x] Replace `throw new Error('string')` in services with typed errors; add Fastify `setErrorHandler`
 - [x] Fix `as any` on `request.query.status` at the trust boundary
-- [ ] Add `PreferencesStore` (or extend `ThemeService`'s pattern) and migrate the three `localStorage` magic-string keys
+- [x] Add `PreferencesStore` (or extend `ThemeService`'s pattern) and migrate the three `localStorage` magic-string keys
 - [ ] Replace the 4 problematic `setTimeout` UI hacks with signal-driven state
 - [ ] Fix the UTC vs local timezone bug; add `?tz=` to per-view queries
 - [x] Add a `no-restricted-syntax` ESLint rule against `as any` (warn-only, applied to all `.ts` files)
@@ -536,6 +536,7 @@ Items in the "Explicit non-goals" subsection are deliberately not on the roadmap
 - [ ] Migrate `personal-project-modal` to the shared modal primitive. [fe §Refactor]
 - [ ] Split remaining large inline templates/styles — `personal-project-modal`, `personal-task-card`, `personal-task-workspace`, `personal-shell`, `auth-shell`, `logout-confirm-modal` are still inline. [fe §Inline split]
 - [ ] Replace `localStorage` / `window.open` in onboarding with an injected, platform-safe helper. [fe §Refactor]
+- [ ] Cross-tab sync for `PreferencesStore` signals — listen for the `storage` event and re-read the affected key so a change in one tab (e.g. dismissing the insight panel) is reflected in another open tab. `PreferencesStore` is the natural place to own this since it's already the single source of truth for preference keys; consumers already bind to its signals, so they'd react automatically. Pre-existing limitation, not a regression of the signals refactor. [arch §A4]
 - [ ] Centralize task date parsing and formatting in shared utilities. [fe §Refactor]
 - [ ] Remove `any` escapes in auth/login error handling — use `unknown` + type guards. [fe §Refactor]
 - [ ] Structured field-level validation errors from backend — surface per-field errors next to inputs. [fe §P2]
