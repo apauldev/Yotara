@@ -90,8 +90,8 @@ describe('StartScreenComponent', () => {
     await component.continue();
 
     expect(authState.completeOnboarding).toHaveBeenCalledOnceWith('personal');
-    expect(preferences.getWorkspaceType()).toBe('personal');
-    expect(preferences.isOnboardingCompleted()).toBeTrue();
+    expect(preferences.workspaceType()).toBe('personal');
+    expect(preferences.onboardingCompleted()).toBeTrue();
     expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/inbox');
     expect(component.error()).toBe('');
     expect(component.loading()).toBeFalse();

@@ -160,7 +160,7 @@ export class PersonalShellComponent {
       this.searchQuery.set(params.get('q') ?? '');
     });
 
-    if (!this.preferences.isLoginTipDismissed()) {
+    if (!this.preferences.loginTipDismissed()) {
       this.showTip.set(TIPS[Math.floor(Math.random() * TIPS.length)]);
     }
   }
@@ -173,9 +173,7 @@ export class PersonalShellComponent {
   }
 
   protected dismissTip() {
-    if (this.tipDontShowAgain()) {
-      this.preferences.setLoginTipDismissed(true);
-    }
+    this.preferences.setLoginTipDismissed(true, this.tipDontShowAgain());
     this.showTip.set(null);
   }
 

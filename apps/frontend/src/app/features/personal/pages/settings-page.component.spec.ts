@@ -456,7 +456,7 @@ describe('SettingsPageComponent', () => {
       getCompleteConfirmToggle()?.click();
       fixture.detectChanges();
 
-      expect(preferences.getSkipCompleteConfirm()).toBeTrue();
+      expect(preferences.skipCompleteConfirm()).toBeTrue();
       expect(getCompleteConfirmToggle()?.checked).toBeTrue();
     });
 
@@ -469,7 +469,7 @@ describe('SettingsPageComponent', () => {
       getCompleteConfirmToggle()?.click();
       fixture.detectChanges();
 
-      expect(preferences.getSkipCompleteConfirm()).toBeFalse();
+      expect(preferences.skipCompleteConfirm()).toBeFalse();
       expect(getCompleteConfirmToggle()?.checked).toBeFalse();
     });
   });

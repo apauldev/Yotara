@@ -343,7 +343,7 @@ describe('PersonalTaskCardComponent', () => {
       await confirmButton.nativeElement.click();
       fixture.detectChanges();
 
-      expect(preferences.getSkipCompleteConfirm()).toBeTrue();
+      expect(preferences.skipCompleteConfirm()).toBeTrue();
       expect(taskServiceSpy.updateTask).toHaveBeenCalledWith('task-1', { completed: true });
     });
 
@@ -360,7 +360,7 @@ describe('PersonalTaskCardComponent', () => {
       await confirmButton.nativeElement.click();
       fixture.detectChanges();
 
-      expect(preferences.getSkipCompleteConfirm()).toBeFalse();
+      expect(preferences.skipCompleteConfirm()).toBeFalse();
     });
   });
 
