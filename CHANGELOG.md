@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.59.5](https://github.com/apauldev/Yotara/compare/v0.59.4...v0.59.5) (2026-06-17)
+
+
+### Bug Fixes
+
+* decouple settings login-tips toggle from session-only dismissal ([da93de4](https://github.com/apauldev/Yotara/commit/da93de46e73eed0fff7c64f2f698b7caabfdafc2))
+
+
+### Chores
+
+* add no-op test:coverage script to shared package ([f3c68ae](https://github.com/apauldev/Yotara/commit/f3c68aeb60ee1e1546f880e0859f75a952007b62))
+
+
+### Refactoring
+
+* migrate application preferences to signal-based store ([1c0f694](https://github.com/apauldev/Yotara/commit/1c0f694038ffb8affa54cb977e3719ae539c76d2))
+
+
+### Tests
+
+* fix regressions in PersonalShellComponent and PreferencesStore ([7243c8d](https://github.com/apauldev/Yotara/commit/7243c8d83fa4f6da1e582db64a30f4f3c94e283e))
+
 ## [0.59.4](https://github.com/apauldev/Yotara/compare/v0.59.3...v0.59.4) (2026-06-16)
 
 
