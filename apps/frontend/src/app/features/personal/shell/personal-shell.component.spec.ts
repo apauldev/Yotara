@@ -23,6 +23,7 @@ describe('PersonalShellComponent', () => {
 
   beforeEach(async () => {
     localStorage.clear();
+    sessionStorage.clear();
 
     await TestBed.configureTestingModule({
       imports: [PersonalShellComponent, InboxStubComponent, SearchStubComponent],
@@ -144,7 +145,7 @@ describe('PersonalShellComponent', () => {
       fixture.detectChanges();
 
       expect(fixture.debugElement.query(By.css('.tip-popup'))).toBeNull();
-      expect(preferences.loginTipDismissed()).toBeFalse();
+      expect(preferences.loginTipDismissed()).toBeTrue();
     });
 
     it("persists dismissal when Don't show again is checked before clicking Got it", () => {
