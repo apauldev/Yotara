@@ -74,6 +74,12 @@ describe('PreferencesStore', () => {
     expect(localStorage.getItem('onboardingCompleted')).toBe('true');
   });
 
+  it('setOnboardingCompleted(false) persists false to localStorage', () => {
+    store.setOnboardingCompleted(false);
+    expect(store.onboardingCompleted()).toBeFalse();
+    expect(localStorage.getItem('onboardingCompleted')).toBe('false');
+  });
+
   it('workspaceType defaults to empty string', () => {
     expect(store.workspaceType()).toBe('');
   });

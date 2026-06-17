@@ -473,4 +473,68 @@ describe('SettingsPageComponent', () => {
       expect(getCompleteConfirmToggle()?.checked).toBeFalse();
     });
   });
+
+  function getLoginTipsToggle(): HTMLInputElement | null {
+    const toggles = fixture.debugElement.queryAll(By.css('.settings-toggle'));
+    for (const toggle of toggles) {
+      const strong = toggle.query(By.css('.settings-item-copy strong'));
+      if (strong?.nativeElement.textContent.includes('Show login tips')) {
+        return toggle.query(By.css('input[type="checkbox"]'))?.nativeElement ?? null;
+      }
+    }
+    return null;
+  }
+
+  describe('Show login tips toggle', () => {
+    beforeEach(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+    });
+
+    it('renders the login tips toggle', () => {
+      expect(getLoginTipsToggle()).toBeTruthy();
+    });
+
+    it('defaults to on when no localStorage key is set', () => {
+      expect(comp.showLoginTips()).toBeTrue();
+      expect(getLoginTipsToggle()?.checked).toBeTrue();
+    });
+
+    it('reflects localStorage key when already set before component creation', () => {
+      localStorage.setItem('yotara_loginTipDismissed', 'true');
+      fixture = TestBed.createComponent(SettingsPageComponent);
+      comp = fixture.componentInstance as any;
+      fixture.detectChanges();
+
+      expect(getLoginTipsToggle()?.checked).toBeFalse();
+    });
+
+    it('persists to localStorage when toggled off', () => {
+      getLoginTipsToggle()?.click();
+      fixture.detectChanges();
+
+      expect(localStorage.getItem('yotara_loginTipDismissed')).toBe('true');
+      expect(getLoginTipsToggle()?.checked).toBeFalse();
+    });
+
+    it('persists to localStorage when toggled back on', () => {
+      localStorage.setItem('yotara_loginTipDismissed', 'true');
+      fixture = TestBed.createComponent(SettingsPageComponent);
+      comp = fixture.componentInstance as any;
+      fixture.detectChanges();
+
+      getLoginTipsToggle()?.click();
+      fixture.detectChanges();
+
+      expect(localStorage.getItem('yotara_loginTipDismissed')).toBe('false');
+      expect(getLoginTipsToggle()?.checked).toBeTrue();
+    });
+
+    it('is not affected by session-only dismissal', () => {
+      preferences.setLoginTipDismissed(true, false);
+      fixture.detectChanges();
+
+      expect(getLoginTipsToggle()?.checked).toBeTrue();
+    });
+  });
 });

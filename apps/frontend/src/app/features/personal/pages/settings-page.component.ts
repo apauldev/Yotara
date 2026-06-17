@@ -725,7 +725,9 @@ export class SettingsPageComponent {
 
   protected readonly showInsights = computed(() => !this.preferences.insightDismissed());
 
-  protected readonly showLoginTips = computed(() => !this.preferences.loginTipDismissed());
+  protected readonly showLoginTips = computed(
+    () => localStorage.getItem('yotara_loginTipDismissed') !== 'true',
+  );
 
   protected readonly exportFormat = signal<'csv' | 'json'>('csv');
 
