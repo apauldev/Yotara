@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.59.7](https://github.com/apauldev/Yotara/compare/v0.59.6...v0.59.7) (2026-06-18)
+
+
+### Bug Fixes
+
+* **tasks:** align calendar date handling ([a4c8094](https://github.com/apauldev/Yotara/commit/a4c80943f1ed578bcf72f2a0a99e3f794eccef5f))
+* update test to match PATCH URL with tz query param ([b6e233b](https://github.com/apauldev/Yotara/commit/b6e233b234497e97a7b407d3454e40eb72738ab7))
+* use timezone-aware date when restoring tasks to correct bucket ([dfe4194](https://github.com/apauldev/Yotara/commit/dfe4194dfefe60f6df8edaa84b0ee9b5f32cef7d))
+
+
+### Tests
+
+* add coverage for tz-aware task restore path ([89f06f7](https://github.com/apauldev/Yotara/commit/89f06f7be163d54a8daeb237dd91df39f339f199))
+
 ## [0.59.6](https://github.com/apauldev/Yotara/compare/v0.59.5...v0.59.6) (2026-06-18)
 
 
