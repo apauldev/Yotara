@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { CreateTaskDto, PaginatedResponse, Task, UpdateTaskDto } from '@yotara/shared';
 import { LogService } from './log.service';
@@ -7,12 +7,10 @@ import {
   catchError,
   combineLatest,
   distinctUntilChanged,
-  expand,
   finalize,
   firstValueFrom,
   map,
   of,
-  reduce,
   switchMap,
 } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -20,6 +18,8 @@ import { AuthStateService } from './auth-state.service';
 import { LabelService } from './label.service';
 import { ProjectService } from './project.service';
 import { parseCalendarDate, startOfToday } from '../../shared/utils/timestamps';
+import { getUserTimezone } from '../../shared/utils/timezone';
+import { DateTime } from 'luxon';
 
 export type UpcomingBucket = 'This Week' | 'Next Week' | 'Later';
 
@@ -40,61 +40,6 @@ export class TaskService {
   private loadingState = signal(false);
   private creatingState = signal(false);
   private errorState = signal<string | null>(null);
-
-  private fetchActiveTasks$() {
-    return this.http
-      .get<
-        PaginatedResponse<Task[]>
-      >(`${this.baseUrl}/tasks?page=1&pageSize=100&completed=false&includeSubtasks=true`, { withCredentials: true })
-      .pipe(
-        expand((response) => {
-          if (response.meta.hasNextPage && response.data.length > 0) {
-            return this.http.get<PaginatedResponse<Task[]>>(
-              `${this.baseUrl}/tasks?page=${response.meta.page + 1}&pageSize=100&completed=false&includeSubtasks=true`,
-              { withCredentials: true },
-            );
-          }
-          return of();
-        }),
-        reduce((acc, response) => [...acc, ...response.data], [] as Task[]),
-      );
-  }
-
-  readonly tasks = toSignal(
-    combineLatest([
-      toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
-      toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
-      toObservable(this.refreshState),
-    ]).pipe(
-      switchMap(([initialized, currentUserId]) => {
-        if (!initialized || !currentUserId) {
-          this.errorState.set(null);
-          return of([] as Task[]);
-        }
-
-        this.loadingState.set(true);
-        this.errorState.set(null);
-
-        return this.fetchActiveTasks$().pipe(
-          map((tasks) => tasks.sort((left, right) => left.order - right.order)),
-          catchError((error: unknown) => {
-            if (error instanceof HttpErrorResponse && error.status === 401) {
-              this.errorState.set(null);
-              return of([] as Task[]);
-            }
-
-            this.logService.error('Failed to load tasks', error, 'TaskService');
-            this.errorState.set('Could not load your tasks right now.');
-            return of([] as Task[]);
-          }),
-          finalize(() => {
-            this.loadingState.set(false);
-          }),
-        );
-      }),
-    ),
-    { initialValue: [] as Task[] },
-  );
 
   readonly recentlyCompleted = toSignal(
     combineLatest([
@@ -125,40 +70,193 @@ export class TaskService {
   readonly error = this.errorState.asReadonly();
   readonly revision = this.refreshState.asReadonly();
 
-  readonly activeTasks = computed(() =>
-    this.tasks().filter((task) => !task.completed && task.status !== 'archived' && !task.parentId),
-  );
-  readonly pendingTasks = computed(() =>
-    this.tasks().filter((task) => !task.completed && !task.parentId),
-  );
-  readonly completedTasks = computed(() => this.recentlyCompleted());
-  readonly archivedTasks = computed(() => this.recentlyCompleted());
-
   getArchivedTasks(page: number, pageSize: number) {
     return this.http.get<PaginatedResponse<Task[]>>(
       `${this.baseUrl}/tasks?page=${page}&pageSize=${pageSize}&completed=true&includeSubtasks=true`,
       { withCredentials: true },
     );
   }
-  readonly inboxTasks = computed(() =>
-    this.activeTasks().filter(
-      (task) =>
-        this.isTaskOverdue(task) || (task.status === 'inbox' && !this.hasScheduledDate(task)),
+  fetchTodayTasks$() {
+    const tz = getUserTimezone();
+    return this.http.get<PaginatedResponse<Task[]>>(
+      `${this.baseUrl}/tasks?view=today&tz=${tz}&includeSubtasks=true&pageSize=100`,
+      { withCredentials: true },
+    );
+  }
+
+  fetchOverdueTasks$() {
+    const tz = getUserTimezone();
+    return this.http.get<PaginatedResponse<Task[]>>(
+      `${this.baseUrl}/tasks?overdue=true&tz=${tz}&includeSubtasks=true&pageSize=100`,
+      { withCredentials: true },
+    );
+  }
+
+  fetchInboxTasks$() {
+    const tz = getUserTimezone();
+    return this.http.get<PaginatedResponse<Task[]>>(
+      `${this.baseUrl}/tasks?view=inbox&tz=${tz}&includeSubtasks=true&pageSize=100`,
+      { withCredentials: true },
+    );
+  }
+
+  fetchUpcomingTasks$() {
+    const tz = getUserTimezone();
+    return this.http.get<PaginatedResponse<Task[]>>(
+      `${this.baseUrl}/tasks?view=upcoming&tz=${tz}&includeSubtasks=true&pageSize=100`,
+      { withCredentials: true },
+    );
+  }
+
+  fetchTodayCompletedTasks$() {
+    const tz = getUserTimezone();
+    const today = DateTime.now().setZone(tz).toFormat('yyyy-MM-dd');
+    return this.http.get<PaginatedResponse<Task[]>>(
+      `${this.baseUrl}/tasks?completedSince=${today}&tz=${tz}&includeSubtasks=true&pageSize=100`,
+      { withCredentials: true },
+    );
+  }
+
+  /** Fetch all active tasks including subtasks (for subtask maps, labels, search). */
+  fetchAllActiveTasks$() {
+    return this.http
+      .get<
+        PaginatedResponse<Task[]>
+      >(`${this.baseUrl}/tasks?page=1&pageSize=1000&completed=false&includeSubtasks=true`, { withCredentials: true })
+      .pipe(map((response) => response.data));
+  }
+
+  /** Signal of all active tasks for subtask maps, labels, and search. */
+  readonly allActiveTasks = toSignal(
+    combineLatest([
+      toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
+      toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
+      toObservable(this.refreshState),
+    ]).pipe(
+      switchMap(([initialized, currentUserId]) => {
+        if (!initialized || !currentUserId) {
+          this.loadingState.set(false);
+          return of([] as Task[]);
+        }
+        this.loadingState.set(true);
+        return this.fetchAllActiveTasks$().pipe(
+          catchError(() => of([] as Task[])),
+          finalize(() => this.loadingState.set(false)),
+        );
+      }),
     ),
+    { initialValue: [] as Task[] },
   );
-  readonly overdueTasks = computed(() =>
-    this.activeTasks().filter((task) => this.isTaskOverdue(task)),
-  );
-  readonly todayTasks = computed(() =>
-    this.activeTasks().filter((task) => this.isTaskToday(task) && !this.isTaskOverdue(task)),
-  );
-  readonly todayCompletedTasks = computed(() =>
-    this.completedTasks().filter(
-      (task) => (this.isTaskToday(task) || this.isTaskOverdue(task)) && !task.parentId,
+
+  readonly todayTasks = toSignal(
+    combineLatest([
+      toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
+      toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
+      toObservable(this.refreshState),
+    ]).pipe(
+      switchMap(([initialized, currentUserId]) => {
+        if (!initialized || !currentUserId) {
+          return of([] as Task[]);
+        }
+        return this.fetchTodayTasks$().pipe(
+          map((response) =>
+            response.data
+              .filter((task) => !task.parentId)
+              .sort((left, right) => left.order - right.order),
+          ),
+          catchError(() => of([] as Task[])),
+        );
+      }),
     ),
+    { initialValue: [] as Task[] },
   );
-  readonly upcomingTasks = computed(() =>
-    this.activeTasks().filter((task) => this.isTaskUpcoming(task)),
+
+  readonly overdueTasks = toSignal(
+    combineLatest([
+      toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
+      toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
+      toObservable(this.refreshState),
+    ]).pipe(
+      switchMap(([initialized, currentUserId]) => {
+        if (!initialized || !currentUserId) {
+          return of([] as Task[]);
+        }
+        return this.fetchOverdueTasks$().pipe(
+          map((response) =>
+            response.data
+              .filter((task) => !task.parentId)
+              .sort((left, right) => left.order - right.order),
+          ),
+          catchError(() => of([] as Task[])),
+        );
+      }),
+    ),
+    { initialValue: [] as Task[] },
+  );
+
+  readonly inboxTasks = toSignal(
+    combineLatest([
+      toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
+      toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
+      toObservable(this.refreshState),
+    ]).pipe(
+      switchMap(([initialized, currentUserId]) => {
+        if (!initialized || !currentUserId) {
+          return of([] as Task[]);
+        }
+        return this.fetchInboxTasks$().pipe(
+          map((response) =>
+            response.data
+              .filter((task) => !task.parentId)
+              .sort((left, right) => left.order - right.order),
+          ),
+          catchError(() => of([] as Task[])),
+        );
+      }),
+    ),
+    { initialValue: [] as Task[] },
+  );
+
+  readonly upcomingTasks = toSignal(
+    combineLatest([
+      toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
+      toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
+      toObservable(this.refreshState),
+    ]).pipe(
+      switchMap(([initialized, currentUserId]) => {
+        if (!initialized || !currentUserId) {
+          return of([] as Task[]);
+        }
+        return this.fetchUpcomingTasks$().pipe(
+          map((response) =>
+            response.data
+              .filter((task) => !task.parentId)
+              .sort((left, right) => left.order - right.order),
+          ),
+          catchError(() => of([] as Task[])),
+        );
+      }),
+    ),
+    { initialValue: [] as Task[] },
+  );
+
+  readonly todayCompletedTasks = toSignal(
+    combineLatest([
+      toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
+      toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
+      toObservable(this.refreshState),
+    ]).pipe(
+      switchMap(([initialized, currentUserId]) => {
+        if (!initialized || !currentUserId) {
+          return of([] as Task[]);
+        }
+        return this.fetchTodayCompletedTasks$().pipe(
+          map((response) => response.data.filter((task) => !task.parentId)),
+          catchError(() => of([] as Task[])),
+        );
+      }),
+    ),
+    { initialValue: [] as Task[] },
   );
   readonly upcomingTaskGroups = computed<UpcomingTaskGroup[]>(() => {
     const buckets: Record<UpcomingBucket, Task[]> = {
@@ -283,32 +381,6 @@ export class TaskService {
     return new Intl.DateTimeFormat('en-US', options ?? { month: 'short', day: 'numeric' }).format(
       dt.toJSDate(),
     );
-  }
-
-  isTaskOverdue(task: Task) {
-    const dueDate = parseCalendarDate(task.dueDate);
-    const today = startOfToday();
-
-    return !!dueDate && dueDate < today && !task.completed;
-  }
-
-  isTaskToday(task: Task) {
-    const dueDate = parseCalendarDate(task.dueDate);
-    return task.status === 'today' || (!!dueDate && dueDate.equals(startOfToday()));
-  }
-
-  isTaskUpcoming(task: Task) {
-    if (task.completed || this.isTaskOverdue(task) || this.isTaskToday(task)) {
-      return false;
-    }
-
-    const dueDate = parseCalendarDate(task.dueDate);
-    return task.status === 'upcoming' || (!!dueDate && dueDate > startOfToday());
-  }
-
-  private hasScheduledDate(task: Task) {
-    const dueDate = parseCalendarDate(task.dueDate);
-    return !!dueDate && dueDate >= startOfToday();
   }
 
   upcomingBucketForTask(task: Task): UpcomingBucket {

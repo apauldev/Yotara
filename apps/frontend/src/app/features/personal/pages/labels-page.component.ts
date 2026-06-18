@@ -55,7 +55,7 @@ export class LabelsPageComponent {
   protected readonly filteredTasks = computed(() => {
     const labelId = this.selectedLabelId();
     if (!labelId) return [];
-    return this.taskService.tasks().filter((task) => task.labels?.includes(labelId));
+    return this.taskService.allActiveTasks().filter((task) => task.labels?.includes(labelId));
   });
 
   constructor() {

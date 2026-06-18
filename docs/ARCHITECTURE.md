@@ -373,32 +373,32 @@ This sprint order supersedes the P0/P1/P2/P3 priority lanes in `ROADMAP.md`. Tra
 - [x] Replace `throw new Error('string')` in services with typed errors; add Fastify `setErrorHandler`
 - [x] Fix `as any` on `request.query.status` at the trust boundary
 - [x] Add `PreferencesStore` (or extend `ThemeService`'s pattern) and migrate the three `localStorage` magic-string keys
-- [ ] Replace the 4 problematic `setTimeout` UI hacks with signal-driven state
-- [ ] Fix the UTC vs local timezone bug; add `?tz=` to per-view queries
+- [x] Replace the 4 problematic `setTimeout` UI hacks with signal-driven state
+- [x] Fix the UTC vs local timezone bug; add `?tz=` to per-view queries
 - [x] Add a `no-restricted-syntax` ESLint rule against `as any` (warn-only, applied to all `.ts` files)
 - [x] Add "Superseded" notices to `ROADMAP.md`, `docs/project-plan.md`, `apps/frontend/TODO.md`, and `apps/api/TODO.md`
 - [ ] Delete `apps/frontend/TODO.md` and `apps/api/TODO.md`; create initial GitHub Issues from the surviving priorities
 - [ ] Write `docs/RELEASING.md` (checklist for what to verify before cutting a release, since the release script is automated but the verification is not)
 
-### Sprint 1: Push filtering to the API (highest impact)
+### Sprint 1: Push filtering to the API (completed)
 
 **Why:** Eliminates the expand loop, removes most computed signals, makes the app scale.
 
 **Frontend tasks:**
-- [ ] `getTodayTasks()` → `GET /tasks?view=today`
-- [ ] `getOverdueTasks()` → `GET /tasks?overdue=true`
-- [ ] `getInboxTasks()` → `GET /tasks?view=inbox`
-- [ ] `getUpcomingTasks()` → `GET /tasks?view=upcoming`
-- [ ] `getTodayCompletedTasks()` → `GET /tasks?completedSince=<date>`
-- [ ] Remove each `computed()` signal after migrating its view
+- [x] `getTodayTasks()` → `GET /tasks?view=today`
+- [x] `getOverdueTasks()` → `GET /tasks?overdue=true`
+- [x] `getInboxTasks()` → `GET /tasks?view=inbox`
+- [x] `getUpcomingTasks()` → `GET /tasks?view=upcoming`
+- [x] `getTodayCompletedTasks()` → `GET /tasks?completedSince=<date>`
+- [x] Remove each `computed()` signal after migrating its view
 
 **Backend tasks:**
-- [ ] Add `view=today|inbox|upcoming` query param with compound predicates:
+- [x] Add `view=today|inbox|upcoming` query param with compound predicates:
   - `view=today` → `status = 'today' OR dueDate = today`
   - `view=inbox` → `status = 'inbox' AND (dueDate IS NULL OR dueDate = '')`
   - `view=upcoming` → `status = 'upcoming' OR dueDate > today`
-- [ ] Add `completedSince` query param
-- [ ] Verify all status filters work correctly with integration tests (replace the "verify" checkboxes in the API TODO with real tests)
+- [x] Add `completedSince` query param
+- [x] Verify all status filters work correctly with integration tests (replace the "verify" checkboxes in the API TODO with real tests)
 - [ ] Tighten input validation on the new query params (closes A3)
 
 ### Sprint 1a: Remove setTimeout UI hacks (completed)
@@ -432,14 +432,14 @@ This sprint order supersedes the P0/P1/P2/P3 priority lanes in `ROADMAP.md`. Tra
 - [ ] Add success/error handling for both flows (toast on success, inline error on failure)
 - [ ] Add route guards to redirect authenticated users away from reset-password pages
 
-### Sprint 2: Clean up TaskService
+### Sprint 2: Clean up TaskService (in progress)
 
 **Why:** Makes the file maintainable and testable.
 
 - [ ] Extract date helpers to `shared/utils/timestamps.ts`
 - [ ] Extract auth-gate pattern into shared helper
-- [ ] Remove stale aliases (`archivedTasks`, `completedTasks`)
-- [ ] Remove active-task expand loop (no longer needed after Sprint 1)
+- [x] Remove stale aliases (`archivedTasks`, `completedTasks`) — done in Sprint 1 cleanup
+- [x] Remove active-task expand loop (no longer needed after Sprint 1) — done in Sprint 1 cleanup
 
 ### Sprint 3: Server-side search
 

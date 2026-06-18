@@ -50,6 +50,9 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       status?: TaskStatus;
       completed?: string;
       overdue?: string;
+      tz?: string;
+      view?: 'today' | 'inbox' | 'upcoming';
+      completedSince?: string;
     };
     Reply: PaginatedResponse<Task[]> | { message: string };
   }>(
@@ -70,6 +73,9 @@ export default async function taskRoutes(fastify: FastifyInstance) {
             status: { type: 'string', enum: ['inbox', 'today', 'upcoming', 'done', 'archived'] },
             completed: { type: 'string', enum: ['true', 'false'] },
             overdue: { type: 'string', enum: ['true', 'false'] },
+            tz: { type: 'string' },
+            view: { type: 'string', enum: ['today', 'inbox', 'upcoming'] },
+            completedSince: { type: 'string' },
           },
         },
         response: {
@@ -102,6 +108,9 @@ export default async function taskRoutes(fastify: FastifyInstance) {
               ? false
               : undefined,
         overdue: request.query.overdue === 'true',
+        tz: request.query.tz,
+        view: request.query.view,
+        completedSince: request.query.completedSince,
       };
 
       return listTasksForOwner(userId, page, pageSize, includeSubtasks, parentId, filters);

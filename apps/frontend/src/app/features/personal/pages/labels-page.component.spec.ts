@@ -49,7 +49,7 @@ describe('LabelsPageComponent', () => {
         {
           provide: TaskService,
           useValue: {
-            tasks,
+            allActiveTasks: tasks,
             error: signal(null),
             createTask: jasmine.createSpy('createTask').and.resolveTo(undefined),
             updateTask: jasmine.createSpy('updateTask').and.resolveTo(undefined),

@@ -61,7 +61,7 @@ export class SearchPageComponent {
   protected readonly currentPage = signal(1);
 
   protected readonly subtasksByParent = computed(() => {
-    const all = this.taskService.tasks();
+    const all = this.taskService.allActiveTasks();
     const map = new Map<string, Task[]>();
     for (const task of all) {
       if (task.parentId) {

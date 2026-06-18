@@ -28,7 +28,7 @@ describe('TaskListPageComponent', () => {
       loading: signal(false),
       creating: signal(false),
       error: signal<string | null>(null),
-      tasks: signal([]),
+      allActiveTasks: signal([]),
       inboxTasks: signal([]),
       todayTasks: signal([]),
       todayCompletedTasks: signal([]),
@@ -282,7 +282,7 @@ describe('TaskListPageComponent', () => {
 
     it('keeps the existing list visible while refreshing inbox tasks', () => {
       mockTaskService.loading = signal(true);
-      mockTaskService.tasks.set([
+      mockTaskService.allActiveTasks.set([
         {
           id: '1',
           title: 'Visible task',

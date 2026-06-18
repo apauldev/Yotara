@@ -122,7 +122,7 @@ export class TaskListPageComponent implements OnInit {
 
   // --- Inbox Logic ---
   protected readonly subtasksByParent = computed(() => {
-    const all = this.taskService.tasks();
+    const all = this.taskService.allActiveTasks();
     const subtasksByParentMap = new Map<string, Task[]>();
     for (const task of all) {
       if (task.parentId) {
@@ -189,7 +189,7 @@ export class TaskListPageComponent implements OnInit {
   });
 
   protected readonly showInitialLoading = computed(
-    () => this.taskService.loading() && this.taskService.tasks().length === 0,
+    () => this.taskService.loading() && this.taskService.allActiveTasks().length === 0,
   );
 
   protected readonly defaultCaptureProjectId = computed(() => {
