@@ -1,7 +1,6 @@
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { HttpErrorResponse } from '@angular/common/http';
 import { TaskService } from './task.service';
 import { AuthStateService } from './auth-state.service';
 import { LabelService } from './label.service';
