@@ -1,6 +1,7 @@
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import { TaskService } from './task.service';
 import { AuthStateService } from './auth-state.service';
 import { LabelService } from './label.service';
@@ -784,4 +785,111 @@ describe('TaskService', () => {
     expect(labelServiceStub.refreshLabels).toHaveBeenCalled();
     expect(projectServiceStub.refreshProjects).toHaveBeenCalled();
   }));
+
+  describe('error handling', () => {
+    it('sets error state when allActiveTasks fetch fails with a network error', fakeAsync(() => {
+      const service = TestBed.inject(TaskService);
+      const http = TestBed.inject(HttpTestingController);
+
+      initialized.set(true);
+      isAuthenticated.set(true);
+      currentUserId.set('user-1');
+      tick();
+
+      const req = http.expectOne(ACTIVE_URL);
+      req.error(new ProgressEvent('error'));
+      tick();
+
+      expect(service.allActiveTasks()).toEqual([]);
+      expect(service.error()).toBe('Could not load tasks right now.');
+    }));
+
+    it('sets error state when allActiveTasks fetch fails with a 500', fakeAsync(() => {
+      const service = TestBed.inject(TaskService);
+      const http = TestBed.inject(HttpTestingController);
+
+      initialized.set(true);
+      isAuthenticated.set(true);
+      currentUserId.set('user-1');
+      tick();
+
+      const req = http.expectOne(ACTIVE_URL);
+      req.flush(
+        { message: 'Internal Server Error' },
+        { status: 500, statusText: 'Internal Server Error' },
+      );
+      tick();
+
+      expect(service.allActiveTasks()).toEqual([]);
+      expect(service.error()).toBe('Could not load tasks right now.');
+    }));
+
+    it('does not set error state when allActiveTasks fetch fails with a 401', fakeAsync(() => {
+      const service = TestBed.inject(TaskService);
+      const http = TestBed.inject(HttpTestingController);
+
+      initialized.set(true);
+      isAuthenticated.set(true);
+      currentUserId.set('user-1');
+      tick();
+
+      const req = http.expectOne(ACTIVE_URL);
+      req.flush({ message: 'Unauthorized' }, { status: 401, statusText: 'Unauthorized' });
+      tick();
+
+      expect(service.allActiveTasks()).toEqual([]);
+      expect(service.error()).toBeNull();
+    }));
+
+    it('sets error state when todayTasks fetch fails', fakeAsync(() => {
+      const service = TestBed.inject(TaskService);
+      const http = TestBed.inject(HttpTestingController);
+
+      initialized.set(true);
+      isAuthenticated.set(true);
+      currentUserId.set('user-1');
+      tick();
+
+      // Flush allActiveTasks and recentlyCompleted first
+      http.expectOne(ACTIVE_URL).flush(paginated([]));
+      http.expectOne(COMPLETED_URL).flush(paginated([]));
+
+      // Now fail the todayTasks request
+      const todayReq = http.match((req) => req.url.includes('view=today'))[0];
+      todayReq.error(new ProgressEvent('error'));
+      tick();
+
+      // Flush remaining view requests
+      flushDefaultViews(http);
+
+      expect(service.todayTasks()).toEqual([]);
+      expect(service.error()).toBe('Could not load today tasks right now.');
+    }));
+
+    it('clears error state on successful load after a failure', fakeAsync(() => {
+      const service = TestBed.inject(TaskService);
+      const http = TestBed.inject(HttpTestingController);
+
+      initialized.set(true);
+      isAuthenticated.set(true);
+      currentUserId.set('user-1');
+      tick();
+
+      // First load fails
+      http.expectOne(ACTIVE_URL).error(new ProgressEvent('error'));
+      tick();
+      expect(service.error()).toBe('Could not load tasks right now.');
+
+      // Trigger a refresh
+      service.refreshTasks();
+      tick();
+
+      // Second load succeeds
+      http.expectOne(ACTIVE_URL).flush(paginated([]));
+      flushDefaultViews(http);
+      tick();
+
+      expect(service.error()).toBeNull();
+    }));
+  });
 });

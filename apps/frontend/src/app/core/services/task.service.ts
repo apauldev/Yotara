@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { CreateTaskDto, PaginatedResponse, Task, UpdateTaskDto } from '@yotara/shared';
 import { LogService } from './log.service';
@@ -41,6 +41,18 @@ export class TaskService {
   private creatingState = signal(false);
   private errorState = signal<string | null>(null);
 
+  private handleLoadError(context: string) {
+    return (error: unknown) => {
+      if (error instanceof HttpErrorResponse && error.status === 401) {
+        return of([] as Task[]);
+      }
+
+      this.logService.error(`Failed to load ${context}`, error, 'TaskService');
+      this.errorState.set(`Could not load ${context} right now.`);
+      return of([] as Task[]);
+    };
+  }
+
   readonly recentlyCompleted = toSignal(
     combineLatest([
       toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
@@ -51,6 +63,7 @@ export class TaskService {
         if (!initialized || !currentUserId) {
           return of([] as Task[]);
         }
+        this.errorState.set(null);
 
         return this.http
           .get<
@@ -58,7 +71,7 @@ export class TaskService {
           >(`${this.baseUrl}/tasks?page=1&pageSize=100&completed=true&includeSubtasks=true`, { withCredentials: true })
           .pipe(
             map((response) => response.data),
-            catchError(() => of([] as Task[])),
+            catchError(this.handleLoadError('recently completed tasks')),
           );
       }),
     ),
@@ -139,8 +152,9 @@ export class TaskService {
           return of([] as Task[]);
         }
         this.loadingState.set(true);
+        this.errorState.set(null);
         return this.fetchAllActiveTasks$().pipe(
-          catchError(() => of([] as Task[])),
+          catchError(this.handleLoadError('tasks')),
           finalize(() => this.loadingState.set(false)),
         );
       }),
@@ -158,13 +172,14 @@ export class TaskService {
         if (!initialized || !currentUserId) {
           return of([] as Task[]);
         }
+        this.errorState.set(null);
         return this.fetchTodayTasks$().pipe(
           map((response) =>
             response.data
               .filter((task) => !task.parentId)
               .sort((left, right) => left.order - right.order),
           ),
-          catchError(() => of([] as Task[])),
+          catchError(this.handleLoadError('today tasks')),
         );
       }),
     ),
@@ -181,13 +196,14 @@ export class TaskService {
         if (!initialized || !currentUserId) {
           return of([] as Task[]);
         }
+        this.errorState.set(null);
         return this.fetchOverdueTasks$().pipe(
           map((response) =>
             response.data
               .filter((task) => !task.parentId)
               .sort((left, right) => left.order - right.order),
           ),
-          catchError(() => of([] as Task[])),
+          catchError(this.handleLoadError('overdue tasks')),
         );
       }),
     ),
@@ -204,13 +220,14 @@ export class TaskService {
         if (!initialized || !currentUserId) {
           return of([] as Task[]);
         }
+        this.errorState.set(null);
         return this.fetchInboxTasks$().pipe(
           map((response) =>
             response.data
               .filter((task) => !task.parentId)
               .sort((left, right) => left.order - right.order),
           ),
-          catchError(() => of([] as Task[])),
+          catchError(this.handleLoadError('inbox tasks')),
         );
       }),
     ),
@@ -227,13 +244,14 @@ export class TaskService {
         if (!initialized || !currentUserId) {
           return of([] as Task[]);
         }
+        this.errorState.set(null);
         return this.fetchUpcomingTasks$().pipe(
           map((response) =>
             response.data
               .filter((task) => !task.parentId)
               .sort((left, right) => left.order - right.order),
           ),
-          catchError(() => of([] as Task[])),
+          catchError(this.handleLoadError('upcoming tasks')),
         );
       }),
     ),
@@ -250,9 +268,10 @@ export class TaskService {
         if (!initialized || !currentUserId) {
           return of([] as Task[]);
         }
+        this.errorState.set(null);
         return this.fetchTodayCompletedTasks$().pipe(
           map((response) => response.data.filter((task) => !task.parentId)),
-          catchError(() => of([] as Task[])),
+          catchError(this.handleLoadError('completed tasks')),
         );
       }),
     ),
