@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, asc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import type {
   CreateTaskDto,
   PaginatedResponse,
@@ -13,6 +13,7 @@ import { db } from '../db/client.js';
 import { tasks, users } from '../db/schema.js';
 import { DateTime } from 'luxon';
 import { nowIsoTimestamp } from '../lib/timestamps.js';
+import { todayInTimezone, startOfDayInUtc } from '../lib/timezone.js';
 import { AppError, BadRequestError, NotFoundError } from '../lib/app-error.js';
 import { getTaskLabels, syncTaskLabels } from './label-service.js';
 import { getDefaultProjectForOwner } from './project-service.js';
@@ -109,6 +110,9 @@ export interface TaskFilters {
   completed?: boolean;
   overdue?: boolean; // dueDate < now AND completed = false
   hasDueDate?: boolean;
+  tz?: string;
+  view?: 'today' | 'inbox' | 'upcoming';
+  completedSince?: string;
 }
 
 export async function listTasksForOwner(
@@ -143,10 +147,60 @@ export async function listTasksForOwner(
         : and(whereClause, isNull(tasks.dueDate));
     }
     if (filters.overdue) {
+      const today = todayInTimezone(filters.tz);
       whereClause = and(
         whereClause,
         eq(tasks.completed, false),
-        sql`date(${tasks.dueDate}) < date('now')`,
+        sql`date(${tasks.dueDate}) < ${today}`,
+      );
+    }
+    if (filters.view) {
+      const today = todayInTimezone(filters.tz);
+      switch (filters.view) {
+        case 'today':
+          whereClause = and(
+            whereClause,
+            eq(tasks.completed, false),
+            or(
+              and(
+                eq(tasks.status, 'today'),
+                or(isNull(tasks.dueDate), sql`date(${tasks.dueDate}) >= ${today}`),
+              ),
+              sql`date(${tasks.dueDate}) = ${today}`,
+            ),
+          );
+          break;
+        case 'inbox':
+          whereClause = and(
+            whereClause,
+            eq(tasks.completed, false),
+            or(
+              and(eq(tasks.status, 'inbox'), or(isNull(tasks.dueDate), sql`${tasks.dueDate} = ''`)),
+              sql`date(${tasks.dueDate}) < ${today}`,
+            ),
+          );
+          break;
+        case 'upcoming':
+          whereClause = and(
+            whereClause,
+            eq(tasks.completed, false),
+            or(
+              and(
+                eq(tasks.status, 'upcoming'),
+                or(isNull(tasks.dueDate), sql`date(${tasks.dueDate}) > ${today}`),
+              ),
+              sql`date(${tasks.dueDate}) > ${today}`,
+            ),
+          );
+          break;
+      }
+    }
+    if (filters.completedSince) {
+      const startOfTodayUtc = startOfDayInUtc(filters.completedSince, filters.tz);
+      whereClause = and(
+        whereClause,
+        eq(tasks.completed, true),
+        sql`${tasks.archivedAt} >= ${startOfTodayUtc}`,
       );
     }
   }

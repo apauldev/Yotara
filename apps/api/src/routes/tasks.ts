@@ -50,6 +50,9 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       status?: TaskStatus;
       completed?: string;
       overdue?: string;
+      tz?: string;
+      view?: 'today' | 'inbox' | 'upcoming';
+      completedSince?: string;
     };
     Reply: PaginatedResponse<Task[]> | { message: string };
   }>(
@@ -63,13 +66,16 @@ export default async function taskRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             page: { type: 'integer', minimum: 1, default: 1 },
-            pageSize: { type: 'integer', minimum: 1, maximum: 100, default: 50 },
+            pageSize: { type: 'integer', minimum: 1, maximum: 1000, default: 50 },
             includeSubtasks: { type: 'boolean', default: false },
             parentId: { type: 'string' },
             export: { type: 'boolean', default: false },
             status: { type: 'string', enum: ['inbox', 'today', 'upcoming', 'done', 'archived'] },
             completed: { type: 'string', enum: ['true', 'false'] },
             overdue: { type: 'string', enum: ['true', 'false'] },
+            tz: { type: 'string' },
+            view: { type: 'string', enum: ['today', 'inbox', 'upcoming'] },
+            completedSince: { type: 'string' },
           },
         },
         response: {
@@ -89,7 +95,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       const userId = request.userId;
       const isExport = request.query.export === true;
       const page = Math.max(1, request.query.page ?? 1);
-      const pageSize = isExport ? 10000 : Math.min(100, Math.max(1, request.query.pageSize ?? 50));
+      const pageSize = isExport ? 10000 : Math.min(1000, Math.max(1, request.query.pageSize ?? 50));
       const includeSubtasks = isExport ? true : String(request.query.includeSubtasks) === 'true';
       const parentId = request.query.parentId;
 
@@ -102,6 +108,9 @@ export default async function taskRoutes(fastify: FastifyInstance) {
               ? false
               : undefined,
         overdue: request.query.overdue === 'true',
+        tz: request.query.tz,
+        view: request.query.view,
+        completedSince: request.query.completedSince,
       };
 
       return listTasksForOwner(userId, page, pageSize, includeSubtasks, parentId, filters);

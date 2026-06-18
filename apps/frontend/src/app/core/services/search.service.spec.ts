@@ -114,7 +114,7 @@ describe('SearchService', () => {
         },
         {
           provide: TaskService,
-          useValue: { tasks },
+          useValue: { allActiveTasks: tasks },
         },
         {
           provide: LabelService,
@@ -406,7 +406,7 @@ describe('SearchService', () => {
         {
           provide: TaskService,
           useValue: {
-            tasks: signal([]),
+            allActiveTasks: signal([]),
             getArchivedTasks: () => of(paginatedArchive(archiveTasks)),
           },
         },
@@ -430,7 +430,7 @@ describe('SearchService', () => {
         {
           provide: TaskService,
           useValue: {
-            tasks: signal([]),
+            allActiveTasks: signal([]),
             getArchivedTasks: () => of(paginatedArchive([])),
           },
         },
@@ -472,7 +472,7 @@ describe('SearchService', () => {
         {
           provide: TaskService,
           useValue: {
-            tasks: signal([]),
+            allActiveTasks: signal([]),
             getArchivedTasks: () => of(paginatedArchive(archiveTasks)),
           },
         },

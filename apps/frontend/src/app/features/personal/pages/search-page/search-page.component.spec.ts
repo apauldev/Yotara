@@ -104,7 +104,7 @@ describe('SearchPageComponent', () => {
         {
           provide: TaskService,
           useValue: {
-            tasks: mockTasks,
+            allActiveTasks: mockTasks,
             recentlyCompleted: signal([]),
             error: signal<string | null>(null),
             creating: signal(false),

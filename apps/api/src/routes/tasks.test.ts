@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { eq } from 'drizzle-orm';
 import { tasks } from '../db/schema.js';
+import { DateTime } from 'luxon';
 
 async function createAuthedApp() {
   const dbFile = join(tmpdir(), `yotara-test-${randomUUID()}.db`);
@@ -527,6 +528,188 @@ test('tasks support owned project assignment and reject foreign project referenc
     });
     assert.equal(listResponse.statusCode, 200);
     assert.equal(listResponse.json().data[0].projectId, undefined);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('tasks timezone-aware queries (overdue, view, completedSince)', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`tz-owner-${randomUUID()}@example.com`);
+
+    const todayUtc = DateTime.now().setZone('UTC');
+    const todayStr = todayUtc.toFormat('yyyy-MM-dd');
+    const yesterdayStr = todayUtc.minus({ days: 1 }).toFormat('yyyy-MM-dd');
+    const tomorrowStr = todayUtc.plus({ days: 1 }).toFormat('yyyy-MM-dd');
+
+    // Create overdue task
+    const tOverdue = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Overdue task', dueDate: yesterdayStr },
+    });
+    assert.equal(tOverdue.statusCode, 201);
+
+    // Create overdue task with status='today' (should not appear in view=today)
+    const tOverdueToday = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Overdue today-status task', status: 'today', dueDate: yesterdayStr },
+    });
+    assert.equal(tOverdueToday.statusCode, 201);
+
+    // Create today task
+    const tToday = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Today task', dueDate: todayStr },
+    });
+    assert.equal(tToday.statusCode, 201);
+
+    // Create upcoming task
+    const tUpcoming = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Upcoming task', dueDate: tomorrowStr },
+    });
+    assert.equal(tUpcoming.statusCode, 201);
+
+    // Create upcoming task with dueDate=today (should not appear in view=upcoming)
+    const tUpcomingToday = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Upcoming today-due task', status: 'upcoming', dueDate: todayStr },
+    });
+    assert.equal(tUpcomingToday.statusCode, 201);
+
+    // Create inbox task without due date
+    const tInboxNoDate = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Inbox task no date', status: 'inbox' },
+    });
+    assert.equal(tInboxNoDate.statusCode, 201);
+
+    // 1. Test overdue filter
+    const overdueRes = await ctx.app.inject({
+      method: 'GET',
+      url: `/tasks?overdue=true&tz=UTC`,
+      headers: { cookie },
+    });
+    assert.equal(overdueRes.statusCode, 200);
+    const overdueTasksList = overdueRes.json().data;
+    assert.equal(overdueTasksList.length, 2);
+    assert.ok(overdueTasksList.some((t: any) => t.title === 'Overdue task'));
+    assert.ok(overdueTasksList.some((t: any) => t.title === 'Overdue today-status task'));
+
+    // 2. Test view=today
+    const todayRes = await ctx.app.inject({
+      method: 'GET',
+      url: `/tasks?view=today&tz=UTC`,
+      headers: { cookie },
+    });
+    assert.equal(todayRes.statusCode, 200);
+    const todayTasksList = todayRes.json().data;
+    // Should return Today task (based on dueDate = today)
+    assert.ok(todayTasksList.some((t: any) => t.title === 'Today task'));
+    assert.ok(!todayTasksList.some((t: any) => t.title === 'Upcoming task'));
+    assert.ok(!todayTasksList.some((t: any) => t.title === 'Overdue task'));
+    // Overdue task with status='today' must not appear in view=today
+    assert.ok(!todayTasksList.some((t: any) => t.title === 'Overdue today-status task'));
+
+    // 3. Test view=upcoming
+    const upcomingRes = await ctx.app.inject({
+      method: 'GET',
+      url: `/tasks?view=upcoming&tz=UTC`,
+      headers: { cookie },
+    });
+    assert.equal(upcomingRes.statusCode, 200);
+    const upcomingTasksList = upcomingRes.json().data;
+    assert.ok(upcomingTasksList.some((t: any) => t.title === 'Upcoming task'));
+    assert.ok(!upcomingTasksList.some((t: any) => t.title === 'Today task'));
+    // Upcoming task with dueDate=today must not appear in view=upcoming
+    assert.ok(!upcomingTasksList.some((t: any) => t.title === 'Upcoming today-due task'));
+
+    // 4. Test view=inbox (should return status='inbox' with no date OR overdue tasks)
+    const inboxRes = await ctx.app.inject({
+      method: 'GET',
+      url: `/tasks?view=inbox&tz=UTC`,
+      headers: { cookie },
+    });
+    assert.equal(inboxRes.statusCode, 200);
+    const inboxTasksList = inboxRes.json().data;
+    assert.ok(inboxTasksList.some((t: any) => t.title === 'Inbox task no date'));
+    assert.ok(inboxTasksList.some((t: any) => t.title === 'Overdue task'));
+    assert.ok(!inboxTasksList.some((t: any) => t.title === 'Today task'));
+    assert.ok(!inboxTasksList.some((t: any) => t.title === 'Upcoming task'));
+
+    // 5. Test completedSince filter
+    // Complete the today task
+    const completeRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${tToday.json().id}`,
+      headers: { cookie },
+      payload: { completed: true },
+    });
+    assert.equal(completeRes.statusCode, 200);
+
+    const completedRes = await ctx.app.inject({
+      method: 'GET',
+      url: `/tasks?completedSince=${todayStr}&tz=UTC`,
+      headers: { cookie },
+    });
+    assert.equal(completedRes.statusCode, 200);
+    const completedTasksList = completedRes.json().data;
+    assert.ok(completedTasksList.some((t: any) => t.title === 'Today task'));
+
+    // completedSince tomorrow should NOT return it
+    const completedResTomorrow = await ctx.app.inject({
+      method: 'GET',
+      url: `/tasks?completedSince=${tomorrowStr}&tz=UTC`,
+      headers: { cookie },
+    });
+    assert.equal(completedResTomorrow.statusCode, 200);
+    assert.equal(completedResTomorrow.json().data.length, 0);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('tasks export endpoint returns all tasks without pagination limit', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`export-owner-${randomUUID()}@example.com`);
+
+    // Create 3 tasks
+    for (let i = 0; i < 3; i++) {
+      const res = await ctx.app.inject({
+        method: 'POST',
+        url: '/tasks',
+        headers: { cookie },
+        payload: { title: `Export task ${i}` },
+      });
+      assert.equal(res.statusCode, 201);
+    }
+
+    // Request with export=true should return all tasks
+    const exportRes = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?export=true',
+      headers: { cookie },
+    });
+    assert.equal(exportRes.statusCode, 200);
+    const exportData = exportRes.json();
+    assert.equal(exportData.data.length, 3);
+    assert.equal(exportData.meta.total, 3);
   } finally {
     await ctx.cleanup();
   }

@@ -49,7 +49,7 @@ export class SearchService {
 
   search(query: string): SearchResults {
     const normalizedQuery = normalize(query);
-    const tasks = this.taskService.tasks();
+    const tasks = this.taskService.allActiveTasks();
     const projects = this.projectService.projects();
     const labels = this.labelService.labels();
     const projectById = new Map(projects.map((project) => [project.id, project] as const));
