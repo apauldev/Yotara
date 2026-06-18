@@ -198,6 +198,47 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       assert.equal(updated?.recurrenceRule, null);
     });
 
+    await t.test('Restoring a completed future-dated task returns it to upcoming', async () => {
+      const futureTask = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Future dated task',
+        dueDate: '2099-01-15T00:00:00Z',
+        status: 'upcoming',
+      });
+
+      assert.ok(futureTask);
+      await ctx.taskService.updateTaskForOwner(ownerId, futureTask.id, { completed: true });
+
+      const restored = await ctx.taskService.updateTaskForOwner(ownerId, futureTask.id, {
+        completed: false,
+      });
+
+      assert.ok(restored);
+      assert.equal(restored.completed, false);
+      assert.equal(restored.status, 'upcoming');
+    });
+
+    await t.test('Restoring a task with explicit timezone uses tz-aware date', async () => {
+      const futureTask = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'TZ-aware task',
+        dueDate: '2099-01-15T00:00:00Z',
+        status: 'upcoming',
+      });
+      assert.ok(futureTask);
+      await ctx.taskService.updateTaskForOwner(ownerId, futureTask.id, { completed: true });
+
+      const restored = await ctx.taskService.updateTaskForOwner(
+        ownerId,
+        futureTask.id,
+        { completed: false },
+        undefined,
+        'America/New_York',
+      );
+
+      assert.ok(restored);
+      assert.equal(restored.completed, false);
+      assert.equal(restored.status, 'upcoming');
+    });
+
     await t.test('Weekdays recurrence skips weekends', async () => {
       const task = await ctx.taskService.createTaskForOwner(ownerId, {
         title: 'Weekday Task',

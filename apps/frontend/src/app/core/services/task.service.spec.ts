@@ -375,11 +375,7 @@ describe('TaskService', () => {
     ]);
 
     // Flush inbox view
-    flushView(http, 'view=inbox', [
-      activeTasks.find((t) => t.id === 'inbox-1')!,
-      activeTasks.find((t) => t.id === 'overdue-1')!,
-      activeTasks.find((t) => t.id === 'upcoming-overdue')!,
-    ]);
+    flushView(http, 'view=inbox', [activeTasks.find((t) => t.id === 'inbox-1')!]);
 
     // Flush upcoming view
     flushView(http, 'view=upcoming', [
@@ -392,11 +388,7 @@ describe('TaskService', () => {
 
     tick();
 
-    expect(service.inboxTasks().map((task) => task.id)).toEqual([
-      'inbox-1',
-      'overdue-1',
-      'upcoming-overdue',
-    ]);
+    expect(service.inboxTasks().map((task) => task.id)).toEqual(['inbox-1']);
     expect(service.overdueTasks().map((task) => task.id)).toEqual([
       'overdue-1',
       'upcoming-overdue',
@@ -626,8 +618,9 @@ describe('TaskService', () => {
       bucket: 'deep-work',
     });
 
-    const patchRequest = http.expectOne('http://localhost:3000/tasks/task-1');
-    expect(patchRequest.request.method).toBe('PATCH');
+    const patchRequest = http.expectOne(
+      (req) => req.method === 'PATCH' && req.url.startsWith('http://localhost:3000/tasks/task-1'),
+    );
     expect(patchRequest.request.withCredentials).toBeTrue();
     patchRequest.flush({
       id: 'task-1',

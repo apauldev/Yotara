@@ -30,13 +30,25 @@ function normalizeCreatePayload(body: CreateTaskDto): CreateTaskDto {
   };
 }
 
-function normalizeStatusOnCompletion(currentStatus: TaskStatus, completed: boolean): TaskStatus {
+function normalizeStatusOnCompletion(
+  currentStatus: TaskStatus,
+  completed: boolean,
+  dueDate?: string | null,
+  tz?: string,
+): TaskStatus {
   if (completed) {
     return 'done';
   }
 
   if (currentStatus === 'done') {
-    return 'today';
+    if (!dueDate) {
+      return 'inbox';
+    }
+
+    const dueDateKey = dueDate.slice(0, 10);
+    const todayKey = todayInTimezone(tz);
+
+    return dueDateKey > todayKey ? 'upcoming' : 'today';
   }
 
   return currentStatus;
@@ -174,10 +186,7 @@ export async function listTasksForOwner(
           whereClause = and(
             whereClause,
             eq(tasks.completed, false),
-            or(
-              and(eq(tasks.status, 'inbox'), or(isNull(tasks.dueDate), sql`${tasks.dueDate} = ''`)),
-              sql`date(${tasks.dueDate}) < ${today}`,
-            ),
+            and(eq(tasks.status, 'inbox'), or(isNull(tasks.dueDate), sql`${tasks.dueDate} = ''`)),
           );
           break;
         case 'upcoming':
@@ -407,6 +416,7 @@ export async function updateTaskForOwner(
   taskId: string,
   body: UpdateTaskDto,
   existing?: TaskRow | null,
+  tz?: string,
 ) {
   const current = existing ?? (await getTaskForOwner(taskId, ownerId));
   if (!current) {
@@ -510,7 +520,12 @@ export async function updateTaskForOwner(
       recurrenceRule: nextRecurrenceRule,
       order: body.order ?? current.order,
       completed,
-      status: normalizeStatusOnCompletion(status, completed),
+      status: normalizeStatusOnCompletion(
+        status,
+        completed,
+        simpleMode ? null : (body.dueDate ?? current.dueDate),
+        tz,
+      ),
       archivedAt: nextArchivedAt,
       permanentArchive: completed ? nextPermanentArchive : false,
       updatedAt: nowIsoTimestamp(),

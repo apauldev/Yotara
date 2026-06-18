@@ -332,8 +332,9 @@ export class TaskService {
     this.errorState.set(null);
 
     try {
+      const tz = getUserTimezone();
       const updatedTask = await firstValueFrom(
-        this.http.patch<Task>(`${this.baseUrl}/tasks/${taskId}`, payload, {
+        this.http.patch<Task>(`${this.baseUrl}/tasks/${taskId}?tz=${tz}`, payload, {
           withCredentials: true,
         }),
       );

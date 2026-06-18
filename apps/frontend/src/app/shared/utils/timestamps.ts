@@ -3,7 +3,8 @@ import { DateTime } from 'luxon';
 /**
  * Parse an ISO date or date-only string into a Luxon DateTime.
  * Date-only strings ('2026-05-20') are parsed in the local timezone.
- * Full ISO strings are parsed and then converted to start-of-day in local timezone.
+ * Full ISO strings keep their calendar date portion so UTC timestamps do not
+ * shift a day when viewed in a different local timezone.
  * Returns null for invalid or empty input.
  */
 export function parseCalendarDate(value?: string | null): DateTime | null {
@@ -11,18 +12,15 @@ export function parseCalendarDate(value?: string | null): DateTime | null {
     return null;
   }
 
-  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  const datePart = value.trim().slice(0, 10);
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(datePart);
   if (dateOnlyMatch) {
     const [, year, month, day] = dateOnlyMatch;
-    return DateTime.local(Number(year), Number(month), Number(day));
+    const parsed = DateTime.local(Number(year), Number(month), Number(day));
+    return parsed.isValid ? parsed : null;
   }
 
-  const dt = DateTime.fromISO(value);
-  if (!dt.isValid) {
-    return null;
-  }
-
-  return DateTime.local(dt.year, dt.month, dt.day);
+  return null;
 }
 
 export function startOfToday(): DateTime {

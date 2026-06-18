@@ -638,7 +638,7 @@ test('tasks timezone-aware queries (overdue, view, completedSince)', async () =>
     // Upcoming task with dueDate=today must not appear in view=upcoming
     assert.ok(!upcomingTasksList.some((t: any) => t.title === 'Upcoming today-due task'));
 
-    // 4. Test view=inbox (should return status='inbox' with no date OR overdue tasks)
+    // 4. Test view=inbox (should return status='inbox' with no date)
     const inboxRes = await ctx.app.inject({
       method: 'GET',
       url: `/tasks?view=inbox&tz=UTC`,
@@ -647,9 +647,9 @@ test('tasks timezone-aware queries (overdue, view, completedSince)', async () =>
     assert.equal(inboxRes.statusCode, 200);
     const inboxTasksList = inboxRes.json().data;
     assert.ok(inboxTasksList.some((t: any) => t.title === 'Inbox task no date'));
-    assert.ok(inboxTasksList.some((t: any) => t.title === 'Overdue task'));
     assert.ok(!inboxTasksList.some((t: any) => t.title === 'Today task'));
     assert.ok(!inboxTasksList.some((t: any) => t.title === 'Upcoming task'));
+    assert.ok(!inboxTasksList.some((t: any) => t.title === 'Overdue task'));
 
     // 5. Test completedSince filter
     // Complete the today task

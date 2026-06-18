@@ -11,7 +11,7 @@ describe('parseCalendarDate', () => {
     expect(parsed?.day).toBe(20);
   });
 
-  it('parses full ISO strings to local calendar dates', () => {
+  it('parses full ISO strings to their calendar date portion', () => {
     const parsed = parseCalendarDate('2026-05-20T12:30:00.000Z');
 
     expect(parsed).toBeTruthy();
@@ -20,8 +20,21 @@ describe('parseCalendarDate', () => {
     expect(parsed?.day).toBe(20);
   });
 
+  it('does not shift the day for UTC midnight timestamps in local timezones', () => {
+    const parsed = parseCalendarDate('2026-01-01T00:00:00.000Z');
+
+    expect(parsed).toBeTruthy();
+    expect(parsed?.year).toBe(2026);
+    expect(parsed?.month).toBe(1);
+    expect(parsed?.day).toBe(1);
+  });
+
   it('returns null for invalid dates', () => {
     expect(parseCalendarDate('invalid-date')).toBeNull();
+  });
+
+  it('returns null for impossible calendar dates', () => {
+    expect(parseCalendarDate('2026-02-31')).toBeNull();
   });
 
   it('returns null for empty or null input', () => {
