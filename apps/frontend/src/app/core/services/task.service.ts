@@ -92,7 +92,7 @@ export class TaskService {
   fetchTodayTasks$() {
     const tz = getUserTimezone();
     return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?view=today&tz=${tz}&includeSubtasks=true&pageSize=100`,
+      `${this.baseUrl}/tasks?view=today&tz=${tz}&pageSize=100`,
       { withCredentials: true },
     );
   }
@@ -100,7 +100,7 @@ export class TaskService {
   fetchOverdueTasks$() {
     const tz = getUserTimezone();
     return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?overdue=true&tz=${tz}&includeSubtasks=true&pageSize=100`,
+      `${this.baseUrl}/tasks?overdue=true&tz=${tz}&pageSize=100`,
       { withCredentials: true },
     );
   }
@@ -108,7 +108,7 @@ export class TaskService {
   fetchInboxTasks$() {
     const tz = getUserTimezone();
     return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?view=inbox&tz=${tz}&includeSubtasks=true&pageSize=100`,
+      `${this.baseUrl}/tasks?view=inbox&tz=${tz}&pageSize=100`,
       { withCredentials: true },
     );
   }
@@ -116,7 +116,7 @@ export class TaskService {
   fetchUpcomingTasks$() {
     const tz = getUserTimezone();
     return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?view=upcoming&tz=${tz}&includeSubtasks=true&pageSize=100`,
+      `${this.baseUrl}/tasks?view=upcoming&tz=${tz}&pageSize=100`,
       { withCredentials: true },
     );
   }
@@ -125,7 +125,7 @@ export class TaskService {
     const tz = getUserTimezone();
     const today = DateTime.now().setZone(tz).toFormat('yyyy-MM-dd');
     return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?completedSince=${today}&tz=${tz}&includeSubtasks=true&pageSize=100`,
+      `${this.baseUrl}/tasks?completedSince=${today}&tz=${tz}&pageSize=100`,
       { withCredentials: true },
     );
   }

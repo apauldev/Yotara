@@ -73,7 +73,7 @@
             <app-section-header title="Overdue" size="lg" tone="accent" />
 
             <app-task-stack
-              [tasks]="taskService.overdueTasks().filter((t) => !t.parentId)"
+              [tasks]="taskService.overdueTasks()"
               [subtasksByParent]="subtasksByParent()"
               [taskCard]="overdueTaskCardTpl"
             />
@@ -123,7 +123,7 @@
               @if (taskService.todayCompletedTasks().length > 0) {
                 <div class="completed-stack">
                   <app-task-stack
-                    [tasks]="taskService.todayCompletedTasks().filter((t) => !t.parentId)"
+                    [tasks]="taskService.todayCompletedTasks()"
                     [subtasksByParent]="subtasksByParent()"
                     [taskCard]="completedTaskCardTpl"
                   />
