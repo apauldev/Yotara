@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.59.6](https://github.com/apauldev/Yotara/compare/v0.59.5...v0.59.6) (2026-06-18)
+
+
+### Bug Fixes
+
+* exclude overdue tasks from view=today ([49135e9](https://github.com/apauldev/Yotara/commit/49135e96afd4d57fbf596d5b026846638ab6aaae))
+* exclude today/overdue tasks from view=upcoming ([7db0df2](https://github.com/apauldev/Yotara/commit/7db0df2e01400df236111e6b44a4b53ab37d5f73))
+* increase max pageSize from 100 to 1000 for allActiveTasks query ([613ccc8](https://github.com/apauldev/Yotara/commit/613ccc8902ec64a5154df8db4e5c9b99dc69debd))
+* restore task-load error reporting for network and 5xx failures ([4df5786](https://github.com/apauldev/Yotara/commit/4df57862d329a929404883fd08eb1ebd90a9c30f))
+* stop subtasks from consuming per-view page rows ([407177a](https://github.com/apauldev/Yotara/commit/407177a5efcf40ec81a02ed7ffad471fa57981ac))
+
+
+### Refactoring
+
+* remove expand loop, stale signals, and client-side date helpers from TaskService ([719e309](https://github.com/apauldev/Yotara/commit/719e309ad62f1bc03e104e33f13ae6fe8e274088))
+
+
+### Tests
+
+* add coverage for timezone helpers, export endpoint, and per-view errors ([d2b0c00](https://github.com/apauldev/Yotara/commit/d2b0c00d8371714d1e7dd9812e0d96a9b0f00a20))
+
 ## [0.59.5](https://github.com/apauldev/Yotara/compare/v0.59.4...v0.59.5) (2026-06-17)
 
 
