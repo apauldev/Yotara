@@ -682,3 +682,35 @@ test('tasks timezone-aware queries (overdue, view, completedSince)', async () =>
     await ctx.cleanup();
   }
 });
+
+test('tasks export endpoint returns all tasks without pagination limit', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`export-owner-${randomUUID()}@example.com`);
+
+    // Create 3 tasks
+    for (let i = 0; i < 3; i++) {
+      const res = await ctx.app.inject({
+        method: 'POST',
+        url: '/tasks',
+        headers: { cookie },
+        payload: { title: `Export task ${i}` },
+      });
+      assert.equal(res.statusCode, 201);
+    }
+
+    // Request with export=true should return all tasks
+    const exportRes = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?export=true',
+      headers: { cookie },
+    });
+    assert.equal(exportRes.statusCode, 200);
+    const exportData = exportRes.json();
+    assert.equal(exportData.data.length, 3);
+    assert.equal(exportData.meta.total, 3);
+  } finally {
+    await ctx.cleanup();
+  }
+});

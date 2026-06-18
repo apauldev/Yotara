@@ -891,5 +891,71 @@ describe('TaskService', () => {
 
       expect(service.error()).toBeNull();
     }));
+
+    it('sets error state when overdueTasks fetch fails', fakeAsync(() => {
+      const service = TestBed.inject(TaskService);
+      const http = TestBed.inject(HttpTestingController);
+
+      initialized.set(true);
+      isAuthenticated.set(true);
+      currentUserId.set('user-1');
+      tick();
+
+      http.expectOne(ACTIVE_URL).flush(paginated([]));
+      http.expectOne(COMPLETED_URL).flush(paginated([]));
+
+      const overdueReq = http.match((req) => req.url.includes('overdue=true'))[0];
+      overdueReq.error(new ProgressEvent('error'));
+      tick();
+
+      flushDefaultViews(http);
+
+      expect(service.overdueTasks()).toEqual([]);
+      expect(service.error()).toBe('Could not load overdue tasks right now.');
+    }));
+
+    it('sets error state when inboxTasks fetch fails', fakeAsync(() => {
+      const service = TestBed.inject(TaskService);
+      const http = TestBed.inject(HttpTestingController);
+
+      initialized.set(true);
+      isAuthenticated.set(true);
+      currentUserId.set('user-1');
+      tick();
+
+      http.expectOne(ACTIVE_URL).flush(paginated([]));
+      http.expectOne(COMPLETED_URL).flush(paginated([]));
+
+      const inboxReq = http.match((req) => req.url.includes('view=inbox'))[0];
+      inboxReq.error(new ProgressEvent('error'));
+      tick();
+
+      flushDefaultViews(http);
+
+      expect(service.inboxTasks()).toEqual([]);
+      expect(service.error()).toBe('Could not load inbox tasks right now.');
+    }));
+
+    it('sets error state when upcomingTasks fetch fails', fakeAsync(() => {
+      const service = TestBed.inject(TaskService);
+      const http = TestBed.inject(HttpTestingController);
+
+      initialized.set(true);
+      isAuthenticated.set(true);
+      currentUserId.set('user-1');
+      tick();
+
+      http.expectOne(ACTIVE_URL).flush(paginated([]));
+      http.expectOne(COMPLETED_URL).flush(paginated([]));
+
+      const upcomingReq = http.match((req) => req.url.includes('view=upcoming'))[0];
+      upcomingReq.error(new ProgressEvent('error'));
+      tick();
+
+      flushDefaultViews(http);
+
+      expect(service.upcomingTasks()).toEqual([]);
+      expect(service.error()).toBe('Could not load upcoming tasks right now.');
+    }));
   });
 });
