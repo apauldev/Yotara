@@ -184,7 +184,13 @@ export async function listTasksForOwner(
           whereClause = and(
             whereClause,
             eq(tasks.completed, false),
-            or(eq(tasks.status, 'upcoming'), sql`date(${tasks.dueDate}) > ${today}`),
+            or(
+              and(
+                eq(tasks.status, 'upcoming'),
+                or(isNull(tasks.dueDate), sql`date(${tasks.dueDate}) > ${today}`),
+              ),
+              sql`date(${tasks.dueDate}) > ${today}`,
+            ),
           );
           break;
       }

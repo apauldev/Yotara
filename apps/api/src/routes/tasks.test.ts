@@ -580,6 +580,15 @@ test('tasks timezone-aware queries (overdue, view, completedSince)', async () =>
     });
     assert.equal(tUpcoming.statusCode, 201);
 
+    // Create upcoming task with dueDate=today (should not appear in view=upcoming)
+    const tUpcomingToday = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Upcoming today-due task', status: 'upcoming', dueDate: todayStr },
+    });
+    assert.equal(tUpcomingToday.statusCode, 201);
+
     // Create inbox task without due date
     const tInboxNoDate = await ctx.app.inject({
       method: 'POST',
@@ -626,6 +635,8 @@ test('tasks timezone-aware queries (overdue, view, completedSince)', async () =>
     const upcomingTasksList = upcomingRes.json().data;
     assert.ok(upcomingTasksList.some((t: any) => t.title === 'Upcoming task'));
     assert.ok(!upcomingTasksList.some((t: any) => t.title === 'Today task'));
+    // Upcoming task with dueDate=today must not appear in view=upcoming
+    assert.ok(!upcomingTasksList.some((t: any) => t.title === 'Upcoming today-due task'));
 
     // 4. Test view=inbox (should return status='inbox' with no date OR overdue tasks)
     const inboxRes = await ctx.app.inject({
