@@ -553,6 +553,15 @@ test('tasks timezone-aware queries (overdue, view, completedSince)', async () =>
     });
     assert.equal(tOverdue.statusCode, 201);
 
+    // Create overdue task with status='today' (should not appear in view=today)
+    const tOverdueToday = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Overdue today-status task', status: 'today', dueDate: yesterdayStr },
+    });
+    assert.equal(tOverdueToday.statusCode, 201);
+
     // Create today task
     const tToday = await ctx.app.inject({
       method: 'POST',
@@ -588,8 +597,9 @@ test('tasks timezone-aware queries (overdue, view, completedSince)', async () =>
     });
     assert.equal(overdueRes.statusCode, 200);
     const overdueTasksList = overdueRes.json().data;
-    assert.equal(overdueTasksList.length, 1);
-    assert.equal(overdueTasksList[0].title, 'Overdue task');
+    assert.equal(overdueTasksList.length, 2);
+    assert.ok(overdueTasksList.some((t: any) => t.title === 'Overdue task'));
+    assert.ok(overdueTasksList.some((t: any) => t.title === 'Overdue today-status task'));
 
     // 2. Test view=today
     const todayRes = await ctx.app.inject({
@@ -603,6 +613,8 @@ test('tasks timezone-aware queries (overdue, view, completedSince)', async () =>
     assert.ok(todayTasksList.some((t: any) => t.title === 'Today task'));
     assert.ok(!todayTasksList.some((t: any) => t.title === 'Upcoming task'));
     assert.ok(!todayTasksList.some((t: any) => t.title === 'Overdue task'));
+    // Overdue task with status='today' must not appear in view=today
+    assert.ok(!todayTasksList.some((t: any) => t.title === 'Overdue today-status task'));
 
     // 3. Test view=upcoming
     const upcomingRes = await ctx.app.inject({
