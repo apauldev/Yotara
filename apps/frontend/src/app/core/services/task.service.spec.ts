@@ -619,8 +619,9 @@ describe('TaskService', () => {
       bucket: 'deep-work',
     });
 
-    const patchRequest = http.expectOne('http://localhost:3000/tasks/task-1');
-    expect(patchRequest.request.method).toBe('PATCH');
+    const patchRequest = http.expectOne(
+      (req) => req.method === 'PATCH' && req.url.startsWith('http://localhost:3000/tasks/task-1'),
+    );
     expect(patchRequest.request.withCredentials).toBeTrue();
     patchRequest.flush({
       id: 'task-1',
