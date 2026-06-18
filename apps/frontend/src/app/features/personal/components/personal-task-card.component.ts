@@ -572,6 +572,10 @@ export class PersonalTaskCardComponent {
   }
 
   protected statusLabel() {
+    if (this.tone === 'overdue') {
+      return 'Overdue';
+    }
+
     switch (this.task.status) {
       case 'today':
         return 'Today';
@@ -593,9 +597,11 @@ export class PersonalTaskCardComponent {
       return '';
     }
 
-    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(
-      parsed.toJSDate(),
-    );
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(parsed.toJSDate());
   }
 
   protected labelName(labelId: string) {

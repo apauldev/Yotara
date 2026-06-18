@@ -405,6 +405,13 @@ describe('PersonalTaskCardComponent', () => {
       expect(component['statusLabel']()).toBe('Archived');
     });
 
+    it('should format status label as overdue when rendered in overdue tone', () => {
+      component.tone = 'overdue';
+      component.task = { ...mockTask, status: 'today' };
+      fixture.detectChanges();
+      expect(component['statusLabel']()).toBe('Overdue');
+    });
+
     it('should format date label correctly', () => {
       component.task = { ...mockTask, dueDate: '2026-04-20T00:00:00Z' };
       fixture.detectChanges();
