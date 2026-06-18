@@ -199,7 +199,12 @@ export default async function taskRoutes(fastify: FastifyInstance) {
     },
   );
 
-  fastify.patch<{ Params: { id: string }; Body: UpdateTaskDto; Reply: Task | { message: string } }>(
+  fastify.patch<{
+    Params: { id: string };
+    Body: UpdateTaskDto;
+    Querystring: { tz?: string };
+    Reply: Task | { message: string };
+  }>(
     '/tasks/:id',
     {
       schema: withJsonResponse({
@@ -207,6 +212,12 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         summary: 'Update a task',
         security: authCookieSecurity,
         params: idParamSchema(),
+        querystring: {
+          type: 'object',
+          properties: {
+            tz: { type: 'string' },
+          },
+        },
         body: {
           $ref: 'UpdateTaskDto#',
         },
@@ -240,7 +251,13 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         }
       }
 
-      const updated = await updateTaskForOwner(userId, request.params.id, request.body, existing);
+      const updated = await updateTaskForOwner(
+        userId,
+        request.params.id,
+        request.body,
+        existing,
+        request.query.tz,
+      );
       if (!updated) {
         return reply.code(500).send({ message: 'Failed to update task' });
       }

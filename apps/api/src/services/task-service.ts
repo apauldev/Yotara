@@ -34,6 +34,7 @@ function normalizeStatusOnCompletion(
   currentStatus: TaskStatus,
   completed: boolean,
   dueDate?: string | null,
+  tz?: string,
 ): TaskStatus {
   if (completed) {
     return 'done';
@@ -45,7 +46,7 @@ function normalizeStatusOnCompletion(
     }
 
     const dueDateKey = dueDate.slice(0, 10);
-    const todayKey = nowIsoTimestamp().slice(0, 10);
+    const todayKey = todayInTimezone(tz);
 
     return dueDateKey > todayKey ? 'upcoming' : 'today';
   }
@@ -415,6 +416,7 @@ export async function updateTaskForOwner(
   taskId: string,
   body: UpdateTaskDto,
   existing?: TaskRow | null,
+  tz?: string,
 ) {
   const current = existing ?? (await getTaskForOwner(taskId, ownerId));
   if (!current) {
@@ -522,6 +524,7 @@ export async function updateTaskForOwner(
         status,
         completed,
         simpleMode ? null : (body.dueDate ?? current.dueDate),
+        tz,
       ),
       archivedAt: nextArchivedAt,
       permanentArchive: completed ? nextPermanentArchive : false,
