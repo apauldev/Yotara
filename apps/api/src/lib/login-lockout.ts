@@ -79,13 +79,24 @@ export function recordFailedAttempt(email: string): {
 }
 
 /**
- * Clean up expired lockout rows that are no longer needed.
- * Safe to call periodically — no-op if no expired rows exist.
+ * Clean up expired lockout rows and stale pre-lockout attempt rows.
+ *
+ * - Locked rows (locked_until IS NOT NULL) are removed once the lockout expires.
+ * - Pre-lockout rows (locked_until IS NULL) are removed when the last attempt
+ *   is older than the lockout window — a typo today shouldn't count toward a
+ *   lockout weeks later, and it caps table growth from random-email sprays.
+ *
+ * Safe to call periodically — no-op if no matching rows exist.
  */
 export function cleanExpiredLockouts(): void {
+  const cutoff = Date.now() - getLockoutMinutes() * 60 * 1000;
   sqlite
-    .prepare(`DELETE FROM login_attempts WHERE locked_until IS NOT NULL AND locked_until < ?`)
-    .run(Date.now());
+    .prepare(
+      `DELETE FROM login_attempts
+       WHERE (locked_until IS NOT NULL AND locked_until < ?)
+          OR (locked_until IS NULL AND last_attempt_at < ?)`,
+    )
+    .run(Date.now(), cutoff);
 }
 
 export function clearAttempts(email: string): void {

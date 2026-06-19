@@ -74,3 +74,36 @@ test('login lockout utility tracks attempts and locks at threshold', async () =>
     rmSync(dbFile, { force: true });
   }
 });
+
+test('stale pre-lockout rows are cleaned up after the lockout window expires', async () => {
+  process.env['PASSWORD_LOCKOUT_ATTEMPTS'] = '5';
+  process.env['PASSWORD_LOCKOUT_MINUTES'] = '0.002'; // ~120ms window
+
+  try {
+    const { recordFailedAttempt, getRemainingAttempts } = await import('./login-lockout.js');
+    const { cleanExpiredLockouts } = await import('./login-lockout.js');
+    const email = `stale-${randomUUID()}@test.com`;
+
+    // Make one failed attempt (pre-lockout row, locked_until IS NULL)
+    const result = recordFailedAttempt(email);
+    assert.equal(result.locked, false);
+    assert.equal(result.remainingAttempts, 4);
+    assert.equal(getRemainingAttempts(email), 4);
+
+    // Wait for the lockout window to pass
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    // Trigger cleanup
+    cleanExpiredLockouts();
+
+    // The stale pre-lockout row should be gone, so remaining attempts resets
+    assert.equal(
+      getRemainingAttempts(email),
+      5,
+      'stale row should be cleaned up, resetting attempts',
+    );
+  } finally {
+    delete process.env['PASSWORD_LOCKOUT_ATTEMPTS'];
+    delete process.env['PASSWORD_LOCKOUT_MINUTES'];
+  }
+});
