@@ -5,6 +5,8 @@
 > **Supersedes:** [ROADMAP.md](../ROADMAP.md) and the planning sections of [apps/frontend/TODO.md](../apps/frontend/TODO.md) and [apps/api/TODO.md](../apps/api/TODO.md). The older docs are kept as historical snapshots and are no longer maintained. Cross-references from the older docs now point here.
 >
 > **Doc map:** State → Root Cause → Runtime Anti-patterns → File-by-file → Patterns → Planning Artifacts → Recommended Roadmap (Sprint 0–6) → **Backlog** → For New Contributors → Principles.
+>
+> **Admin & Notifications plan:** See [docs/admin-notifications.md](./admin-notifications.md) for the full implementation plan covering per-IP account limits, admin API, email verification + 7-day grace period, self-hosted bypass mode, and Web Push notifications. The checkpoints below reference that document's phases.
 
 ## State of the Project
 
@@ -625,9 +627,9 @@ Items in the "Explicit non-goals" subsection are deliberately not on the roadmap
 
 ### Mobile and PWA (P4)
 
-- [ ] PWA installability — app manifest, service worker, install prompt, homescreen icon. [ROADMAP P4 #34] [plan P4]
+- [ ] PWA installability — app manifest, install prompt, homescreen icon. [ROADMAP P4 #34] [plan P4]
 - [ ] PWA badge count support where available. [ROADMAP §6]
-- [ ] Push notifications for the installable web app. [ROADMAP §6]
+- [ ] *(Push notifications — covered by [docs/admin-notifications.md](./admin-notifications.md) Phase 5.)*
 - [ ] Mobile regression QA pass — modal scroll, keyboard, bottom-sheet, form input across breakpoints. [fe §design polish]
 - [ ] Mobile packaging evaluation — keep mobile web strong first; consider lightweight hybrid wrapper if demand proves out. [ROADMAP §8.4]
 
@@ -649,14 +651,33 @@ Items in the "Explicit non-goals" subsection are deliberately not on the roadmap
 - [ ] Mobile drawer, search, and preferences review for the personal-mode finish pass. [fe §Shell polish]
 - [ ] Keyboard support, focus states, contrast, touch targets as part of the final product finish (not just compliance). [fe §design polish]
 
-### Notifications
+### Notifications, Admin, and Account Limits
 
-- [ ] In-app notification center / panel with read/unread states. [ROADMAP §6]
-- [ ] Notification permission management and subscription refresh flow. [ROADMAP §6]
-- [ ] Notification event model for assignments, mentions, due reminders, system notices. [ROADMAP §6]
-- [ ] Sync between in-app and push notifications. [ROADMAP §6]
-- [ ] Notification delivery pipeline with push subscriptions. [ROADMAP §Delivery]
-- [ ] Notification preferences in settings (browser push on/off, in-app on/off). [ROADMAP §6]
+See [docs/admin-notifications.md](./admin-notifications.md) for the full implementation plan. Key checkpoints:
+
+| CP | Deliverable | Phase | Effort |
+|---|---|---|---|
+| CP-1 | Per-IP account cap + admin API (list/verify/delete users) | Phase 1 | 2–3d |
+| CP-2 | Self-hosted bypass mode (username + password only) | Phase 2 | 2–3d |
+| CP-3 | Email sending via Resend/Mailgun + verification links + resend cooldown | Phase 3 | 3–4d |
+| CP-4 | 7-day grace period + session invalidation on expiry | Phase 4 | 2–3d |
+| CP-5 | Web Push notifications (offline delivery) + reminder cancellation | Phase 5 | 6–8d |
+| CP-6 | Frontend UX: verification page, grace banner, notification bell, permission flow | Phase 6 | 3–4d |
+
+**Supersedes:** These checkpoints replace the individual notification items listed in the historical backlog below and in ROADMAP §6.
+
+The checkpoints below reference the [new document's](docs/admin-notifications.md) phases.
+
+| Checkpoint | Delivery | Phase | Verification |
+|---|---|---|---|
+| CP-1 | Per-IP account cap + admin API (list/verify/delete users) | Phase 1 | curl > N signups from one IP → 429; admin endpoints work with secret |
+| CP-2 | Self-hosted bypass mode (username + password only) | Phase 2 | Register with username only, login with username, emailVerified=true |
+| CP-3 | Email sending via Resend/Mailgun + verification links + resend cooldown | Phase 3 | Verification email arrives (or logs to console), verify link works, 60s cooldown enforced |
+| CP-4 | 7-day grace period + session invalidation on expiry | Phase 4 | New account logs in, expired (7d+) account gets 403 with sessions revoked |
+| CP-5 | Web Push notifications (offline delivery) + reminder cancellation on completion | Phase 5 | Service worker registered, push received while tab is closed, cancels on task completion |
+| CP-6 | Frontend UX: all flows polished | Phase 6 | Post-signup page, grace banner, account-expired page, bell icon, settings toggle |
+
+**Effort estimate:** 18–23 engineering days total, split into 6 independent phases of 5–8 days each. Each phase can ship independently.
 
 ### Process and documentation
 
