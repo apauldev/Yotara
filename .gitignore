@@ -16,3 +16,4 @@ packages/shared/src/*.js.map
 .reasonix/
 .commandcode/taste/taste.md
 .codegraph/
+reasonix.toml

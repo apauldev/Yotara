@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import rateLimit from '@fastify/rate-limit';
 import { AppError } from './lib/app-error.js';
 import corsPlugin from './plugins/cors.js';
 import authBridgePlugin, { applyCorsHeaders } from './plugins/auth-bridge.js';
@@ -17,6 +18,21 @@ export async function buildApp() {
 
   await registerOpenApi(app);
   await app.register(corsPlugin);
+
+  // Global rate limiting (read at registration time so tests can configure via env)
+  const rateLimitMax = Number(process.env['RATE_LIMIT_MAX'] ?? 100);
+  const rateLimitWindowMs = Number(process.env['RATE_LIMIT_WINDOW_MINUTES'] ?? 1) * 60 * 1000;
+  await app.register(rateLimit, {
+    max: rateLimitMax,
+    timeWindow: rateLimitWindowMs,
+    keyGenerator: (request) => {
+      const forwarded = request.headers['x-forwarded-for'];
+      if (typeof forwarded === 'string') {
+        return forwarded.split(',')[0]?.trim() || request.ip;
+      }
+      return request.ip;
+    },
+  });
   await app.register(authBridgePlugin);
   app.addHook('onRequest', async (request, reply) => {
     applyCorsHeaders(reply, request.headers.origin);
