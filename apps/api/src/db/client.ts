@@ -118,6 +118,13 @@ const SQLITE_BOOTSTRAP_SQL = `
     FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
     FOREIGN KEY (label_id) REFERENCES labels(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS login_attempts (
+    email TEXT PRIMARY KEY NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    locked_until INTEGER,
+    last_attempt_at INTEGER NOT NULL
+  );
 `;
 
 function normalizeTextTimestamp(value: unknown, fallback: string): string {

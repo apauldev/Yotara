@@ -1,18 +1,19 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnDestroy, computed, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faEnvelope, faLock } from '@fortawesome/free-solid-svg-icons';
+import { PasswordTrialComponent } from './password-trial.component';
 import { AuthStateService } from '../../core/services/auth-state.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, FontAwesomeModule],
+  imports: [FormsModule, FontAwesomeModule, PasswordTrialComponent],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
 })
-export class LoginComponent {
+export class LoginComponent implements OnDestroy {
   protected readonly faEnvelope = faEnvelope;
   protected readonly faLock = faLock;
   isLogin = signal(true);
@@ -24,16 +25,50 @@ export class LoginComponent {
   passwordTouched = signal(false);
   loading = signal(false);
   error = signal('');
+  remainingAttempts = signal<number | null>(null);
+  retryAfterSeconds = signal<number | null>(null);
+  protected locked = computed(() => (this.retryAfterSeconds() ?? 0) > 0);
+  private countdownInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private router: Router,
     private authState: AuthStateService,
   ) {}
 
+  ngOnDestroy() {
+    this.clearCountdown();
+  }
+
   toggleMode() {
     this.isLogin.set(!this.isLogin());
     this.error.set('');
+    this.resetTrialState();
     this.resetTouched();
+  }
+
+  private resetTrialState() {
+    this.remainingAttempts.set(null);
+    this.retryAfterSeconds.set(null);
+    this.clearCountdown();
+  }
+
+  private clearCountdown() {
+    if (this.countdownInterval !== null) {
+      clearInterval(this.countdownInterval);
+      this.countdownInterval = null;
+    }
+  }
+
+  private startCountdown() {
+    this.clearCountdown();
+    this.countdownInterval = setInterval(() => {
+      const current = this.retryAfterSeconds();
+      if (current === null || current <= 1) {
+        this.resetTrialState();
+        return;
+      }
+      this.retryAfterSeconds.set(current - 1);
+    }, 1000);
   }
 
   private isValidEmail(email: string): boolean {
@@ -132,8 +167,21 @@ export class LoginComponent {
       }
 
       if (res.error) {
+        this.password.set('');
         this.error.set(res.error.message || 'Authentication failed');
+        const errorBody = res.error as Record<string, unknown>;
+        if (typeof errorBody['remainingAttempts'] === 'number') {
+          this.remainingAttempts.set(errorBody['remainingAttempts']);
+        }
+        if (
+          typeof errorBody['retryAfterSeconds'] === 'number' &&
+          (errorBody['retryAfterSeconds'] as number) > 0
+        ) {
+          this.retryAfterSeconds.set(errorBody['retryAfterSeconds'] as number);
+          this.startCountdown();
+        }
       } else {
+        this.resetTrialState();
         const redirectUrl = this.authState.getPostAuthRedirectUrl();
 
         if (!this.isLogin() && redirectUrl === '/onboarding') {

@@ -18,7 +18,7 @@ Short, honest read of where the project stands right now. No numerical scorecard
 - **Documentation:** This document exists. ROADMAP.md, project-plan.md, and the two TODO.md files overlap and drift from each other — see the "Planning artifacts" section below.
 - **Scalability:** Expand loops + in-memory filtering break past ~1,000 tasks. Search doesn't scale. The fix is in flight (per-view API filters in Sprint 1).
 - **Developer experience:** CI has lint + test but no type-check gate, no `pnpm audit`, no coverage threshold, no prebuilt images. `.reasonix/` is not gitignored.
-- **Security & robustness:** Auth guards, error interceptor, cookie security all solid. No rate limiting. Services throw `new Error('string')` which the routes can't map to HTTP status codes — opaque 500s instead of meaningful 4xx responses. No Docker image scanning, no secret leak detection in CI, no Dependabot configuration, no bundle size monitoring.
+- **Security & robustness:** Auth guards, error interceptor, cookie security all solid. Rate limiting added (global IP-based + per-email password lockout). Services throw `new Error('string')` which the routes can't map to HTTP status codes — opaque 500s instead of meaningful 4xx responses. No Docker image scanning, no secret leak detection in CI, no Dependabot configuration, no bundle size monitoring.
 - **Bus factor:** 1. 296/323 commits (92%) are from a single author. shivansh090 has 2 commits (docs only); github-actions bot has 25.
 
 ---
@@ -472,7 +472,7 @@ This sprint order supersedes the P0/P1/P2/P3 priority lanes in `ROADMAP.md`. Tra
 
 - [ ] Docker Compose for local development
 - [ ] One-command dev setup script
-- [ ] Rate limiting on API
+- [x] Rate limiting on API
 - [ ] Consistent input validation across all routes
 - [ ] Stricter TypeScript config (no `any` casts like `request.query.status as any`)
 
@@ -600,7 +600,7 @@ Items in the "Explicit non-goals" subsection are deliberately not on the roadmap
 - [ ] PR preview / staging environment — deploy frontend to ephemeral URL on PR. (Solo-dev: optional — review locally or skip; add when contributors need to preview changes.) [arch]
 - [ ] Database query analysis — add `drizzle-kit` studio to dev workflow and review slow queries during development. [arch]
 - [ ] Snyk or alternative vulnerability scanning. [api §CI]
-- [ ] API rate limiting. [fe §OSS] [arch §Sprint 6]
+- [x] API rate limiting. [fe §OSS] [arch §Sprint 6]
 - [ ] API security headers (HSTS, CSP, etc.). [fe §OSS] [arch §Sprint 6]
 - [ ] Tighten CORS defaults for auth routes. [fe §OSS]
 - [ ] Better request/response logging for auth and write endpoints. [api §Auth]

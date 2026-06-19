@@ -102,4 +102,165 @@ describe('LoginComponent', () => {
       queryParams: { created: '1' },
     });
   });
+
+  it('shows field error for empty name in sign-up mode', () => {
+    fixture.detectChanges();
+    component.toggleMode();
+    component.markTouched('name');
+
+    const error = component.getFieldError('name');
+    expect(error).toBe('Name is required');
+    expect(component.shouldShowFieldError('name')).toBeTrue();
+  });
+
+  it('shows field error for empty email', () => {
+    fixture.detectChanges();
+    component.email.set('');
+    component.emailTouched.set(true);
+
+    expect(component.getFieldError('email')).toBe('Email is required');
+    expect(component.shouldShowFieldError('email')).toBeTrue();
+  });
+
+  it('shows field error for short password in sign-up mode', () => {
+    fixture.detectChanges();
+    component.toggleMode();
+    component.password.set('short');
+    component.passwordTouched.set(true);
+
+    expect(component.getFieldError('password')).toBe('Password must be at least 8 characters');
+    expect(component.shouldShowFieldError('password')).toBeTrue();
+  });
+
+  it('does not show field error when field is not touched', () => {
+    fixture.detectChanges();
+
+    expect(component.shouldShowFieldError('email')).toBeFalse();
+    expect(component.shouldShowFieldError('password')).toBeFalse();
+  });
+
+  it('returns null for name field in login mode', () => {
+    fixture.detectChanges();
+
+    expect(component.getFieldError('name')).toBeNull();
+  });
+
+  it('shows authentication error message and clears password', async () => {
+    fixture.detectChanges();
+    const errorMsg = 'Invalid credentials';
+    authState.signIn.and.resolveTo({ error: { message: errorMsg } });
+
+    component.email.set('alex@example.com');
+    component.password.set('wrong');
+
+    await component.onSubmit();
+    fixture.detectChanges();
+
+    expect(component.error()).toBe(errorMsg);
+    expect(component.password()).toBe('');
+    expect(fixture.nativeElement.textContent).toContain(errorMsg);
+  });
+
+  it('handles login lockout with remaining attempts and retry after', async () => {
+    fixture.detectChanges();
+    authState.signIn.and.resolveTo({
+      error: { message: 'Too many attempts', remainingAttempts: 2, retryAfterSeconds: 30 },
+    });
+
+    component.email.set('alex@example.com');
+    component.password.set('wrong');
+
+    await component.onSubmit();
+    fixture.detectChanges();
+
+    expect(component.remainingAttempts()).toBe(2);
+    expect(component.retryAfterSeconds()).toBe(30);
+    expect((component as any).locked()).toBeTrue();
+  });
+
+  it('handles unexpected error in onSubmit catch block', async () => {
+    fixture.detectChanges();
+    authState.signIn.and.rejectWith(new Error('Network failure'));
+
+    component.email.set('alex@example.com');
+    component.password.set('secret');
+
+    await component.onSubmit();
+    fixture.detectChanges();
+
+    expect(component.error()).toBe('Network failure');
+    expect(component.loading()).toBeFalse();
+  });
+
+  it('clears countdown interval on destroy', () => {
+    fixture.detectChanges();
+    component.retryAfterSeconds.set(10);
+    component['startCountdown']();
+
+    const interval = component['countdownInterval'];
+    expect(interval).not.toBeNull();
+
+    component.ngOnDestroy();
+
+    expect(component['countdownInterval']).toBeNull();
+  });
+
+  it('resets touched fields when toggling mode', () => {
+    fixture.detectChanges();
+    component.nameTouched.set(true);
+    component.emailTouched.set(true);
+    component.passwordTouched.set(true);
+
+    component.toggleMode();
+
+    expect(component.nameTouched()).toBeFalse();
+    expect(component.emailTouched()).toBeFalse();
+    expect(component.passwordTouched()).toBeFalse();
+  });
+
+  it('marks individual fields as touched', () => {
+    component.markTouched('name');
+    expect(component.nameTouched()).toBeTrue();
+
+    component.markTouched('email');
+    expect(component.emailTouched()).toBeTrue();
+
+    component.markTouched('password');
+    expect(component.passwordTouched()).toBeTrue();
+  });
+
+  it('disables submit button when loading', () => {
+    fixture.detectChanges();
+    component.loading.set(true);
+    fixture.detectChanges();
+
+    const btn: HTMLButtonElement = fixture.nativeElement.querySelector('.submit-button');
+    expect(btn.disabled).toBeTrue();
+    expect(btn.textContent).toContain('Loading...');
+  });
+
+  it('disables submit button when locked', () => {
+    fixture.detectChanges();
+    component.retryAfterSeconds.set(60);
+    fixture.detectChanges();
+
+    const btn: HTMLButtonElement = fixture.nativeElement.querySelector('.submit-button');
+    expect(btn.disabled).toBeTrue();
+  });
+
+  it('counts down retryAfterSeconds', () => {
+    jasmine.clock().install();
+    fixture.detectChanges();
+    component.retryAfterSeconds.set(5);
+    component['startCountdown']();
+
+    jasmine.clock().tick(2000);
+
+    expect(component.retryAfterSeconds()).toBe(3);
+
+    jasmine.clock().tick(3000);
+
+    expect(component.retryAfterSeconds()).toBeNull();
+    jasmine.clock().uninstall();
+  });
 });

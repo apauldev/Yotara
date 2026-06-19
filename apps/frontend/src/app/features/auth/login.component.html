@@ -92,7 +92,12 @@
         <div class="error-msg">{{ error() }}</div>
       }
 
-      <button type="submit" [disabled]="loading()" class="submit-button">
+      <app-password-trial
+        [remainingAttempts]="remainingAttempts()"
+        [retryAfterSeconds]="retryAfterSeconds()"
+      />
+
+      <button type="submit" [disabled]="loading() || locked()" class="submit-button">
         {{ loading() ? 'Loading...' : isLogin() ? 'Sign In' : 'Create account' }}
       </button>
     </form>
