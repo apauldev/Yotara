@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.60.0](https://github.com/apauldev/Yotara/compare/v0.59.7...v0.60.0) (2026-06-19)
+
+
+### Features
+
+* **rate-limiting:** add global rate limiting and per-email password lockout ([e5c06eb](https://github.com/apauldev/Yotara/commit/e5c06ebb2c46628d7d301b64f75de910568fff18))
+
+
+### Bug Fixes
+
+* **login-lockout:** merge stale-row test into main test to avoid module-caching conflict ([c79e725](https://github.com/apauldev/Yotara/commit/c79e725e16e919e730fb32bf34621686007ffc6d))
+* **login-lockout:** prune stale pre-lockout attempt rows ([f240b19](https://github.com/apauldev/Yotara/commit/f240b1913cf362755461e6ece16c490e059f3164))
+* **rate-limiting:** use trustProxy for authoritative client IP ([bb1744f](https://github.com/apauldev/Yotara/commit/bb1744f63175ee7a868a12c74871602ddef8335d))
+* **test:** increase recovery test lockout window to avoid CI timing flake ([ae22d2c](https://github.com/apauldev/Yotara/commit/ae22d2c46b499894d1b8b49cf85885f593f8276f))
+
+
+### Documentation
+
+* **arch:** mark rate limiting as completed ([530f526](https://github.com/apauldev/Yotara/commit/530f526fa2e015b2775c629fb56cefdc5d28421e))
+
+
+### Tests
+
+* add coverage for login component validation, errors, and lockout ([374d89a](https://github.com/apauldev/Yotara/commit/374d89ab259b6f9952e3b3407ac3e0fc4f9ca553))
+
 ## [0.59.7](https://github.com/apauldev/Yotara/compare/v0.59.6...v0.59.7) (2026-06-18)
 
 
