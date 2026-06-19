@@ -369,7 +369,8 @@ Phases 1, 2, and 5 can start immediately. Self-hosted users get a working produc
 
 | File | Change |
 |---|---|
-| `apps/api/src/plugins/auth-bridge.ts` | Add grace-period check after successful sign-in, revoke sessions on expiry |
+| `apps/api/src/plugins/auth-required.ts` | Add grace-period check that runs on every authenticated request (catches sessions that outlive the grace window) |
+| `apps/api/src/plugins/auth-bridge.ts` | Also check on sign-in (belt-and-suspenders — catches the case at login time with friendlier UX) |
 | `apps/api/src/lib/auth.ts` | Set `requireEmailVerification: false`, `autoSignIn: true` |
 | `apps/api/src/routes/me.ts` | Return `graceDaysRemaining` in profile |
 | `apps/api/.env.example` | Add `GRACE_PERIOD_DAYS` |
@@ -380,28 +381,25 @@ Phases 1, 2, and 5 can start immediately. Self-hosted users get a working produc
    - Keep `emailAndPassword.requireEmailVerification: false` (we handle it ourselves in auth-bridge)
    - Set `emailAndPassword.autoSignIn: true` (sign in immediately after signup, even unverified)
 
-2. **Update `apps/api/src/plugins/auth-bridge.ts`**
-   - After a successful sign-in (response status 200 from better-auth), get the user's `emailVerified` and `createdAt`
-   - If `emailVerified === false && now - createdAt > GRACE_PERIOD_DAYS * 86400000`:
-     - Revoke all active sessions for this user (they're expired, not just blocked):
-       ```typescript
-       // Use better-auth's internal methods or raw SQL:
-       sqlite.prepare('DELETE FROM session WHERE userId = ?').run(user.id);
-       ```
-     - Return 403 with:
+2. **Update `apps/api/src/plugins/auth-required.ts`** (primary — runs on every request)
+   - After `auth.api.getSession()` succeeds and `session.user.id` is confirmed:
+   - If `!session.user.emailVerified`:
+     - Parse `session.user.createdAt` as a Date and check if `now - createdAt > GRACE_PERIOD_DAYS * 86_400_000`
+     - If expired: delete the current session row (`DELETE FROM session WHERE id = ?`) and return 403 with:
        ```json
        {
          "message": "Your trial period has expired. Please verify your email to continue using Yotara.",
-         "code": "EMAIL_NOT_VERIFIED",
-         "graceExpired": true,
-         "email": user.email
+         "code": "TRIAL_EXPIRED"
        }
        ```
-   - If `emailVerified === false && now - createdAt <= GRACE_PERIOD_DAYS * 86400000`:
-     - Allow login (normal flow)
-     - (The frontend will read `graceDaysRemaining` from `/me` to show the banner)
+   - This catches ANY authenticated request — a user whose session outlasts the grace period hits this on their next API call, not just on login.
 
-3. **Update `apps/api/src/routes/me.ts`**
+3. **Update `apps/api/src/plugins/auth-bridge.ts`** (secondary — friendlier UX at login time)
+   - After a successful sign-in (response status 200 from better-auth), check `emailVerified` and `createdAt`:
+   - If expired: return 403 with `graceExpired: true` + `email` so the frontend can show the `/account-expired` page with resend option
+   - If still within grace period: allow login — the frontend will read `graceDaysRemaining` from `/me`
+
+4. **Update `apps/api/src/routes/me.ts`**
    - Add `graceDaysRemaining` to the `/me` response when `emailVerified === false`:
      ```typescript
      graceDaysRemaining: emailVerified
@@ -416,9 +414,9 @@ Phases 1, 2, and 5 can start immediately. Self-hosted users get a working produc
 > - Newly registered account can sign in immediately (grace period active)
 > - `/me` returns `graceDaysRemaining` for unverified accounts (e.g. `6`)
 > - `/me` returns `emailVerified: false`
-> - After `GRACE_PERIOD_DAYS` have passed (or set to `0` for testing), login returns 403 with `graceExpired: true`
-> - After grace period expires, existing sessions are revoked (user must re-authenticate)
-> - Verify email → `emailVerified` flips to true → login works permanently → `/me` no longer shows grace banner fields
+> - After `GRACE_PERIOD_DAYS` have passed (or set to `0` for testing), **any authenticated request** returns 403 with `code: "TRIAL_EXPIRED"` (not just login — existing sessions are caught mid-session)
+> - After grace period expires, the current session is revoked on the first subsequent API call (user must re-authenticate after verifying)
+> - Verify email → `emailVerified` flips to true → all requests work normally → `/me` no longer shows grace banner fields
 > - All existing auth tests pass
 
 ---

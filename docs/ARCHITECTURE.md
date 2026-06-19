@@ -673,7 +673,7 @@ The checkpoints below reference the [new document's](docs/admin-notifications.md
 | CP-1 | Per-IP account cap + admin API (list/verify/delete users) | Phase 1 | curl > N signups from one IP → 429; admin endpoints work with secret |
 | CP-2 | Self-hosted bypass mode (username + password only) | Phase 2 | Register with username only, login with username, emailVerified=true |
 | CP-3 | Email sending via Resend/Mailgun + verification links + resend cooldown | Phase 3 | Verification email arrives (or logs to console), verify link works, 60s cooldown enforced |
-| CP-4 | 7-day grace period + session invalidation on expiry | Phase 4 | New account logs in, expired (7d+) account gets 403 with sessions revoked |
+| CP-4 | 7-day grace period + per-request session expiry check | Phase 4 | New account logs in, expired (7d+) account gets 403 on ANY authenticated request (existing sessions caught mid-session, not just on login) |
 | CP-5 | Web Push notifications (offline delivery) + reminder cancellation on completion | Phase 5 | Service worker registered, push received while tab is closed, cancels on task completion |
 | CP-6 | Frontend UX: all flows polished | Phase 6 | Post-signup page, grace banner, account-expired page, bell icon, settings toggle |
 
