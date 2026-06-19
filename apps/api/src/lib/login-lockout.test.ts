@@ -7,7 +7,7 @@ import test from 'node:test';
 
 const TEST_EMAIL = `lockout-${randomUUID()}@test.com`;
 
-test('login lockout utility tracks attempts and locks at threshold', async () => {
+test('login lockout utility tracks attempts, locks at threshold, and prunes stale rows', async () => {
   const dbFile = join(tmpdir(), `yotara-lockout-test-${randomUUID()}.db`);
   process.env['DATABASE_URL'] = dbFile;
   process.env['PASSWORD_LOCKOUT_ATTEMPTS'] = '3';
@@ -23,7 +23,10 @@ test('login lockout utility tracks attempts and locks at threshold', async () =>
       getRemainingLockoutSeconds,
       recordFailedAttempt,
       clearAttempts,
+      cleanExpiredLockouts,
     } = await import('./login-lockout.js');
+
+    // ── Lockout threshold test ──
 
     assert.equal(isLockedOut(TEST_EMAIL), false, 'not locked before any attempts');
     assert.equal(getRemainingAttempts(TEST_EMAIL), 3, '3 remaining before any attempts');
@@ -67,28 +70,18 @@ test('login lockout utility tracks attempts and locks at threshold', async () =>
     assert.equal(isLockedOut(TEST_EMAIL), false);
     assert.equal(getRemainingAttempts(TEST_EMAIL), 3);
     assert.equal(getRemainingLockoutSeconds(TEST_EMAIL), 0);
-  } finally {
-    delete process.env['DATABASE_URL'];
-    delete process.env['PASSWORD_LOCKOUT_ATTEMPTS'];
-    delete process.env['PASSWORD_LOCKOUT_MINUTES'];
-    rmSync(dbFile, { force: true });
-  }
-});
 
-test('stale pre-lockout rows are cleaned up after the lockout window expires', async () => {
-  process.env['PASSWORD_LOCKOUT_ATTEMPTS'] = '5';
-  process.env['PASSWORD_LOCKOUT_MINUTES'] = '0.002'; // ~120ms window
+    // ── Stale pre-lockout row cleanup test ──
+    // Uses the same DB but switches to a short window so the row expires quickly.
 
-  try {
-    const { recordFailedAttempt, getRemainingAttempts } = await import('./login-lockout.js');
-    const { cleanExpiredLockouts } = await import('./login-lockout.js');
-    const email = `stale-${randomUUID()}@test.com`;
+    const staleEmail = `stale-${randomUUID()}@test.com`;
+    process.env['PASSWORD_LOCKOUT_ATTEMPTS'] = '5';
+    process.env['PASSWORD_LOCKOUT_MINUTES'] = '0.002'; // ~120ms window
 
-    // Make one failed attempt (pre-lockout row, locked_until IS NULL)
-    const result = recordFailedAttempt(email);
-    assert.equal(result.locked, false);
-    assert.equal(result.remainingAttempts, 4);
-    assert.equal(getRemainingAttempts(email), 4);
+    const staleResult = recordFailedAttempt(staleEmail);
+    assert.equal(staleResult.locked, false);
+    assert.equal(staleResult.remainingAttempts, 4);
+    assert.equal(getRemainingAttempts(staleEmail), 4);
 
     // Wait for the lockout window to pass
     await new Promise((resolve) => setTimeout(resolve, 200));
@@ -98,12 +91,14 @@ test('stale pre-lockout rows are cleaned up after the lockout window expires', a
 
     // The stale pre-lockout row should be gone, so remaining attempts resets
     assert.equal(
-      getRemainingAttempts(email),
+      getRemainingAttempts(staleEmail),
       5,
       'stale row should be cleaned up, resetting attempts',
     );
   } finally {
+    delete process.env['DATABASE_URL'];
     delete process.env['PASSWORD_LOCKOUT_ATTEMPTS'];
     delete process.env['PASSWORD_LOCKOUT_MINUTES'];
+    rmSync(dbFile, { force: true });
   }
 });
