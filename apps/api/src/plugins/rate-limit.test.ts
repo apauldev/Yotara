@@ -4,17 +4,11 @@ import Fastify from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 
 test('rate-limit plugin returns 429 when limit is exceeded and respects X-Forwarded-For', async () => {
-  const app = Fastify();
+  const app = Fastify({ trustProxy: 1 });
   await app.register(rateLimit, {
     max: 3,
     timeWindow: 60000,
-    keyGenerator: (request) => {
-      const forwarded = request.headers['x-forwarded-for'];
-      if (typeof forwarded === 'string') {
-        return forwarded.split(',')[0]?.trim() || request.ip;
-      }
-      return request.ip;
-    },
+    keyGenerator: (request) => request.ip,
   });
 
   app.get('/test', async () => ({ ok: true }));
@@ -65,6 +59,40 @@ test('rate-limit plugin returns 429 when limit is exceeded and respects X-Forwar
       headers: { 'x-forwarded-for': '10.0.0.99' },
     });
     assert.equal(blockedDiff.statusCode, 429, 'different IP should be rate-limited on 4th request');
+  } finally {
+    await app.close();
+  }
+});
+
+test('rate-limit key uses last entry in X-Forwarded-For when trustProxy is enabled', async () => {
+  // Simulate nginx's $proxy_add_x_forwarded_for: the real client IP is the
+  // last entry in the chain; a spoofed first entry must be ignored.
+  const app = Fastify({ trustProxy: 1 });
+
+  const keys: string[] = [];
+  await app.register(rateLimit, {
+    max: 5,
+    timeWindow: 60000,
+    keyGenerator: (request) => {
+      const key = request.ip;
+      keys.push(key);
+      return key;
+    },
+  });
+
+  app.get('/test', async () => ({ ok: true }));
+  await app.ready();
+
+  try {
+    // Send X-Forwarded-For with a spoofed first entry and the real IP last,
+    // matching nginx's $proxy_add_x_forwarded_for behaviour.
+    const r = await app.inject({
+      method: 'GET',
+      url: '/test',
+      headers: { 'x-forwarded-for': 'spoofed-ip, 10.0.0.1' },
+    });
+    assert.equal(r.statusCode, 200);
+    assert.equal(keys[0], '10.0.0.1', 'key must be the last X-Forwarded-For entry, not the first');
   } finally {
     await app.close();
   }

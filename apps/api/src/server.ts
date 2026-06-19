@@ -14,24 +14,23 @@ import rootRoutes from './routes/root.js';
 import taskRoutes from './routes/tasks.js';
 
 export async function buildApp() {
-  const app = Fastify({ logger: true });
+  // trustProxy: 1 — nginx sits in front and appends the real client IP as the
+  // last entry in X-Forwarded-For ($proxy_add_x_forwarded_for). Fastify reads
+  // the last entry as request.ip, which is the authoritative client address.
+  const app = Fastify({ logger: true, trustProxy: 1 });
 
   await registerOpenApi(app);
   await app.register(corsPlugin);
 
-  // Global rate limiting (read at registration time so tests can configure via env)
+  // Global rate limiting (read at registration time so tests can configure via env).
+  // Relies on trustProxy: 1 (set above) so request.ip is the real client IP
+  // from the last X-Forwarded-For entry, not the client-controlled first entry.
   const rateLimitMax = Number(process.env['RATE_LIMIT_MAX'] ?? 100);
   const rateLimitWindowMs = Number(process.env['RATE_LIMIT_WINDOW_MINUTES'] ?? 1) * 60 * 1000;
   await app.register(rateLimit, {
     max: rateLimitMax,
     timeWindow: rateLimitWindowMs,
-    keyGenerator: (request) => {
-      const forwarded = request.headers['x-forwarded-for'];
-      if (typeof forwarded === 'string') {
-        return forwarded.split(',')[0]?.trim() || request.ip;
-      }
-      return request.ip;
-    },
+    keyGenerator: (request) => request.ip,
   });
   await app.register(authBridgePlugin);
   app.addHook('onRequest', async (request, reply) => {
