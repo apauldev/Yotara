@@ -434,7 +434,7 @@ Phases 1, 2, and 5 can start immediately. Self-hosted users get a working produc
 |---|---|
 | `apps/api/src/lib/push.ts` | Push notification service using `web-push` |
 | `apps/api/src/routes/push.ts` | Subscribe/unsubscribe push subscription endpoints |
-| `apps/frontend/src/sw.js` | Service worker — listens for push events, shows notifications (plain JS, no compilation needed) |
+| `apps/frontend/public/sw.js` | Service worker — listens for push events, shows notifications (plain JS, no compilation needed) |
 | `apps/frontend/src/app/core/services/push-notification.service.ts` | Permission request, subscribe, subscription lifecycle |
 | `scripts/generate-vapid-keys.mjs` | One-time script to generate VAPID keys |
 
@@ -570,7 +570,8 @@ Phases 1, 2, and 5 can start immediately. Self-hosted users get a working produc
 
 #### 5.3 Service Worker
 
-8. **Create `apps/frontend/src/sw.js`** (plain JavaScript — no compilation needed)
+8. **Create `apps/frontend/public/sw.js`** (plain JavaScript — no compilation needed)
+   - Must live in `public/` because Angular's build only copies files from that directory to the output. If placed under `src/`, the SW would not be emitted and `navigator.serviceWorker.register('/sw.js')` would 404.
    ```javascript
    self.addEventListener('push', (event) => {
      const data = event.data?.json() ?? { title: 'Yotara', body: '' };
