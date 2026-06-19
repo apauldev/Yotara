@@ -329,7 +329,7 @@ test('password lockout locks account after repeated failed login attempts', asyn
 
 test('locked account can log in after lockout window expires', async () => {
   process.env['PASSWORD_LOCKOUT_ATTEMPTS'] = '2';
-  process.env['PASSWORD_LOCKOUT_MINUTES'] = '0.002'; // ~120ms lockout window
+  process.env['PASSWORD_LOCKOUT_MINUTES'] = '0.05'; // ~3s lockout window
 
   const ctx = await createTestApp();
   const email = `lockout-recover-${randomUUID()}@example.com`;
@@ -360,8 +360,8 @@ test('locked account can log in after lockout window expires', async () => {
     });
     assert.equal(lockoutResponse.statusCode, 429);
 
-    // Wait for lockout to expire
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    // Wait for lockout to expire (3s window + 500ms buffer)
+    await new Promise((resolve) => setTimeout(resolve, 3500));
 
     // Correct password should now succeed and clear attempts
     const successResponse = await ctx.app.inject({
