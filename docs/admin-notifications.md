@@ -185,10 +185,17 @@ Phases 1, 2, and 5 can start immediately. Self-hosted users get a working produc
      username: text('username'),
      displayUsername: text('displayUsername'),
      ```
-   - `apps/api/src/db/client.ts` — add to migration SQL:
+   - `apps/api/src/db/client.ts` — add guard after the existing column checks (same pattern as `workspaceMode`, `onboardingCompleted`, etc.):
+     ```typescript
+     if (!columnNames.has('username')) {
+       sqlite.exec(`ALTER TABLE user ADD COLUMN username TEXT`);
+     }
+     if (!columnNames.has('displayUsername')) {
+       sqlite.exec(`ALTER TABLE user ADD COLUMN displayUsername TEXT`);
+     }
+     ```
+     And add the unique index after the column guards:
      ```sql
-     ALTER TABLE user ADD COLUMN username TEXT;
-     ALTER TABLE user ADD COLUMN displayUsername TEXT;
      CREATE UNIQUE INDEX IF NOT EXISTS idx_user_username ON user(username);
      ```
 
