@@ -45,7 +45,7 @@
     "commit-and-tag-version": "^12.7.3",
     "eslint": "^10.5.0",
     "husky": "^9.1.7",
-    "lint-staged": "^16.3.3",
+    "lint-staged": "^17.0.8",
     "prettier": "^3.8.4",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.61.0"
