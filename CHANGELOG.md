@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.60.1](https://github.com/apauldev/Yotara/compare/v0.60.0...v0.60.1) (2026-06-22)
+
+
+### Bug Fixes
+
+* escape html in highlight pipe to prevent xss ([8c983e7](https://github.com/apauldev/Yotara/commit/8c983e75c5fc38011acc601db1392c47939eeb48))
+
+
+### Documentation
+
+* add admin and notifications implementation plan ([2a43eea](https://github.com/apauldev/Yotara/commit/2a43eea8f0d5e2d929b9e4ee80a031871a3f930f))
+* fix SW location — must be in public/ not src/ for Angular build ([4db49df](https://github.com/apauldev/Yotara/commit/4db49df518b6d4fe0b5dbf1c3f3c3808821f16b3))
+* guard ALTER TABLE with PRAGMA table_info check ([2d9711f](https://github.com/apauldev/Yotara/commit/2d9711f71b4b0350c40e93e0a5b113197e14a972))
+* update Phase 4 to use per-request grace check in requireAuthenticatedUser ([e5debcd](https://github.com/apauldev/Yotara/commit/e5debcd880094b8326dd163fe95d7f085903f4ae))
+
 ## [0.60.0](https://github.com/apauldev/Yotara/compare/v0.59.7...v0.60.0) (2026-06-19)
 
 
