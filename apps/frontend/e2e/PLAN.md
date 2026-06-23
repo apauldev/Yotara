@@ -122,6 +122,12 @@ Separate Playwright project with empty `storageState` so it creates a fresh user
 8. **Project creation navigates to detail page**: After creating a project via the modal, `projects-page.component.ts` calls `router.navigate(['/projects', created.id])`, taking the user to the project detail page, not back to the project list.
    - **Tests affected**: `projects.spec.ts` create test — now asserts URL matches `/projects/:id` after creation.
 
+9. **pnpm --filter can't exec binaries directly (fixed)**: The CI job used `pnpm --filter @yotara/frontend exec wait-on` which failed because `pnpm exec` runs in the workspace root, not the filtered package's `node_modules/.bin/`. The `--filter` flag only selects which package runs an npm script, not which `node_modules` to resolve binaries from.
+   - **Fix**: Added an `"e2e:wait": "wait-on"` npm script to `apps/frontend/package.json`. CI now calls `pnpm --filter @yotara/frontend e2e:wait` which runs the script, and the script shells out to the binary. The `wait-on` package remains a devDependency.
+
+10. **Playwright files fail typecheck without @types/node (fixed)**: Both `playwright.config.ts` and `e2e/global-setup.ts` use Node.js APIs (`process`, `fs`, `path`) but `@types/node` was not installed in the frontend package. The `typecheck` CI step (which runs `tsc --noEmit`) failed with `TS2307: Cannot find module 'fs'` and `TS2580: Cannot find name 'process'`.
+    - **Fix**: Added `@types/node` as a devDependency in `apps/frontend/package.json`.
+
 ### Spec file organization
 
 | File | Tests | Area |
@@ -146,13 +152,12 @@ Separate Playwright project with empty `storageState` so it creates a fresh user
 |------|--------|-------|
 | `RATE_LIMIT_MAX` dev default | 1000 | 55 tests make ~250-500 API calls — well under limit |
 | Login spec `test.use` | Redundant | `storageState` is already set at project level; no impact on correctness |
-| CI integration | Not verified | `.github/workflows/ci.yml` needs `RATE_LIMIT_MAX=10000` if defaults are 100 |
+| CI integration | In progress | Pipeline runs but fails on `wait-on`/`@types/node` — fixes applied, awaiting next run |
 | Test run duration | ~2 min | Full suite runs in ~2 minutes locally; CI may be slower |
 
 ### Next steps
 
-1. **Run full suite in CI**: Verify `.github/workflows/ci.yml` passes with `RATE_LIMIT_MAX=10000`.
+1. **Re-run CI pipeline**: Latest commit fixes `wait-on` invocation (via npm script) and `@types/node` typecheck errors. Push and verify green.
 2. **Monitor flakiness**: The 5s confirm-dialog timeout is generous but may need adjustment on slower CI runners.
 3. **Clean up redundant config**: The login spec's `test.use({ storageState: { cookies: [], origins: [] } })` is duplicative of the project-level config.
 4. **Add more edge cases**: Data export in settings, pagination (10/25/page nav), search sort (Date/A-Z), #tag label resolution in capture bar.
-5. **Verify CI pipeline**: Run the full suite in GitHub Actions to confirm `RATE_LIMIT_MAX=10000` is sufficient and the artifact upload path works.
