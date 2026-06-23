@@ -25,7 +25,7 @@ export async function buildApp() {
   // Global rate limiting (read at registration time so tests can configure via env).
   // Relies on trustProxy: 1 (set above) so request.ip is the real client IP
   // from the last X-Forwarded-For entry, not the client-controlled first entry.
-  const rateLimitMax = Number(process.env['RATE_LIMIT_MAX'] ?? 100);
+  const rateLimitMax = Number(process.env['RATE_LIMIT_MAX'] ?? 1000);
   const rateLimitWindowMs = Number(process.env['RATE_LIMIT_WINDOW_MINUTES'] ?? 1) * 60 * 1000;
   await app.register(rateLimit, {
     max: rateLimitMax,

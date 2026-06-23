@@ -41,14 +41,16 @@
           <div aria-live="polite">
             @if (showInitialLoading()) {
               <p class="status-copy">Loading your inbox...</p>
-            } @else if (taskService.error()) {
-              <p class="status-copy">{{ taskService.error() }}</p>
             } @else if (taskService.inboxTasks().length === 0) {
-              <app-empty-state
-                title="Clear skies"
-                description="Your inbox is empty. Capture the next idea or task above to keep moving."
-                [icon]="faCloud"
-              />
+              @if (taskService.error()) {
+                <p class="status-copy">{{ taskService.error() }}</p>
+              } @else {
+                <app-empty-state
+                  title="Clear skies"
+                  description="Your inbox is empty. Capture the next idea or task above to keep moving."
+                  [icon]="faCloud"
+                />
+              }
             } @else {
               <app-task-stack
                 [tasks]="processedInboxTasks()"
@@ -94,18 +96,20 @@
           <div aria-live="polite">
             @if (showInitialLoading()) {
               <p class="status-copy">Loading your focused list...</p>
-            } @else if (taskService.error()) {
-              <p class="status-copy">{{ taskService.error() }}</p>
             } @else if (
               taskService.todayTasks().length === 0 &&
               taskService.todayCompletedTasks().length === 0 &&
               taskService.overdueTasks().length === 0
             ) {
-              <app-empty-state
-                title="You are clear for today"
-                description="Nothing urgent is waiting. Capture a new task or plan the next focus block."
-                [icon]="faSun"
-              />
+              @if (taskService.error()) {
+                <p class="status-copy">{{ taskService.error() }}</p>
+              } @else {
+                <app-empty-state
+                  title="You are clear for today"
+                  description="Nothing urgent is waiting. Capture a new task or plan the next focus block."
+                  [icon]="faSun"
+                />
+              }
             } @else {
               <app-task-stack
                 [tasks]="processedTodayTasks()"
@@ -141,14 +145,16 @@
           <div aria-live="polite">
             @if (showInitialLoading()) {
               <p class="status-copy">Loading your upcoming plans...</p>
-            } @else if (taskService.error()) {
-              <p class="status-copy">{{ taskService.error() }}</p>
             } @else if (taskService.upcomingTasks().length === 0) {
-              <app-empty-state
-                title="Nothing is crowding the horizon"
-                description="Upcoming work will appear here once tasks are scheduled ahead."
-                [icon]="faCalendarDay"
-              />
+              @if (taskService.error()) {
+                <p class="status-copy">{{ taskService.error() }}</p>
+              } @else {
+                <app-empty-state
+                  title="Nothing is crowding the horizon"
+                  description="Upcoming work will appear here once tasks are scheduled ahead."
+                  [icon]="faCalendarDay"
+                />
+              }
             } @else {
               <div class="group-stack">
                 @for (group of processedUpcomingGroups(); track group.label) {
