@@ -129,11 +129,11 @@ jobs:
       - name: Start API
         run: |
           RATE_LIMIT_MAX=10000 pnpm --filter @yotara/api dev &
-          pnpm --filter @yotara/frontend exec wait-on --timeout 60000 http-get://localhost:3000/health
+          pnpm --filter @yotara/frontend e2e:wait --timeout 60000 http-get://localhost:3000/health
       - name: Start Frontend
         run: |
           pnpm --filter @yotara/frontend dev &
-          pnpm --filter @yotara/frontend exec wait-on --timeout 60000 http-get://localhost:4200
+          pnpm --filter @yotara/frontend e2e:wait --timeout 60000 http-get://localhost:4200
       - name: Install Playwright browsers
         run: pnpm --filter @yotara/frontend exec playwright install chromium
       - name: Run E2E tests
