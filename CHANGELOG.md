@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.60.2](https://github.com/apauldev/Yotara/compare/v0.60.1...v0.60.2) (2026-06-23)
+
+
+### Bug Fixes
+
+* add @types/node, add e2e:wait script, fix CI wait-on invocation ([5ec1f6e](https://github.com/apauldev/Yotara/commit/5ec1f6e2c3481245fa874f68ec19f0efcebd330b))
+* use pnpm --filter exec wait-on instead of pnpm exec in CI ([6866868](https://github.com/apauldev/Yotara/commit/68668682072bf4f37fafcdad33297202af72b154))
+* use pnpm exec wait-on instead of pnpm --filter wait-on in CI ([9a2cfe7](https://github.com/apauldev/Yotara/commit/9a2cfe7e1c0824fce91c68ea18e32d59514c664e))
+
+
+### Tests
+
+* add comprehensive e2e test suite (55 tests across 13 spec files) ([c369cb3](https://github.com/apauldev/Yotara/commit/c369cb3e62193a02d8701192f5fd6b8702daa389))
+
 ## [0.60.1](https://github.com/apauldev/Yotara/compare/v0.60.0...v0.60.1) (2026-06-22)
 
 
