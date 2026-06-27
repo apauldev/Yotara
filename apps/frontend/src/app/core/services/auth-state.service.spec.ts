@@ -109,4 +109,44 @@ describe('AuthStateService', () => {
 
     expect(service.getPostAuthRedirectUrl()).toBe('/dashboard');
   });
+
+  it('delegates forgotPassword to AuthService', async () => {
+    spyOn(AuthService, 'forgotPassword').and.resolveTo(undefined);
+
+    const service = TestBed.inject(AuthStateService);
+
+    await service.forgotPassword('alex@example.com');
+
+    expect(AuthService.forgotPassword).toHaveBeenCalledWith('alex@example.com');
+    expect(service.loading()).toBeFalse();
+  });
+
+  it('sets loading false even when forgotPassword throws', async () => {
+    spyOn(AuthService, 'forgotPassword').and.rejectWith(new Error('network error'));
+
+    const service = TestBed.inject(AuthStateService);
+
+    await expectAsync(service.forgotPassword('alex@example.com')).toBeRejected();
+    expect(service.loading()).toBeFalse();
+  });
+
+  it('delegates resetPassword to AuthService', async () => {
+    spyOn(AuthService, 'resetPassword').and.resolveTo(undefined);
+
+    const service = TestBed.inject(AuthStateService);
+
+    await service.resetPassword('newPass123!', 'valid-token');
+
+    expect(AuthService.resetPassword).toHaveBeenCalledWith('newPass123!', 'valid-token');
+    expect(service.loading()).toBeFalse();
+  });
+
+  it('sets loading false even when resetPassword throws', async () => {
+    spyOn(AuthService, 'resetPassword').and.rejectWith(new Error('token expired'));
+
+    const service = TestBed.inject(AuthStateService);
+
+    await expectAsync(service.resetPassword('newPass123!', 'bad-token')).toBeRejected();
+    expect(service.loading()).toBeFalse();
+  });
 });

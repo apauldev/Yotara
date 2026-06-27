@@ -25,6 +25,18 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
+    sendResetPassword: async ({ user, url }) => {
+      const { sendPasswordResetEmail } = await import('./email.js');
+      await sendPasswordResetEmail(user, url);
+    },
+  },
+  // Wired up but dormant: requireEmailVerification is false above, so this
+  // callback will only fire when that flag is flipped to true.
+  emailVerification: {
+    sendVerificationEmail: async ({ user, url }) => {
+      const { sendVerificationEmail } = await import('./email.js');
+      await sendVerificationEmail(user, url);
+    },
   },
   advanced: {
     defaultCookieAttributes: {

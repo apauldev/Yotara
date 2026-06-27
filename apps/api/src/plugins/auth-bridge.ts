@@ -6,6 +6,8 @@ import {
   recordFailedAttempt,
   clearAttempts,
 } from '../lib/login-lockout.js';
+import { checkRateLimitOrThrow } from '../lib/email.js';
+import { recordEmailSend } from '../lib/email-rate-limit.js';
 
 function toHeaders(source: Record<string, string | string[] | undefined>) {
   const headers = new Headers();
@@ -48,6 +50,18 @@ function getRequestBody(method: string, body: unknown, headers: Headers) {
   return JSON.stringify(body);
 }
 
+/** Parse the request body into a Record, handling JSON strings. */
+function parseRequestBody(body: unknown): Record<string, unknown> | null {
+  if (typeof body === 'string') {
+    try {
+      return JSON.parse(body);
+    } catch {
+      return null;
+    }
+  }
+  return body as Record<string, unknown> | null;
+}
+
 export function applyCorsHeaders(reply: Pick<FastifyReply, 'header'>, origin: string | undefined) {
   if (!origin || !getCorsOrigins().includes(origin)) {
     return;
@@ -85,32 +99,47 @@ export default async function authBridgePlugin(app: FastifyInstance) {
         `${request.protocol ?? 'http'}://${request.headers.host ?? 'localhost'}`,
       );
       const isSignIn = request.method === 'POST' && url.pathname.startsWith('/auth/sign-in');
-      let loginEmail: string | null = null;
+      const isSignUp = request.method === 'POST' && url.pathname.startsWith('/auth/sign-up/email');
+      const isForgetPassword =
+        request.method === 'POST' && url.pathname.startsWith('/auth/request-password-reset');
 
-      if (isSignIn) {
-        let body: Record<string, unknown> | null;
-        if (typeof request.body === 'string') {
-          try {
-            body = JSON.parse(request.body);
-          } catch {
-            return reply.code(400).send({ message: 'Invalid JSON body' });
-          }
-        } else {
-          body = request.body as Record<string, unknown> | null;
+      // Parse body once for all branches
+      const parsedBody = parseRequestBody(request.body);
+      if (request.method === 'POST' && parsedBody === null) {
+        return reply.code(400).send({ message: 'Invalid JSON body' });
+      }
+
+      const loginEmail =
+        isSignIn && parsedBody && typeof parsedBody.email === 'string' ? parsedBody.email : null;
+      const actionEmail =
+        (isSignUp || isForgetPassword) && parsedBody && typeof parsedBody.email === 'string'
+          ? parsedBody.email
+          : null;
+
+      if (isSignIn && loginEmail) {
+        const remaining = getRemainingLockoutSeconds(loginEmail);
+        if (remaining > 0) {
+          reply.header('Retry-After', String(remaining));
+          return reply.code(429).send({
+            message: 'Account temporarily locked. Too many failed login attempts. Try again later.',
+            remainingAttempts: 0,
+            retryAfterSeconds: remaining,
+          });
         }
-        loginEmail = body && typeof body.email === 'string' ? body.email : null;
+      }
 
-        if (loginEmail) {
-          const remaining = getRemainingLockoutSeconds(loginEmail);
-          if (remaining > 0) {
-            reply.header('Retry-After', String(remaining));
-            return reply.code(429).send({
-              message:
-                'Account temporarily locked. Too many failed login attempts. Try again later.',
-              remainingAttempts: 0,
-              retryAfterSeconds: remaining,
-            });
-          }
+      if (actionEmail) {
+        const actionType = isSignUp ? ('signup' as const) : ('reset' as const);
+        try {
+          checkRateLimitOrThrow(actionEmail, actionType);
+        } catch (err) {
+          const error = err as { statusCode: number; retryAfterSeconds: number; message: string };
+          reply.header('Retry-After', String(error.retryAfterSeconds));
+          return reply.code(error.statusCode).send({
+            message: error.message,
+            remainingAttempts: 0,
+            retryAfterSeconds: error.retryAfterSeconds,
+          });
         }
       }
 
@@ -148,6 +177,22 @@ export default async function authBridgePlugin(app: FastifyInstance) {
             remainingAttempts: result.remainingAttempts,
           });
         }
+      }
+
+      // Record email send count for rate-limiting purposes (post-auth-response).
+      // Record email sends synchronously after a 2xx response.
+      // Note: email.ts callbacks (sendVerificationEmail / sendPasswordResetEmail) are
+      // invoked by Better Auth via runInBackgroundOrAwait, so they can't be relied
+      // on for synchronous rate-limit recording. This auth-bridge call is the
+      // authoritative record point.
+      if (
+        actionEmail &&
+        (isSignUp || isForgetPassword) &&
+        response.status >= 200 &&
+        response.status < 300
+      ) {
+        const actionType = isSignUp ? ('signup' as const) : ('reset' as const);
+        recordEmailSend(actionEmail, actionType);
       }
 
       reply.code(response.status);

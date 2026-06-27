@@ -263,4 +263,13 @@ describe('LoginComponent', () => {
     expect(component.retryAfterSeconds()).toBeNull();
     jasmine.clock().uninstall();
   });
+
+  it('navigates to forgot-password on clicking Forgot password?', () => {
+    fixture.detectChanges();
+
+    const forgotBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.link-button');
+    forgotBtn.click();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/forgot-password']);
+  });
 });

@@ -1,6 +1,6 @@
 # Architecture Guide — Yotara
 
-> **Status:** Living document. Last updated 2026-06-17.
+> **Status:** Living document. Last updated 2026-07-07.
 > **Owner:** @apauldev
 > **Supersedes:** [ROADMAP.md](../ROADMAP.md) and the planning sections of [apps/frontend/TODO.md](../apps/frontend/TODO.md) and [apps/api/TODO.md](../apps/api/TODO.md). The older docs are kept as historical snapshots and are no longer maintained. Cross-references from the older docs now point here.
 >
@@ -12,115 +12,97 @@
 
 Short, honest read of where the project stands right now. No numerical scorecard on purpose — without a rubric, scores are mood, and the prose below is more useful.
 
-- **Structural:** Backend is clean (route → service → DB). Frontend has a god service (`TaskService.ts`, ~220 lines, 15 computed signals, an expand loop). The biggest single issue: the frontend does the backend's filtering work. Fix in flight.
+- **Structural:** Backend is clean (route → service → DB). Frontend has a moderately large service (`TaskService.ts`, ~426 lines). The **biggest single issue is now fixed**: per-view API filters replace the old expand-loop + `computed()` signal pattern. Each view fetches only the tasks it needs via `GET /tasks?view=…` / `?overdue=true` / `?completedSince=…` .
 - **Component architecture:** Modern Angular (standalone, signals, lazy routes). Shared primitives are genuinely reusable. Good.
-- **Test coverage:** Frontend has 393 tests, generally well-structured. Backend has tests for `task-service`, `auth-origins`, `cors`, `openapi`, and timestamp-migration. Routes and the full request-response cycle are not well-tested.
+- **Test coverage:** Frontend has ~393 unit tests + 55 Playwright e2e tests (13 spec files covering auth, task CRUD, labels, projects, search, settings, archive, sidebar, onboarding, error states). Backend has tests for `task-service`, `auth-origins`, `cors`, `openapi`, `login-lockout`, `rate-limit`, and timestamp-migration. Routes and the full request-response cycle remain under-tested.
 - **Reusability:** Shared UI is solid. Search scoring (250+ lines of JS) belongs on the server. Test specs reach into component internals with `as any` casts — see the runtime anti-patterns below.
-- **Consistency:** Naming is inconsistent (`revision` vs `refreshProjects()`). Auth-gate boilerplate repeated 3×. `localStorage` is read in 6+ sites with magic-string keys. `console.error` is called in 26+ sites despite `LogService` existing.
+- **Consistency:** Naming is inconsistent (`revision` vs `refreshProjects()`). Auth-gate boilerplate repeated 3×. `localStorage` magic-string keys have been **consolidated into `PreferencesStore`** (a centralized signal-based store). `console.error` has been reduced to 2 remaining call sites (`LogService` itself and `main.ts`) — anti-pattern A1 is now **largely closed**.
 - **Documentation:** This document exists. ROADMAP.md, project-plan.md, and the two TODO.md files overlap and drift from each other — see the "Planning artifacts" section below.
-- **Scalability:** Expand loops + in-memory filtering break past ~1,000 tasks. Search doesn't scale. The fix is in flight (per-view API filters in Sprint 1).
-- **Developer experience:** CI has lint + test but no type-check gate, no `pnpm audit`, no coverage threshold, no prebuilt images. `.reasonix/` is not gitignored.
-- **Security & robustness:** Auth guards, error interceptor, cookie security all solid. Rate limiting added (global IP-based + per-email password lockout). Services throw `new Error('string')` which the routes can't map to HTTP status codes — opaque 500s instead of meaningful 4xx responses. No Docker image scanning, no secret leak detection in CI, no Dependabot configuration, no bundle size monitoring.
-- **Bus factor:** 1. 296/323 commits (92%) are from a single author. shivansh090 has 2 commits (docs only); github-actions bot has 25.
+- **Scalability:** The expand loop and in-memory computed-signal filtering have been **removed** — each view now calls its own server endpoint. Search still runs client-side (250+ lines of scoring JS) and remains unscaled. Server-side search is Sprint 3.
+- **Developer experience:** CI has lint, type-check, test, e2e, `pnpm audit`, Dependabot, CodeQL, and secret leak detection (gitleaks). No coverage threshold, no prebuilt images, no bundle-size monitoring. `.reasonix/` is gitignored.
+- **Security & robustness:** Auth guards, error interceptor, cookie security all solid. Rate limiting added (global IP-based + per-email password lockout). `AppError` class hierarchy (`BadRequestError`, `NotFoundError`, `UnauthorizedError`) now exists in the API — services throw typed errors instead of bare `new Error('string')`, and the Fastify `setErrorHandler` maps them to correct HTTP status codes. One remaining bare `AppError(500, …)` call in `task-service.ts:333`. Secret leak detection (gitleaks), Dependabot, and CodeQL are active in CI. No Docker image scanning or bundle size monitoring.
+- **Bus factor:** 1. 624/704 commits (89%) are from a single author. `github-actions[bot]` has 54 commits; `dependabot[bot]` has 22; shivansh090 has 4 (docs only).
 
 ---
 
-## Root Cause: The frontend does the backend's filtering work
+## ✅ Root Cause Fixed: The frontend no longer does the backend's filtering work
 
-Every time a view needed a filtered set of tasks (today's, overdue, inbox, upcoming), the pattern was:
+**Accomplished in Sprint 1 (PR #197, v0.59.6).** The root cause that drove this architecture document is now resolved.
 
-> Fetch ALL → add a `computed()` signal → filter in JavaScript
+### What changed
 
-Instead of:
+Every view previously fetched ALL active tasks and filtered with `computed()` signals. Now each view calls its own server endpoint:
 
-> Add a query param → `GET /tasks?status=today` → render the response
-
-The backend already supports `status`, `completed`, and `overdue` query params (added in the archive pagination branch). The frontend just doesn't use them per-view.
-
-| View | What the frontend does | What the backend could do |
+| View | Before | After |
 |---|---|---|
-| Today's tasks | Fetches ALL active tasks, filters by `status: 'today'` or date math | `GET /tasks?view=today` — `status = 'today' OR dueDate = today` |
-| Overdue tasks | Filters ALL active tasks for `dueDate < today` | `GET /tasks?overdue=true` — **already exists**, frontend doesn't use it |
-| Inbox tasks | Filters ALL active tasks for `status: 'inbox'` + no due date | `GET /tasks?view=inbox` — `status = 'inbox' AND dueDate IS NULL` |
-| Upcoming tasks | Filters ALL active tasks + groups by week | `GET /tasks?view=upcoming` — `status = 'upcoming' OR dueDate > today` |
-| Search | 250 lines of scoring math in JS | `GET /tasks/search?q=...` — SQL full-text search |
-| Today's completions | Filters ALL completed tasks for today's date | `GET /tasks?completedSince=<date>` |
+| Today's tasks | Fetched ALL, filtered in JS | `GET /tasks?view=today&tz=...` |
+| Overdue tasks | Fetched ALL, filtered in JS | `GET /tasks?overdue=true&tz=...` |
+| Inbox tasks | Fetched ALL, filtered in JS | `GET /tasks?view=inbox&tz=...` |
+| Upcoming tasks | Fetched ALL, grouped by week in JS | `GET /tasks?view=upcoming&tz=...` |
+| Today's completions | Filtered ALL completed tasks | `GET /tasks?completedSince=...&tz=...` |
+| Search | 250 lines of scoring math in JS | Still client-side — Sprint 3 |
 
-**The cost of the current approach:**
+### What was removed
 
-- Every page load runs the expand loop to fetch all active tasks (sequential pages of 100)
-- Every view change re-filters arrays in JavaScript
-- Every new view adds another `computed()` signal
-- The frontend holds all active tasks in memory for the whole session
-- The server has indexes, can return the exact 12 tasks for "Today" in one query, and already supports the filters
+- `fetchActiveTasks()` expand loop (sequential pages of 100 all at once)
+- `tasks` signal (full in-memory dataset)
+- `activeTasks`, `pendingTasks`, `completedTasks`, `archivedTasks` computed signals
+- `isTaskOverdue`, `isTaskToday`, `isTaskUpcoming`, `hasScheduledDate` client-side helpers
 
-**The fix is simple in concept:** stop treating the frontend as a database. Push filtering to the API. Each computed signal that filters on `status`, `completed`, or `dueDate` is a candidate for a query parameter.
+### What remains
+
+- **Search is still client-side** — 250 lines of scoring JS with no server-side endpoint. Sprint 3 candidate.
+- **`allActiveTasks` signal still exists** — fetches one page of 1000 tasks for the subtask map, label assignments, and the local search index. This is a bounded data set (~1k tasks), not the old expand-all pattern.
+- **Upcoming task bucketing** (`This Week` / `Next Week` / `Later`) is still done client-side via `upcomingBucketForTask()`. This is lightweight grouping, not filtering.
 
 ---
 
 ## Runtime and Operational Anti-patterns
 
-The structural section above caught the data-flow and service-shape issues. The runtime problems below are the ones that bite users under load or in incident review but don't show up in a structural audit. All file:line references are current as of 2026-06-01.
+The structural section above caught the data-flow and service-shape issues. The runtime problems below are the ones that bite users under load or in incident review but don't show up in a structural audit. All file:line references are current as of 2026-07-03. ❗ Items marked ✅ have been fixed since the original audit.
 
-### A1. `LogService` exists; 26 `console.error` sites bypass it
+### 🟡 A1. `LogService` exists; 26 `console.error` sites bypassed it (mostly fixed)
 
-`LogService` (`apps/frontend/src/app/core/services/log.service.ts`) sanitizes data, persists to localStorage, and is unit-tested. It was added in #106 as the project's error-handling abstraction. It is not used at the call sites that need it most.
+**Largely fixed.** The original audit found 26 `console.error` call sites bypassing `LogService`. The main migration has been completed — log-heavy services (`TaskService`, `ProjectService`, `LabelService`, `AuthStateService`) now use `LogService.error()` with context strings and error sanitization.
 
-Sites still calling `console.error` directly (representative — full set is 26):
+**Remaining call sites (2):**
+- `apps/frontend/src/app/core/services/log.service.ts:32` — the service itself bridges to `console.error` (legitimate)
+- `apps/frontend/src/main.ts:6` — the bootstrap catch handler (legitimate)
 
-- `apps/frontend/src/app/core/services/task.service.ts:84, 203, 226, 248, 266`
-- `apps/frontend/src/app/core/services/project.service.ts:53, 112, 133`
-- `apps/frontend/src/app/core/services/label.service.ts:46`
-- `apps/frontend/src/app/core/services/auth-state.service.ts:44`
-- `apps/frontend/src/app/features/personal/pages/search-page/search-page.component.ts:221`
-- `apps/frontend/src/app/features/personal/pages/archive-page.component.ts:229`
-- `apps/frontend/src/app/features/onboarding/pages/start-screen/start-screen.component.ts:65`
-- `apps/frontend/src/app/core/guards/auth.guard.ts:16`
-- `apps/frontend/src/app/core/guards/onboarding.guard.ts:29`
-- `apps/frontend/src/app/core/guards/login-redirect.guard.ts:18`
-- `apps/frontend/src/app/core/guards/workspace-mode.guard.ts:33, 57`
-- `apps/frontend/src/main.ts:5`
+**History:** The original `console.error` sites were in `task.service.ts`, `project.service.ts`, `label.service.ts`, `auth-state.service.ts`, `search-page.component.ts`, `archive-page.component.ts`, `start-screen.component.ts`, `auth.guard.ts`, `onboarding.guard.ts`, `login-redirect.guard.ts`, `workspace-mode.guard.ts`, and `main.ts`. The error-handling refactor in PR #197 (v0.59.6) migrated the service-layer sites to use `LogService` via `handleLoadError()`. The route/guard sites were migrated separately.
 
-**Fix:** Single PR that swaps each `console.error('context', err)` to `logService.error('context', err)`, then add an ESLint `no-console` rule for the `error` family. Half-state (abstraction exists, never adopted) is worse than no abstraction.
+**Remaining risk:** The ESLint `no-console` rule suggested in the original fix is not yet added to the ESLint config, so new `console.error` calls could still slip in during development. Add the rule to prevent regression.
 
-### A2. Services throw `new Error('string')` → opaque 500s
+### ✅ A2. Services threw `new Error('string')` → opaque 500s (fixed)
 
-The API TODO calls this P0 and the bug is unchanged in code:
+**Fixed in v0.60.0.** The `AppError` class hierarchy (`BadRequestError`, `NotFoundError`, `UnauthorizedError`) was added to `apps/api/src/lib/app-error.ts`, and services now throw typed errors:
 
-- `apps/api/src/services/task-service.ts:269` — `throw new Error('Failed to format date')`
-- `apps/api/src/services/task-service.ts:280` — `throw new Error('A task cannot be its own parent')`
-- `apps/api/src/services/task-service.ts:284` — `throw new Error('Parent task not found')`
-- `apps/api/src/services/task-service.ts:287, 386` — `throw new Error('Subtasks cannot have subtasks — only one level of nesting is supported')`
-- `apps/api/src/routes/labels.ts:37, 63, 93, 127` — `throw new Error('User ID not found in request')`
-- `apps/api/src/routes/tasks.ts:79` — `throw new Error('Authentication required')`
+- `BadRequestError('A task cannot be its own parent')` → 400
+- `NotFoundError('Parent task not found')` → 404
+- `UnauthorizedError()` → 401
 
-Route handlers check for `null` returns, not thrown errors. A `throw new Error('Parent task not found')` becomes a generic 500 with no message to the client. The client can only show a toast like "Failed to update task" — the user has no idea why.
+Route-level `throw new Error('Authentication required')` in `tasks.ts` is now `throw new UnauthorizedError()`. The Fastify `setErrorHandler` in `server.ts` maps `AppError` instances to the correct HTTP status.
 
-**Fix:** Define a small error class hierarchy (`TaskValidationError`, `TaskNotFoundError`, `UnauthorizedError`) and add a Fastify `setErrorHandler` that maps each to the right HTTP status. Validation errors become 400, not-found becomes 404, etc.
+**One remaining outlier:** `task-service.ts:333` — `throw new AppError(500, 'Failed to format date')` should use a more specific error type. Otherwise this anti-pattern is closed.
 
-### A3. `as any` on a query parameter at a trust boundary
+### ✅ A3. `as any` on a query parameter at a trust boundary (fixed)
 
-`apps/api/src/routes/tasks.ts:90`:
+**Fixed.** The `as any` cast on `request.query.status` was removed. The current `tasks.ts` passes `status: request.query.status` directly to the filters object without an unsafe cast. A runtime guard that rejects unknown enum values would still be a defensive improvement, but the `as any` bypass is gone.
 
-```ts
-status: request.query.status as any,
-```
+### ✅ A4. `localStorage` was sprinkled across components with magic-string keys (fixed)
 
-The `as any` defeats type safety on the very filter API the pre-launch work is exposing. A `?status=garbage` is forwarded to the DB layer unchecked. The architecture doc's own "Patterns to standardize" section calls this out — the fix is `status: request.query.status as TaskStatus` plus a runtime guard that rejects unknown values.
+**Fixed in v0.59.4–v0.59.5 (PR #196).** All magic-string localStorage keys have been consolidated into a single `PreferencesStore` (
+`apps/frontend/src/app/core/services/preferences-store.service.ts`):
 
-### A4. `localStorage` is sprinkled across components with magic-string keys
+| Key | Managed by |
+|---|---|
+| `yotara_skipCompleteConfirm` | `PreferencesStore.skipCompleteConfirm` / `setSkipCompleteConfirm()` |
+| `yotara_insightDismissed` | `PreferencesStore.insightDismissed` / `setInsightDismissed()` |
+| `yotara_loginTipDismissed` | `PreferencesStore.loginTipDismissed` / `setLoginTipDismissed()` (supports session-only + permanent) |
+| `onboardingCompleted` | `PreferencesStore.onboardingCompleted` / `setOnboardingCompleted()` |
+| `workspaceType` | `PreferencesStore.workspaceType` / `setWorkspaceType()` |
 
-`ThemeService` (`apps/frontend/src/app/core/services/theme.service.ts`) wraps localStorage properly. The other three settings use raw access, with the keys duplicated across files:
-
-| Key | Read sites | Write sites |
-|---|---|---|
-| `yotara_skipCompleteConfirm` | `settings-page.component.ts:710`, `personal-task-card.component.ts:656`, spec files | `settings-page.component.ts:937`, `personal-task-card.component.ts:687` |
-| `yotara_insightDismissed` | `task-list-page.component.ts:206`, `settings-page.component.ts:715` | `task-list-page.component.ts:282`, `settings-page.component.ts:943` |
-| `workspaceType`, `onboardingCompleted` | — | `start-screen.component.ts:61, 62` |
-
-Three different files know the same key, with no type safety on the values. None of this is SSR-safe (you've flagged SSR as a future concern in the TODO).
-
-**Fix:** Add a `PreferencesStore` (or extend `ThemeService`'s pattern into a generic `LocalStore<T>`) and migrate the three keys. Bonus: a single source of truth for preference keys is the right place to add the type contract when SSR or a PWA shell comes online.
+Preferences are exposed as Angular signals for fine-grained reactivity. The fix recommended in the original audit (a `PreferencesStore` with a single source of truth for keys) is precisely what was implemented.
 
 ### A5. `setTimeout` as a UI sync mechanism (5 sites)
 
@@ -134,11 +116,11 @@ The first two are classic "make it feel responsive" hacks. They break under load
 
 **Fix:** Replace the modal close with an Angular effect that watches a `success: boolean` signal and closes when the user dismisses or the success message has been visible for at least N seconds and the user has seen it. Replace the loading-bar minimum with `requestAnimationFrame` or a small minimum-duration in CSS. Audit the other two `setTimeout` sites for what they're actually papering over.
 
-### A6. Timezone bug: backend `date('now')` (UTC) vs frontend Luxon `startOfToday()` (local)
+### 🟡 A6. Timezone bug: backend `date('now')` (UTC) vs frontend Luxon `startOfToday()` (local) (partially addressed)
 
-`apps/frontend/TODO.md:38` documents it: *"Backend uses SQLite `date('now')` (UTC), frontend uses Luxon `startOfToday()` (local time). A task due today in the user's timezone can be overdue or not depending on UTC offset."* This is a current production bug filed under "Noted from review (not addressed here)" where it can hide.
+**Partially addressed in v0.59.7 (PR #198).** The `?tz=` query param was added to per-view API calls (`view=today`, `overdue=true`, `view=inbox`, `view=upcoming`, `completedSince`) and to the `PATCH /tasks/:id` endpoint for timezone-aware bucket restoration. The backend now uses the timezone parameter in date comparisons for filtering queries.
 
-**Fix:** Pick UTC midnight as the storage convention (date-only, no time), add a `?tz=` query param for per-view queries, and align the Luxon callsite to construct UTC-midnight dates from the user's local input. Test with a non-UTC deployment and a due-date at 23:30 local.
+**What's still open:** The underlying mismatch between SQLite `date('now')` (UTC) and Luxon `startOfToday()` (local time) in the few places that still use raw SQLite date functions without a `tz` override. The test suite covers the timezone helper (`todayInTimezone`, `startOfDayInUtc`) with 8 cases, but a comprehensive audit of all SQLite date('now') calls has not been done.
 
 ### A7. Test architecture: white-box reach-ins
 
@@ -413,32 +395,33 @@ This sprint order supersedes the P0/P1/P2/P3 priority lanes in `ROADMAP.md`. Tra
 - [x] **Capture bar** — replaced `setTimeout(0)` cursor positioning with `requestAnimationFrame`
 - [x] **Labels page** — replaced `setTimeout(50)` + `document.querySelector('.task-pane')` with `viewChild('taskPane')` + `requestAnimationFrame` for smooth scroll
 
-### Sprint 1b: Forgot password / password reset flow
+### Sprint 1b: Forgot password / password reset flow (completed)
 
-**Why:** The "Forgot password?" link on the login screen is a dead button. Users who forget their password are locked out. The DB schema already has a `verifications` table (required by Better Auth for reset tokens), and the auth-bridge proxies `/auth/*` to Better Auth — so the backend plumbing is half-ready.
+**Why:** The "Forgot password?" link on the login screen is now a working button. Users who forget their password can request a reset link (logged to console; email sending infrastructure is a future addition). The flow uses Better Auth's built-in `requestPasswordReset` + `resetPassword` endpoints via the existing auth-bridge proxy.
 
-**Backend tasks:**
-- [ ] Configure Better Auth `forgetPassword` in `apps/api/src/lib/auth.ts` — add `forgetPassword` block with `sendResetPassword` callback
-- [ ] Add email sending infrastructure (Resend or SMTP via nodemailer)
-- [ ] Add `RESEND_API_KEY` (or SMTP env vars) to `apps/api/.env.example` and wrangler config
-- [ ] Add `FORGET_PASSWORD_CALLBACK_URL` env var — the frontend URL where reset links point
+**Changes:**
+- [x] Backend: Added `sendResetPassword` callback to `emailAndPassword` config in `apps/api/src/lib/auth.ts` — logs reset URL to console (placeholder for real email sending)
+- [x] Shared: Added `forgotPassword(email)` and `resetPassword(newPassword, token)` methods to `AuthService`
+- [x] Frontend: Added matching methods to `AuthStateService`
+- [x] Frontend: Created `ForgotPasswordComponent` — email input → "Check your email" confirmation screen (hides email existence for privacy)
+- [x] Frontend: Created `ResetPasswordComponent` — reads `?token=` from URL query param, new password + confirm form, validates match, success/invalid states
+- [x] Frontend: Added `/forgot-password` and `/reset-password` routes with `loginRedirectGuard` (redirects authenticated users away)
+- [x] Frontend: Wired up the "Forgot password?" button on the login page
+- [x] Env: The redirect URL is hardcoded in the frontend (`packages/shared/src/auth.ts`) via `window.location.origin/reset-password` — no env var needed
 
-**Shared package tasks:**
-- [ ] Add `forgetPassword(email)` and `resetPassword(token, newPassword)` methods to `AuthService` in `packages/shared/src/auth.ts`
+**What's left:** Replace the `console.log` in `sendResetPassword` with real email sending (Resend / Mailgun / SMTP) — the `admin-notifications.md` Phase 3 plan covers this.
 
-**Frontend tasks:**
-- [ ] Add `forgetPassword()` and `resetPassword()` methods to `AuthStateService`
-- [ ] Wire up the "Forgot password?" button on the login page — open a modal or navigate to a `/forgot-password` route with an email input form
-- [ ] Create a "Check your email" confirmation screen after submitting the forgot-password form
-- [ ] Create a `/reset-password` route with a token-based form (new password + confirm) — reads token from query param
-- [ ] Add success/error handling for both flows (toast on success, inline error on failure)
-- [ ] Add route guards to redirect authenticated users away from reset-password pages
+**Post-review hardening (2026-07-07):**
+- [x] Removed dead `FORGET_PASSWORD_CALLBACK_URL` from `.env.example` — the redirect URL is hardcoded in the frontend shared auth client, an env var was never read
+- [x] Removed redundant startup `DELETE FROM email_sends` in `db/client.ts` — the lazy per-email cleanup in `checkEmailRateLimit()` already handles stale rows
+- [x] Added comment above dormant `emailVerification` block in `auth.ts` — callback is wired but inert until `requireEmailVerification` is flipped to `true`
+- [x] Renamed `forgetPassword` → `forgotPassword` across `packages/shared/src/auth.ts`, `AuthStateService`, `ForgotPasswordComponent`, and its spec — consistent with the component name (`ForgotPasswordComponent`) and route (`/forgot-password`)
 
-### Sprint 2: Clean up TaskService (in progress)
+### Sprint 2: Clean up TaskService (partial)
 
 **Why:** Makes the file maintainable and testable.
 
-- [ ] Extract date helpers to `shared/utils/timestamps.ts`
+- [x] Extract date helpers to `shared/utils/timestamps.ts`
 - [ ] Extract auth-gate pattern into shared helper
 - [x] Remove stale aliases (`archivedTasks`, `completedTasks`) — done in Sprint 1 cleanup
 - [x] Remove active-task expand loop (no longer needed after Sprint 1) — done in Sprint 1 cleanup
@@ -458,7 +441,7 @@ This sprint order supersedes the P0/P1/P2/P3 priority lanes in `ROADMAP.md`. Tra
 - [ ] Rename `revision` → consistent name across all services
 - [ ] Standardize `refresh()` method name
 - [ ] Write `docs/CONTRIBUTING.md` with setup guide and architecture overview
-- [ ] Add `.reasonix/` to `.gitignore`
+- [x] Add `.reasonix/` to `.gitignore`
 
 ### Sprint 5: Backend test coverage
 
@@ -598,7 +581,7 @@ Items in the "Explicit non-goals" subsection are deliberately not on the roadmap
 - [ ] Docker image scanning (Trivy) in CI — ship CVEs are invisible without it. Runs as a one-step Action. [arch]
 - [x] Secret leak detection (gitleaks) in CI — catches committed API keys before they reach GitHub. (Non-blocking via `continue-on-error`.) [arch]
 - [ ] Bundle size regression monitoring — add `ng build --stats-json` to CI with a size budget or comment-on-PR action (e.g. `paille/angular-build-size-action`). (Solo-dev: optional — review bundle manually before major releases.) [arch]
-- [ ] E2E testing (Playwright or Cypress) for critical flows — auth, task CRUD, archive lifecycle. (Solo-dev: optional — 393 frontend unit tests cover component behavior; add when accepting community PRs or after a regression in a multi-step flow.) [arch]
+- [x] E2E testing (Playwright) for critical flows — auth, task CRUD, labels, projects, search, settings, archive with restore, sidebar, onboarding, error states. 55 tests across 13 spec files, CI job runs on every PR. Added in v0.60.2. [arch]
 - [ ] PR preview / staging environment — deploy frontend to ephemeral URL on PR. (Solo-dev: optional — review locally or skip; add when contributors need to preview changes.) [arch]
 - [ ] Database query analysis — add `drizzle-kit` studio to dev workflow and review slow queries during development. [arch]
 - [ ] Snyk or alternative vulnerability scanning. [api §CI]

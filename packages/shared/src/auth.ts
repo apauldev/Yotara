@@ -83,6 +83,20 @@ export const AuthService = {
   getProfile: async () => {
     return await request<ProfileResponse>('/me');
   },
+  forgotPassword: async (email: string) => {
+    const result = await getAuthClient().requestPasswordReset({
+      email,
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    return result;
+  },
+  resetPassword: async (newPassword: string, token: string) => {
+    const result = await getAuthClient().resetPassword({
+      newPassword,
+      token,
+    });
+    return result;
+  },
   updateProfile: async (payload: {
     workspaceMode?: WorkspaceMode;
     onboardingCompleted?: boolean;

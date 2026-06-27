@@ -327,6 +327,47 @@ test('password lockout locks account after repeated failed login attempts', asyn
   }
 });
 
+test('email rate limiting blocks duplicate sign-up within 5 minutes', async () => {
+  const ctx = await createTestApp();
+  const email = `rate-${randomUUID()}@example.com`;
+
+  try {
+    // First sign-up should succeed
+    const firstSignUp = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: TEST_PASSWORD, name: 'Rate Test' },
+    });
+    assert.equal(firstSignUp.statusCode, 200);
+
+    // Second sign-up with same email should be rate-limited (1 per 5 min)
+    const secondSignUp = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: TEST_PASSWORD, name: 'Rate Test' },
+    });
+    assert.equal(secondSignUp.statusCode, 429);
+    const secondBody = secondSignUp.json();
+    assert.ok(typeof secondBody.retryAfterSeconds === 'number' && secondBody.retryAfterSeconds > 0);
+    assert.ok(secondSignUp.headers['retry-after']);
+    assert.match(secondBody.message, /signup/i);
+
+    // Different email should still be allowed
+    const otherEmail = `rate-other-${randomUUID()}@example.com`;
+    const otherSignUp = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email: otherEmail, password: TEST_PASSWORD, name: 'Other' },
+    });
+    assert.equal(otherSignUp.statusCode, 200);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
 test('locked account can log in after lockout window expires', async () => {
   process.env['PASSWORD_LOCKOUT_ATTEMPTS'] = '2';
   process.env['PASSWORD_LOCKOUT_MINUTES'] = '0.05'; // ~3s lockout window
@@ -382,6 +423,83 @@ test('locked account can log in after lockout window expires', async () => {
     assert.equal(failAfterRecovery.statusCode, 401);
     const afterRecoveryBody = failAfterRecovery.json();
     assert.equal(afterRecoveryBody.remainingAttempts, 1);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('auth bridge returns 400 for invalid JSON body', async () => {
+  const ctx = await createTestApp();
+
+  try {
+    const response = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-in/email',
+      headers: {
+        origin: TEST_ORIGIN,
+        'content-type': 'text/plain',
+      },
+      body: 'not-valid-json',
+    });
+    assert.equal(response.statusCode, 400);
+    const body = response.json();
+    assert.equal(body.message, 'Invalid JSON body');
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('sendResetPassword callback is wired correctly', async () => {
+  const ctx = await createTestApp();
+  const email = `reset-cb-${randomUUID()}@example.com`;
+
+  try {
+    // Register a user so the email exists
+    await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: TEST_PASSWORD, name: 'Reset CB User' },
+    });
+
+    // Trigger the requestPasswordReset flow — this invokes the sendResetPassword
+    // callback configured in auth.ts, which dynamically imports email.js and
+    // calls sendPasswordResetEmail. Without RESEND_API_KEY, it logs to console.
+    const { auth } = await import('../lib/auth.js');
+    const result = await auth.api.requestPasswordReset({
+      body: { email },
+    });
+
+    // Better Auth returns { status: true } on success
+    assert.equal(result.status, true);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('sendVerificationEmail callback is wired correctly', async () => {
+  const ctx = await createTestApp();
+  const email = `verify-cb-${randomUUID()}@example.com`;
+
+  try {
+    // Register a user first
+    await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: TEST_PASSWORD, name: 'Verify CB User' },
+    });
+
+    // Trigger the verification email callback directly via Better Auth's API.
+    // This invokes the sendVerificationEmail callback in auth.ts, which
+    // dynamically imports email.js and calls sendVerificationEmail.
+    // Without RESEND_API_KEY, it logs to console.
+    const { auth } = await import('../lib/auth.js');
+    const result = await auth.api.sendVerificationEmail({
+      body: { email },
+    });
+
+    assert.equal(result.status, true);
   } finally {
     await ctx.cleanup();
   }
