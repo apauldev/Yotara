@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.61.0](https://github.com/apauldev/Yotara/compare/v0.60.2...v0.61.0) (2026-06-27)
+
+
+### Features
+
+* forgot/reset password flow with email rate limiting ([d62d34c](https://github.com/apauldev/Yotara/commit/d62d34c253831d1bdc833e2acd8b9badb01ead58))
+
+
+### Documentation
+
+* update ARCHITECTURE.md with password-reset hardening and e2e fix ([82e1550](https://github.com/apauldev/Yotara/commit/82e15504b5bf0df4d95c8dc346fca97a60c64889))
+* update PLAN.md with CI fixes and root causes ([d3ba4cd](https://github.com/apauldev/Yotara/commit/d3ba4cdaed524a7f9f27ee63bea416601ebf7f81)), closes [#9](https://github.com/apauldev/Yotara/issues/9) [#10](https://github.com/apauldev/Yotara/issues/10)
+
+
+### Tests
+
+* cover auth.ts sendResetPassword and sendVerificationEmail callbacks ([a6b685b](https://github.com/apauldev/Yotara/commit/a6b685b12d3fa0f99bb98a69b4bb1aab92702a88))
+* improve patch coverage for password-reset feature ([8b1e0d5](https://github.com/apauldev/Yotara/commit/8b1e0d5a90feb79043f44cd10c112c387cda29df))
+
 ## [0.60.2](https://github.com/apauldev/Yotara/compare/v0.60.1...v0.60.2) (2026-06-23)
 
 
