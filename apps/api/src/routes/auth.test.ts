@@ -427,3 +427,24 @@ test('locked account can log in after lockout window expires', async () => {
     await ctx.cleanup();
   }
 });
+
+test('auth bridge returns 400 for invalid JSON body', async () => {
+  const ctx = await createTestApp();
+
+  try {
+    const response = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-in/email',
+      headers: {
+        origin: TEST_ORIGIN,
+        'content-type': 'text/plain',
+      },
+      body: 'not-valid-json',
+    });
+    assert.equal(response.statusCode, 400);
+    const body = response.json();
+    assert.equal(body.message, 'Invalid JSON body');
+  } finally {
+    await ctx.cleanup();
+  }
+});

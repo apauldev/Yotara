@@ -9,7 +9,7 @@ if (!RESEND_API_KEY) {
   console.log('[email] No RESEND_API_KEY set — emails will be logged to console');
 }
 
-function getResend(): Resend | null {
+export function getResend(): Resend | null {
   if (!RESEND_API_KEY) return null;
   return new Resend(RESEND_API_KEY);
 }
