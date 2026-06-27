@@ -448,3 +448,59 @@ test('auth bridge returns 400 for invalid JSON body', async () => {
     await ctx.cleanup();
   }
 });
+
+test('sendResetPassword callback is wired correctly', async () => {
+  const ctx = await createTestApp();
+  const email = `reset-cb-${randomUUID()}@example.com`;
+
+  try {
+    // Register a user so the email exists
+    await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: TEST_PASSWORD, name: 'Reset CB User' },
+    });
+
+    // Trigger the requestPasswordReset flow — this invokes the sendResetPassword
+    // callback configured in auth.ts, which dynamically imports email.js and
+    // calls sendPasswordResetEmail. Without RESEND_API_KEY, it logs to console.
+    const { auth } = await import('../lib/auth.js');
+    const result = await auth.api.requestPasswordReset({
+      body: { email },
+    });
+
+    // Better Auth returns { status: true } on success
+    assert.equal(result.status, true);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('sendVerificationEmail callback is wired correctly', async () => {
+  const ctx = await createTestApp();
+  const email = `verify-cb-${randomUUID()}@example.com`;
+
+  try {
+    // Register a user first
+    await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: TEST_PASSWORD, name: 'Verify CB User' },
+    });
+
+    // Trigger the verification email callback directly via Better Auth's API.
+    // This invokes the sendVerificationEmail callback in auth.ts, which
+    // dynamically imports email.js and calls sendVerificationEmail.
+    // Without RESEND_API_KEY, it logs to console.
+    const { auth } = await import('../lib/auth.js');
+    const result = await auth.api.sendVerificationEmail({
+      body: { email },
+    });
+
+    assert.equal(result.status, true);
+  } finally {
+    await ctx.cleanup();
+  }
+});
