@@ -101,6 +101,26 @@ export class AuthStateService {
     }
   }
 
+  async forgotPassword(email: string) {
+    this.loadingState.set(true);
+
+    try {
+      return await AuthService.forgotPassword(email);
+    } finally {
+      this.loadingState.set(false);
+    }
+  }
+
+  async resetPassword(newPassword: string, token: string) {
+    this.loadingState.set(true);
+
+    try {
+      return await AuthService.resetPassword(newPassword, token);
+    } finally {
+      this.loadingState.set(false);
+    }
+  }
+
   async signOut() {
     this.loadingState.set(true);
 

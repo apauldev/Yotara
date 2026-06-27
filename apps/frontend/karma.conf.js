@@ -16,7 +16,13 @@ module.exports = function (config) {
       suppressAll: true,
     },
     reporters: ['progress', 'kjhtml'],
-    browsers: ['Chrome'],
+    browsers: ['ChromeHeadlessNoSandbox'],
+    customLaunchers: {
+      ChromeHeadlessNoSandbox: {
+        base: 'ChromeHeadless',
+        flags: ['--no-sandbox', '--disable-gpu'],
+      },
+    },
     restartOnFileChange: true,
     coverageReporter: {
       dir: require('path').join(__dirname, './coverage/frontend'),

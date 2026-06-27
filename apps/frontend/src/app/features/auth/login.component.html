@@ -65,7 +65,9 @@
         <div class="password-label">
           <label for="password">Password</label>
           @if (isLogin()) {
-            <button type="button" class="link-button">Forgot password?</button>
+            <button type="button" class="link-button" (click)="goToForgotPassword()">
+              Forgot password?
+            </button>
           }
         </div>
         <div class="input-wrap" [class.input-wrap-invalid]="shouldShowFieldError('password')">

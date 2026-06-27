@@ -11,7 +11,7 @@
 
 ### Tests
 
-All **55 tests pass** consistently (5 login + 47 authenticated + 3 onboarding):
+All **69 tests pass** consistently (5 login + 14 forgot/reset password + 47 authenticated + 3 onboarding):
 
 #### Login page (`e2e/specs/login/auth.spec.ts`) — 5/5 pass
 - loads and shows the login form ✓
@@ -133,6 +133,8 @@ Separate Playwright project with empty `storageState` so it creates a fresh user
 | File | Tests | Area |
 |------|-------|------|
 | `login/auth.spec.ts` | 5 | Login page (unauthenticated) |
+| `login/forgot-password.spec.ts` | 6 | Forgot password form (unauthenticated) |
+| `login/reset-password.spec.ts` | 8 | Reset password page (unauthenticated) |
 | `auth.spec.ts` | 3 | Authenticated session behavior |
 | `tasks.spec.ts` | 5 | Capture bar, completion, view switching, `!priority` command, project selector |
 | `projects.spec.ts` | 4 | Project CRUD + detail navigation |

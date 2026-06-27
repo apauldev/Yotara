@@ -35,6 +35,10 @@ export class LoginComponent implements OnDestroy {
     private authState: AuthStateService,
   ) {}
 
+  goToForgotPassword() {
+    this.router.navigate(['/forgot-password']);
+  }
+
   ngOnDestroy() {
     this.clearCountdown();
   }

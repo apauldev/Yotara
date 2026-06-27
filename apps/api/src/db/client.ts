@@ -125,6 +125,16 @@ const SQLITE_BOOTSTRAP_SQL = `
     locked_until INTEGER,
     last_attempt_at INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS email_sends (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL,
+    type TEXT NOT NULL CHECK(type IN ('signup', 'reset')),
+    created_at INTEGER NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_email_sends_email ON email_sends(email);
+  CREATE INDEX IF NOT EXISTS idx_email_sends_created ON email_sends(created_at);
 `;
 
 function normalizeTextTimestamp(value: unknown, fallback: string): string {
@@ -377,6 +387,7 @@ export function createDbClient(databaseUrl = process.env['DATABASE_URL'] ?? DEFA
 
   const sqlite = new Database(databasePath);
   ensureSqliteSchema(sqlite);
+
   sqlite.pragma('journal_mode = WAL');
 
   const db = drizzle(sqlite, { schema });

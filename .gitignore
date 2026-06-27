@@ -14,6 +14,7 @@ packages/shared/src/*.d.ts
 packages/shared/src/*.js.map
 .DS_Store
 .reasonix/
+.pnpm-store/
 .commandcode/taste/taste.md
 .codegraph/
 reasonix.toml
