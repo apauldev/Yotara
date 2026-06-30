@@ -1,8 +1,12 @@
 # Fastify API TODO
 
-> **Superseded by [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md).** This file is kept for historical reference only and should be migrated to GitHub Issues. The live source of architectural decisions, runtime anti-patterns, and priority ordering is `docs/ARCHITECTURE.md`. The recommended next actions are the items in `docs/ARCHITECTURE.md` → "Recommended roadmap" → Sprint 0, then Sprint 1. Last meaningful update: 2026-06-01.
-
-> **Migration note:** Before deleting this file, every unchecked item below should be moved to a GitHub Issue with the label `from-api-todo`. The "Verify" items in the Pre-Launch section are not TODOs — they are missing integration tests, and should be filed as issues with the `test-gap` label. The "Code Quality Issues (from review)" section contains real bugs (notably the error-handling mismatch in the P0 entry and the `as Label` / `as TaskRow` type assertions in the P1 entries) that should be filed with the `bug` label.
+> **⚠️ OUT OF USE — Historical snapshot only.**
+>
+> Planning is now tracked on the **[Yotara Roadmap](https://github.com/users/apauldev/projects/1)** GitHub Project board.
+>
+> Surviving items from this file have been migrated to GitHub Issues with the `harvested-from-docs` label. Architectural decisions live in [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).
+>
+> Last meaningful update: 2026-06-01.
 
 ## Pre-Launch: Support per-view queries (mostly done, verify)
 

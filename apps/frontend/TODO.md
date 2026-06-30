@@ -1,8 +1,12 @@
 # Frontend Refactor TODO
 
-> **Superseded by [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md).** This file is kept for historical reference only and should be migrated to GitHub Issues. The live source of architectural decisions, runtime anti-patterns, and priority ordering is `docs/ARCHITECTURE.md`. The recommended next actions are the items in `docs/ARCHITECTURE.md` → "Recommended roadmap" → Sprint 0, then Sprint 1. Last meaningful update: 2026-06-01.
-
-> **Migration note:** Before deleting this file, every unchecked item below should be moved to a GitHub Issue with the label `from-frontend-todo`. The "Recently Completed (v0.51–v0.54)" section duplicates `CHANGELOG.md` and should not be migrated. The "Noted from review (not addressed here)" section contains live product bugs (notably the UTC vs local timezone mismatch) that should become issues with `bug` label.
+> **⚠️ OUT OF USE — Historical snapshot only.**
+>
+> Planning is now tracked on the **[Yotara Roadmap](https://github.com/users/apauldev/projects/1)** GitHub Project board.
+>
+> Surviving items from this file have been migrated to GitHub Issues with the `harvested-from-docs` label. Architectural decisions live in [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).
+>
+> Last meaningful update: 2026-06-01.
 
 ## Pre-Launch: Push filtering to the API (remove computed signals)
 

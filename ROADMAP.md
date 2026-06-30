@@ -1,6 +1,12 @@
 # Yotara MVP Roadmap
 
-> **Superseded by [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).** This document is kept as a historical snapshot of the planned MVP surface area. The live source of architectural decisions, runtime anti-patterns, and priority ordering is `docs/ARCHITECTURE.md`. New work goes to GitHub Issues, not this file. Last meaningful update: 2026-05-29.
+> **⚠️ OUT OF USE — Historical snapshot only.**
+>
+> Planning is now tracked on the **[Yotara Roadmap](https://github.com/users/apauldev/projects/1)** GitHub Project board.
+>
+> Architectural decisions live in [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md). New work goes to GitHub Issues, not this file.
+>
+> Last meaningful update: 2026-05-29.
 
 This document outlines the complete list of screens, pages, and modals needed for the Yotara MVP. Items are grouped by priority and logical build order—with the first 8–10 screens forming the foundation for a usable personal task manager.
 
