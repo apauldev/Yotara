@@ -4,7 +4,9 @@
 > **Owner:** @apauldev
 > **Supersedes:** [ROADMAP.md](../ROADMAP.md) and the planning sections of [apps/frontend/TODO.md](../apps/frontend/TODO.md) and [apps/api/TODO.md](../apps/api/TODO.md). The older docs are kept as historical snapshots and are no longer maintained. Cross-references from the older docs now point here.
 >
-> **Doc map:** State → Root Cause → Runtime Anti-patterns → File-by-file → Patterns → Planning Artifacts → Recommended Roadmap (Sprint 0–6) → **Backlog** → For New Contributors → Principles.
+> **Planning migration (2026-06-30):** All surviving backlog items have been migrated to GitHub Issues and are tracked on the **[Yotara Roadmap](https://github.com/users/apauldev/projects/1)** Project board. The stale doc headers now direct readers there. The backlog section below is kept as an inline reference for context but the Project board is the source of truth for status.
+>
+> **Doc map:** State → Root Cause → Runtime Anti-patterns → File-by-file → Patterns → Planning Artifacts → Recommended Roadmap (Sprint 0–6) → **Backlog** (historical) → For New Contributors → Principles.
 >
 > **Admin & Notifications plan:** See [docs/admin-notifications.md](./admin-notifications.md) for the full implementation plan covering per-IP account limits, admin API, email verification + 7-day grace period, self-hosted bypass mode, and Web Push notifications. The checkpoints below reference that document's phases.
 
@@ -465,236 +467,7 @@ This sprint order supersedes the P0/P1/P2/P3 priority lanes in `ROADMAP.md`. Tra
 
 ## Backlog
 
-Items that didn't make it into Sprint 0–6 but are tracked here as the durable ingestion point for future work. As Sprint 0–6 completes, items graduate from this backlog into the sprint plan. New work discovered during hardening goes **here**, not to `ROADMAP.md` or the deleted TODO files.
-
-Each item references its source doc with a tag:
-- `[ROADMAP]` — from `ROADMAP.md` (historical)
-- `[plan]` — from `docs/project-plan.md` (historical)
-- `[fe]` — from `apps/frontend/TODO.md` (historical)
-- `[api]` — from `apps/api/TODO.md` (historical)
-- `[arch]` — newly identified in this architecture document
-
-Items in the "Explicit non-goals" subsection are deliberately not on the roadmap and should not be re-introduced without an explicit re-evaluation.
-
-### Product features (personal mode completion)
-
-- [ ] NLP task entry — `chrono-node` for dates, `#` for projects, `@` for labels, `!` for priorities, real-time parsing feedback in the title bar. [ROADMAP P1 #13 / P4 #38] [fe §NLP]
-- [ ] Browser notifications for due reminders — permission flow + page-load or interval scheduler. [ROADMAP P1 #11]
-- [ ] Recurring subtasks — subtasks with their own recurrence rule (field currently disabled). [ROADMAP P4 #41]
-- [ ] "Repeat on due date" vs "repeat on completion" toggle — currently always materializes on completion. [ROADMAP P4 #40]
-- [ ] Skip / snooze single recurrence occurrence. [ROADMAP P4 #42]
-- [ ] Activity log for past completions of recurring tasks. [ROADMAP P4 #46]
-- [ ] Drag-and-drop reorder for subtasks inline. [ROADMAP P4 #39]
-- [ ] Recurring template separated from normal task lists. [ROADMAP P4 #45]
-- [ ] Quick-add recurring from title via smart action chip or inline command. [ROADMAP §Recurring]
-- [ ] Task duplication — copy an existing task (title, description, labels, project, priority) as a new task. The #1 unplanned feature for people who do similar tasks regularly; recurring tasks only help when you know in advance. [arch]
-- [ ] Data import — accept the same JSON/CSV format the export already generates. Migration blocker for users switching from Todoist/TickTick/Things. [arch]
-- [ ] Drag-to-reorder tasks in list views — the `order` column exists in the schema but is never written to besides default 0. Users need visual priority ordering ("do this first, then this, then this") beyond sort-by-date/priority. [arch]
-- [ ] Bulk actions — multi-select mode on task cards with action bar (Move to Today/Upcoming, Add label, Archive). Critical for inbox triage sessions where user captures 15 items and needs to process them in one pass. [arch]
-- [ ] "Add to Today" from capture bar — third button or `^today` inline command to skip the inbox→modal→status change cycle. Cuts a 3-click triage flow to 1 click. [arch]
-- [ ] Calendar view — monthly/weekly grid showing tasks by due date. Needs a `GET /tasks?from=...&to=...` endpoint. Recurring task materialization currently happens on-completion, not on-schedule, so recurring tasks won't render correctly in future months without first addressing the "repeat on due date" option above. Keep the view simple — read-only grid, click to open task, no drag-to-reschedule in v1. [arch]
-
-### UX and design polish
-
-- [ ] Make Inbox quick capture the hero interaction — primary CTA in personal shell. [ROADMAP §4] [fe §design polish]
-- [ ] Progressive disclosure in task modal — keep simple tasks lightweight. [ROADMAP §4]
-- [ ] Smarter capture defaults — suggest project, labels, priority from current context. [ROADMAP §4]
-- [ ] "What next?" guidance after capture — triage in one pass. [ROADMAP §4]
-- [ ] Reduce visual weight of secondary shell controls so capture and navigation stay dominant. [ROADMAP §4]
-- [ ] Make personal/team mode switch communicate intent more clearly. [ROADMAP §4]
-- [ ] Improve search-result confidence with better surfaced match context. [ROADMAP §4]
-- [ ] Keyboard-first shortcuts — `N` to focus capture bar, `?` for shortcut reference, `J`/`K` to navigate task list, `Enter` to open selected, `1-4` to switch views. Power users expect this; bounce risk without it. [ROADMAP §4] [arch]
-- [ ] Mobile density, touch targets, form sizing as first-class design constraints. [ROADMAP §4]
-- [ ] Clarify the mental model for done vs archived vs simple mode vs bucket. [ROADMAP §4]
-- [ ] Undo toast — 5-second toast with undo button on archive/delete/complete actions. Data model already supports soft-delete; this is purely a UI wrapper. Every modern task app has this. [arch]
-- [ ] `AsyncState` component — shared loading/error/empty/content helper. [fe §Shared UI]
-- [ ] Standardize button variants — primary/secondary/danger/ghost. [fe §Shared UI]
-- [ ] Card primitives — shared card shell for modal/list/promo. [fe §Shared UI]
-- [ ] Extend "Don't show again" persistence pattern to other confirmations. [arch]
-
-### Service and component refactors (Angular modernization)
-
-- [ ] Modernize to signal-based APIs — `input()` / `output()` over decorators, `OnPush` everywhere, drop redundant `standalone: true`. Prioritize leaf UI components (`page-header`, `task-list`, `modal`, `confirm-dialog`, `logout-confirm-modal`, `personal-task-card`). [fe §Modernize]
-- [ ] Split `TaskService` into `task-api.client.ts`, `task-selectors.ts`, `task-date.utils.ts`. [fe §Refactor]
-- [ ] Split `ProjectService` and `AuthStateService` similarly. [fe §Refactor]
-- [ ] Extract shared shell chrome between `auth-shell` and `personal-shell` — reuse mobile menu, profile menu, logout flows. [fe §Refactor] [arch §A9]
-- [ ] Migrate `personal-project-modal` to the shared modal primitive. [fe §Refactor]
-- [ ] Split remaining large inline templates/styles — `personal-project-modal`, `personal-task-card`, `personal-task-workspace`, `personal-shell`, `auth-shell`, `logout-confirm-modal` are still inline. [fe §Inline split]
-- [ ] Replace `localStorage` / `window.open` in onboarding with an injected, platform-safe helper. [fe §Refactor]
-- [ ] Cross-tab sync for `PreferencesStore` signals — listen for the `storage` event and re-read the affected key so a change in one tab (e.g. dismissing the insight panel) is reflected in another open tab. `PreferencesStore` is the natural place to own this since it's already the single source of truth for preference keys; consumers already bind to its signals, so they'd react automatically. Pre-existing limitation, not a regression of the signals refactor. [arch §A4]
-- [ ] Centralize task date parsing and formatting in shared utilities. [fe §Refactor]
-- [ ] Remove `any` escapes in auth/login error handling — use `unknown` + type guards. [fe §Refactor]
-- [ ] Structured field-level validation errors from backend — surface per-field errors next to inputs. [fe §P2]
-- [ ] Remove `fetchSubtasks` redundancy — main `tasks` signal already includes subtasks. [fe §P2]
-- [ ] Debounce `SearchService` input — currently synchronous per keystroke. [fe §P2]
-- [ ] Consolidate API auth-gate boilerplate into shared `createAuthGuardedFetch` helper (decomposed from Sprint 2). [arch §Patterns]
-- [ ] Standardize naming: `revision` → `refreshTrigger`, `refreshProjects` / `refreshLabels` → `refresh`. [arch §Patterns]
-- [ ] Remove stale alias signals — `TaskService.archivedTasks` and `completedTasks` are unused or aliased. [arch §Patterns]
-
-### Service and refactor work (API)
-
-- [ ] Database transactions for multi-step writes (task + labels + subtasks). [ROADMAP P0.5 H1] [api §Query]
-- [ ] N+1 fix in `listTasksForOwner` — batch label fetching via joined query. [ROADMAP P0.5 H2] [api §Query]
-- [ ] Centralize backend auth user extraction — `requireUserId` shared utility (largely done in v0.54.0; verify reuse). [api §Route]
-- [ ] Consolidate `loadProjectById` / `getProjectById` — single source of truth. [api §Code quality]
-- [ ] Add duplicate name check in `createLabelForOwner`. [api §Code quality]
-- [ ] Move `listTasksForProject` sort from JS to SQL. [api §Code quality]
-- [ ] Extract shared test helpers — `createAuthedApp` and `signUpAndGetCookie` duplicated. [api §Code quality]
-- [ ] Add request body size limits — `export=true` returns up to 10,000 tasks. [api §Code quality]
-- [ ] Document `simpleMode` semantics — no current explanation. [api §Code quality]
-- [ ] Add structured logging context (request id, user id, route, status). [api §Error handling]
-- [ ] Add tests for the auth bridge and CORS behavior at the plugin boundary, not only end-to-end route tests. [api §Testing]
-- [ ] Add regression tests for manual auth proxy path and cookie forwarding (done in v0.54.0). [api §Testing]
-- [ ] Add contract tests for `GET /me` and OpenAPI examples (done in v0.54.0). [api §Testing]
-- [ ] Simplify the auth-bridge plugin — hide the manual Request/Response translation behind a tested adapter. [api §Auth]
-- [ ] Review CORS handling for duplication between `applyCorsHeaders` and `@fastify/cors`. [api §Auth]
-- [ ] Add per-view integration tests for the new `GET /tasks?status=…` filters (replaces the "verify" checkboxes). [arch §A2] [api §Pre-launch]
-
-### Distribution and deployment
-
-- [ ] Pre-built Docker images on GHCR / Docker Hub on release (Sprint 6). [ROADMAP P3 #25] [plan P3 #22]
-- [ ] Docker Compose with pre-built images. [ROADMAP P3 #29] [plan P3 #23]
-- [ ] Render.com template (`render.yaml`) — one-click deploy. [ROADMAP P3 #30] [plan P3 #24]
-- [ ] Railway.app template (`railway.toml`). [ROADMAP P3 #31] [plan P3 #25]
-- [ ] Coolify deployment documentation (optional). [ROADMAP §8.3]
-- [ ] Live demo instance and README link. [ROADMAP P3 #32] [plan P3 #26]
-- [ ] Selective Docker smoke — only on PRs touching Dockerfiles / compose / source. [ROADMAP §Delivery]
-- [x] Release gating — release workflow waits for CI workflow to complete before publishing (via `workflow_run` trigger). [ROADMAP §Delivery]
-- [ ] Trim GitHub Release body to latest release notes, not full `CHANGELOG.md`. [ROADMAP §Delivery]
-- [ ] `docs/RELEASING.md` — release verification checklist. (Sprint 0.) [arch]
-- [x] Add `.reasonix/` to `.gitignore`. (Sprint 4.) [arch]
-- [x] API Docker image multi-stage build — python3/build-base stripped from production stage. Build context shrunk from 10.5 GB to 5 MB (`.angular` cache was being sent). API image reduced from 2.73 GB to ~600 MB. Frontend image stays at 78 MB (already lean via nginx multi-stage). [arch §Docker]
-- [ ] Use `pnpm deploy --prod` in build stage — copy production `node_modules` directly to prod stage, skipping prod re-install. Estimated ~50-100 MB savings + faster builds. [arch §Docker]
-- [ ] Try distroless base (`gcr.io/distroless/nodejs22-debian12`) — ~80 MB vs ~100 MB alpine. Verify `better-sqlite3` compatibility (needs glibc; distroless has it). [arch §Docker]
-- [ ] Pin better-sqlite3 binary path dynamically at build time — avoid hardcoded version in COPY path. [arch §Docker]
-- [ ] Consider `npm pack` for production deps — pack as tarball, extract in prod stage (avoids pnpm store overhead). [arch §Docker]
-- [ ] Docker Compose for local development (Sprint 6). [arch]
-- [ ] One-command dev setup script (Sprint 6). [arch]
-
-### CI and security hardening
-
-- [x] Type-check gate in CI — `pnpm typecheck` currently not gated. (Sprint 0.) [arch]
-- [x] `pnpm audit` in CI for early CVE detection. (Warn-only, non-blocking.) [ROADMAP §Delivery]
-- [ ] Coverage reporting with minimum threshold gates. (Solo-dev: optional — 430 unit tests already catch most regressions; add when accepting community PRs.) [ROADMAP P3 #26] [api §CI]
-- [x] Dependabot for automated dependency updates. (Weekly, grouped, non-blocking.) [ROADMAP P3 #27] [api §CI]
-- [x] CodeQL security scanning workflow — GitHub-native, free for public & private repos, catches injection, XSS, path traversal. Best single security investment. (Non-blocking, weekly schedule.) [ROADMAP P3 #28] [api §CI] [arch]
-- [ ] Docker image scanning (Trivy) in CI — ship CVEs are invisible without it. Runs as a one-step Action. [arch]
-- [x] Secret leak detection (gitleaks) in CI — catches committed API keys before they reach GitHub. (Non-blocking via `continue-on-error`.) [arch]
-- [ ] Bundle size regression monitoring — add `ng build --stats-json` to CI with a size budget or comment-on-PR action (e.g. `paille/angular-build-size-action`). (Solo-dev: optional — review bundle manually before major releases.) [arch]
-- [x] E2E testing (Playwright) for critical flows — auth, task CRUD, labels, projects, search, settings, archive with restore, sidebar, onboarding, error states. 55 tests across 13 spec files, CI job runs on every PR. Added in v0.60.2. [arch]
-- [ ] PR preview / staging environment — deploy frontend to ephemeral URL on PR. (Solo-dev: optional — review locally or skip; add when contributors need to preview changes.) [arch]
-- [ ] Database query analysis — add `drizzle-kit` studio to dev workflow and review slow queries during development. [arch]
-- [ ] Snyk or alternative vulnerability scanning. [api §CI]
-- [x] API rate limiting. [fe §OSS] [arch §Sprint 6]
-- [ ] API security headers (HSTS, CSP, etc.). [fe §OSS] [arch §Sprint 6]
-- [ ] Tighten CORS defaults for auth routes. [fe §OSS]
-- [ ] Better request/response logging for auth and write endpoints. [api §Auth]
-
-### Team mode (P2a + P2b) — graduate as a sprint when starting team work
-
-- [ ] Database strategy for team mode — SQLite for self-hosted, Turso or Postgres for cloud SaaS. [ROADMAP P2a #12] [plan P2 #13]
-- [ ] Permissions: owner vs member roles. [ROADMAP P2a #13]
-- [ ] Workspace data model: workspaces, memberships, owner flag. [ROADMAP P2a #14] [plan P2 #13]
-- [ ] Workspace-scoped labels and projects. [ROADMAP P2a #15]
-- [ ] Workspace switcher: create/switch workspaces. [ROADMAP P2a #16] [plan P2 #14]
-- [ ] Workspace settings: members list + remove member. [ROADMAP P2a #17] [plan P2 #20]
-- [ ] Invite link flow: token + `/join/:token`. [ROADMAP P2a #18] [plan P2 #15]
-- [ ] Task assignment: `assigneeId` and avatar in lists. [ROADMAP P2a #19] [plan P2 #16]
-- [ ] "Assigned to me" smart list. [ROADMAP P2a #20] [plan P2 #17]
-- [ ] Activity log for workspace changes. [ROADMAP P2a #21]
-- [ ] Comments on tasks (flat, simple) — no threading for MVP. [ROADMAP P2b #22] [plan P2 #18]
-- [ ] Team Board: columns per member, drag to reassign. [ROADMAP P2b #23] [plan P2 #19]
-- [ ] Real-time updates via polling (10–30s). [ROADMAP P2b #24]
-- [ ] WebSocket upgrade path if polling demand warrants. [ROADMAP P2b #24] [plan P2 #21]
-- [ ] Cross-mode search across personal and workspace tasks. [ROADMAP P4 #37]
-
-### Mobile and PWA (P4)
-
-- [ ] PWA installability — app manifest, install prompt, homescreen icon. [ROADMAP P4 #34] [plan P4]
-- [ ] PWA badge count support where available. [ROADMAP §6]
-- [ ] *(Push notifications — covered by [docs/admin-notifications.md](./admin-notifications.md) Phase 5.)*
-- [ ] Mobile regression QA pass — modal scroll, keyboard, bottom-sheet, form input across breakpoints. [fe §design polish]
-- [ ] Mobile packaging evaluation — keep mobile web strong first; consider lightweight hybrid wrapper if demand proves out. [ROADMAP §8.4]
-
-### Localization (P4)
-
-- [ ] i18n groundwork — separate UI text layer from components. [ROADMAP P4 #35] [plan P4]
-- [ ] English first, then Spanish, then Hindi, Chinese, Japanese, Korean, Russian as the next major set. [ROADMAP §4]
-- [ ] Easy LTR European additions: German, French, Portuguese, Italian. [ROADMAP §4]
-- [ ] Localized date/time/copy formatting in settings, not hardcoded UI text. [ROADMAP §4]
-- [ ] Language preference in user settings + workspace member preferences if team mode enables it. [ROADMAP §5]
-- [ ] RTL layout support deferred to a later phase. [ROADMAP §4]
-
-### Accessibility and interaction polish
-
-- [ ] Visible focus states on every interactive shell control. [ROADMAP §4]
-- [ ] Readable contrast for muted text, chips, metadata in light and dark themes. [ROADMAP §4]
-- [ ] Touch targets sized for mobile in top bar and task rows. [ROADMAP §4]
-- [ ] Standardized modal, menu, and confirmation behavior across the app. [ROADMAP §4]
-- [ ] Mobile drawer, search, and preferences review for the personal-mode finish pass. [fe §Shell polish]
-- [ ] Keyboard support, focus states, contrast, touch targets as part of the final product finish (not just compliance). [fe §design polish]
-
-### Notifications, Admin, and Account Limits
-
-See [docs/admin-notifications.md](./admin-notifications.md) for the full implementation plan. Key checkpoints:
-
-| CP | Deliverable | Phase | Effort |
-|---|---|---|---|
-| CP-1 | Per-IP account cap + admin API (list/verify/delete users) | Phase 1 | 2–3d |
-| CP-2 | Self-hosted bypass mode (username + password only) | Phase 2 | 2–3d |
-| CP-3 | Email sending via Resend/Mailgun + verification links + resend cooldown | Phase 3 | 3–4d |
-| CP-4 | 7-day grace period + session invalidation on expiry | Phase 4 | 2–3d |
-| CP-5 | Web Push notifications (offline delivery) + reminder cancellation | Phase 5 | 6–8d |
-| CP-6 | Frontend UX: verification page, grace banner, notification bell, permission flow | Phase 6 | 3–4d |
-
-**Supersedes:** These checkpoints replace the individual notification items listed in the historical backlog below and in ROADMAP §6.
-
-The checkpoints below reference the [new document's](docs/admin-notifications.md) phases.
-
-| Checkpoint | Delivery | Phase | Verification |
-|---|---|---|---|
-| CP-1 | Per-IP account cap + admin API (list/verify/delete users) | Phase 1 | curl > N signups from one IP → 429; admin endpoints work with secret |
-| CP-2 | Self-hosted bypass mode (username + password only) | Phase 2 | Register with username only, login with username, emailVerified=true |
-| CP-3 | Email sending via Resend/Mailgun + verification links + resend cooldown | Phase 3 | Verification email arrives (or logs to console), verify link works, 60s cooldown enforced |
-| CP-4 | 7-day grace period + per-request session expiry check | Phase 4 | New account logs in, expired (7d+) account gets 403 on ANY authenticated request (existing sessions caught mid-session, not just on login) |
-| CP-5 | Web Push notifications (offline delivery) + reminder cancellation on completion | Phase 5 | Service worker registered, push received while tab is closed, cancels on task completion |
-| CP-6 | Frontend UX: all flows polished | Phase 6 | Post-signup page, grace banner, account-expired page, bell icon, settings toggle |
-
-**Effort estimate:** 18–23 engineering days total, split into 6 independent phases of 5–8 days each. Each phase can ship independently.
-
-### Process and documentation
-
-- [ ] Co-maintainer invitation with specific small scope (CI, docs, or one feature area). [arch §A10]
-- [ ] Label 1–2 `good-first-issue` items for outside contributors. [arch §A10]
-- [ ] Capture every refactor PR that includes "fix" in the title in a separate post-mortem doc — recurring pattern. [arch §A8]
-- [ ] Capture the inline-templates/styles follow-up in `fe §Inline split` to a tracking issue before deleting that section. [arch]
-
-### Open questions and decisions
-
-These are decisions the older docs flagged as unresolved. Confirm or update before starting related sprint work.
-
-- **Recurring tasks: simplified (daily/weekly/monthly) or full cron?** — current: simplified. [ROADMAP §Questions]
-- **Subtasks: full nesting or one level?** — current: 1 level. [ROADMAP §Questions]
-- **Kanban: in MVP or Phase 4?** — current: Phase 4. [ROADMAP §Questions]
-- **Team mode: hide completely or show greyed-out tab in MVP?** — current: hide. [ROADMAP §Questions]
-- **Archive: manual only, or auto-archive after completion?** — current: manual, with `permanentArchive` flag to opt out of auto-delete. [ROADMAP §Questions]
-- **Search: single global search or separate personal/team scopes?** — current: single. [ROADMAP §Questions]
-- **Real-time: polling (10–30s) for team MVP, upgrade to WebSockets if demand warrants** — current: polling. [ROADMAP §Questions]
-- **Database: SQLite for self-hosted, Turso or Postgres for cloud SaaS** — current: not yet started. [ROADMAP §Questions]
-- **Workspace-scoped labels/projects: workspace-scoped in team mode, user-scoped in personal mode** — current: not yet started. [ROADMAP §Questions]
-- **Languages priority order** — see Localization section above. [ROADMAP §Questions]
-
-### Explicit non-goals
-
-These are deliberately out of scope and should not be re-introduced as sprint work without an explicit re-evaluation.
-
-- Multi-level subtask nesting beyond 1 level. [ROADMAP P4 #43]
-- WebSockets as the first real-time solution (start with polling). [ROADMAP P2b #24]
-- RTL layout support in the initial localization pass. [ROADMAP §4]
-- Full cron recurrence (simplified cycle only). [ROADMAP §Questions]
-- Kanban in the personal MVP. [ROADMAP P4 #33] [ROADMAP §Questions]
-- Comments with threading in the team MVP (flat only). [ROADMAP P2b #22]
-- A separate native mobile app (mobile web first; hybrid wrapper only if demand warrants). [ROADMAP §8.4]
+> **⚠️ Historical reference.** All items from this section have been migrated to GitHub Issues with the `harvested-from-docs` label. Tracked live on the **[Yotara Roadmap](https://github.com/users/apauldev/projects/1)** Project board. New work should be filed as GitHub Issues, not added here.
 
 ---
 
@@ -732,9 +505,10 @@ packages/
   shared/                  Domain types, DTOs, shared client code
 docs/
   ARCHITECTURE.md          ← you are here
-  ROADMAP.md               historical, superseded
-  project-plan.md          historical, superseded
+  ROADMAP.md               OUT OF USE — planning on GitHub Project board
+  project-plan.md          OUT OF USE — planning on GitHub Project board
   personal-mode-mvp.md     historical snapshot of personal-mode scope
+  admin-notifications.md   proposed draft — per-IP limits, admin API, email, notifications
   RELEASING.md             (Sprint 0) — not yet written
 ```
 
@@ -789,5 +563,6 @@ Process:
 
 - **This document is the live source of architectural truth.** The "Recently Completed" sections in the old TODOs are CHANGELOG work. The priority lanes in `ROADMAP.md` are historical. New work goes in GitHub Issues; the "Noted from review (not addressed here)" section in `apps/frontend/TODO.md` becomes an issue with a label, not a paragraph in a doc.
 - **Refactors don't change behavior.** A reviewer should be able to skip a refactor PR without reading it and not break anything. If a refactor is fixing a bug, split the commit.
-- **How to add to this doc:** When you discover a new architectural concern or a piece of work that should be tracked, add it to the **Backlog** section in the appropriate category. Do not add to `ROADMAP.md`, the (eventually deleted) TODO files, or invent a new doc. Each backlog item should have a source reference (existing doc, GitHub issue, or `[arch]` for newly identified). The backlog is intentionally a flat list — it is not a sprint plan. When the time comes to schedule, copy the item into the "Recommended roadmap" section as a new sprint and remove it from the backlog (or leave it referenced in both if it's a long-running theme).
+- **Planning lives on the [Yotara Roadmap](https://github.com/users/apauldev/projects/1) Project board.** New work, feature requests, and bugs go directly to GitHub Issues. The Project board is the source of truth for prioritization and status. This document owns architectural decisions and anti-patterns; the board owns what's being worked on and when.
+- **The "Recommended roadmap" sprint sections above are historical.** The active sprint plan lives on the Project board. Completed sprints are kept as a record of what was done and why.
 - **The "Explicit non-goals" subsection is a tripwire.** If you find yourself wanting to add a feature that's listed there, the answer is "not without an explicit re-evaluation," not "let me just add it." Re-evaluation means a discussion, a written decision, and an update to this section removing the non-goal.

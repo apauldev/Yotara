@@ -1,8 +1,12 @@
 # Yotara Project Plan
 
-> **Superseded by [docs/ARCHITECTURE.md](./ARCHITECTURE.md).** This document is kept as a historical snapshot and is no longer maintained. The live source of architectural decisions, runtime anti-patterns, and priority ordering is `docs/ARCHITECTURE.md`. New work goes to GitHub Issues. Last meaningful update: 2026-06-01.
+> **⚠️ OUT OF USE — Historical snapshot only.**
 >
-> **Known drift in this file:** the P1 table below shows Markdown preview (#10) and Data export (#12) as ⬜ Not started, but both shipped in 0.51.0 and 0.52.0 respectively. The "Immediate Next Task" at the bottom of this file is therefore stale. Read `docs/ARCHITECTURE.md` → "Recommended roadmap" → Sprint 0 for the current next actions.
+> Planning is now tracked on the **[Yotara Roadmap](https://github.com/users/apauldev/projects/1)** GitHub Project board.
+>
+> Architectural decisions live in [`docs/ARCHITECTURE.md`](./ARCHITECTURE.md). New work goes to GitHub Issues, not this file.
+>
+> Last meaningful update: 2026-06-01. **Known drift:** the P1 table shows Markdown preview (#10) and Data export (#12) as ⬜ Not started, but both shipped in 0.51.0 and 0.52.0.
 
 This plan translates the implementation-aware roadmap into a project manager's action plan. It assumes a current pace of 1-2 hours per day and treats the personal-mode MVP as functionally complete, with remaining work focused on public-demo polish, high-value personal features, team mode, and distribution.
 
