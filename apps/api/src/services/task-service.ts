@@ -15,7 +15,7 @@ import { DateTime } from 'luxon';
 import { nowIsoTimestamp } from '../lib/timestamps.js';
 import { todayInTimezone, startOfDayInUtc } from '../lib/timezone.js';
 import { AppError, BadRequestError, NotFoundError } from '../lib/app-error.js';
-import { getTaskLabels, syncTaskLabels } from './label-service.js';
+import { getLabelsForTasks, getTaskLabels, syncTaskLabels } from './label-service.js';
 import { getDefaultProjectForOwner } from './project-service.js';
 
 type TaskRow = typeof tasks.$inferSelect;
@@ -228,14 +228,9 @@ export async function listTasksForOwner(
     .offset(offset);
 
   const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
-  const data = await Promise.all(
-    rows.map(async (row) =>
-      toTask(
-        row,
-        (await getTaskLabels(row.id)).map((label) => label.id),
-      ),
-    ),
-  );
+  const taskIds = rows.map((r) => r.id);
+  const labelsMap = await getLabelsForTasks(taskIds);
+  const data = rows.map((row) => toTask(row, labelsMap.get(row.id) ?? []));
 
   return {
     data,
@@ -274,14 +269,9 @@ export async function listSubtasks(parentId: string, ownerId: string): Promise<T
     .where(and(eq(tasks.parentId, parentId), eq(tasks.userId, ownerId), isNull(tasks.deletedAt)))
     .orderBy(asc(tasks.order), asc(tasks.createdAt));
 
-  return Promise.all(
-    rows.map(async (row) =>
-      toTask(
-        row,
-        (await getTaskLabels(row.id)).map((l) => l.id),
-      ),
-    ),
-  );
+  const taskIds = rows.map((r) => r.id);
+  const labelsMap = await getLabelsForTasks(taskIds);
+  return rows.map((row) => toTask(row, labelsMap.get(row.id) ?? []));
 }
 
 function advanceDueDate(from: string, rule: RecurrenceRule): string {
