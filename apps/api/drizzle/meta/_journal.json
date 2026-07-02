@@ -36,6 +36,13 @@
       "when": 1778673964935,
       "tag": "0004_noisy_black_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1782993449825,
+      "tag": "0005_add_task_labels_index",
+      "breakpoints": true
     }
   ]
 }

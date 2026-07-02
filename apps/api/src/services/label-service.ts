@@ -185,6 +185,37 @@ export async function getTaskLabels(taskId: string) {
   return rows.map((row) => toLabel({ ...row, taskCount: 0 }));
 }
 
+/**
+ * Batch-fetch label IDs for multiple tasks in a single query.
+ * Chunks taskIds to stay within SQLite's 999-parameter limit ($SQLITE_LIMIT_VARIABLE_NUMBER).
+ * Returns a Map<taskId, labelId[]>. Tasks without labels are absent from the map.
+ */
+const IN_ARRAY_BATCH = 999;
+export async function getLabelsForTasks(taskIds: string[]): Promise<Map<string, string[]>> {
+  if (taskIds.length === 0) return new Map();
+
+  const map = new Map<string, string[]>();
+  for (let i = 0; i < taskIds.length; i += IN_ARRAY_BATCH) {
+    const batch = taskIds.slice(i, i + IN_ARRAY_BATCH);
+    const rows = await db
+      .select({ taskId: taskLabels.taskId, labelId: labels.id })
+      .from(taskLabels)
+      .innerJoin(labels, eq(taskLabels.labelId, labels.id))
+      .where(inArray(taskLabels.taskId, batch))
+      .orderBy(asc(labels.name));
+
+    for (const row of rows) {
+      const existing = map.get(row.taskId);
+      if (existing) {
+        existing.push(row.labelId);
+      } else {
+        map.set(row.taskId, [row.labelId]);
+      }
+    }
+  }
+  return map;
+}
+
 function pickLabelColor(name: string) {
   const palette = ['#82d7a9', '#81d7e8', '#f1c582', '#c7e9b3', '#a5d3e1', '#bcd0fb'];
   const index =

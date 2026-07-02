@@ -173,6 +173,29 @@ test('Label Service', async (t) => {
       assert.equal(taskLabelsAfter.length, 1);
       assert.equal(taskLabelsAfter[0].name, 'Sync 1');
     });
+    await t.test('getLabelsForTasks', async () => {
+      const label1 = await ctx.labelService.createLabelForOwner(ownerId, { name: 'Batch 1' });
+      const label2 = await ctx.labelService.createLabelForOwner(ownerId, { name: 'Batch 2' });
+      const label3 = await ctx.labelService.createLabelForOwner(ownerId, { name: 'Batch 3' });
+      assert.ok(label1 && label2 && label3);
+
+      const { createTaskForOwner } = await import('./task-service.js');
+      const task1 = await createTaskForOwner(ownerId, { title: 'Task 1' });
+      const task2 = await createTaskForOwner(ownerId, { title: 'Task 2' });
+      const task3 = await createTaskForOwner(ownerId, { title: 'Task 3' });
+      assert.ok(task1 && task2 && task3);
+
+      await ctx.labelService.syncTaskLabels(ownerId, task1.id, [label1.id, label2.id]);
+      await ctx.labelService.syncTaskLabels(ownerId, task2.id, [label3.id]);
+
+      const map = await ctx.labelService.getLabelsForTasks([task1.id, task2.id, task3.id]);
+      assert.deepEqual([...map.get(task1.id)!.sort()], [label1.id, label2.id].sort());
+      assert.deepEqual(map.get(task2.id), [label3.id]);
+      assert.equal(map.has(task3.id), false);
+
+      const emptyMap = await ctx.labelService.getLabelsForTasks([]);
+      assert.equal(emptyMap.size, 0);
+    });
   } finally {
     ctx.cleanup();
   }
