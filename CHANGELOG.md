@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.61.1](https://github.com/apauldev/Yotara/compare/v0.61.0...v0.61.1) (2026-07-02)
+
+
+### Bug Fixes
+
+* replace N+1 label queries with batch fetch in task listing ([f823041](https://github.com/apauldev/Yotara/commit/f8230418934efb36812a39d257252362f9876a38))
+
+
+### Documentation
+
+* added new issues + project instead of docs ([cf0bed2](https://github.com/apauldev/Yotara/commit/cf0bed28cfa5112d4dc79b6f0ad27d9372c32828))
+
 ## [0.61.0](https://github.com/apauldev/Yotara/compare/v0.60.2...v0.61.0) (2026-06-27)
 
 
