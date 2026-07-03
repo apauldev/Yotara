@@ -152,7 +152,7 @@
 
           @if (activeTab() === 'tasks') {
             <section class="result-group">
-              <app-section-header title="Tasks" [count]="results().tasks.length + ' matches'">
+              <app-section-header title="Tasks" [count]="allTaskResults().length + ' matches'">
                 <div section-header-actions class="view-controls">
                   <div class="control-group">
                     <button
@@ -226,7 +226,7 @@
               </div>
 
               <app-pagination
-                [totalItems]="results().tasks.length"
+                [totalItems]="allTaskResults().length"
                 [pageSize]="pageSize()"
                 [currentPage]="currentPage()"
                 (pageChange)="currentPage.set($event)"
@@ -292,10 +292,9 @@
                 [count]="totalArchiveMatches() + ' matches'"
               />
 
-              @if (archiveTruncated()) {
-                <p class="refine-hint">
-                  Searched the 1,000 most recent completed tasks — refine your search for more
-                  specific results.
+              @if (archiveResultsTruncated()) {
+                <p class="archive-truncation-message">
+                  Top 100 archive results shown. Refine your search to see more.
                 </p>
               }
 

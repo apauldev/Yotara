@@ -159,3 +159,32 @@ export interface CreateProjectDto {
 }
 
 export type UpdateProjectDto = Partial<CreateProjectDto>;
+
+// ─── Search Types ───────────────────────────────────────────────────────────
+
+export interface SearchTaskResult {
+  task: Task;
+  project: Project | null;
+  score: number;
+  matchReasons: string[];
+}
+
+export interface SearchProjectResult {
+  project: Project;
+  score: number;
+  matchReasons: string[];
+}
+
+export interface SearchLabelResult {
+  label: Label;
+  score: number;
+  matchReasons: string[];
+}
+
+export interface SearchResponse {
+  query: string;
+  normalizedQuery: string;
+  tasks: SearchTaskResult[];
+  projects: SearchProjectResult[];
+  labels: SearchLabelResult[];
+}

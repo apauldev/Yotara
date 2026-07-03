@@ -722,6 +722,71 @@ export const examples = {
     code: 'INVALID_CREDENTIALS',
     status: 401,
   },
+  searchResults: {
+    query: 'search',
+    normalizedQuery: 'search',
+    tasks: [
+      {
+        task: {
+          id: '9fd8141d-e282-43b8-96d5-a19e6b6f0c8f',
+          title: 'Polish search results',
+          description: 'Tune the global search page copy and ranking.',
+          status: 'today',
+          priority: 'high',
+          completed: false,
+          dueDate: '2026-04-24',
+          order: 0,
+          createdAt: '2026-04-20T10:00:00.000Z',
+          updatedAt: '2026-04-23T10:00:00.000Z',
+        },
+        project: {
+          id: '16f9232b-1dc3-4a8b-afec-0d6df02a4aa2',
+          name: 'Launch Yotara MVP',
+          description: 'Core release scope.',
+          color: 'sage',
+          ownerId: 'user_123',
+          taskCount: 0,
+          completedTaskCount: 0,
+          openTaskCount: 0,
+          createdAt: '2026-04-01T10:00:00.000Z',
+          updatedAt: '2026-04-03T10:00:00.000Z',
+        },
+        score: 120,
+        matchReasons: ['title'],
+      },
+    ],
+    projects: [
+      {
+        project: {
+          id: '16f9232b-1dc3-4a8b-afec-0d6df02a4aa2',
+          name: 'Launch Yotara MVP',
+          description: 'Core release scope.',
+          color: 'sage',
+          ownerId: 'user_123',
+          taskCount: 18,
+          completedTaskCount: 11,
+          openTaskCount: 7,
+          createdAt: '2026-04-01T10:00:00.000Z',
+          updatedAt: '2026-04-03T10:00:00.000Z',
+        },
+        score: 100,
+        matchReasons: ['project'],
+      },
+    ],
+    labels: [
+      {
+        label: {
+          id: 'label_456',
+          name: 'enhancement',
+          color: '#3b82f6',
+          userId: 'user_123',
+          taskCount: 3,
+        },
+        score: 100,
+        matchReasons: ['label'],
+      },
+    ],
+  },
 } as const;
 
 export const authCookieSecurity = [{ cookieAuth: [] }] as const;
@@ -784,6 +849,15 @@ function addOpenApiExamples(paths: OpenApiPathRecord) {
   if (tasksListGet) {
     ensureJsonContent(tasksListGet, '200').example = examples.paginatedTasks;
     ensureJsonContent(tasksListGet, '401').example = examples.apiError('Unauthorized');
+  }
+
+  const tasksSearchGet = paths['/tasks/search']?.get;
+  if (tasksSearchGet) {
+    ensureJsonContent(tasksSearchGet, '200').example = examples.searchResults;
+    ensureJsonContent(tasksSearchGet, '400').example = examples.apiError(
+      'Query parameter q is required',
+    );
+    ensureJsonContent(tasksSearchGet, '401').example = examples.apiError('Unauthorized');
   }
 
   const tasksPost = paths['/tasks']?.post;

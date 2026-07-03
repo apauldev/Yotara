@@ -1,5 +1,5 @@
-import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 import { provideMarkdown } from 'ngx-markdown';
 import { BehaviorSubject, of } from 'rxjs';
@@ -8,6 +8,7 @@ import { SearchService } from '../../../../core/services/search.service';
 import { TaskService } from '../../../../core/services/task.service';
 import { ProjectService } from '../../../../core/services/project.service';
 import { LabelService } from '../../../../core/services/label.service';
+import type { SearchResponse } from '@yotara/shared';
 
 describe('SearchPageComponent', () => {
   const queryParams$ = new BehaviorSubject(convertToParamMap({}));
@@ -28,38 +29,6 @@ describe('SearchPageComponent', () => {
       order: 0,
       createdAt: '2026-04-20T10:00:00.000Z',
       updatedAt: '2026-04-23T10:00:00.000Z',
-    },
-    {
-      id: 'task-2',
-      title: 'Buy groceries',
-      description: 'Milk, eggs, bread',
-      status: 'inbox' as const,
-      priority: 'medium' as const,
-      completed: false,
-      dueDate: null,
-      simpleMode: true,
-      bucket: 'home' as const,
-      projectId: null,
-      parentId: null,
-      order: 1,
-      createdAt: '2026-04-25T10:00:00.000Z',
-      updatedAt: '2026-04-25T10:00:00.000Z',
-    },
-    {
-      id: 'task-3',
-      title: 'Archive old notebook',
-      description: 'Move the completed notes into archive.',
-      status: 'archived' as const,
-      priority: 'low' as const,
-      completed: true,
-      dueDate: '2026-03-24',
-      simpleMode: false,
-      bucket: 'home' as const,
-      projectId: null,
-      parentId: null,
-      order: 2,
-      createdAt: '2026-03-20T10:00:00.000Z',
-      updatedAt: '2026-03-22T10:00:00.000Z',
     },
   ]);
 
@@ -83,11 +52,93 @@ describe('SearchPageComponent', () => {
     { id: 'label-2', name: 'enhancement', color: '#3b82f6', taskCount: 1 },
   ]);
 
+  const mockSearchResults: SearchResponse = {
+    query: '',
+    normalizedQuery: '',
+    tasks: [
+      {
+        task: {
+          id: 'task-1',
+          title: 'Polish search results',
+          description: 'Tune the global search page copy and ranking.',
+          status: 'today',
+          priority: 'high',
+          completed: false,
+          dueDate: '2026-04-24',
+          order: 0,
+          createdAt: '2026-04-20T10:00:00.000Z',
+          updatedAt: '2026-04-23T10:00:00.000Z',
+        },
+        project: {
+          id: 'project-1',
+          name: 'Launch Yotara MVP',
+          description: 'Core release scope',
+          color: 'sage',
+          ownerId: 'user-1',
+          taskCount: 1,
+          completedTaskCount: 0,
+          openTaskCount: 1,
+          createdAt: '2026-04-01T10:00:00.000Z',
+          updatedAt: '2026-04-03T10:00:00.000Z',
+        },
+        score: 120,
+        matchReasons: ['title'],
+      },
+    ],
+    projects: [
+      {
+        project: {
+          id: 'project-1',
+          name: 'Launch Yotara MVP',
+          description: 'Core release scope',
+          color: 'sage',
+          ownerId: 'user-1',
+          taskCount: 1,
+          completedTaskCount: 0,
+          openTaskCount: 1,
+          createdAt: '2026-04-01T10:00:00.000Z',
+          updatedAt: '2026-04-03T10:00:00.000Z',
+        },
+        score: 100,
+        matchReasons: ['project'],
+      },
+    ],
+    labels: [
+      {
+        label: { id: 'label-1', name: 'bug', color: '#ef4444', userId: 'user-1', taskCount: 2 },
+        score: 80,
+        matchReasons: ['label'],
+      },
+    ],
+  };
+
+  const emptySearchResults: SearchResponse = {
+    query: 'zzzznonexistent',
+    normalizedQuery: 'zzzznonexistent',
+    tasks: [],
+    projects: [],
+    labels: [],
+  };
+
   let router: Router;
   let navigateSpy: jasmine.Spy;
+  let searchServiceSpy: jasmine.SpyObj<SearchService>;
 
   beforeEach(async () => {
     queryParams$.next(convertToParamMap({}));
+
+    searchServiceSpy = jasmine.createSpyObj('SearchService', [
+      'search',
+      'searchArchive',
+      'searchAllTasks',
+    ]);
+    searchServiceSpy.search.and.callFake((query: string) =>
+      of(query && query !== 'zzzznonexistent' ? mockSearchResults : emptySearchResults),
+    );
+    searchServiceSpy.searchArchive.and.callFake(() => of({ tasks: [], total: 0 }));
+    searchServiceSpy.searchAllTasks.and.callFake((query: string) =>
+      of(query && query !== 'zzzznonexistent' ? mockSearchResults.tasks : []),
+    );
 
     await TestBed.configureTestingModule({
       imports: [SearchPageComponent],
@@ -110,19 +161,6 @@ describe('SearchPageComponent', () => {
             creating: signal(false),
             createTask: jasmine.createSpy('createTask').and.resolveTo(undefined),
             updateTask: jasmine.createSpy('updateTask').and.resolveTo(undefined),
-            getArchivedTasks: jasmine.createSpy('getArchivedTasks').and.returnValue(
-              of({
-                data: [],
-                meta: {
-                  total: 0,
-                  page: 1,
-                  pageSize: 100,
-                  totalPages: 0,
-                  hasNextPage: false,
-                  hasPreviousPage: false,
-                },
-              }),
-            ),
           },
         },
         {
@@ -138,6 +176,7 @@ describe('SearchPageComponent', () => {
             labels: mockLabels,
           },
         },
+        { provide: SearchService, useValue: searchServiceSpy },
       ],
     }).compileComponents();
 
@@ -155,6 +194,8 @@ describe('SearchPageComponent', () => {
   });
 
   it('shows an empty state when the query matches nothing', fakeAsync(() => {
+    searchServiceSpy.search.and.returnValue(of(emptySearchResults));
+
     queryParams$.next(convertToParamMap({ q: 'zzzznonexistent' }));
     const fixture = TestBed.createComponent(SearchPageComponent);
     fixture.detectChanges();
@@ -241,7 +282,6 @@ describe('SearchPageComponent', () => {
 
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Launch Yotara MVP');
-    // Projects section header should appear
     expect(text).toContain('Projects');
   }));
 
@@ -263,7 +303,6 @@ describe('SearchPageComponent', () => {
     tick();
     fixture.detectChanges();
 
-    // Default sort is 'date' — the "Date" pill should be active
     const pills = [...fixture.nativeElement.querySelectorAll('.control-pill')];
     const datePill = pills.find(
       (btn: Element) => btn.textContent?.trim() === 'Date',
@@ -288,7 +327,6 @@ describe('SearchPageComponent', () => {
     tick();
     fixture.detectChanges();
 
-    // Default page size is 10
     const pills = [...fixture.nativeElement.querySelectorAll('.control-pill')];
     const tenPill = pills.find((btn: Element) => btn.textContent?.trim() === '10') as HTMLElement;
     const twentyFivePill = pills.find(
@@ -313,8 +351,7 @@ describe('SearchPageComponent', () => {
 
     const chip = fixture.nativeElement.querySelector('.header-chip');
     expect(chip).toBeTruthy();
-    // task-1 matches 'search' in title + description, project-1 doesn't contain 'search'
-    expect(chip.textContent).toContain('1');
+    expect(chip.textContent).toContain('3');
   }));
 
   it('clears the tab param when switching to the All tab', fakeAsync(() => {
@@ -324,7 +361,6 @@ describe('SearchPageComponent', () => {
     tick();
     fixture.detectChanges();
 
-    // Switch back to All tab
     const tabButtons = [...fixture.nativeElement.querySelectorAll('.tab-chip')];
     const allTab = tabButtons.find(
       (btn: Element) => btn.textContent?.trim() === 'All',
@@ -358,7 +394,6 @@ describe('SearchPageComponent', () => {
 
       const text = fixture.nativeElement.textContent;
       expect(text).not.toContain("Don't see what you're looking for");
-      expect(text).not.toContain('Search Archive');
     });
   });
 });
