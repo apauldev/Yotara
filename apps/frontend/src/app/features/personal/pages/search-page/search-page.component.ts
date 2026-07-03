@@ -153,9 +153,9 @@ export class SearchPageComponent {
     });
 
     effect(() => {
+      this.searchQuery();
       this.sortOption();
       this.pageSize();
-      this.totalTasksCount();
       this.currentPage.set(1);
     });
 

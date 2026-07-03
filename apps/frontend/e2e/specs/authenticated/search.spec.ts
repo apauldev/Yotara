@@ -268,7 +268,8 @@ test.describe('Search', () => {
     // Navigate to page 2 and verify the 11th task appears
     await page.locator('.pagination-button').filter({ hasText: '→' }).click();
     await page.waitForLoadState('networkidle');
-    await expect(page.locator('article.task-card').filter({ hasText: `${prefix}10` })).toBeVisible({
+    await expect(page.locator('.page-number.page-active')).toHaveText('2', { timeout: 5_000 });
+    await expect(page.locator('article.task-card').filter({ hasText: `${prefix}0` })).toBeVisible({
       timeout: 5_000,
     });
     const page2Cards = await page.locator('article.task-card').count();
