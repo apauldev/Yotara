@@ -1,22 +1,18 @@
 import { randomUUID } from 'node:crypto';
-import { rmSync } from 'node:fs';
-import { join } from 'node:path';
-import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
+// Ensure the SQLite singleton uses a shared temp DB before any module imports it.
+import '../db/test-db.js';
 
 const TEST_EMAIL = 'register-login@example.com';
 const TEST_PASSWORD = 'Password123!';
 const TEST_NAME = 'Register Login User';
 const TEST_ORIGIN = 'http://localhost:4200';
 
-// Set lockout env vars before any module import caches login-lockout.ts
-process.env['PASSWORD_LOCKOUT_ATTEMPTS'] = '3';
-process.env['PASSWORD_LOCKOUT_MINUTES'] = '2';
+import { setLockoutConfig } from '../lib/login-lockout.js';
 
 async function createTestApp() {
-  const dbFile = join(tmpdir(), `yotara-auth-test-${randomUUID()}.db`);
-  process.env['DATABASE_URL'] = dbFile;
   process.env['BETTER_AUTH_SECRET'] = 'test-secret-with-enough-entropy-1234567890';
   process.env['APP_BASE_URL'] = 'http://localhost:3000';
 
@@ -27,8 +23,6 @@ async function createTestApp() {
     app,
     async cleanup() {
       await app.close();
-      rmSync(dbFile, { force: true });
-      delete process.env['DATABASE_URL'];
       delete process.env['BETTER_AUTH_SECRET'];
       delete process.env['APP_BASE_URL'];
     },
@@ -261,8 +255,7 @@ test('authenticated profile route includes CORS headers for allowed frontend ori
 });
 
 test('password lockout locks account after repeated failed login attempts', async () => {
-  process.env['PASSWORD_LOCKOUT_ATTEMPTS'] = '2';
-  process.env['PASSWORD_LOCKOUT_MINUTES'] = '1';
+  setLockoutConfig({ attempts: 2, minutes: 1 });
 
   const ctx = await createTestApp();
   const email = `lockout-${randomUUID()}@example.com`;
@@ -371,8 +364,7 @@ test('email rate limiting blocks duplicate sign-up within 5 minutes', async () =
 test('locked account can log in after lockout window expires', { timeout: 60_000 }, async () => {
   // Use a 1s lockout window — shorter than one Better Auth request on CI (~3s),
   // so the lockout always expires before the next poll iteration completes.
-  process.env['PASSWORD_LOCKOUT_ATTEMPTS'] = '2';
-  process.env['PASSWORD_LOCKOUT_MINUTES'] = '0.0167'; // ~1s lockout window
+  setLockoutConfig({ attempts: 2, minutes: 0.0167 }); // ~1s lockout window
 
   const ctx = await createTestApp();
   const email = `lockout-recover-${randomUUID()}@example.com`;
