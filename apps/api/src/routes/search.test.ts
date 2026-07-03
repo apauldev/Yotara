@@ -183,6 +183,40 @@ test('search finds tasks by title, description, project name, and label name', a
   assert.equal(matchingTasks.length, 2);
 });
 
+test('search finds tasks by status keyword', async () => {
+  const app = await getApp();
+  const cookie = await signUpAndGetCookie(`status-${randomUUID()}@example.com`);
+
+  await createTask(app, cookie, {
+    title: 'Task for today',
+    status: 'today',
+  });
+  await createTask(app, cookie, {
+    title: 'Done task',
+    status: 'done',
+  });
+
+  // Search by status keyword "today"
+  let res = await app.inject({
+    method: 'GET',
+    url: '/tasks/search?q=today',
+    headers: { cookie },
+  });
+  assert.equal(res.statusCode, 200);
+  assert.ok(res.json().tasks.some((t: any) => t.task.title === 'Task for today'));
+  assert.equal(res.json().tasks.filter((t: any) => t.task.title === 'Task for today').length, 1);
+
+  // Search by status keyword "done"
+  res = await app.inject({
+    method: 'GET',
+    url: '/tasks/search?q=done',
+    headers: { cookie },
+  });
+  assert.equal(res.statusCode, 200);
+  assert.ok(res.json().tasks.some((t: any) => t.task.title === 'Done task'));
+  assert.equal(res.json().tasks.filter((t: any) => t.task.title === 'Done task').length, 1);
+});
+
 test('search finds projects by name and description', async () => {
   const app = await getApp();
   const cookie = await signUpAndGetCookie(`search-proj-${randomUUID()}@example.com`);

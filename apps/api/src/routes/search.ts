@@ -304,6 +304,7 @@ export default async function searchRoutes(fastify: FastifyInstance) {
               OR LOWER(t.description) LIKE ${likeQuery}
               OR LOWER(p.name) LIKE ${likeQuery}
               OR LOWER(l.name) LIKE ${likeQuery}
+              OR LOWER(t.status) LIKE ${likeQuery}
             )
           GROUP BY t.id
           HAVING score > 0
