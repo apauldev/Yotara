@@ -15,7 +15,7 @@ import { PaginationComponent } from '../../../../shared/components/pagination/pa
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 import { HighlightPipe } from '../../../../shared/pipes/highlight.pipe';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { filter, firstValueFrom, map, switchMap } from 'rxjs';
+import { firstValueFrom, map, switchMap } from 'rxjs';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faPlus, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 
@@ -88,15 +88,9 @@ export class SearchPageComponent {
   protected readonly draftQuery = signal(this.queryParamMap().q);
   protected readonly activeTab = computed(() => this.queryParamMap().tab);
 
-  private readonly allTaskResultsQuery = computed(() => ({
-    query: this.searchQuery(),
-    tab: this.activeTab(),
-  }));
-
   protected readonly allTaskResults = toSignal(
-    toObservable(this.allTaskResultsQuery).pipe(
-      filter(({ tab }) => tab === 'tasks'),
-      switchMap(({ query }) => this.searchService.searchAllTasks(query)),
+    toObservable(this.searchQuery).pipe(
+      switchMap((query) => this.searchService.searchAllTasks(query)),
     ),
     { initialValue: [] },
   );
