@@ -364,7 +364,7 @@ test('email rate limiting blocks duplicate sign-up within 5 minutes', async () =
 test('locked account can log in after lockout window expires', { timeout: 60_000 }, async () => {
   // Use a 1s lockout window — shorter than one Better Auth request on CI (~3s),
   // so the lockout always expires before the next poll iteration completes.
-  setLockoutConfig({ attempts: 2, minutes: 0.0167 }); // ~1s lockout window
+  setLockoutConfig({ attempts: 2, minutes: 0.167 }); // ~10s lockout window
 
   const ctx = await createTestApp();
   const email = `lockout-recover-${randomUUID()}@example.com`;
