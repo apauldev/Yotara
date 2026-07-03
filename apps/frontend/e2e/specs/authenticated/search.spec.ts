@@ -257,12 +257,21 @@ test.describe('Search', () => {
     await page.waitForURL(/tab=tasks/, { timeout: 10_000 });
     await page.waitForLoadState('networkidle');
 
-    // All tasks should appear — wait for the first card, then verify count
+    // Page 1 with 10 tasks (pageSize 10, 11 tasks = 2 pages)
     await expect(page.locator('article.task-card').first()).toBeVisible({ timeout: 10_000 });
-    const tasksTabCards = await page.locator('article.task-card').count();
-    expect(tasksTabCards).toBeGreaterThanOrEqual(taskCount);
+    const page1Cards = await page.locator('article.task-card').count();
+    expect(page1Cards).toBe(10);
 
-    // Pagination controls should be visible (11 tasks / page size 10 = 2 pages)
+    // Pagination controls should be visible (2 pages)
     await expect(page.locator('.pagination-container')).toBeVisible({ timeout: 5_000 });
+
+    // Navigate to page 2 and verify the 11th task appears
+    await page.locator('.pagination-button').filter({ hasText: '→' }).click();
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('article.task-card').filter({ hasText: `${prefix}10` })).toBeVisible({
+      timeout: 5_000,
+    });
+    const page2Cards = await page.locator('article.task-card').count();
+    expect(page2Cards).toBe(1);
   });
 });
