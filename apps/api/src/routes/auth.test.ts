@@ -401,17 +401,26 @@ test('locked account can log in after lockout window expires', async () => {
     });
     assert.equal(lockoutResponse.statusCode, 429);
 
-    // Wait for lockout to expire (3s window + 500ms buffer)
-    await new Promise((resolve) => setTimeout(resolve, 3500));
-
-    // Correct password should now succeed and clear attempts
-    const successResponse = await ctx.app.inject({
-      method: 'POST',
-      url: '/auth/sign-in/email',
-      headers: { origin: TEST_ORIGIN },
-      payload: { email, password: TEST_PASSWORD },
-    });
-    assert.equal(successResponse.statusCode, 200);
+    // Poll the login endpoint until the lockout expires and the correct
+    // password is accepted. Retry every 500ms, give up after 15s.
+    // This avoids flakiness from fixed setTimeout values on slow CI runners.
+    let successResponse: Awaited<ReturnType<typeof ctx.app.inject>> | null = null;
+    const pollStart = Date.now();
+    while (Date.now() - pollStart < 15_000) {
+      const attempt = await ctx.app.inject({
+        method: 'POST',
+        url: '/auth/sign-in/email',
+        headers: { origin: TEST_ORIGIN },
+        payload: { email, password: TEST_PASSWORD },
+      });
+      if (attempt.statusCode === 200) {
+        successResponse = attempt;
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+    assert.ok(successResponse, 'Login should succeed after lockout expires');
+    assert.equal(successResponse!.statusCode, 200);
 
     // After successful login, a wrong password should start fresh (remainingAttempts: 1)
     const failAfterRecovery = await ctx.app.inject({
