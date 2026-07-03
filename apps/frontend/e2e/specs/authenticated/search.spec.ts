@@ -254,6 +254,7 @@ test.describe('Search', () => {
 
     // Switch to Tasks tab
     await page.locator('.tab-chip').filter({ hasText: 'Tasks' }).click();
+    await page.waitForURL(/tab=tasks/, { timeout: 10_000 });
     await page.waitForLoadState('networkidle');
 
     // All tasks should appear — wait for the first card, then verify count
