@@ -221,13 +221,13 @@ test.describe('Search', () => {
   });
 
   test('Tasks tab shows all results with pagination controls', async ({ page }) => {
-    // Create several tasks with a shared prefix
+    // Create enough tasks to span multiple pages (11 tasks, page size 10 = 2 pages)
     const prefix = `pagination-${Date.now()}-`;
     await page.goto('/tasks?view=inbox');
     await page.waitForLoadState('networkidle');
     await dismissTip(page);
 
-    const taskCount = 6;
+    const taskCount = 11;
     for (let i = 0; i < taskCount; i++) {
       const name = `${prefix}${i}`;
       await page.getByPlaceholder("What's on your mind today?").fill(name);
@@ -263,7 +263,7 @@ test.describe('Search', () => {
       ).toBeVisible({ timeout: 5_000 });
     }
 
-    // Pagination controls should be visible (page of 10 with 6 tasks = 1 page, but paginator renders)
-    await expect(page.locator('app-pagination')).toBeVisible();
+    // Pagination controls should be visible (11 tasks / page size 10 = 2 pages)
+    await expect(page.locator('.pagination-container')).toBeVisible({ timeout: 5_000 });
   });
 });
