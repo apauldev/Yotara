@@ -368,9 +368,11 @@ test('email rate limiting blocks duplicate sign-up within 5 minutes', async () =
   }
 });
 
-test('locked account can log in after lockout window expires', async () => {
+test('locked account can log in after lockout window expires', { timeout: 60_000 }, async () => {
+  // Use a 1s lockout window — shorter than one Better Auth request on CI (~3s),
+  // so the lockout always expires before the next poll iteration completes.
   process.env['PASSWORD_LOCKOUT_ATTEMPTS'] = '2';
-  process.env['PASSWORD_LOCKOUT_MINUTES'] = '0.05'; // ~3s lockout window
+  process.env['PASSWORD_LOCKOUT_MINUTES'] = '0.0167'; // ~1s lockout window
 
   const ctx = await createTestApp();
   const email = `lockout-recover-${randomUUID()}@example.com`;
@@ -402,11 +404,12 @@ test('locked account can log in after lockout window expires', async () => {
     assert.equal(lockoutResponse.statusCode, 429);
 
     // Poll the login endpoint until the lockout expires and the correct
-    // password is accepted. Retry every 500ms, give up after 15s.
-    // This avoids flakiness from fixed setTimeout values on slow CI runners.
+    // password is accepted. Retry every 1s, give up after 30s.
+    // The lockout check returns 429 instantly (no Better Auth call), so
+    // only the first successful attempt takes ~3s on CI.
     let successResponse: Awaited<ReturnType<typeof ctx.app.inject>> | null = null;
     const pollStart = Date.now();
-    while (Date.now() - pollStart < 15_000) {
+    while (Date.now() - pollStart < 30_000) {
       const attempt = await ctx.app.inject({
         method: 'POST',
         url: '/auth/sign-in/email',
@@ -417,7 +420,7 @@ test('locked account can log in after lockout window expires', async () => {
         successResponse = attempt;
         break;
       }
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
     assert.ok(successResponse, 'Login should succeed after lockout expires');
     assert.equal(successResponse!.statusCode, 200);
