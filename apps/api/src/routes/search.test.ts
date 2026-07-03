@@ -369,6 +369,26 @@ test('search returns project results with task counts', async () => {
   assert.equal(matched.project.completedTaskCount, 0);
 });
 
+test('search returns null project for tasks without a project', async () => {
+  const app = await getApp();
+  const cookie = await signUpAndGetCookie(`noproj-${randomUUID()}@example.com`);
+
+  await createTask(app, cookie, {
+    title: 'Standalone task with no project',
+    description: 'This task belongs to no project',
+  });
+
+  const res = await app.inject({
+    method: 'GET',
+    url: '/tasks/search?q=standalone',
+    headers: { cookie },
+  });
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.json().tasks.length, 1);
+  assert.equal(res.json().tasks[0].project, null);
+  assert.equal(res.json().tasks[0].task.title, 'Standalone task with no project');
+});
+
 test('search paginates and defaults to pageSize 50', async () => {
   const app = await getApp();
   const cookie = await signUpAndGetCookie(`paging-${randomUUID()}@example.com`);
