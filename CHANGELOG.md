@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.62.0](https://github.com/apauldev/Yotara/compare/v0.61.1...v0.62.0) (2026-07-03)
+
+
+### Features
+
+* server-side search with SQL relevance scoring ([fc87667](https://github.com/apauldev/Yotara/commit/fc87667d3c1a8390595ac5f9ef22800d7fec81a0))
+
+
+### Bug Fixes
+
+* **api:** include status in search WHERE pre-filter ([4d00cf6](https://github.com/apauldev/Yotara/commit/4d00cf61cc83ab8eb0744f6702824b0f7a954d2b))
+* **api:** increase lockout window to 10s in recovery test to survive CI latency ([738979d](https://github.com/apauldev/Yotara/commit/738979d3bf3146081e603b2b71db3fa779ca6db9))
+* **api:** use setLockoutConfig to prevent CI flakiness from concurrent env-var clobbering ([4d33bda](https://github.com/apauldev/Yotara/commit/4d33bdab5b5c4a468ff66c8ac7d44169210743f9))
+* **e2e:** create enough tasks to trigger pagination visibility ([126623c](https://github.com/apauldev/Yotara/commit/126623cfb305fc69f2343b1f405d655171dd19a0))
+* **e2e:** use correct page-1 expectation for pagination test ([b938438](https://github.com/apauldev/Yotara/commit/b938438b9d8f0b258dc8b8e8c8380950fc24b726))
+* **e2e:** use count-based assertion for Tasks tab pagination ([78971d8](https://github.com/apauldev/Yotara/commit/78971d89b3af802c5425229e4ba066999095eec4))
+* **e2e:** wait for URL to confirm Tasks tab navigation ([cb5c805](https://github.com/apauldev/Yotara/commit/cb5c805377dfc8235df6e417b7fc8983b052fe47))
+* **frontend:** always fetch allTaskResults when query changes ([8127bda](https://github.com/apauldev/Yotara/commit/8127bda0fb0dfa76d27e9548d475baa2319b1c1d))
+* prevent pagination reset on tab switch and fix test assertions ([fdfa076](https://github.com/apauldev/Yotara/commit/fdfa076201a849d9a71378c810b204e1ff52cbd1))
+* **test:** use 1s lockout window + 60s timeout for CI reliability ([73abe5e](https://github.com/apauldev/Yotara/commit/73abe5ed3d2d82b95076d0c8e2a5f2689bf92fea))
+
+
+### Tests
+
+* **api:** add coverage for task-without-project search path ([94bbf94](https://github.com/apauldev/Yotara/commit/94bbf942399712854b22119b3dab52cdc06babf3))
+* **api:** fix coverage test — tasks auto-assign to Inbox project ([81f5133](https://github.com/apauldev/Yotara/commit/81f5133cdc0e39e3dea50894df5a9436dc8b890c))
+* **api:** poll for lockout expiry instead of fixed timeout ([f28ffdf](https://github.com/apauldev/Yotara/commit/f28ffdfbf46a965d5c5d0396e1175abb3cd3b96d))
+
 ## [0.61.1](https://github.com/apauldev/Yotara/compare/v0.61.0...v0.61.1) (2026-07-02)
 
 
