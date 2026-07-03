@@ -11,6 +11,7 @@ import meRoutes from './routes/me.js';
 import labelRoutes from './routes/labels.js';
 import projectRoutes from './routes/projects.js';
 import rootRoutes from './routes/root.js';
+import searchRoutes from './routes/search.js';
 import taskRoutes from './routes/tasks.js';
 
 export async function buildApp() {
@@ -59,6 +60,7 @@ export async function buildApp() {
   await app.register(meRoutes);
   await app.register(labelRoutes);
   await app.register(projectRoutes);
+  await app.register(searchRoutes);
   await app.register(taskRoutes);
   await app.register(rootRoutes);
 

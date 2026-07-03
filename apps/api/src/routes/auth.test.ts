@@ -1,22 +1,18 @@
 import { randomUUID } from 'node:crypto';
-import { rmSync } from 'node:fs';
-import { join } from 'node:path';
-import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
+// Ensure the SQLite singleton uses a shared temp DB before any module imports it.
+import '../db/test-db.js';
 
 const TEST_EMAIL = 'register-login@example.com';
 const TEST_PASSWORD = 'Password123!';
 const TEST_NAME = 'Register Login User';
 const TEST_ORIGIN = 'http://localhost:4200';
 
-// Set lockout env vars before any module import caches login-lockout.ts
-process.env['PASSWORD_LOCKOUT_ATTEMPTS'] = '3';
-process.env['PASSWORD_LOCKOUT_MINUTES'] = '2';
+import { setLockoutConfig } from '../lib/login-lockout.js';
 
 async function createTestApp() {
-  const dbFile = join(tmpdir(), `yotara-auth-test-${randomUUID()}.db`);
-  process.env['DATABASE_URL'] = dbFile;
   process.env['BETTER_AUTH_SECRET'] = 'test-secret-with-enough-entropy-1234567890';
   process.env['APP_BASE_URL'] = 'http://localhost:3000';
 
@@ -27,8 +23,6 @@ async function createTestApp() {
     app,
     async cleanup() {
       await app.close();
-      rmSync(dbFile, { force: true });
-      delete process.env['DATABASE_URL'];
       delete process.env['BETTER_AUTH_SECRET'];
       delete process.env['APP_BASE_URL'];
     },
@@ -261,8 +255,7 @@ test('authenticated profile route includes CORS headers for allowed frontend ori
 });
 
 test('password lockout locks account after repeated failed login attempts', async () => {
-  process.env['PASSWORD_LOCKOUT_ATTEMPTS'] = '2';
-  process.env['PASSWORD_LOCKOUT_MINUTES'] = '1';
+  setLockoutConfig({ attempts: 2, minutes: 1 });
 
   const ctx = await createTestApp();
   const email = `lockout-${randomUUID()}@example.com`;
@@ -368,9 +361,10 @@ test('email rate limiting blocks duplicate sign-up within 5 minutes', async () =
   }
 });
 
-test('locked account can log in after lockout window expires', async () => {
-  process.env['PASSWORD_LOCKOUT_ATTEMPTS'] = '2';
-  process.env['PASSWORD_LOCKOUT_MINUTES'] = '0.05'; // ~3s lockout window
+test('locked account can log in after lockout window expires', { timeout: 60_000 }, async () => {
+  // Use a 1s lockout window — shorter than one Better Auth request on CI (~3s),
+  // so the lockout always expires before the next poll iteration completes.
+  setLockoutConfig({ attempts: 2, minutes: 0.167 }); // ~10s lockout window
 
   const ctx = await createTestApp();
   const email = `lockout-recover-${randomUUID()}@example.com`;
@@ -401,17 +395,27 @@ test('locked account can log in after lockout window expires', async () => {
     });
     assert.equal(lockoutResponse.statusCode, 429);
 
-    // Wait for lockout to expire (3s window + 500ms buffer)
-    await new Promise((resolve) => setTimeout(resolve, 3500));
-
-    // Correct password should now succeed and clear attempts
-    const successResponse = await ctx.app.inject({
-      method: 'POST',
-      url: '/auth/sign-in/email',
-      headers: { origin: TEST_ORIGIN },
-      payload: { email, password: TEST_PASSWORD },
-    });
-    assert.equal(successResponse.statusCode, 200);
+    // Poll the login endpoint until the lockout expires and the correct
+    // password is accepted. Retry every 1s, give up after 30s.
+    // The lockout check returns 429 instantly (no Better Auth call), so
+    // only the first successful attempt takes ~3s on CI.
+    let successResponse: Awaited<ReturnType<typeof ctx.app.inject>> | null = null;
+    const pollStart = Date.now();
+    while (Date.now() - pollStart < 30_000) {
+      const attempt = await ctx.app.inject({
+        method: 'POST',
+        url: '/auth/sign-in/email',
+        headers: { origin: TEST_ORIGIN },
+        payload: { email, password: TEST_PASSWORD },
+      });
+      if (attempt.statusCode === 200) {
+        successResponse = attempt;
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+    assert.ok(successResponse, 'Login should succeed after lockout expires');
+    assert.equal(successResponse!.statusCode, 200);
 
     // After successful login, a wrong password should start fresh (remainingAttempts: 1)
     const failAfterRecovery = await ctx.app.inject({

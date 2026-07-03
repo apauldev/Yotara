@@ -1,11 +1,22 @@
 import { sqlite } from '../db/client.js';
 
+interface LockoutConfig {
+  attempts?: number;
+  minutes?: number;
+}
+
+let _overrides: LockoutConfig = {};
+
+export function setLockoutConfig(overrides: LockoutConfig): void {
+  _overrides = overrides;
+}
+
 function getLockoutAttempts(): number {
-  return Number(process.env['PASSWORD_LOCKOUT_ATTEMPTS'] ?? 3);
+  return _overrides.attempts ?? Number(process.env['PASSWORD_LOCKOUT_ATTEMPTS'] ?? 3);
 }
 
 export function getLockoutMinutes(): number {
-  return Number(process.env['PASSWORD_LOCKOUT_MINUTES'] ?? 5);
+  return _overrides.minutes ?? Number(process.env['PASSWORD_LOCKOUT_MINUTES'] ?? 5);
 }
 
 export function getRemainingLockoutSeconds(email: string): number {

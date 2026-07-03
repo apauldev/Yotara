@@ -1,501 +1,242 @@
-import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { SearchService } from './search.service';
-import { ProjectService } from './project.service';
-import { TaskService } from './task.service';
-import { LabelService } from './label.service';
-import type { Task } from '@yotara/shared';
+import { firstValueFrom } from 'rxjs';
+import type { SearchResponse } from '@yotara/shared';
 
 describe('SearchService', () => {
-  const projects = signal([
-    {
-      id: 'project-1',
-      name: 'Launch Yotara MVP',
-      description: 'Core release scope',
-      color: 'sage' as const,
-      ownerId: 'user-1',
-      taskCount: 2,
-      completedTaskCount: 1,
-      openTaskCount: 1,
-      createdAt: '2026-04-01T10:00:00.000Z',
-      updatedAt: '2026-04-03T10:00:00.000Z',
-    },
-    {
-      id: 'project-2',
-      name: 'Home Renovation',
-      description: 'Kitchen and bathroom plans',
-      color: 'coral' as const,
-      ownerId: 'user-1',
-      taskCount: 3,
-      completedTaskCount: 0,
-      openTaskCount: 3,
-      createdAt: '2026-04-10T10:00:00.000Z',
-      updatedAt: '2026-04-12T10:00:00.000Z',
-    },
-  ]);
+  let service: SearchService;
+  let httpMock: HttpTestingController;
 
-  const tasks = signal([
-    {
-      id: 'task-1',
-      title: 'Polish search results',
-      description: 'Tune the global search page copy and ranking.',
-      status: 'today' as const,
-      priority: 'high' as const,
-      completed: false,
-      dueDate: '2026-04-24',
-      simpleMode: false,
-      bucket: 'deep-work' as const,
-      projectId: 'project-1',
-      order: 0,
-      createdAt: '2026-04-20T10:00:00.000Z',
-      updatedAt: '2026-04-23T10:00:00.000Z',
-    },
-    {
-      id: 'task-2',
-      title: 'Archive old notebook',
-      description: 'Move the completed notes into archive.',
-      status: 'archived' as const,
-      priority: 'low' as const,
-      completed: true,
-      dueDate: '2026-03-24',
-      simpleMode: false,
-      bucket: 'home' as const,
-      projectId: null,
-      order: 1,
-      createdAt: '2026-03-20T10:00:00.000Z',
-      updatedAt: '2026-03-22T10:00:00.000Z',
-    },
-    {
-      id: 'task-3',
-      title: 'Buy groceries',
-      description: '',
-      status: 'inbox' as const,
-      priority: 'medium' as const,
-      completed: false,
-      dueDate: null,
-      simpleMode: true,
-      bucket: 'home' as const,
-      projectId: null,
-      order: 2,
-      createdAt: '2026-04-25T10:00:00.000Z',
-      updatedAt: '2026-04-25T10:00:00.000Z',
-    },
-    {
-      id: 'task-4',
-      title: 'Review project plan',
-      description: 'Go through the renovation timeline with the contractor.',
-      status: 'today' as const,
-      priority: 'high' as const,
-      completed: false,
-      dueDate: null,
-      simpleMode: false,
-      bucket: 'deep-work' as const,
-      projectId: null,
-      order: 3,
-      createdAt: '2026-04-22T10:00:00.000Z',
-      updatedAt: '2026-04-24T10:00:00.000Z',
-    },
-  ]);
+  const mockSearchResponse: SearchResponse = {
+    query: 'polish',
+    normalizedQuery: 'polish',
+    tasks: [
+      {
+        task: {
+          id: 'task-1',
+          title: 'Polish search results',
+          description: 'Tune the global search page copy and ranking.',
+          status: 'today' as const,
+          priority: 'high' as const,
+          completed: false,
+          dueDate: '2026-04-24',
+          order: 0,
+          createdAt: '2026-04-20T10:00:00.000Z',
+          updatedAt: '2026-04-23T10:00:00.000Z',
+        },
+        project: null,
+        score: 120,
+        matchReasons: ['title'],
+      },
+    ],
+    projects: [],
+    labels: [],
+  };
 
-  const labels = signal([
-    { id: 'label-1', name: 'bug', color: '#ef4444', taskCount: 2 },
-    { id: 'label-2', name: 'enhancement', color: '#3b82f6', taskCount: 1 },
-    { id: 'label-3', name: 'ui', color: '#84cc16', taskCount: 3 },
-  ]);
+  const emptySearchResponse: SearchResponse = {
+    query: '',
+    normalizedQuery: '',
+    tasks: [],
+    projects: [],
+    labels: [],
+  };
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      providers: [
-        SearchService,
-        {
-          provide: ProjectService,
-          useValue: { projects },
-        },
-        {
-          provide: TaskService,
-          useValue: { allActiveTasks: tasks },
-        },
-        {
-          provide: LabelService,
-          useValue: { labels },
-        },
-      ],
+      imports: [HttpClientTestingModule],
+      providers: [SearchService],
     }).compileComponents();
+
+    service = TestBed.inject(SearchService);
+    httpMock = TestBed.inject(HttpTestingController);
   });
 
-  // ── Existing tests (kept as-is) ──────────────────────────────────
-
-  it('finds tasks by title, description, project name, and status keywords', () => {
-    const service = TestBed.inject(SearchService);
-
-    expect(service.search('search results').tasks.map((r) => r.task.id)).toContain('task-1');
-    expect(service.search('global search page').tasks.map((r) => r.task.id)).toContain('task-1');
-    expect(service.search('launch yotara').tasks.map((r) => r.task.id)).toContain('task-1');
-    expect(service.search('today').tasks.map((r) => r.task.id)).toContain('task-1');
-    expect(service.search('archived').tasks.map((r) => r.task.id)).toContain('task-2');
+  afterEach(() => {
+    httpMock.verify();
   });
 
-  it('returns matching projects alongside tasks for the same project name', () => {
-    const service = TestBed.inject(SearchService);
-    const results = service.search('launch yotara');
+  describe('search', () => {
+    it('makes a GET request to /tasks/search with the query', async () => {
+      const result$ = service.search('polish');
+      const resultPromise = firstValueFrom(result$);
 
-    expect(results.projects.map((r) => r.project.id)).toContain('project-1');
-    expect(results.tasks.map((r) => r.task.id)).toContain('task-1');
+      const req = httpMock.expectOne(
+        (request) =>
+          request.url.endsWith('/tasks/search') &&
+          request.params.get('q') === 'polish' &&
+          request.method === 'GET',
+      );
+      expect(req.request.withCredentials).toBeTrue();
+      req.flush(mockSearchResponse);
+
+      const result = await resultPromise;
+      expect(result.tasks.length).toBe(1);
+      expect(result.tasks[0].task.title).toBe('Polish search results');
+    });
+
+    it('returns empty results for an empty query without making an HTTP call', async () => {
+      const result = await firstValueFrom(service.search(''));
+      expect(result.tasks).toEqual([]);
+      expect(result.projects).toEqual([]);
+      expect(result.labels).toEqual([]);
+      expect(result.query).toBe('');
+      httpMock.expectNone('/tasks/search');
+    });
+
+    it('returns empty results for whitespace-only query', async () => {
+      const result = await firstValueFrom(service.search('   '));
+      expect(result.tasks).toEqual([]);
+      expect(result.projects).toEqual([]);
+      expect(result.labels).toEqual([]);
+      httpMock.expectNone('/tasks/search');
+    });
+
+    it('passes through the search response from the API', async () => {
+      const result$ = service.search('polish');
+      const resultPromise = firstValueFrom(result$);
+
+      const req = httpMock.expectOne((r) => r.url.endsWith('/tasks/search'));
+      req.flush(mockSearchResponse);
+
+      const result = await resultPromise;
+      expect(result.query).toBe('polish');
+      expect(result.normalizedQuery).toBe('polish');
+    });
   });
 
-  // ── Empty / edge-case queries ───────────────────────────────────
+  describe('searchArchive', () => {
+    it('makes a GET request with completed=true and large pageSize', async () => {
+      const result$ = service.searchArchive('finished');
+      const resultPromise = firstValueFrom(result$);
 
-  it('returns empty result arrays for an empty string query', () => {
-    const service = TestBed.inject(SearchService);
-    const results = service.search('');
+      const req = httpMock.expectOne(
+        (request) =>
+          request.url.endsWith('/tasks/search') &&
+          request.params.get('q') === 'finished' &&
+          request.params.get('completed') === 'true' &&
+          request.params.get('pageSize') === '100',
+      );
+      req.flush(mockSearchResponse);
 
-    expect(results.tasks).toEqual([]);
-    expect(results.projects).toEqual([]);
-    expect(results.labels).toEqual([]);
-    expect(results.query).toBe('');
-    expect(results.normalizedQuery).toBe('');
+      const result = await resultPromise;
+      expect(result.tasks.length).toBe(1);
+      expect(result.total).toBe(1);
+    });
+
+    it('returns empty for empty query without HTTP call', async () => {
+      const result = await firstValueFrom(service.searchArchive(''));
+      expect(result.tasks).toEqual([]);
+      expect(result.total).toBe(0);
+      httpMock.expectNone('/tasks/search');
+    });
+
+    it('returns empty tasks and total 0 when API returns no matches', async () => {
+      const emptyResponse: SearchResponse = {
+        query: 'zzzznonexistent',
+        normalizedQuery: 'zzzznonexistent',
+        tasks: [],
+        projects: [],
+        labels: [],
+      };
+
+      const result$ = service.searchArchive('zzzznonexistent');
+      const resultPromise = firstValueFrom(result$);
+
+      const req = httpMock.expectOne((r) => r.url.endsWith('/tasks/search'));
+      req.flush(emptyResponse);
+
+      const result = await resultPromise;
+      expect(result.tasks).toEqual([]);
+      expect(result.total).toBe(0);
+    });
+
+    it('sends withCredentials on the archive request', async () => {
+      const result$ = service.searchArchive('finished');
+      const resultPromise = firstValueFrom(result$);
+
+      const req = httpMock.expectOne((r) => r.url.endsWith('/tasks/search'));
+      expect(req.request.withCredentials).toBeTrue();
+      req.flush(mockSearchResponse);
+
+      await resultPromise;
+    });
   });
 
-  it('treats whitespace-only queries the same as an empty query', () => {
-    const service = TestBed.inject(SearchService);
-    const results = service.search('   ');
-
-    expect(results.tasks).toEqual([]);
-    expect(results.projects).toEqual([]);
-    expect(results.labels).toEqual([]);
-  });
-
-  it('preserves the trimmed query text in the result object', () => {
-    const service = TestBed.inject(SearchService);
-    const results = service.search('  hello  ');
-
-    expect(results.query).toBe('hello');
-  });
-
-  // ── No-match path ──────────────────────────────────────────────
-
-  it('returns empty result arrays when no entity matches the query', () => {
-    const service = TestBed.inject(SearchService);
-    const results = service.search('zzzznonexistent');
-
-    expect(results.tasks).toEqual([]);
-    expect(results.projects).toEqual([]);
-    expect(results.labels).toEqual([]);
-  });
-
-  // ── Multi-term AND logic ───────────────────────────────────────
-
-  it('requires ALL terms to match in a multi-term query', () => {
-    const service = TestBed.inject(SearchService);
-    // 'polish' matches task-1 by title; 'zzzz' matches nothing → empty
-    expect(service.search('polish zzzz').tasks).toEqual([]);
-    // both terms match task-1 → result returned
-    expect(service.search('polish search').tasks.map((r) => r.task.id)).toContain('task-1');
-  });
-
-  it('matches multi-term queries across different fields', () => {
-    const service = TestBed.inject(SearchService);
-    // 'search' is in task-1 title/description, 'launch' is in task-1's project name
-    const results = service.search('search launch');
-    expect(results.tasks.map((r) => r.task.id)).toContain('task-1');
-  });
-
-  it('returns no results when only some terms match across different entities', () => {
-    const service = TestBed.inject(SearchService);
-    // 'search' matches task-1, 'renovation' matches project-2 — no single entity has both
-    const results = service.search('search renovation');
-    expect(results.tasks).toEqual([]);
-    expect(results.projects).toEqual([]);
-  });
-
-  // ── Case insensitivity ──────────────────────────────────────────
-
-  it('is case-insensitive', () => {
-    const service = TestBed.inject(SearchService);
-    const lower = service.search('search');
-    const upper = service.search('SEARCH');
-    const mixed = service.search('SeArCh');
-
-    expect(lower.tasks.map((r) => r.task.id)).toEqual(upper.tasks.map((r) => r.task.id));
-    expect(lower.tasks.map((r) => r.task.id)).toEqual(mixed.tasks.map((r) => r.task.id));
-  });
-
-  // ── Label matching ──────────────────────────────────────────────
-
-  it('finds labels by name', () => {
-    const service = TestBed.inject(SearchService);
-    const results = service.search('bug');
-
-    expect(results.labels.map((r) => r.label.id)).toContain('label-1');
-    expect(results.labels.length).toBe(1);
-  });
-
-  it('finds labels by partial name match', () => {
-    const service = TestBed.inject(SearchService);
-    // 'enhance' is a prefix of 'enhancement'
-    const results = service.search('enhance');
-    expect(results.labels.map((r) => r.label.id)).toContain('label-2');
-  });
-
-  it('returns label match reasons', () => {
-    const service = TestBed.inject(SearchService);
-    const results = service.search('bug');
-    expect(results.labels[0].matchReasons).toContain('label');
-  });
-
-  // ── Project matching ────────────────────────────────────────────
-
-  it('finds projects by description content', () => {
-    const service = TestBed.inject(SearchService);
-    const results = service.search('kitchen');
-    expect(results.projects.map((r) => r.project.id)).toContain('project-2');
-  });
-
-  it('reports project match reasons', () => {
-    const service = TestBed.inject(SearchService);
-    // exact match on project name
-    const exactResults = service.search('Home Renovation');
-    expect(exactResults.projects[0].matchReasons).toContain('project');
-
-    // match on description
-    const descResults = service.search('bathroom');
-    expect(descResults.projects[0].matchReasons).toContain('description');
-  });
-
-  // ── Match reasons for tasks ─────────────────────────────────────
-
-  it('reports title match reason when the query matches the task title', () => {
-    const service = TestBed.inject(SearchService);
-    const results = service.search('Polish');
-    const result = results.tasks.find((r) => r.task.id === 'task-1')!;
-    expect(result.matchReasons).toContain('title');
-  });
-
-  it('reports description and project match reasons', () => {
-    const service = TestBed.inject(SearchService);
-    const results = service.search('ranking');
-    const result = results.tasks.find((r) => r.task.id === 'task-1')!;
-    expect(result.matchReasons).toContain('description');
-  });
-
-  it('reports status match reason', () => {
-    const service = TestBed.inject(SearchService);
-    const results = service.search('today');
-    const result = results.tasks.find((r) => r.task.id === 'task-1')!;
-    expect(result.matchReasons).toContain('status');
-  });
-
-  it('reports project name as a match reason for tasks', () => {
-    const service = TestBed.inject(SearchService);
-    const results = service.search('yotara');
-    const result = results.tasks.find((r) => r.task.id === 'task-1')!;
-    expect(result.matchReasons).toContain('project');
-  });
-
-  // ── Score ordering ──────────────────────────────────────────────
-
-  it('sorts results by descending score', () => {
-    const service = TestBed.inject(SearchService);
-    // 'the' appears in the descriptions of task-1, task-2, and task-4
-    const results = service.search('the');
-    expect(results.tasks.length).toBeGreaterThan(1);
-    const scores = results.tasks.map((r) => r.score);
-    for (let i = 1; i < scores.length; i++) {
-      expect(scores[i - 1]).toBeGreaterThanOrEqual(scores[i]);
-    }
-  });
-
-  it('sorts projects by descending score', () => {
-    const service = TestBed.inject(SearchService);
-    // 'a' appears in both project names and descriptions
-    const results = service.search('a');
-    expect(results.projects.length).toBeGreaterThan(1);
-    const scores = results.projects.map((r) => r.score);
-    for (let i = 1; i < scores.length; i++) {
-      expect(scores[i - 1]).toBeGreaterThanOrEqual(scores[i]);
-    }
-  });
-
-  // ── Edge cases: null / empty fields ─────────────────────────────
-
-  it('handles tasks with empty description and no project', () => {
-    const service = TestBed.inject(SearchService);
-    // task-3 has no description, no projectId, no dueDate
-    const results = service.search('groceries');
-    const result = results.tasks.find((r) => r.task.id === 'task-3');
-    expect(result).toBeTruthy();
-    expect(result!.project).toBeNull();
-  });
-
-  it('does not crash when a task has null projectId and no matching project', () => {
-    const service = TestBed.inject(SearchService);
-    // task-4 has null projectId and searches for something in its own fields
-    const results = service.search('review');
-    expect(results.tasks.map((r) => r.task.id)).toContain('task-4');
-    expect(results.tasks.find((r) => r.task.id === 'task-4')!.project).toBeNull();
-  });
-
-  // ── Result shape ────────────────────────────────────────────────
-
-  it('attaches the project reference to task results when the task belongs to a project', () => {
-    const service = TestBed.inject(SearchService);
-    const results = service.search('search');
-    const result = results.tasks.find((r) => r.task.id === 'task-1')!;
-    expect(result.project).not.toBeNull();
-    expect(result.project!.id).toBe('project-1');
-  });
-
-  it('includes normalizedQuery in the result', () => {
-    const service = TestBed.inject(SearchService);
-    const results = service.search('  Search  ');
-    expect(results.normalizedQuery).toBe('search');
-  });
-
-  // ── searchArchive ──────────────────────────────────────────────
-
-  function paginatedArchive(tasks: Task[]) {
-    return {
-      data: tasks,
-      meta: {
-        total: tasks.length,
-        page: 1,
-        pageSize: 100,
-        totalPages: tasks.length === 0 ? 0 : 1,
-        hasNextPage: false,
-        hasPreviousPage: false,
-      },
-    };
-  }
-
-  it('searchArchive calls getArchivedTasks and filters results', async () => {
-    const archiveTasks: Task[] = [
-      {
-        id: 'archive-1',
-        title: 'Finished the blog post',
-        description: 'Published the weekly update.',
-        status: 'archived' as const,
-        priority: 'medium' as const,
-        completed: true,
-        simpleMode: false,
-        bucket: 'deep-work' as const,
-        order: 0,
-        createdAt: '2026-05-01T10:00:00.000Z',
-        updatedAt: '2026-05-03T10:00:00.000Z',
-      },
-      {
-        id: 'archive-2',
-        title: 'Old grocery run',
-        description: '',
-        status: 'done' as const,
-        priority: 'low' as const,
-        completed: true,
-        simpleMode: true,
-        bucket: 'home' as const,
-        order: 1,
-        createdAt: '2026-04-01T10:00:00.000Z',
-        updatedAt: '2026-04-01T10:00:00.000Z',
-      },
-    ];
-
-    TestBed.resetTestingModule();
-    await TestBed.configureTestingModule({
-      providers: [
-        SearchService,
-        { provide: ProjectService, useValue: { projects } },
-        {
-          provide: TaskService,
-          useValue: {
-            allActiveTasks: signal([]),
-            getArchivedTasks: () => of(paginatedArchive(archiveTasks)),
+  describe('searchAllTasks', () => {
+    it('fetches all task pages until a partial page is returned', async () => {
+      const page1: SearchResponse = {
+        ...emptySearchResponse,
+        query: 'find',
+        normalizedQuery: 'find',
+        tasks: Array.from({ length: 100 }, (_, i) => ({
+          task: {
+            id: `task-${i}`,
+            title: `Task ${i}`,
+            status: 'today' as const,
+            priority: 'medium' as const,
+            completed: false,
+            order: i,
+            createdAt: '2026-04-20T10:00:00.000Z',
+            updatedAt: '2026-04-23T10:00:00.000Z',
           },
-        },
-        { provide: LabelService, useValue: { labels } },
-      ],
-    }).compileComponents();
-
-    const service = TestBed.inject(SearchService);
-    const results = await service.searchArchive('blog');
-
-    expect(results.tasks.map((r) => r.task.id)).toEqual(['archive-1']);
-    expect(results.total).toBe(1);
-  });
-
-  it('searchArchive returns empty for empty query', async () => {
-    TestBed.resetTestingModule();
-    await TestBed.configureTestingModule({
-      providers: [
-        SearchService,
-        { provide: ProjectService, useValue: { projects } },
-        {
-          provide: TaskService,
-          useValue: {
-            allActiveTasks: signal([]),
-            getArchivedTasks: () => of(paginatedArchive([])),
+          project: null,
+          score: 10,
+          matchReasons: ['title'],
+        })),
+      };
+      const page2: SearchResponse = {
+        ...emptySearchResponse,
+        query: 'find',
+        normalizedQuery: 'find',
+        tasks: [
+          {
+            task: {
+              id: 'task-100',
+              title: 'Task 100',
+              status: 'today' as const,
+              priority: 'medium' as const,
+              completed: false,
+              order: 100,
+              createdAt: '2026-04-20T10:00:00.000Z',
+              updatedAt: '2026-04-23T10:00:00.000Z',
+            },
+            project: null,
+            score: 10,
+            matchReasons: ['title'],
           },
-        },
-        { provide: LabelService, useValue: { labels } },
-      ],
-    }).compileComponents();
+        ],
+      };
 
-    const service = TestBed.inject(SearchService);
-    const results = await service.searchArchive('');
+      const result$ = service.searchAllTasks('find');
+      const resultPromise = firstValueFrom(result$);
 
-    expect(results.tasks).toEqual([]);
-    expect(results.total).toBe(0);
-  });
+      const req1 = httpMock.expectOne((r) => r.params.get('page') === '1');
+      req1.flush(page1);
 
-  it('searchArchive returns results from the first 100 archive tasks', async () => {
-    const archiveTasks = Array.from(
-      { length: 5 },
-      (_, i) =>
-        ({
-          id: `done-${i + 1}`,
-          title: `Completed task ${i + 1}`,
-          description: '',
-          status: 'done' as const,
-          priority: 'medium' as const,
-          completed: true,
-          simpleMode: true,
-          bucket: 'home' as const,
-          order: i,
-          createdAt: '2026-05-01T10:00:00.000Z',
-          updatedAt: '2026-05-01T10:00:00.000Z',
-        }) as Task,
-    );
+      const req2 = httpMock.expectOne((r) => r.params.get('page') === '2');
+      req2.flush(page2);
 
-    TestBed.resetTestingModule();
-    await TestBed.configureTestingModule({
-      providers: [
-        SearchService,
-        { provide: ProjectService, useValue: { projects } },
-        {
-          provide: TaskService,
-          useValue: {
-            allActiveTasks: signal([]),
-            getArchivedTasks: () => of(paginatedArchive(archiveTasks)),
-          },
-        },
-        { provide: LabelService, useValue: { labels } },
-      ],
-    }).compileComponents();
+      const result = await resultPromise;
+      expect(result.length).toBe(101);
+      expect(result[100].task.id).toBe('task-100');
+    });
 
-    const service = TestBed.inject(SearchService);
-    const results = await service.searchArchive('Completed');
-    expect(results.tasks.length).toBe(5);
-    expect(results.total).toBe(5);
-  });
+    it('returns empty for empty query without HTTP call', async () => {
+      const result = await firstValueFrom(service.searchAllTasks(''));
+      expect(result).toEqual([]);
+      httpMock.expectNone('/tasks/search');
+    });
 
-  it('includes scores on every result', () => {
-    const service = TestBed.inject(SearchService);
-    const results = service.search('search');
-    for (const r of results.tasks) {
-      expect(typeof r.score).toBe('number');
-      expect(r.score).toBeGreaterThan(0);
-    }
-    for (const r of results.projects) {
-      expect(typeof r.score).toBe('number');
-      expect(r.score).toBeGreaterThan(0);
-    }
+    it('sends withCredentials on all-tasks requests', async () => {
+      const result$ = service.searchAllTasks('find');
+      const resultPromise = firstValueFrom(result$);
+
+      const req = httpMock.expectOne((r) => r.url.endsWith('/tasks/search'));
+      expect(req.request.withCredentials).toBeTrue();
+      req.flush(emptySearchResponse);
+
+      await resultPromise;
+    });
   });
 });

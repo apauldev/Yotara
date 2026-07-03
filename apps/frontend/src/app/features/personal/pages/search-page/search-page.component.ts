@@ -2,15 +2,11 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal, viewChild, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Project, Task } from '@yotara/shared';
+import { Project, Task, SearchResponse, SearchTaskResult } from '@yotara/shared';
 import { ProjectService } from '../../../../core/services/project.service';
 import { TaskService } from '../../../../core/services/task.service';
 import { LogService } from '../../../../core/services/log.service';
-import {
-  SearchService,
-  SearchTab,
-  SearchTaskResult,
-} from '../../../../core/services/search.service';
+import { SearchService, SearchTab } from '../../../../core/services/search.service';
 import { PersonalTaskCardComponent } from '../../components/personal-task-card.component';
 import { PersonalTaskWorkspaceComponent } from '../../components/personal-task-workspace.component';
 import { SectionHeaderComponent } from '../../../../shared/components/section-header/section-header.component';
@@ -18,8 +14,8 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
 import { PaginationComponent } from '../../../../shared/components/pagination/pagination.component';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 import { HighlightPipe } from '../../../../shared/pipes/highlight.pipe';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { map } from 'rxjs';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { firstValueFrom, map, switchMap } from 'rxjs';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faPlus, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 
@@ -91,10 +87,21 @@ export class SearchPageComponent {
   protected readonly searchQuery = computed(() => this.queryParamMap().q);
   protected readonly draftQuery = signal(this.queryParamMap().q);
   protected readonly activeTab = computed(() => this.queryParamMap().tab);
-  protected readonly results = computed(() => this.searchService.search(this.searchQuery()));
+
+  protected readonly allTaskResults = toSignal(
+    toObservable(this.searchQuery).pipe(
+      switchMap((query) => this.searchService.searchAllTasks(query)),
+    ),
+    { initialValue: [] },
+  );
+
+  protected readonly results = toSignal(
+    toObservable(this.searchQuery).pipe(switchMap((query) => this.searchService.search(query))),
+    { initialValue: emptySearchResponse },
+  );
 
   protected readonly taskResults = computed(() => {
-    const raw = this.results().tasks;
+    const raw = this.activeTab() === 'all' ? this.results().tasks : this.allTaskResults();
     if (this.activeTab() === 'all') return raw.slice(0, 5);
     return this.sortAndPaginate(raw, (r) => r.task);
   });
@@ -112,12 +119,12 @@ export class SearchPageComponent {
   protected readonly searchingArchive = signal(false);
   protected readonly archiveResults = signal<SearchTaskResult[]>([]);
   protected readonly totalArchiveMatches = signal(0);
-  protected readonly archiveTruncated = signal(false);
+  protected readonly archiveResultsTruncated = computed(() => this.totalArchiveMatches() === 100);
   protected readonly archiveSearched = signal(false);
 
   protected readonly tabItems: { value: SearchTab; label: string; count?: () => number }[] = [
     { value: 'all', label: 'All' },
-    { value: 'tasks', label: 'Tasks', count: () => this.results().tasks.length },
+    { value: 'tasks', label: 'Tasks', count: () => this.allTaskResults().length },
     { value: 'projects', label: 'Projects', count: () => this.results().projects.length },
     { value: 'labels', label: 'Labels', count: () => this.results().labels.length },
   ];
@@ -132,7 +139,9 @@ export class SearchPageComponent {
     return `Results for \u201C${query}\u201D.`;
   });
 
-  protected readonly totalTasksCount = computed(() => this.results().tasks.length);
+  protected readonly totalTasksCount = computed(() =>
+    this.activeTab() === 'tasks' ? this.allTaskResults().length : this.results().tasks.length,
+  );
 
   protected readonly totalPages = computed(() =>
     Math.max(1, Math.ceil(this.totalTasksCount() / this.pageSize())),
@@ -144,10 +153,20 @@ export class SearchPageComponent {
     });
 
     effect(() => {
+      this.searchQuery();
       this.sortOption();
       this.pageSize();
-      this.totalTasksCount();
       this.currentPage.set(1);
+    });
+
+    // Clear archive results whenever the search query changes.
+    // This covers all query-change paths (form submit, URL edit, browser nav),
+    // not just the explicit clear in navigateToSearchQuery.
+    effect(() => {
+      this.searchQuery();
+      this.archiveResults.set([]);
+      this.totalArchiveMatches.set(0);
+      this.archiveSearched.set(false);
     });
   }
 
@@ -190,7 +209,6 @@ export class SearchPageComponent {
   private async navigateToSearchQuery(query: string, tab: SearchTab) {
     this.archiveResults.set([]);
     this.totalArchiveMatches.set(0);
-    this.archiveTruncated.set(false);
     this.archiveSearched.set(false);
     await this.router.navigate(['/search'], {
       queryParams: {
@@ -214,10 +232,9 @@ export class SearchPageComponent {
 
     this.searchingArchive.set(true);
     try {
-      const results = await this.searchService.searchArchive(this.searchQuery());
+      const results = await firstValueFrom(this.searchService.searchArchive(this.searchQuery()));
       this.archiveResults.set(results.tasks);
       this.totalArchiveMatches.set(results.total);
-      this.archiveTruncated.set(results.truncated ?? false);
       this.archiveSearched.set(true);
     } catch (error) {
       this.logService.error('Failed to search archive', error, 'SearchPage');
@@ -235,3 +252,11 @@ function normalizeTab(value: string | null): SearchTab {
   }
   return 'all';
 }
+
+const emptySearchResponse: SearchResponse = {
+  query: '',
+  normalizedQuery: '',
+  tasks: [],
+  projects: [],
+  labels: [],
+};

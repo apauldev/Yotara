@@ -11,7 +11,7 @@
 
 ### Tests
 
-All **69 tests pass** consistently (5 login + 14 forgot/reset password + 47 authenticated + 3 onboarding):
+All **73 tests pass** consistently (5 login + 14 forgot/reset password + 51 authenticated + 3 onboarding):
 
 #### Login page (`e2e/specs/login/auth.spec.ts`) — 5/5 pass
 - loads and shows the login form ✓
@@ -20,7 +20,7 @@ All **69 tests pass** consistently (5 login + 14 forgot/reset password + 47 auth
 - shows error for invalid email format ✓
 - shows error for wrong credentials ✓
 
-#### Authenticated (`e2e/specs/authenticated/`) — 47 tests across 12 files
+#### Authenticated (`e2e/specs/authenticated/`) — 51 tests across 12 files
 **Auth spec** (`auth.spec.ts`, serial mode, 3 tests):
 - redirects to tasks when already logged in ✓
 - can access protected routes ✓
@@ -53,12 +53,16 @@ All **69 tests pass** consistently (5 login + 14 forgot/reset password + 47 auth
 - edits a label ✓
 - deletes a label ✓
 
-**Search spec** (`search.spec.ts`, serial mode, 5 tests):
+**Search spec** (`search.spec.ts`, serial mode, 9 tests):
 - search page renders the search form ✓
 - finds a task by title ✓
 - shows empty result state for gibberish query ✓
 - search result tabs (All/Tasks/Projects/Labels) are visible ✓
 - clicking tabs filters search results ✓
+- finds a project by name in search results ✓
+- finds a label by name in search results ✓
+- searches archived/completed tasks ✓
+- Tasks tab shows all results with pagination controls ✓
 
 **Settings spec** (`settings.spec.ts`, serial mode, 5 tests):
 - settings page renders with sections ✓
@@ -140,7 +144,7 @@ Separate Playwright project with empty `storageState` so it creates a fresh user
 | `projects.spec.ts` | 4 | Project CRUD + detail navigation |
 | `task-modal.spec.ts` | 6 | Full task modal CRUD + validation |
 | `labels.spec.ts` | 4 | Label CRUD |
-| `search.spec.ts` | 5 | Search form, find task, empty state, tab filtering |
+| `search.spec.ts` | 9 | Search form, find task, empty state, tab filtering, project search, label search, archive search, pagination |
 | `settings.spec.ts` | 5 | Theme, toggles, password modal, non-destructive logout |
 | `archive.spec.ts` | 4 | Archive view, delete forever, restore, permanent archive |
 | `error-states.spec.ts` | 2 | 404 page variants |

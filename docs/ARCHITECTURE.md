@@ -1,6 +1,6 @@
 # Architecture Guide — Yotara
 
-> **Status:** Living document. Last updated 2026-07-07.
+> **Status:** Living document. Last updated 2026-07-08.
 > **Owner:** @apauldev
 > **Supersedes:** [ROADMAP.md](../ROADMAP.md) and the planning sections of [apps/frontend/TODO.md](../apps/frontend/TODO.md) and [apps/api/TODO.md](../apps/api/TODO.md). The older docs are kept as historical snapshots and are no longer maintained. Cross-references from the older docs now point here.
 >
@@ -20,7 +20,7 @@ Short, honest read of where the project stands right now. No numerical scorecard
 - **Reusability:** Shared UI is solid. Search scoring (250+ lines of JS) belongs on the server. Test specs reach into component internals with `as any` casts — see the runtime anti-patterns below.
 - **Consistency:** Naming is inconsistent (`revision` vs `refreshProjects()`). Auth-gate boilerplate repeated 3×. `localStorage` magic-string keys have been **consolidated into `PreferencesStore`** (a centralized signal-based store). `console.error` has been reduced to 2 remaining call sites (`LogService` itself and `main.ts`) — anti-pattern A1 is now **largely closed**.
 - **Documentation:** This document exists. ROADMAP.md, project-plan.md, and the two TODO.md files overlap and drift from each other — see the "Planning artifacts" section below.
-- **Scalability:** The expand loop and in-memory computed-signal filtering have been **removed** — each view now calls its own server endpoint. Search still runs client-side (250+ lines of scoring JS) and remains unscaled. Server-side search is Sprint 3.
+- **Scalability:** The expand loop and in-memory computed-signal filtering have been **removed** — each view now calls its own server endpoint. Search has moved to the server — `GET /tasks/search?q=...` with SQL relevance scoring, pagination, and a completed filter.
 - **Developer experience:** CI has lint, type-check, test, e2e, `pnpm audit`, Dependabot, CodeQL, and secret leak detection (gitleaks). No coverage threshold, no prebuilt images, no bundle-size monitoring. `.reasonix/` is gitignored.
 - **Security & robustness:** Auth guards, error interceptor, cookie security all solid. Rate limiting added (global IP-based + per-email password lockout). `AppError` class hierarchy (`BadRequestError`, `NotFoundError`, `UnauthorizedError`) now exists in the API — services throw typed errors instead of bare `new Error('string')`, and the Fastify `setErrorHandler` maps them to correct HTTP status codes. One remaining bare `AppError(500, …)` call in `task-service.ts:333`. Secret leak detection (gitleaks), Dependabot, and CodeQL are active in CI. No Docker image scanning or bundle size monitoring.
 - **Bus factor:** 1. 624/704 commits (89%) are from a single author. `github-actions[bot]` has 54 commits; `dependabot[bot]` has 22; shivansh090 has 4 (docs only).
@@ -42,7 +42,7 @@ Every view previously fetched ALL active tasks and filtered with `computed()` si
 | Inbox tasks | Fetched ALL, filtered in JS | `GET /tasks?view=inbox&tz=...` |
 | Upcoming tasks | Fetched ALL, grouped by week in JS | `GET /tasks?view=upcoming&tz=...` |
 | Today's completions | Filtered ALL completed tasks | `GET /tasks?completedSince=...&tz=...` |
-| Search | 250 lines of scoring math in JS | Still client-side — Sprint 3 |
+| Search | 250 lines of scoring math in JS | `GET /tasks/search?q=...` |
 
 ### What was removed
 
@@ -53,8 +53,8 @@ Every view previously fetched ALL active tasks and filtered with `computed()` si
 
 ### What remains
 
-- **Search is still client-side** — 250 lines of scoring JS with no server-side endpoint. Sprint 3 candidate.
-- **`allActiveTasks` signal still exists** — fetches one page of 1000 tasks for the subtask map, label assignments, and the local search index. This is a bounded data set (~1k tasks), not the old expand-all pattern.
+- **Search is now server-side** — `GET /tasks/search?q=...` with SQL relevance scoring. See Sprint 3 above.
+- **`allActiveTasks` signal still exists** — fetches one page of 1000 tasks for the subtask map and label assignments. This is a bounded data set (~1k tasks), not the old expand-all pattern.
 - **Upcoming task bucketing** (`This Week` / `Next Week` / `Later`) is still done client-side via `upcomingBucketForTask()`. This is lightweight grouping, not filtering.
 
 ---
@@ -432,9 +432,9 @@ This sprint order supersedes the P0/P1/P2/P3 priority lanes in `ROADMAP.md`. Tra
 
 **Why:** Eliminates 250 lines of client-side scoring, scales to any number of tasks.
 
-- [ ] `GET /tasks/search?q=...` on the backend
-- [ ] Replace `searchArchive()` and `search()` with API calls
-- [ ] Delete scoring functions from `search.service.ts`
+- [x] `GET /tasks/search?q=...` on the backend
+- [x] Replace `searchArchive()` and `search()` with API calls
+- [x] Delete scoring functions from `search.service.ts`
 
 ### Sprint 4: Standardize naming and consolidate docs
 
