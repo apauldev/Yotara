@@ -193,18 +193,39 @@ test('PATCH /me seeds default projects and labels when onboarding is completed',
     });
 
     assert.equal(patchResponse.statusCode, 200);
+    const userId = patchResponse.json().user.id;
     assertIsoTimestamp(patchResponse.json().user.createdAt);
     assertIsoTimestamp(patchResponse.json().user.updatedAt);
 
+    // Verify seeding directly in the DB — GET /projects and GET /labels
+    // side-effect seed on read, so they'd mask a regression in the PATCH handler.
+    const { db } = await import('../db/client.js');
+    const { projects, labels } = await import('../db/schema.js');
+    const { eq, sql } = await import('drizzle-orm');
+
+    const [projectCount] = await db
+      .select({ value: sql<number>`count(*)` })
+      .from(projects)
+      .where(eq(projects.ownerId, userId));
+    assert.ok(projectCount.value >= 8, 'PATCH should seed at least 8 projects');
+
+    const [labelCount] = await db
+      .select({ value: sql<number>`count(*)` })
+      .from(labels)
+      .where(eq(labels.userId, userId));
+    assert.ok(labelCount.value >= 8, 'PATCH should seed at least 8 labels');
+
+    // Route-level assertions (side-effecting — seed on read, so these don't
+    // prove the PATCH seeded, but verify the full request/response chain.)
     const projectsResponse = await ctx.app.inject({
       method: 'GET',
       url: '/projects',
       headers: { cookie },
     });
     assert.equal(projectsResponse.statusCode, 200);
-    const projects = projectsResponse.json();
-    assert.ok(projects.length >= 8);
-    assert.ok(projects.some((p: { name: string }) => p.name === 'Inbox'));
+    const projectsList = projectsResponse.json();
+    assert.ok(projectsList.length >= 8);
+    assert.ok(projectsList.some((p: { name: string }) => p.name === 'Inbox'));
 
     const labelsResponse = await ctx.app.inject({
       method: 'GET',
