@@ -7,7 +7,7 @@
 
 ### 1. `apps/api/src/routes/me.test.ts`
 
-Follow `tasks.test.ts` pattern: isolated temp DB per test via `createAuthedApp()` / `signUpAndGetCookie()`.
+Follow `auth.test.ts` pattern: shared `test-db.js` via `createAuthedApp()` / `signUpAndGetCookie()`.
 
 | # | Test | Key assertions |
 |---|---|---|
@@ -19,7 +19,9 @@ Follow `tasks.test.ts` pattern: isolated temp DB per test via `createAuthedApp()
 | 6 | `PATCH /me toggles captureBehavior` | `{ captureBehavior: "capture" }` → `"capture"`, then `"quick"` → `"quick"` |
 | 7 | `PATCH /me seeds defaults when onboarding` | PATCH with `{ workspaceMode: "personal", onboardingCompleted: true }` → GET /projects >= 8 (has Inbox), GET /labels >= 8 (has Urgent). Second PATCH does not duplicate. |
 | 8 | `PATCH /me returns 401 without auth` | `statusCode === 401` |
-| 9 | `CORS headers present` | `access-control-allow-origin` and `access-control-allow-credentials` on GET and PATCH |
+| 9 | `PATCH /me with empty body` | 200, no fields changed |
+| 10 | `PATCH /me ignores unknown fields` | 200, unknown fields silently dropped |
+| 11 | `CORS headers present` | `access-control-allow-origin` and `access-control-allow-credentials` on GET and PATCH |
 
 ### 2. `apps/api/src/routes/health.test.ts`
 
@@ -27,24 +29,26 @@ Follow `tasks.test.ts` pattern: isolated temp DB per test via `createAuthedApp()
 |---|---|---|
 | 1 | `GET /health returns ok` | 200, `{ status: "ok", timestamp: "..." }`, timestamp is ISO |
 | 2 | `GET /health without auth` | 200 (no auth required) |
+| 3 | `POST /health returns 404` | non-GET methods rejected with 404 |
 
 ### 3. `apps/api/src/routes/root.test.ts`
 
 | # | Test | Key assertions |
 |---|---|---|
-| 1 | `GET / returns API metadata` | 200, `{ name: "Yotara API", version: "0.1.0" }` |
+| 1 | `GET / returns API metadata` | 200, `{ name: "Yotara API", version }` where `typeof version === 'string' && version.length > 0` |
 | 2 | `GET / without auth` | 200 (no auth required) |
+| 3 | `POST / returns 404` | non-GET methods rejected with 404 |
 
 ## Conventions
 
-- Duplicate `createAuthedApp()`, `signUpAndGetCookie()`, `assertIsoTimestamp()` helpers inline (matches project pattern).
+- Duplicate `createAuthedApp()`, `signUpAndGetCookie()`, `assertIsoTimestamp()` helpers inline (matches project pattern). For health & root use `createApp()` (no auth needed).
 - Use `node:test` and `node:assert/strict`.
-- Temp DB in `os.tmpdir()`, cleanup via `finally` block.
-- Run: `pnpm --filter api test`
+- Temp DB in `os.tmpdir()`. `/me` uses shared session-scoped DB (`test-db.js` side-effect import, no cleanup — matches `auth.test.ts`). Health & root use per-test isolated DB, cleanup via `rmSync(dbFile, { force: true })` in `finally` block.
+- Run: `pnpm --filter @yotara/api test`
 
 ## Verification
 
 ```bash
-pnpm --filter api test
+pnpm --filter @yotara/api test
 # Expected: all tests pass, no regressions
 ```
