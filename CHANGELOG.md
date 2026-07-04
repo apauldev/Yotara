@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.62.1](https://github.com/apauldev/Yotara/compare/v0.62.0...v0.62.1) (2026-07-04)
+
+
+### Bug Fixes
+
+* **test:** verify seeding via direct DB query to avoid false positive ([2758272](https://github.com/apauldev/Yotara/commit/275827283b840a2a28cb390252d66c3b8ce0d9d0))
+
+
+### Documentation
+
+* add Phase 1 backend route coverage plan ([3ebfb5b](https://github.com/apauldev/Yotara/commit/3ebfb5b387679b126f511d391c2121f6e2bdf66d))
+
+
+### Chores
+
+* remove backendrouteplan.md ([54aa0f9](https://github.com/apauldev/Yotara/commit/54aa0f94513ebb92ab7f150e6c8ca7aa9b9f7b5f))
+
+
+### Tests
+
+* **api:** add route-level coverage for /me, /health, and / ([0d38595](https://github.com/apauldev/Yotara/commit/0d38595f93c906b23675592c6caacb492befdf94))
+
 ## [0.62.0](https://github.com/apauldev/Yotara/compare/v0.61.1...v0.62.0) (2026-07-03)
 
 
