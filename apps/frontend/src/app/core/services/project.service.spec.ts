@@ -194,4 +194,16 @@ describe('ProjectService', () => {
     expect(createdProject?.id).toBe('project-2');
     expect(service.projects().map((project) => project.id)).toEqual(['project-2']);
   }));
+
+  it('exposes a version signal that increments on refresh', fakeAsync(() => {
+    const service = TestBed.inject(ProjectService);
+
+    expect(service.version()).toBe(0);
+
+    service.refresh();
+    expect(service.version()).toBe(1);
+
+    service.refresh();
+    expect(service.version()).toBe(2);
+  }));
 });

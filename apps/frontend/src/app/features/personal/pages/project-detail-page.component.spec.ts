@@ -175,4 +175,34 @@ describe('ProjectDetailPageComponent', () => {
 
     expect(projectServiceStub.getProjectTasks.calls.count()).toBeGreaterThan(initialTaskCalls);
   });
+
+  it('reloads project details after saving project changes', async () => {
+    await configure(baseProject);
+
+    const fixture = TestBed.createComponent(ProjectDetailPageComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    projectServiceStub.getProject.calls.reset();
+    projectServiceStub.getProjectTasks.calls.reset();
+
+    await (fixture.componentInstance as any).saveProject({
+      name: 'Renamed Project',
+      description: 'Updated scope',
+      color: 'olive',
+    });
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(projectServiceStub.updateProject).toHaveBeenCalledWith('project-1', {
+      name: 'Renamed Project',
+      description: 'Updated scope',
+      color: 'olive',
+    });
+    expect(projectServiceStub.getProject).toHaveBeenCalled();
+    expect(projectServiceStub.getProjectTasks).toHaveBeenCalled();
+  });
 });
