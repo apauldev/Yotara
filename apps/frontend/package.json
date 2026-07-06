@@ -32,8 +32,8 @@
     "@angular/router": "^21.2.0",
     "@better-fetch/fetch": "^1.1.21",
     "@fortawesome/angular-fontawesome": "^4.0.0",
-    "@fortawesome/fontawesome-svg-core": "^7.2.0",
-    "@fortawesome/free-solid-svg-icons": "^7.2.0",
+    "@fortawesome/fontawesome-svg-core": "^7.3.0",
+    "@fortawesome/free-solid-svg-icons": "^7.3.0",
     "@spartan-ng/brain": "0.0.1-alpha.646",
     "@types/luxon": "^3.7.1",
     "@yotara/shared": "workspace:*",
@@ -47,7 +47,7 @@
     "rxjs": "~7.8.0",
     "tailwind-merge": "^3.6.0",
     "tslib": "^2.3.0",
-    "zone.js": "~0.15.0"
+    "zone.js": "~0.16.2"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^21.2.0",
@@ -64,9 +64,9 @@
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
-    "karma-jasmine-html-reporter": "~2.1.0",
+    "karma-jasmine-html-reporter": "~2.2.0",
     "postcss": "^8.5.8",
-    "stylelint": "^17.9.0",
+    "stylelint": "^17.14.0",
     "stylelint-config-standard": "^40.0.0",
     "tailwindcss": "^3.4.19",
     "typescript": "~5.9.0"
