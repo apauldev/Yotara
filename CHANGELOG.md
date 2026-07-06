@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.62.2](https://github.com/apauldev/Yotara/compare/v0.62.1...v0.62.2) (2026-07-06)
+
+
+### Chores
+
+* **deps:** bump fastify from 5.8.1 to 5.9.0 ([fbe7dbd](https://github.com/apauldev/Yotara/commit/fbe7dbdd61836640501dd99f2a336bf25cfd8e7d))
+* **deps:** update non-Angular packages from dependabot ([fbb1f5e](https://github.com/apauldev/Yotara/commit/fbb1f5e311ab1d8507d0df705343707c0efbf1f8))
+* set minimum Node engine to >=22.22.1 for lint-staged v17 compatibility ([b3e6eb5](https://github.com/apauldev/Yotara/commit/b3e6eb5ff712f147b2e7a0c881d076498bc9044b))
+
 ## [0.62.1](https://github.com/apauldev/Yotara/compare/v0.62.0...v0.62.1) (2026-07-04)
 
 
