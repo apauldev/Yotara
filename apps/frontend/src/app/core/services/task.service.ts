@@ -81,7 +81,7 @@ export class TaskService {
   readonly loading = this.loadingState.asReadonly();
   readonly creating = this.creatingState.asReadonly();
   readonly error = this.errorState.asReadonly();
-  readonly revision = this.refreshState.asReadonly();
+  readonly version = this.refreshState.asReadonly();
 
   getArchivedTasks(page: number, pageSize: number) {
     return this.http.get<PaginatedResponse<Task[]>>(
@@ -315,8 +315,8 @@ export class TaskService {
         this.http.post<Task>(`${this.baseUrl}/tasks`, payload, { withCredentials: true }),
       );
       this.refreshState.update((value: number) => value + 1);
-      this.labelService.refreshLabels();
-      this.projectService.refreshProjects();
+      this.labelService.refresh();
+      this.projectService.refresh();
       return createdTask;
     } catch (error) {
       this.logService.error('Failed to create task', error, 'TaskService');
@@ -339,8 +339,8 @@ export class TaskService {
         }),
       );
       this.refreshState.update((value: number) => value + 1);
-      this.labelService.refreshLabels();
-      this.projectService.refreshProjects();
+      this.labelService.refresh();
+      this.projectService.refresh();
       return updatedTask;
     } catch (error) {
       this.logService.error('Failed to update task', error, 'TaskService');
@@ -362,8 +362,8 @@ export class TaskService {
         }),
       );
       this.refreshState.update((value: number) => value + 1);
-      this.labelService.refreshLabels();
-      this.projectService.refreshProjects();
+      this.labelService.refresh();
+      this.projectService.refresh();
     } catch (error) {
       this.logService.error('Failed to delete task', error, 'TaskService');
       this.errorState.set('Could not delete your task right now.');
@@ -388,7 +388,7 @@ export class TaskService {
     }
   }
 
-  refreshTasks() {
+  refresh() {
     this.refreshState.update((value: number) => value + 1);
   }
 

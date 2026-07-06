@@ -440,9 +440,9 @@ This sprint order supersedes the P0/P1/P2/P3 priority lanes in `ROADMAP.md`. Tra
 
 **Why:** Low effort, high impact on contributor experience.
 
-- [ ] Rename `revision` → consistent name across all services
-- [ ] Standardize `refresh()` method name
-- [ ] Write `docs/CONTRIBUTING.md` with setup guide and architecture overview
+- [x] Rename `revision` → consistent name across all services
+- [x] Standardize `refresh()` method name
+- [x] Write `docs/CONTRIBUTING.md` with setup guide and architecture overview
 - [x] Add `.reasonix/` to `.gitignore`
 
 ### Sprint 5: Backend test coverage
@@ -473,72 +473,9 @@ This sprint order supersedes the P0/P1/P2/P3 priority lanes in `ROADMAP.md`. Tra
 
 ## For new contributors
 
-Start here. Everything else in this doc assumes you've read this section.
-
-### One-command setup
-
-```bash
-git clone https://github.com/apauldev/Yotara.git
-cd Yotara
-cp .env.example .env
-pnpm install
-pnpm dev
-```
-
-This boots the API (`:3000`), the frontend (`:4200`), and Drizzle Studio for the local SQLite DB.
-
-### Where to find things
-
-```
-apps/
-  api/                     Fastify + Drizzle backend
-    src/routes/            HTTP handlers (thin — delegate to services)
-    src/services/          Business logic, DB access
-    src/plugins/           Fastify plugins (auth-bridge, auth-required, cors)
-    src/db/                Drizzle schema and migrations
-    src/docs/openapi.ts    Auto-generated OpenAPI spec
-  frontend/                Angular 21 frontend
-    src/app/core/          Cross-cutting services, guards, interceptors
-    src/app/features/      Feature modules (auth, personal, team, onboarding)
-    src/app/shared/        Reusable UI primitives, utils, pipes
-packages/
-  shared/                  Domain types, DTOs, shared client code
-docs/
-  ARCHITECTURE.md          ← you are here
-  ROADMAP.md               OUT OF USE — planning on GitHub Project board
-  project-plan.md          OUT OF USE — planning on GitHub Project board
-  personal-mode-mvp.md     historical snapshot of personal-mode scope
-  admin-notifications.md   proposed draft — per-IP limits, admin API, email, notifications
-  RELEASING.md             (Sprint 0) — not yet written
-```
-
-### How to run tests
-
-- Frontend: `pnpm --filter frontend test` (or `pnpm test` at the root)
-- Backend: `pnpm --filter api test`
-- Lint: `pnpm lint`
-- Typecheck: `pnpm typecheck` (currently not gated in CI — Sprint 0 fix)
-
-### How to add a new API endpoint
-
-1. Add a Zod schema in `apps/api/src/routes/<resource>.ts` and pass it to the route's `{ schema: { ... } }` config
-2. Add the handler — keep it thin, delegate to a service
-3. Add or extend the service in `apps/api/src/services/<resource>-service.ts`
-4. Add a route-level test in `apps/api/test/routes/<resource>.test.ts`
-5. Run `pnpm --filter api test` and verify Swagger at `/docs`
-
-### How to add a new frontend feature
-
-1. Decide if it's a page, a feature component, or a shared primitive — put it in the right folder
-2. Use signals for state, `computed()` for derived state, `effect()` for side effects
-3. If the feature calls the API, add a service method that uses `HttpClient` (not raw `fetch`)
-4. Log errors via `LogService`, not `console.error` (closes A1)
-5. Use the shared `Modal`, `ConfirmDialog`, `EmptyStateComponent`, and `PageHeader` primitives
-6. **The golden rule:** if you find yourself filtering in a `computed()` signal, check if the server can do it first. If yes, add a query param and remove the signal (closes the root-cause issue).
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ---
-
-## Principles
 
 Structural:
 

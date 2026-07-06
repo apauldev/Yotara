@@ -60,8 +60,9 @@ export class LabelService {
   readonly loading = this.loadingState.asReadonly();
   readonly error = this.errorState.asReadonly();
   readonly count = computed(() => this.labels().length);
+  readonly version = this.refreshState.asReadonly();
 
-  refreshLabels() {
+  refresh() {
     this.refreshState.update((value) => value + 1);
   }
 
@@ -69,7 +70,7 @@ export class LabelService {
     const created = await firstValueFrom(
       this.http.post<Label>(`${this.baseUrl}/labels`, payload, { withCredentials: true }),
     );
-    this.refreshLabels();
+    this.refresh();
     return created;
   }
 
@@ -79,7 +80,7 @@ export class LabelService {
         withCredentials: true,
       }),
     );
-    this.refreshLabels();
+    this.refresh();
     return updated;
   }
 
@@ -89,6 +90,6 @@ export class LabelService {
         withCredentials: true,
       }),
     );
-    this.refreshLabels();
+    this.refresh();
   }
 }

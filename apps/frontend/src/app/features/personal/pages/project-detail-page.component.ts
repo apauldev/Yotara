@@ -48,7 +48,7 @@ export class ProjectDetailPageComponent {
   protected readonly loadError = signal<string | null>(null);
   protected readonly project = signal<Project | null>(null);
   protected readonly projectTasks = signal<Task[]>([]);
-  private readonly lastSeenTaskRevision = signal(this.taskService.revision());
+  private readonly lastSeenTaskVersion = signal(this.taskService.version());
   protected readonly projectId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get('id'))),
     { initialValue: this.route.snapshot.paramMap.get('id') },
@@ -79,17 +79,17 @@ export class ProjectDetailPageComponent {
 
     effect(() => {
       const projectId = this.projectId();
-      const taskRevision = this.taskService.revision();
+      const taskVersion = this.taskService.version();
 
       if (!projectId || this.projectState() !== 'ready') {
         return;
       }
 
-      if (this.lastSeenTaskRevision() === taskRevision) {
+      if (this.lastSeenTaskVersion() === taskVersion) {
         return;
       }
 
-      this.lastSeenTaskRevision.set(taskRevision);
+      this.lastSeenTaskVersion.set(taskVersion);
       void this.loadProject(projectId);
     });
   }
@@ -124,7 +124,7 @@ export class ProjectDetailPageComponent {
       this.projectState.set('ready');
     }
 
-    this.lastSeenTaskRevision.set(this.taskService.revision());
+    this.lastSeenTaskVersion.set(this.taskService.version());
     this.reloadProjectDetails();
   }
 
@@ -154,7 +154,7 @@ export class ProjectDetailPageComponent {
     const requestToken = ++this.loadToken;
     this.projectState.set('loading');
     this.loadError.set(null);
-    this.lastSeenTaskRevision.set(this.taskService.revision());
+    this.lastSeenTaskVersion.set(this.taskService.version());
 
     try {
       const project = await this.projectService.getProject(projectId);

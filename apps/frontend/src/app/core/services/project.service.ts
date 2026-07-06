@@ -69,6 +69,7 @@ export class ProjectService {
   readonly saving = this.savingState.asReadonly();
   readonly error = this.errorState.asReadonly();
   readonly hasProjects = computed(() => this.projects().length > 0);
+  readonly version = this.refreshState.asReadonly();
 
   async getProject(projectId: string): Promise<Project | null> {
     try {
@@ -108,7 +109,7 @@ export class ProjectService {
       const created = await firstValueFrom(
         this.http.post<Project>(`${this.baseUrl}/projects`, payload, { withCredentials: true }),
       );
-      this.refreshProjects();
+      this.refresh();
       return created;
     } catch (error) {
       this.logService.error('Failed to create project', error, 'ProjectService');
@@ -129,7 +130,7 @@ export class ProjectService {
           withCredentials: true,
         }),
       );
-      this.refreshProjects();
+      this.refresh();
       return updated;
     } catch (error) {
       this.logService.error('Failed to update project', error, 'ProjectService');
@@ -140,7 +141,7 @@ export class ProjectService {
     }
   }
 
-  refreshProjects() {
+  refresh() {
     this.refreshState.update((value) => value + 1);
   }
 }

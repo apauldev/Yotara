@@ -16,9 +16,9 @@ describe('ProjectDetailPageComponent', () => {
     getProject: jasmine.Spy;
     getProjectTasks: jasmine.Spy;
     updateProject: jasmine.Spy;
-    refreshProjects: jasmine.Spy;
+    refresh: jasmine.Spy;
   };
-  let taskRevision = signal(0);
+  let taskVersion = signal(0);
 
   const baseProject = {
     id: 'project-1',
@@ -60,7 +60,7 @@ describe('ProjectDetailPageComponent', () => {
 
   async function configure(projectResponse: typeof baseProject | null) {
     TestBed.resetTestingModule();
-    taskRevision = signal(0);
+    taskVersion = signal(0);
 
     projectServiceStub = {
       projects: signal([baseProject]),
@@ -76,12 +76,12 @@ describe('ProjectDetailPageComponent', () => {
           : null,
       ),
       updateProject: jasmine.createSpy('updateProject').and.resolveTo(baseProject),
-      refreshProjects: jasmine.createSpy('refreshProjects'),
+      refresh: jasmine.createSpy('refresh'),
     };
 
     const taskServiceStub = {
       error: signal(null),
-      revision: taskRevision,
+      version: taskVersion,
       createTask: jasmine.createSpy('createTask').and.resolveTo(undefined),
       updateTask: jasmine.createSpy('updateTask').and.resolveTo(undefined),
     };
@@ -167,7 +167,7 @@ describe('ProjectDetailPageComponent', () => {
     fixture.detectChanges();
 
     const initialTaskCalls = projectServiceStub.getProjectTasks.calls.count();
-    taskRevision.set(1);
+    taskVersion.set(1);
 
     fixture.detectChanges();
     await fixture.whenStable();

@@ -43,7 +43,7 @@ describe('LabelsPageComponent', () => {
               color: '#82d7a9',
               taskCount: 0,
             }),
-            refreshLabels: jasmine.createSpy('refreshLabels'),
+            refresh: jasmine.createSpy('refresh'),
           },
         },
         {

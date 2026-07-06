@@ -11,8 +11,8 @@ describe('TaskService', () => {
   const initialized = signal(false);
   const isAuthenticated = signal(false);
   const currentUserId = signal<string | null>(null);
-  let labelServiceStub: { refreshLabels: jasmine.Spy };
-  let projectServiceStub: { projects: ReturnType<typeof signal>; refreshProjects: jasmine.Spy };
+  let labelServiceStub: { refresh: jasmine.Spy };
+  let projectServiceStub: { projects: ReturnType<typeof signal>; refresh: jasmine.Spy };
 
   const ACTIVE_URL =
     'http://localhost:3000/tasks?page=1&pageSize=1000&completed=false&includeSubtasks=true';
@@ -96,10 +96,10 @@ describe('TaskService', () => {
     currentUserId.set(null);
     projectServiceStub = {
       projects: signal([]),
-      refreshProjects: jasmine.createSpy('refreshProjects'),
+      refresh: jasmine.createSpy('refresh'),
     };
     labelServiceStub = {
-      refreshLabels: jasmine.createSpy('refreshLabels'),
+      refresh: jasmine.createSpy('refresh'),
     };
 
     TestBed.configureTestingModule({
@@ -594,8 +594,8 @@ describe('TaskService', () => {
 
     expect(createdTask?.id).toBe('created-1');
     expect(service.inboxTasks().map((task) => task.id)).toEqual(['created-1']);
-    expect(labelServiceStub.refreshLabels).toHaveBeenCalled();
-    expect(projectServiceStub.refreshProjects).toHaveBeenCalled();
+    expect(labelServiceStub.refresh).toHaveBeenCalled();
+    expect(projectServiceStub.refresh).toHaveBeenCalled();
   }));
 
   it('updates a task with metadata and refreshes the list', fakeAsync(() => {
@@ -677,8 +677,8 @@ describe('TaskService', () => {
 
     expect(service.inboxTasks()[0]?.bucket).toBe('deep-work');
     expect(service.inboxTasks()[0]?.simpleMode).toBeFalse();
-    expect(labelServiceStub.refreshLabels).toHaveBeenCalled();
-    expect(projectServiceStub.refreshProjects).toHaveBeenCalled();
+    expect(labelServiceStub.refresh).toHaveBeenCalled();
+    expect(projectServiceStub.refresh).toHaveBeenCalled();
   }));
 
   it('refreshes recentlyCompleted when refreshState increments', fakeAsync(() => {
@@ -711,7 +711,7 @@ describe('TaskService', () => {
 
     expect(service.recentlyCompleted().map((t) => t.id)).toEqual(['completed-1']);
 
-    service.refreshTasks();
+    service.refresh();
     tick();
 
     http.expectOne(ACTIVE_URL).flush(paginated([]));
@@ -774,8 +774,8 @@ describe('TaskService', () => {
     tick();
 
     expect(service.error()).toBeNull();
-    expect(labelServiceStub.refreshLabels).toHaveBeenCalled();
-    expect(projectServiceStub.refreshProjects).toHaveBeenCalled();
+    expect(labelServiceStub.refresh).toHaveBeenCalled();
+    expect(projectServiceStub.refresh).toHaveBeenCalled();
   }));
 
   describe('error handling', () => {
@@ -873,7 +873,7 @@ describe('TaskService', () => {
       expect(service.error()).toBe('Could not load tasks right now.');
 
       // Trigger a refresh
-      service.refreshTasks();
+      service.refresh();
       tick();
 
       // Second load succeeds
