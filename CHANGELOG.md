@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.62.3](https://github.com/apauldev/Yotara/compare/v0.62.2...v0.62.3) (2026-07-06)
+
+
+### Documentation
+
+* add CONTRIBUTING.md, standardize refresh() naming, mark Sprint 4 complete ([9d5a91a](https://github.com/apauldev/Yotara/commit/9d5a91a865e2d0f0ba01493d146cb613fae540d9))
+
+
+### Tests
+
+* add missing coverage for version() and saveProject() ([ed59c83](https://github.com/apauldev/Yotara/commit/ed59c83b251dcba2edc836307708788e48e21360))
+
 ## [0.62.2](https://github.com/apauldev/Yotara/compare/v0.62.1...v0.62.2) (2026-07-06)
 
 
