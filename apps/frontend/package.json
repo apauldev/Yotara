@@ -35,7 +35,7 @@
     "@fortawesome/fontawesome-svg-core": "^7.3.0",
     "@fortawesome/free-solid-svg-icons": "^7.3.0",
     "@spartan-ng/brain": "0.0.1-alpha.646",
-    "@types/luxon": "^3.7.1",
+    "@types/luxon": "^3.7.2",
     "@yotara/shared": "workspace:*",
     "better-auth": "^1.5.4",
     "class-variance-authority": "^0.7.0",
