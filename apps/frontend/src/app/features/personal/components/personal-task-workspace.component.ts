@@ -72,7 +72,7 @@ export class PersonalTaskWorkspaceComponent {
         await this.taskService.updateTask(event.taskId, event.payload);
       }
 
-      this.projectService.refreshProjects();
+      this.projectService.refresh();
       this.taskSaved.emit(event.mode);
       this.closeTaskModal();
     } catch {

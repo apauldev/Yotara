@@ -167,7 +167,7 @@ describe('SearchPageComponent', () => {
           provide: ProjectService,
           useValue: {
             projects: mockProjects,
-            refreshProjects: jasmine.createSpy('refreshProjects'),
+            refresh: jasmine.createSpy('refresh'),
           },
         },
         {

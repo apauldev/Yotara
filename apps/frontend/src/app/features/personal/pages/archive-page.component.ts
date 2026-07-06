@@ -210,7 +210,7 @@ export class ArchivePageComponent {
     combineLatest([
       toObservable(this.currentPage),
       toObservable(this.pageSize),
-      toObservable(this.taskService.revision),
+      toObservable(this.taskService.version),
     ]).pipe(
       switchMap(([page, size]) => {
         this.loadingArchive.set(true);

@@ -28,7 +28,7 @@ class WorkspaceHostComponent {
 
 describe('PersonalTaskWorkspaceComponent', () => {
   let fixture: ComponentFixture<WorkspaceHostComponent>;
-  let projectService: { projects: ReturnType<typeof signal>; refreshProjects: jasmine.Spy };
+  let projectService: { projects: ReturnType<typeof signal>; refresh: jasmine.Spy };
   let taskService: {
     error: ReturnType<typeof signal<string | null>>;
     createTask: jasmine.Spy;
@@ -66,7 +66,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
           updatedAt: '2026-04-03T10:00:00.000Z',
         },
       ]),
-      refreshProjects: jasmine.createSpy('refreshProjects'),
+      refresh: jasmine.createSpy('refresh'),
     };
 
     taskService = {
@@ -182,7 +182,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
         projectId: 'project-1',
       }),
     );
-    expect(projectService.refreshProjects).toHaveBeenCalled();
+    expect(projectService.refresh).toHaveBeenCalled();
     expect(savedSpy).toHaveBeenCalledWith('create');
     expect(workspace['modalOpen']()).toBeFalse();
     expect(workspace['selectedTask']()).toBeNull();
@@ -217,7 +217,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
         completed: true,
       }),
     );
-    expect(projectService.refreshProjects).toHaveBeenCalled();
+    expect(projectService.refresh).toHaveBeenCalled();
     expect(savedSpy).toHaveBeenCalledWith('update');
     expect(workspace['modalOpen']()).toBeFalse();
   });
@@ -247,7 +247,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
     });
 
     expect(failedSpy).toHaveBeenCalledWith('Could not save your task right now.');
-    expect(projectService.refreshProjects).not.toHaveBeenCalled();
+    expect(projectService.refresh).not.toHaveBeenCalled();
     expect(workspace['modalOpen']()).toBeFalse();
   });
 });

@@ -53,7 +53,7 @@ describe('ArchivePageComponent', () => {
   let mockTaskService: {
     loading: ReturnType<typeof signal>;
     error: ReturnType<typeof signal>;
-    revision: ReturnType<typeof signal>;
+    version: ReturnType<typeof signal>;
     getArchivedTasks: jasmine.Spy;
     updateTask: jasmine.Spy;
     deleteTask: jasmine.Spy;
@@ -63,7 +63,7 @@ describe('ArchivePageComponent', () => {
     mockTaskService = {
       loading: signal(false),
       error: signal<string | null>(null),
-      revision: signal(0),
+      version: signal(0),
       getArchivedTasks: jasmine
         .createSpy('getArchivedTasks')
         .and.returnValue(of(paginatedResponse([]))),
@@ -78,7 +78,7 @@ describe('ArchivePageComponent', () => {
       getProject: jasmine.createSpy('getProject').and.resolveTo(null),
       getProjectTasks: jasmine.createSpy('getProjectTasks').and.resolveTo([]),
       updateProject: jasmine.createSpy('updateProject'),
-      refreshProjects: jasmine.createSpy('refreshProjects'),
+      refresh: jasmine.createSpy('refresh'),
       createProject: jasmine.createSpy('createProject'),
       deleteProject: jasmine.createSpy('deleteProject'),
     };
