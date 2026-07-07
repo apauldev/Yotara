@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.63.0](https://github.com/apauldev/Yotara/compare/v0.62.3...v0.63.0) (2026-07-07)
+
+
+### Features
+
+* add marketing website (yotara-website) ([d6ccfa5](https://github.com/apauldev/Yotara/commit/d6ccfa552c8e9135f8c5002aaf31949056387dce))
+* rebuild homepage with comparison, 6 feature cards, three steps, CTA ([9ca0212](https://github.com/apauldev/Yotara/commit/9ca02124a1cd5cf5d2291d5926f7577de8bde026))
+
+
+### Bug Fixes
+
+* add browser globals to eslint config for website JS files ([cd02eaf](https://github.com/apauldev/Yotara/commit/cd02eaf40a8dad62cad756fedf4b5fa4e1ed5616))
+* clear body scroll lock on desktop resize ([04104d8](https://github.com/apauldev/Yotara/commit/04104d83cde95604593a5961bc68585ec91d2296))
+* correct third-party services claim in privacy policy ([ba8f54b](https://github.com/apauldev/Yotara/commit/ba8f54ba7b764afe291f266c6ecb3936d6e72575))
+* improve site copy, fix comparison card layout, update GDPR banner ([6449253](https://github.com/apauldev/Yotara/commit/64492537ee777ae185cbf0881665d7553d178dde))
+* use /privacy/ as canonical URL (served URL) ([8dc6b1c](https://github.com/apauldev/Yotara/commit/8dc6b1c5dcff8aed4659f4ad6b1c00b812f37509))
+* use clean URLs, remove _redirects, restructure privacy page ([0e6d796](https://github.com/apauldev/Yotara/commit/0e6d796cd7fed5df01c602b6b577d0a48e96eeb7))
+
+
+### Documentation
+
+* add website link to README ([d281496](https://github.com/apauldev/Yotara/commit/d281496b8c4f0d0995fe6862ccd90ee30b2da070))
+
 ## [0.62.3](https://github.com/apauldev/Yotara/compare/v0.62.2...v0.62.3) (2026-07-06)
 
 
