@@ -1,0 +1,433 @@
+<!doctype html>
+<html class="light" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Yotara — Focused Task Management</title>
+    <meta
+      name="description"
+      content="A lightweight, self-hosted task manager that puts your privacy first. Capture, organize, and focus — without the noise."
+    />
+    <link rel="canonical" href="https://yotara.website/" />
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
+
+    <!-- Open Graph / Social -->
+    <meta property="og:title" content="Yotara — Focused Task Management" />
+    <meta
+      property="og:description"
+      content="A lightweight, self-hosted task manager that puts your privacy first. Capture, organize, and focus — without the noise."
+    />
+    <meta property="og:url" content="https://yotara.website/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Yotara" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://yotara.website/assets/blog/inbox.webp" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Yotara — Focused Task Management" />
+    <meta
+      name="twitter:description"
+      content="A lightweight, self-hosted task manager that puts your privacy first. Capture, organize, and focus — without the noise."
+    />
+    <meta name="twitter:image" content="https://yotara.website/assets/blog/inbox.webp" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              'outline-variant': '#bfc9c1',
+              error: '#ba1a1a',
+              'on-background': '#1c1c17',
+              'surface-container-highest': '#e5e2da',
+              primary: '#236849',
+              background: '#fcf9f0',
+              tertiary: '#506050',
+              'surface-tint': '#266a4c',
+              'on-secondary-fixed-variant': '#024f51',
+              'surface-container-lowest': '#ffffff',
+              'on-tertiary-fixed-variant': '#3b4b3c',
+              'primary-container': '#3f8161',
+              'on-secondary-fixed': '#002020',
+              'surface-variant': '#e5e2da',
+              'on-primary-fixed': '#002113',
+              'tertiary-fixed': '#d6e7d3',
+              'inverse-primary': '#91d5b0',
+              'surface-container': '#f1eee5',
+              'on-primary-fixed-variant': '#025235',
+              'on-tertiary': '#ffffff',
+              'surface-container-low': '#f6f3ea',
+              outline: '#707972',
+              'surface-bright': '#fcf9f0',
+              'on-surface-variant': '#404943',
+              'on-error': '#ffffff',
+              'primary-fixed-dim': '#91d5b0',
+              'on-tertiary-container': '#f7fff3',
+              'on-primary': '#ffffff',
+              'error-container': '#ffdad6',
+              'primary-fixed': '#acf2cb',
+              'inverse-surface': '#31312b',
+              'inverse-on-surface': '#f4f1e8',
+              'secondary-fixed': '#afeeee',
+              'secondary-container': '#afeeee',
+              'surface-dim': '#dddad1',
+              surface: '#fcf9f0',
+              'secondary-fixed-dim': '#94d1d2',
+              secondary: '#276769',
+              'surface-container-high': '#ebe8df',
+              'tertiary-container': '#687968',
+              'on-primary-container': '#f6fff6',
+              'on-error-container': '#93000a',
+              'tertiary-fixed-dim': '#bacbb8',
+              'on-tertiary-fixed': '#111f13',
+              'on-secondary': '#ffffff',
+              'on-surface': '#1c1c17',
+              'on-secondary-container': '#2f6e6f',
+            },
+            borderRadius: {
+              DEFAULT: '0.25rem',
+              lg: '0.5rem',
+              xl: '0.75rem',
+              '2xl': '1.5rem',
+              full: '9999px',
+            },
+            fontFamily: {
+              headline: ['Manrope', 'sans-serif'],
+              display: ['Manrope', 'sans-serif'],
+              body: ['Manrope', 'sans-serif'],
+              label: ['Manrope', 'sans-serif'],
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body
+    class="bg-surface text-on-surface font-body antialiased min-h-screen flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed"
+  >
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <nav
+      class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl shadow-sm transition-all duration-300"
+      aria-label="Main navigation"
+    >
+      <div
+        class="nav-wrapper relative flex justify-between items-center px-8 py-4 max-w-7xl mx-auto"
+      >
+        <a
+          class="text-[1.375rem] font-bold text-primary tracking-wide font-headline flex items-center gap-2"
+          href="index.html"
+        >
+          <img src="assets/logo.svg" alt="Yotara" class="h-8 w-8" />
+          Yotara
+        </a>
+        <div
+          id="nav-links"
+          class="nav-links hidden md:flex items-center gap-8 text-[1.125rem] tracking-tight"
+        >
+          <a
+            class="nav-link nav-link-active text-primary rounded-xl px-4 py-2 font-medium transition-colors hover:bg-surface-container-high/50"
+            href="index.html"
+            aria-current="page"
+            >Home</a
+          >
+          <a
+            class="nav-link text-on-surface-variant hover:text-primary rounded-xl px-4 py-2 font-medium transition-colors hover:bg-surface-container-high/50"
+            href="features.html"
+            >Features</a
+          >
+          <a
+            class="nav-link text-on-surface-variant hover:text-primary rounded-xl px-4 py-2 font-medium transition-colors hover:bg-surface-container-high/50"
+            href="install.html"
+            >Install</a
+          >
+          <a
+            class="nav-link text-on-surface-variant hover:text-primary rounded-xl px-4 py-2 font-medium transition-colors hover:bg-surface-container-high/50"
+            href="blog.html"
+            >Blog</a
+          >
+        </div>
+        <a
+          class="btn-primary bg-primary text-on-primary px-6 py-3 rounded-2xl font-medium tracking-wide hidden md:inline-block text-center"
+          href="https://beta.yotara.website"
+        >
+          Try the Beta
+        </a>
+        <button
+          class="mobile-menu-btn md:hidden text-on-surface p-2"
+          aria-label="Toggle navigation"
+          aria-expanded="false"
+          aria-controls="nav-links"
+        >
+          <span class="material-symbols-outlined text-3xl">menu</span>
+        </button>
+      </div>
+    </nav>
+
+    <main id="main-content" class="flex-grow pt-24">
+      <section
+        class="relative pt-20 pb-32 overflow-hidden bg-gradient-to-br from-surface via-surface to-surface-container-low"
+      >
+        <div class="max-w-7xl mx-auto px-8 relative z-10">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div class="max-w-2xl">
+              <div
+                class="hero-fade-in hero-fade-in-delay-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface-variant text-sm font-medium tracking-wide mb-8"
+              >
+                <span class="w-2 h-2 rounded-full bg-primary" aria-hidden="true"></span>
+                Open source. MIT license
+              </div>
+              <h1
+                class="hero-fade-in hero-fade-in-delay-2 text-[2rem] md:text-[4rem] leading-[1.1] font-display font-extrabold text-on-surface mb-6 tracking-tight"
+              >
+                Your sanctuary for <br /><span class="text-primary">focused task</span> management.
+              </h1>
+              <p
+                class="hero-fade-in hero-fade-in-delay-3 text-xl text-on-surface-variant mb-10 leading-relaxed"
+              >
+                Escape the noise of modern work. Yotara is a beautifully minimal, self-hosted
+                workspace designed to bring clarity to your day, without the clutter of conventional
+                tools.
+              </p>
+              <div
+                class="hero-fade-in hero-fade-in-delay-3 flex flex-col sm:flex-row items-start sm:items-center gap-6"
+              >
+                <a
+                  class="btn-primary bg-primary text-on-primary px-8 py-4 rounded-2xl font-bold text-lg tracking-wide shadow-[0_8px_30px_rgb(0,0,0,0.08)] w-full sm:w-auto text-center"
+                  href="https://beta.yotara.website"
+                >
+                  Try the Beta
+                </a>
+                <a
+                  class="btn-ghost group flex items-center gap-2 text-primary font-semibold text-lg hover:text-primary-container transition-colors py-4"
+                  href="#features"
+                >
+                  How it works
+                  <span
+                    class="material-symbols-outlined group-hover:translate-x-1 transition-transform"
+                    aria-hidden="true"
+                    >arrow_forward</span
+                  >
+                </a>
+              </div>
+            </div>
+            <div
+              class="hero-mockup relative w-full rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(28,28,23,0.08)] ring-1 ring-outline-variant/15 transform lg:-rotate-2"
+            >
+              <img
+                class="w-full h-auto object-cover"
+                src="assets/blog/inbox.webp"
+                alt="Yotara task management interface showing tasks organized by project in a clean, minimal UI"
+                loading="lazy"
+              />
+            </div>
+          </div>
+        </div>
+        <div
+          class="absolute top-1/4 right-0 w-96 h-96 bg-primary-fixed/20 rounded-full blur-3xl -z-10 translate-x-1/2"
+          aria-hidden="true"
+        ></div>
+        <div
+          class="absolute bottom-0 left-10 w-72 h-72 bg-tertiary-fixed/30 rounded-full blur-3xl -z-10 -translate-y-1/2"
+          aria-hidden="true"
+        ></div>
+      </section>
+
+      <section class="py-32 bg-surface animate-in" id="features">
+        <div class="max-w-7xl mx-auto px-8">
+          <div class="mb-20 max-w-3xl">
+            <h2
+              class="text-[1.75rem] md:text-[2.5rem] font-display font-bold mb-6 tracking-tight text-on-surface"
+            >
+              Designed for clarity.
+            </h2>
+            <p class="text-xl text-on-surface-variant leading-relaxed">
+              Everything you need to organize your mind, carefully refined into a seamless
+              experience. No bloated features, just focus.
+            </p>
+          </div>
+          <div class="stagger-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div
+              class="stagger-item feature-card p-8 rounded-2xl bg-surface-container-low hover:bg-surface-container-high group"
+            >
+              <div
+                class="w-14 h-14 rounded-2xl bg-surface-container-highest flex items-center justify-center mb-6 group-hover:bg-primary-fixed/30 transition-colors"
+                aria-hidden="true"
+              >
+                <span class="material-symbols-outlined text-3xl text-primary">bolt</span>
+              </div>
+              <h3 class="text-xl font-bold mb-3 font-headline text-on-surface">Quick Capture</h3>
+              <p class="text-on-surface-variant leading-relaxed">
+                Instantly record thoughts before they vanish. Global shortcuts and a seamless entry
+                flow keep you in the zone.
+              </p>
+            </div>
+            <div
+              class="stagger-item feature-card p-8 rounded-2xl bg-surface-container-low hover:bg-surface-container-high group"
+            >
+              <div
+                class="w-14 h-14 rounded-2xl bg-surface-container-highest flex items-center justify-center mb-6 group-hover:bg-primary-fixed/30 transition-colors"
+                aria-hidden="true"
+              >
+                <span class="material-symbols-outlined text-3xl text-primary">account_tree</span>
+              </div>
+              <h3 class="text-xl font-bold mb-3 font-headline text-on-surface">
+                Projects &amp; Labels
+              </h3>
+              <p class="text-on-surface-variant leading-relaxed">
+                Organize complex workflows effortlessly with nested projects and flexible tagging
+                systems tailored to you.
+              </p>
+            </div>
+            <div
+              class="stagger-item feature-card p-8 rounded-2xl bg-surface-container-low hover:bg-surface-container-high group"
+            >
+              <div
+                class="w-14 h-14 rounded-2xl bg-surface-container-highest flex items-center justify-center mb-6 group-hover:bg-primary-fixed/30 transition-colors"
+                aria-hidden="true"
+              >
+                <span class="material-symbols-outlined text-3xl text-primary">repeat</span>
+              </div>
+              <h3 class="text-xl font-bold mb-3 font-headline text-on-surface">
+                Subtasks &amp; Recurring
+              </h3>
+              <p class="text-on-surface-variant leading-relaxed">
+                Break monumental goals into manageable steps. Set it and forget it with powerful
+                recurring schedules.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="w-full mt-auto bg-inverse-surface">
+      <div class="max-w-7xl mx-auto py-16 px-8 grid grid-cols-1 md:grid-cols-4 gap-12">
+        <div class="md:col-span-1">
+          <h2 class="text-[1.25rem] font-bold text-surface-bright mb-4 font-headline">Yotara</h2>
+          <p class="leading-relaxed text-surface-variant mb-6">
+            &copy; <span class="copyright-year">2026</span> Yotara. Built by
+            <a href="https://github.com/apauldev" class="hover:underline">apauldev</a>.
+          </p>
+        </div>
+        <div>
+          <h4 class="text-primary-fixed font-bold mb-4 font-headline tracking-wide">Pages</h4>
+          <ul class="space-y-3">
+            <li>
+              <a
+                class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
+                href="index.html"
+                >Home</a
+              >
+            </li>
+            <li>
+              <a
+                class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
+                href="features.html"
+                >Features</a
+              >
+            </li>
+            <li>
+              <a
+                class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
+                href="install.html"
+                >Install</a
+              >
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-primary-fixed font-bold mb-4 font-headline tracking-wide">Resources</h4>
+          <ul class="space-y-3">
+            <li>
+              <a
+                class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
+                href="https://github.com/apauldev/yotara"
+                >Documentation</a
+              >
+            </li>
+            <li>
+              <a
+                class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
+                href="blog.html"
+                >Blog</a
+              >
+            </li>
+            <li>
+              <a
+                class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
+                href="privacy.html"
+                >Privacy</a
+              >
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-primary-fixed font-bold mb-4 font-headline tracking-wide">GitHub</h4>
+          <ul class="space-y-3">
+            <li>
+              <a
+                class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
+                href="https://github.com/apauldev/yotara"
+                >Source Code</a
+              >
+            </li>
+            <li>
+              <a
+                class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
+                href="https://github.com/apauldev/yotara/issues"
+                >Issue Tracker</a
+              >
+            </li>
+            <li>
+              <a
+                class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
+                href="https://github.com/apauldev/yotara/releases"
+                >Releases</a
+              >
+            </li>
+          </ul>
+        </div>
+      </div>
+    </footer>
+
+    <div
+      id="gdpr-banner"
+      class="fixed bottom-0 left-0 right-0 z-50 bg-inverse-surface text-surface-bright px-6 py-4 shadow-2xl translate-y-full transition-transform duration-500"
+      role="alert"
+      aria-live="polite"
+    >
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <p class="text-sm leading-relaxed flex-grow">
+          Yotara does not use cookies. The Cloudflare CDN may process your IP address and
+          approximate location for routing and caching. No tracking or personal data is stored.
+          <a
+            href="privacy.html"
+            class="text-primary-fixed underline hover:no-underline whitespace-nowrap"
+            >Learn more</a
+          >
+        </p>
+        <button
+          id="gdpr-dismiss"
+          class="shrink-0 bg-surface-bright text-inverse-surface px-5 py-3 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity min-h-[44px]"
+        >
+          Got it
+        </button>
+      </div>
+    </div>
+
+    <script src="js/scripts.js"></script>
+  </body>
+</html>
