@@ -188,7 +188,6 @@ function initBlog() {
     container.querySelectorAll('.blog-toggle').forEach((btn) => {
       btn.addEventListener('click', () => {
         const card = btn.closest('.blog-card');
-        const excerpt = card.querySelector('.blog-excerpt');
         const full = card.querySelector('.blog-full');
         const icon = btn.querySelector('.blog-toggle-icon');
         const text = btn.querySelector('.blog-toggle-text');
