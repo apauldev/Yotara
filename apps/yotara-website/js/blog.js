@@ -17,7 +17,7 @@ function excerptFor(post) {
   if (post.excerpt) return post.excerpt;
   const text = post.content
     .join(' ')
-    .replace(/<[^>]+>/g, '')
+    .replace(/[<>]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
   const parts = text.split(/\s+/);
