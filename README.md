@@ -16,6 +16,7 @@
 <a href="https://github.com/apauldev/Yotara/graphs/contributors"><img src="https://img.shields.io/github/contributors/apauldev/Yotara?style=for-the-badge&color=24473c" alt="Contributors" /></a>
 <a href="https://github.com/apauldev/Yotara"><img src="https://img.shields.io/github/stars/apauldev/Yotara?style=for-the-badge&logo=github&color=B7D3C3&logoColor=173F35" alt="Stars" /></a>
 <a href="https://github.com/users/apauldev/projects/1"><img src="https://img.shields.io/badge/roadmap-project-24473c?style=for-the-badge&logo=github&logoColor=white" alt="Roadmap" /></a>
+<a href="https://yotara.website"><img src="https://img.shields.io/badge/website-yotara.website-173F35?style=for-the-badge&logo=cloudflare&logoColor=white" alt="Website" /></a>
 
 <br />
 
