@@ -1,0 +1,928 @@
+<!doctype html>
+<html class="light" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Features — Yotara</title>
+    <meta
+      name="description"
+      content="Every feature in Yotara serves one purpose: helping you focus on what matters. Task management, projects, recurring tasks, markdown, and more."
+    />
+    <link rel="canonical" href="https://yotara.website/features.html" />
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
+
+    <!-- Open Graph / Social -->
+    <meta property="og:title" content="Features — Yotara" />
+    <meta
+      property="og:description"
+      content="Every feature in Yotara serves one purpose: helping you focus on what matters."
+    />
+    <meta property="og:url" content="https://yotara.website/features.html" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Yotara" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://yotara.website/assets/blog/inbox.webp" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Features — Yotara" />
+    <meta
+      name="twitter:description"
+      content="Every feature in Yotara serves one purpose: helping you focus on what matters."
+    />
+    <meta name="twitter:image" content="https://yotara.website/assets/blog/inbox.webp" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              'outline-variant': '#bfc9c1',
+              error: '#ba1a1a',
+              'on-background': '#1c1c17',
+              'surface-container-highest': '#e5e2da',
+              primary: '#236849',
+              background: '#fcf9f0',
+              tertiary: '#506050',
+              'surface-tint': '#266a4c',
+              'on-secondary-fixed-variant': '#024f51',
+              'surface-container-lowest': '#ffffff',
+              'on-tertiary-fixed-variant': '#3b4b3c',
+              'primary-container': '#3f8161',
+              'on-secondary-fixed': '#002020',
+              'surface-variant': '#e5e2da',
+              'on-primary-fixed': '#002113',
+              'tertiary-fixed': '#d6e7d3',
+              'inverse-primary': '#91d5b0',
+              'surface-container': '#f1eee5',
+              'on-primary-fixed-variant': '#025235',
+              'on-tertiary': '#ffffff',
+              'surface-container-low': '#f6f3ea',
+              outline: '#707972',
+              'surface-bright': '#fcf9f0',
+              'on-surface-variant': '#404943',
+              'on-error': '#ffffff',
+              'primary-fixed-dim': '#91d5b0',
+              'on-tertiary-container': '#f7fff3',
+              'on-primary': '#ffffff',
+              'error-container': '#ffdad6',
+              'primary-fixed': '#acf2cb',
+              'inverse-surface': '#31312b',
+              'inverse-on-surface': '#f4f1e8',
+              'secondary-fixed': '#afeeee',
+              'secondary-container': '#afeeee',
+              'surface-dim': '#dddad1',
+              surface: '#fcf9f0',
+              'secondary-fixed-dim': '#94d1d2',
+              secondary: '#276769',
+              'surface-container-high': '#ebe8df',
+              'tertiary-container': '#687968',
+              'on-primary-container': '#f6fff6',
+              'on-error-container': '#93000a',
+              'tertiary-fixed-dim': '#bacbb8',
+              'on-tertiary-fixed': '#111f13',
+              'on-secondary': '#ffffff',
+              'on-surface': '#1c1c17',
+              'on-secondary-container': '#2f6e6f',
+            },
+            borderRadius: {
+              DEFAULT: '0.25rem',
+              lg: '0.5rem',
+              xl: '0.75rem',
+              '2xl': '1.5rem',
+              full: '9999px',
+            },
+            fontFamily: {
+              headline: ['Manrope', 'sans-serif'],
+              display: ['Manrope', 'sans-serif'],
+              body: ['Manrope', 'sans-serif'],
+              label: ['Manrope', 'sans-serif'],
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body
+    class="bg-surface text-on-surface font-body antialiased min-h-screen flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed"
+  >
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <nav
+      class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl shadow-sm transition-all duration-300"
+      aria-label="Main navigation"
+    >
+      <div
+        class="nav-wrapper relative flex justify-between items-center px-8 py-4 max-w-7xl mx-auto"
+      >
+        <a
+          class="text-[1.375rem] font-bold text-primary tracking-wide font-headline flex items-center gap-2"
+          href="index.html"
+        >
+          <img src="assets/logo.svg" alt="Yotara" class="h-8 w-8" />
+          Yotara
+        </a>
+        <div
+          id="nav-links"
+          class="nav-links hidden md:flex items-center gap-8 text-[1.125rem] tracking-tight"
+        >
+          <a
+            class="nav-link text-on-surface-variant hover:text-primary rounded-xl px-4 py-2 font-medium transition-colors hover:bg-surface-container-high/50"
+            href="index.html"
+            >Home</a
+          >
+          <a
+            class="nav-link nav-link-active text-primary rounded-xl px-4 py-2 font-medium transition-colors hover:bg-surface-container-high/50"
+            href="features.html"
+            aria-current="page"
+            >Features</a
+          >
+          <a
+            class="nav-link text-on-surface-variant hover:text-primary rounded-xl px-4 py-2 font-medium transition-colors hover:bg-surface-container-high/50"
+            href="install.html"
+            >Install</a
+          >
+          <a
+            class="nav-link text-on-surface-variant hover:text-primary rounded-xl px-4 py-2 font-medium transition-colors hover:bg-surface-container-high/50"
+            href="blog.html"
+            >Blog</a
+          >
+        </div>
+        <a
+          class="btn-primary bg-primary text-on-primary px-6 py-3 rounded-2xl font-medium tracking-wide hidden md:inline-block text-center"
+          href="https://beta.yotara.website"
+        >
+          Try the Beta
+        </a>
+        <button
+          class="mobile-menu-btn md:hidden text-on-surface p-2"
+          aria-label="Toggle navigation"
+          aria-expanded="false"
+          aria-controls="nav-links"
+        >
+          <span class="material-symbols-outlined text-3xl">menu</span>
+        </button>
+      </div>
+    </nav>
+
+    <main id="main-content" class="flex-grow pt-24">
+      <section class="py-20 bg-surface">
+        <div class="max-w-3xl mx-auto px-8 text-center">
+          <h1
+            class="hero-fade-in text-[2rem] md:text-[3.5rem] leading-[1.1] font-display font-extrabold text-on-surface mb-6 tracking-tight"
+          >
+            Built for focus, <br /><span class="text-primary">not for noise</span>.
+          </h1>
+          <p
+            class="hero-fade-in hero-fade-in-delay-1 text-xl text-on-surface-variant leading-relaxed max-w-2xl mx-auto"
+          >
+            Every feature in Yotara serves one purpose: helping you focus on what matters.
+          </p>
+        </div>
+      </section>
+
+      <section class="py-24 bg-surface-container-low animate-in">
+        <div class="max-w-7xl mx-auto px-8">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <h2 class="text-[2rem] font-display font-bold text-on-surface mb-4 tracking-tight">
+                Full control over your tasks
+              </h2>
+              <p class="text-lg text-on-surface-variant mb-6 leading-relaxed">
+                Three views — Inbox, Today, and Upcoming — give you full visibility into what needs
+                your attention. No configuration required.
+              </p>
+              <ul class="space-y-3">
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Inbox view — your capture hub. Everything lands here first.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Today view — what's urgent and due right now.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Upcoming — plan your week and see what's ahead.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Priority levels (low, medium, high) with color indicators.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Due dates and completion tracking with calendar picker.</span
+                  >
+                </li>
+              </ul>
+            </div>
+            <div
+              class="relative w-full h-[300px] md:h-[400px] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(28,28,23,0.08)] ring-1 ring-outline-variant/15 bg-surface"
+            >
+              <div
+                class="absolute top-0 w-full h-12 bg-surface-container-low border-b border-outline-variant/15 flex items-center px-4 gap-2"
+              >
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div
+                  class="ml-4 flex-grow h-6 bg-surface-container-highest/50 rounded-md"
+                  aria-hidden="true"
+                ></div>
+              </div>
+              <div class="flex items-center justify-center h-full pt-12" aria-hidden="true">
+                <span class="material-symbols-outlined text-6xl text-outline-variant"
+                  >checklist</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="py-24 bg-surface animate-in-left">
+        <div class="max-w-7xl mx-auto px-8">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div
+              class="order-last lg:order-first relative w-full h-[300px] md:h-[400px] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(28,28,23,0.08)] ring-1 ring-outline-variant/15 bg-surface-container-low"
+            >
+              <div
+                class="absolute top-0 w-full h-12 bg-surface-container-low border-b border-outline-variant/15 flex items-center px-4 gap-2"
+              >
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div
+                  class="ml-4 flex-grow h-6 bg-surface-container-highest/50 rounded-md"
+                  aria-hidden="true"
+                ></div>
+              </div>
+              <div class="flex items-center justify-center h-full pt-12" aria-hidden="true">
+                <span class="material-symbols-outlined text-6xl text-outline-variant">folder</span>
+              </div>
+            </div>
+            <div>
+              <h2 class="text-[2rem] font-display font-bold text-on-surface mb-4 tracking-tight">
+                Projects, labels, and buckets
+              </h2>
+              <p class="text-lg text-on-surface-variant mb-6 leading-relaxed">
+                Organize work your way. Color-coded projects group related tasks. Labels add
+                cross-cutting tags. Buckets help you enter deep focus mode.
+              </p>
+              <ul class="space-y-3">
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Projects with customizable colors — work, personal, any category.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Labels for cross-cutting tags like "urgent" or "design review."</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Bucket system for deep focus sessions — batch related work.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Filter across any view by project, label, or priority.</span
+                  >
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="py-24 bg-surface-container-low animate-in">
+        <div class="max-w-7xl mx-auto px-8">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <h2 class="text-[2rem] font-display font-bold text-on-surface mb-4 tracking-tight">
+                Set it and forget it
+              </h2>
+              <p class="text-lg text-on-surface-variant mb-6 leading-relaxed">
+                Daily standups, weekly reports, monthly bills. Recurring tasks materialize
+                automatically on completion — you'll never miss a repeating task again.
+              </p>
+              <ul class="space-y-3">
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Daily, weekdays, weekly, monthly, and yearly intervals.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Tasks materialize on completion — not on a fixed schedule.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Works with subtasks and priority levels.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Visual indicator shows the recurrence pattern.</span
+                  >
+                </li>
+              </ul>
+            </div>
+            <div
+              class="relative w-full h-[300px] md:h-[400px] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(28,28,23,0.08)] ring-1 ring-outline-variant/15 bg-surface"
+            >
+              <div
+                class="absolute top-0 w-full h-12 bg-surface-container-low border-b border-outline-variant/15 flex items-center px-4 gap-2"
+              >
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div
+                  class="ml-4 flex-grow h-6 bg-surface-container-highest/50 rounded-md"
+                  aria-hidden="true"
+                ></div>
+              </div>
+              <div class="flex items-center justify-center h-full pt-12" aria-hidden="true">
+                <span class="material-symbols-outlined text-6xl text-outline-variant">repeat</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="py-24 bg-surface animate-in-right">
+        <div class="max-w-7xl mx-auto px-8">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div
+              class="order-last lg:order-first relative w-full h-[300px] md:h-[400px] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(28,28,23,0.08)] ring-1 ring-outline-variant/15 bg-surface-container-low"
+            >
+              <div
+                class="absolute top-0 w-full h-12 bg-surface-container-low border-b border-outline-variant/15 flex items-center px-4 gap-2"
+              >
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div
+                  class="ml-4 flex-grow h-6 bg-surface-container-highest/50 rounded-md"
+                  aria-hidden="true"
+                ></div>
+              </div>
+              <div class="flex items-center justify-center h-full pt-12" aria-hidden="true">
+                <span class="material-symbols-outlined text-6xl text-outline-variant"
+                  >playlist_remove</span
+                >
+              </div>
+            </div>
+            <div>
+              <h2 class="text-[2rem] font-display font-bold text-on-surface mb-4 tracking-tight">
+                Break it down
+              </h2>
+              <p class="text-lg text-on-surface-variant mb-6 leading-relaxed">
+                Split big tasks into manageable subtasks. Track progress at a glance with the
+                completion bar. One level deep keeps things simple — no infinite nesting.
+              </p>
+              <ul class="space-y-3">
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >One level deep — enough to break things down, not enough to get lost.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Progress bar on the parent task updates automatically.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Parent project inheritance — subtasks belong to the same project.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Works with recurring tasks for repeating checklists.</span
+                  >
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="py-24 bg-surface-container-low animate-in">
+        <div class="max-w-7xl mx-auto px-8">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <h2 class="text-[2rem] font-display font-bold text-on-surface mb-4 tracking-tight">
+                Write with markdown
+              </h2>
+              <p class="text-lg text-on-surface-variant mb-6 leading-relaxed">
+                Format task notes with markdown and preview them live. The built-in toolbar means
+                you don't need to remember syntax. Output is sanitized and safe.
+              </p>
+              <ul class="space-y-3">
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Format toolbar for bold, italic, headings, lists, and links.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Live preview — see the rendered result as you type.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >DOMPurify sanitized HTML output — safe for display.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Code blocks with monospace formatting.</span
+                  >
+                </li>
+              </ul>
+            </div>
+            <div
+              class="relative w-full h-[300px] md:h-[400px] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(28,28,23,0.08)] ring-1 ring-outline-variant/15 bg-surface"
+            >
+              <div
+                class="absolute top-0 w-full h-12 bg-surface-container-low border-b border-outline-variant/15 flex items-center px-4 gap-2"
+              >
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div
+                  class="ml-4 flex-grow h-6 bg-surface-container-highest/50 rounded-md"
+                  aria-hidden="true"
+                ></div>
+              </div>
+              <div class="flex items-center justify-center h-full pt-12" aria-hidden="true">
+                <span class="material-symbols-outlined text-6xl text-outline-variant">code</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="py-24 bg-surface animate-in-left">
+        <div class="max-w-7xl mx-auto px-8">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div
+              class="order-last lg:order-first relative w-full h-[300px] md:h-[400px] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(28,28,23,0.08)] ring-1 ring-outline-variant/15 bg-surface-container-low"
+            >
+              <div
+                class="absolute top-0 w-full h-12 bg-surface-container-low border-b border-outline-variant/15 flex items-center px-4 gap-2"
+              >
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div
+                  class="ml-4 flex-grow h-6 bg-surface-container-highest/50 rounded-md"
+                  aria-hidden="true"
+                ></div>
+              </div>
+              <div class="flex items-center justify-center h-full pt-12" aria-hidden="true">
+                <span class="material-symbols-outlined text-6xl text-outline-variant"
+                  >database</span
+                >
+              </div>
+            </div>
+            <div>
+              <h2 class="text-[2rem] font-display font-bold text-on-surface mb-4 tracking-tight">
+                Your data, your rules
+              </h2>
+              <p class="text-lg text-on-surface-variant mb-6 leading-relaxed">
+                Export everything as JSON or CSV with one click. Self-hosted means your data never
+                leaves your server. No vendor lock-in. No surprises.
+              </p>
+              <ul class="space-y-3">
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Export all tasks to JSON — full fidelity, machine-readable.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Export to CSV — open in any spreadsheet application.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Direct SQLite database access — query your data directly.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >No vendor lock-in — your data is always portable.</span
+                  >
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="py-24 bg-surface-container-low animate-in">
+        <div class="max-w-7xl mx-auto px-8">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <h2 class="text-[2rem] font-display font-bold text-on-surface mb-4 tracking-tight">
+                7 handcrafted themes
+              </h2>
+              <p class="text-lg text-on-surface-variant mb-6 leading-relaxed">
+                Every theme is designed by hand, not auto-generated from an algorithm. From the warm
+                forest floor to the deep ocean trench — pick the atmosphere that helps you focus.
+              </p>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                <div
+                  class="flex flex-col items-center gap-1 p-3 rounded-xl bg-surface-container-highest cursor-default select-none"
+                >
+                  <span class="text-2xl" aria-hidden="true">🌿</span>
+                  <span class="text-xs text-on-surface-variant text-center leading-tight"
+                    >Light Forest</span
+                  >
+                </div>
+                <div
+                  class="flex flex-col items-center gap-1 p-3 rounded-xl cursor-default select-none"
+                  style="background-color: #1a241f"
+                >
+                  <span class="text-2xl" aria-hidden="true">🌲</span>
+                  <span class="text-xs text-center leading-tight" style="color: #a5d6a7"
+                    >Dark Forest</span
+                  >
+                </div>
+                <div
+                  class="flex flex-col items-center gap-1 p-3 rounded-xl bg-surface-container-highest cursor-default select-none"
+                >
+                  <span class="text-2xl" aria-hidden="true">🌊</span>
+                  <span class="text-xs text-on-surface-variant text-center leading-tight"
+                    >Coastal Calm</span
+                  >
+                </div>
+                <div
+                  class="flex flex-col items-center gap-1 p-3 rounded-xl bg-surface-container-highest cursor-default select-none"
+                >
+                  <span class="text-2xl" aria-hidden="true">🏔️</span>
+                  <span class="text-xs text-on-surface-variant text-center leading-tight"
+                    >Minimal Slate</span
+                  >
+                </div>
+                <div
+                  class="flex flex-col items-center gap-1 p-3 rounded-xl cursor-default select-none"
+                  style="background-color: #1a1625"
+                >
+                  <span class="text-2xl" aria-hidden="true">🔮</span>
+                  <span class="text-xs text-center leading-tight" style="color: #9575cd"
+                    >Midnight Amethyst</span
+                  >
+                </div>
+                <div
+                  class="flex flex-col items-center gap-1 p-3 rounded-xl bg-surface-container-highest cursor-default select-none"
+                >
+                  <span class="text-2xl" aria-hidden="true">🌅</span>
+                  <span class="text-xs text-on-surface-variant text-center leading-tight"
+                    >Golden Hour</span
+                  >
+                </div>
+                <div
+                  class="flex flex-col items-center gap-1 p-3 rounded-xl cursor-default select-none"
+                  style="background-color: #0a121e"
+                >
+                  <span class="text-2xl" aria-hidden="true">🌊</span>
+                  <span class="text-xs text-center leading-tight" style="color: #009688"
+                    >Deep Trench</span
+                  >
+                </div>
+              </div>
+              <p class="text-sm text-on-surface-variant">Plenty of choices to match your mood.</p>
+            </div>
+            <div
+              class="relative w-full h-[300px] md:h-[400px] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(28,28,23,0.08)] ring-1 ring-outline-variant/15 bg-surface"
+            >
+              <div
+                class="absolute top-0 w-full h-12 bg-surface-container-low border-b border-outline-variant/15 flex items-center px-4 gap-2"
+              >
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div
+                  class="ml-4 flex-grow h-6 bg-surface-container-highest/50 rounded-md"
+                  aria-hidden="true"
+                ></div>
+              </div>
+              <div class="flex items-center justify-center h-full pt-12" aria-hidden="true">
+                <span class="material-symbols-outlined text-6xl text-outline-variant">palette</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="py-24 bg-surface animate-in-right">
+        <div class="max-w-7xl mx-auto px-8">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div
+              class="order-last lg:order-first relative w-full h-[300px] md:h-[400px] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(28,28,23,0.08)] ring-1 ring-outline-variant/15 bg-surface-container-low"
+            >
+              <div
+                class="absolute top-0 w-full h-12 bg-surface-container-low border-b border-outline-variant/15 flex items-center px-4 gap-2"
+              >
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div
+                  class="ml-4 flex-grow h-6 bg-surface-container-highest/50 rounded-md"
+                  aria-hidden="true"
+                ></div>
+              </div>
+              <div class="flex items-center justify-center h-full pt-12" aria-hidden="true">
+                <span class="material-symbols-outlined text-6xl text-outline-variant">shield</span>
+              </div>
+            </div>
+            <div>
+              <h2 class="text-[2rem] font-display font-bold text-on-surface mb-4 tracking-tight">
+                Privacy by design
+              </h2>
+              <p class="text-lg text-on-surface-variant mb-6 leading-relaxed">
+                Your data stays on your server. No cloud dependency, no tracking scripts. Deploy on
+                your own infrastructure and keep full control. Yotara is yours.
+              </p>
+              <ul class="space-y-3">
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Deploy with a single Docker command on any server.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >No telemetry, no analytics, no tracking of any kind.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Full SQLite database access — inspect and back up freely.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span
+                    class="material-symbols-outlined text-primary text-xl mt-0.5"
+                    aria-hidden="true"
+                    >check</span
+                  ><span class="text-on-surface-variant"
+                    >Open source (MIT) — verify the code yourself.</span
+                  >
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="w-full mt-auto bg-inverse-surface">
+      <div class="max-w-7xl mx-auto py-16 px-8 grid grid-cols-1 md:grid-cols-4 gap-12">
+        <div class="md:col-span-1">
+          <h2 class="text-[1.25rem] font-bold text-surface-bright mb-4 font-headline">Yotara</h2>
+          <p class="leading-relaxed text-surface-variant mb-6">
+            &copy; <span class="copyright-year">2026</span> Yotara. Built by
+            <a href="https://github.com/apauldev" class="hover:underline">apauldev</a>.
+          </p>
+        </div>
+        <div>
+          <h4 class="text-primary-fixed font-bold mb-4 font-headline tracking-wide">Pages</h4>
+          <ul class="space-y-3">
+            <li>
+              <a
+                class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
+                href="index.html"
+                >Home</a
+              >
+            </li>
+            <li>
+              <a
+                class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
+                href="features.html"
+                >Features</a
+              >
+            </li>
+            <li>
+              <a
+                class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
+                href="install.html"
+                >Install</a
+              >
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-primary-fixed font-bold mb-4 font-headline tracking-wide">Resources</h4>
+          <ul class="space-y-3">
+            <li>
+              <a
+                class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
+                href="https://github.com/apauldev/yotara"
+                >Documentation</a
+              >
+            </li>
+            <li>
+              <a
+                class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
+                href="blog.html"
+                >Blog</a
+              >
+            </li>
+            <li>
+              <a
+                class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
+                href="privacy.html"
+                >Privacy</a
+              >
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-primary-fixed font-bold mb-4 font-headline tracking-wide">GitHub</h4>
+          <ul class="space-y-3">
+            <li>
+              <a
+                class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
+                href="https://github.com/apauldev/yotara"
+                >Source Code</a
+              >
+            </li>
+            <li>
+              <a
+                class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
+                href="https://github.com/apauldev/yotara/issues"
+                >Issue Tracker</a
+              >
+            </li>
+            <li>
+              <a
+                class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
+                href="https://github.com/apauldev/yotara/releases"
+                >Releases</a
+              >
+            </li>
+          </ul>
+        </div>
+      </div>
+    </footer>
+
+    <div
+      id="gdpr-banner"
+      class="fixed bottom-0 left-0 right-0 z-50 bg-inverse-surface text-surface-bright px-6 py-4 shadow-2xl translate-y-full transition-transform duration-500"
+      role="alert"
+      aria-live="polite"
+    >
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <p class="text-sm leading-relaxed flex-grow">
+          Yotara does not use cookies. The Cloudflare CDN may process your IP address and
+          approximate location for routing and caching. No tracking or personal data is stored.
+          <a
+            href="privacy.html"
+            class="text-primary-fixed underline hover:no-underline whitespace-nowrap"
+            >Learn more</a
+          >
+        </p>
+        <button
+          id="gdpr-dismiss"
+          class="shrink-0 bg-surface-bright text-inverse-surface px-5 py-3 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity min-h-[44px]"
+        >
+          Got it
+        </button>
+      </div>
+    </div>
+
+    <script src="js/scripts.js"></script>
+  </body>
+</html>
