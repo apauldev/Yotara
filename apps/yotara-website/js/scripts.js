@@ -98,6 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
         navLinks.classList.add('flex');
         menuBtn.setAttribute('aria-expanded', 'false');
         if (menuIcon) menuIcon.textContent = 'menu';
+        document.body.style.overflow = '';
       } else if (!navLinks.classList.contains('open')) {
         navLinks.classList.add('hidden');
       }
