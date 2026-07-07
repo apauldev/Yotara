@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.63.1](https://github.com/apauldev/Yotara/compare/v0.63.0...v0.63.1) (2026-07-07)
+
+
+### Bug Fixes
+
+* self-host Material Symbols class so icons don't break when Google Fonts is slow ([3bff681](https://github.com/apauldev/Yotara/commit/3bff681cfa151c75faba7a31a79d4c6efab0c461))
+
 ## [0.63.0](https://github.com/apauldev/Yotara/compare/v0.62.3...v0.63.0) (2026-07-07)
 
 
