@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Yotara — Focused Task Management</title>
+    <title>Yotara — Self-hosted task manager</title>
     <meta
       name="description"
       content="A lightweight, self-hosted task manager that puts your privacy first. Capture, organize, and focus — without the noise."
@@ -13,7 +13,7 @@
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
 
     <!-- Open Graph / Social -->
-    <meta property="og:title" content="Yotara — Focused Task Management" />
+    <meta property="og:title" content="Yotara — Self-hosted task manager" />
     <meta
       property="og:description"
       content="A lightweight, self-hosted task manager that puts your privacy first. Capture, organize, and focus — without the noise."
@@ -128,7 +128,7 @@
       >
         <a
           class="text-[1.375rem] font-bold text-primary tracking-wide font-headline flex items-center gap-2"
-          href="index.html"
+          href="/"
         >
           <img src="assets/logo.svg" alt="Yotara" class="h-8 w-8" />
           Yotara
@@ -139,23 +139,23 @@
         >
           <a
             class="nav-link nav-link-active text-primary rounded-xl px-4 py-2 font-medium transition-colors hover:bg-surface-container-high/50"
-            href="index.html"
+            href="/"
             aria-current="page"
             >Home</a
           >
           <a
             class="nav-link text-on-surface-variant hover:text-primary rounded-xl px-4 py-2 font-medium transition-colors hover:bg-surface-container-high/50"
-            href="features.html"
+            href="/features"
             >Features</a
           >
           <a
             class="nav-link text-on-surface-variant hover:text-primary rounded-xl px-4 py-2 font-medium transition-colors hover:bg-surface-container-high/50"
-            href="install.html"
+            href="/install"
             >Install</a
           >
           <a
             class="nav-link text-on-surface-variant hover:text-primary rounded-xl px-4 py-2 font-medium transition-colors hover:bg-surface-container-high/50"
-            href="blog.html"
+            href="/blog"
             >Blog</a
           >
         </div>
@@ -192,14 +192,13 @@
               <h1
                 class="hero-fade-in hero-fade-in-delay-2 text-[2rem] md:text-[4rem] leading-[1.1] font-display font-extrabold text-on-surface mb-6 tracking-tight"
               >
-                Your sanctuary for <br /><span class="text-primary">focused task</span> management.
+                A lightweight, self-hosted<br /><span class="text-primary">task manager</span> that
+                puts your privacy first.
               </h1>
               <p
                 class="hero-fade-in hero-fade-in-delay-3 text-xl text-on-surface-variant mb-10 leading-relaxed"
               >
-                Escape the noise of modern work. Yotara is a beautifully minimal, self-hosted
-                workspace designed to bring clarity to your day, without the clutter of conventional
-                tools.
+                Capture, organize, and focus. Your data stays on your server, under your control.
               </p>
               <div
                 class="hero-fade-in hero-fade-in-delay-3 flex flex-col sm:flex-row items-start sm:items-center gap-6"
@@ -212,7 +211,7 @@
                 </a>
                 <a
                   class="btn-ghost group flex items-center gap-2 text-primary font-semibold text-lg hover:text-primary-container transition-colors py-4"
-                  href="#features"
+                  href="#steps"
                 >
                   How it works
                   <span
@@ -245,17 +244,60 @@
         ></div>
       </section>
 
+      <section class="py-32 bg-surface-container-low animate-in">
+        <div class="max-w-7xl mx-auto px-8">
+          <div class="mb-16 max-w-3xl">
+            <h2
+              class="text-[1.75rem] md:text-[2.5rem] font-display font-bold mb-6 tracking-tight text-on-surface"
+            >
+              A quieter alternative
+            </h2>
+            <p class="text-xl text-on-surface-variant leading-relaxed">
+              Todoist asks for a subscription. Vikunja asks for a lot of setup. Notion asks you to
+              build your own system from a blank page. Yotara just works, on your own server.
+            </p>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="p-6 rounded-2xl bg-surface">
+              <h3 class="text-lg font-bold text-on-surface mb-4 font-headline">Todoist</h3>
+              <p class="text-on-surface-variant leading-relaxed">
+                Solid app. Ongoing subscription. Your data lives on their servers.
+              </p>
+            </div>
+            <div class="p-6 rounded-2xl bg-surface">
+              <h3 class="text-lg font-bold text-on-surface mb-4 font-headline">Vikunja</h3>
+              <p class="text-on-surface-variant leading-relaxed">
+                Self-hosted, like Yotara. Heavier to set up and run.
+              </p>
+            </div>
+            <div class="p-6 rounded-2xl bg-surface">
+              <h3 class="text-lg font-bold text-on-surface mb-4 font-headline">Notion</h3>
+              <p class="text-on-surface-variant leading-relaxed">
+                Flexible enough to build anything. You have to build it yourself.
+              </p>
+            </div>
+            <div class="p-6 rounded-2xl bg-primary text-on-primary">
+              <h3 class="text-lg font-bold mb-4 font-headline text-on-primary">Yotara</h3>
+              <p class="text-on-primary leading-relaxed">
+                Self-hosted, opinionated out of the box, free forever. Your data never leaves your
+                server.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="py-32 bg-surface animate-in" id="features">
         <div class="max-w-7xl mx-auto px-8">
           <div class="mb-20 max-w-3xl">
             <h2
               class="text-[1.75rem] md:text-[2.5rem] font-display font-bold mb-6 tracking-tight text-on-surface"
             >
-              Designed for clarity.
+              Focus on what matters
             </h2>
             <p class="text-xl text-on-surface-variant leading-relaxed">
-              Everything you need to organize your mind, carefully refined into a seamless
-              experience. No bloated features, just focus.
+              Projects and labels for organizing work without forcing a schema on it. Capture
+              quickly, triage when you're ready.
             </p>
           </div>
           <div class="stagger-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -270,8 +312,8 @@
               </div>
               <h3 class="text-xl font-bold mb-3 font-headline text-on-surface">Quick Capture</h3>
               <p class="text-on-surface-variant leading-relaxed">
-                Instantly record thoughts before they vanish. Global shortcuts and a seamless entry
-                flow keep you in the zone.
+                Hit the capture bar, type your task, and move on. Set dates with the date picker and
+                flag priorities with simple markers.
               </p>
             </div>
             <div
@@ -287,8 +329,8 @@
                 Projects &amp; Labels
               </h3>
               <p class="text-on-surface-variant leading-relaxed">
-                Organize complex workflows effortlessly with nested projects and flexible tagging
-                systems tailored to you.
+                Group related tasks, set dates, tag with labels. Stay organized across work,
+                personal, and everything in between.
               </p>
             </div>
             <div
@@ -304,10 +346,143 @@
                 Subtasks &amp; Recurring
               </h3>
               <p class="text-on-surface-variant leading-relaxed">
-                Break monumental goals into manageable steps. Set it and forget it with powerful
-                recurring schedules.
+                Break big tasks into steps. Set recurring schedules once and let them run &mdash;
+                daily, weekly, or custom.
               </p>
             </div>
+            <div
+              class="stagger-item feature-card p-8 rounded-2xl bg-surface-container-low hover:bg-surface-container-high group"
+            >
+              <div
+                class="w-14 h-14 rounded-2xl bg-surface-container-highest flex items-center justify-center mb-6 group-hover:bg-primary-fixed/30 transition-colors"
+                aria-hidden="true"
+              >
+                <span class="material-symbols-outlined text-3xl text-primary">edit_note</span>
+              </div>
+              <h3 class="text-xl font-bold mb-3 font-headline text-on-surface">Rich Markdown</h3>
+              <p class="text-on-surface-variant leading-relaxed">
+                Write with markdown formatting and preview live. Built-in toolbar for bold, lists,
+                and links — no syntax to memorize.
+              </p>
+            </div>
+            <div
+              class="stagger-item feature-card p-8 rounded-2xl bg-surface-container-low hover:bg-surface-container-high group"
+            >
+              <div
+                class="w-14 h-14 rounded-2xl bg-surface-container-highest flex items-center justify-center mb-6 group-hover:bg-primary-fixed/30 transition-colors"
+                aria-hidden="true"
+              >
+                <span class="material-symbols-outlined text-3xl text-primary">palette</span>
+              </div>
+              <h3 class="text-xl font-bold mb-3 font-headline text-on-surface">
+                7 Handcrafted Themes
+              </h3>
+              <p class="text-on-surface-variant leading-relaxed">
+                From Light Forest to Deep Trench. Every theme is handmade, not auto-generated. Light
+                and dark modes included.
+              </p>
+            </div>
+            <div
+              class="stagger-item feature-card p-8 rounded-2xl bg-surface-container-low hover:bg-surface-container-high group"
+            >
+              <div
+                class="w-14 h-14 rounded-2xl bg-surface-container-highest flex items-center justify-center mb-6 group-hover:bg-primary-fixed/30 transition-colors"
+                aria-hidden="true"
+              >
+                <span class="material-symbols-outlined text-3xl text-primary">shield</span>
+              </div>
+              <h3 class="text-xl font-bold mb-3 font-headline text-on-surface">Self-Hosted</h3>
+              <p class="text-on-surface-variant leading-relaxed">
+                Your data stays on your server. No vendor lock-in. No tracking, no telemetry, no
+                privacy concerns.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="py-32 bg-surface-container-low animate-in" id="steps">
+        <div class="max-w-7xl mx-auto px-8">
+          <div class="mb-16 max-w-3xl">
+            <h2
+              class="text-[1.75rem] md:text-[2.5rem] font-display font-bold mb-6 tracking-tight text-on-surface"
+            >
+              Three steps to clarity
+            </h2>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+            <div class="text-center">
+              <div
+                class="w-16 h-16 rounded-full bg-primary text-on-primary flex items-center justify-center mx-auto mb-6 text-2xl font-bold font-headline"
+                aria-hidden="true"
+              >
+                1
+              </div>
+              <h3 class="text-xl font-bold mb-3 font-headline text-on-surface">Capture</h3>
+              <p class="text-on-surface-variant leading-relaxed">
+                Hit the capture bar, type your task, and move on. Add dates and priorities as you go
+                &mdash; or just dump it in the inbox for later.
+              </p>
+            </div>
+            <div class="text-center">
+              <div
+                class="w-16 h-16 rounded-full bg-primary text-on-primary flex items-center justify-center mx-auto mb-6 text-2xl font-bold font-headline"
+                aria-hidden="true"
+              >
+                2
+              </div>
+              <h3 class="text-xl font-bold mb-3 font-headline text-on-surface">Organize</h3>
+              <p class="text-on-surface-variant leading-relaxed">
+                Add to a project, set a date, tag with labels. Your inbox stays clean &mdash; triage
+                when you&rsquo;re ready, not when the task arrives.
+              </p>
+            </div>
+            <div class="text-center">
+              <div
+                class="w-16 h-16 rounded-full bg-primary text-on-primary flex items-center justify-center mx-auto mb-6 text-2xl font-bold font-headline"
+                aria-hidden="true"
+              >
+                3
+              </div>
+              <h3 class="text-xl font-bold mb-3 font-headline text-on-surface">Focus</h3>
+              <p class="text-on-surface-variant leading-relaxed">
+                Let Today and Upcoming views guide your attention to what matters.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="py-32 bg-inverse-surface text-surface-bright">
+        <div class="max-w-7xl mx-auto px-8 text-center">
+          <h2 class="text-[1.75rem] md:text-[2.5rem] font-display font-bold mb-6 tracking-tight">
+            Built in public. Self-hosted. Yours.
+          </h2>
+          <p class="text-xl text-surface-variant leading-relaxed max-w-2xl mx-auto mb-10">
+            Yotara is open source under the MIT license. Deploy your own instance in one command. No
+            tracking, no telemetry, no data collection.
+          </p>
+          <div
+            class="inline-block bg-[#1a1a18] text-surface-bright rounded-xl px-6 py-4 mb-10 font-mono text-sm text-left w-full max-w-xl mx-auto overflow-x-auto"
+          >
+            <span class="text-surface-variant">$</span>
+            <span class="text-primary-fixed"
+              >docker run -d --name yotara -p 8080:80 apauldev/yotara:latest</span
+            >
+          </div>
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
+            <a
+              class="bg-primary text-on-primary px-8 py-4 rounded-2xl font-bold text-lg tracking-wide w-full sm:w-auto text-center hover:opacity-90 transition-opacity"
+              href="https://github.com/apauldev/yotara"
+            >
+              Star on GitHub
+            </a>
+            <a
+              class="bg-surface-bright text-inverse-surface px-8 py-4 rounded-2xl font-bold text-lg tracking-wide w-full sm:w-auto text-center hover:opacity-90 transition-opacity"
+              href="https://github.com/apauldev/yotara"
+            >
+              Explore the Repo
+            </a>
           </div>
         </div>
       </section>
@@ -328,21 +503,21 @@
             <li>
               <a
                 class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
-                href="index.html"
+                href="/"
                 >Home</a
               >
             </li>
             <li>
               <a
                 class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
-                href="features.html"
+                href="/features"
                 >Features</a
               >
             </li>
             <li>
               <a
                 class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
-                href="install.html"
+                href="/install"
                 >Install</a
               >
             </li>
@@ -361,14 +536,14 @@
             <li>
               <a
                 class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
-                href="blog.html"
+                href="/blog"
                 >Blog</a
               >
             </li>
             <li>
               <a
                 class="text-surface-variant hover:text-surface-bright transition-colors hover:underline decoration-primary-fixed/30"
-                href="privacy.html"
+                href="/privacy/"
                 >Privacy</a
               >
             </li>
@@ -411,10 +586,10 @@
     >
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <p class="text-sm leading-relaxed flex-grow">
-          Yotara does not use cookies. The Cloudflare CDN may process your IP address and
-          approximate location for routing and caching. No tracking or personal data is stored.
+          This site does not use cookies. Cloudflare CDN handles routing and Google Fonts serve
+          typography. No tracking or personal data is stored.
           <a
-            href="privacy.html"
+            href="/privacy/"
             class="text-primary-fixed underline hover:no-underline whitespace-nowrap"
             >Learn more</a
           >
