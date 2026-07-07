@@ -15,11 +15,7 @@ function formatDate(iso) {
 
 function excerptFor(post) {
   if (post.excerpt) return post.excerpt;
-  const text = post.content
-    .join(' ')
-    .replace(/[<>]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const text = post.content.join(' ').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim();
   const parts = text.split(/\s+/);
   if (parts.length <= 40) return text;
   return parts.slice(0, 40).join(' ') + '...';
@@ -172,13 +168,11 @@ function initBlog() {
   if (!container) return;
 
   let blogData = [];
-  let currentPage = 1;
   let totalPages = 0;
 
   function renderPage(page) {
     const start = (page - 1) * PER_PAGE;
     const entries = blogData.slice(start, start + PER_PAGE);
-    currentPage = page;
 
     container.innerHTML = entries.map((e) => renderEntry(e)).join('');
     stagger.innerHTML = renderPagination(page, totalPages);
