@@ -4,7 +4,7 @@
 
 .page {
   position: relative;
-  padding: 0.85rem 0 3rem;
+  padding: 0.85rem 0 5rem;
   scroll-margin-bottom: 6rem;
 }
 
@@ -116,7 +116,7 @@
   }
 
   &.active {
-    background: var(--bg-card, #fff);
+    background: var(--surface-container-lowest);
     color: var(--primary-solid);
     box-shadow: 0 2px 4px var(--surface-dim);
   }
@@ -158,7 +158,7 @@
 
   &:focus-within {
     box-shadow:
-      inset 0 0 0 1px var(--primary-soft-strong),
+      inset 0 0 0 1px color-mix(in srgb, var(--on-surface) 25%, transparent),
       0 10px 28px var(--surface-dim);
   }
 }

@@ -98,7 +98,7 @@ label {
 }
 
 .input-wrap-invalid {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary-solid) 60%, #c8846d);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--status-overdue) 40%, var(--outline-variant));
 }
 
 .input-icon {
@@ -143,13 +143,13 @@ input::placeholder {
 
 .error-msg {
   margin-top: 0.4rem;
-  color: #c8846d;
+  color: var(--status-overdue);
   font-size: 0.88rem;
 }
 
 .field-error {
   margin-top: 0.4rem;
-  color: #c8846d;
+  color: var(--status-overdue);
   font-size: 0.85rem;
 }
 

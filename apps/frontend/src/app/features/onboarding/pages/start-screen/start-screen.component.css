@@ -210,7 +210,7 @@ h1 {
 
 .submit-error {
   margin: 1rem 0 0;
-  color: #c8846d;
+  color: var(--status-overdue);
   font-size: 0.95rem;
 }
 

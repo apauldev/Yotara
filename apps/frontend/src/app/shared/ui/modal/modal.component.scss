@@ -15,8 +15,8 @@
   position: absolute;
   inset: 0;
   border: 0;
-  background: rgba(28, 28, 23, 0.22);
-  backdrop-filter: blur(10px);
+  background: var(--backdrop-overlay);
+  backdrop-filter: blur(8px);
 }
 
 .modal-card {

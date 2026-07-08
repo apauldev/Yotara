@@ -272,14 +272,15 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
 
       .task-check-complete .task-check-box {
         background: var(--primary-solid);
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+        box-shadow: inset 0 0 0 1px
+          color-mix(in srgb, hsl(var(--primary-foreground)) 18%, transparent);
       }
 
       .task-check-mark {
         width: 0.3rem;
         height: 0.55rem;
-        border-right: 2px solid #fff;
-        border-bottom: 2px solid #fff;
+        border-right: 2px solid hsl(var(--primary-foreground));
+        border-bottom: 2px solid hsl(var(--primary-foreground));
         transform: translateY(-0.05rem) rotate(45deg);
       }
 
@@ -477,12 +478,12 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
 
       .priority-chip-high {
         background: var(--danger-soft);
-        color: var(--status-overdue);
+        color: var(--priority-high);
       }
 
       .priority-chip-medium {
         background: var(--warning-soft);
-        color: var(--status-pending);
+        color: var(--priority-medium);
       }
 
       .priority-chip-low {

@@ -123,7 +123,7 @@ import { highlightInlineCommands } from '../../../shared/utils/html-helpers';
 
       &:focus-within {
         box-shadow:
-          inset 0 0 0 1px var(--primary-soft),
+          inset 0 0 0 1px color-mix(in srgb, var(--on-surface) 25%, transparent),
           0 12px 24px var(--surface-dim);
       }
     }

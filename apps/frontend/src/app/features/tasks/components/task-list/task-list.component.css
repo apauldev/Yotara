@@ -21,12 +21,12 @@
 
 .priority-high {
   background: var(--danger-soft);
-  color: #c8846d;
+  color: var(--priority-high);
 }
 
 .priority-medium {
   background: var(--warning-soft);
-  color: #b28734;
+  color: var(--priority-medium);
 }
 
 .priority-low {

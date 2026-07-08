@@ -46,8 +46,8 @@
   background: color-mix(in srgb, var(--surface-card) 85%, transparent);
   backdrop-filter: blur(12px);
   box-shadow:
-    0 12px 32px -4px rgb(0 0 0 / 12%),
-    0 4px 12px -2px rgb(0 0 0 / 8%),
+    0 12px 32px -4px var(--surface-dim-strong),
+    0 4px 12px -2px var(--surface-dim),
     inset 0 0 0 1px var(--outline-variant);
   display: flex;
   align-items: flex-start;
@@ -104,14 +104,14 @@
 
 /* Professional Color Palette */
 .toast-success {
-  color: #10b981;
-} /* Emerald 500 */
+  color: var(--success-strong);
+}
 .toast-error {
-  color: var(--status-overdue, #ef4444);
-} /* Rose 500 */
+  color: var(--status-overdue);
+}
 .toast-warning {
-  color: #f59e0b;
-} /* Amber 500 */
+  color: var(--status-pending);
+}
 .toast-info {
   color: var(--primary-solid);
 }
@@ -134,6 +134,6 @@
   .toast {
     padding: 1rem 1.25rem;
     border-radius: 1.25rem;
-    box-shadow: 0 20px 40px rgb(0 0 0 / 20%);
+    box-shadow: 0 20px 40px var(--surface-dim-strong);
   }
 }

@@ -1,5 +1,6 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
+import colorGuard from './scripts/eslint-no-hardcoded-color.mjs';
 
 export default [
   {
@@ -33,7 +34,11 @@ export default [
         projectService: true,
       },
     },
+    plugins: {
+      yotara: colorGuard,
+    },
     rules: {
+      'yotara/no-hardcoded-color-in-styles': 'error',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {

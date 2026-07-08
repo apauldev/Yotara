@@ -94,7 +94,7 @@ import { RouterLink } from '@angular/router';
           var(--surface-container-low),
           var(--surface-container-highest)
         );
-        box-shadow: 0 40px 80px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 40px 80px var(--surface-dim-strong);
         flex-shrink: 0;
         isolation: isolate;
       }
@@ -456,12 +456,12 @@ import { RouterLink } from '@angular/router';
         background: var(--primary-action-gradient);
         color: white;
         font-size: 1.15rem;
-        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 12px 35px var(--surface-dim-strong);
       }
 
       .btn-primary-action:hover {
         transform: translateY(-3px);
-        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 18px 50px var(--surface-dim-strong);
         filter: brightness(1.08);
       }
 
@@ -481,7 +481,7 @@ import { RouterLink } from '@angular/router';
           var(--surface-container-lowest),
           var(--surface-container-high)
         );
-        box-shadow: 0 40px 100px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 40px 100px var(--scrim-strong);
       }
       :host-context(.theme-dark-forest) .bird {
         filter: brightness(1.6);

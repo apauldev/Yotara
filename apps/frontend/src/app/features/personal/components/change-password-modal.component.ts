@@ -202,10 +202,10 @@ import { ModalComponent } from '../../../shared/ui/modal/modal.component';
         background: var(--error-solid);
       }
       .strength-medium {
-        background: #f1c582;
+        background: var(--warning-soft);
       }
       .strength-good {
-        background: #8dd0d6;
+        background: var(--success-soft);
       }
       .strength-strong {
         background: var(--primary-solid);
@@ -229,11 +229,11 @@ import { ModalComponent } from '../../../shared/ui/modal/modal.component';
       }
       .strength-label .strength-medium {
         background: transparent;
-        color: #f1c582;
+        color: var(--status-pending);
       }
       .strength-label .strength-good {
         background: transparent;
-        color: #2c7680;
+        color: var(--accent-strong);
       }
       .strength-label .strength-strong {
         background: transparent;

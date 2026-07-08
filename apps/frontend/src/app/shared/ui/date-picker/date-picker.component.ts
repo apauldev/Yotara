@@ -269,7 +269,8 @@ import { parseCalendarDate } from '../../utils/timestamps';
       .date-picker-day[data-selected] {
         background: var(--primary-gradient);
         color: hsl(var(--primary-foreground));
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+        box-shadow: inset 0 0 0 1px
+          color-mix(in srgb, hsl(var(--primary-foreground)) 18%, transparent);
       }
 
       .date-picker-day[data-disabled] {

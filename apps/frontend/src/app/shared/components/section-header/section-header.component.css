@@ -41,7 +41,7 @@
 
 .section-header-accent.section-header-lg h2,
 .section-header-accent.section-header-md h2 {
-  color: #c97c46;
+  color: var(--status-overdue);
 }
 
 .section-header-meta {

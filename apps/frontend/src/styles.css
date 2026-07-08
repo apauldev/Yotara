@@ -44,6 +44,8 @@
   --surface-card-strong: color-mix(in srgb, var(--surface-container-highest) 88%, white);
   --surface-dim: rgb(28 28 23 / 8%);
   --surface-dim-strong: rgb(28 28 23 / 14%);
+  --backdrop-overlay: color-mix(in srgb, var(--on-surface) 18%, transparent);
+  --scrim-strong: color-mix(in srgb, var(--on-surface) 30%, transparent);
   --primary-gradient: linear-gradient(135deg, #0d2a1d 0%, #1d533b 100%);
   --primary-action-gradient: linear-gradient(135deg, #1d533b 0%, #2e7b57 100%);
   --primary-solid: #0d2a1d;
@@ -59,6 +61,9 @@
   --status-overdue: #8c4b3a;
   --status-complete: #0d2a1d;
   --status-pending: #804a24;
+  --priority-high: #c44d3c;
+  --priority-medium: #d9a13d;
+  --priority-low: var(--primary-solid);
 }
 
 .theme-dark-forest {
@@ -97,6 +102,8 @@
   --surface-card-strong: color-mix(in srgb, var(--surface-container-highest) 90%, black);
   --surface-dim: rgb(208 224 212 / 6%);
   --surface-dim-strong: rgb(208 224 212 / 10%);
+  --backdrop-overlay: color-mix(in srgb, var(--on-surface) 18%, transparent);
+  --scrim-strong: color-mix(in srgb, var(--on-surface) 30%, transparent);
   --primary-gradient: linear-gradient(135deg, #a5d6a7 0%, #81c784 100%);
   --primary-action-gradient: linear-gradient(135deg, #81c784 0%, #66bb6a 100%);
   --primary-solid: #a5d6a7;
@@ -112,6 +119,9 @@
   --status-overdue: #ffab91;
   --status-complete: #a5d6a7;
   --status-pending: #ffcc80;
+  --priority-high: #ff8a7a;
+  --priority-medium: #e8b84a;
+  --priority-low: var(--primary-solid);
 }
 
 .theme-coastal-calm {
@@ -150,6 +160,8 @@
   --surface-card-strong: color-mix(in srgb, var(--surface-container-highest) 88%, white);
   --surface-dim: rgb(30 40 50 / 6%);
   --surface-dim-strong: rgb(30 40 50 / 10%);
+  --backdrop-overlay: color-mix(in srgb, var(--on-surface) 18%, transparent);
+  --scrim-strong: color-mix(in srgb, var(--on-surface) 30%, transparent);
   --primary-gradient: linear-gradient(135deg, #1a365d 0%, #2a4365 100%);
   --primary-action-gradient: linear-gradient(135deg, #2a4365 0%, #2c5282 100%);
   --primary-solid: #1a365d;
@@ -165,6 +177,9 @@
   --status-overdue: #8c4b3a;
   --status-complete: #1a365d;
   --status-pending: #804a24;
+  --priority-high: #c44d3c;
+  --priority-medium: #d9a13d;
+  --priority-low: var(--primary-solid);
 }
 
 .theme-minimal-slate {
@@ -203,6 +218,8 @@
   --surface-card-strong: color-mix(in srgb, var(--surface-container-highest) 88%, white);
   --surface-dim: rgb(30 30 35 / 6%);
   --surface-dim-strong: rgb(30 30 35 / 10%);
+  --backdrop-overlay: color-mix(in srgb, var(--on-surface) 18%, transparent);
+  --scrim-strong: color-mix(in srgb, var(--on-surface) 30%, transparent);
   --primary-gradient: linear-gradient(135deg, #1a1c1e 0%, #2a2d30 100%);
   --primary-action-gradient: linear-gradient(135deg, #2a2d30 0%, #3a3f44 100%);
   --primary-solid: #1a1c1e;
@@ -218,6 +235,9 @@
   --status-overdue: #8c4b3a;
   --status-complete: #1a1c1e;
   --status-pending: #804a24;
+  --priority-high: #c44d3c;
+  --priority-medium: #d9a13d;
+  --priority-low: var(--primary-solid);
 }
 
 .theme-midnight-amethyst {
@@ -256,6 +276,8 @@
   --surface-card-strong: color-mix(in srgb, var(--surface-container-highest) 90%, black);
   --surface-dim: rgb(220 210 240 / 6%);
   --surface-dim-strong: rgb(220 210 240 / 10%);
+  --backdrop-overlay: color-mix(in srgb, var(--on-surface) 18%, transparent);
+  --scrim-strong: color-mix(in srgb, var(--on-surface) 30%, transparent);
   --primary-gradient: linear-gradient(135deg, #9575cd 0%, #b39ddb 100%);
   --primary-action-gradient: linear-gradient(135deg, #b39ddb 0%, #d1c4e9 100%);
   --primary-solid: #9575cd;
@@ -271,6 +293,9 @@
   --status-overdue: #da8e78;
   --status-complete: #9575cd;
   --status-pending: #df9b6d;
+  --priority-high: #e87a6a;
+  --priority-medium: #e8b84a;
+  --priority-low: var(--primary-solid);
 }
 
 .theme-golden-hour {
@@ -309,6 +334,8 @@
   --surface-card-strong: color-mix(in srgb, var(--surface-container-highest) 88%, white);
   --surface-dim: rgb(60 50 40 / 6%);
   --surface-dim-strong: rgb(60 50 40 / 10%);
+  --backdrop-overlay: color-mix(in srgb, var(--on-surface) 18%, transparent);
+  --scrim-strong: color-mix(in srgb, var(--on-surface) 30%, transparent);
   --primary-gradient: linear-gradient(135deg, #8b5e3c 0%, #a67c52 100%);
   --primary-action-gradient: linear-gradient(135deg, #a67c52 0%, #c19a6b 100%);
   --primary-solid: #8b5e3c;
@@ -324,6 +351,9 @@
   --status-overdue: #af634e;
   --status-complete: #8b5e3c;
   --status-pending: #a05e2d;
+  --priority-high: #c44d3c;
+  --priority-medium: #d9a13d;
+  --priority-low: var(--primary-solid);
 }
 
 .theme-deep-trench {
@@ -362,6 +392,8 @@
   --surface-card-strong: color-mix(in srgb, var(--surface-container-highest) 90%, black);
   --surface-dim: rgb(200 220 240 / 6%);
   --surface-dim-strong: rgb(200 220 240 / 10%);
+  --backdrop-overlay: color-mix(in srgb, var(--on-surface) 18%, transparent);
+  --scrim-strong: color-mix(in srgb, var(--on-surface) 30%, transparent);
   --primary-gradient: linear-gradient(135deg, #009688 0%, #00bfa5 100%);
   --primary-action-gradient: linear-gradient(135deg, #00bfa5 0%, #1de9b6 100%);
   --primary-solid: #009688;
@@ -377,6 +409,9 @@
   --status-overdue: #da8e78;
   --status-complete: #009688;
   --status-pending: #df9b6d;
+  --priority-high: #e87a6a;
+  --priority-medium: #e8b84a;
+  --priority-low: var(--primary-solid);
 }
 
 @layer base {

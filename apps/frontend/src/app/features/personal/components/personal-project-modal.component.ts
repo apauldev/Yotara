@@ -127,7 +127,7 @@ import { PROJECT_PALETTE } from '../project-presentation';
         position: absolute;
         inset: 0;
         border: 0;
-        background: rgba(28, 28, 23, 0.18);
+        background: var(--backdrop-overlay);
         backdrop-filter: blur(10px);
       }
 
@@ -201,14 +201,14 @@ import { PROJECT_PALETTE } from '../project-presentation';
       }
 
       input.field-error {
-        box-shadow: inset 0 0 0 1px rgba(186, 109, 87, 0.55);
-        background: color-mix(in srgb, var(--surface-container-lowest) 88%, #f5e3da);
+        box-shadow: inset 0 0 0 1px var(--status-overdue);
+        background: color-mix(in srgb, var(--surface-container-lowest) 88%, var(--danger-soft));
       }
 
       .field-error-message,
       .error-copy {
         margin: 0;
-        color: #ba6d57;
+        color: var(--status-overdue);
         font-size: 0.88rem;
       }
 
@@ -226,7 +226,8 @@ import { PROJECT_PALETTE } from '../project-presentation';
         border-radius: 999px;
         border: 0;
         background: var(--chip-color);
-        box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.9);
+        box-shadow: inset 0 0 0 3px
+          color-mix(in srgb, hsl(var(--primary-foreground)) 90%, transparent);
       }
 
       .color-chip-active {

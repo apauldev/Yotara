@@ -83,7 +83,7 @@ import { TaskSortOption } from '../../utils/task-sort';
       }
 
       &.active {
-        background: var(--bg-card, #fff);
+        background: var(--surface-container-lowest);
         color: var(--primary-solid);
         box-shadow: 0 2px 4px var(--surface-dim);
       }

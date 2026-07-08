@@ -57,13 +57,13 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
         align-items: center;
         gap: 1rem;
         padding: 2rem 0;
-        border-top: 1px solid var(--border-subtle, #eee);
+        border-top: 1px solid var(--outline-variant);
         margin-top: 2rem;
       }
 
       .pagination-info {
         font-size: 0.875rem;
-        color: var(--text-muted, #666);
+        color: var(--on-surface-muted);
       }
 
       .pagination-controls {
@@ -79,9 +79,9 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
         width: 2.5rem;
         height: 2.5rem;
         border-radius: 0.5rem;
-        border: 1px solid var(--border-default, #ddd);
-        background: var(--bg-card, #fff);
-        color: var(--text-default, #333);
+        border: 1px solid var(--outline-variant);
+        background: var(--surface-container-lowest);
+        color: var(--on-surface);
         cursor: pointer;
         transition: all 0.2s;
       }
@@ -92,8 +92,8 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
       }
 
       .pagination-button:not(:disabled):hover {
-        background: var(--bg-hover, #f5f5f5);
-        border-color: var(--border-hover, #ccc);
+        background: var(--surface-container-low);
+        border-color: var(--outline-variant);
       }
 
       .pagination-pages {
@@ -111,21 +111,21 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
         border-radius: 0.5rem;
         border: 1px solid transparent;
         background: transparent;
-        color: var(--text-muted, #666);
+        color: var(--on-surface-muted);
         font-weight: 500;
         cursor: pointer;
         transition: all 0.2s;
       }
 
       .page-number:hover {
-        background: var(--bg-hover, #f5f5f5);
-        color: var(--text-default, #333);
+        background: var(--surface-container-low);
+        color: var(--on-surface);
       }
 
       .page-number.page-active {
-        background: var(--bg-active, #f0f0f0);
-        color: var(--text-accent, #000);
-        border-color: var(--border-default, #ddd);
+        background: var(--surface-container-high);
+        color: var(--on-surface);
+        border-color: var(--outline-variant);
       }
 
       .page-number.page-dots {
