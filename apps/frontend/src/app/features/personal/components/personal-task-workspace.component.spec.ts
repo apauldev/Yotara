@@ -90,6 +90,11 @@ describe('PersonalTaskWorkspaceComponent', () => {
       'remove',
     ]);
 
+    preferences = {
+      actionNotifications: signal(true),
+      setActionNotifications: jasmine.createSpy('setActionNotifications'),
+    } as unknown as PreferencesStore;
+
     await TestBed.configureTestingModule({
       imports: [WorkspaceHostComponent],
       providers: [
@@ -102,7 +107,6 @@ describe('PersonalTaskWorkspaceComponent', () => {
     }).compileComponents();
 
     fixture = TestBed.createComponent(WorkspaceHostComponent);
-    preferences = TestBed.inject(PreferencesStore);
   });
 
   it('projects content and keeps the modal closed by default', () => {
