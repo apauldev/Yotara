@@ -3,15 +3,18 @@ const ruleName = 'no-hardcoded-color-in-styles';
 const colorPattern = /(^|[^#\w-])(#[0-9a-fA-F]{3,8}\b|rgba?\(\s*\d|hsla?\(\s*\d)/;
 
 function checkText(node, text, context) {
-  if (/var\(|color-mix\(/i.test(text)) return;
   if (!/[{};:]/.test(text)) return;
-  const match = text.match(colorPattern);
-  if (match) {
-    context.report({
-      node,
-      messageId: 'rejected',
-      data: { value: (match[2] || match[0]).trim() },
-    });
+  for (const decl of text.split(';')) {
+    if (/var\(|color-mix\(/i.test(decl)) continue;
+    const match = decl.match(colorPattern);
+    if (match) {
+      context.report({
+        node,
+        messageId: 'rejected',
+        data: { value: (match[2] || match[0]).trim() },
+      });
+      return;
+    }
   }
 }
 
