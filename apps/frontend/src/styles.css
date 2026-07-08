@@ -431,3 +431,18 @@
     font-family: var(--font-sans);
   }
 }
+
+/* Inline command highlighting for capture bar — chip style */
+.hl-priority {
+  color: var(--priority-high);
+  font-weight: 500;
+  background: var(--danger-soft);
+  border-radius: 3px;
+}
+
+.hl-label {
+  color: var(--accent-strong);
+  font-weight: 500;
+  background: var(--accent-soft);
+  border-radius: 3px;
+}

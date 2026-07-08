@@ -21,7 +21,12 @@ import { highlightInlineCommands } from '../../../shared/utils/html-helpers';
   template: `
     <form id="capture" class="capture-bar" (ngSubmit)="submit.emit()">
       <div class="capture-input-container">
-        <div class="capture-highlighter" aria-hidden="true" [innerHTML]="highlightedTitle()"></div>
+        <div
+          #highlighter
+          class="capture-highlighter"
+          aria-hidden="true"
+          [innerHTML]="highlightedTitle()"
+        ></div>
         <input
           #captureInput
           type="text"
@@ -154,8 +159,6 @@ import { highlightInlineCommands } from '../../../shared/utils/html-helpers';
       overflow: hidden;
       pointer-events: none;
       color: var(--on-surface);
-      display: flex;
-      align-items: center;
     }
 
     .capture-bar input {
@@ -179,13 +182,13 @@ import { highlightInlineCommands } from '../../../shared/utils/html-helpers';
 
     :host ::ng-deep {
       .hl-priority {
-        color: var(--status-overdue);
-        font-weight: 800;
+        color: var(--priority-high);
+        font-weight: inherit;
       }
 
       .hl-label {
-        color: var(--primary-solid);
-        font-weight: 800;
+        color: var(--accent-strong);
+        font-weight: inherit;
       }
     }
 
@@ -370,6 +373,7 @@ export class CaptureBarComponent {
 
   private readonly labelService = inject(LabelService);
   private readonly captureInput = viewChild<ElementRef<HTMLInputElement>>('captureInput');
+  private readonly highlighter = viewChild<ElementRef<HTMLElement>>('highlighter');
 
   protected readonly tagSuggestions = computed(() => {
     const search = this.activeTagSearch();
@@ -431,6 +435,9 @@ export class CaptureBarComponent {
   protected onCaptureInput() {
     const input = this.captureInput()?.nativeElement;
     if (!input) return;
+
+    const hl = this.highlighter()?.nativeElement;
+    if (hl) hl.scrollLeft = input.scrollLeft;
 
     const value = input.value;
     const pos = input.selectionStart || 0;
