@@ -38,6 +38,6 @@
     "drizzle-kit": "^0.31.10",
     "rimraf": "^6.0.1",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   }
 }
