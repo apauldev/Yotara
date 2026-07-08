@@ -10,6 +10,20 @@ describe('PreferencesStore', () => {
     store = TestBed.inject(PreferencesStore);
   });
 
+  it('defaults actionNotifications to true', () => {
+    expect(store.actionNotifications()).toBeTrue();
+  });
+
+  it('setActionNotifications updates signal and localStorage', () => {
+    store.setActionNotifications(false);
+    expect(store.actionNotifications()).toBeFalse();
+    expect(localStorage.getItem('yotara_actionNotifications')).toBe('false');
+
+    store.setActionNotifications(true);
+    expect(store.actionNotifications()).toBeTrue();
+    expect(localStorage.getItem('yotara_actionNotifications')).toBe('true');
+  });
+
   it('defaults skipCompleteConfirm to false', () => {
     expect(store.skipCompleteConfirm()).toBeFalse();
   });
@@ -92,6 +106,7 @@ describe('PreferencesStore', () => {
 
   it('initializes from existing localStorage values', () => {
     localStorage.setItem('yotara_skipCompleteConfirm', 'true');
+    localStorage.setItem('yotara_actionNotifications', 'false');
     localStorage.setItem('yotara_insightDismissed', 'true');
     localStorage.setItem('yotara_loginTipDismissed', 'true');
     localStorage.setItem('onboardingCompleted', 'true');
@@ -101,6 +116,7 @@ describe('PreferencesStore', () => {
     store = TestBed.inject(PreferencesStore);
 
     expect(store.skipCompleteConfirm()).toBeTrue();
+    expect(store.actionNotifications()).toBeFalse();
     expect(store.insightDismissed()).toBeTrue();
     expect(store.loginTipDismissed()).toBeTrue();
     expect(store.onboardingCompleted()).toBeTrue();

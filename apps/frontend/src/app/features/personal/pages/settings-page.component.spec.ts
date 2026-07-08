@@ -485,6 +485,61 @@ describe('SettingsPageComponent', () => {
     return null;
   }
 
+  function getActionNotificationsToggle(): HTMLInputElement | null {
+    const toggles = fixture.debugElement.queryAll(By.css('.settings-toggle'));
+    for (const toggle of toggles) {
+      const strong = toggle.query(By.css('.settings-item-copy strong'));
+      if (strong?.nativeElement.textContent.includes('Task completion notifications')) {
+        return toggle.query(By.css('input[type="checkbox"]'))?.nativeElement ?? null;
+      }
+    }
+    return null;
+  }
+
+  describe('Task completion notifications toggle', () => {
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it('renders the notifications toggle', () => {
+      expect(getActionNotificationsToggle()).toBeTruthy();
+    });
+
+    it('defaults to on when no localStorage key is set', () => {
+      expect(getActionNotificationsToggle()?.checked).toBeTrue();
+    });
+
+    it('reflects localStorage key when already set before component creation', () => {
+      preferences.setActionNotifications(false);
+      fixture = TestBed.createComponent(SettingsPageComponent);
+      comp = fixture.componentInstance as any;
+      fixture.detectChanges();
+
+      expect(getActionNotificationsToggle()?.checked).toBeFalse();
+    });
+
+    it('saves to localStorage when toggled off', () => {
+      getActionNotificationsToggle()?.click();
+      fixture.detectChanges();
+
+      expect(preferences.actionNotifications()).toBeFalse();
+      expect(getActionNotificationsToggle()?.checked).toBeFalse();
+    });
+
+    it('saves to localStorage when toggled back on', () => {
+      preferences.setActionNotifications(false);
+      fixture = TestBed.createComponent(SettingsPageComponent);
+      comp = fixture.componentInstance as any;
+      fixture.detectChanges();
+
+      getActionNotificationsToggle()?.click();
+      fixture.detectChanges();
+
+      expect(preferences.actionNotifications()).toBeTrue();
+      expect(getActionNotificationsToggle()?.checked).toBeTrue();
+    });
+  });
+
   describe('Show login tips toggle', () => {
     beforeEach(() => {
       localStorage.clear();
