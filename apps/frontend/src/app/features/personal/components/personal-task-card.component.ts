@@ -479,12 +479,12 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
 
       .priority-chip-high {
         background: var(--danger-soft);
-        color: var(--priority-high);
+        color: color-mix(in srgb, var(--priority-high) 75%, var(--on-surface));
       }
 
       .priority-chip-medium {
         background: var(--warning-soft);
-        color: var(--priority-medium);
+        color: color-mix(in srgb, var(--priority-medium) 50%, var(--on-surface));
       }
 
       .priority-chip-low {
