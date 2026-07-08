@@ -7,26 +7,52 @@ export function escapeHtml(text: string): string {
     .replace(/'/g, '&#039;');
 }
 
-export function highlightInlineCommands(text: string): string {
+export function highlightInlineCommands(text: string, validLabels?: string[]): string {
   let html = escapeHtml(text);
+  let prioritySet = false;
 
   // 1. Confirmed valid priorities: !word followed by space or end
   //    e.g. "!h ", "!high ", "!m", "!medium" at end of input
+  //    Only the first matched priority is highlighted (tasks allow only one)
   html = html.replace(
     /((?:^|\s)!(h(?:igh)?|m(?:ed)?(?:ium)?|l(?:ow)?))(?=\s|$)/gi,
-    '<span class="hl-priority">$1</span>',
+    (match, full) => {
+      if (prioritySet) return full;
+      prioritySet = true;
+      return `<span class="hl-priority">${full}</span>`;
+    },
   );
 
-  // 2. Active/pending priorities: ! followed by optional word chars, no space after
-  //    Catches "!" alone, "!h" mid-word, "!xyz" while still typing — unhighlighted once space follows
-  html = html.replace(/((?:^|\s)!(\w*))(?!\s)/g, '<span class="hl-priority">$1</span>');
+  // 2. Pending priority: ! alone at end of input (no word chars follow)
+  html = html.replace(/((?:^|\s)!)$/g, (match, full) => {
+    if (prioritySet) return full;
+    prioritySet = true;
+    return `<span class="hl-priority">${full}</span>`;
+  });
 
-  // 3. Confirmed labels: #word followed by space or end
-  html = html.replace(/((?:^|\s)#([\w-]+))(?=\s|$)/g, '<span class="hl-label">$1</span>');
+  if (validLabels && validLabels.length > 0) {
+    const labels = validLabels.map((l) => l.toLowerCase());
 
-  // 4. Active/pending labels: # followed by optional word chars, no space after
-  //    Catches "#" alone, "#tag" mid-word, "#incomplete" while typing
-  html = html.replace(/((?:^|\s)#([\w-]*))(?!\s)/g, '<span class="hl-label">$1</span>');
+    // 3. Confirmed labels: #word at space/end — only if word matches a known label
+    html = html.replace(/((?:^|\s)#([\w-]+))(?=\s|$)/g, (match, full, name) => {
+      if (labels.includes(name.toLowerCase())) {
+        return `<span class="hl-label">${full}</span>`;
+      }
+      return full;
+    });
+
+    // 4. Pending labels: # + prefix at end of input — only if prefix matches a known label
+    html = html.replace(/((?:^|\s)#([\w-]*))$/g, (match, full, prefix) => {
+      if (!prefix || labels.some((l) => l.startsWith(prefix.toLowerCase()))) {
+        return `<span class="hl-label">${full}</span>`;
+      }
+      return full;
+    });
+  } else {
+    // Fallback: highlight any #word syntactically
+    html = html.replace(/((?:^|\s)#([\w-]+))(?=\s|$)/g, '<span class="hl-label">$1</span>');
+    html = html.replace(/((?:^|\s)#([\w-]*))(?!\s)/g, '<span class="hl-label">$1</span>');
+  }
 
   return html;
 }

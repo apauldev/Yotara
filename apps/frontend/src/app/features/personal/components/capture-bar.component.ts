@@ -387,7 +387,8 @@ export class CaptureBarComponent {
   protected readonly highlightedTitle = computed(() => {
     const text = this.title();
     if (!text) return '';
-    return highlightInlineCommands(text);
+    const labels = this.labelService.labels().map((l) => l.name);
+    return highlightInlineCommands(text, labels);
   });
 
   /** Expose for parent to set initial title */
