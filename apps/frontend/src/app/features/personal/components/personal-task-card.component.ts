@@ -6,6 +6,7 @@ import { faBoxArchive, faRotate, faRotateLeft, faTrash } from '@fortawesome/free
 import { MarkdownComponent } from 'ngx-markdown';
 import { LabelService } from '../../../core/services/label.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
+import { StatusService } from '../../../core/services/status.service';
 import { TaskService } from '../../../core/services/task.service';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 import { parseCalendarDate } from '../../../shared/utils/timestamps';
@@ -547,6 +548,7 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
 export class PersonalTaskCardComponent {
   private readonly taskService = inject(TaskService);
   private readonly labelService = inject(LabelService);
+  private readonly statusService = inject(StatusService);
   private readonly preferences = inject(PreferencesStore);
 
   protected readonly completeConfirmOpen = signal(false);
@@ -686,10 +688,15 @@ export class PersonalTaskCardComponent {
 
   async completeTask() {
     this.completing.set(true);
+    const wasCompleted = this.task.completed;
 
     try {
-      await this.taskService.updateTask(this.task.id, { completed: !this.task.completed });
+      await this.taskService.updateTask(this.task.id, { completed: !wasCompleted });
       this.completeConfirmOpen.set(false);
+
+      if (!wasCompleted && this.preferences.actionNotifications()) {
+        this.statusService.success('Task completed');
+      }
 
       if (this.dontShowAgain) {
         this.preferences.setSkipCompleteConfirm(true);
