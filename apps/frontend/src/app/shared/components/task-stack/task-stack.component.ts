@@ -42,14 +42,20 @@ import { Task } from '@yotara/shared';
 
     .task-group {
       display: grid;
-      gap: 0.15rem;
+      gap: 0.4rem;
     }
 
     .subtask-nested-list {
       margin-left: 1.4rem;
       display: grid;
-      gap: 0.1rem;
-      padding: 0.25rem 0 0.5rem;
+      gap: 0.15rem;
+      padding: 0.4rem 0.6rem 0.4rem 0.8rem;
+      background: var(--surface-card);
+      border-radius: 0.8rem;
+      border-left: 3px solid var(--outline-variant);
+      box-shadow:
+        0 2px 8px var(--surface-dim),
+        inset 0 0 0 1px var(--outline-variant);
     }
   `,
   animations: [

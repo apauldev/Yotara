@@ -63,6 +63,10 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
             </div>
           }
 
+          @if (task.parentId && mode === 'compact') {
+            <span class="meta-pill meta-pill-subtask">Subtask</span>
+          }
+
           @if (mode === 'default') {
             <div class="task-badges">
               @if (task.dueDate) {
@@ -229,10 +233,6 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
         border-radius: 0.6rem;
       }
 
-      .task-card-compact:hover {
-        background: var(--surface-container-low);
-      }
-
       .task-check {
         appearance: none;
         padding: 0;
@@ -388,8 +388,8 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
 
       .h3-compact {
         font-size: 0.9rem;
-        font-weight: 500;
-        color: var(--on-surface-muted);
+        font-weight: 600;
+        color: var(--on-surface);
       }
 
       .task-card-complete h3 {
