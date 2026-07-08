@@ -3,7 +3,8 @@
     "date": "2026-07-08",
     "title": "Why SQLite?",
     "image": "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=900&h=506&fit=crop",
-    "excerpt": "SQLite powers every Yotara instance. It's not the obvious choice, but for a self-hosted app it makes more sense than you might think.",
+    "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
+    "excerpt": "SQLite isn't the obvious database choice, but for a self-hosted app it makes more sense than you might think.",
     "content": [
       "People sometimes ask why Yotara uses SQLite instead of Postgres or MySQL. The answer is pretty simple. SQLite fits the problem better.\n",
       "Yotara is self-hosted. Every instance runs on someone else's server, which means I can't control the infrastructure. SQLite needs zero setup. No daemon to configure, no port to open, no user to create. The database is a single file. If you can write a file, you can run a database.\n",
@@ -17,7 +18,8 @@
     "date": "2026-07-08",
     "title": "Inside the Docker Command",
     "image": "https://images.unsplash.com/photo-1605745341112-85968b19335b?w=900&h=506&fit=crop",
-    "excerpt": "That one-line Docker command is doing more than you'd expect. Here's what happens when you run it.",
+    "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
+    "excerpt": "That one-line Docker command is doing more than you'd expect. Two containers, one volume, zero fuss.",
     "content": [
       "The install page says one Docker command and you're running. That's true, but there's actually two containers under the hood. You just don't have to care about that.\n",
       "The first container is the API. It runs the Fastify server, connects to the SQLite database, handles auth and all the task CRUD. It listens on port 3000 inside its own network.\n",
@@ -31,7 +33,8 @@
     "date": "2026-07-07",
     "title": "Yotara Beta is Here",
     "image": "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=900&h=506&fit=crop",
-    "excerpt": "After months of solo development, Yotara's beta is open. A self-hosted task manager that tries to stay out of your way.",
+    "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
+    "excerpt": "After months of building this alone at night, the beta is open. A task manager that tries to stay out of your way.",
     "content": [
       "I've been working on Yotara alone for a while. Mostly at night, mostly for myself. Today I'm letting other people try it.\n",
       "It started because I got tired of every task manager adding more stuff than it took away. More notifications, more integrations, more panels fighting for space. I wanted the opposite. Something that would hold my tasks without making a big deal about it.\n",
@@ -45,7 +48,8 @@
     "date": "2026-07-07",
     "title": "Why Self-Host?",
     "image": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=900&h=506&fit=crop",
-    "excerpt": "Self-hosting Yotara is a values thing more than a technical thing. Your data stays on your server, full stop.",
+    "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
+    "excerpt": "Self-hosting Yotara wasn't really a technical decision. It was about who gets to hold your data.",
     "content": [
       "Making Yotara self-hosted wasn't really a technical choice. It was more of a values choice that had technical consequences.\n",
       "When you run Yotara on your own server, your data doesn't leave it. There's no service on my end processing your tasks. No analytics pipeline studying how you work. No third party holding a copy of your to-do list because it was convenient to store it there. Your projects, tasks, labels, and settings live in one SQLite file on hardware you control.\n",
@@ -59,7 +63,8 @@
     "date": "2026-07-07",
     "title": "The Art of Task Management",
     "image": "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=900&h=506&fit=crop",
-    "excerpt": "Task management is really about clarity, not productivity. Yotara's views help you see what matters without the noise.",
+    "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
+    "excerpt": "Task management isn't about getting more done. It's about seeing clearly what actually matters.",
     "content": [
       "I don't think task management is about productivity. I think it's about clarity. Being able to see, quickly, what actually matters right now versus what's just sitting there.\n",
       "A lot of task managers treat everything on the list the same way. A reminder to buy milk sits next to a project milestone with equal visual weight. Over time that flattens everything into noise. The list itself becomes a source of anxiety instead of relief.\n",
@@ -73,7 +78,8 @@
     "date": "2026-07-07",
     "title": "Designing for Focus",
     "image": "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=900&h=506&fit=crop",
-    "excerpt": "Every visual decision in Yotara comes back to one question: does this ask for attention it hasn't earned? Most of the time the answer is no.",
+    "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
+    "excerpt": "Every visual decision in Yotara gets one question: does this earn the attention it's asking for? Most of the time the answer is no.",
     "content": [
       "Almost every visual decision in Yotara comes back to one question: does this ask for attention it hasn't earned? Most of the time I want the answer to be no.\n",
       "The interface uses tonal depth instead of hard borders or heavy shadows. A card sits a shade different from the page behind it. A hover lifts it a couple of pixels, nothing more. These shifts are meant to be felt rather than noticed. They help you read the page hierarchy without the page announcing it.\n",
@@ -87,7 +93,8 @@
     "date": "2026-07-07",
     "title": "Privacy by Design",
     "image": "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=900&h=506&fit=crop",
-    "excerpt": "Privacy wasn't bolted onto Yotara later. It's the constraint every decision is built around, from no telemetry to solid authentication.",
+    "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
+    "excerpt": "Built around privacy from day one. No central service, no telemetry, no tracking. Not a feature but the foundation.",
     "content": [
       "Privacy isn't something I added to Yotara afterwards. It's a constraint I tried to build every decision around from the start. Data collection is never the default. Tracking isn't on the table. Control stays with whoever runs the instance.\n",
       "That starts with the basic architecture. There's no central Yotara service. Every instance is independent, running on someone's own server. I don't collect telemetry. I don't run analytics. I have no way of knowing how many people use Yotara or how they use it. That's a deliberate tradeoff. I'd rather build without that knowledge than build a pipeline to get it.\n",
@@ -101,7 +108,8 @@
     "date": "2026-07-07",
     "title": "What Comes Next",
     "image": "https://images.unsplash.com/photo-1512758017271-d7b84c2113f1?w=900&h=506&fit=crop",
-    "excerpt": "Team mode, mobile, an API, maybe hosted. Here's what's next for Yotara, roughly in order of how sure I am about each thing.",
+    "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
+    "excerpt": "Team mode is the next milestone, then mobile, then an API. Here's what I'm thinking, in order of how sure I am.",
     "content": [
       "This beta is a starting point, not a finished thing. Here's roughly what I'm thinking about next, in order of how sure I am.\n",
       "The most concrete next step is team mode. Letting more than one person use an instance. An admin role, sensible permissions, account recovery that makes sense for multiple users. Right now Yotara is built for one admin who also has server access, which is the right scope for where it is. Team mode is the next real milestone.\n",
@@ -115,7 +123,8 @@
     "date": "2026-07-07",
     "title": "Building in Public",
     "image": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=900&h=506&fit=crop",
-    "excerpt": "Every commit, every mistake, every reversed decision. Yotara has been built in the open from day one and that honesty is intentional.",
+    "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
+    "excerpt": "Built in public from the first commit. Every mistake is in the history. Here's why that's worth doing.",
     "content": [
       "There's something uncomfortable about building software in the open. Every commit is visible. Every mistake is in the history. There's no quiet place to fix a bad decision before anyone notices. I've mostly built Yotara that way anyway, because I'd rather be honest than pretend the process was cleaner than it was.\n",
       "The repository has been open since the first commit. Design decisions, including the ones I later reversed, are sitting in the issue history for anyone curious enough to look. I haven't promoted this project anywhere yet. This is genuinely the first time I'm saying any of this publicly. So there isn't really a community around Yotara yet. That's fine. It means whoever finds it from here is finding it early.\n",

@@ -171,7 +171,7 @@ nav {
 }
 
 .hero-mockup:hover {
-  transform: rotate(0deg) scale(1.01);
+  transform: scale(1.01);
 }
 
 .nav-link {
@@ -347,6 +347,28 @@ code {
   transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.blog-excerpt {
+  position: relative;
+  padding-left: 1rem;
+  font-size: 1.2rem;
+  font-weight: 450;
+  line-height: 1.65;
+  color: var(--on-surface, #1c1c17);
+  opacity: 0.92;
+}
+
+.blog-excerpt::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.2rem;
+  bottom: 0.2rem;
+  width: 3px;
+  background: #236849;
+  border-radius: 2px;
+  opacity: 0.5;
+}
+
 .blog-full > div {
   opacity: 0;
   transition: opacity 0.3s ease 0.1s;
@@ -371,6 +393,14 @@ code {
 
 .blog-toggle-icon.rotate-180 {
   transform: rotate(180deg);
+}
+
+.blog-author-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 
 .page-btn {

@@ -4,6 +4,7 @@ const SITE_NAME = 'Yotara';
 const SITE_URL = 'https://yotara.website';
 const BLOG_DESCRIPTION =
   'Thoughts, updates, and deep dives into building focused digital environments.';
+const SITE_AUTHOR = { name: 'apauldev', avatar: 'assets/author-thumb.jpg' };
 
 function formatDate(iso) {
   return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', {
@@ -39,8 +40,13 @@ function renderEntry(post) {
      <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="${post.image}" srcset="${renderSrcset(post.image)}" sizes="(max-width: 768px) 100vw, 896px" alt="${escapeAttr(post.title)}" loading="lazy" />
   </div>
   <div class="p-6 md:p-8">
-    <div class="flex items-center gap-3 text-sm text-outline tracking-wide uppercase mb-3">
+    <div class="flex items-center gap-2 text-sm text-outline tracking-wide mb-3 flex-wrap">
       <time datetime="${post.date}">${formatDate(post.date)}</time>
+      <span aria-hidden="true">·</span>
+      <span class="flex items-center gap-2">
+        <img class="blog-author-avatar" src="${post.author?.avatar || SITE_AUTHOR.avatar}" alt="${escapeAttr(post.author?.name || SITE_AUTHOR.name)}" width="36" height="36" loading="lazy" />
+        <span>${escapeHtml(post.author?.name || SITE_AUTHOR.name)}</span>
+      </span>
     </div>
     <h2 class="text-xl md:text-2xl font-display font-bold text-on-surface mb-3 group-hover:text-primary transition-colors">${escapeHtml(post.title)}</h2>
     <div class="text-on-surface-variant leading-relaxed">
@@ -143,7 +149,7 @@ function buildBlogJsonLd(posts) {
       image: p.image,
       author: {
         '@type': 'Person',
-        name: 'apauldev',
+        name: p.author?.name || SITE_AUTHOR.name,
       },
     })),
   };

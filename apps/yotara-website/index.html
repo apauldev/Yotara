@@ -223,7 +223,7 @@
               </div>
             </div>
             <div
-              class="hero-mockup relative w-full rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(28,28,23,0.08)] ring-1 ring-outline-variant/15 transform lg:-rotate-2"
+              class="hero-mockup relative w-full rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(28,28,23,0.08)] ring-1 ring-outline-variant/15"
             >
               <img
                 class="w-full h-auto object-cover"
@@ -253,35 +253,60 @@
               A quieter alternative
             </h2>
             <p class="text-xl text-on-surface-variant leading-relaxed">
-              Todoist asks for a subscription. Vikunja asks for a lot of setup. Notion asks you to
-              build your own system from a blank page. Yotara just works, on your own server.
+              Yotara is self-hosted, free, and open source. Your data stays on your server, and
+              setup takes one Docker command. No subscriptions, no configuration marathons, no
+              building your system from scratch.
             </p>
           </div>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="p-6 rounded-2xl bg-surface">
-              <h3 class="text-lg font-bold text-on-surface mb-4 font-headline">Todoist</h3>
-              <p class="text-on-surface-variant leading-relaxed">
-                Solid app. Ongoing subscription. Your data lives on their servers.
-              </p>
-            </div>
-            <div class="p-6 rounded-2xl bg-surface">
-              <h3 class="text-lg font-bold text-on-surface mb-4 font-headline">Vikunja</h3>
-              <p class="text-on-surface-variant leading-relaxed">
-                Self-hosted, like Yotara. Heavier to set up and run.
-              </p>
-            </div>
-            <div class="p-6 rounded-2xl bg-surface">
-              <h3 class="text-lg font-bold text-on-surface mb-4 font-headline">Notion</h3>
-              <p class="text-on-surface-variant leading-relaxed">
-                Flexible enough to build anything. You have to build it yourself.
-              </p>
-            </div>
-            <div class="p-6 rounded-2xl bg-primary text-on-primary">
-              <h3 class="text-lg font-bold mb-4 font-headline text-on-primary">Yotara</h3>
-              <p class="text-on-primary leading-relaxed">
-                Self-hosted, works immediately, free forever. Your data never leaves your server.
-              </p>
-            </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-outline-variant/20">
+                  <th class="p-4 font-semibold text-on-surface"></th>
+                  <th class="p-4 font-semibold text-on-surface text-center">Todoist</th>
+                  <th class="p-4 font-semibold text-on-surface text-center">Vikunja</th>
+                  <th class="p-4 font-semibold text-on-surface text-center">Notion</th>
+                  <th class="p-4 font-semibold text-on-surface text-center text-primary">Yotara</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="border-b border-outline-variant/10">
+                  <td class="p-4 text-on-surface-variant font-medium">Self-hosted</td>
+                  <td class="p-4 text-center text-outline-variant">—</td>
+                  <td class="p-4 text-center text-primary">✓</td>
+                  <td class="p-4 text-center text-outline-variant">—</td>
+                  <td class="p-4 text-center text-primary font-semibold">✓</td>
+                </tr>
+                <tr class="border-b border-outline-variant/10">
+                  <td class="p-4 text-on-surface-variant font-medium">Free forever</td>
+                  <td class="p-4 text-center text-outline-variant">—</td>
+                  <td class="p-4 text-center text-primary">✓</td>
+                  <td class="p-4 text-center text-primary">✓</td>
+                  <td class="p-4 text-center text-primary font-semibold">✓</td>
+                </tr>
+                <tr class="border-b border-outline-variant/10">
+                  <td class="p-4 text-on-surface-variant font-medium">No setup burden</td>
+                  <td class="p-4 text-center text-primary">✓</td>
+                  <td class="p-4 text-center text-outline-variant">—</td>
+                  <td class="p-4 text-center text-primary">✓</td>
+                  <td class="p-4 text-center text-primary font-semibold">✓</td>
+                </tr>
+                <tr class="border-b border-outline-variant/10">
+                  <td class="p-4 text-on-surface-variant font-medium">Your data stays yours</td>
+                  <td class="p-4 text-center text-outline-variant">—</td>
+                  <td class="p-4 text-center text-primary">✓</td>
+                  <td class="p-4 text-center text-outline-variant">—</td>
+                  <td class="p-4 text-center text-primary font-semibold">✓</td>
+                </tr>
+                <tr>
+                  <td class="p-4 text-on-surface-variant font-medium">Open source</td>
+                  <td class="p-4 text-center text-outline-variant">—</td>
+                  <td class="p-4 text-center text-primary">✓</td>
+                  <td class="p-4 text-center text-outline-variant">—</td>
+                  <td class="p-4 text-center text-primary font-semibold">✓</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
@@ -292,11 +317,11 @@
             <h2
               class="text-[1.75rem] md:text-[2.5rem] font-display font-bold mb-6 tracking-tight text-on-surface"
             >
-              Focus on what matters
+              What you get
             </h2>
             <p class="text-xl text-on-surface-variant leading-relaxed">
-              Projects and labels for organizing work without forcing a schema on it. Capture
-              quickly, triage when you're ready.
+              Quick capture, projects, recurring tasks, markdown, themes, and self-hosted privacy.
+              Everything you need, nothing you don't.
             </p>
           </div>
           <div class="stagger-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -361,7 +386,7 @@
               <h3 class="text-xl font-bold mb-3 font-headline text-on-surface">Rich Markdown</h3>
               <p class="text-on-surface-variant leading-relaxed">
                 Write with markdown formatting and preview live. Built-in toolbar for bold, lists,
-                and links — no syntax to memorize.
+                and links &mdash; no syntax to memorize.
               </p>
             </div>
             <div
@@ -393,7 +418,7 @@
               <h3 class="text-xl font-bold mb-3 font-headline text-on-surface">Self-Hosted</h3>
               <p class="text-on-surface-variant leading-relaxed">
                 Your data stays on your server. No telemetry, no tracking, no vendor lock-in. Open
-                source under MIT — verify every line yourself.
+                source under MIT &mdash; verify every line yourself.
               </p>
             </div>
           </div>
@@ -471,7 +496,7 @@
           </div>
           <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
             <a
-              class="bg-primary text-on-primary px-8 py-4 rounded-2xl font-bold text-lg tracking-wide w-full sm:w-auto text-center hover:opacity-90 transition-opacity"
+              class="ring-2 ring-surface-bright text-surface-bright px-8 py-4 rounded-2xl font-bold text-lg tracking-wide w-full sm:w-auto text-center hover:bg-surface-bright hover:text-inverse-surface transition-all"
               href="https://github.com/apauldev/yotara"
             >
               Star on GitHub
