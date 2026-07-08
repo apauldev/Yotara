@@ -458,7 +458,7 @@ interface SidebarItem {
       }
 
       .profile-menu-item-danger {
-        color: #c7846d;
+        color: var(--status-overdue);
       }
 
       .profile-card {
@@ -597,7 +597,7 @@ interface SidebarItem {
           inset: 0;
           z-index: 9;
           border: 0;
-          background: rgba(10, 12, 10, 0.34);
+          background: var(--scrim-strong);
         }
 
         .sidebar {

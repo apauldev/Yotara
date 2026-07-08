@@ -7,7 +7,9 @@ import { CreateTaskDto, Task, UpdateTaskDto } from '@yotara/shared';
 import { PersonalTaskModalComponent } from './personal-task-modal.component';
 import { PersonalTaskWorkspaceComponent } from './personal-task-workspace.component';
 import { ProjectService } from '../../../core/services/project.service';
+import { StatusService } from '../../../core/services/status.service';
 import { TaskService } from '../../../core/services/task.service';
+import { PreferencesStore } from '../../../core/services/preferences-store.service';
 
 @Component({
   standalone: true,
@@ -34,6 +36,8 @@ describe('PersonalTaskWorkspaceComponent', () => {
     createTask: jasmine.Spy;
     updateTask: jasmine.Spy;
   };
+  let statusServiceSpy: jasmine.SpyObj<StatusService>;
+  let preferences: PreferencesStore;
 
   const task: Task = {
     id: 'task-1',
@@ -79,12 +83,26 @@ describe('PersonalTaskWorkspaceComponent', () => {
       }),
     };
 
+    statusServiceSpy = jasmine.createSpyObj<StatusService>('StatusService', [
+      'success',
+      'error',
+      'show',
+      'remove',
+    ]);
+
+    preferences = {
+      actionNotifications: signal(true),
+      setActionNotifications: jasmine.createSpy('setActionNotifications'),
+    } as unknown as PreferencesStore;
+
     await TestBed.configureTestingModule({
       imports: [WorkspaceHostComponent],
       providers: [
         provideMarkdown(),
         { provide: ProjectService, useValue: projectService },
         { provide: TaskService, useValue: taskService },
+        { provide: StatusService, useValue: statusServiceSpy },
+        { provide: PreferencesStore, useValue: preferences },
       ],
     }).compileComponents();
 
@@ -220,6 +238,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
     expect(projectService.refresh).toHaveBeenCalled();
     expect(savedSpy).toHaveBeenCalledWith('update');
     expect(workspace['modalOpen']()).toBeFalse();
+    expect(statusServiceSpy.success).toHaveBeenCalledWith('Task completed');
   });
 
   it('emits a save failure when the service rejects', async () => {

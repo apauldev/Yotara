@@ -6,6 +6,7 @@ import { faBoxArchive, faRotate, faRotateLeft, faTrash } from '@fortawesome/free
 import { MarkdownComponent } from 'ngx-markdown';
 import { LabelService } from '../../../core/services/label.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
+import { StatusService } from '../../../core/services/status.service';
 import { TaskService } from '../../../core/services/task.service';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 import { parseCalendarDate } from '../../../shared/utils/timestamps';
@@ -60,6 +61,10 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
                 <span class="meta-pill meta-pill-label">{{ labelName(labelId) }}</span>
               }
             </div>
+          }
+
+          @if (task.parentId && mode === 'compact') {
+            <span class="meta-pill meta-pill-subtask">Subtask</span>
           }
 
           @if (mode === 'default') {
@@ -228,10 +233,6 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
         border-radius: 0.6rem;
       }
 
-      .task-card-compact:hover {
-        background: var(--surface-container-low);
-      }
-
       .task-check {
         appearance: none;
         padding: 0;
@@ -272,14 +273,15 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
 
       .task-check-complete .task-check-box {
         background: var(--primary-solid);
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+        box-shadow: inset 0 0 0 1px
+          color-mix(in srgb, hsl(var(--primary-foreground)) 18%, transparent);
       }
 
       .task-check-mark {
         width: 0.3rem;
         height: 0.55rem;
-        border-right: 2px solid #fff;
-        border-bottom: 2px solid #fff;
+        border-right: 2px solid hsl(var(--primary-foreground));
+        border-bottom: 2px solid hsl(var(--primary-foreground));
         transform: translateY(-0.05rem) rotate(45deg);
       }
 
@@ -386,8 +388,8 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
 
       .h3-compact {
         font-size: 0.9rem;
-        font-weight: 500;
-        color: var(--on-surface-muted);
+        font-weight: 600;
+        color: var(--on-surface);
       }
 
       .task-card-complete h3 {
@@ -477,12 +479,12 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
 
       .priority-chip-high {
         background: var(--danger-soft);
-        color: var(--status-overdue);
+        color: color-mix(in srgb, var(--priority-high) 75%, var(--on-surface));
       }
 
       .priority-chip-medium {
         background: var(--warning-soft);
-        color: var(--status-pending);
+        color: color-mix(in srgb, var(--priority-medium) 50%, var(--on-surface));
       }
 
       .priority-chip-low {
@@ -546,6 +548,7 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
 export class PersonalTaskCardComponent {
   private readonly taskService = inject(TaskService);
   private readonly labelService = inject(LabelService);
+  private readonly statusService = inject(StatusService);
   private readonly preferences = inject(PreferencesStore);
 
   protected readonly completeConfirmOpen = signal(false);
@@ -685,10 +688,15 @@ export class PersonalTaskCardComponent {
 
   async completeTask() {
     this.completing.set(true);
+    const wasCompleted = this.task.completed;
 
     try {
-      await this.taskService.updateTask(this.task.id, { completed: !this.task.completed });
+      await this.taskService.updateTask(this.task.id, { completed: !wasCompleted });
       this.completeConfirmOpen.set(false);
+
+      if (!wasCompleted && this.preferences.actionNotifications()) {
+        this.statusService.success('Task completed');
+      }
 
       if (this.dontShowAgain) {
         this.preferences.setSkipCompleteConfirm(true);

@@ -5,11 +5,13 @@ import { PersonalTaskCardComponent } from './personal-task-card.component';
 import { Task } from '@yotara/shared';
 import { TaskService } from '../../../core/services/task.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
+import { StatusService } from '../../../core/services/status.service';
 
 describe('PersonalTaskCardComponent', () => {
   let component: PersonalTaskCardComponent;
   let fixture: ComponentFixture<PersonalTaskCardComponent>;
   let taskServiceSpy: jasmine.SpyObj<TaskService>;
+  let statusServiceSpy: jasmine.SpyObj<StatusService>;
   let preferences: PreferencesStore;
 
   const mockTask: Task = {
@@ -29,11 +31,21 @@ describe('PersonalTaskCardComponent', () => {
 
   beforeEach(async () => {
     taskServiceSpy = jasmine.createSpyObj<TaskService>('TaskService', ['updateTask']);
+    statusServiceSpy = jasmine.createSpyObj<StatusService>('StatusService', [
+      'success',
+      'error',
+      'show',
+      'remove',
+    ]);
     localStorage.clear();
 
     await TestBed.configureTestingModule({
       imports: [PersonalTaskCardComponent],
-      providers: [{ provide: TaskService, useValue: taskServiceSpy }, provideMarkdown()],
+      providers: [
+        { provide: TaskService, useValue: taskServiceSpy },
+        { provide: StatusService, useValue: statusServiceSpy },
+        provideMarkdown(),
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(PersonalTaskCardComponent);
@@ -322,6 +334,27 @@ describe('PersonalTaskCardComponent', () => {
 
       expect(taskServiceSpy.updateTask).toHaveBeenCalledWith('task-1', { completed: true });
       expect((component as any).completeConfirmOpen()).toBeFalse();
+    });
+
+    it('shows a completion notification when a task is completed', async () => {
+      preferences.setSkipCompleteConfirm(true);
+      component.task = mockTask;
+      fixture.detectChanges();
+
+      await component.completeTask();
+
+      expect(statusServiceSpy.success).toHaveBeenCalledWith('Task completed');
+    });
+
+    it('does not show a completion notification when action notifications are disabled', async () => {
+      preferences.setSkipCompleteConfirm(true);
+      preferences.setActionNotifications(false);
+      component.task = mockTask;
+      fixture.detectChanges();
+
+      await component.completeTask();
+
+      expect(statusServiceSpy.success).not.toHaveBeenCalled();
     });
 
     it('should save skip preference to localStorage when checkbox is checked and confirmed', async () => {

@@ -27,8 +27,8 @@
           (submit)="handleCapture()"
         />
 
-        <section class="list-section">
-          <app-section-header title="Task List" [count]="inboxCountLabel()" size="sm">
+        <section class="task-section">
+          <app-section-header title="Task List" [count]="inboxCountLabel()" size="md">
             <app-task-view-controls
               section-header-actions
               [sortOption]="sortOption()"
@@ -158,19 +158,17 @@
             } @else {
               <div class="group-stack">
                 @for (group of processedUpcomingGroups(); track group.label) {
-                  <section class="group-card">
-                    <app-section-header
-                      [title]="group.label"
-                      [count]="group.tasks.length + ' tasks'"
-                      size="md"
-                    />
+                  <app-section-header
+                    [title]="group.label"
+                    [count]="group.tasks.length + ' tasks'"
+                    size="md"
+                  />
 
-                    <app-task-stack
-                      [tasks]="group.tasks"
-                      [subtasksByParent]="subtasksByParent()"
-                      [taskCard]="taskCardTpl"
-                    />
-                  </section>
+                  <app-task-stack
+                    [tasks]="group.tasks"
+                    [subtasksByParent]="subtasksByParent()"
+                    [taskCard]="taskCardTpl"
+                  />
                 }
               </div>
             }

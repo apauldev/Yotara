@@ -5,6 +5,7 @@ import { Injectable, signal } from '@angular/core';
 })
 export class PreferencesStore {
   private static readonly SKIP_COMPLETE_KEY = 'yotara_skipCompleteConfirm';
+  private static readonly ACTION_NOTIFICATIONS_KEY = 'yotara_actionNotifications';
   private static readonly INSIGHT_DISMISSED_KEY = 'yotara_insightDismissed';
   private static readonly LOGIN_TIP_DISMISSED_KEY = 'yotara_loginTipDismissed';
   private static readonly ONBOARDING_COMPLETED_KEY = 'onboardingCompleted';
@@ -12,6 +13,9 @@ export class PreferencesStore {
 
   readonly skipCompleteConfirm = signal(
     localStorage.getItem(PreferencesStore.SKIP_COMPLETE_KEY) === 'true',
+  );
+  readonly actionNotifications = signal(
+    localStorage.getItem(PreferencesStore.ACTION_NOTIFICATIONS_KEY) !== 'false',
   );
   readonly insightDismissed = signal(
     localStorage.getItem(PreferencesStore.INSIGHT_DISMISSED_KEY) === 'true',
@@ -28,6 +32,11 @@ export class PreferencesStore {
   setSkipCompleteConfirm(value: boolean): void {
     this.skipCompleteConfirm.set(value);
     localStorage.setItem(PreferencesStore.SKIP_COMPLETE_KEY, value ? 'true' : 'false');
+  }
+
+  setActionNotifications(value: boolean): void {
+    this.actionNotifications.set(value);
+    localStorage.setItem(PreferencesStore.ACTION_NOTIFICATIONS_KEY, value ? 'true' : 'false');
   }
 
   setInsightDismissed(value: boolean): void {

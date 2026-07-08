@@ -70,6 +70,10 @@
 }
 
 .confirm-dialog-danger .primary-button {
-  background: linear-gradient(135deg, #a83f3f, #c45d52);
-  box-shadow: 0 10px 22px rgba(177, 58, 58, 0.24);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--status-overdue) 80%, black),
+    var(--status-overdue)
+  );
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--status-overdue) 20%, var(--surface-dim-strong));
 }

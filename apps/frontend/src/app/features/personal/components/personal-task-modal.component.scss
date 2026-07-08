@@ -15,8 +15,8 @@
   position: absolute;
   inset: 0;
   border: 0;
-  background: rgba(28, 28, 23, 0.2);
-  backdrop-filter: blur(6px);
+  background: var(--backdrop-overlay);
+  backdrop-filter: blur(8px);
 }
 
 .modal-card {
@@ -220,12 +220,12 @@ select:focus {
 input.field-error,
 textarea.field-error,
 select.field-error {
-  box-shadow: inset 0 0 0 1px rgba(186, 109, 87, 0.55);
-  background-color: color-mix(in srgb, var(--surface-container-lowest) 88%, #f5e3da);
+  box-shadow: inset 0 0 0 1px var(--status-overdue);
+  background-color: color-mix(in srgb, var(--surface-container-lowest) 88%, var(--danger-soft));
 }
 
 .field-error-message {
-  color: #ba6d57;
+  color: var(--status-overdue);
   font-size: 0.875rem;
   margin: 0.35rem 0 0;
 }
@@ -252,7 +252,7 @@ textarea {
   gap: 0.4rem;
   border-radius: 999px;
   border: 0;
-  background: rgba(118, 156, 131, 0.12);
+  background: var(--accent-soft);
   padding: 0.45rem 0.7rem;
   color: var(--on-surface-muted);
   font-weight: 650;
@@ -262,7 +262,7 @@ textarea {
 }
 
 .label-chip:hover {
-  background: rgba(118, 156, 131, 0.18);
+  background: color-mix(in srgb, var(--accent-soft) 80%, var(--accent-strong) 20%);
   transform: translateY(-1px);
 }
 
@@ -299,7 +299,7 @@ textarea {
   height: 1.55rem;
   border-radius: 999px;
   border: 2px solid transparent;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, hsl(var(--primary-foreground)) 28%, transparent);
   flex: 0 0 auto;
   transition: transform 150ms ease;
   cursor: pointer;
@@ -581,7 +581,7 @@ textarea {
 
 .entry-save {
   background: var(--primary-solid);
-  color: white;
+  color: hsl(var(--primary-foreground));
 }
 
 .entry-save:disabled {
@@ -592,6 +592,7 @@ textarea {
 .entry-cancel {
   background: transparent;
   color: var(--on-surface-muted);
+  border: 0;
 }
 
 .entry-cancel:hover {
@@ -644,15 +645,15 @@ textarea {
 }
 
 .checkbox-control input:checked + .checkbox-box {
-  background: #84a4f6;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  background: var(--primary-solid);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, hsl(var(--primary-foreground)) 18%, transparent);
 }
 
 .checkbox-mark {
   width: 0.34rem;
   height: 0.62rem;
-  border-right: 2px solid #fff;
-  border-bottom: 2px solid #fff;
+  border-right: 2px solid hsl(var(--primary-foreground));
+  border-bottom: 2px solid hsl(var(--primary-foreground));
   transform: translateY(-0.05rem) rotate(45deg);
 }
 
@@ -677,11 +678,11 @@ textarea {
 }
 
 .priority-dot-high.priority-dot-active {
-  background: #d44d3c;
+  background: var(--priority-high);
 }
 
 .priority-dot-medium.priority-dot-active {
-  background: #d9a13d;
+  background: var(--priority-medium);
 }
 
 .priority-dot-low.priority-dot-active {
@@ -715,7 +716,7 @@ textarea {
 .primary-button:hover,
 .secondary-button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px var(--surface-dim-strong);
 }
 
 .primary-button:active,
@@ -734,7 +735,7 @@ textarea {
 }
 
 .error-copy {
-  color: #ba6d57;
+  color: var(--status-overdue);
   font-size: 0.86rem;
   margin: 0 0 0.75rem;
 }

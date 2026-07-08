@@ -106,6 +106,20 @@ import { Task, Project, Label } from '@yotara/shared';
 
           <label class="settings-item settings-toggle">
             <div class="settings-item-copy">
+              <strong>Task completion notifications</strong>
+              <span>Show a confirmation toast when you check a task as done.</span>
+            </div>
+            <input
+              type="checkbox"
+              class="toggle-input"
+              [checked]="actionNotifications()"
+              (change)="onActionNotificationsChange($event)"
+              aria-label="Toggle task completion notifications"
+            />
+          </label>
+
+          <label class="settings-item settings-toggle">
+            <div class="settings-item-copy">
               <strong>Daily insights</strong>
               <span>Show Daily Clarity and Yotara Journal prompts in the page header.</span>
             </div>
@@ -722,6 +736,7 @@ export class SettingsPageComponent {
   private readonly preferences = inject(PreferencesStore);
 
   protected readonly skipCompleteConfirm = this.preferences.skipCompleteConfirm;
+  protected readonly actionNotifications = this.preferences.actionNotifications;
 
   protected readonly showInsights = computed(() => !this.preferences.insightDismissed());
 
@@ -947,6 +962,10 @@ export class SettingsPageComponent {
 
   protected onSkipCompleteConfirmChange(event: Event) {
     this.preferences.setSkipCompleteConfirm((event.target as HTMLInputElement).checked);
+  }
+
+  protected onActionNotificationsChange(event: Event) {
+    this.preferences.setActionNotifications((event.target as HTMLInputElement).checked);
   }
 
   protected onShowInsightsChange(event: Event) {

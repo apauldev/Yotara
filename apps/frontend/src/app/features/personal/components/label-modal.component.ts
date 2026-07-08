@@ -203,7 +203,7 @@ type LabelModalMode = 'create' | 'edit';
         width: 0.75rem;
         height: 0.75rem;
         border-radius: 999px;
-        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+        box-shadow: inset 0 0 0 1px var(--surface-dim);
       }
 
       .label-rail-name {
@@ -274,21 +274,21 @@ type LabelModalMode = 'create' | 'edit';
         aspect-ratio: 1;
         border-radius: 0.95rem;
         border: 0;
-        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+        box-shadow: inset 0 0 0 1px var(--surface-dim);
         display: grid;
         place-items: center;
       }
 
       .palette-tile-active {
         box-shadow:
-          inset 0 0 0 2px rgba(255, 255, 255, 0.8),
-          0 8px 22px rgba(0, 0, 0, 0.12);
+          inset 0 0 0 2px color-mix(in srgb, hsl(var(--primary-foreground)) 80%, transparent),
+          0 8px 22px var(--surface-dim-strong);
       }
 
       .check {
         color: white;
         font-weight: 800;
-        text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+        text-shadow: 0 1px 1px var(--surface-dim-strong);
       }
 
       .editor-actions {
