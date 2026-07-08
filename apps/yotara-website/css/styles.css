@@ -327,15 +327,18 @@ code {
 }
 
 .blog-card {
+  border: 1px solid rgba(191, 201, 193, 0.2);
   transition:
-    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.3s ease,
     background-color 0.3s ease;
 }
 
 .blog-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 16px 48px rgba(28, 28, 23, 0.1);
+  border-color: rgba(35, 104, 73, 0.25);
+  box-shadow:
+    inset 0 2px 0 0 #236849,
+    0 8px 32px rgba(28, 28, 23, 0.08);
 }
 
 #gdpr-banner {
@@ -350,7 +353,7 @@ code {
 .blog-excerpt {
   position: relative;
   padding-left: 1rem;
-  font-size: 1.2rem;
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
   font-weight: 450;
   line-height: 1.65;
   color: var(--on-surface, #1c1c17);
@@ -370,6 +373,7 @@ code {
 }
 
 .blog-full > div {
+  max-width: 70ch;
   opacity: 0;
   transition: opacity 0.3s ease 0.1s;
 }
@@ -387,8 +391,95 @@ code {
   margin-bottom: 0;
 }
 
+.blog-full strong {
+  font-weight: 650;
+  color: #1c1c17;
+}
+
+.blog-full em {
+  font-style: italic;
+}
+
+.blog-full blockquote {
+  border-left: 3px solid #236849;
+  padding-left: 1.25rem;
+  margin: 1.5rem 0;
+  color: #404943;
+  font-style: italic;
+  line-height: 1.75;
+}
+
+.blog-full code {
+  font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', monospace;
+  font-size: 0.875em;
+  padding: 0.125em 0.375em;
+  background: rgba(191, 201, 193, 0.2);
+  border-radius: 4px;
+}
+
+.blog-full pre {
+  overflow-x: auto;
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+  background: rgba(28, 28, 23, 0.04);
+  border-radius: 8px;
+  border: 1px solid rgba(191, 201, 193, 0.2);
+}
+
+.blog-full pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.875em;
+}
+
+.blog-full ul,
+.blog-full ol {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+  line-height: 1.75;
+}
+
+.blog-full ul {
+  list-style-type: disc;
+}
+
+.blog-full ol {
+  list-style-type: decimal;
+}
+
+.blog-full li {
+  margin-bottom: 0.375rem;
+}
+
+.blog-full li:last-child {
+  margin-bottom: 0;
+}
+
+.blog-card > div:first-child {
+  position: relative;
+}
+
+.blog-card > div:first-child::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 60%, rgba(28, 28, 23, 0.06) 100%);
+  pointer-events: none;
+}
+
+.blog-toggle {
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.blog-toggle:hover {
+  background: rgba(35, 104, 73, 0.06);
+  border-radius: 8px;
+}
+
 .blog-toggle-icon {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .blog-toggle-icon.rotate-180 {
@@ -405,6 +496,31 @@ code {
 
 .page-btn {
   cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.page-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(28, 28, 23, 0.1);
+}
+
+.page-btn:active {
+  transform: scale(0.95);
+}
+
+@media (max-width: 480px) {
+  #blog-stagger .flex {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .page-btn {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

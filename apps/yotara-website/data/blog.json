@@ -1,6 +1,22 @@
 [
   {
     "date": "2026-07-08",
+    "title": "Seven Themes",
+    "image": "https://images.unsplash.com/photo-1716471330475-f0669db8947a?w=900&h=506&fit=crop",
+    "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
+    "excerpt": "Seven themes, each with its own personality. None of them are inverted light modes. None of them are the same thing with a different tint.",
+    "content": [
+      "Every color in Yotara's seven themes was picked by hand until it felt right. That sounds more deliberate than it was. Most started as accidents I decided to keep.\n",
+      "The first one came before the rest, a light green palette built around a primary color I liked. From there a tool generated the rest of the palette automatically, buttons, backgrounds, borders, all pulled from that one shade. But that's just a starting point. Every theme I shipped got adjusted by hand after that. Backgrounds nudged until they felt like an actual color instead of default gray. Text kept easy to read without feeling clinical.\n",
+      "Seven was an arbitrary number, but the reasoning wasn't. I wanted enough range that someone could find a mood that matched how they work. Something warm for mornings. Something quieter for late nights. Something sharp for people who want everything crisp. Something muted for people who find color distracting. What I didn't want was forty themes that are really one theme with a different tint. Light Forest, Dark Forest, Coastal Calm, Minimal Slate, Midnight Amethyst, Golden Hour, Deep Trench. Each one has its own character. I'll probably add a few more eventually. No rush though. A bad theme does more damage than a missing one.\n",
+      "The dark themes took longer. Inverting a light theme and calling it dark mode always ends up feeling hollow. None of Yotara's dark themes are flipped light themes. Each one has its own main color, its own depth, its own sense of where the highlight should land. The green dark theme leans brighter, since a dark background can carry that. The blue one stays calmer. They share a structure. They don't share a personality.\n",
+      "Naming them was harder than designing them. Functional names came first, Light Green, Dark Green, Blue, Warm. Accurate and forgettable. Mood names came next, Focus, Calm, Sharp, and those felt worse, like I was telling someone how to feel before they'd opened the app. What I landed on sits between the two.\n",
+      "The theme picker is one dropdown in settings. No theme store, no custom editor, no community submissions. The moment themes get customizable, the app starts collecting small inconsistencies until it doesn't feel like one product anymore.\n",
+      "I don't expect most people to switch often. Pick one on day one, forget it exists after that. That's the outcome I actually want. A theme should sit in the background of your attention, not the foreground. The day you're thinking about the theme is the day it's doing too much."
+    ]
+  },
+  {
+    "date": "2026-07-08",
     "title": "Why SQLite?",
     "image": "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=900&h=506&fit=crop",
     "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },

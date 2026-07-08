@@ -22,6 +22,12 @@ function excerptFor(post) {
   return parts.slice(0, 40).join(' ') + '...';
 }
 
+function readingTimeFor(content) {
+  const words = content.join(' ').split(/\s+/).length;
+  const minutes = Math.max(1, Math.ceil(words / 200));
+  return `${minutes} min read`;
+}
+
 function renderContent(paragraphs) {
   return paragraphs.map((p) => `<p>${p.trim()}</p>`).join('');
 }
@@ -47,6 +53,8 @@ function renderEntry(post) {
         <img class="blog-author-avatar" src="${post.author?.avatar || SITE_AUTHOR.avatar}" alt="${escapeAttr(post.author?.name || SITE_AUTHOR.name)}" width="36" height="36" loading="lazy" />
         <span>${escapeHtml(post.author?.name || SITE_AUTHOR.name)}</span>
       </span>
+      <span aria-hidden="true">·</span>
+      <span>${readingTimeFor(post.content)}</span>
     </div>
     <h2 class="text-xl md:text-2xl font-display font-bold text-on-surface mb-3 group-hover:text-primary transition-colors">${escapeHtml(post.title)}</h2>
     <div class="text-on-surface-variant leading-relaxed">
