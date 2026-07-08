@@ -60,17 +60,17 @@ export const routes: Routes = [
       },
       {
         path: 'inbox',
-        redirectTo: 'tasks',
+        redirectTo: '/tasks?view=inbox',
         pathMatch: 'full',
       },
       {
         path: 'today',
-        redirectTo: 'tasks',
+        redirectTo: '/tasks?view=today',
         pathMatch: 'full',
       },
       {
         path: 'upcoming',
-        redirectTo: 'tasks',
+        redirectTo: '/tasks?view=upcoming',
         pathMatch: 'full',
       },
       {
