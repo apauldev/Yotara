@@ -258,9 +258,7 @@ test.describe('Search', () => {
     await page.waitForLoadState('networkidle');
 
     // Page 1 with 10 tasks (pageSize 10, 11 tasks = 2 pages)
-    await expect(page.locator('article.task-card').first()).toBeVisible({ timeout: 10_000 });
-    const page1Cards = await page.locator('article.task-card').count();
-    expect(page1Cards).toBe(10);
+    await expect(page.locator('article.task-card')).toHaveCount(10, { timeout: 10_000 });
 
     // Pagination controls should be visible (2 pages)
     await expect(page.locator('.pagination-container')).toBeVisible({ timeout: 5_000 });
@@ -269,10 +267,9 @@ test.describe('Search', () => {
     await page.locator('.pagination-button').filter({ hasText: '→' }).click();
     await page.waitForLoadState('networkidle');
     await expect(page.locator('.page-number.page-active')).toHaveText('2', { timeout: 5_000 });
+    await expect(page.locator('article.task-card')).toHaveCount(1, { timeout: 5_000 });
     await expect(page.locator('article.task-card').filter({ hasText: `${prefix}0` })).toBeVisible({
       timeout: 5_000,
     });
-    const page2Cards = await page.locator('article.task-card').count();
-    expect(page2Cards).toBe(1);
   });
 });
