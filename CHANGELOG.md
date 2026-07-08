@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.64.0](https://github.com/apauldev/Yotara/compare/v0.63.1...v0.64.0) (2026-07-08)
+
+
+### Features
+
+* add completion notification with settings toggle ([e04098f](https://github.com/apauldev/Yotara/commit/e04098f2721684b6d054e9bbc763c42da3536d31))
+* **blog:** add author field and avatar thumbnail per post ([8661f01](https://github.com/apauldev/Yotara/commit/8661f016d3f6b582bfaa394f37426d89286b437d))
+* **blog:** add seven themes post, card polish, typography system, and reading time ([22d8db8](https://github.com/apauldev/Yotara/commit/22d8db89f22d74ee71b642080ef5d08525e662fa))
+* highlight ! and # inline commands immediately in capture bar ([5654aef](https://github.com/apauldev/Yotara/commit/5654aef5307d522e148390626550f875d80f1ca2))
+
+
+### Bug Fixes
+
+* add visual hierarchy for subtasks with grouped card and left accent ([9e9295b](https://github.com/apauldev/Yotara/commit/9e9295b38381fd11d9e222c8fd9d14fb3412a10b))
+* align capture-bar cursor with overlay text ([6d90873](https://github.com/apauldev/Yotara/commit/6d90873002a51e94fafbab946f47de42f09f288d))
+* default theme to light-forest instead of following OS dark mode ([9490776](https://github.com/apauldev/Yotara/commit/9490776bf8e81eb7c4976ac27b0d02fc7587053f))
+* improve pill accessibility with WCAG AA contrast in both modes ([2c1763d](https://github.com/apauldev/Yotara/commit/2c1763d1a468104ba93d8e9e140d307cf96a8e1d))
+* only highlight first priority and known labels in capture bar ([d14dc22](https://github.com/apauldev/Yotara/commit/d14dc2225884f4326ac8aa9b89cee9609c627f29))
+* preserve view query param in /inbox /today /upcoming redirects ([0781a51](https://github.com/apauldev/Yotara/commit/0781a51f30345ad504c36078aaaa48958191cd39))
+* prevent double-wrapping in highlightInlineCommands and add test coverage ([a7282f5](https://github.com/apauldev/Yotara/commit/a7282f53c7792bd67f4ff6395459c9e145ae43cd))
+* remove card wrapper around Upcoming tasks and unify section styles ([7948dea](https://github.com/apauldev/Yotara/commit/7948deaed5ed01103a4550059ec800d387f3e68f))
+* resolve PreferencesStore mock order in workspace test ([11a2ec8](https://github.com/apauldev/Yotara/commit/11a2ec82ee8605edeb462fa85d9feba735e8e5df))
+* scan per declaration instead of bailing on whole block when var() present ([2bd41b2](https://github.com/apauldev/Yotara/commit/2bd41b2d18a4ef45df173b15fad93e15048830bd))
+* use toHaveCount for robust pagination assertions in search e2e ([78502e8](https://github.com/apauldev/Yotara/commit/78502e8470c909c9dc5a0027d441142b3ab2cd9c))
+
+
+### Refactoring
+
+* replace hardcoded UI colors with theme-aware CSS variables ([ccfb6d3](https://github.com/apauldev/Yotara/commit/ccfb6d30b7a7df08faee71947e568d3481cc2a6c))
+
 ## [0.63.1](https://github.com/apauldev/Yotara/compare/v0.63.0...v0.63.1) (2026-07-07)
 
 
