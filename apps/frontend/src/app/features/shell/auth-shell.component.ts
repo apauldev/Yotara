@@ -266,7 +266,7 @@ interface SidebarItem {
         height: 2.15rem;
         border-radius: 999px;
         background: var(--surface-container-low);
-        color: var(--primary-solid);
+        color: var(--brand-mark);
         display: grid;
         place-items: center;
       }
