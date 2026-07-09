@@ -24,7 +24,11 @@ RUN pnpm --filter @yotara/frontend build
 
 FROM nginx:1.27-alpine
 
-COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker/nginx.conf /etc/nginx/templates/default.conf.template
 COPY --from=build /app/apps/frontend/dist/frontend/browser /usr/share/nginx/html
+
+# Inject the CSP into the nginx config from the env (single source of truth with
+# the API). Falls back to the same default the API uses when unset.
+ENV CONTENT_SECURITY_POLICY=
 
 EXPOSE 80
