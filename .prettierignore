@@ -11,3 +11,5 @@ apps/api/data
 apps/frontend/dist
 .turbo
 .git
+apps/frontend/e2e/.auth
+apps/frontend/e2e/test-results
