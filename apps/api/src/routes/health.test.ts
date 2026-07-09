@@ -69,3 +69,18 @@ test('POST /health returns 404', async () => {
     await ctx.cleanup();
   }
 });
+
+test('response includes security headers via onSend hook', async () => {
+  const ctx = await createApp();
+
+  try {
+    const response = await ctx.app.inject({ method: 'GET', url: '/health' });
+    assert.equal(response.headers['x-content-type-options'], 'nosniff');
+    assert.equal(response.headers['x-frame-options'], 'DENY');
+    assert.equal(response.headers['referrer-policy'], 'no-referrer');
+    assert.ok(response.headers['content-security-policy']);
+    assert.match(String(response.headers['content-security-policy']), /default-src 'self'/);
+  } finally {
+    await ctx.cleanup();
+  }
+});

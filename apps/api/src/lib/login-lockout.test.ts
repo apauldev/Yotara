@@ -6,6 +6,7 @@ import {
   clearAttempts,
   getRemainingAttempts,
   getRemainingLockoutSeconds,
+  isLockedOut,
   recordFailedAttempt,
   setLockoutConfig,
 } from './login-lockout.js';
@@ -51,6 +52,14 @@ test('clearAttempts only clears the specific (ip, email) tuple', () => {
 
 test('unlocked tuple reports zero remaining lockout', () => {
   assert.equal(getRemainingLockoutSeconds(OTHER_IP, VICTIM), 0);
+  assert.equal(isLockedOut(OTHER_IP, VICTIM), false);
+});
+
+test('locked tuple reports locked', () => {
+  const ip = '10.0.0.1';
+  const email = 'locked-test@example.com';
+  failedSignIns(ip, email, 3);
+  assert.equal(isLockedOut(ip, email), true);
 });
 
 const CLEANUP_IP = '203.0.113.50';
