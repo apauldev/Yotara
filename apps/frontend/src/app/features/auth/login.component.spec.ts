@@ -89,13 +89,13 @@ describe('LoginComponent', () => {
 
     component.name.set('Alex Rivers');
     component.email.set('alex@example.com');
-    component.password.set('long-enough-password');
+    component.password.set('LongEn0ugh!Pass');
 
     await component.onSubmit();
 
     expect(authState.signUp).toHaveBeenCalledWith(
       'alex@example.com',
-      'long-enough-password',
+      'LongEn0ugh!Pass',
       'Alex Rivers',
     );
     expect(router.navigate).toHaveBeenCalledWith(['/onboarding'], {
@@ -128,7 +128,7 @@ describe('LoginComponent', () => {
     component.password.set('short');
     component.passwordTouched.set(true);
 
-    expect(component.getFieldError('password')).toBe('Password must be at least 8 characters');
+    expect(component.getFieldError('password')).toContain('Password must include:');
     expect(component.shouldShowFieldError('password')).toBeTrue();
   });
 

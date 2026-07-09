@@ -4,12 +4,14 @@ import { FormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faEnvelope, faLock } from '@fortawesome/free-solid-svg-icons';
 import { PasswordTrialComponent } from './password-trial.component';
+import { StrengthMeterComponent } from '../../shared/ui/strength-meter/strength-meter.component';
+import { passwordPolicyMessage } from './password-policy';
 import { AuthStateService } from '../../core/services/auth-state.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, FontAwesomeModule, PasswordTrialComponent],
+  imports: [FormsModule, FontAwesomeModule, PasswordTrialComponent, StrengthMeterComponent],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
 })
@@ -128,8 +130,8 @@ export class LoginComponent implements OnDestroy {
     if (!password) {
       return 'Password is required';
     }
-    if (!this.isLogin() && password.length < 8) {
-      return 'Password must be at least 8 characters';
+    if (!this.isLogin()) {
+      return passwordPolicyMessage(password);
     }
     return null;
   }
