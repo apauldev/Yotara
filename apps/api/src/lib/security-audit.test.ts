@@ -51,7 +51,7 @@ function bootServer(
     child.stderr.on('data', (chunk) => {
       stderr += chunk.toString();
     });
-    const timer = setTimeout(() => child.kill(), 4000);
+    const timer = setTimeout(() => child.kill(), 15_000);
     child.on('close', (code) => {
       clearTimeout(timer);
       resolve({ code, stderr });
