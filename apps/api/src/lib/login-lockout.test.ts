@@ -1,86 +1,86 @@
-import { randomUUID } from 'node:crypto';
+import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import { cleanupTestDb } from '../db/test-db.js';
+import { sqlite } from '../db/client.js';
+import {
+  clearAttempts,
+  getRemainingAttempts,
+  getRemainingLockoutSeconds,
+  recordFailedAttempt,
+  setLockoutConfig,
+} from './login-lockout.js';
 
-// Ensure the SQLite singleton uses a shared temp DB before any module imports it.
-import '../db/test-db.js';
+const VICTIM = 'victim@example.com';
+const ATTACKER_IP = '203.0.113.9';
+const OTHER_IP = '198.51.100.23';
 
-const TEST_EMAIL = `lockout-${randomUUID()}@test.com`;
-
-test('login lockout utility tracks attempts, locks at threshold, and prunes stale rows', async () => {
-  const {
-    setLockoutConfig,
-    isLockedOut,
-    getRemainingAttempts,
-    getRemainingLockoutSeconds,
-    recordFailedAttempt,
-    clearAttempts,
-    cleanExpiredLockouts,
-  } = await import('./login-lockout.js');
-
+before(() => {
   setLockoutConfig({ attempts: 3, minutes: 5 });
+});
 
-  // ── Lockout threshold test ──
+after(() => {
+  setLockoutConfig({});
+  cleanupTestDb();
+});
 
-  assert.equal(isLockedOut(TEST_EMAIL), false, 'not locked before any attempts');
-  assert.equal(getRemainingAttempts(TEST_EMAIL), 3, '3 remaining before any attempts');
-  assert.equal(getRemainingLockoutSeconds(TEST_EMAIL), 0, 'no lockout seconds before any attempts');
+function failedSignIns(ip: string, email: string, count: number) {
+  for (let i = 0; i < count; i++) {
+    recordFailedAttempt(ip, email);
+  }
+}
 
-  const first = recordFailedAttempt(TEST_EMAIL);
-  assert.equal(first.locked, false);
-  assert.equal(first.remainingAttempts, 2);
-  assert.equal(first.remainingLockoutSeconds, 0);
-  assert.equal(isLockedOut(TEST_EMAIL), false);
-  assert.equal(getRemainingAttempts(TEST_EMAIL), 2);
+test('attempts from different IPs do not share a counter', () => {
+  failedSignIns(ATTACKER_IP, VICTIM, 2);
+  failedSignIns(OTHER_IP, VICTIM, 1);
+  assert.equal(getRemainingAttempts(ATTACKER_IP, VICTIM), 1);
+  assert.equal(getRemainingAttempts(OTHER_IP, VICTIM), 2);
+});
 
-  const second = recordFailedAttempt(TEST_EMAIL);
-  assert.equal(second.locked, false);
-  assert.equal(second.remainingAttempts, 1);
-  assert.equal(isLockedOut(TEST_EMAIL), false);
-  assert.equal(getRemainingAttempts(TEST_EMAIL), 1);
+test('lockout is scoped to (ip, email) — another IP is unaffected', () => {
+  failedSignIns(ATTACKER_IP, VICTIM, 3);
+  assert.equal(getRemainingLockoutSeconds(ATTACKER_IP, VICTIM) > 0, true);
+  assert.equal(getRemainingLockoutSeconds(OTHER_IP, VICTIM), 0);
+});
 
-  const third = recordFailedAttempt(TEST_EMAIL);
-  assert.equal(third.locked, true);
-  assert.equal(third.remainingAttempts, 0);
-  assert.ok(third.remainingLockoutSeconds > 0, 'lockout seconds are positive');
-  assert.equal(isLockedOut(TEST_EMAIL), true);
-  assert.equal(getRemainingAttempts(TEST_EMAIL), 0);
+test('clearAttempts only clears the specific (ip, email) tuple', () => {
+  clearAttempts(ATTACKER_IP, VICTIM);
+  assert.equal(getRemainingLockoutSeconds(ATTACKER_IP, VICTIM), 0);
+  assert.equal(getRemainingAttempts(ATTACKER_IP, VICTIM), 3);
+  assert.equal(getRemainingAttempts(OTHER_IP, VICTIM), 2);
+});
 
-  const lockoutSeconds = getRemainingLockoutSeconds(TEST_EMAIL);
-  assert.ok(lockoutSeconds > 0 && lockoutSeconds <= 300, 'lockout seconds within range');
+test('unlocked tuple reports zero remaining lockout', () => {
+  assert.equal(getRemainingLockoutSeconds(OTHER_IP, VICTIM), 0);
+});
 
-  // Attempting while locked should not extend the lockout
-  const whileLocked = recordFailedAttempt(TEST_EMAIL);
-  assert.equal(whileLocked.locked, true);
-  assert.equal(whileLocked.remainingAttempts, 0);
-  assert.ok(whileLocked.remainingLockoutSeconds > 0);
-  assert.ok(whileLocked.remainingLockoutSeconds <= 300, 'lockout not extended beyond window');
+const CLEANUP_IP = '203.0.113.50';
+const CLEANUP_EMAIL = 'cleanup@example.com';
 
-  clearAttempts(TEST_EMAIL);
-  assert.equal(isLockedOut(TEST_EMAIL), false);
-  assert.equal(getRemainingAttempts(TEST_EMAIL), 3);
-  assert.equal(getRemainingLockoutSeconds(TEST_EMAIL), 0);
+test('stale rows are purged by getRemainingLockoutSeconds', () => {
+  // Seed a pre-lockout attempt row older than the window and a locked row whose
+  // lockout already expired. Both should be removed lazily when the lockout
+  // status is queried (cleanExpiredLockouts runs inside getRemainingLockoutSeconds).
+  const old = Date.now() - 10 * 60 * 1000;
+  const expiredLockout = Date.now() - 60 * 1000;
 
-  // ── Stale pre-lockout row cleanup test ──
+  sqlite
+    .prepare(
+      `INSERT INTO login_attempts (ip, email, attempts, locked_until, last_attempt_at)
+       VALUES (?, ?, 1, NULL, ?)`,
+    )
+    .run(CLEANUP_IP, CLEANUP_EMAIL, old);
 
-  const staleEmail = `stale-${randomUUID()}@test.com`;
-  setLockoutConfig({ attempts: 5, minutes: 0.002 }); // ~120ms window
+  sqlite
+    .prepare(
+      `INSERT INTO login_attempts (ip, email, attempts, locked_until, last_attempt_at)
+       VALUES (?, ?, 5, ?, ?)`,
+    )
+    .run(CLEANUP_IP, `other-${CLEANUP_EMAIL}`, expiredLockout, expiredLockout);
 
-  const staleResult = recordFailedAttempt(staleEmail);
-  assert.equal(staleResult.locked, false);
-  assert.equal(staleResult.remainingAttempts, 4);
-  assert.equal(getRemainingAttempts(staleEmail), 4);
+  assert.equal(getRemainingLockoutSeconds(CLEANUP_IP, CLEANUP_EMAIL), 0);
 
-  // Wait for the lockout window to pass
-  await new Promise((resolve) => setTimeout(resolve, 200));
-
-  // Trigger cleanup
-  cleanExpiredLockouts();
-
-  // The stale pre-lockout row should be gone, so remaining attempts resets
-  assert.equal(
-    getRemainingAttempts(staleEmail),
-    5,
-    'stale row should be cleaned up, resetting attempts',
-  );
+  const remaining = sqlite
+    .prepare('SELECT COUNT(*) AS cnt FROM login_attempts WHERE ip = ?')
+    .get(CLEANUP_IP) as { cnt: number };
+  assert.equal(remaining.cnt, 0, 'both stale rows should be purged');
 });

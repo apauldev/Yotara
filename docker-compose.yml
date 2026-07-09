@@ -4,6 +4,12 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
     environment:
+      # The API runs with `trustProxy: 1` and keys rate-limiting + login lockout
+      # off request.ip, which it derives from X-Forwarded-For. It MUST be fronted
+      # by a trusted proxy (nginx, per docker/nginx.conf) that sets/overwrites
+      # X-Forwarded-For with the real client IP. Running the API bare or behind a
+      # proxy that only appends makes request.ip attacker-controllable and defeats
+      # both per-IP lockout and IP rate limiting.
       DATABASE_URL: ${DATABASE_URL:-./apps/api/data/yotara.db}
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080/api}
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost:8080}
