@@ -35,7 +35,6 @@ import { ThemeService } from '../../../core/services/theme.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { LogoutConfirmModalComponent } from '../../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
 import { AppStatusComponent } from '../../../shared/ui/app-status/app-status.component';
-import { SuggestionTooltipComponent } from '../../../shared/ui/suggestion-tooltip/suggestion-tooltip.component';
 
 const TIPS = [
   'Press `#` in the task input to quickly add labels to any task.',
@@ -92,7 +91,6 @@ interface PersonalNavItem {
     RouterOutlet,
     LogoutConfirmModalComponent,
     AppStatusComponent,
-    SuggestionTooltipComponent,
   ],
   templateUrl: './personal-shell.component.html',
 })
@@ -130,16 +128,6 @@ export class PersonalShellComponent {
     { label: 'Labels', route: '/labels', icon: 'labels' },
     { label: 'Archive', route: '/archive', icon: 'archive' },
   ];
-
-  protected readonly suggestionTexts: Record<string, string> = {
-    inbox: 'Your new tasks land here. Capture anything that comes to mind and sort it later.',
-    today: 'See what needs your attention right now. Tasks due today show up here.',
-    upcoming: 'Plan ahead. Browse tasks grouped by week so nothing catches you off guard.',
-    projects: 'Organize related tasks into projects. Each project has its own focused workspace.',
-    labels: 'Tag tasks with labels to filter and find them faster across all your views.',
-    archive:
-      'Completed or archived tasks live here. Restore them if they ever need your attention again.',
-  };
   protected readonly mobileMenuOpen = signal(false);
   protected readonly sidebarCollapsed = signal(false);
   protected readonly profileMenuOpen = signal(false);

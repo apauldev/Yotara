@@ -106,6 +106,20 @@ import { Task, Project, Label } from '@yotara/shared';
 
           <label class="settings-item settings-toggle">
             <div class="settings-item-copy">
+              <strong>Task completion notifications</strong>
+              <span>Show a confirmation toast when you check a task as done.</span>
+            </div>
+            <input
+              type="checkbox"
+              class="toggle-input"
+              [checked]="actionNotifications()"
+              (change)="onActionNotificationsChange($event)"
+              aria-label="Toggle task completion notifications"
+            />
+          </label>
+
+          <label class="settings-item settings-toggle">
+            <div class="settings-item-copy">
               <strong>Daily insights</strong>
               <span>Show Daily Clarity and Yotara Journal prompts in the page header.</span>
             </div>
@@ -120,15 +134,15 @@ import { Task, Project, Label } from '@yotara/shared';
 
           <label class="settings-item settings-toggle">
             <div class="settings-item-copy">
-              <strong>Show suggestions</strong>
-              <span>Display helpful tooltips across the app to guide you through features.</span>
+              <strong>Show login tips</strong>
+              <span>Display productivity tips after signing in.</span>
             </div>
             <input
               type="checkbox"
               class="toggle-input"
-              [checked]="suggestionsEnabled()"
-              (change)="onSuggestionsEnabledChange($event)"
-              aria-label="Toggle suggestions tooltips"
+              [checked]="showLoginTips()"
+              (change)="onShowLoginTipsChange($event)"
+              aria-label="Toggle login tips"
             />
           </label>
 
@@ -721,10 +735,14 @@ export class SettingsPageComponent {
   protected readonly isSavingCaptureBehavior = signal(false);
   private readonly preferences = inject(PreferencesStore);
 
-  protected readonly skipCompleteConfirm = signal(this.preferences.getSkipCompleteConfirm());
-  protected readonly suggestionsEnabled = signal(this.preferences.areSuggestionsEnabled());
+  protected readonly skipCompleteConfirm = this.preferences.skipCompleteConfirm;
+  protected readonly actionNotifications = this.preferences.actionNotifications;
 
-  protected readonly showInsights = signal(!this.preferences.isInsightDismissed());
+  protected readonly showInsights = computed(() => !this.preferences.insightDismissed());
+
+  protected readonly showLoginTips = computed(
+    () => localStorage.getItem('yotara_loginTipDismissed') !== 'true',
+  );
 
   protected readonly exportFormat = signal<'csv' | 'json'>('csv');
 
@@ -943,24 +961,19 @@ export class SettingsPageComponent {
   }
 
   protected onSkipCompleteConfirmChange(event: Event) {
-    const checked = (event.target as HTMLInputElement).checked;
-    this.skipCompleteConfirm.set(checked);
-    this.preferences.setSkipCompleteConfirm(checked);
+    this.preferences.setSkipCompleteConfirm((event.target as HTMLInputElement).checked);
+  }
+
+  protected onActionNotificationsChange(event: Event) {
+    this.preferences.setActionNotifications((event.target as HTMLInputElement).checked);
   }
 
   protected onShowInsightsChange(event: Event) {
-    const checked = (event.target as HTMLInputElement).checked;
-    this.showInsights.set(checked);
-    this.preferences.setInsightDismissed(!checked);
+    this.preferences.setInsightDismissed(!(event.target as HTMLInputElement).checked);
   }
 
-  protected onSuggestionsEnabledChange(event: Event) {
-    const checked = (event.target as HTMLInputElement).checked;
-    this.suggestionsEnabled.set(checked);
-    this.preferences.setSuggestionsEnabled(checked);
-    if (checked) {
-      this.preferences.resetAllSuggestions();
-    }
+  protected onShowLoginTipsChange(event: Event) {
+    this.preferences.setLoginTipDismissed(!(event.target as HTMLInputElement).checked, true);
   }
 
   protected async onLogout() {
