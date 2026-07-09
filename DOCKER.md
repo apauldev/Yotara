@@ -52,74 +52,30 @@ docker compose down
 
 ## Environment Variables
 
-`BETTER_AUTH_SECRET` is **required** — `docker compose config` fails with a clear error if
-it is unset, and the API refuses to boot with the old placeholder value. This secret signs
-session tokens; without a strong secret, an attacker can forge sessions for any account.
+The compose file sets these by default:
 
-Generate it on every deploy and never commit a real value:
+| Variable | Value | Purpose |
+|:---|:---|:---|
+| `BETTER_AUTH_SECRET` | Development secret | Session signing |
+| `DATABASE_URL` | `/data/yotara.db` | SQLite path inside container |
+| `APP_BASE_URL` | `http://localhost:8080` | Base URL for Better Auth |
+| `TRUSTED_ORIGINS` | `http://localhost:8080` | Allowed auth origins |
+| `PORT` | `3000` | API port |
 
-```bash
-export BETTER_AUTH_SECRET=$(openssl rand -base64 32)
-docker compose up -d
-```
-
-| Variable | Default / Req'd | Purpose |
-|:---|:---:|:---|
-| `BETTER_AUTH_SECRET` | **Required** | Session signing key (min 32 chars, use `openssl rand -base64 32`) |
-| `DATABASE_URL` | `./apps/api/data/yotara.db` | SQLite path (inside container or volume) |
-| `APP_BASE_URL` | `http://localhost:8080/api` | Public URL for Better Auth callbacks |
-| `TRUSTED_ORIGINS` | `http://localhost:8080` | Allowed auth/CORS origins |
-| `PORT` | `3000` | API container port |
-| `CONTENT_SECURITY_POLICY` | *(see below)* | Override the CSP for both nginx and the API |
-
-### Content-Security-Policy
-
-The CSP is a single source of truth set once in `docker-compose.yml` (both `api` and
-`frontend` services). Override it to allow a CDN, external fonts, or custom integrations:
+For production, override any variable by creating a `.env` file in the project root:
 
 ```bash
-export CONTENT_SECURITY_POLICY="default-src 'self' https://cdn.example.com"
-docker compose up -d
+BETTER_AUTH_SECRET=your-secure-random-secret
+DATABASE_URL=/data/yotara.db
+APP_BASE_URL=https://your-domain.com/api
+TRUSTED_ORIGINS=https://your-domain.com
 ```
 
-This single variable propagates to both the API's Fastify `onSend` hook and nginx's
-`envsubst`-rendered config. There is no second copy to update.
+Docker Compose reads the root `.env` file automatically to supply
+`${VAR:-default}` interpolation values in the compose file.
 
-## Security Hardening
-
-The Docker stack is hardened out of the box:
-
-| Hardening | Description |
-|:---|:---|
-| **Session token key required** | `BETTER_AUTH_SECRET` must be set; compose refuses to start without it |
-| **Security headers** | `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, and `Content-Security-Policy` on every response (mirrored by the API hook) |
-| **Swagger UI gated** | `/docs` restricted to localhost + private LAN (10/8, 172.16/12, 192.168/16) at the nginx level |
-| **Account lockout scoped by IP** | Lockout keyed by (client IP, email) — an attacker can't lock a victim from a different IP |
-| **Per-email rate limiting** | Max 3 signup/reset emails per hour per email address |
-| **Global rate limiting** | 1000 requests/min per IP (configurable via `RATE_LIMIT_MAX` / `RATE_LIMIT_WINDOW_MINUTES`) |
-
-### Deployment constraints
-
-The API runs with `trustProxy: 1` and keys rate-limiting + lockout off `request.ip`,
-which it derives from `X-Forwarded-For`. **Never expose the API container directly to the
-internet** — the bundled nginx proxy (`docker-compose.yml`) must sit in front to overwrite
-`X-Forwarded-For` with the real client IP. Running the API bare makes `request.ip`
-attacker-controllable, defeating per-IP lockout and rate limiting.
-
-## Override Without Editing the Compose File
-
-Create a `docker-compose.override.yml` in the project root (Docker Compose merges it
-automatically with `docker-compose.yml`):
-
-```yaml
-services:
-  frontend:
-    ports:
-      - "9091:80"   # Change host port without editing the base file
-  api:
-    environment:
-      RATE_LIMIT_MAX: "100"
-```
+Alternatively, create a `docker-compose.override.yml` to add or replace
+environment variables, ports, or volumes without modifying the base file:
 
 ## Troubleshooting
 
@@ -187,10 +143,11 @@ docker compose exec api sh  # Shell into API container
 
 ## Production Considerations
 
-- **`BETTER_AUTH_SECRET` is required** — set it on every deploy via `export BETTER_AUTH_SECRET=...` or a `.env` file. Compose fails fast if it is missing, and the API refuses to start with the old placeholder. Never commit a real value.
-- Use HTTPS with a reverse proxy (Traefik, Caddy, nginx). The nginx config has an HSTS comment for enabling once TLS is terminated at nginx.
-- `NODE_ENV=production` is baked into the Dockerfile — session cookies are `Secure` and the boot guard is active by default in the container.
-- Configure backup for the Docker volume (`yotara_api_data` contains the SQLite database).
+- Change `BETTER_AUTH_SECRET` to a secure random value
+- Use HTTPS with a reverse proxy (Traefik, Caddy, nginx)
+- Set `NODE_ENV=production` for secure cookies
+- Use a managed SQLite solution or migrate to Postgres for multi-user deployments
+- Configure backup for the Docker volume
 
 ## API Entry Point
 

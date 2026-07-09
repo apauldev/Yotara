@@ -210,37 +210,16 @@ This starts three services in parallel:
 | **API** | http://localhost:3000 | Fastify backend with auto-reload |
 | **Drizzle Studio** | https://local.drizzle.studio | Database GUI for inspection |
 
-### Docker Deployment
+### Environment
 
-The stack is designed to run behind a single nginx front on port 8080. Images total ~950 MB (api: ~875 MB, frontend: ~78 MB), and the two containers run in ~512 MB RAM.
-
-```bash
-# Generate a strong secret for signing session tokens
-export BETTER_AUTH_SECRET=$(openssl rand -base64 32)
-
-# Build and start
-docker compose up --build -d
-
-# Open http://localhost:8080
-```
-
-**`BETTER_AUTH_SECRET` is mandatory.** Compose fails fast with a clear error if it's unset, and the API refuses to boot with the old default placeholder. This key signs session tokens — without a strong secret, an attacker can forge sessions for any account. Set it on every deploy and never commit a real value.
-
-The stack includes security hardening by default:
-- **Security headers** on every response: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Content-Security-Policy` (single source of truth shared between the API and nginx; override once via `CONTENT_SECURITY_POLICY`)
-- **Swagger UI** at `/docs` gated to localhost and private LAN ranges by default
-- **Account lockout** keyed by (IP, email) — an attacker can't lock a victim from a different IP
-- **Login rate limiting** with per-email attempt tracking
-
-See [DOCKER.md](./DOCKER.md) for full deployment details, environment variables, and troubleshooting.
-
-### Dev Environment (without Docker)
+The dev runner (`pnpm dev`) loads `apps/api/.env` automatically. To configure:
 
 ```bash
 cp apps/api/.env.example apps/api/.env
-# Edit apps/api/.env to configure
-pnpm dev
+# Then edit apps/api/.env to set your values
 ```
+
+For Docker deployment, see [DOCKER.md](./DOCKER.md).
 
 ---
 

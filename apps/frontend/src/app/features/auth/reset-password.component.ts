@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faLock, faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import { AuthStateService } from '../../core/services/auth-state.service';
-import { passwordPolicyMessage } from './password-policy';
 
 @Component({
   selector: 'app-reset-password',
@@ -46,8 +45,7 @@ import { passwordPolicyMessage } from './password-policy';
         } @else {
           <h1>Set new password</h1>
           <p class="subtitle">
-            Choose a new password for your account. Must include uppercase, lowercase, number, and
-            symbol.
+            Choose a new password for your account. Must be at least 8 characters.
           </p>
 
           <form (ngSubmit)="onSubmit()">
@@ -160,9 +158,8 @@ export class ResetPasswordComponent implements OnInit {
       return;
     }
 
-    const policyMsg = passwordPolicyMessage(this.newPassword());
-    if (policyMsg) {
-      this.validationError.set(policyMsg);
+    if (this.newPassword().length < 8) {
+      this.validationError.set('Password must be at least 8 characters');
       return;
     }
 

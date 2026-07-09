@@ -99,14 +99,14 @@ describe('ResetPasswordComponent', () => {
     fixture.detectChanges();
 
     expect(authState.resetPassword).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.textContent).toContain('Password must include:');
+    expect(fixture.nativeElement.textContent).toContain('Password must be at least 8 characters');
   });
 
   it('shows validation error when passwords do not match', async () => {
     await buildComponent();
     fixture.detectChanges();
 
-    component.newPassword.set('LongEn0ugh!Pass');
+    component.newPassword.set('long-enough-password');
     component.confirmPassword.set('different-password');
     await component.onSubmit();
     fixture.detectChanges();
@@ -120,8 +120,8 @@ describe('ResetPasswordComponent', () => {
     await buildComponent();
     fixture.detectChanges();
 
-    component.newPassword.set('LongEn0ugh!Pass');
-    component.confirmPassword.set('LongEn0ugh!Pass');
+    component.newPassword.set('long-enough-password');
+    component.confirmPassword.set('long-enough-password');
     await component.onSubmit();
     fixture.detectChanges();
 
@@ -133,12 +133,12 @@ describe('ResetPasswordComponent', () => {
     await buildComponent();
     fixture.detectChanges();
 
-    component.newPassword.set('N3w!Pass123');
-    component.confirmPassword.set('N3w!Pass123');
+    component.newPassword.set('new-password-123');
+    component.confirmPassword.set('new-password-123');
     await component.onSubmit();
     fixture.detectChanges();
 
-    expect(authState.resetPassword).toHaveBeenCalledWith('N3w!Pass123', 'valid-token-123');
+    expect(authState.resetPassword).toHaveBeenCalledWith('new-password-123', 'valid-token-123');
     expect(component.resetSuccessful()).toBeTrue();
     expect(fixture.nativeElement.textContent).toContain('Password updated');
   });
@@ -150,8 +150,8 @@ describe('ResetPasswordComponent', () => {
     });
 
     fixture.detectChanges();
-    component.newPassword.set('N3w!Pass123');
-    component.confirmPassword.set('N3w!Pass123');
+    component.newPassword.set('new-password-123');
+    component.confirmPassword.set('new-password-123');
     await component.onSubmit();
     fixture.detectChanges();
 
@@ -164,8 +164,8 @@ describe('ResetPasswordComponent', () => {
     authState.resetPassword.and.rejectWith(new Error('network failure'));
 
     fixture.detectChanges();
-    component.newPassword.set('N3w!Pass123');
-    component.confirmPassword.set('N3w!Pass123');
+    component.newPassword.set('new-password-123');
+    component.confirmPassword.set('new-password-123');
     await component.onSubmit();
     fixture.detectChanges();
 

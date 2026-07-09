@@ -14,39 +14,7 @@ import rootRoutes from './routes/root.js';
 import searchRoutes from './routes/search.js';
 import taskRoutes from './routes/tasks.js';
 
-// Content-Security-Policy — single source of truth for the API and nginx.
-// nginx reads it via the CONTENT_SECURITY_POLICY env var (injected at container
-// start from this same value), so there is only one copy to update. HSTS is
-// intentionally omitted from the generic set — it only belongs behind TLS
-// termination; add it once nginx serves HTTPS.
-export const CONTENT_SECURITY_POLICY =
-  process.env['CONTENT_SECURITY_POLICY'] ??
-  "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
-    "img-src 'self' data:; connect-src 'self' http://localhost:3000; " +
-    "frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
-
-// Defense-in-depth security headers. The CSP is shared with nginx (above); the
-// remaining three are stable and only set here.
-const SECURITY_HEADERS: Record<string, string> = {
-  'X-Content-Type-Options': 'nosniff',
-  'X-Frame-Options': 'DENY',
-  'Referrer-Policy': 'no-referrer',
-  'Content-Security-Policy': CONTENT_SECURITY_POLICY,
-};
-
 export async function buildApp() {
-  // Fail fast if Better Auth has no real secret in production. Session tokens are
-  // HMAC-signed with this secret, so a default/placeholder value lets anyone forge
-  // sessions for any account. Better Auth reads BETTER_AUTH_SECRET from the env by
-  // default; this guard is defense-in-depth in case auth.ts is not imported first.
-  if (
-    process.env['NODE_ENV'] === 'production' &&
-    (!process.env['BETTER_AUTH_SECRET'] ||
-      process.env['BETTER_AUTH_SECRET'] === 'local-dev-secret-change-me')
-  ) {
-    throw new Error('BETTER_AUTH_SECRET must be set to a unique value in production.');
-  }
-
   // trustProxy: 1 — nginx sits in front and appends the real client IP as the
   // last entry in X-Forwarded-For ($proxy_add_x_forwarded_for). Fastify reads
   // the last entry as request.ip, which is the authoritative client address.
@@ -68,17 +36,6 @@ export async function buildApp() {
   await app.register(authBridgePlugin);
   app.addHook('onRequest', async (request, reply) => {
     applyCorsHeaders(reply, request.headers.origin);
-  });
-
-  // Apply security headers on every response, even when the API is reached
-  // directly (dev / bare deploy) without the nginx front. Mirrors docker/nginx.conf.
-  app.addHook('onSend', (_request, reply, _payload, done) => {
-    for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
-      if (reply.getHeader(name) === undefined) {
-        reply.header(name, value);
-      }
-    }
-    done();
   });
 
   app.setErrorHandler((error, request, reply) => {

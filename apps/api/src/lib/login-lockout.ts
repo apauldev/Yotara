@@ -19,13 +19,13 @@ export function getLockoutMinutes(): number {
   return _overrides.minutes ?? Number(process.env['PASSWORD_LOCKOUT_MINUTES'] ?? 5);
 }
 
-export function getRemainingLockoutSeconds(ip: string, email: string): number {
+export function getRemainingLockoutSeconds(email: string): number {
   // Clean up any expired lockouts before checking
   cleanExpiredLockouts();
 
   const row = sqlite
-    .prepare('SELECT locked_until FROM login_attempts WHERE ip = ? AND email = ?')
-    .get(ip, email) as { locked_until: number | null } | undefined;
+    .prepare('SELECT locked_until FROM login_attempts WHERE email = ?')
+    .get(email) as { locked_until: number | null } | undefined;
 
   if (!row || row.locked_until === null) return 0;
 
@@ -33,28 +33,25 @@ export function getRemainingLockoutSeconds(ip: string, email: string): number {
   return remaining > 0 ? Math.ceil(remaining / 1000) : 0;
 }
 
-export function isLockedOut(ip: string, email: string): boolean {
-  return getRemainingLockoutSeconds(ip, email) > 0;
+export function isLockedOut(email: string): boolean {
+  return getRemainingLockoutSeconds(email) > 0;
 }
 
-export function getRemainingAttempts(ip: string, email: string): number {
-  const row = sqlite
-    .prepare('SELECT attempts FROM login_attempts WHERE ip = ? AND email = ?')
-    .get(ip, email) as { attempts: number } | undefined;
+export function getRemainingAttempts(email: string): number {
+  const row = sqlite.prepare('SELECT attempts FROM login_attempts WHERE email = ?').get(email) as
+    | { attempts: number }
+    | undefined;
 
   return Math.max(0, getLockoutAttempts() - (row?.attempts ?? 0));
 }
 
-export function recordFailedAttempt(
-  ip: string,
-  email: string,
-): {
+export function recordFailedAttempt(email: string): {
   locked: boolean;
   remainingLockoutSeconds: number;
   remainingAttempts: number;
 } {
   // Don't extend an active lockout — return immediately if already locked
-  const alreadyLockedSeconds = getRemainingLockoutSeconds(ip, email);
+  const alreadyLockedSeconds = getRemainingLockoutSeconds(email);
   if (alreadyLockedSeconds > 0) {
     return { locked: true, remainingLockoutSeconds: alreadyLockedSeconds, remainingAttempts: 0 };
   }
@@ -63,17 +60,15 @@ export function recordFailedAttempt(
 
   sqlite
     .prepare(
-      `INSERT INTO login_attempts (ip, email, attempts, last_attempt_at)
-       VALUES (?, ?, 1, ?)
-       ON CONFLICT(ip, email) DO UPDATE SET
+      `INSERT INTO login_attempts (email, attempts, last_attempt_at)
+       VALUES (?, 1, ?)
+       ON CONFLICT(email) DO UPDATE SET
          attempts = attempts + 1,
          last_attempt_at = ?`,
     )
-    .run(ip, email, now, now);
+    .run(email, now, now);
 
-  const row = sqlite
-    .prepare('SELECT attempts FROM login_attempts WHERE ip = ? AND email = ?')
-    .get(ip, email) as {
+  const row = sqlite.prepare('SELECT attempts FROM login_attempts WHERE email = ?').get(email) as {
     attempts: number;
   };
 
@@ -82,8 +77,8 @@ export function recordFailedAttempt(
   if (remainingAttempts <= 0) {
     const lockedUntil = now + getLockoutMinutes() * 60 * 1000;
     sqlite
-      .prepare('UPDATE login_attempts SET locked_until = ? WHERE ip = ? AND email = ?')
-      .run(lockedUntil, ip, email);
+      .prepare('UPDATE login_attempts SET locked_until = ? WHERE email = ?')
+      .run(lockedUntil, email);
     return {
       locked: true,
       remainingLockoutSeconds: getLockoutMinutes() * 60,
@@ -115,6 +110,6 @@ export function cleanExpiredLockouts(): void {
     .run(Date.now(), cutoff);
 }
 
-export function clearAttempts(ip: string, email: string): void {
-  sqlite.prepare('DELETE FROM login_attempts WHERE ip = ? AND email = ?').run(ip, email);
+export function clearAttempts(email: string): void {
+  sqlite.prepare('DELETE FROM login_attempts WHERE email = ?').run(email);
 }

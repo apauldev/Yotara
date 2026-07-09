@@ -258,7 +258,7 @@
                   class="text-xs text-on-surface-variant hover:text-on-surface transition-colors px-3 py-1 rounded-lg bg-surface-container-highest/50"
                   onclick="
                     navigator.clipboard?.writeText(
-                      'docker run -d --name yotara -p 8080:80 -e BETTER_AUTH_SECRET=$(openssl rand -base64 32) apauldev/yotara:latest',
+                      'docker run -d --name yotara -p 8080:80 -e BETTER_AUTH_SECRET=your-secret-here apauldev/yotara:latest',
                     )
                   "
                   aria-label="Copy Docker command"
@@ -273,7 +273,7 @@
             ><span style="color: #acf2cb;">$</span> docker run -d \
   --name yotara \
   -p 8080:80 \
-  -e BETTER_AUTH_SECRET=$(openssl rand -base64 32) \
+  -e BETTER_AUTH_SECRET=your-secret-here \
   apauldev/yotara:latest</pre>
           </div>
           <p class="text-on-surface-variant text-lg">
@@ -333,7 +333,7 @@
     image: apauldev/yotara-api:latest
     environment:
       DATABASE_URL: /data/yotara.db
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET?set a strong secret}
+      BETTER_AUTH_SECRET: change-me
     volumes:
       - yotara_data:/data
 
@@ -393,26 +393,9 @@
               >
               <span class="text-on-surface-variant">Linux x86_64 or arm64</span>
             </div>
-            <div class="stagger-item flex items-center gap-3 p-4 rounded-2xl bg-surface">
-              <span class="material-symbols-outlined text-primary" aria-hidden="true"
-                >check_circle</span
-              >
-              <span class="text-on-surface-variant">OpenSSL to generate a BETTER_AUTH_SECRET</span>
-            </div>
           </div>
           <p class="text-on-surface-variant mt-6 text-base">
-            That's it. No external database, no Redis, no email server required. Generate your
-            <code class="bg-surface-container-highest px-2 py-0.5 rounded text-sm font-mono"
-              >BETTER_AUTH_SECRET</code
-            >
-            with
-            <code class="bg-surface-container-highest px-2 py-0.5 rounded text-sm font-mono"
-              >openssl rand -base64 32</code
-            >
-            and export it before
-            <code class="bg-surface-container-highest px-2 py-0.5 rounded text-sm font-mono"
-              >docker compose up</code
-            >.
+            That's it. No external database, no Redis, no email server required.
           </p>
         </div>
       </section>

@@ -88,10 +88,6 @@
         @if (shouldShowFieldError('password')) {
           <div class="field-error">{{ getFieldError('password') }}</div>
         }
-
-        @if (!isLogin()) {
-          <app-strength-meter [password]="password()" />
-        }
       </div>
 
       @if (error()) {

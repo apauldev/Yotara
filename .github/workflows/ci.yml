@@ -213,7 +213,6 @@ jobs:
           pnpm smoke:docker
         env:
           DOCKER_SMOKE_BASE_URL: http://localhost:8080
-          BETTER_AUTH_SECRET: ci-test-secret-not-for-production-use-abc123
 
       - name: Logs on failure
         if: failure()

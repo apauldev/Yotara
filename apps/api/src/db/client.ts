@@ -120,12 +120,10 @@ const SQLITE_BOOTSTRAP_SQL = `
   );
 
   CREATE TABLE IF NOT EXISTS login_attempts (
-    ip TEXT NOT NULL,
-    email TEXT NOT NULL,
+    email TEXT PRIMARY KEY NOT NULL,
     attempts INTEGER NOT NULL DEFAULT 0,
     locked_until INTEGER,
-    last_attempt_at INTEGER NOT NULL,
-    PRIMARY KEY (ip, email)
+    last_attempt_at INTEGER NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS email_sends (
@@ -377,28 +375,6 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
       PRIMARY KEY (task_id, label_id),
       FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
       FOREIGN KEY (label_id) REFERENCES labels(id) ON DELETE CASCADE
-    )`);
-  }
-
-  // Migrate login_attempts to a composite (ip, email) primary key. The old shape
-  // keyed only by email, which allowed a single attacker to lock any victim's
-  // account. The table holds only transient failed-login counters, so dropping
-  // and recreating it on upgrade is safe.
-  const loginAttemptColumns = sqlite.prepare(`PRAGMA table_info('login_attempts')`).all() as Array<{
-    name: string;
-  }>;
-  const isNewShape = loginAttemptColumns.some((column) => column.name === 'ip');
-  if (loginAttemptColumns.length > 0 && !isNewShape) {
-    sqlite.exec(`DROP TABLE login_attempts`);
-  }
-  if (loginAttemptColumns.length === 0 || !isNewShape) {
-    sqlite.exec(`CREATE TABLE login_attempts (
-      ip TEXT NOT NULL,
-      email TEXT NOT NULL,
-      attempts INTEGER NOT NULL DEFAULT 0,
-      locked_until INTEGER,
-      last_attempt_at INTEGER NOT NULL,
-      PRIMARY KEY (ip, email)
     )`);
   }
 
