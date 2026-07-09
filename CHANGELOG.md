@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.66.1](https://github.com/apauldev/Yotara/compare/v0.66.0...v0.66.1) (2026-07-09)
+
+
+### Chores
+
+* ignore auto-generated Playwright files in Prettier check ([cb280e2](https://github.com/apauldev/Yotara/commit/cb280e20348774ba15475109e0859d5b4437a5ad))
+
 ## [0.66.0](https://github.com/apauldev/Yotara/compare/v0.65.0...v0.66.0) (2026-07-09)
 
 
