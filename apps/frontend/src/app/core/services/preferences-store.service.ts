@@ -1,67 +1,82 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable } from '@angular/core';
 
 @Injectable({
   providedIn: 'root',
 })
 export class PreferencesStore {
-  private static readonly SKIP_COMPLETE_KEY = 'yotara_skipCompleteConfirm';
-  private static readonly ACTION_NOTIFICATIONS_KEY = 'yotara_actionNotifications';
-  private static readonly INSIGHT_DISMISSED_KEY = 'yotara_insightDismissed';
-  private static readonly LOGIN_TIP_DISMISSED_KEY = 'yotara_loginTipDismissed';
-  private static readonly ONBOARDING_COMPLETED_KEY = 'onboardingCompleted';
-  private static readonly WORKSPACE_TYPE_KEY = 'workspaceType';
+  readonly SKIP_COMPLETE_KEY = 'yotara_skipCompleteConfirm';
+  readonly INSIGHT_DISMISSED_KEY = 'yotara_insightDismissed';
+  readonly ONBOARDING_COMPLETED = 'onboardingCompleted';
+  readonly WORKSPACE_TYPE = 'workspaceType';
+  readonly DISMISSED_SUGGESTIONS_KEY = 'yotara_dismissedSuggestions';
+  readonly SUGGESTIONS_ENABLED_KEY = 'yotara_suggestionsEnabled';
 
-  readonly skipCompleteConfirm = signal(
-    localStorage.getItem(PreferencesStore.SKIP_COMPLETE_KEY) === 'true',
-  );
-  readonly actionNotifications = signal(
-    localStorage.getItem(PreferencesStore.ACTION_NOTIFICATIONS_KEY) !== 'false',
-  );
-  readonly insightDismissed = signal(
-    localStorage.getItem(PreferencesStore.INSIGHT_DISMISSED_KEY) === 'true',
-  );
-  readonly loginTipDismissed = signal(
-    localStorage.getItem(PreferencesStore.LOGIN_TIP_DISMISSED_KEY) === 'true' ||
-      sessionStorage.getItem(PreferencesStore.LOGIN_TIP_DISMISSED_KEY) === 'true',
-  );
-  readonly onboardingCompleted = signal(
-    localStorage.getItem(PreferencesStore.ONBOARDING_COMPLETED_KEY) === 'true',
-  );
-  readonly workspaceType = signal(localStorage.getItem(PreferencesStore.WORKSPACE_TYPE_KEY) ?? '');
-
-  setSkipCompleteConfirm(value: boolean): void {
-    this.skipCompleteConfirm.set(value);
-    localStorage.setItem(PreferencesStore.SKIP_COMPLETE_KEY, value ? 'true' : 'false');
+  getSkipCompleteConfirm(): boolean {
+    return localStorage.getItem(this.SKIP_COMPLETE_KEY) === 'true';
   }
 
-  setActionNotifications(value: boolean): void {
-    this.actionNotifications.set(value);
-    localStorage.setItem(PreferencesStore.ACTION_NOTIFICATIONS_KEY, value ? 'true' : 'false');
+  setSkipCompleteConfirm(value: boolean): void {
+    localStorage.setItem(this.SKIP_COMPLETE_KEY, value ? 'true' : 'false');
+  }
+
+  isInsightDismissed(): boolean {
+    return localStorage.getItem(this.INSIGHT_DISMISSED_KEY) === 'true';
   }
 
   setInsightDismissed(value: boolean): void {
-    this.insightDismissed.set(value);
-    localStorage.setItem(PreferencesStore.INSIGHT_DISMISSED_KEY, value ? 'true' : 'false');
+    localStorage.setItem(this.INSIGHT_DISMISSED_KEY, value ? 'true' : 'false');
   }
 
-  setLoginTipDismissed(value: boolean, permanent = false): void {
-    this.loginTipDismissed.set(value);
-    if (permanent) {
-      localStorage.setItem(PreferencesStore.LOGIN_TIP_DISMISSED_KEY, value ? 'true' : 'false');
-      // Also clear session storage to keep it clean if permanently dismissed
-      sessionStorage.removeItem(PreferencesStore.LOGIN_TIP_DISMISSED_KEY);
-    } else {
-      sessionStorage.setItem(PreferencesStore.LOGIN_TIP_DISMISSED_KEY, value ? 'true' : 'false');
-    }
+  isOnboardingCompleted(): boolean {
+    return localStorage.getItem(this.ONBOARDING_COMPLETED) === 'true';
   }
 
-  setOnboardingCompleted(value = true): void {
-    this.onboardingCompleted.set(value);
-    localStorage.setItem(PreferencesStore.ONBOARDING_COMPLETED_KEY, value ? 'true' : 'false');
+  setOnboardingCompleted(): void {
+    localStorage.setItem(this.ONBOARDING_COMPLETED, 'true');
+  }
+
+  getWorkspaceType(): string {
+    return localStorage.getItem(this.WORKSPACE_TYPE) ?? '';
   }
 
   setWorkspaceType(value: string): void {
-    this.workspaceType.set(value);
-    localStorage.setItem(PreferencesStore.WORKSPACE_TYPE_KEY, value);
+    localStorage.setItem(this.WORKSPACE_TYPE, value);
+  }
+
+  getDismissedSuggestions(): string[] {
+    try {
+      const raw = localStorage.getItem(this.DISMISSED_SUGGESTIONS_KEY);
+      return raw ? (JSON.parse(raw) as string[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private saveDismissedSuggestions(ids: string[]): void {
+    localStorage.setItem(this.DISMISSED_SUGGESTIONS_KEY, JSON.stringify(ids));
+  }
+
+  isSuggestionDismissed(id: string): boolean {
+    return this.getDismissedSuggestions().includes(id);
+  }
+
+  dismissSuggestion(id: string): void {
+    const dismissed = this.getDismissedSuggestions();
+    if (!dismissed.includes(id)) {
+      dismissed.push(id);
+      this.saveDismissedSuggestions(dismissed);
+    }
+  }
+
+  resetAllSuggestions(): void {
+    this.saveDismissedSuggestions([]);
+  }
+
+  areSuggestionsEnabled(): boolean {
+    return localStorage.getItem(this.SUGGESTIONS_ENABLED_KEY) !== 'false';
+  }
+
+  setSuggestionsEnabled(enabled: boolean): void {
+    localStorage.setItem(this.SUGGESTIONS_ENABLED_KEY, enabled ? 'true' : 'false');
   }
 }

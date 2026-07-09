@@ -1,0 +1,53 @@
+:host {
+  display: block;
+}
+
+.strength-meter {
+  height: 4px;
+  background: var(--surface-container-high);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 0.4rem;
+}
+
+.strength-bar {
+  height: 100%;
+  transition:
+    width 0.3s ease,
+    background 0.3s ease;
+  border-radius: 2px;
+}
+
+.strength-weak {
+  background: #e53935;
+}
+.strength-fair {
+  background: #fdd835;
+}
+.strength-good {
+  background: #43a047;
+}
+.strength-strong {
+  background: #43a047;
+}
+
+.strength-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--on-surface-muted);
+  margin-top: 0.25rem;
+}
+
+.requirements {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--on-surface-muted);
+  margin-top: 0.25rem;
+}
+
+.requirements .met {
+  color: var(--primary-solid);
+}
