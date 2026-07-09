@@ -15,6 +15,18 @@ import searchRoutes from './routes/search.js';
 import taskRoutes from './routes/tasks.js';
 
 export async function buildApp() {
+  // Fail fast if Better Auth has no real secret in production. Session tokens are
+  // HMAC-signed with this secret, so a default/placeholder value lets anyone forge
+  // sessions for any account. Better Auth reads BETTER_AUTH_SECRET from the env by
+  // default; this guard is defense-in-depth in case auth.ts is not imported first.
+  if (
+    process.env['NODE_ENV'] === 'production' &&
+    (!process.env['BETTER_AUTH_SECRET'] ||
+      process.env['BETTER_AUTH_SECRET'] === 'local-dev-secret-change-me')
+  ) {
+    throw new Error('BETTER_AUTH_SECRET must be set to a unique value in production.');
+  }
+
   // trustProxy: 1 — nginx sits in front and appends the real client IP as the
   // last entry in X-Forwarded-For ($proxy_add_x_forwarded_for). Fastify reads
   // the last entry as request.ip, which is the authoritative client address.
