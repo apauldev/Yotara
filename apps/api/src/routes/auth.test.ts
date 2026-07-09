@@ -508,3 +508,41 @@ test('sendVerificationEmail callback is wired correctly', async () => {
     await ctx.cleanup();
   }
 });
+
+test('signup rejects passwords shorter than minPasswordLength (8)', async () => {
+  const ctx = await createTestApp();
+  const email = `short-pw-${randomUUID()}@example.com`;
+
+  try {
+    const response = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: 'Short1!', name: 'Short PW' },
+    });
+
+    assert.equal(response.statusCode, 400);
+    const body = response.json();
+    assert.match(body.message, /password|short|length/i);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('signup accepts password meeting minPasswordLength (8)', async () => {
+  const ctx = await createTestApp();
+  const email = `ok-pw-${randomUUID()}@example.com`;
+
+  try {
+    const response = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: 'LongEnough1!', name: 'OK PW' },
+    });
+
+    assert.equal(response.statusCode, 200);
+  } finally {
+    await ctx.cleanup();
+  }
+});

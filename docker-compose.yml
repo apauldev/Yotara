@@ -7,9 +7,13 @@ services:
       DATABASE_URL: ${DATABASE_URL:-./apps/api/data/yotara.db}
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080/api}
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost:8080}
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-local-dev-secret-change-me}
+      # REQUIRED: a strong unique secret, e.g. `openssl rand -base64 32`.
+      # No default — compose fails fast if BETTER_AUTH_SECRET is unset, and the
+      # API also refuses to boot with the old placeholder value.
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET?set a strong BETTER_AUTH_SECRET (openssl rand -base64 32)}
       HOST: 0.0.0.0
       PORT: ${PORT:-3000}
+      CONTENT_SECURITY_POLICY: ${CONTENT_SECURITY_POLICY:-default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://localhost:3000; frame-ancestors 'none'; base-uri 'self'; form-action 'self'}
     volumes:
       - yotara_api_data:/app/apps/api/data
 
@@ -19,6 +23,8 @@ services:
       dockerfile: apps/frontend/Dockerfile
     depends_on:
       - api
+    environment:
+      CONTENT_SECURITY_POLICY: ${CONTENT_SECURITY_POLICY:-default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://localhost:3000; frame-ancestors 'none'; base-uri 'self'; form-action 'self'}
     ports:
       - '8080:80'
 
