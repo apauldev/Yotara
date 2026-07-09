@@ -25,7 +25,7 @@
 .brand-mark {
   width: 2rem;
   height: 2rem;
-  color: var(--primary-solid);
+  color: var(--brand-mark);
 }
 
 .brand-mark svg {
@@ -66,7 +66,7 @@
   height: 4.8rem;
   border-radius: 999px;
   background: var(--surface-container-low);
-  color: var(--primary-solid);
+  color: var(--brand-mark);
   display: grid;
   place-items: center;
   margin-bottom: 1rem;
