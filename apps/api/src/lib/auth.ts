@@ -9,6 +9,22 @@ const trustedOrigins = getTrustedOrigins();
 const useSecureCookies =
   process.env['NODE_ENV'] === 'production' || appBaseUrl.startsWith('https://');
 
+const DEFAULT_AUTH_SECRET = 'local-dev-secret-change-me';
+
+function assertAuthSecretConfigured(): void {
+  const secret = process.env['BETTER_AUTH_SECRET'];
+  if (process.env['NODE_ENV'] === 'production' && (!secret || secret === DEFAULT_AUTH_SECRET)) {
+    throw new Error(
+      'Refusing to start: BETTER_AUTH_SECRET is missing or still set to the default ' +
+        'placeholder. Generate a strong, unique secret (e.g. `openssl rand -base64 32`) ' +
+        'and set it in production, otherwise session tokens are forgeable.',
+    );
+  }
+}
+
+// Evaluated at module load so the guard runs before the server serves traffic.
+assertAuthSecretConfigured();
+
 export const auth = betterAuth({
   baseURL: appBaseUrl,
   basePath: '/auth',

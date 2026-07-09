@@ -116,8 +116,13 @@ export default async function authBridgePlugin(app: FastifyInstance) {
           ? parsedBody.email
           : null;
 
+      // Real client IP (resolves via trustProxy: 1 + nginx X-Forwarded-For) used
+      // to scope the lockout tuple so an attacker can't lock a victim's account
+      // from a different IP.
+      const clientIp = request.ip ?? 'unknown';
+
       if (isSignIn && loginEmail) {
-        const remaining = getRemainingLockoutSeconds(loginEmail);
+        const remaining = getRemainingLockoutSeconds(clientIp, loginEmail);
         if (remaining > 0) {
           reply.header('Retry-After', String(remaining));
           return reply.code(429).send({
@@ -155,9 +160,9 @@ export default async function authBridgePlugin(app: FastifyInstance) {
 
       if (isSignIn && loginEmail) {
         if (response.status === 200) {
-          clearAttempts(loginEmail);
+          clearAttempts(clientIp, loginEmail);
         } else if (response.status === 401) {
-          const result = recordFailedAttempt(loginEmail);
+          const result = recordFailedAttempt(clientIp, loginEmail);
           if (result.locked) {
             reply.header('Retry-After', String(result.remainingLockoutSeconds));
             return reply.code(429).send({
