@@ -12,11 +12,13 @@ import {
 import { FormsModule } from '@angular/forms';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { ModalComponent } from '../../../shared/ui/modal/modal.component';
+import { StrengthMeterComponent } from '../../../shared/ui/strength-meter/strength-meter.component';
+import { checkPasswordPolicy } from '../../auth/password-policy';
 
 @Component({
   selector: 'app-change-password-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, ModalComponent],
+  imports: [CommonModule, FormsModule, ModalComponent, StrengthMeterComponent],
   template: `
     <app-modal [open]="open" title="Change Password" size="md" (close)="onClose()">
       <form class="password-form" (submit)="onSubmit($event)">
@@ -56,25 +58,7 @@ import { ModalComponent } from '../../../shared/ui/modal/modal.component';
             placeholder="••••••••"
           />
 
-          @if (newPassword()) {
-            <div class="strength-meter">
-              <div
-                class="strength-bar"
-                [style.width.%]="strength().percent"
-                [ngClass]="strength().class"
-              ></div>
-            </div>
-            <div class="strength-label">
-              Strength: <span [ngClass]="strength().class">{{ strength().label }}</span>
-            </div>
-            <div class="requirements">
-              <span [class.met]="hasMinLength()">8+ chars</span>
-              <span [class.met]="hasCapital()">Capital</span>
-              <span [class.met]="hasLower()">Lowercase</span>
-              <span [class.met]="hasNumber()">Number</span>
-              <span [class.met]="hasSymbol()">Symbol</span>
-            </div>
-          }
+          <app-strength-meter [password]="newPassword()" />
         </div>
 
         <div class="field">
@@ -330,53 +314,11 @@ export class ChangePasswordModalComponent {
   protected readonly success = signal(false);
   protected readonly loading = this.authState.loading;
 
-  protected readonly hasMinLength = computed(() => this.newPassword().length >= 8);
-  protected readonly hasCapital = computed(() => /[A-Z]/.test(this.newPassword()));
-  protected readonly hasLower = computed(() => /[a-z]/.test(this.newPassword()));
-  protected readonly hasNumber = computed(() => /[0-9]/.test(this.newPassword()));
-  protected readonly hasSymbol = computed(() => /[^A-Za-z0-9]/.test(this.newPassword()));
   protected readonly passwordsMatch = computed(() => this.newPassword() === this.confirmPassword());
 
-  protected readonly strength = computed(() => {
-    const p = this.newPassword();
-    if (!p) return { percent: 0, class: '', label: '' };
-
-    let score = 0;
-    if (this.hasMinLength()) score++;
-    if (this.hasCapital()) score++;
-    if (this.hasLower()) score++;
-    if (this.hasNumber()) score++;
-    if (this.hasSymbol()) score++;
-    if (p.length >= 12) score++;
-
-    const percent = Math.min((score / 5) * 100, 100);
-    let className = 'strength-weak';
-    let label = 'Weak';
-
-    if (score >= 5) {
-      className = 'strength-strong';
-      label = 'Strong';
-    } else if (score >= 4) {
-      className = 'strength-good';
-      label = 'Good';
-    } else if (score >= 2) {
-      className = 'strength-medium';
-      label = 'Fair';
-    }
-
-    return { percent, class: className, label };
-  });
-
   protected readonly isFormValid = computed(() => {
-    return (
-      this.currentPassword().length > 0 &&
-      this.hasMinLength() &&
-      this.hasCapital() &&
-      this.hasLower() &&
-      this.hasNumber() &&
-      this.hasSymbol() &&
-      this.passwordsMatch()
-    );
+    const policy = checkPasswordPolicy(this.newPassword());
+    return this.currentPassword().length > 0 && policy.valid && this.passwordsMatch();
   });
 
   private readonly _autoClose = effect((onCleanup) => {

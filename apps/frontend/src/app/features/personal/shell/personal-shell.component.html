@@ -31,44 +31,51 @@
 
       <nav class="nav-list" aria-label="Personal navigation">
         @for (item of navItems; track item.route + (item.queryParams?.['view'] || '')) {
-          <a
-            [routerLink]="item.route"
-            [queryParams]="item.queryParams"
-            routerLinkActive="nav-item-active"
-            [routerLinkActiveOptions]="{
-              paths: 'subset',
-              queryParams: 'subset',
-              fragment: 'ignored',
-              matrixParams: 'ignored',
-            }"
-            class="nav-item"
-            [title]="sidebarCollapsed() ? item.label : ''"
-            (click)="closeMobileMenu()"
+          <app-suggestion-tooltip
+            [id]="'nav-' + item.icon"
+            [text]="suggestionTexts[item.icon]"
+            position="right"
+            [showDismissCheckbox]="true"
           >
-            <span class="nav-icon" aria-hidden="true">
-              @switch (item.icon) {
-                @case ('inbox') {
-                  <fa-icon [icon]="faInbox"></fa-icon>
+            <a
+              [routerLink]="item.route"
+              [queryParams]="item.queryParams"
+              routerLinkActive="nav-item-active"
+              [routerLinkActiveOptions]="{
+                paths: 'subset',
+                queryParams: 'subset',
+                fragment: 'ignored',
+                matrixParams: 'ignored',
+              }"
+              class="nav-item"
+              [title]="sidebarCollapsed() ? item.label : ''"
+              (click)="closeMobileMenu()"
+            >
+              <span class="nav-icon" aria-hidden="true">
+                @switch (item.icon) {
+                  @case ('inbox') {
+                    <fa-icon [icon]="faInbox"></fa-icon>
+                  }
+                  @case ('today') {
+                    <fa-icon [icon]="faCalendarDays"></fa-icon>
+                  }
+                  @case ('upcoming') {
+                    <fa-icon [icon]="faArrowRightLong"></fa-icon>
+                  }
+                  @case ('projects') {
+                    <fa-icon [icon]="faRocket"></fa-icon>
+                  }
+                  @case ('labels') {
+                    <fa-icon [icon]="faTag"></fa-icon>
+                  }
+                  @case ('archive') {
+                    <fa-icon [icon]="faBoxArchive"></fa-icon>
+                  }
                 }
-                @case ('today') {
-                  <fa-icon [icon]="faCalendarDays"></fa-icon>
-                }
-                @case ('upcoming') {
-                  <fa-icon [icon]="faArrowRightLong"></fa-icon>
-                }
-                @case ('projects') {
-                  <fa-icon [icon]="faRocket"></fa-icon>
-                }
-                @case ('labels') {
-                  <fa-icon [icon]="faTag"></fa-icon>
-                }
-                @case ('archive') {
-                  <fa-icon [icon]="faBoxArchive"></fa-icon>
-                }
-              }
-            </span>
-            <span class="nav-label">{{ item.label }}</span>
-          </a>
+              </span>
+              <span class="nav-label">{{ item.label }}</span>
+            </a>
+          </app-suggestion-tooltip>
         }
       </nav>
     </div>
