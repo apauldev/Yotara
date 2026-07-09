@@ -19,16 +19,16 @@
 }
 
 .strength-weak {
-  background: #e53935;
+  background: var(--priority-high);
 }
 .strength-fair {
-  background: #fdd835;
+  background: var(--priority-medium);
 }
 .strength-good {
-  background: #43a047;
+  background: var(--success-strong);
 }
 .strength-strong {
-  background: #43a047;
+  background: var(--primary-solid);
 }
 
 .strength-label {
