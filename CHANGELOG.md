@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.65.0](https://github.com/apauldev/Yotara/compare/v0.64.0...v0.65.0) (2026-07-09)
+
+
+### Features
+
+* harden docker stack with security headers, CSP source of truth, and required auth secret ([cbdc614](https://github.com/apauldev/Yotara/commit/cbdc614d7dbf8231f9d7bea1db1348c667c683aa))
+
+
+### Bug Fixes
+
+* enforce password policy server-side and align UI across all auth screens ([1841555](https://github.com/apauldev/Yotara/commit/18415550becc8ca94dbb6b30f02df2447e899aff))
+* reject default auth secret and scope login lockout by client IP ([0211e6b](https://github.com/apauldev/Yotara/commit/0211e6b3dcf524a6f72b29498162dc938ba41a58))
+* wire Angular environment file replacement per build configuration ([c73e74b](https://github.com/apauldev/Yotara/commit/c73e74b789c4a9522d20495be10b5ed3bfeb4336))
+
+
+### Chores
+
+* revert stash-contaminated files to main state ([0ac39b8](https://github.com/apauldev/Yotara/commit/0ac39b8529c6bf9642c450c234febd1b095d550a))
+
+
+### Refactoring
+
+* extract strength meter into reusable component, fix colors and tiered bar ([2945529](https://github.com/apauldev/Yotara/commit/29455291df8fc81afbde2ac9b58c6c1edb54f929))
+
 ## [0.64.0](https://github.com/apauldev/Yotara/compare/v0.63.1...v0.64.0) (2026-07-08)
 
 
