@@ -22,6 +22,10 @@ Yotara helps focused people and **quiet teams** — small groups that share work
 <a href="https://github.com/apauldev/Yotara/graphs/contributors"><img src="https://img.shields.io/github/contributors/apauldev/Yotara?style=for-the-badge&color=24473c" alt="Contributors" /></a>
 <a href="https://github.com/apauldev/Yotara"><img src="https://img.shields.io/github/stars/apauldev/Yotara?style=for-the-badge&logo=github&color=B7D3C3&logoColor=173F35" alt="Stars" /></a>
 <a href="https://yotara.website"><img src="https://img.shields.io/badge/website-yotara.website-173F35?style=for-the-badge&logo=cloudflare&logoColor=white" alt="Website" /></a>
+<a href="./PROJECT_README.md"><img src="https://img.shields.io/badge/docs-Project%20Guide-24473c?style=for-the-badge&logo=readme&logoColor=F7F6F2" alt="Project Guide" /></a>
+<a href="./docs/ARCHITECTURE.md"><img src="https://img.shields.io/badge/architecture-Deep%20Dive-3E7B63?style=for-the-badge&logo=bookstack&logoColor=white" alt="Architecture" /></a>
+<a href="./CONTRIBUTING.md"><img src="https://img.shields.io/badge/contributing-welcome-7BA58D?style=for-the-badge&logo=github&logoColor=white" alt="Contributing" /></a>
+<a href="https://github.com/apauldev/Yotara/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22"><img src="https://img.shields.io/badge/good_first_issues-hello-173F35?style=for-the-badge&logo=github&logoColor=white" alt="Good first issues" /></a>
 
 </div>
 
@@ -51,11 +55,19 @@ Yotara helps focused people and **quiet teams** — small groups that share work
 - Consultants and freelancers
 - Small teams and nonprofits
 
-**Probably not for**
+**Not ideal for**
 
 - Scrum or SAFe organizations
 - Enterprise portfolio management
 - Heavy Agile workflows
+
+---
+
+## What to expect
+
+- Designed for focused personal use and small-group sharing, not large enterprise programs.
+- Team features are on the roadmap; the current experience is personal-first.
+- Local-first deployment with SQLite and a portable monorepo stack.
 
 ---
 
@@ -83,7 +95,7 @@ Not another todo app. Not another project management suite. Something in between
 
 ## Quick Start
 
-Get Yotara running locally in under a minute:
+Get Yotara running locally in under a minute. Requires Node `22.22.1+` and `pnpm` `10.30.3+`.
 
 ```bash
 git clone https://github.com/apauldev/Yotara.git
@@ -92,13 +104,15 @@ pnpm install
 pnpm dev
 ```
 
-This starts three services in parallel:
+`pnpm dev` starts three services in parallel from the repo root:
 
 | Service | URL | Purpose |
 |:---|:---|:---|
 | **Frontend** | http://localhost:4200 | Angular dev server with hot reload |
 | **API** | http://localhost:3000 | Fastify backend with auto-reload |
 | **Drizzle Studio** | https://local.drizzle.studio | Database GUI for inspection |
+
+> Note: `pnpm dev` runs three processes in parallel: `@yotara/frontend dev`, `@yotara/api dev`, and `@yotara/api db:studio` (studio is optional and only starts when available).
 
 ### Docker deployment
 
