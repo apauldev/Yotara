@@ -302,6 +302,29 @@ Yotara is open source, and community care keeps it growing. We would love your h
 2. Browse [good first issues](https://github.com/apauldev/Yotara/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) to find something to work on.
 3. Read the [Contributing Guide](./CONTRIBUTING.md) for setup, conventions, and PR process.
 
+## Contributors
+
+Yotara is built by these contributors:
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tbody>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/apauldev"><img src="https://avatars.githubusercontent.com/u/6706835?v=4?s=100" width="100px;" alt="Arul"/><br /><sub><b>Arul</b></sub></a><br /><a href="https://github.com/apauldev/Yotara/commits?author=apauldev" title="Code">Code</a> <a href="https://github.com/apauldev/Yotara/commits?author=apauldev" title="Documentation">Docs</a> <a href="#design-apauldev" title="Design">Design</a> <a href="#ideas-apauldev" title="Ideas, Planning, & Feedback">Ideas</a> <a href="#maintenance-apauldev" title="Maintenance">Maintenance</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/shivansh090"><img src="https://avatars.githubusercontent.com/u/116243866?v=4?s=100" width="100px;" alt="Shivansh Vikram Singh"/><br /><sub><b>Shivansh Vikram Singh</b></sub></a><br /><a href="https://github.com/apauldev/Yotara/commits?author=shivansh090" title="Documentation">Docs</a></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+Want to see your name here? Check the [contributing guide](./CONTRIBUTING.md).
+
 ## Security
 
 If you discover a security vulnerability, please report it privately via the [Security Policy](./SECURITY.md). Every report is taken seriously.
