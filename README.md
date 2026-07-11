@@ -4,7 +4,7 @@
 
 <img src="./docs/assets/yotara-logo.svg" alt="Yotara logo" width="100" />
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:173F35,50:3E7B63,100:B7D3C3&height=240&section=header&text=Yotara&fontSize=56&fontColor=F7F6F2&fontAlignY=36&desc=Flow%20through%20your%20day%2C%20naturally.&descSize=18&descAlignY=56" alt="Yotara banner" />
+<img src="./docs/assets/yotara-banner.svg" alt="Yotara banner" />
 
 ## A calm, self-hosted task manager
 
