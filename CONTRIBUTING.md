@@ -10,8 +10,8 @@ Please review our [Code of Conduct](./CODE_OF_CONDUCT.md) before participating.
 
 ### Prerequisites
 
-- **Node.js** 18 or newer
-- **pnpm** 9 or newer
+- **Node.js** 22.22.1 or newer
+- **pnpm** 10.30.3 or newer
 
 ### Setup
 

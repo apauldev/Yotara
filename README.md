@@ -8,7 +8,7 @@
 
 ## A calm, self-hosted task manager
 
-Yotara helps focused people and **quiet teams** — small groups that share work without the overhead of project management — capture tasks, plan their week, and finish without the noise.
+Yotara helps focused people capture tasks, plan their week, and finish without the noise.
 
 [Quick Start](#quick-start) &nbsp;·&nbsp; [Docs](./PROJECT_README.md) &nbsp;·&nbsp; [Demo](https://yotara.website)
 
@@ -53,7 +53,7 @@ Yotara helps focused people and **quiet teams** — small groups that share work
 - Personal planning and daily focus
 - Students, teachers, and researchers
 - Consultants and freelancers
-- Small teams and nonprofits
+- Anyone who wants to self-host their task manager
 
 **Not ideal for**
 
@@ -65,9 +65,9 @@ Yotara helps focused people and **quiet teams** — small groups that share work
 
 ## What to expect
 
-- Designed for focused personal use and small-group sharing, not large enterprise programs.
-- Team features are on the roadmap; the current experience is personal-first.
-- Local-first deployment with SQLite and a portable monorepo stack.
+- Designed for focused personal use, not large enterprise programs.
+- Team features are planned; the current experience is single-user and personal-first.
+- Self-hosted deployment with a local SQLite database and a portable monorepo stack.
 
 ---
 
@@ -77,19 +77,19 @@ Not another todo app. Not another project management suite. Something in between
 
 | Instead of... | You get... |
 |:---|---|
-| **Hosted task managers** (Todoist, TickTick) — polished but SaaS, subscription fatigue, your data on their servers | Self-hosted, offline-capable SQLite, no recurring bills, full data ownership |
+| **Hosted task managers** (Todoist, TickTick) — polished but SaaS, subscription fatigue, your data on their servers | Self-hosted, SQLite-backed, no recurring bills, full data ownership |
 | **Vikunja / Plane** — powerful but heavy, complex UI, overkill for one person | Lightweight Angular + Fastify stack, Simple Mode when you just need a list |
 | **Obsidian / Notion** — infinitely flexible but infinite setup, you spend more time organizing than doing | Opinionated defaults that work out of the box. Structure without the blank-page paralysis |
 | **Paper / sticky notes** — no notifications, no search, no recurring tasks | Full-text search, smart filters, recurring tasks, keyboard shortcuts — but still calm |
 
-> **Yotara is for:** makers, writers, students, freelancers, small teams, and anyone who needs task management that stays out of the way. If you have ever felt managed by your task manager, this is the antidote.
+> **Yotara is for:** makers, writers, students, freelancers, and anyone who needs task management that stays out of the way. If you have ever felt managed by your task manager, this is the antidote.
 
 **The Yotara experience**
 
 - **Personal first.** Inbox, Today, and Upcoming keep the next step visible without turning your workspace into a storm of widgets.
 - **Sovereign data.** Self-hosted by design on a portable SQLite + Drizzle stack, so your data, privacy, and infrastructure stay in your hands.
 - **Quiet performance.** Fast interactions powered by Angular and Fastify, tuned for low-friction navigation and responsive APIs.
-- **Team mode is on the roadmap.** Personal mode is the focus today; shared workspaces are planned.
+- **Team mode is planned.** Personal mode is the focus today; shared workspaces are a future milestone.
 
 ---
 
