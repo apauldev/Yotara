@@ -1,0 +1,95 @@
+<svg width="854" height="240" viewBox="0 0 854 240" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" role="img" aria-label="Yotara">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="854" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#173F35"/>
+      <stop offset="0.5" stop-color="#3E7B63"/>
+      <stop offset="1" stop-color="#B7D3C3"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#F7F6F2" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#F7F6F2" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="leafFill" x1="112" y1="92" x2="400" y2="404" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9FE0B4"/>
+      <stop offset="1" stop-color="#2F8F5B"/>
+    </linearGradient>
+    <symbol id="leaf" viewBox="140 125 250 285">
+      <path d="M381.686 131C304.109 131 189.593 160.129 144.907 262.949C122.9 313.575 130.344 369.567 173.345 400C271.242 381.207 352.497 302.932 381.686 131Z" fill="url(#leafFill)"/>
+      <path d="M329.593 169.335C331.997 175.011 329.348 181.568 323.673 183.972C261.259 210.416 223.724 254.904 202.882 322.471C201.05 328.411 194.752 331.741 188.811 329.909C182.87 328.078 179.541 321.779 181.372 315.839C204.253 241.668 245.774 192.901 314.956 163.414C320.632 161.01 327.188 163.659 329.593 169.335Z" fill="#EAF8EE" fill-opacity="0.55"/>
+    </symbol>
+  </defs>
+
+  <rect width="854" height="240" fill="url(#bg)"/>
+
+  <!-- falling leaves -->
+  <g opacity="0.8">
+    <g>
+      <animateTransform attributeName="transform" type="translate" values="60,-40; 82,280" dur="13s" begin="-1s" repeatCount="indefinite"/>
+      <g>
+        <animateTransform attributeName="transform" type="rotate" from="0 15 17" to="360 15 17" dur="7s" repeatCount="indefinite"/>
+        <use xlink:href="#leaf" width="30" height="34"/>
+      </g>
+    </g>
+  </g>
+  <g opacity="0.65">
+    <g>
+      <animateTransform attributeName="transform" type="translate" values="180,-30; 160,290" dur="11s" begin="-4s" repeatCount="indefinite"/>
+      <g>
+        <animateTransform attributeName="transform" type="rotate" from="0 11 13" to="-360 11 13" dur="6s" repeatCount="indefinite"/>
+        <use xlink:href="#leaf" width="22" height="25"/>
+      </g>
+    </g>
+  </g>
+  <g opacity="0.85">
+    <g>
+      <animateTransform attributeName="transform" type="translate" values="320,-50; 300,300" dur="15s" begin="-2s" repeatCount="indefinite"/>
+      <g>
+        <animateTransform attributeName="transform" type="rotate" from="0 17 20" to="360 17 20" dur="9s" repeatCount="indefinite"/>
+        <use xlink:href="#leaf" width="34" height="39"/>
+      </g>
+    </g>
+  </g>
+  <g opacity="0.55">
+    <g>
+      <animateTransform attributeName="transform" type="translate" values="470,-30; 492,285" dur="10s" begin="-6s" repeatCount="indefinite"/>
+      <g>
+        <animateTransform attributeName="transform" type="rotate" from="0 9 11" to="-360 9 11" dur="5s" repeatCount="indefinite"/>
+        <use xlink:href="#leaf" width="18" height="21"/>
+      </g>
+    </g>
+  </g>
+  <g opacity="0.7">
+    <g>
+      <animateTransform attributeName="transform" type="translate" values="600,-40; 580,295" dur="12s" begin="-3s" repeatCount="indefinite"/>
+      <g>
+        <animateTransform attributeName="transform" type="rotate" from="0 13 15" to="360 13 15" dur="7s" repeatCount="indefinite"/>
+        <use xlink:href="#leaf" width="26" height="30"/>
+      </g>
+    </g>
+  </g>
+  <g opacity="0.6">
+    <g>
+      <animateTransform attributeName="transform" type="translate" values="720,-30; 740,290" dur="11s" begin="-5s" repeatCount="indefinite"/>
+      <g>
+        <animateTransform attributeName="transform" type="rotate" from="0 10 12" to="-360 10 12" dur="6s" repeatCount="indefinite"/>
+        <use xlink:href="#leaf" width="20" height="23"/>
+      </g>
+    </g>
+  </g>
+  <g opacity="0.8">
+    <g>
+      <animateTransform attributeName="transform" type="translate" values="790,-45; 770,300" dur="14s" begin="-2.5s" repeatCount="indefinite"/>
+      <g>
+        <animateTransform attributeName="transform" type="rotate" from="0 16 18" to="360 16 18" dur="8s" repeatCount="indefinite"/>
+        <use xlink:href="#leaf" width="32" height="36"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- soft glow behind wordmark -->
+  <ellipse cx="427" cy="118" rx="320" ry="86" fill="url(#glow)"/>
+
+  <!-- wordmark + tagline -->
+  <text x="427" y="128" text-anchor="middle" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="62" font-weight="700" letter-spacing="1" fill="#F7F6F2">Yotara</text>
+  <text x="427" y="166" text-anchor="middle" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="20" font-weight="400" fill="#F7F6F2" fill-opacity="0.85">Flow through your day, naturally.</text>
+</svg>
