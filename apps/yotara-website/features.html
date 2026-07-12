@@ -22,17 +22,47 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Yotara" />
     <meta property="og:locale" content="en_US" />
-    <meta property="og:image" content="https://yotara.website/assets/project1.webp" />
+    <meta property="og:image" content="https://yotara.website/assets/capture.webp" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@apauldev" />
     <meta name="twitter:title" content="Features — Yotara" />
     <meta
       name="twitter:description"
       content="Every feature in Yotara serves one purpose: helping you focus on what matters."
     />
-    <meta name="twitter:image" content="https://yotara.website/assets/project1.webp" />
+    <meta name="twitter:image" content="https://yotara.website/assets/capture.webp" />
+    <link
+      rel="preload"
+      href="assets/fonts/manrope-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="assets/fonts/material-symbols-outlined.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <link rel="stylesheet" href="css/fonts.css" />
     <link rel="stylesheet" href="css/tailwind.min.css" />
     <link rel="stylesheet" href="css/styles.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://yotara.website/" },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Features",
+            "item": "https://yotara.website/features"
+          }
+        ]
+      }
+    </script>
   </head>
   <body
     class="bg-surface text-on-surface font-body antialiased min-h-screen flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed"

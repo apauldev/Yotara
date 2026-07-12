@@ -24,15 +24,72 @@
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://yotara.website/assets/project1.webp" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Yotara — Focused Task Management" />
+    <meta name="twitter:site" content="@apauldev" />
+    <meta name="twitter:title" content="Yotara — Self-hosted task manager" />
     <meta
       name="twitter:description"
       content="A lightweight, self-hosted task manager that puts your privacy first. Capture, organize, and focus — without the noise."
     />
     <meta name="twitter:image" content="https://yotara.website/assets/project1.webp" />
+    <link
+      rel="preload"
+      href="assets/fonts/manrope-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="assets/fonts/material-symbols-outlined.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <link rel="stylesheet" href="css/fonts.css" />
     <link rel="stylesheet" href="css/tailwind.min.css" />
     <link rel="stylesheet" href="css/styles.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Yotara",
+        "url": "https://yotara.website",
+        "description": "A lightweight, self-hosted task manager that puts your privacy first.",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://yotara.website/blog?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Yotara",
+        "url": "https://yotara.website",
+        "logo": "https://yotara.website/assets/logo.svg",
+        "sameAs": ["https://github.com/apauldev/yotara"]
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Yotara",
+        "applicationCategory": "ProductivityApplication",
+        "operatingSystem": "Linux",
+        "description": "A lightweight, self-hosted task manager that puts your privacy first.",
+        "url": "https://yotara.website",
+        "downloadUrl": "https://hub.docker.com/r/apauldev/yotara",
+        "softwareVersion": "0.66.1",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
   </head>
   <body
     class="bg-surface text-on-surface font-body antialiased min-h-screen flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed"
@@ -160,7 +217,9 @@
                 class="w-full h-auto object-cover"
                 src="assets/blog/inbox.webp"
                 alt="Yotara task management interface showing tasks organized by project in a clean, minimal UI"
-                loading="lazy"
+                width="1400"
+                height="875"
+                fetchpriority="high"
               />
             </div>
           </div>
@@ -197,6 +256,8 @@
                   <img
                     src="assets/capture.webp"
                     alt="Inbox view for quick capture"
+                    width="2749"
+                    height="260"
                     loading="lazy"
                     class="w-full h-auto"
                   />
@@ -218,6 +279,8 @@
                   <img
                     src="assets/today.webp"
                     alt="Today view for daily planning"
+                    width="2834"
+                    height="1674"
                     loading="lazy"
                     class="w-full h-auto"
                   />
@@ -239,6 +302,8 @@
                   <img
                     src="assets/project2.webp"
                     alt="Projects view for organizing tasks"
+                    width="2776"
+                    height="1287"
                     loading="lazy"
                     class="w-full h-auto"
                   />
@@ -541,6 +606,8 @@
               <img
                 src="assets/data-export.webp"
                 alt="Your tasks stay in your hands"
+                width="1727"
+                height="1194"
                 loading="lazy"
                 class="w-full h-auto"
               />
