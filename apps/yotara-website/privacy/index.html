@@ -22,97 +22,47 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Yotara" />
     <meta property="og:locale" content="en_US" />
-    <meta property="og:image" content="https://yotara.website/assets/blog/inbox.webp" />
+    <meta property="og:image" content="https://yotara.website/assets/data-export.webp" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@apauldev" />
     <meta name="twitter:title" content="Privacy — Yotara" />
     <meta
       name="twitter:description"
       content="Yotara does not collect any personal data. Self-hosted means your data stays on your server."
     />
-    <meta name="twitter:image" content="https://yotara.website/assets/blog/inbox.webp" />
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <meta name="twitter:image" content="https://yotara.website/assets/data-export.webp" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      href="../assets/fonts/manrope-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
     <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      href="../assets/fonts/material-symbols-outlined.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              'outline-variant': '#bfc9c1',
-              error: '#ba1a1a',
-              'on-background': '#1c1c17',
-              'surface-container-highest': '#e5e2da',
-              primary: '#236849',
-              background: '#fcf9f0',
-              tertiary: '#506050',
-              'surface-tint': '#266a4c',
-              'on-secondary-fixed-variant': '#024f51',
-              'surface-container-lowest': '#ffffff',
-              'on-tertiary-fixed-variant': '#3b4b3c',
-              'primary-container': '#3f8161',
-              'on-secondary-fixed': '#002020',
-              'surface-variant': '#e5e2da',
-              'on-primary-fixed': '#002113',
-              'tertiary-fixed': '#d6e7d3',
-              'inverse-primary': '#91d5b0',
-              'surface-container': '#f1eee5',
-              'on-primary-fixed-variant': '#025235',
-              'on-tertiary': '#ffffff',
-              'surface-container-low': '#f6f3ea',
-              outline: '#707972',
-              'surface-bright': '#fcf9f0',
-              'on-surface-variant': '#404943',
-              'on-error': '#ffffff',
-              'primary-fixed-dim': '#91d5b0',
-              'on-tertiary-container': '#f7fff3',
-              'on-primary': '#ffffff',
-              'error-container': '#ffdad6',
-              'primary-fixed': '#acf2cb',
-              'inverse-surface': '#31312b',
-              'inverse-on-surface': '#f4f1e8',
-              'secondary-fixed': '#afeeee',
-              'secondary-container': '#afeeee',
-              'surface-dim': '#dddad1',
-              surface: '#fcf9f0',
-              'secondary-fixed-dim': '#94d1d2',
-              secondary: '#276769',
-              'surface-container-high': '#ebe8df',
-              'tertiary-container': '#687968',
-              'on-primary-container': '#f6fff6',
-              'on-error-container': '#93000a',
-              'tertiary-fixed-dim': '#bacbb8',
-              'on-tertiary-fixed': '#111f13',
-              'on-secondary': '#ffffff',
-              'on-surface': '#1c1c17',
-              'on-secondary-container': '#2f6e6f',
-            },
-            borderRadius: {
-              DEFAULT: '0.25rem',
-              lg: '0.5rem',
-              xl: '0.75rem',
-              '2xl': '1.5rem',
-              full: '9999px',
-            },
-            fontFamily: {
-              headline: ['Manrope', 'sans-serif'],
-              display: ['Manrope', 'sans-serif'],
-              body: ['Manrope', 'sans-serif'],
-              label: ['Manrope', 'sans-serif'],
-            },
-          },
-        },
-      };
-    </script>
+    <link rel="stylesheet" href="../css/fonts.css" />
+    <link rel="stylesheet" href="../css/tailwind.min.css" />
     <link rel="stylesheet" href="../css/styles.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://yotara.website/" },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Privacy",
+            "item": "https://yotara.website/privacy/"
+          }
+        ]
+      }
+    </script>
   </head>
   <body
     class="bg-surface text-on-surface font-body antialiased min-h-screen flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed"
@@ -202,7 +152,7 @@
           </p>
           <p class="text-on-surface-variant leading-relaxed mt-4">
             The marketing site (yotara.website) does not use analytics, tracking scripts, or
-            cookies. No page visits are recorded.
+            cookies. A single localStorage flag remembers your GDPR banner dismissal.
           </p>
         </section>
 
@@ -230,9 +180,9 @@
             telemetry, no analytics, no third-party data processing.
           </p>
           <p class="text-on-surface-variant leading-relaxed mt-4">
-            This marketing site loads Tailwind CSS from a CDN and serves font files from Google
-            Fonts. These are content-delivery and typography services only — no tracking, no
-            analytics, no cookies. Blog post images are served from Unsplash.
+            This marketing site is served through Cloudflare's CDN. All fonts and stylesheets are
+            self-hosted — no requests to Google Fonts, Tailwind CDN, or other third-party resources.
+            Blog post images are served from Unsplash.
           </p>
         </section>
 
@@ -261,7 +211,9 @@
           <h2 class="text-[1.5rem] font-display font-bold text-on-surface mb-4">Contact</h2>
           <p class="text-on-surface-variant leading-relaxed">
             If you have questions about privacy or security, open an issue on GitHub or email
-            <span class="text-primary">privacy at yotara dot website</span>.
+            <a href="mailto:privacy@yotara.website" class="text-primary hover:underline"
+              >privacy@yotara.website</a
+            >.
           </p>
         </section>
 
@@ -372,8 +324,8 @@
     >
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <p class="text-sm leading-relaxed flex-grow">
-          This site does not use cookies. Cloudflare CDN handles routing and Google Fonts serve
-          typography. No tracking or personal data is stored.
+          No cookies. No tracking. No analytics. Cloudflare handles CDN and hosting. Blog images
+          from Unsplash.
           <a
             href="/privacy/"
             class="text-primary-fixed underline hover:no-underline whitespace-nowrap"

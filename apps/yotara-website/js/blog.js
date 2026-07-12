@@ -37,11 +37,19 @@ function renderSrcset(url) {
   return `${base}?w=600&h=338&fit=crop 600w, ${base}?w=900&h=506&fit=crop 900w, ${base}?w=1200&h=675&fit=crop 1200w`;
 }
 
+function slugFor(title) {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+
 function renderEntry(post) {
   const excerpt = excerptFor(post);
   const htmlContent = renderContent(post.content);
+  const slug = slugFor(post.title);
   return `
-<article class="blog-card stagger-item group bg-surface-container-low rounded-2xl overflow-hidden transition-shadow duration-300" data-title="${escapeAttr(post.title)}" data-date="${post.date}" data-excerpt="${escapeAttr(excerpt)}">
+<article class="blog-card stagger-item group bg-surface-container-low rounded-2xl overflow-hidden transition-shadow duration-300" data-title="${escapeAttr(post.title)}" data-slug="${escapeAttr(slug)}" data-date="${post.date}" data-excerpt="${escapeAttr(excerpt)}">
   <div class="aspect-[16/9] overflow-hidden bg-surface-container-lowest">
      <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="${post.image}" srcset="${renderSrcset(post.image)}" sizes="(max-width: 768px) 100vw, 896px" alt="${escapeAttr(post.title)}" loading="lazy" />
   </div>
@@ -119,16 +127,25 @@ function setMeta(name, content) {
   el.setAttribute('content', content);
 }
 
-function updatePageMeta(title, description) {
-  document.title = title ? `${title} — ${SITE_NAME}` : `${SITE_NAME} — Blog`;
-  setMeta('description', description || BLOG_DESCRIPTION);
+function updatePageMeta(title, description, image) {
+  const isPost = !!title;
+  document.title = isPost ? `${title} — ${SITE_NAME}` : `${SITE_NAME} — Blog`;
+  const desc = description || BLOG_DESCRIPTION;
+  const url = isPost
+    ? `${SITE_URL}/blog#${encodeURIComponent(slugFor(title))}`
+    : `${SITE_URL}/blog`;
+  const img = image || `${SITE_URL}/assets/project1.webp`;
+
+  setMeta('description', desc);
   setMeta('og:title', document.title);
-  setMeta('og:description', description || BLOG_DESCRIPTION);
-  setMeta('og:url', window.location.href);
-  setMeta('og:type', title ? 'article' : 'website');
+  setMeta('og:description', desc);
+  setMeta('og:url', url);
+  setMeta('og:type', isPost ? 'article' : 'website');
+  setMeta('og:image', img);
   setMeta('twitter:title', document.title);
-  setMeta('twitter:description', description || BLOG_DESCRIPTION);
+  setMeta('twitter:description', desc);
   setMeta('twitter:card', 'summary_large_image');
+  setMeta('twitter:image', img);
 }
 
 function injectJsonLd(scriptId, schema) {
@@ -143,22 +160,33 @@ function injectJsonLd(scriptId, schema) {
 }
 
 function buildBlogJsonLd(posts) {
+  const publisher = {
+    '@type': 'Organization',
+    name: SITE_NAME,
+    url: SITE_URL,
+    logo: { '@type': 'ImageObject', url: `${SITE_URL}/assets/logo.svg` },
+  };
+
   return {
     '@context': 'https://schema.org',
     '@type': 'Blog',
     name: `${SITE_NAME} Blog`,
     description: BLOG_DESCRIPTION,
-    url: `${SITE_URL}/blog.html`,
+    url: `${SITE_URL}/blog`,
+    publisher,
     blogPost: posts.map((p) => ({
       '@type': 'BlogPosting',
       headline: p.title,
       description: excerptFor(p),
       datePublished: p.date,
+      dateModified: p.date,
       image: p.image,
+      url: `${SITE_URL}/blog#${slugFor(p.title)}`,
       author: {
         '@type': 'Person',
         name: p.author?.name || SITE_AUTHOR.name,
       },
+      publisher,
     })),
   };
 }
@@ -169,9 +197,91 @@ function buildBreadcrumbJsonLd() {
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE_URL}/` },
-      { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE_URL}/blog.html` },
+      { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE_URL}/blog` },
     ],
   };
+}
+
+// ── Hash routing ─────────────────────────────────────────────────────────
+
+function getHashSlug() {
+  return window.location.hash ? decodeURIComponent(window.location.hash.slice(1)) : '';
+}
+
+function expandCard(card) {
+  const full = card.querySelector('.blog-full');
+  const btn = card.querySelector('.blog-toggle');
+  const icon = btn.querySelector('.blog-toggle-icon');
+  const text = btn.querySelector('.blog-toggle-text');
+
+  if (btn.getAttribute('aria-expanded') === 'true') return;
+
+  full.classList.remove('hidden');
+  full.style.maxHeight = '0';
+  requestAnimationFrame(() => {
+    full.style.maxHeight = full.scrollHeight + 'px';
+  });
+  const onEnd = () => {
+    full.style.maxHeight = '';
+    full.removeEventListener('transitionend', onEnd);
+  };
+  full.addEventListener('transitionend', onEnd, { once: true });
+
+  btn.setAttribute('aria-expanded', 'true');
+  icon.classList.add('rotate-180');
+  text.textContent = 'Read less';
+
+  const title = card.dataset.title;
+  const desc = card.dataset.excerpt;
+  const img = card.querySelector('img')?.src || '';
+  updatePageMeta(title, desc, img);
+}
+
+function collapseCard(card) {
+  const full = card.querySelector('.blog-full');
+  const btn = card.querySelector('.blog-toggle');
+  const icon = btn.querySelector('.blog-toggle-icon');
+  const text = btn.querySelector('.blog-toggle-text');
+
+  if (btn.getAttribute('aria-expanded') === 'false') return;
+
+  full.style.maxHeight = full.scrollHeight + 'px';
+  requestAnimationFrame(() => {
+    full.style.maxHeight = '0';
+  });
+  const onEnd = () => {
+    full.classList.add('hidden');
+    full.style.maxHeight = '';
+    full.removeEventListener('transitionend', onEnd);
+  };
+  full.addEventListener('transitionend', onEnd, { once: true });
+
+  btn.setAttribute('aria-expanded', 'false');
+  icon.classList.remove('rotate-180');
+  text.textContent = 'Read more';
+
+  updatePageMeta(null, null);
+}
+
+function collapseAllCards(container) {
+  container.querySelectorAll('.blog-card').forEach((card) => {
+    if (card.querySelector('.blog-toggle').getAttribute('aria-expanded') === 'true') {
+      collapseCard(card);
+    }
+  });
+}
+
+function expandByHash(container) {
+  const slug = getHashSlug();
+  if (!slug) return;
+
+  const card = container.querySelector(`[data-slug="${CSS.escape(slug)}"]`);
+  if (card) {
+    expandCard(card);
+    requestAnimationFrame(() => {
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────
@@ -196,47 +306,22 @@ function initBlog() {
     container.querySelectorAll('.blog-toggle').forEach((btn) => {
       btn.addEventListener('click', () => {
         const card = btn.closest('.blog-card');
-        const full = card.querySelector('.blog-full');
-        const icon = btn.querySelector('.blog-toggle-icon');
-        const text = btn.querySelector('.blog-toggle-text');
         const expanded = btn.getAttribute('aria-expanded') === 'true';
 
         if (expanded) {
-          full.style.maxHeight = full.scrollHeight + 'px';
-          requestAnimationFrame(() => {
-            full.style.maxHeight = '0';
-          });
-          const onEnd = () => {
-            full.classList.add('hidden');
-            full.style.maxHeight = '';
-            full.removeEventListener('transitionend', onEnd);
-          };
-          full.addEventListener('transitionend', onEnd, { once: true });
-          updatePageMeta(null, null);
+          collapseCard(card);
+          history.replaceState(null, '', window.location.pathname + window.location.search);
         } else {
-          const title = card.dataset.title;
-          const desc = card.dataset.excerpt;
-          updatePageMeta(title, desc);
-          full.classList.remove('hidden');
-          full.style.maxHeight = '0';
-          requestAnimationFrame(() => {
-            full.style.maxHeight = full.scrollHeight + 'px';
-          });
-          const onEnd = () => {
-            full.style.maxHeight = '';
-            full.removeEventListener('transitionend', onEnd);
-          };
-          full.addEventListener('transitionend', onEnd, { once: true });
+          collapseAllCards(container);
+          expandCard(card);
+          history.replaceState(null, '', `#${card.dataset.slug}`);
         }
-
-        btn.setAttribute('aria-expanded', String(!expanded));
-        icon.classList.toggle('rotate-180');
-        text.textContent = expanded ? 'Read more' : 'Read less';
       });
     });
 
     stagger.querySelectorAll('.page-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
         renderPage(parseInt(btn.dataset.page));
         document
           .getElementById('blog-container')
@@ -258,17 +343,30 @@ function initBlog() {
 
     container.querySelectorAll('.stagger-item').forEach((el) => observer.observe(el));
 
-    // Update JSON-LD for visible posts
     injectJsonLd('ld-blog', buildBlogJsonLd(blogData));
     injectJsonLd('ld-breadcrumbs', buildBreadcrumbJsonLd());
+
+    expandByHash(container);
   }
+
+  window.addEventListener('hashchange', () => {
+    collapseAllCards(container);
+    expandByHash(container);
+  });
 
   fetch('data/blog.json')
     .then((r) => r.json())
     .then((data) => {
       blogData = data.sort((a, b) => b.date.localeCompare(a.date));
       totalPages = Math.ceil(blogData.length / PER_PAGE);
-      renderPage(1);
+
+      const hash = getHashSlug();
+      let page = 1;
+      if (hash) {
+        const idx = blogData.findIndex((p) => slugFor(p.title) === hash);
+        if (idx >= 0) page = Math.floor(idx / PER_PAGE) + 1;
+      }
+      renderPage(page);
     });
 }
 

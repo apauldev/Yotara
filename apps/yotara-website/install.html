@@ -6,7 +6,7 @@
     <title>Install — Yotara</title>
     <meta
       name="description"
-      content="Get started with Yotara in 2 minutes. Deploy on your own server with Docker or Docker Compose. Self-hosted, no vendor lock-in."
+      content="Get started with Yotara in minutes. Deploy on your own server with Docker or Docker Compose. Self-hosted, no vendor lock-in."
     />
     <link rel="canonical" href="https://yotara.website/install" />
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
@@ -16,103 +16,53 @@
     <meta property="og:title" content="Install — Yotara" />
     <meta
       property="og:description"
-      content="Get started with Yotara in 2 minutes. Self-hosted with Docker."
+      content="Get started with Yotara in minutes. Self-hosted with Docker."
     />
     <meta property="og:url" content="https://yotara.website/install" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Yotara" />
     <meta property="og:locale" content="en_US" />
-    <meta property="og:image" content="https://yotara.website/assets/blog/inbox.webp" />
+    <meta property="og:image" content="https://yotara.website/assets/today.webp" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@apauldev" />
     <meta name="twitter:title" content="Install — Yotara" />
     <meta
       name="twitter:description"
-      content="Get started with Yotara in 2 minutes. Self-hosted with Docker."
+      content="Get started with Yotara in minutes. Self-hosted with Docker."
     />
-    <meta name="twitter:image" content="https://yotara.website/assets/blog/inbox.webp" />
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <meta name="twitter:image" content="https://yotara.website/assets/today.webp" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      href="assets/fonts/manrope-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
     <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      href="assets/fonts/material-symbols-outlined.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              'outline-variant': '#bfc9c1',
-              error: '#ba1a1a',
-              'on-background': '#1c1c17',
-              'surface-container-highest': '#e5e2da',
-              primary: '#236849',
-              background: '#fcf9f0',
-              tertiary: '#506050',
-              'surface-tint': '#266a4c',
-              'on-secondary-fixed-variant': '#024f51',
-              'surface-container-lowest': '#ffffff',
-              'on-tertiary-fixed-variant': '#3b4b3c',
-              'primary-container': '#3f8161',
-              'on-secondary-fixed': '#002020',
-              'surface-variant': '#e5e2da',
-              'on-primary-fixed': '#002113',
-              'tertiary-fixed': '#d6e7d3',
-              'inverse-primary': '#91d5b0',
-              'surface-container': '#f1eee5',
-              'on-primary-fixed-variant': '#025235',
-              'on-tertiary': '#ffffff',
-              'surface-container-low': '#f6f3ea',
-              outline: '#707972',
-              'surface-bright': '#fcf9f0',
-              'on-surface-variant': '#404943',
-              'on-error': '#ffffff',
-              'primary-fixed-dim': '#91d5b0',
-              'on-tertiary-container': '#f7fff3',
-              'on-primary': '#ffffff',
-              'error-container': '#ffdad6',
-              'primary-fixed': '#acf2cb',
-              'inverse-surface': '#31312b',
-              'inverse-on-surface': '#f4f1e8',
-              'secondary-fixed': '#afeeee',
-              'secondary-container': '#afeeee',
-              'surface-dim': '#dddad1',
-              surface: '#fcf9f0',
-              'secondary-fixed-dim': '#94d1d2',
-              secondary: '#276769',
-              'surface-container-high': '#ebe8df',
-              'tertiary-container': '#687968',
-              'on-primary-container': '#f6fff6',
-              'on-error-container': '#93000a',
-              'tertiary-fixed-dim': '#bacbb8',
-              'on-tertiary-fixed': '#111f13',
-              'on-secondary': '#ffffff',
-              'on-surface': '#1c1c17',
-              'on-secondary-container': '#2f6e6f',
-            },
-            borderRadius: {
-              DEFAULT: '0.25rem',
-              lg: '0.5rem',
-              xl: '0.75rem',
-              '2xl': '1.5rem',
-              full: '9999px',
-            },
-            fontFamily: {
-              headline: ['Manrope', 'sans-serif'],
-              display: ['Manrope', 'sans-serif'],
-              body: ['Manrope', 'sans-serif'],
-              label: ['Manrope', 'sans-serif'],
-            },
-          },
-        },
-      };
-    </script>
+    <link rel="stylesheet" href="css/fonts.css" />
+    <link rel="stylesheet" href="css/tailwind.min.css" />
     <link rel="stylesheet" href="css/styles.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://yotara.website/" },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Install",
+            "item": "https://yotara.website/install"
+          }
+        ]
+      }
+    </script>
   </head>
   <body
     class="bg-surface text-on-surface font-body antialiased min-h-screen flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed"
@@ -182,7 +132,7 @@
           <h1
             class="hero-fade-in text-[2rem] md:text-[3.5rem] leading-[1.1] font-display font-extrabold text-on-surface mb-6 tracking-tight"
           >
-            Get started in <span class="text-primary">2 minutes</span>
+            Get started in <span class="text-primary">minutes</span>
           </h1>
           <p
             class="hero-fade-in hero-fade-in-delay-1 text-xl text-on-surface-variant leading-relaxed max-w-2xl mx-auto mb-10"
@@ -227,15 +177,73 @@
         </div>
       </section>
 
-      <section class="py-24 bg-surface-container-low animate-in">
-        <div class="max-w-4xl mx-auto px-8 mb-20">
-          <img
-            class="w-full h-auto rounded-2xl shadow-[0_20px_50px_rgba(28,28,23,0.08)] ring-1 ring-outline-variant/15"
-            src="assets/blog/today.webp"
-            alt="Yotara today view showing tasks grouped by priority"
-            loading="lazy"
-          />
+      <section class="py-16 bg-surface-container-low animate-in">
+        <div class="max-w-4xl mx-auto px-8">
+          <h2 class="text-[1.75rem] font-display font-bold text-on-surface mb-4 tracking-tight">
+            Before you start
+          </h2>
+          <p class="text-lg text-on-surface-variant leading-relaxed mb-8">
+            Self-hosting is a small, one-time setup — but it does ask a few things of you. Make sure
+            you're comfortable with these before you begin.
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex items-start gap-3 p-5 rounded-2xl bg-surface">
+              <span class="material-symbols-outlined text-primary mt-0.5" aria-hidden="true"
+                >key</span
+              >
+              <div>
+                <h3 class="font-semibold text-on-surface mb-1">Set a strong secret</h3>
+                <p class="text-on-surface-variant text-sm leading-relaxed">
+                  You must generate a
+                  <code class="bg-surface-container-highest px-1.5 py-0.5 rounded text-xs font-mono"
+                    >BETTER_AUTH_SECRET</code
+                  >
+                  to sign sessions. Without it the stack refuses to boot.
+                </p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 p-5 rounded-2xl bg-surface">
+              <span class="material-symbols-outlined text-primary mt-0.5" aria-hidden="true"
+                >save</span
+              >
+              <div>
+                <h3 class="font-semibold text-on-surface mb-1">Plan for persistence</h3>
+                <p class="text-on-surface-variant text-sm leading-relaxed">
+                  Your data lives in a SQLite file. Keep it on a named volume or mounted path so it
+                  survives container restarts.
+                </p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 p-5 rounded-2xl bg-surface">
+              <span class="material-symbols-outlined text-primary mt-0.5" aria-hidden="true"
+                >backup</span
+              >
+              <div>
+                <h3 class="font-semibold text-on-surface mb-1">Back it up</h3>
+                <p class="text-on-surface-variant text-sm leading-relaxed">
+                  You own the data, which means you own the backups. Schedule a copy of the database
+                  file off-server.
+                </p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 p-5 rounded-2xl bg-surface">
+              <span class="material-symbols-outlined text-primary mt-0.5" aria-hidden="true"
+                >dns</span
+              >
+              <div>
+                <h3 class="font-semibold text-on-surface mb-1">Expose it safely</h3>
+                <p class="text-on-surface-variant text-sm leading-relaxed">
+                  For real use, put it behind a domain with TLS. The included nginx config serves
+                  plain HTTP on port 80. Add a TLS-terminating reverse proxy (e.g. Caddy, nginx with
+                  certbot, or Cloudflare Tunnel) in front of it.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
+      </section>
+
+      <section class="py-24 bg-surface-container-low animate-in">
         <div class="max-w-4xl mx-auto px-8">
           <div class="mb-6">
             <span
@@ -419,6 +427,73 @@
 
       <section class="py-24 bg-surface animate-in">
         <div class="max-w-4xl mx-auto px-8">
+          <h2 class="text-[2rem] font-display font-bold text-on-surface mb-4 tracking-tight">
+            Production checklist
+          </h2>
+          <p class="text-lg text-on-surface-variant leading-relaxed mb-8">
+            Happy with the quick start? Before you rely on it day to day, run through this list.
+          </p>
+          <ul class="space-y-3">
+            <li class="flex items-start gap-3 p-4 rounded-2xl bg-surface">
+              <span class="material-symbols-outlined text-primary mt-0.5" aria-hidden="true"
+                >check_circle</span
+              >
+              <span class="text-on-surface-variant"
+                ><strong class="text-on-surface">Use a strong, unique BETTER_AUTH_SECRET</strong>
+                and keep it out of version control and shell history.</span
+              >
+            </li>
+            <li class="flex items-start gap-3 p-4 rounded-2xl bg-surface">
+              <span class="material-symbols-outlined text-primary mt-0.5" aria-hidden="true"
+                >check_circle</span
+              >
+              <span class="text-on-surface-variant"
+                ><strong class="text-on-surface">Serve over HTTPS</strong> with a real domain and a
+                valid certificate — the stack ships security headers, but TLS is on you.</span
+              >
+            </li>
+            <li class="flex items-start gap-3 p-4 rounded-2xl bg-surface">
+              <span class="material-symbols-outlined text-primary mt-0.5" aria-hidden="true"
+                >check_circle</span
+              >
+              <span class="text-on-surface-variant"
+                ><strong class="text-on-surface">Persist the database</strong> on a named volume
+                (the Compose file does this) or a backed-up mount.</span
+              >
+            </li>
+            <li class="flex items-start gap-3 p-4 rounded-2xl bg-surface">
+              <span class="material-symbols-outlined text-primary mt-0.5" aria-hidden="true"
+                >check_circle</span
+              >
+              <span class="text-on-surface-variant"
+                ><strong class="text-on-surface">Automate backups</strong> of the SQLite file and
+                test a restore occasionally.</span
+              >
+            </li>
+            <li class="flex items-start gap-3 p-4 rounded-2xl bg-surface">
+              <span class="material-symbols-outlined text-primary mt-0.5" aria-hidden="true"
+                >check_circle</span
+              >
+              <span class="text-on-surface-variant"
+                ><strong class="text-on-surface">Pin your image tag</strong> for reproducible
+                upgrades, then review the changelog before bumping.</span
+              >
+            </li>
+            <li class="flex items-start gap-3 p-4 rounded-2xl bg-surface">
+              <span class="material-symbols-outlined text-primary mt-0.5" aria-hidden="true"
+                >check_circle</span
+              >
+              <span class="text-on-surface-variant"
+                ><strong class="text-on-surface">Restrict network access</strong> with a firewall;
+                only expose what you intend.</span
+              >
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="py-24 bg-surface animate-in">
+        <div class="max-w-4xl mx-auto px-8">
           <h2
             class="text-[2rem] font-display font-bold text-on-surface mb-8 tracking-tight text-center"
           >
@@ -596,8 +671,8 @@
     >
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <p class="text-sm leading-relaxed flex-grow">
-          This site does not use cookies. Cloudflare CDN handles routing and Google Fonts serve
-          typography. No tracking or personal data is stored.
+          No cookies. No tracking. No analytics. Cloudflare handles CDN and hosting. Blog images
+          from Unsplash.
           <a
             href="/privacy/"
             class="text-primary-fixed underline hover:no-underline whitespace-nowrap"

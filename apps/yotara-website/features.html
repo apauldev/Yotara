@@ -22,97 +22,47 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Yotara" />
     <meta property="og:locale" content="en_US" />
-    <meta property="og:image" content="https://yotara.website/assets/blog/inbox.webp" />
+    <meta property="og:image" content="https://yotara.website/assets/capture.webp" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@apauldev" />
     <meta name="twitter:title" content="Features — Yotara" />
     <meta
       name="twitter:description"
       content="Every feature in Yotara serves one purpose: helping you focus on what matters."
     />
-    <meta name="twitter:image" content="https://yotara.website/assets/blog/inbox.webp" />
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <meta name="twitter:image" content="https://yotara.website/assets/capture.webp" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      href="assets/fonts/manrope-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
     <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      href="assets/fonts/material-symbols-outlined.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              'outline-variant': '#bfc9c1',
-              error: '#ba1a1a',
-              'on-background': '#1c1c17',
-              'surface-container-highest': '#e5e2da',
-              primary: '#236849',
-              background: '#fcf9f0',
-              tertiary: '#506050',
-              'surface-tint': '#266a4c',
-              'on-secondary-fixed-variant': '#024f51',
-              'surface-container-lowest': '#ffffff',
-              'on-tertiary-fixed-variant': '#3b4b3c',
-              'primary-container': '#3f8161',
-              'on-secondary-fixed': '#002020',
-              'surface-variant': '#e5e2da',
-              'on-primary-fixed': '#002113',
-              'tertiary-fixed': '#d6e7d3',
-              'inverse-primary': '#91d5b0',
-              'surface-container': '#f1eee5',
-              'on-primary-fixed-variant': '#025235',
-              'on-tertiary': '#ffffff',
-              'surface-container-low': '#f6f3ea',
-              outline: '#707972',
-              'surface-bright': '#fcf9f0',
-              'on-surface-variant': '#404943',
-              'on-error': '#ffffff',
-              'primary-fixed-dim': '#91d5b0',
-              'on-tertiary-container': '#f7fff3',
-              'on-primary': '#ffffff',
-              'error-container': '#ffdad6',
-              'primary-fixed': '#acf2cb',
-              'inverse-surface': '#31312b',
-              'inverse-on-surface': '#f4f1e8',
-              'secondary-fixed': '#afeeee',
-              'secondary-container': '#afeeee',
-              'surface-dim': '#dddad1',
-              surface: '#fcf9f0',
-              'secondary-fixed-dim': '#94d1d2',
-              secondary: '#276769',
-              'surface-container-high': '#ebe8df',
-              'tertiary-container': '#687968',
-              'on-primary-container': '#f6fff6',
-              'on-error-container': '#93000a',
-              'tertiary-fixed-dim': '#bacbb8',
-              'on-tertiary-fixed': '#111f13',
-              'on-secondary': '#ffffff',
-              'on-surface': '#1c1c17',
-              'on-secondary-container': '#2f6e6f',
-            },
-            borderRadius: {
-              DEFAULT: '0.25rem',
-              lg: '0.5rem',
-              xl: '0.75rem',
-              '2xl': '1.5rem',
-              full: '9999px',
-            },
-            fontFamily: {
-              headline: ['Manrope', 'sans-serif'],
-              display: ['Manrope', 'sans-serif'],
-              body: ['Manrope', 'sans-serif'],
-              label: ['Manrope', 'sans-serif'],
-            },
-          },
-        },
-      };
-    </script>
+    <link rel="stylesheet" href="css/fonts.css" />
+    <link rel="stylesheet" href="css/tailwind.min.css" />
     <link rel="stylesheet" href="css/styles.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://yotara.website/" },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Features",
+            "item": "https://yotara.website/features"
+          }
+        ]
+      }
+    </script>
   </head>
   <body
     class="bg-surface text-on-surface font-body antialiased min-h-screen flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed"
@@ -189,6 +139,307 @@
           >
             Every feature in Yotara serves one purpose: helping you focus on what matters.
           </p>
+        </div>
+      </section>
+
+      <section class="py-24 bg-surface-container-low animate-in">
+        <div class="max-w-7xl mx-auto px-8">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <h2 class="text-[2rem] font-display font-bold text-on-surface mb-4 tracking-tight">
+                7 handcrafted themes
+              </h2>
+              <p class="text-lg text-on-surface-variant mb-6 leading-relaxed">
+                Every theme is designed by hand, not auto-generated from an algorithm. From the warm
+                forest floor to the deep ocean trench — pick the atmosphere that helps you focus.
+              </p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                <div
+                  class="flex flex-col gap-2 p-4 rounded-xl bg-surface-container-highest cursor-default select-none"
+                >
+                  <div class="flex items-center gap-1.5">
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #fcf9f0"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #ece7dd"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #0d2a1d"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #1d533b"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #dff0e7"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #1c1c17"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #5d5952"
+                    ></span>
+                  </div>
+                  <span class="text-xs font-semibold text-on-surface-variant">Light Forest</span>
+                </div>
+                <div
+                  class="flex flex-col gap-2 p-4 rounded-xl bg-surface-container-highest cursor-default select-none relative"
+                >
+                  <div class="flex items-center gap-1.5">
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #1a241f"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #2b352f"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #a5d6a7"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #81c784"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #313c36"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #d0e0d4"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #adc0b1"
+                    ></span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-semibold text-on-surface-variant">Dark Forest</span>
+                    <span
+                      class="text-[10px] px-1.5 py-0.5 rounded-full bg-black/10 text-on-surface-variant font-medium leading-tight"
+                      >Dark</span
+                    >
+                  </div>
+                </div>
+                <div
+                  class="flex flex-col gap-2 p-4 rounded-xl bg-surface-container-highest cursor-default select-none"
+                >
+                  <div class="flex items-center gap-1.5">
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #f7f9fc"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #e6ecf2"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #1a365d"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #2a4365"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #e8f1f7"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #1a1e22"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #5a646e"
+                    ></span>
+                  </div>
+                  <span class="text-xs font-semibold text-on-surface-variant">Coastal Calm</span>
+                </div>
+                <div
+                  class="flex flex-col gap-2 p-4 rounded-xl bg-surface-container-highest cursor-default select-none"
+                >
+                  <div class="flex items-center gap-1.5">
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #f6f6f7"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #e7e7ea"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #1a1c1e"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #806000"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #ececed"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #202025"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #555560"
+                    ></span>
+                  </div>
+                  <span class="text-xs font-semibold text-on-surface-variant">Minimal Slate</span>
+                </div>
+                <div
+                  class="flex flex-col gap-2 p-4 rounded-xl bg-surface-container-highest cursor-default select-none relative"
+                >
+                  <div class="flex items-center gap-1.5">
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #1a1625"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #2d263f"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #9575cd"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #b39ddb"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #362e4c"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #e0d0f0"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #b0a0c0"
+                    ></span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-semibold text-on-surface-variant"
+                      >Midnight Amethyst</span
+                    >
+                    <span
+                      class="text-[10px] px-1.5 py-0.5 rounded-full bg-black/10 text-on-surface-variant font-medium leading-tight"
+                      >Dark</span
+                    >
+                  </div>
+                </div>
+                <div
+                  class="flex flex-col gap-2 p-4 rounded-xl bg-surface-container-highest cursor-default select-none"
+                >
+                  <div class="flex items-center gap-1.5">
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #fefaf0"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #f0e6d2"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #8b5e3c"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #a67c52"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #fdf2e9"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #3c3228"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #786e64"
+                    ></span>
+                  </div>
+                  <span class="text-xs font-semibold text-on-surface-variant">Golden Hour</span>
+                </div>
+                <div
+                  class="flex flex-col gap-2 p-4 rounded-xl bg-surface-container-highest cursor-default select-none relative"
+                >
+                  <div class="flex items-center gap-1.5">
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #0a121e"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #1a2436"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #009688"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #00bfa5"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #222d42"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #c8dcf0"
+                    ></span>
+                    <span
+                      class="w-6 h-6 rounded-full ring-1 ring-outline-variant/30"
+                      style="background: #a0b4c8"
+                    ></span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-semibold text-on-surface-variant">Deep Trench</span>
+                    <span
+                      class="text-[10px] px-1.5 py-0.5 rounded-full bg-black/10 text-on-surface-variant font-medium leading-tight"
+                      >Dark</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="relative w-full h-[300px] md:h-[400px] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(28,28,23,0.08)] ring-1 ring-outline-variant/15 bg-surface"
+            >
+              <div
+                class="absolute top-0 w-full h-12 bg-surface-container-low border-b border-outline-variant/15 flex items-center px-4 gap-2"
+              >
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
+                <div
+                  class="ml-4 flex-grow h-6 bg-surface-container-highest/50 rounded-md"
+                  aria-hidden="true"
+                ></div>
+              </div>
+              <div class="flex items-center justify-center h-full pt-12" aria-hidden="true">
+                <span class="material-symbols-outlined text-6xl text-outline-variant">palette</span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -639,102 +890,6 @@
         </div>
       </section>
 
-      <section class="py-24 bg-surface-container-low animate-in">
-        <div class="max-w-7xl mx-auto px-8">
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <h2 class="text-[2rem] font-display font-bold text-on-surface mb-4 tracking-tight">
-                7 handcrafted themes
-              </h2>
-              <p class="text-lg text-on-surface-variant mb-6 leading-relaxed">
-                Every theme is designed by hand, not auto-generated from an algorithm. From the warm
-                forest floor to the deep ocean trench — pick the atmosphere that helps you focus.
-              </p>
-              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-                <div
-                  class="flex flex-col items-center gap-1 p-3 rounded-xl bg-surface-container-highest cursor-default select-none"
-                >
-                  <span class="text-2xl" aria-hidden="true">🌿</span>
-                  <span class="text-xs text-on-surface-variant text-center leading-tight"
-                    >Light Forest</span
-                  >
-                </div>
-                <div
-                  class="flex flex-col items-center gap-1 p-3 rounded-xl cursor-default select-none"
-                  style="background-color: #1a241f"
-                >
-                  <span class="text-2xl" aria-hidden="true">🌲</span>
-                  <span class="text-xs text-center leading-tight" style="color: #a5d6a7"
-                    >Dark Forest</span
-                  >
-                </div>
-                <div
-                  class="flex flex-col items-center gap-1 p-3 rounded-xl bg-surface-container-highest cursor-default select-none"
-                >
-                  <span class="text-2xl" aria-hidden="true">🌊</span>
-                  <span class="text-xs text-on-surface-variant text-center leading-tight"
-                    >Coastal Calm</span
-                  >
-                </div>
-                <div
-                  class="flex flex-col items-center gap-1 p-3 rounded-xl bg-surface-container-highest cursor-default select-none"
-                >
-                  <span class="text-2xl" aria-hidden="true">🏔️</span>
-                  <span class="text-xs text-on-surface-variant text-center leading-tight"
-                    >Minimal Slate</span
-                  >
-                </div>
-                <div
-                  class="flex flex-col items-center gap-1 p-3 rounded-xl cursor-default select-none"
-                  style="background-color: #1a1625"
-                >
-                  <span class="text-2xl" aria-hidden="true">🔮</span>
-                  <span class="text-xs text-center leading-tight" style="color: #9575cd"
-                    >Midnight Amethyst</span
-                  >
-                </div>
-                <div
-                  class="flex flex-col items-center gap-1 p-3 rounded-xl bg-surface-container-highest cursor-default select-none"
-                >
-                  <span class="text-2xl" aria-hidden="true">🌅</span>
-                  <span class="text-xs text-on-surface-variant text-center leading-tight"
-                    >Golden Hour</span
-                  >
-                </div>
-                <div
-                  class="flex flex-col items-center gap-1 p-3 rounded-xl cursor-default select-none"
-                  style="background-color: #0a121e"
-                >
-                  <span class="text-2xl" aria-hidden="true">🌊</span>
-                  <span class="text-xs text-center leading-tight" style="color: #009688"
-                    >Deep Trench</span
-                  >
-                </div>
-              </div>
-              <p class="text-sm text-on-surface-variant">Light and dark modes in every theme.</p>
-            </div>
-            <div
-              class="relative w-full h-[300px] md:h-[400px] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(28,28,23,0.08)] ring-1 ring-outline-variant/15 bg-surface"
-            >
-              <div
-                class="absolute top-0 w-full h-12 bg-surface-container-low border-b border-outline-variant/15 flex items-center px-4 gap-2"
-              >
-                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
-                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
-                <div class="w-3 h-3 rounded-full bg-outline-variant" aria-hidden="true"></div>
-                <div
-                  class="ml-4 flex-grow h-6 bg-surface-container-highest/50 rounded-md"
-                  aria-hidden="true"
-                ></div>
-              </div>
-              <div class="flex items-center justify-center h-full pt-12" aria-hidden="true">
-                <span class="material-symbols-outlined text-6xl text-outline-variant">palette</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section class="py-24 bg-surface animate-in-right">
         <div class="max-w-7xl mx-auto px-8">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -906,8 +1061,8 @@
     >
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <p class="text-sm leading-relaxed flex-grow">
-          This site does not use cookies. Cloudflare CDN handles routing and Google Fonts serve
-          typography. No tracking or personal data is stored.
+          No cookies. No tracking. No analytics. Cloudflare handles CDN and hosting. Blog images
+          from Unsplash.
           <a
             href="/privacy/"
             class="text-primary-fixed underline hover:no-underline whitespace-nowrap"
