@@ -175,15 +175,17 @@ document.addEventListener('DOMContentLoaded', () => {
     observer.observe(el);
   });
 
+  // GDPR banner
   const gdprBanner = document.getElementById('gdpr-banner');
   const gdprDismiss = document.getElementById('gdpr-dismiss');
-
-  if (gdprBanner && gdprDismiss && !localStorage.getItem('gdprConsent')) {
-    requestAnimationFrame(() => gdprBanner.classList.remove('translate-y-full'));
-
+  if (gdprBanner && gdprDismiss && !localStorage.getItem('gdpr-dismissed')) {
+    // Show after a brief delay
+    setTimeout(() => {
+      gdprBanner.classList.remove('translate-y-full');
+    }, 500);
     gdprDismiss.addEventListener('click', () => {
-      localStorage.setItem('gdprConsent', 'true');
       gdprBanner.classList.add('translate-y-full');
+      localStorage.setItem('gdpr-dismissed', 'true');
     });
   }
 });

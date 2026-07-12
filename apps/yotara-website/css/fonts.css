@@ -1,0 +1,17 @@
+/* Manrope — variable font, all weights */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../assets/fonts/manrope-latin.woff2') format('woff2');
+}
+
+/* Material Symbols — variable font */
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: swap;
+  src: url('../assets/fonts/material-symbols-outlined.woff2') format('woff2');
+}

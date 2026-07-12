@@ -22,96 +22,16 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Yotara" />
     <meta property="og:locale" content="en_US" />
-    <meta property="og:image" content="https://yotara.website/assets/blog/inbox.webp" />
+    <meta property="og:image" content="https://yotara.website/assets/project1.webp" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Yotara — Focused Task Management" />
     <meta
       name="twitter:description"
       content="A lightweight, self-hosted task manager that puts your privacy first. Capture, organize, and focus — without the noise."
     />
-    <meta name="twitter:image" content="https://yotara.website/assets/blog/inbox.webp" />
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-      rel="stylesheet"
-    />
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              'outline-variant': '#bfc9c1',
-              error: '#ba1a1a',
-              'on-background': '#1c1c17',
-              'surface-container-highest': '#e5e2da',
-              primary: '#236849',
-              background: '#fcf9f0',
-              tertiary: '#506050',
-              'surface-tint': '#266a4c',
-              'on-secondary-fixed-variant': '#024f51',
-              'surface-container-lowest': '#ffffff',
-              'on-tertiary-fixed-variant': '#3b4b3c',
-              'primary-container': '#3f8161',
-              'on-secondary-fixed': '#002020',
-              'surface-variant': '#e5e2da',
-              'on-primary-fixed': '#002113',
-              'tertiary-fixed': '#d6e7d3',
-              'inverse-primary': '#91d5b0',
-              'surface-container': '#f1eee5',
-              'on-primary-fixed-variant': '#025235',
-              'on-tertiary': '#ffffff',
-              'surface-container-low': '#f6f3ea',
-              outline: '#707972',
-              'surface-bright': '#fcf9f0',
-              'on-surface-variant': '#404943',
-              'on-error': '#ffffff',
-              'primary-fixed-dim': '#91d5b0',
-              'on-tertiary-container': '#f7fff3',
-              'on-primary': '#ffffff',
-              'error-container': '#ffdad6',
-              'primary-fixed': '#acf2cb',
-              'inverse-surface': '#31312b',
-              'inverse-on-surface': '#f4f1e8',
-              'secondary-fixed': '#afeeee',
-              'secondary-container': '#afeeee',
-              'surface-dim': '#dddad1',
-              surface: '#fcf9f0',
-              'secondary-fixed-dim': '#94d1d2',
-              secondary: '#276769',
-              'surface-container-high': '#ebe8df',
-              'tertiary-container': '#687968',
-              'on-primary-container': '#f6fff6',
-              'on-error-container': '#93000a',
-              'tertiary-fixed-dim': '#bacbb8',
-              'on-tertiary-fixed': '#111f13',
-              'on-secondary': '#ffffff',
-              'on-surface': '#1c1c17',
-              'on-secondary-container': '#2f6e6f',
-            },
-            borderRadius: {
-              DEFAULT: '0.25rem',
-              lg: '0.5rem',
-              xl: '0.75rem',
-              '2xl': '1.5rem',
-              full: '9999px',
-            },
-            fontFamily: {
-              headline: ['Manrope', 'sans-serif'],
-              display: ['Manrope', 'sans-serif'],
-              body: ['Manrope', 'sans-serif'],
-              label: ['Manrope', 'sans-serif'],
-            },
-          },
-        },
-      };
-    </script>
+    <meta name="twitter:image" content="https://yotara.website/assets/project1.webp" />
+    <link rel="stylesheet" href="css/fonts.css" />
+    <link rel="stylesheet" href="css/tailwind.min.css" />
     <link rel="stylesheet" href="css/styles.css" />
   </head>
   <body
@@ -201,7 +121,7 @@
                 Capture, organize, and focus. Your data stays on your server, under your control.
               </p>
               <div
-                class="hero-fade-in hero-fade-in-delay-3 flex flex-col sm:flex-row items-start sm:items-center gap-6"
+                class="hero-fade-in hero-fade-in-delay-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-4"
               >
                 <a
                   class="btn-primary bg-primary text-on-primary px-8 py-4 rounded-2xl font-bold text-lg tracking-wide shadow-[0_8px_30px_rgb(0,0,0,0.08)] w-full sm:w-auto text-center"
@@ -210,17 +130,28 @@
                   Try the Beta
                 </a>
                 <a
-                  class="btn-ghost group flex items-center gap-2 text-primary font-semibold text-lg hover:text-primary-container transition-colors py-4"
-                  href="#steps"
+                  class="bg-surface-container-high text-on-surface ring-1 ring-outline-variant/30 px-8 py-4 rounded-2xl font-bold text-lg tracking-wide shadow-[0_8px_30px_rgb(0,0,0,0.08)] w-full sm:w-auto text-center hover:bg-surface-container-high/70 transition-colors"
+                  href="/install"
                 >
-                  How it works
-                  <span
-                    class="material-symbols-outlined group-hover:translate-x-1 transition-transform"
-                    aria-hidden="true"
-                    >arrow_forward</span
-                  >
+                  Self-host Yotara
                 </a>
               </div>
+              <p
+                class="hero-fade-in hero-fade-in-delay-3 mt-6 text-sm font-medium tracking-wide text-on-surface-variant"
+              >
+                Open source · Self-hosted · Docker in minutes
+              </p>
+              <a
+                class="btn-ghost group inline-flex items-center gap-2 text-primary font-semibold text-lg hover:text-primary-container transition-colors mt-4"
+                href="#steps"
+              >
+                How it works
+                <span
+                  class="material-symbols-outlined group-hover:translate-x-1 transition-transform"
+                  aria-hidden="true"
+                  >arrow_forward</span
+                >
+              </a>
             </div>
             <div
               class="hero-mockup relative w-full rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(28,28,23,0.08)] ring-1 ring-outline-variant/15"
@@ -244,69 +175,153 @@
         ></div>
       </section>
 
+      <section class="py-24 bg-surface animate-in">
+        <div class="max-w-7xl mx-auto px-8">
+          <div class="mb-14 max-w-3xl">
+            <h2
+              class="text-[1.75rem] md:text-[2.5rem] font-display font-bold mb-4 tracking-tight text-on-surface"
+            >
+              One quiet flow, three views
+            </h2>
+            <p class="text-lg text-on-surface-variant leading-relaxed">
+              Capture the moment it lands, plan what's next, and keep everything organized — without
+              leaving the calm.
+            </p>
+          </div>
+          <div class="space-y-24">
+            <div class="flex flex-col md:flex-row gap-8 md:gap-16 items-center">
+              <div class="flex-1 w-full md:w-1/2">
+                <div
+                  class="rounded-2xl overflow-hidden ring-1 ring-outline-variant/15 shadow-[0_20px_50px_rgba(28,28,23,0.08)]"
+                >
+                  <img
+                    src="assets/capture.webp"
+                    alt="Inbox view for quick capture"
+                    loading="lazy"
+                    class="w-full h-auto"
+                  />
+                </div>
+              </div>
+              <div class="flex-1 w-full md:w-1/2">
+                <h3 class="text-2xl font-bold mb-4 font-headline text-on-surface">Capture</h3>
+                <p class="text-lg text-on-surface-variant leading-relaxed">
+                  Drop a thought into the Inbox in seconds. No folders to pick, no decisions to make
+                  — just get it out of your head.
+                </p>
+              </div>
+            </div>
+            <div class="flex flex-col md:flex-row-reverse gap-8 md:gap-16 items-center">
+              <div class="flex-1 w-full md:w-1/2">
+                <div
+                  class="rounded-2xl overflow-hidden ring-1 ring-outline-variant/15 shadow-[0_20px_50px_rgba(28,28,23,0.08)]"
+                >
+                  <img
+                    src="assets/today.webp"
+                    alt="Today view for daily planning"
+                    loading="lazy"
+                    class="w-full h-auto"
+                  />
+                </div>
+              </div>
+              <div class="flex-1 w-full md:w-1/2">
+                <h3 class="text-2xl font-bold mb-4 font-headline text-on-surface">Plan Today</h3>
+                <p class="text-lg text-on-surface-variant leading-relaxed">
+                  Today surfaces what's due and what you flagged. One clear screen tells you where
+                  to put your attention.
+                </p>
+              </div>
+            </div>
+            <div class="flex flex-col md:flex-row gap-8 md:gap-16 items-center">
+              <div class="flex-1 w-full md:w-1/2">
+                <div
+                  class="rounded-2xl overflow-hidden ring-1 ring-outline-variant/15 shadow-[0_20px_50px_rgba(28,28,23,0.08)]"
+                >
+                  <img
+                    src="assets/project2.webp"
+                    alt="Projects view for organizing tasks"
+                    loading="lazy"
+                    class="w-full h-auto"
+                  />
+                </div>
+              </div>
+              <div class="flex-1 w-full md:w-1/2">
+                <h3 class="text-2xl font-bold mb-4 font-headline text-on-surface">
+                  Organize projects
+                </h3>
+                <p class="text-lg text-on-surface-variant leading-relaxed">
+                  Group related work into projects with colors and labels. Triage the inbox when
+                  you're ready, not when tasks arrive.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="py-32 bg-surface-container-low animate-in">
         <div class="max-w-7xl mx-auto px-8">
           <div class="mb-16 max-w-3xl">
             <h2
               class="text-[1.75rem] md:text-[2.5rem] font-display font-bold mb-6 tracking-tight text-on-surface"
             >
-              A quieter alternative
+              Why Yotara
             </h2>
             <p class="text-xl text-on-surface-variant leading-relaxed">
-              Yotara is self-hosted, free, and open source. Your data stays on your server, and
-              setup takes one Docker command. No subscriptions, no configuration marathons, no
-              building your system from scratch.
+              A little setup, then complete ownership. Hosted apps win on instant onboarding; Yotara
+              wins on what they can't offer — your tasks living on infrastructure you control, with
+              no subscription and no one profiling your to-do list.
             </p>
           </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-              <thead>
-                <tr class="border-b border-outline-variant/20">
-                  <th class="p-4 font-semibold text-on-surface"></th>
-                  <th class="p-4 font-semibold text-on-surface text-center">Todoist</th>
-                  <th class="p-4 font-semibold text-on-surface text-center">Vikunja</th>
-                  <th class="p-4 font-semibold text-on-surface text-center">Notion</th>
-                  <th class="p-4 font-semibold text-on-surface text-center text-primary">Yotara</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr class="border-b border-outline-variant/10">
-                  <td class="p-4 text-on-surface-variant font-medium">Self-hosted</td>
-                  <td class="p-4 text-center text-outline-variant">—</td>
-                  <td class="p-4 text-center text-primary">✓</td>
-                  <td class="p-4 text-center text-outline-variant">—</td>
-                  <td class="p-4 text-center text-primary font-semibold">✓</td>
-                </tr>
-                <tr class="border-b border-outline-variant/10">
-                  <td class="p-4 text-on-surface-variant font-medium">Free forever</td>
-                  <td class="p-4 text-center text-outline-variant">—</td>
-                  <td class="p-4 text-center text-primary">✓</td>
-                  <td class="p-4 text-center text-primary">✓</td>
-                  <td class="p-4 text-center text-primary font-semibold">✓</td>
-                </tr>
-                <tr class="border-b border-outline-variant/10">
-                  <td class="p-4 text-on-surface-variant font-medium">No setup burden</td>
-                  <td class="p-4 text-center text-primary">✓</td>
-                  <td class="p-4 text-center text-outline-variant">—</td>
-                  <td class="p-4 text-center text-primary">✓</td>
-                  <td class="p-4 text-center text-primary font-semibold">✓</td>
-                </tr>
-                <tr class="border-b border-outline-variant/10">
-                  <td class="p-4 text-on-surface-variant font-medium">Your data stays yours</td>
-                  <td class="p-4 text-center text-outline-variant">—</td>
-                  <td class="p-4 text-center text-primary">✓</td>
-                  <td class="p-4 text-center text-outline-variant">—</td>
-                  <td class="p-4 text-center text-primary font-semibold">✓</td>
-                </tr>
-                <tr>
-                  <td class="p-4 text-on-surface-variant font-medium">Open source</td>
-                  <td class="p-4 text-center text-outline-variant">—</td>
-                  <td class="p-4 text-center text-primary">✓</td>
-                  <td class="p-4 text-center text-outline-variant">—</td>
-                  <td class="p-4 text-center text-primary font-semibold">✓</td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div
+              class="feature-card p-8 rounded-2xl bg-surface-container-low hover:bg-surface-container-high"
+            >
+              <div
+                class="w-14 h-14 rounded-2xl bg-surface-container-highest flex items-center justify-center mb-6"
+                aria-hidden="true"
+              >
+                <span class="material-symbols-outlined text-3xl text-primary">terminal</span>
+              </div>
+              <h3 class="text-xl font-bold mb-3 font-headline text-on-surface">A little setup</h3>
+              <p class="text-on-surface-variant leading-relaxed">
+                Be honest with yourself: self-hosting isn't zero effort. You'll run a Docker
+                container and set one secret to sign sessions. Budget about fifteen minutes the
+                first time — then it just runs.
+              </p>
+            </div>
+            <div
+              class="feature-card p-8 rounded-2xl bg-surface-container-low hover:bg-surface-container-high"
+            >
+              <div
+                class="w-14 h-14 rounded-2xl bg-surface-container-highest flex items-center justify-center mb-6"
+                aria-hidden="true"
+              >
+                <span class="material-symbols-outlined text-3xl text-primary">lock</span>
+              </div>
+              <h3 class="text-xl font-bold mb-3 font-headline text-on-surface">
+                Complete ownership
+              </h3>
+              <p class="text-on-surface-variant leading-relaxed">
+                Your tasks live in a single SQLite file you can back up, copy, or move anywhere.
+                Export to JSON whenever you like. No account to lose, no service that can shut down
+                under you.
+              </p>
+            </div>
+            <div
+              class="feature-card p-8 rounded-2xl bg-surface-container-low hover:bg-surface-container-high"
+            >
+              <div
+                class="w-14 h-14 rounded-2xl bg-surface-container-highest flex items-center justify-center mb-6"
+                aria-hidden="true"
+              >
+                <span class="material-symbols-outlined text-3xl text-primary">spa</span>
+              </div>
+              <h3 class="text-xl font-bold mb-3 font-headline text-on-surface">Calm by design</h3>
+              <p class="text-on-surface-variant leading-relaxed">
+                No telemetry, no ads, no upsells. Open source under MIT, so you can read exactly
+                what runs on your server — and change it if you want to.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -477,6 +492,63 @@
         </div>
       </section>
 
+      <section class="py-32 bg-surface animate-in">
+        <div class="max-w-7xl mx-auto px-8">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div class="max-w-2xl">
+              <h2
+                class="text-[1.75rem] md:text-[2.5rem] font-display font-bold mb-6 tracking-tight text-on-surface"
+              >
+                Your data, portable by design
+              </h2>
+              <p class="text-xl text-on-surface-variant leading-relaxed mb-8">
+                Self-hosting is only reassuring if you can leave. Yotara is built so your tasks are
+                yours to take, copy, or move — no lock-in, no exit fee.
+              </p>
+              <ul class="space-y-4">
+                <li class="flex items-start gap-3">
+                  <span class="material-symbols-outlined text-primary mt-0.5" aria-hidden="true"
+                    >download</span
+                  >
+                  <span class="text-on-surface-variant"
+                    ><strong class="text-on-surface">Export anytime.</strong> Pull your tasks as
+                    JSON from the API whenever you like — no request, no wait.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span class="material-symbols-outlined text-primary mt-0.5" aria-hidden="true"
+                    >storage</span
+                  >
+                  <span class="text-on-surface-variant"
+                    ><strong class="text-on-surface">One plain file.</strong> Everything lives in a
+                    single SQLite database you can copy, diff, or restore directly.</span
+                  >
+                </li>
+                <li class="flex items-start gap-3">
+                  <span class="material-symbols-outlined text-primary mt-0.5" aria-hidden="true"
+                    >shield</span
+                  >
+                  <span class="text-on-surface-variant"
+                    ><strong class="text-on-surface">No lock-in.</strong> Open source under MIT — if
+                    Yotara stops serving you, the code and your data still do.</span
+                  >
+                </li>
+              </ul>
+            </div>
+            <div
+              class="rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(28,28,23,0.08)] ring-1 ring-outline-variant/15"
+            >
+              <img
+                src="assets/data-export.webp"
+                alt="Your tasks stay in your hands"
+                loading="lazy"
+                class="w-full h-auto"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="py-32 bg-inverse-surface text-surface-bright">
         <div class="max-w-7xl mx-auto px-8 text-center">
           <h2 class="text-[1.75rem] md:text-[2.5rem] font-display font-bold mb-6 tracking-tight">
@@ -484,8 +556,45 @@
           </h2>
           <p class="text-xl text-surface-variant leading-relaxed max-w-2xl mx-auto mb-10">
             Yotara is open source under the MIT license. Deploy your own instance in one command. No
-            tracking, no telemetry, no data collection.
+            tracking, no telemetry, no data collection. Built for makers, students, freelancers, and
+            anyone who'd rather host their own task manager.
           </p>
+          <div
+            class="flex flex-wrap justify-center gap-x-8 gap-y-3 mb-10 text-sm text-surface-variant"
+          >
+            <span class="inline-flex items-center gap-2">
+              <span
+                class="material-symbols-outlined text-base text-primary-fixed"
+                aria-hidden="true"
+                >tag</span
+              >
+              v0.66.1 · released Jul 9, 2026
+            </span>
+            <span class="inline-flex items-center gap-2">
+              <span
+                class="material-symbols-outlined text-base text-primary-fixed"
+                aria-hidden="true"
+                >memory</span
+              >
+              Docker: amd64 &amp; arm64
+            </span>
+            <span class="inline-flex items-center gap-2">
+              <span
+                class="material-symbols-outlined text-base text-primary-fixed"
+                aria-hidden="true"
+                >download</span
+              >
+              Export your data as JSON
+            </span>
+            <span class="inline-flex items-center gap-2">
+              <span
+                class="material-symbols-outlined text-base text-primary-fixed"
+                aria-hidden="true"
+                >verified</span
+              >
+              MIT licensed
+            </span>
+          </div>
           <div
             class="inline-block bg-[#1a1a18] text-surface-bright rounded-xl px-6 py-4 mb-10 font-mono text-sm text-left w-full max-w-xl mx-auto overflow-x-auto"
           >
@@ -610,8 +719,8 @@
     >
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <p class="text-sm leading-relaxed flex-grow">
-          This site does not use cookies. Cloudflare CDN handles routing and Google Fonts serve
-          typography. No tracking or personal data is stored.
+          No cookies. No tracking. No analytics. Cloudflare handles CDN and hosting. Blog images
+          from Unsplash.
           <a
             href="/privacy/"
             class="text-primary-fixed underline hover:no-underline whitespace-nowrap"

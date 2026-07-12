@@ -341,10 +341,6 @@ code {
     0 8px 32px rgba(28, 28, 23, 0.08);
 }
 
-#gdpr-banner {
-  padding-bottom: calc(1rem + var(--sab));
-}
-
 .blog-full {
   overflow: hidden;
   transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
