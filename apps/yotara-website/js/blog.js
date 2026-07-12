@@ -359,7 +359,14 @@ function initBlog() {
     .then((data) => {
       blogData = data.sort((a, b) => b.date.localeCompare(a.date));
       totalPages = Math.ceil(blogData.length / PER_PAGE);
-      renderPage(1);
+
+      const hash = getHashSlug();
+      let page = 1;
+      if (hash) {
+        const idx = blogData.findIndex((p) => slugFor(p.title) === hash);
+        if (idx >= 0) page = Math.floor(idx / PER_PAGE) + 1;
+      }
+      renderPage(page);
     });
 }
 
