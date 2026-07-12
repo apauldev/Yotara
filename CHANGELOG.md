@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.67.0](https://github.com/apauldev/Yotara/compare/v0.66.1...v0.67.0) (2026-07-12)
+
+
+### Features
+
+* **website:** add SEO optimization across all pages ([c23fe10](https://github.com/apauldev/Yotara/commit/c23fe10d77bc4cf920ae2c3ad5db8e2ebb23b465))
+* **website:** redesign marketing site and self-host all assets ([5798e37](https://github.com/apauldev/Yotara/commit/5798e37cbe247a7fc62c07b59b9aac23740637d9))
+
+
+### Bug Fixes
+
+* add CSS and history browser globals to eslint config ([c11ee63](https://github.com/apauldev/Yotara/commit/c11ee63af82c6245f6def58387c0dfc11bbbe484))
+* correct TLS claim on install page ([106ed5d](https://github.com/apauldev/Yotara/commit/106ed5d243d7550a20ab31a26f724f94bd31d055))
+* render correct page for shared blog post URLs ([b1f31d0](https://github.com/apauldev/Yotara/commit/b1f31d043b5e2a51359dba768892302378107b73))
+* use root-relative asset URLs on 404 page ([ccf5843](https://github.com/apauldev/Yotara/commit/ccf5843f5c4479f4146852e628d86296dfce2ea3))
+
+
+### Documentation
+
+* added contributors back ([586594c](https://github.com/apauldev/Yotara/commit/586594c135d86005f6e47f487751e7dfdf6ea479))
+* another small update ([825a5a7](https://github.com/apauldev/Yotara/commit/825a5a73a9b71072e9b6fa25b72b57f647c84449))
+* fixed some factual errors ([a0d31aa](https://github.com/apauldev/Yotara/commit/a0d31aa4a8a1003ff69ca6051adf0924c7e1d10b))
+* new svg ([2d71b1a](https://github.com/apauldev/Yotara/commit/2d71b1adbeff658e5a686621bbe40a288e2038f4))
+* updated docs ([60e26fa](https://github.com/apauldev/Yotara/commit/60e26fa45419e6c723c6937e3567f76b90162bef))
+
 ## [0.66.1](https://github.com/apauldev/Yotara/compare/v0.66.0...v0.66.1) (2026-07-09)
 
 
