@@ -76,6 +76,8 @@ export default [
         localStorage: 'readonly',
         navigator: 'readonly',
         console: 'readonly',
+        CSS: 'readonly',
+        history: 'readonly',
       },
     },
     rules: {
