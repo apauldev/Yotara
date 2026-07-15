@@ -653,6 +653,87 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       );
       assert.equal(instances[0].id, recurring.id);
     });
+
+    await t.test('deleteTaskForOwner returns null for non-existent task', async () => {
+      const result = await ctx.taskService.deleteTaskForOwner(ownerId, randomUUID());
+      assert.equal(result, null);
+    });
+
+    await t.test('updateTaskForOwner falls back to default project', async () => {
+      // Create task without specifying a project — createTaskForOwner assigns the default (Inbox)
+      const task = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'No Project Task',
+      });
+      assert.ok(task);
+      const originalProjectId = task.projectId;
+      assert.ok(originalProjectId);
+
+      // Update without specifying projectId — should keep the default project
+      const updated = await ctx.taskService.updateTaskForOwner(ownerId, task.id, {
+        title: 'No Project Task Updated',
+      });
+      assert.ok(updated);
+      assert.ok(updated.projectId);
+    });
+
+    await t.test('updateTaskForOwner sets recurrence rule on existing task', async () => {
+      const task = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Becomes Recurring Later',
+        dueDate: '2026-06-01T00:00:00Z',
+      });
+      assert.ok(task);
+      assert.equal(task.recurrenceRule, null);
+
+      // Add a recurrence rule via update
+      const updated = await ctx.taskService.updateTaskForOwner(ownerId, task.id, {
+        recurrenceRule: { frequency: 'weekly', interval: 2 },
+      });
+      assert.ok(updated);
+      assert.ok(updated.recurrenceRule);
+      // DB stores recurrenceRule as a JSON string
+      const parsed = JSON.parse(updated.recurrenceRule as string);
+      assert.equal(parsed.frequency, 'weekly');
+      assert.equal(parsed.interval, 2);
+    });
+
+    await t.test('updateTaskForOwner creates subtasks from body', async () => {
+      const task = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Parent With Subtask Update',
+      });
+      assert.ok(task);
+
+      // Update with subtasks in the body
+      const updated = await ctx.taskService.updateTaskForOwner(ownerId, task.id, {
+        subtasks: [{ title: 'Update Sub 1' }, { title: 'Update Sub 2' }],
+      });
+      assert.ok(updated);
+
+      // Verify subtasks exist
+      const subtasks = await ctx.taskService.listSubtasks(task.id, ownerId);
+      assert.equal(subtasks.length, 2);
+      const titles = subtasks.map((s) => s.title).sort();
+      assert.deepEqual(titles, ['Update Sub 1', 'Update Sub 2']);
+    });
+
+    await t.test('createTaskForOwner creates subtasks from body', async () => {
+      const parent = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Parent With Bulk Subtasks',
+        subtasks: [{ title: 'Bulk Sub A' }, { title: 'Bulk Sub B' }],
+      });
+      assert.ok(parent);
+
+      const subtasks = await ctx.taskService.listSubtasks(parent.id, ownerId);
+      assert.equal(subtasks.length, 2);
+      const titles = subtasks.map((s) => s.title).sort();
+      assert.deepEqual(titles, ['Bulk Sub A', 'Bulk Sub B']);
+    });
+
+    await t.test('updateTaskForOwner returns null for non-existent task', async () => {
+      const result = await ctx.taskService.updateTaskForOwner(ownerId, randomUUID(), {
+        title: 'ghost',
+      });
+      assert.equal(result, null);
+    });
   } finally {
     ctx.cleanup();
   }

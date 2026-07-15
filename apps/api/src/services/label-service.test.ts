@@ -173,6 +173,19 @@ test('Label Service', async (t) => {
       assert.equal(taskLabelsAfter.length, 1);
       assert.equal(taskLabelsAfter[0].name, 'Sync 1');
     });
+
+    await t.test('syncTaskLabels returns early when no labels are owned', async () => {
+      const { createTaskForOwner } = await import('./task-service.js');
+      const task = await createTaskForOwner(ownerId, { title: 'No Label Match Task' });
+      assert.ok(task);
+
+      // Pass label IDs that don't belong to this owner — should return early
+      ctx.labelService.syncTaskLabels(ownerId, task.id, [randomUUID()]);
+
+      const taskLabels = ctx.labelService.getTaskLabels(task.id);
+      assert.equal(taskLabels.length, 0);
+    });
+
     await t.test('getLabelsForTasks', async () => {
       const label1 = await ctx.labelService.createLabelForOwner(ownerId, { name: 'Batch 1' });
       const label2 = await ctx.labelService.createLabelForOwner(ownerId, { name: 'Batch 2' });
