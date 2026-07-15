@@ -108,6 +108,12 @@ export const AuthService = {
       body: JSON.stringify(payload),
     });
   },
+  deleteAccount: async (password: string) => {
+    return await request<{ ok: true }>('/me', {
+      method: 'DELETE',
+      body: JSON.stringify({ password }),
+    });
+  },
   completeOnboarding: async (workspaceMode: WorkspaceMode) => {
     return await request<ProfileResponse>('/me', {
       method: 'PATCH',

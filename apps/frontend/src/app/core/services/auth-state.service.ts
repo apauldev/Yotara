@@ -135,6 +135,18 @@ export class AuthStateService {
     }
   }
 
+  async deleteAccount(password: string) {
+    this.loadingState.set(true);
+    try {
+      await AuthService.deleteAccount(password);
+      this.sessionState.set(null);
+      this.userState.set(null);
+      this.initializedState.set(false);
+    } finally {
+      this.loadingState.set(false);
+    }
+  }
+
   async completeOnboarding(workspaceMode: 'personal' | 'team') {
     this.loadingState.set(true);
 

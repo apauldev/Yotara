@@ -8,6 +8,7 @@ import requireAuthenticatedUser from '../plugins/auth-required.js';
 import { toPublicUser } from '../lib/public-user.js';
 import { seedDefaultLabelsForOwner } from '../services/label-service.js';
 import { seedDefaultProjectsForOwner } from '../services/project-service.js';
+import { deleteAccountForUser } from '../services/user-service.js';
 
 export default async function meRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', requireAuthenticatedUser);
@@ -105,6 +106,52 @@ export default async function meRoutes(fastify: FastifyInstance) {
       }
 
       return { user: toPublicUser(user) };
+    },
+  );
+
+  fastify.delete<{
+    Body: { password: string };
+    Reply: { ok: true } | { message: string };
+  }>(
+    '/me',
+    {
+      config: {
+        rateLimit: {
+          max: Number(process.env['DELETE_ACCOUNT_RATE_LIMIT_MAX'] ?? 5),
+          timeWindow:
+            Number(process.env['DELETE_ACCOUNT_RATE_LIMIT_WINDOW_MINUTES'] ?? 15) * 60 * 1000,
+          keyGenerator: (request) => `${request.userId ?? 'anonymous'}:${request.ip}`,
+        },
+      },
+      schema: withJsonResponse({
+        tags: ['auth'],
+        summary: 'Permanently delete the current user account and all data',
+        security: authCookieSecurity,
+        body: { $ref: 'DeleteAccount#' },
+        response: {
+          200: {
+            description: 'Account deleted',
+            type: 'object',
+            required: ['ok'],
+            properties: { ok: { type: 'boolean' } },
+          },
+          401: errorResponseSchema('Authentication required', 'Unauthorized'),
+          403: errorResponseSchema('Password verification failed', 'Incorrect password'),
+          429: errorResponseSchema('Too many deletion attempts', 'Too Many Requests'),
+        },
+      }),
+    },
+    async (request, reply) => {
+      const userId = request.userId;
+      if (!userId) return sendUnauthorized(reply);
+
+      const result = await deleteAccountForUser(userId, request.body.password);
+
+      if (result.ok) return { ok: true };
+      if (result.reason === 'invalid_password') {
+        return reply.code(403).send({ message: 'Incorrect password' });
+      }
+      return sendUnauthorized(reply);
     },
   );
 }

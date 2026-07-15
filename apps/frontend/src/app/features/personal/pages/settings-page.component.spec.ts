@@ -162,7 +162,12 @@ describe('SettingsPageComponent', () => {
     );
 
     const mockAuthState = {
-      user: signal({ id: 'user-1', archiveAutoDelete: true, captureBehavior: 'quick' }),
+      user: signal({
+        id: 'user-1',
+        email: 'test@example.com',
+        archiveAutoDelete: true,
+        captureBehavior: 'quick',
+      }),
       loading: signal(false),
       updateProfile: jasmine.createSpy('updateProfile').and.resolveTo({}),
       signOut: jasmine.createSpy('signOut').and.resolveTo(),
@@ -173,7 +178,11 @@ describe('SettingsPageComponent', () => {
       providers: [
         {
           provide: TaskService,
-          useValue: { tasks: tasksSignal, fetchAllTasks: () => Promise.resolve([...mockTasks]) },
+          useValue: {
+            tasks: tasksSignal,
+            allActiveTasks: tasksSignal,
+            fetchAllTasks: () => Promise.resolve([...mockTasks]),
+          },
         },
         { provide: ProjectService, useValue: { projects: projectsSignal } },
         { provide: LabelService, useValue: { labels: labelsSignal } },

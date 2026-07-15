@@ -58,6 +58,7 @@ test('GET /me returns 401 without authentication', async () => {
   try {
     const response = await ctx.app.inject({ method: 'GET', url: '/me' });
     assert.equal(response.statusCode, 401);
+    assert.equal(response.json().message, 'Unauthorized');
   } finally {
     await ctx.cleanup();
   }
@@ -343,6 +344,163 @@ test('CORS headers are present on /me responses', async () => {
     assert.equal(patchResponse.statusCode, 200);
     assert.equal(patchResponse.headers['access-control-allow-origin'], 'http://localhost:4200');
     assert.equal(patchResponse.headers['access-control-allow-credentials'], 'true');
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('DELETE /me returns 401 without authentication', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const response = await ctx.app.inject({
+      method: 'DELETE',
+      url: '/me',
+      payload: { password: 'anything' },
+    });
+    assert.equal(response.statusCode, 401);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('DELETE /me with wrong password returns 403', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const email = `wrong-pass-${randomUUID()}@example.com`;
+    const cookie = await signUpAndGetCookie(email);
+
+    const response = await ctx.app.inject({
+      method: 'DELETE',
+      url: '/me',
+      headers: { cookie },
+      payload: { password: 'wrong-password' },
+    });
+
+    assert.equal(response.statusCode, 403);
+    assert.equal(response.json().message, 'Incorrect password');
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('DELETE /me deletes the account and invalidates its session', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`delete-${randomUUID()}@example.com`);
+    const deleted = await ctx.app.inject({
+      method: 'DELETE',
+      url: '/me',
+      headers: { cookie },
+      payload: { password: 'Password123!' },
+    });
+
+    assert.equal(deleted.statusCode, 200);
+    assert.deepEqual(deleted.json(), { ok: true });
+
+    const me = await ctx.app.inject({ method: 'GET', url: '/me', headers: { cookie } });
+    assert.equal(me.statusCode, 401);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('DELETE /me invalidates every session for the user', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const email = `multi-session-${randomUUID()}@example.com`;
+    const cookie1 = await signUpAndGetCookie(email);
+
+    // Open a second, independent session for the same user.
+    const { auth } = await import('../lib/auth.js');
+    const signIn = await auth.api.signInEmail({
+      body: { email, password: 'Password123!' },
+      asResponse: true,
+    });
+    assert.equal(signIn.status, 200);
+    const cookie2 = signIn.headers.get('set-cookie');
+    assert.ok(cookie2);
+
+    const deleted = await ctx.app.inject({
+      method: 'DELETE',
+      url: '/me',
+      headers: { cookie: cookie1 },
+      payload: { password: 'Password123!' },
+    });
+    assert.equal(deleted.statusCode, 200);
+
+    const me1 = await ctx.app.inject({ method: 'GET', url: '/me', headers: { cookie: cookie1 } });
+    assert.equal(me1.statusCode, 401);
+
+    const me2 = await ctx.app.inject({ method: 'GET', url: '/me', headers: { cookie: cookie2 } });
+    assert.equal(me2.statusCode, 401);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('DELETE /me without password body returns 400', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const email = `no-pass-${randomUUID()}@example.com`;
+    const cookie = await signUpAndGetCookie(email);
+
+    const response = await ctx.app.inject({
+      method: 'DELETE',
+      url: '/me',
+      headers: { cookie },
+      payload: {},
+    });
+
+    assert.equal(response.statusCode, 400);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('DELETE /me rejects an empty password', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`empty-pass-${randomUUID()}@example.com`);
+    const response = await ctx.app.inject({
+      method: 'DELETE',
+      url: '/me',
+      headers: { cookie },
+      payload: { password: '' },
+    });
+    assert.equal(response.statusCode, 400);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('DELETE /me rate limits repeated password failures', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`delete-limit-${randomUUID()}@example.com`);
+    for (let i = 0; i < 5; i += 1) {
+      const response = await ctx.app.inject({
+        method: 'DELETE',
+        url: '/me',
+        headers: { cookie },
+        payload: { password: 'wrong-password' },
+      });
+      assert.equal(response.statusCode, 403);
+    }
+
+    const limited = await ctx.app.inject({
+      method: 'DELETE',
+      url: '/me',
+      headers: { cookie },
+      payload: { password: 'wrong-password' },
+    });
+    assert.equal(limited.statusCode, 429);
   } finally {
     await ctx.cleanup();
   }
