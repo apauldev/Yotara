@@ -511,6 +511,229 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
         assert.ok(next.dueDate?.startsWith(expectedPrefix));
       },
     );
+
+    // Seed a label for transaction rollback tests
+    const { labels: _labels } = await import('../db/schema.js');
+    const rollbackLabelId = randomUUID();
+    const now = new Date().toISOString();
+    await ctx.db.insert(_labels).values({
+      id: rollbackLabelId,
+      userId: ownerId,
+      name: 'Rollback Test Label',
+      color: '#999999',
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await t.test('Drizzle transaction rolls back on throw', async () => {
+      const { eq } = await import('drizzle-orm');
+      const { tasks } = await import('../db/schema.js');
+      const testTaskId = randomUUID();
+
+      assert.throws(() => {
+        ctx.db.transaction(
+          (tx) => {
+            tx.insert(tasks)
+              .values({
+                id: testTaskId,
+                userId: ownerId,
+                title: 'should not exist',
+                status: 'inbox',
+                priority: 'medium',
+                simpleMode: false,
+                completed: false,
+                archivedAt: null,
+                permanentArchive: false,
+                order: 0,
+                deletedAt: null,
+                createdAt: now,
+                updatedAt: now,
+              })
+              .run();
+            throw new Error('forced rollback');
+          },
+          { behavior: 'immediate' },
+        );
+      }, /forced rollback/);
+
+      const [row] = await ctx.db.select().from(tasks).where(eq(tasks.id, testTaskId)).limit(1);
+      assert.equal(row, undefined);
+    });
+
+    await t.test('concurrent task creates do not conflict on transaction start', async () => {
+      const [first, second] = await Promise.all([
+        ctx.taskService.createTaskForOwner(ownerId, { title: `Concurrent A ${randomUUID()}` }),
+        ctx.taskService.createTaskForOwner(ownerId, { title: `Concurrent B ${randomUUID()}` }),
+      ]);
+
+      assert.ok(first);
+      assert.ok(second);
+      assert.notEqual(first.id, second.id);
+    });
+
+    await t.test('createTaskForOwner rolls back when label sync fails', async () => {
+      const { eq } = await import('drizzle-orm');
+      const { tasks } = await import('../db/schema.js');
+
+      ctx.sqlite.exec(`
+        CREATE TRIGGER fail_create_label_sync
+        BEFORE INSERT ON task_labels
+        WHEN EXISTS (
+          SELECT 1 FROM tasks
+          WHERE id = NEW.task_id AND title LIKE '%ROLLBACK_MARKER%'
+        )
+        BEGIN
+          SELECT RAISE(ABORT, 'forced rollback test');
+        END;
+      `);
+
+      const title = `Should Not Exist ROLLBACK_MARKER ${randomUUID()}`;
+      try {
+        await ctx.taskService.createTaskForOwner(ownerId, {
+          title,
+          labels: [rollbackLabelId],
+        });
+        assert.fail('Expected createTaskForOwner to throw');
+      } catch (err: any) {
+        assert.match(err.message, /forced rollback/);
+      } finally {
+        ctx.sqlite.exec('DROP TRIGGER IF EXISTS fail_create_label_sync');
+      }
+
+      const rows = await ctx.db.select().from(tasks).where(eq(tasks.userId, ownerId));
+      const leakedTask = rows.find((r: any) => r.title === title);
+      assert.equal(leakedTask, undefined);
+    });
+
+    await t.test('updateTaskForOwner recurrence materialization rolls back as a unit', async () => {
+      const recurring = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Recurring Rollback Test',
+        dueDate: '2026-01-01T00:00:00Z',
+        recurrenceRule: { frequency: 'daily', interval: 1 },
+      });
+      assert.ok(recurring);
+      assert.equal(recurring.completed, false);
+
+      const originalUpdateTime = recurring.updatedAt;
+
+      ctx.sqlite.exec(`
+          CREATE TRIGGER fail_recurrence_label_sync
+          BEFORE INSERT ON task_labels
+          WHEN NEW.task_id = '${recurring.id}'
+          BEGIN
+            SELECT RAISE(ABORT, 'forced rollback recurrence test');
+          END;
+        `);
+
+      try {
+        await ctx.taskService.updateTaskForOwner(ownerId, recurring.id, {
+          completed: true,
+          labels: [rollbackLabelId],
+        });
+        assert.fail('Expected updateTaskForOwner to throw');
+      } catch (err: any) {
+        assert.match(err.message, /forced rollback/);
+      } finally {
+        ctx.sqlite.exec('DROP TRIGGER IF EXISTS fail_recurrence_label_sync');
+      }
+
+      const parentAfter = await ctx.taskService.getTaskForOwner(recurring.id, ownerId);
+      assert.ok(parentAfter);
+      assert.equal(parentAfter.completed, false);
+      assert.equal(parentAfter.updatedAt, originalUpdateTime);
+
+      const allTasks = await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true);
+      const instances = allTasks.data.filter(
+        (t) => t.title === 'Recurring Rollback Test' && !t.completed,
+      );
+      assert.equal(
+        instances.length,
+        1,
+        'Expected only original task, no materialized instance leaked',
+      );
+      assert.equal(instances[0].id, recurring.id);
+    });
+
+    await t.test('deleteTaskForOwner returns null for non-existent task', async () => {
+      const result = await ctx.taskService.deleteTaskForOwner(ownerId, randomUUID());
+      assert.equal(result, null);
+    });
+
+    await t.test('updateTaskForOwner falls back to default project', async () => {
+      // Create task without specifying a project — createTaskForOwner assigns the default (Inbox)
+      const task = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'No Project Task',
+      });
+      assert.ok(task);
+      const originalProjectId = task.projectId;
+      assert.ok(originalProjectId);
+
+      // Update without specifying projectId — should keep the default project
+      const updated = await ctx.taskService.updateTaskForOwner(ownerId, task.id, {
+        title: 'No Project Task Updated',
+      });
+      assert.ok(updated);
+      assert.ok(updated.projectId);
+    });
+
+    await t.test('updateTaskForOwner sets recurrence rule on existing task', async () => {
+      const task = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Becomes Recurring Later',
+        dueDate: '2026-06-01T00:00:00Z',
+      });
+      assert.ok(task);
+      assert.equal(task.recurrenceRule, null);
+
+      // Add a recurrence rule via update
+      const updated = await ctx.taskService.updateTaskForOwner(ownerId, task.id, {
+        recurrenceRule: { frequency: 'weekly', interval: 2 },
+      });
+      assert.ok(updated);
+      assert.ok(updated.recurrenceRule);
+      // DB stores recurrenceRule as a JSON string
+      const parsed = JSON.parse(updated.recurrenceRule as string);
+      assert.equal(parsed.frequency, 'weekly');
+      assert.equal(parsed.interval, 2);
+    });
+
+    await t.test('updateTaskForOwner creates subtasks from body', async () => {
+      const task = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Parent With Subtask Update',
+      });
+      assert.ok(task);
+
+      // Update with subtasks in the body
+      const updated = await ctx.taskService.updateTaskForOwner(ownerId, task.id, {
+        subtasks: [{ title: 'Update Sub 1' }, { title: 'Update Sub 2' }],
+      });
+      assert.ok(updated);
+
+      // Verify subtasks exist
+      const subtasks = await ctx.taskService.listSubtasks(task.id, ownerId);
+      assert.equal(subtasks.length, 2);
+      const titles = subtasks.map((s) => s.title).sort();
+      assert.deepEqual(titles, ['Update Sub 1', 'Update Sub 2']);
+    });
+
+    await t.test('createTaskForOwner creates subtasks from body', async () => {
+      const parent = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Parent With Bulk Subtasks',
+        subtasks: [{ title: 'Bulk Sub A' }, { title: 'Bulk Sub B' }],
+      });
+      assert.ok(parent);
+
+      const subtasks = await ctx.taskService.listSubtasks(parent.id, ownerId);
+      assert.equal(subtasks.length, 2);
+      const titles = subtasks.map((s) => s.title).sort();
+      assert.deepEqual(titles, ['Bulk Sub A', 'Bulk Sub B']);
+    });
+
+    await t.test('updateTaskForOwner returns null for non-existent task', async () => {
+      const result = await ctx.taskService.updateTaskForOwner(ownerId, randomUUID(), {
+        title: 'ghost',
+      });
+      assert.equal(result, null);
+    });
   } finally {
     ctx.cleanup();
   }

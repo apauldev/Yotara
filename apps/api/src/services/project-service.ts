@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { CreateProjectDto, UpdateProjectDto } from '@yotara/shared';
-import { db } from '../db/client.js';
+import { db, type Database } from '../db/client.js';
 import { projects, tasks } from '../db/schema.js';
 import { nowIsoTimestamp } from '../lib/timestamps.js';
 import {
@@ -61,11 +61,13 @@ async function loadProjectById(projectId: string, ownerId: string) {
   return project as ProjectWithCountsRow | undefined;
 }
 
-export async function seedDefaultProjectsForOwner(ownerId: string) {
-  const existing = await db
+export function seedDefaultProjectsForOwner(ownerId: string, tx?: Database) {
+  const client = tx ?? db;
+  const existing = client
     .select({ name: projects.name })
     .from(projects)
-    .where(eq(projects.ownerId, ownerId));
+    .where(eq(projects.ownerId, ownerId))
+    .all();
   const existingNames = new Set(existing.map((project) => project.name.toLowerCase()));
   const now = nowIsoTimestamp();
   const missingProjects = DEFAULT_PROJECTS.filter(
@@ -76,17 +78,20 @@ export async function seedDefaultProjectsForOwner(ownerId: string) {
     return;
   }
 
-  await db.insert(projects).values(
-    missingProjects.map((project) => ({
-      id: randomUUID(),
-      ownerId,
-      name: project.name,
-      description: project.description,
-      color: project.color,
-      createdAt: now,
-      updatedAt: now,
-    })),
-  );
+  client
+    .insert(projects)
+    .values(
+      missingProjects.map((project) => ({
+        id: randomUUID(),
+        ownerId,
+        name: project.name,
+        description: project.description,
+        color: project.color,
+        createdAt: now,
+        updatedAt: now,
+      })),
+    )
+    .run();
 }
 
 export async function listProjectsForOwner(ownerId: string) {
@@ -190,10 +195,11 @@ export async function listTasksForProject(projectId: string, ownerId: string) {
   return rows;
 }
 
-export async function getDefaultProjectForOwner(ownerId: string) {
-  await seedDefaultProjectsForOwner(ownerId);
+export function getDefaultProjectForOwner(ownerId: string, tx?: Database) {
+  seedDefaultProjectsForOwner(ownerId, tx);
 
-  const [project] = await db
+  const client = tx ?? db;
+  const [project] = client
     .select()
     .from(projects)
     .where(eq(projects.ownerId, ownerId))
@@ -201,7 +207,8 @@ export async function getDefaultProjectForOwner(ownerId: string) {
       sql`case when lower(${projects.name}) = 'inbox' then 0 else 1 end`,
       sql`${projects.createdAt} asc`,
     )
-    .limit(1);
+    .limit(1)
+    .all();
 
   return project ?? null;
 }

@@ -2,6 +2,8 @@ import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
+import type { ExtractTablesWithRelations } from 'drizzle-orm';
+import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
 import * as schema from './schema.js';
 import { nowIsoTimestamp, toIsoTimestamp } from '../lib/timestamps.js';
 
@@ -419,3 +421,10 @@ export function createDbClient(databaseUrl = process.env['DATABASE_URL'] ?? DEFA
 }
 
 export const { db, sqlite, databasePath } = createDbClient();
+
+export type Database = BaseSQLiteDatabase<
+  'sync',
+  import('better-sqlite3').RunResult,
+  typeof schema,
+  ExtractTablesWithRelations<typeof schema>
+>;
