@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import type { CreateLabelDto, Label, UpdateLabelDto } from '@yotara/shared';
-import { db } from '../db/client.js';
+import { db, type Database } from '../db/client.js';
 import { labels, taskLabels } from '../db/schema.js';
 import { nowIsoTimestamp } from '../lib/timestamps.js';
 
@@ -73,12 +73,14 @@ export async function listLabelsForOwner(ownerId: string): Promise<Label[]> {
   return rows.map(toLabel);
 }
 
-export async function getLabelForOwner(labelId: string, ownerId: string) {
-  const [row] = await db
+export function getLabelForOwner(labelId: string, ownerId: string, tx?: Database) {
+  const client = tx ?? db;
+  const [row] = client
     .select()
     .from(labels)
     .where(and(eq(labels.id, labelId), eq(labels.userId, ownerId)))
-    .limit(1);
+    .limit(1)
+    .all();
   return row ?? null;
 }
 
@@ -123,52 +125,63 @@ export async function updateLabelForOwner(ownerId: string, labelId: string, body
   return label ?? null;
 }
 
-export async function deleteLabelForOwner(ownerId: string, labelId: string) {
-  const current = await getLabelForOwner(labelId, ownerId);
-  if (!current) {
-    return null;
-  }
+export function deleteLabelForOwner(ownerId: string, labelId: string, tx?: Database) {
+  const run = (client: Database) => {
+    const current = getLabelForOwner(labelId, ownerId, client);
+    if (!current) {
+      return null;
+    }
 
-  await db.delete(taskLabels).where(eq(taskLabels.labelId, labelId));
-  await db.delete(labels).where(eq(labels.id, labelId));
-  return true;
+    client.delete(taskLabels).where(eq(taskLabels.labelId, labelId)).run();
+    client.delete(labels).where(eq(labels.id, labelId)).run();
+    return true;
+  };
+
+  return tx ? run(tx) : db.transaction(run, { behavior: 'immediate' });
 }
 
-export async function syncTaskLabels(
+export function syncTaskLabels(
   ownerId: string,
   taskId: string,
   labelIds: string[] | undefined,
+  tx?: Database,
 ) {
   if (labelIds === undefined) {
     return;
   }
 
-  await db.delete(taskLabels).where(eq(taskLabels.taskId, taskId));
+  const client = tx ?? db;
+  client.delete(taskLabels).where(eq(taskLabels.taskId, taskId)).run();
 
   const uniqueIds = [...new Set(labelIds.filter(Boolean))];
   if (uniqueIds.length === 0) {
     return;
   }
 
-  const ownedLabels = await db
+  const ownedLabels = client
     .select({ id: labels.id })
     .from(labels)
-    .where(and(eq(labels.userId, ownerId), inArray(labels.id, uniqueIds)));
+    .where(and(eq(labels.userId, ownerId), inArray(labels.id, uniqueIds)))
+    .all();
 
   if (ownedLabels.length === 0) {
     return;
   }
 
-  await db.insert(taskLabels).values(
-    ownedLabels.map((label) => ({
-      taskId,
-      labelId: label.id,
-    })),
-  );
+  client
+    .insert(taskLabels)
+    .values(
+      ownedLabels.map((label) => ({
+        taskId,
+        labelId: label.id,
+      })),
+    )
+    .run();
 }
 
-export async function getTaskLabels(taskId: string) {
-  const rows = await db
+export function getTaskLabels(taskId: string, tx?: Database) {
+  const client = tx ?? db;
+  const rows = client
     .select({
       id: labels.id,
       userId: labels.userId,
@@ -180,7 +193,8 @@ export async function getTaskLabels(taskId: string) {
     .from(taskLabels)
     .innerJoin(labels, eq(taskLabels.labelId, labels.id))
     .where(eq(taskLabels.taskId, taskId))
-    .orderBy(asc(labels.name));
+    .orderBy(asc(labels.name))
+    .all();
 
   return rows.map((row) => toLabel({ ...row, taskCount: 0 }));
 }
