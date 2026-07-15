@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.68.0](https://github.com/apauldev/Yotara/compare/v0.67.0...v0.68.0) (2026-07-15)
+
+
+### Features
+
+* wrap multi-table writes in SQLite transactions ([9667443](https://github.com/apauldev/Yotara/commit/9667443bf92dd03e07961ff8e2cea251172da2bf))
+
+
+### Tests
+
+* increase transaction coverage to 97% on task-service, 100% on label-service ([51d2faf](https://github.com/apauldev/Yotara/commit/51d2faf19a836931a6ca05a3012dc3ab4c169c58))
+
 ## [0.67.0](https://github.com/apauldev/Yotara/compare/v0.66.1...v0.67.0) (2026-07-12)
 
 
