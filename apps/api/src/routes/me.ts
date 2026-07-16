@@ -68,6 +68,7 @@ export default async function meRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const userId = request.userId;
+      /* istanbul ignore next — defensive guard, preHandler guarantees userId */
       if (!userId) {
         return sendUnauthorized(reply);
       }
@@ -207,6 +208,7 @@ export default async function meRoutes(fastify: FastifyInstance) {
       if (result.reason === 'invalid_password') {
         return reply.code(403).send({ message: 'Incorrect password' });
       }
+      /* istanbul ignore next — defensive guard, user exists after auth check */
       return sendUnauthorized(reply);
     },
   );

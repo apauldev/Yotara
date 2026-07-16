@@ -67,6 +67,7 @@ export async function deleteAccountForUser(
         .where(eq(users.id, userId))
         .limit(1)
         .all();
+      /* istanbul ignore next — defensive guard, user exists after outer auth check */
       if (!user) return { ok: false, reason: 'user_not_found' } as const;
 
       tx.delete(tasks).where(eq(tasks.userId, userId)).run();
