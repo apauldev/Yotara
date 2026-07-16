@@ -1,10 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 import { APP_VERSION } from '../../../core/constants/version';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { ThemeService, Theme } from '../../../core/services/theme.service';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { ChangePasswordModalComponent } from '../components/change-password-modal.component';
+import { DeleteAccountModalComponent } from '../components/delete-account-modal.component';
 import { LogoutConfirmModalComponent } from '../../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { Router } from '@angular/router';
@@ -12,15 +15,17 @@ import { TaskService } from '../../../core/services/task.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { LabelService } from '../../../core/services/label.service';
 import { downloadCsv, downloadJson, CsvColumn } from '../../../shared/utils/export';
-import { Task, Project, Label } from '@yotara/shared';
+import { Task, Project, Label, type DataCounts } from '@yotara/shared';
 
 @Component({
   selector: 'app-settings-page',
   standalone: true,
   imports: [
     CommonModule,
+    FontAwesomeModule,
     PageHeaderComponent,
     ChangePasswordModalComponent,
+    DeleteAccountModalComponent,
     LogoutConfirmModalComponent,
   ],
   template: `
@@ -216,6 +221,19 @@ import { Task, Project, Label } from '@yotara/shared';
               <span>Sign out of your account.</span>
             </div>
           </button>
+          <button
+            type="button"
+            class="settings-item settings-link settings-link-danger settings-link-delete"
+            (click)="openDeleteAccountModal()"
+          >
+            <div class="settings-item-copy">
+              <strong>Delete account</strong>
+              <span>Permanently remove your account and all data. This cannot be undone.</span>
+            </div>
+            <div class="settings-item-icon">
+              <fa-icon [icon]="faTriangleExclamation"></fa-icon>
+            </div>
+          </button>
         </div>
 
         <div class="settings-section">
@@ -372,6 +390,16 @@ import { Task, Project, Label } from '@yotara/shared';
       (close)="isLogoutConfirmOpen.set(false)"
       (stay)="isLogoutConfirmOpen.set(false)"
       (confirm)="onLogout()"
+    />
+
+    <app-delete-account-modal
+      [open]="isDeleteAccountOpen()"
+      [taskCount]="taskCount()"
+      [projectCount]="projectCount()"
+      [labelCount]="labelCount()"
+      [userEmail]="userEmail()"
+      (close)="isDeleteAccountOpen.set(false)"
+      (deleted)="onDeleteAccount()"
     />
   `,
   styles: [
@@ -566,6 +594,24 @@ import { Task, Project, Label } from '@yotara/shared';
         opacity: 0.7;
       }
 
+      .settings-link-delete {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .settings-item-icon {
+        width: 2.2rem;
+        height: 2.2rem;
+        border-radius: 0.6rem;
+        background: var(--error-soft);
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        margin-left: auto;
+        color: var(--error-solid);
+      }
+
       .export-options {
         margin-top: 0;
         border-radius: 0.75rem;
@@ -720,6 +766,7 @@ import { Task, Project, Label } from '@yotara/shared';
   ],
 })
 export class SettingsPageComponent {
+  protected readonly faTriangleExclamation = faTriangleExclamation;
   protected readonly appVersion = APP_VERSION;
   protected readonly themeService = inject(ThemeService);
   private readonly authState = inject(AuthStateService);
@@ -730,10 +777,17 @@ export class SettingsPageComponent {
 
   protected readonly isChangePasswordOpen = signal(false);
   protected readonly isLogoutConfirmOpen = signal(false);
+  protected readonly isDeleteAccountOpen = signal(false);
   protected readonly isLoggingOut = signal(false);
   protected readonly isSavingArchiveCleanup = signal(false);
   protected readonly isSavingCaptureBehavior = signal(false);
   private readonly preferences = inject(PreferencesStore);
+
+  protected readonly dataCounts = signal<DataCounts>({ tasks: 0, projects: 0, labels: 0 });
+  protected readonly taskCount = computed(() => this.dataCounts().tasks);
+  protected readonly projectCount = computed(() => this.dataCounts().projects);
+  protected readonly labelCount = computed(() => this.dataCounts().labels);
+  protected readonly userEmail = computed(() => this.authState.user()?.email ?? '');
 
   protected readonly skipCompleteConfirm = this.preferences.skipCompleteConfirm;
   protected readonly actionNotifications = this.preferences.actionNotifications;
@@ -985,5 +1039,20 @@ export class SettingsPageComponent {
     } finally {
       this.isLoggingOut.set(false);
     }
+  }
+
+  protected async openDeleteAccountModal() {
+    try {
+      const counts = await this.authState.getCounts();
+      this.dataCounts.set(counts);
+    } catch {
+      this.dataCounts.set({ tasks: 0, projects: 0, labels: 0 });
+    }
+    this.isDeleteAccountOpen.set(true);
+  }
+
+  protected async onDeleteAccount() {
+    this.isDeleteAccountOpen.set(false);
+    await this.router.navigate(['/login']);
   }
 }

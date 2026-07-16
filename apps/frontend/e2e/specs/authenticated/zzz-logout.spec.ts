@@ -9,7 +9,7 @@ test.describe('Logout (runs last)', () => {
     await dismissTip(page);
 
     // Click logout danger link
-    await page.locator('.settings-link-danger').click();
+    await page.locator('.settings-link-danger').first().click();
 
     // Verify confirmation modal
     await expect(page.getByRole('heading', { name: 'Leave the Sanctuary?' })).toBeVisible({

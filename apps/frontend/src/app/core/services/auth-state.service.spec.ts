@@ -149,4 +149,39 @@ describe('AuthStateService', () => {
     await expectAsync(service.resetPassword('newPass123!', 'bad-token')).toBeRejected();
     expect(service.loading()).toBeFalse();
   });
+
+  it('clears auth state after deleteAccount succeeds', async () => {
+    spyOn(AuthService, 'deleteAccount').and.resolveTo({ ok: true as const });
+
+    const service = TestBed.inject(AuthStateService);
+
+    await service.deleteAccount('password123');
+
+    expect(AuthService.deleteAccount).toHaveBeenCalledWith('password123');
+    expect(service.session()).toBeNull();
+    expect(service.user()).toBeNull();
+    expect(service.initialized()).toBeFalse();
+    expect(service.loading()).toBeFalse();
+  });
+
+  it('sets loading false even when deleteAccount throws', async () => {
+    spyOn(AuthService, 'deleteAccount').and.rejectWith(new Error('invalid password'));
+
+    const service = TestBed.inject(AuthStateService);
+
+    await expectAsync(service.deleteAccount('wrong')).toBeRejected();
+    expect(service.loading()).toBeFalse();
+  });
+
+  it('delegates getCounts to AuthService', async () => {
+    const mockCounts = { tasks: 10, projects: 5, labels: 3 };
+    spyOn(AuthService, 'getCounts').and.resolveTo(mockCounts);
+
+    const service = TestBed.inject(AuthStateService);
+
+    const result = await service.getCounts();
+
+    expect(AuthService.getCounts).toHaveBeenCalled();
+    expect(result).toEqual(mockCounts);
+  });
 });

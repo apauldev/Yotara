@@ -162,10 +162,16 @@ describe('SettingsPageComponent', () => {
     );
 
     const mockAuthState = {
-      user: signal({ id: 'user-1', archiveAutoDelete: true, captureBehavior: 'quick' }),
+      user: signal({
+        id: 'user-1',
+        email: 'test@example.com',
+        archiveAutoDelete: true,
+        captureBehavior: 'quick',
+      }),
       loading: signal(false),
       updateProfile: jasmine.createSpy('updateProfile').and.resolveTo({}),
       signOut: jasmine.createSpy('signOut').and.resolveTo(),
+      getCounts: jasmine.createSpy('getCounts').and.resolveTo({ tasks: 5, projects: 3, labels: 2 }),
     };
 
     await TestBed.configureTestingModule({
@@ -173,7 +179,11 @@ describe('SettingsPageComponent', () => {
       providers: [
         {
           provide: TaskService,
-          useValue: { tasks: tasksSignal, fetchAllTasks: () => Promise.resolve([...mockTasks]) },
+          useValue: {
+            tasks: tasksSignal,
+            allActiveTasks: tasksSignal,
+            fetchAllTasks: () => Promise.resolve([...mockTasks]),
+          },
         },
         { provide: ProjectService, useValue: { projects: projectsSignal } },
         { provide: LabelService, useValue: { labels: labelsSignal } },
@@ -590,6 +600,39 @@ describe('SettingsPageComponent', () => {
       fixture.detectChanges();
 
       expect(getLoginTipsToggle()?.checked).toBeTrue();
+    });
+  });
+
+  describe('delete account modal', () => {
+    it('fetches counts and opens modal when openDeleteAccountModal is called', async () => {
+      await comp.openDeleteAccountModal();
+      fixture.detectChanges();
+
+      expect(comp.isDeleteAccountOpen()).toBeTrue();
+      expect(comp.dataCounts()).toEqual({ tasks: 5, projects: 3, labels: 2 });
+    });
+
+    it('sets zero counts on error and still opens modal', async () => {
+      const mockAuthState = TestBed.inject(AuthStateService) as any;
+      mockAuthState.getCounts.and.rejectWith(new Error('network error'));
+
+      await comp.openDeleteAccountModal();
+      fixture.detectChanges();
+
+      expect(comp.isDeleteAccountOpen()).toBeTrue();
+      expect(comp.dataCounts()).toEqual({ tasks: 0, projects: 0, labels: 0 });
+    });
+
+    it('closes modal when onDeleteAccount is called', async () => {
+      await comp.openDeleteAccountModal();
+      fixture.detectChanges();
+
+      expect(comp.isDeleteAccountOpen()).toBeTrue();
+
+      await comp.onDeleteAccount();
+      fixture.detectChanges();
+
+      expect(comp.isDeleteAccountOpen()).toBeFalse();
     });
   });
 });

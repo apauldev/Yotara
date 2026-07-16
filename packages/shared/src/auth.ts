@@ -49,6 +49,12 @@ export interface ProfileResponse {
   };
 }
 
+export interface DataCounts {
+  tasks: number;
+  projects: number;
+  labels: number;
+}
+
 export const AuthService = {
   signIn: async (email: string, password: string) => {
     return await getAuthClient().signIn.email({
@@ -107,6 +113,15 @@ export const AuthService = {
       method: 'PATCH',
       body: JSON.stringify(payload),
     });
+  },
+  deleteAccount: async (password: string) => {
+    return await request<{ ok: true }>('/me', {
+      method: 'DELETE',
+      body: JSON.stringify({ password }),
+    });
+  },
+  getCounts: async () => {
+    return await request<DataCounts>('/me/counts');
   },
   completeOnboarding: async (workspaceMode: WorkspaceMode) => {
     return await request<ProfileResponse>('/me', {

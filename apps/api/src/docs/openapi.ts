@@ -416,6 +416,16 @@ const updateProfileSchema = {
   additionalProperties: false,
 } as const;
 
+const deleteAccountSchema = {
+  $id: 'DeleteAccount',
+  type: 'object',
+  required: ['password'],
+  properties: {
+    password: { type: 'string', minLength: 1, maxLength: 1024 },
+  },
+  additionalProperties: false,
+} as const;
+
 const authSessionResponseSchema = {
   $id: 'AuthSessionResponse',
   type: 'object',
@@ -538,6 +548,7 @@ const sharedSchemas = [
   sessionSchema,
   meResponseSchema,
   updateProfileSchema,
+  deleteAccountSchema,
   authSessionResponseSchema,
   authCredentialsSchema,
   authSignUpSchema,
@@ -674,6 +685,9 @@ export const examples = {
     currentPassword: 'Password123!',
     newPassword: 'NewPassword123!',
     revokeOtherSessions: true,
+  },
+  deleteAccount: {
+    password: 'Password123!',
   },
   authUser: {
     user: {
@@ -843,6 +857,19 @@ function addOpenApiExamples(paths: OpenApiPathRecord) {
   if (meGet) {
     ensureJsonContent(meGet, '200').example = examples.me;
     ensureJsonContent(meGet, '401').example = examples.apiError('Unauthorized');
+  }
+
+  const meDelete = paths['/me']?.delete;
+  if (meDelete) {
+    ensureJsonContent(meDelete, '200').example = { ok: true };
+    ensureJsonContent(meDelete, '401').example = examples.apiError('Unauthorized');
+    ensureJsonContent(meDelete, '403').example = examples.apiError('Incorrect password');
+    ensureJsonContent(meDelete, '429').example = examples.apiError('Too Many Requests');
+    if (meDelete.requestBody) {
+      meDelete.requestBody.content ??= {};
+      meDelete.requestBody.content['application/json'] ??= {};
+      meDelete.requestBody.content['application/json'].example = examples.deleteAccount;
+    }
   }
 
   const tasksListGet = paths['/tasks']?.get;

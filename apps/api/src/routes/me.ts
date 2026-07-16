@@ -1,13 +1,14 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { db } from '../db/client.js';
-import { users } from '../db/schema.js';
+import { labels, projects, tasks, users } from '../db/schema.js';
 import { authCookieSecurity, errorResponseSchema, withJsonResponse } from '../docs/openapi.js';
 import { sendUnauthorized } from '../lib/api-errors.js';
 import requireAuthenticatedUser from '../plugins/auth-required.js';
 import { toPublicUser } from '../lib/public-user.js';
 import { seedDefaultLabelsForOwner } from '../services/label-service.js';
 import { seedDefaultProjectsForOwner } from '../services/project-service.js';
+import { deleteAccountForUser } from '../services/user-service.js';
 
 export default async function meRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', requireAuthenticatedUser);
@@ -40,6 +41,58 @@ export default async function meRoutes(fastify: FastifyInstance) {
       }
 
       return { user: toPublicUser(user) };
+    },
+  );
+
+  fastify.get(
+    '/me/counts',
+    {
+      schema: withJsonResponse({
+        tags: ['auth'],
+        summary: 'Get counts of data that will be deleted with the account',
+        security: authCookieSecurity,
+        response: {
+          200: {
+            description: 'Data counts',
+            type: 'object',
+            required: ['tasks', 'projects', 'labels'],
+            properties: {
+              tasks: { type: 'integer', minimum: 0 },
+              projects: { type: 'integer', minimum: 0 },
+              labels: { type: 'integer', minimum: 0 },
+            },
+          },
+          401: errorResponseSchema('Authentication required', 'Unauthorized'),
+        },
+      }),
+    },
+    async (request, reply) => {
+      const userId = request.userId;
+      /* istanbul ignore next — defensive guard, preHandler guarantees userId */
+      if (!userId) {
+        return sendUnauthorized(reply);
+      }
+
+      const [taskCount] = await db
+        .select({ value: sql<number>`count(*)` })
+        .from(tasks)
+        .where(eq(tasks.userId, userId));
+
+      const [projectCount] = await db
+        .select({ value: sql<number>`count(*)` })
+        .from(projects)
+        .where(eq(projects.ownerId, userId));
+
+      const [labelCount] = await db
+        .select({ value: sql<number>`count(*)` })
+        .from(labels)
+        .where(eq(labels.userId, userId));
+
+      return {
+        tasks: taskCount?.value ?? 0,
+        projects: projectCount?.value ?? 0,
+        labels: labelCount?.value ?? 0,
+      };
     },
   );
 
@@ -105,6 +158,58 @@ export default async function meRoutes(fastify: FastifyInstance) {
       }
 
       return { user: toPublicUser(user) };
+    },
+  );
+
+  fastify.delete<{
+    Body: { password: string };
+    Reply: { ok: true } | { message: string };
+  }>(
+    '/me',
+    {
+      config: {
+        rateLimit: {
+          max: Number(process.env['DELETE_ACCOUNT_RATE_LIMIT_MAX'] ?? 5),
+          timeWindow:
+            Number(process.env['DELETE_ACCOUNT_RATE_LIMIT_WINDOW_MINUTES'] ?? 15) * 60 * 1000,
+          keyGenerator: (request) => {
+            const cookie = request.headers.cookie ?? '';
+            const match = cookie.match(/better-auth\.session_token=([^;]+)/);
+            const token = match?.[1] ?? 'anonymous';
+            return `${token}:${request.ip}`;
+          },
+        },
+      },
+      schema: withJsonResponse({
+        tags: ['auth'],
+        summary: 'Permanently delete the current user account and all data',
+        security: authCookieSecurity,
+        body: { $ref: 'DeleteAccount#' },
+        response: {
+          200: {
+            description: 'Account deleted',
+            type: 'object',
+            required: ['ok'],
+            properties: { ok: { type: 'boolean' } },
+          },
+          401: errorResponseSchema('Authentication required', 'Unauthorized'),
+          403: errorResponseSchema('Password verification failed', 'Incorrect password'),
+          429: errorResponseSchema('Too many deletion attempts', 'Too Many Requests'),
+        },
+      }),
+    },
+    async (request, reply) => {
+      const userId = request.userId;
+      if (!userId) return sendUnauthorized(reply);
+
+      const result = await deleteAccountForUser(userId, request.body.password);
+
+      if (result.ok) return { ok: true };
+      if (result.reason === 'invalid_password') {
+        return reply.code(403).send({ message: 'Incorrect password' });
+      }
+      /* istanbul ignore next — defensive guard, user exists after auth check */
+      return sendUnauthorized(reply);
     },
   );
 }
