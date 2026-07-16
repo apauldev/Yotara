@@ -505,3 +505,45 @@ test('DELETE /me rate limits repeated password failures', async () => {
     await ctx.cleanup();
   }
 });
+
+test('DELETE /me rate limits are per-session, not per-IP', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const email1 = `rate-a-${randomUUID()}@example.com`;
+    const email2 = `rate-b-${randomUUID()}@example.com`;
+    const cookie1 = await signUpAndGetCookie(email1);
+    const cookie2 = await signUpAndGetCookie(email2);
+
+    // Exhaust rate limit for session 1
+    for (let i = 0; i < 5; i += 1) {
+      const response = await ctx.app.inject({
+        method: 'DELETE',
+        url: '/me',
+        headers: { cookie: cookie1 },
+        payload: { password: 'wrong-password' },
+      });
+      assert.equal(response.statusCode, 403);
+    }
+
+    // Session 1 should now be rate-limited
+    const limited1 = await ctx.app.inject({
+      method: 'DELETE',
+      url: '/me',
+      headers: { cookie: cookie1 },
+      payload: { password: 'wrong-password' },
+    });
+    assert.equal(limited1.statusCode, 429);
+
+    // Session 2 should still work (same IP, different session token)
+    const session2 = await ctx.app.inject({
+      method: 'DELETE',
+      url: '/me',
+      headers: { cookie: cookie2 },
+      payload: { password: 'wrong-password' },
+    });
+    assert.equal(session2.statusCode, 403, 'session 2 should not be rate-limited by session 1');
+  } finally {
+    await ctx.cleanup();
+  }
+});

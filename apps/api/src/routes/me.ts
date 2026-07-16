@@ -120,7 +120,12 @@ export default async function meRoutes(fastify: FastifyInstance) {
           max: Number(process.env['DELETE_ACCOUNT_RATE_LIMIT_MAX'] ?? 5),
           timeWindow:
             Number(process.env['DELETE_ACCOUNT_RATE_LIMIT_WINDOW_MINUTES'] ?? 15) * 60 * 1000,
-          keyGenerator: (request) => `${request.userId ?? 'anonymous'}:${request.ip}`,
+          keyGenerator: (request) => {
+            const cookie = request.headers.cookie ?? '';
+            const match = cookie.match(/better-auth\.session_token=([^;]+)/);
+            const token = match?.[1] ?? 'anonymous';
+            return `${token}:${request.ip}`;
+          },
         },
       },
       schema: withJsonResponse({
