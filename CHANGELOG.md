@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.69.0](https://github.com/apauldev/Yotara/compare/v0.68.0...v0.69.0) (2026-07-16)
+
+
+### Features
+
+* implement delete account functionality ([c4f0482](https://github.com/apauldev/Yotara/commit/c4f04829a4984af1dada031a753d966f91ffc394))
+
+
+### Bug Fixes
+
+* show accurate task counts in delete account modal ([728e3a2](https://github.com/apauldev/Yotara/commit/728e3a2fbc4b850e151777dcb6e6bb99bbfaa90f))
+* use .first() for logout button selector in e2e tests ([6a1772a](https://github.com/apauldev/Yotara/commit/6a1772ad559369d7c900a6af3bdb6c51d8716a55))
+* use session token for rate-limit key instead of undefined userId ([8586698](https://github.com/apauldev/Yotara/commit/85866988b56f71cb19b35d8c4b3449df93741796))
+
+
+### Tests
+
+* improve patch coverage for delete account feature ([d4e26ba](https://github.com/apauldev/Yotara/commit/d4e26baba6bfc4254b2b366656adff2c6199bd16))
+
 ## [0.68.0](https://github.com/apauldev/Yotara/compare/v0.67.0...v0.68.0) (2026-07-15)
 
 
