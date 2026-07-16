@@ -15,7 +15,7 @@ import { TaskService } from '../../../core/services/task.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { LabelService } from '../../../core/services/label.service';
 import { downloadCsv, downloadJson, CsvColumn } from '../../../shared/utils/export';
-import { Task, Project, Label } from '@yotara/shared';
+import { Task, Project, Label, type DataCounts } from '@yotara/shared';
 
 @Component({
   selector: 'app-settings-page',
@@ -224,7 +224,7 @@ import { Task, Project, Label } from '@yotara/shared';
           <button
             type="button"
             class="settings-item settings-link settings-link-danger settings-link-delete"
-            (click)="isDeleteAccountOpen.set(true)"
+            (click)="openDeleteAccountModal()"
           >
             <div class="settings-item-copy">
               <strong>Delete account</strong>
@@ -783,9 +783,10 @@ export class SettingsPageComponent {
   protected readonly isSavingCaptureBehavior = signal(false);
   private readonly preferences = inject(PreferencesStore);
 
-  protected readonly taskCount = computed(() => this.taskService.allActiveTasks().length);
-  protected readonly projectCount = computed(() => this.projectService.projects().length);
-  protected readonly labelCount = computed(() => this.labelService.labels().length);
+  protected readonly dataCounts = signal<DataCounts>({ tasks: 0, projects: 0, labels: 0 });
+  protected readonly taskCount = computed(() => this.dataCounts().tasks);
+  protected readonly projectCount = computed(() => this.dataCounts().projects);
+  protected readonly labelCount = computed(() => this.dataCounts().labels);
   protected readonly userEmail = computed(() => this.authState.user()?.email ?? '');
 
   protected readonly skipCompleteConfirm = this.preferences.skipCompleteConfirm;
@@ -1038,6 +1039,16 @@ export class SettingsPageComponent {
     } finally {
       this.isLoggingOut.set(false);
     }
+  }
+
+  protected async openDeleteAccountModal() {
+    try {
+      const counts = await this.authState.getCounts();
+      this.dataCounts.set(counts);
+    } catch {
+      this.dataCounts.set({ tasks: 0, projects: 0, labels: 0 });
+    }
+    this.isDeleteAccountOpen.set(true);
   }
 
   protected async onDeleteAccount() {

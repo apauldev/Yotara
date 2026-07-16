@@ -1,7 +1,7 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { db } from '../db/client.js';
-import { users } from '../db/schema.js';
+import { labels, projects, tasks, users } from '../db/schema.js';
 import { authCookieSecurity, errorResponseSchema, withJsonResponse } from '../docs/openapi.js';
 import { sendUnauthorized } from '../lib/api-errors.js';
 import requireAuthenticatedUser from '../plugins/auth-required.js';
@@ -41,6 +41,57 @@ export default async function meRoutes(fastify: FastifyInstance) {
       }
 
       return { user: toPublicUser(user) };
+    },
+  );
+
+  fastify.get(
+    '/me/counts',
+    {
+      schema: withJsonResponse({
+        tags: ['auth'],
+        summary: 'Get counts of data that will be deleted with the account',
+        security: authCookieSecurity,
+        response: {
+          200: {
+            description: 'Data counts',
+            type: 'object',
+            required: ['tasks', 'projects', 'labels'],
+            properties: {
+              tasks: { type: 'integer', minimum: 0 },
+              projects: { type: 'integer', minimum: 0 },
+              labels: { type: 'integer', minimum: 0 },
+            },
+          },
+          401: errorResponseSchema('Authentication required', 'Unauthorized'),
+        },
+      }),
+    },
+    async (request, reply) => {
+      const userId = request.userId;
+      if (!userId) {
+        return sendUnauthorized(reply);
+      }
+
+      const [taskCount] = await db
+        .select({ value: sql<number>`count(*)` })
+        .from(tasks)
+        .where(eq(tasks.userId, userId));
+
+      const [projectCount] = await db
+        .select({ value: sql<number>`count(*)` })
+        .from(projects)
+        .where(eq(projects.ownerId, userId));
+
+      const [labelCount] = await db
+        .select({ value: sql<number>`count(*)` })
+        .from(labels)
+        .where(eq(labels.userId, userId));
+
+      return {
+        tasks: taskCount?.value ?? 0,
+        projects: projectCount?.value ?? 0,
+        labels: labelCount?.value ?? 0,
+      };
     },
   );
 

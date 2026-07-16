@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { AuthService } from '@yotara/shared';
+import { AuthService, type DataCounts } from '@yotara/shared';
 import { LogService } from './log.service';
 
 type SessionResponse = Awaited<ReturnType<typeof AuthService.getSession>>;
@@ -145,6 +145,10 @@ export class AuthStateService {
     } finally {
       this.loadingState.set(false);
     }
+  }
+
+  async getCounts(): Promise<DataCounts> {
+    return await AuthService.getCounts();
   }
 
   async completeOnboarding(workspaceMode: 'personal' | 'team') {

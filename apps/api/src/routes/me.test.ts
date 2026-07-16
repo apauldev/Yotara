@@ -547,3 +547,86 @@ test('DELETE /me rate limits are per-session, not per-IP', async () => {
     await ctx.cleanup();
   }
 });
+
+test('GET /me/counts returns 401 without authentication', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const response = await ctx.app.inject({ method: 'GET', url: '/me/counts' });
+    assert.equal(response.statusCode, 401);
+    assert.equal(response.json().message, 'Unauthorized');
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('GET /me/counts returns zero counts for new user', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`counts-zero-${randomUUID()}@example.com`);
+
+    const response = await ctx.app.inject({
+      method: 'GET',
+      url: '/me/counts',
+      headers: { cookie },
+    });
+
+    assert.equal(response.statusCode, 200);
+    const body = response.json();
+    assert.equal(typeof body.tasks, 'number');
+    assert.equal(typeof body.projects, 'number');
+    assert.equal(typeof body.labels, 'number');
+    assert.equal(body.tasks, 0);
+    assert.equal(body.projects, 0);
+    assert.equal(body.labels, 0);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('GET /me/counts includes completed tasks in count', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`counts-complete-${randomUUID()}@example.com`);
+
+    // Create an active task
+    const activeTask = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Active task' },
+    });
+    assert.equal(activeTask.statusCode, 201);
+
+    // Create and complete a second task
+    const created = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Completed task' },
+    });
+    assert.equal(created.statusCode, 201);
+    const taskId = created.json().id;
+
+    await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}`,
+      headers: { cookie },
+      payload: { completed: true },
+    });
+
+    // Counts should include both tasks (active + completed)
+    const response = await ctx.app.inject({
+      method: 'GET',
+      url: '/me/counts',
+      headers: { cookie },
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().tasks, 2, 'counts should include completed tasks');
+  } finally {
+    await ctx.cleanup();
+  }
+});
