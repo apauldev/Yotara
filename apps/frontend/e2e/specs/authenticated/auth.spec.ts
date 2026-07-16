@@ -18,7 +18,7 @@ test.describe('Authenticated session', () => {
     await page.goto('/settings');
     await page.waitForLoadState('networkidle');
     await dismissTip(page);
-    await page.locator('.settings-link-danger').click();
+    await page.locator('.settings-link-danger').first().click();
     await expect(page.getByRole('heading', { name: 'Leave the Sanctuary?' })).toBeVisible({
       timeout: 3000,
     });
