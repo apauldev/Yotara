@@ -126,8 +126,6 @@ describe('NotificationService', () => {
   }));
 
   it('requestPermission returns granted when Notification API grants', async () => {
-    if (typeof Notification === 'undefined') return;
-
     const original = Notification.requestPermission;
     Notification.requestPermission = () => Promise.resolve('granted' as NotificationPermission);
     try {
@@ -140,8 +138,6 @@ describe('NotificationService', () => {
   });
 
   it('requestPermission returns denied when Notification API denies', async () => {
-    if (typeof Notification === 'undefined') return;
-
     const original = Notification.requestPermission;
     Notification.requestPermission = () => Promise.resolve('denied' as NotificationPermission);
     try {
