@@ -217,7 +217,8 @@ describe('PersonalShellComponent', () => {
     expect(badge.nativeElement.textContent.trim()).toBe('3');
   });
 
-  it('shows notification dropdown when bell is clicked', () => {
+  it('shows notification dropdown when bell is clicked and fetches notifications', () => {
+    const notifService = TestBed.inject(NotificationService) as any;
     const fixture = TestBed.createComponent(PersonalShellComponent);
     fixture.detectChanges();
 
@@ -226,6 +227,8 @@ describe('PersonalShellComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.debugElement.query(By.css('.notifications-dropdown'))).toBeTruthy();
+    expect(notifService.fetchNotifications).toHaveBeenCalled();
+    expect(notifService.fetchUnreadCount).toHaveBeenCalled();
   });
 
   it('calls markAsRead when clicking an unread notification in the dropdown', async () => {

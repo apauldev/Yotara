@@ -233,6 +233,7 @@ export class PersonalShellComponent {
     this.profileMenuOpen.set(false);
     this.notificationsOpen.update((open) => !open);
     if (this.notificationsOpen()) {
+      this.notificationService.fetchNotifications();
       this.notificationService.fetchUnreadCount();
     }
   }
