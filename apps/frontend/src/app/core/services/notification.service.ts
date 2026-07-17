@@ -1,7 +1,7 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import type { Notification } from '@yotara/shared';
+import type { Notification as AppNotification } from '@yotara/shared';
 import { PreferencesStore } from './preferences-store.service';
 import { environment } from '../../../environments/environment';
 
@@ -11,20 +11,20 @@ export class NotificationService {
   private prefs = inject(PreferencesStore);
   private baseUrl = environment.apiBaseUrl;
 
-  private readonly _notifications = signal<Notification[]>([]);
+  private readonly _notifications = signal<AppNotification[]>([]);
   private readonly _unreadCount = signal(0);
   private readonly _permission = signal<NotificationPermission>(
-    typeof Notification !== 'undefined' ? Notification.permission : 'default',
+    typeof globalThis.Notification !== 'undefined' ? globalThis.Notification.permission : 'default',
   );
 
   readonly notifications = this._notifications.asReadonly();
   readonly unreadCount = this._unreadCount.asReadonly();
   readonly permission = this._permission.asReadonly();
-  readonly isSupported = typeof Notification !== 'undefined';
+  readonly isSupported = typeof globalThis.Notification !== 'undefined';
 
   async fetchNotifications(limit = 50): Promise<void> {
     const result = await firstValueFrom(
-      this.http.get<Notification[]>(`${this.baseUrl}/notifications`, {
+      this.http.get<AppNotification[]>(`${this.baseUrl}/notifications`, {
         params: { limit: String(limit) },
         withCredentials: true,
       }),
@@ -43,7 +43,7 @@ export class NotificationService {
 
   async markAsRead(id: string): Promise<void> {
     await firstValueFrom(
-      this.http.patch<Notification>(`${this.baseUrl}/notifications/${id}/read`, null, {
+      this.http.patch<AppNotification>(`${this.baseUrl}/notifications/${id}/read`, null, {
         withCredentials: true,
       }),
     );
@@ -79,7 +79,7 @@ export class NotificationService {
 
   async requestPermission(): Promise<NotificationPermission> {
     if (!this.isSupported) return 'denied';
-    const result = await Notification.requestPermission();
+    const result = await globalThis.Notification.requestPermission();
     this._permission.set(result);
     return result;
   }
@@ -88,6 +88,6 @@ export class NotificationService {
     if (!this.isSupported) return;
     if (this._permission() !== 'granted') return;
     if (!this.prefs.desktopNotifications()) return;
-    new Notification(title, { body, icon: '/logo.svg' });
+    new globalThis.Notification(title, { body, icon: '/logo.svg' });
   }
 }
