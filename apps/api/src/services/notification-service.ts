@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { db, type Database } from '../db/client.js';
-import { notifications, type DbNotification } from '../db/schema.js';
+import { notifications, tasks, type DbNotification } from '../db/schema.js';
 import { nowIsoTimestamp } from '../lib/timestamps.js';
 import { startOfDayInUtc, todayInTimezone } from '../lib/timezone.js';
 
@@ -139,4 +139,32 @@ export function createDueNotificationIfNeeded(
     task.id,
     tx,
   );
+}
+
+export function scanDueNotifications(userId: string, tz?: string, tx?: Database): number {
+  const client = tx ?? db;
+  const todayKey = todayInTimezone(tz);
+  const tasksWithDueDate = client
+    .select({ id: tasks.id, title: tasks.title, dueDate: tasks.dueDate })
+    .from(tasks)
+    .where(
+      and(
+        eq(tasks.userId, userId),
+        eq(tasks.completed, false),
+        isNull(tasks.deletedAt),
+        isNull(tasks.parentId),
+        sql`date(${tasks.dueDate}) <= ${todayKey}`,
+      ),
+    )
+    .all();
+
+  let created = 0;
+  for (const task of tasksWithDueDate) {
+    if (!task.dueDate) continue;
+    const before = getUnreadCountForOwner(userId, client);
+    createDueNotificationIfNeeded(client, userId, { ...task, completed: false }, tz);
+    const after = getUnreadCountForOwner(userId, client);
+    if (after > before) created++;
+  }
+  return created;
 }

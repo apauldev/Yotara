@@ -10,6 +10,7 @@ import {
   clearReadForOwner,
   markAllReadForOwner,
   createDueNotificationIfNeeded,
+  scanDueNotifications,
 } from './notification-service.js';
 
 function createTestDb(): {
@@ -298,4 +299,104 @@ test('createDueNotificationIfNeeded respects custom timezone', () => {
 
   const rows = getNotificationsForOwner(userId, 50, db);
   assert.equal(rows.length, 1);
+});
+
+test('scanDueNotifications creates notifications for due_today tasks', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const today = new Date().toISOString().slice(0, 10);
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Due today task');
+  sqlite.prepare(`UPDATE tasks SET due_date = ? WHERE id = ?`).run(today, taskId);
+
+  const created = scanDueNotifications(userId, undefined, db);
+  assert.equal(created, 1);
+  const rows = getNotificationsForOwner(userId, 50, db);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].type, 'due_today');
+});
+
+test('scanDueNotifications creates notifications for overdue tasks', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Overdue task');
+  sqlite.prepare(`UPDATE tasks SET due_date = ? WHERE id = ?`).run('2020-01-01', taskId);
+
+  const created = scanDueNotifications(userId, undefined, db);
+  assert.equal(created, 1);
+  const rows = getNotificationsForOwner(userId, 50, db);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].type, 'overdue');
+});
+
+test('scanDueNotifications skips completed tasks', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const today = new Date().toISOString().slice(0, 10);
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Completed task');
+  sqlite.prepare(`UPDATE tasks SET due_date = ?, completed = 1 WHERE id = ?`).run(today, taskId);
+
+  const created = scanDueNotifications(userId, undefined, db);
+  assert.equal(created, 0);
+  assert.equal(getNotificationsForOwner(userId, 50, db).length, 0);
+});
+
+test('scanDueNotifications skips tasks with future due dates', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Future task');
+  sqlite.prepare(`UPDATE tasks SET due_date = ? WHERE id = ?`).run('2099-12-31', taskId);
+
+  const created = scanDueNotifications(userId, undefined, db);
+  assert.equal(created, 0);
+  assert.equal(getNotificationsForOwner(userId, 50, db).length, 0);
+});
+
+test('scanDueNotifications skips tasks without due dates', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'No due date task');
+
+  const created = scanDueNotifications(userId, undefined, db);
+  assert.equal(created, 0);
+  assert.equal(getNotificationsForOwner(userId, 50, db).length, 0);
+});
+
+test('scanDueNotifications skips subtasks', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const today = new Date().toISOString().slice(0, 10);
+  const parentTaskId = randomUUID();
+  const subtaskId = randomUUID();
+  createTask(sqlite, parentTaskId, userId, 'Parent task');
+  createTask(sqlite, subtaskId, userId, 'Subtask');
+  sqlite.prepare(`UPDATE tasks SET due_date = ? WHERE id = ?`).run(today, parentTaskId);
+  sqlite
+    .prepare(`UPDATE tasks SET due_date = ?, parent_id = ? WHERE id = ?`)
+    .run(today, parentTaskId, subtaskId);
+
+  const created = scanDueNotifications(userId, undefined, db);
+  assert.equal(created, 1);
+  const rows = getNotificationsForOwner(userId, 50, db);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].body, 'Parent task');
+});
+
+test('scanDueNotifications deduplicates existing notifications', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const today = new Date().toISOString().slice(0, 10);
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Dedup task');
+  sqlite.prepare(`UPDATE tasks SET due_date = ? WHERE id = ?`).run(today, taskId);
+
+  const first = scanDueNotifications(userId, undefined, db);
+  assert.equal(first, 1);
+
+  const second = scanDueNotifications(userId, undefined, db);
+  assert.equal(second, 0);
+  assert.equal(getNotificationsForOwner(userId, 50, db).length, 1);
+});
+
+test('scanDueNotifications returns 0 for user with no tasks', () => {
+  const { db, userId } = createTestDb();
+  const created = scanDueNotifications(userId, undefined, db);
+  assert.equal(created, 0);
 });
