@@ -34,7 +34,7 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
                 type="button"
                 class="action-button"
                 (click)="markAllRead()"
-                [disabled]="hasNoRead()"
+                [disabled]="!hasUnread()"
               >
                 <fa-icon [icon]="faCheckDouble"></fa-icon>
                 Mark all read
@@ -43,7 +43,7 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
                 type="button"
                 class="action-button action-button-danger"
                 (click)="clearRead()"
-                [disabled]="hasNoRead()"
+                [disabled]="!hasRead()"
               >
                 <fa-icon [icon]="faTrash"></fa-icon>
                 Clear read
@@ -280,7 +280,8 @@ export class NotificationsPageComponent implements OnInit {
   protected readonly faTrash = faTrash;
 
   protected readonly unreadCount = this.service.unreadCount;
-  protected readonly hasNoRead = computed(() => !this.service.notifications().some((n) => n.read));
+  protected readonly hasUnread = computed(() => this.service.notifications().some((n) => !n.read));
+  protected readonly hasRead = computed(() => this.service.notifications().some((n) => n.read));
 
   async ngOnInit() {
     await this.service.fetchNotifications();

@@ -110,13 +110,22 @@ describe('NotificationsPageComponent', () => {
     expect(serviceSpy.markAllAsRead).toHaveBeenCalled();
   });
 
-  it('disables action buttons when no read notifications exist', () => {
+  it('disables Clear read when no read notifications exist and enables Mark all read', () => {
     (serviceSpy as any).notifications.set([mockNotifications[0]]); // only unread
     fixture.detectChanges();
 
     const buttons = fixture.debugElement.queryAll(By.css('.action-button'));
-    expect(buttons[0].nativeElement.disabled).toBeTrue();
-    expect(buttons[1].nativeElement.disabled).toBeTrue();
+    expect(buttons[0].nativeElement.disabled).toBeFalse(); // Mark all read — enabled
+    expect(buttons[1].nativeElement.disabled).toBeTrue(); // Clear read — disabled
+  });
+
+  it('disables Mark all read when all notifications are already read', () => {
+    (serviceSpy as any).notifications.set([{ ...mockNotifications[0], read: true }]); // only read
+    fixture.detectChanges();
+
+    const buttons = fixture.debugElement.queryAll(By.css('.action-button'));
+    expect(buttons[0].nativeElement.disabled).toBeTrue(); // Mark all read — disabled
+    expect(buttons[1].nativeElement.disabled).toBeFalse(); // Clear read — enabled
   });
 
   it('shows unread count and total', () => {
