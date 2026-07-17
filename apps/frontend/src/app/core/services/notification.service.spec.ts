@@ -161,7 +161,7 @@ describe('NotificationService', () => {
     });
 
     it('creates a Notification when supported, granted, and prefs enabled', () => {
-      if (typeof Notification === 'undefined') return;
+      if (typeof (globalThis as any).Notification === 'undefined') return;
 
       service['_permission'].set('granted');
       prefs.setDesktopNotifications(true);
