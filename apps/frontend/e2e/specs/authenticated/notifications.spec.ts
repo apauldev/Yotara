@@ -26,13 +26,27 @@ test.describe('Notifications', () => {
     const modal = page.locator('app-personal-task-modal');
     await expect(modal).toBeVisible({ timeout: 5_000 });
 
-    // Set the due date to today
-    const dueDateInput = page.locator('input[type="date"]');
-    await expect(dueDateInput).toBeVisible({ timeout: 5_000 });
-    await dueDateInput.fill(today);
+    // Turn off Simple mode so the date picker becomes enabled
+    const simpleModeCheckbox = modal.locator('label.toggle-row input[type="checkbox"]');
+    await expect(simpleModeCheckbox).toBeVisible({ timeout: 3_000 });
+    if (await simpleModeCheckbox.isChecked()) {
+      await simpleModeCheckbox.click();
+    }
+
+    // Open the due-date calendar popover and pick today
+    const datePickerTrigger = modal.locator('.date-picker-trigger');
+    await expect(datePickerTrigger).toBeVisible({ timeout: 3_000 });
+    await datePickerTrigger.click();
+
+    const todayDay = new Date().getDate();
+    const todayButton = page
+      .locator('.date-picker-grid button')
+      .getByText(String(todayDay), { exact: true });
+    await expect(todayButton).toBeVisible({ timeout: 3_000 });
+    await todayButton.click();
 
     // Save the task
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.getByRole('button', { name: 'Save Task' }).click();
 
     // Wait for the modal to close
     await expect(modal).not.toBeVisible({ timeout: 5_000 });
