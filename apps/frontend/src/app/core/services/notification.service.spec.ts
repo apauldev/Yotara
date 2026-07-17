@@ -4,9 +4,9 @@ import { provideHttpClient } from '@angular/common/http';
 import { NotificationService } from './notification.service';
 import { PreferencesStore } from './preferences-store.service';
 import { environment } from '../../../environments/environment';
-import type { Notification } from '@yotara/shared';
+import type { Notification as AppNotification } from '@yotara/shared';
 
-const mockNotifications: Notification[] = [
+const mockNotifications: AppNotification[] = [
   {
     id: 'n1',
     taskId: 't1',
