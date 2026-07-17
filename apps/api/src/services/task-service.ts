@@ -596,7 +596,7 @@ function updateTaskForOwnerSync(
           id: taskId,
           title: body.title?.trim() || current.title,
           dueDate: nextDueDate ?? null,
-          completed: false,
+          completed,
         },
         tz,
       );
