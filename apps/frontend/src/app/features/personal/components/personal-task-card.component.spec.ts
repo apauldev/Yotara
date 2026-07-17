@@ -6,12 +6,14 @@ import { Task } from '@yotara/shared';
 import { TaskService } from '../../../core/services/task.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { StatusService } from '../../../core/services/status.service';
+import { NotificationService } from '../../../core/services/notification.service';
 
 describe('PersonalTaskCardComponent', () => {
   let component: PersonalTaskCardComponent;
   let fixture: ComponentFixture<PersonalTaskCardComponent>;
   let taskServiceSpy: jasmine.SpyObj<TaskService>;
   let statusServiceSpy: jasmine.SpyObj<StatusService>;
+  let notificationServiceSpy: jasmine.SpyObj<NotificationService>;
   let preferences: PreferencesStore;
 
   const mockTask: Task = {
@@ -37,6 +39,9 @@ describe('PersonalTaskCardComponent', () => {
       'show',
       'remove',
     ]);
+    notificationServiceSpy = jasmine.createSpyObj<NotificationService>('NotificationService', [
+      'showBrowserNotification',
+    ]);
     localStorage.clear();
 
     await TestBed.configureTestingModule({
@@ -44,6 +49,7 @@ describe('PersonalTaskCardComponent', () => {
       providers: [
         { provide: TaskService, useValue: taskServiceSpy },
         { provide: StatusService, useValue: statusServiceSpy },
+        { provide: NotificationService, useValue: notificationServiceSpy },
         provideMarkdown(),
       ],
     }).compileComponents();
@@ -599,6 +605,159 @@ describe('PersonalTaskCardComponent', () => {
       expect(fixture.debugElement.query(By.css('h3')).nativeElement.textContent).toContain(
         'Minimal task',
       );
+    });
+  });
+
+  it('calls showBrowserNotification when task is completed', async () => {
+    component.task = { ...mockTask };
+    component.interactive = true;
+    preferences.setSkipCompleteConfirm(true);
+    taskServiceSpy.updateTask.and.resolveTo({ ...mockTask, completed: true });
+    fixture.detectChanges();
+
+    await component.completeTask();
+
+    expect(notificationServiceSpy.showBrowserNotification).toHaveBeenCalledWith(
+      'Task completed',
+      mockTask.title,
+    );
+  });
+
+  describe('Recurrence labels', () => {
+    beforeEach(() => {
+      component.task = mockTask;
+    });
+
+    it('returns empty string when no recurrence rule', () => {
+      component.task = { ...mockTask, recurrenceRule: undefined };
+      fixture.detectChanges();
+      expect((component as any).recurrenceLabel()).toBe('');
+    });
+
+    it('returns Weekdays for weekday frequency', () => {
+      component.task = {
+        ...mockTask,
+        recurrenceRule: { frequency: 'weekdays', interval: 1, daysOfWeek: undefined },
+      };
+      fixture.detectChanges();
+      expect((component as any).recurrenceLabel()).toBe('Weekdays');
+    });
+
+    it('returns weekly day names with interval 1', () => {
+      component.task = {
+        ...mockTask,
+        recurrenceRule: { frequency: 'weekly', interval: 1, daysOfWeek: [1, 3, 5] },
+      };
+      fixture.detectChanges();
+      expect((component as any).recurrenceLabel()).toBe('Mon, Wed, Fri');
+    });
+
+    it('returns weekly with interval > 1', () => {
+      component.task = {
+        ...mockTask,
+        recurrenceRule: { frequency: 'weekly', interval: 2, daysOfWeek: [1, 3] },
+      };
+      fixture.detectChanges();
+      expect((component as any).recurrenceLabel()).toBe('Every 2 weeks (Mon, Wed)');
+    });
+
+    it('returns capitalized frequency for non-weekly', () => {
+      component.task = {
+        ...mockTask,
+        recurrenceRule: { frequency: 'daily', interval: 1, daysOfWeek: undefined },
+      };
+      fixture.detectChanges();
+      expect((component as any).recurrenceLabel()).toBe('Daily');
+    });
+
+    it('returns Every N frequency for non-weekly with interval > 1', () => {
+      component.task = {
+        ...mockTask,
+        recurrenceRule: { frequency: 'monthly', interval: 3, daysOfWeek: undefined },
+      };
+      fixture.detectChanges();
+      expect((component as any).recurrenceLabel()).toBe('Every 3 monthly');
+    });
+  });
+
+  describe('Truncated description', () => {
+    beforeEach(() => {
+      component.task = mockTask;
+    });
+
+    it('returns short description as-is', () => {
+      component.task = { ...mockTask, description: 'Short desc' };
+      fixture.detectChanges();
+      expect((component as any).truncatedDescription()).toBe('Short desc');
+    });
+
+    it('truncates description longer than 500 chars', () => {
+      const longDesc = 'A'.repeat(600);
+      component.task = { ...mockTask, description: longDesc };
+      fixture.detectChanges();
+      const result = (component as any).truncatedDescription();
+      expect(result.length).toBe(500);
+      expect(result.endsWith('...')).toBeTrue();
+    });
+
+    it('returns undefined when no description', () => {
+      const { description, ...taskNoDesc } = mockTask;
+      component.task = taskNoDesc as Task;
+      fixture.detectChanges();
+      expect((component as any).truncatedDescription()).toBeUndefined();
+    });
+  });
+
+  describe('Subtask computed', () => {
+    it('subtaskAllDone is true when all subtasks are complete', () => {
+      component.task = {
+        ...mockTask,
+        subtaskCount: 3,
+        subtaskCompletedCount: 3,
+      };
+      fixture.detectChanges();
+      expect((component as any).subtaskAllDone()).toBeTrue();
+    });
+
+    it('subtaskAllDone is false when some subtasks are incomplete', () => {
+      component.task = {
+        ...mockTask,
+        subtaskCount: 3,
+        subtaskCompletedCount: 1,
+      };
+      fixture.detectChanges();
+      expect((component as any).subtaskAllDone()).toBeFalse();
+    });
+
+    it('subtaskAllDone is false when there are no subtasks', () => {
+      component.task = { ...mockTask };
+      fixture.detectChanges();
+      expect((component as any).subtaskAllDone()).toBeFalse();
+    });
+  });
+
+  describe('closeCompleteConfirm', () => {
+    it('closes the confirm dialog', () => {
+      component.task = mockTask;
+      fixture.detectChanges();
+
+      (component as any).completeConfirmOpen.set(true);
+      (component as any).closeCompleteConfirm();
+      expect((component as any).completeConfirmOpen()).toBeFalse();
+    });
+  });
+
+  describe('onKeydown when not interactive', () => {
+    it('does nothing when not interactive', () => {
+      component.task = mockTask;
+      component.interactive = false;
+      fixture.detectChanges();
+      spyOn(component.select, 'emit');
+
+      const event = new KeyboardEvent('keydown', { key: 'Enter' });
+      (component as any).onKeydown(event);
+
+      expect(component.select.emit).not.toHaveBeenCalled();
     });
   });
 });

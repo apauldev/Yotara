@@ -17,6 +17,7 @@ import { todayInTimezone, startOfDayInUtc } from '../lib/timezone.js';
 import { AppError, BadRequestError, NotFoundError } from '../lib/app-error.js';
 import { getLabelsForTasks, getTaskLabels, syncTaskLabels } from './label-service.js';
 import { getDefaultProjectForOwner } from './project-service.js';
+import { createDueNotificationIfNeeded } from './notification-service.js';
 
 type TaskRow = typeof tasks.$inferSelect;
 
@@ -332,7 +333,7 @@ function advanceDueDate(from: string, rule: RecurrenceRule): string {
   return result;
 }
 
-function createTaskForOwnerSync(ownerId: string, body: CreateTaskDto, tx?: Database) {
+function createTaskForOwnerSync(ownerId: string, body: CreateTaskDto, tz?: string, tx?: Database) {
   const run = (client: Database) => {
     const payload = normalizeCreatePayload(body);
     const now = nowIsoTimestamp();
@@ -386,6 +387,18 @@ function createTaskForOwnerSync(ownerId: string, body: CreateTaskDto, tx?: Datab
 
     syncTaskLabels(ownerId, id, payload.labels, client);
 
+    createDueNotificationIfNeeded(
+      client,
+      ownerId,
+      {
+        id,
+        title: payload.title,
+        dueDate: payload.dueDate ?? null,
+        completed: false,
+      },
+      tz,
+    );
+
     // Bulk create subtasks if provided
     if (payload.subtasks?.length) {
       for (const sub of payload.subtasks) {
@@ -419,8 +432,13 @@ function createTaskForOwnerSync(ownerId: string, body: CreateTaskDto, tx?: Datab
   return tx ? run(tx) : db.transaction(run, { behavior: 'immediate' });
 }
 
-export async function createTaskForOwner(ownerId: string, body: CreateTaskDto, tx?: Database) {
-  return createTaskForOwnerSync(ownerId, body, tx);
+export async function createTaskForOwner(
+  ownerId: string,
+  body: CreateTaskDto,
+  tz?: string,
+  tx?: Database,
+) {
+  return createTaskForOwnerSync(ownerId, body, tz, tx);
 }
 
 function updateTaskForOwnerSync(
@@ -520,6 +538,7 @@ function updateTaskForOwnerSync(
               baseTaskId: current.baseTaskId ?? current.id, // link to template
               labels: currentLabels,
             },
+            tz,
             client,
           );
         }
@@ -553,6 +572,31 @@ function updateTaskForOwnerSync(
       .run();
 
     syncTaskLabels(ownerId, taskId, body.labels, client);
+
+    // Due/overdue notification trigger: fire only when dueDate changes or
+    // the task transitions from completed back to incomplete (undone) and
+    // is now due/overdue. Avoid write amplification on unrelated edits.
+    const prevDueDate = current.dueDate ?? null;
+    const wasCompleted = current.completed;
+    const nextDueDate = simpleMode ? null : (body.dueDate ?? current.dueDate);
+    const isNowIncomplete = completed === false || (body.completed === undefined && !wasCompleted);
+
+    const dueDateChanged = nextDueDate !== prevDueDate;
+    const becameUndone = wasCompleted && isNowIncomplete;
+
+    if (dueDateChanged || becameUndone) {
+      createDueNotificationIfNeeded(
+        client,
+        ownerId,
+        {
+          id: taskId,
+          title: body.title?.trim() || current.title,
+          dueDate: nextDueDate ?? null,
+          completed: false,
+        },
+        tz,
+      );
+    }
 
     // Bulk create NEW subtasks if provided during update
     if (body.subtasks?.length) {

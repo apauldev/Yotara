@@ -10,6 +10,7 @@ import { LabelService } from '../../../core/services/label.service';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
+import { NotificationService } from '../../../core/services/notification.service';
 
 const mockProjects: Project[] = [
   {
@@ -193,6 +194,15 @@ describe('SettingsPageComponent', () => {
           useValue: { theme: signal('light-forest'), setTheme: jasmine.createSpy() },
         },
         { provide: Router, useValue: { navigate: jasmine.createSpy().and.resolveTo(true) } },
+        {
+          provide: NotificationService,
+          useValue: {
+            isSupported: true,
+            permission: signal('default' as NotificationPermission),
+            requestPermission: jasmine.createSpy('requestPermission').and.resolveTo('default'),
+            showBrowserNotification: jasmine.createSpy('showBrowserNotification'),
+          },
+        },
       ],
     }).compileComponents();
 
@@ -633,6 +643,169 @@ describe('SettingsPageComponent', () => {
       fixture.detectChanges();
 
       expect(comp.isDeleteAccountOpen()).toBeFalse();
+    });
+  });
+
+  it('desktop notifications toggle is rendered', () => {
+    fixture.detectChanges();
+
+    const items = fixture.debugElement.queryAll(By.css('.settings-toggle'));
+    const desktopItem = items.find((el) =>
+      el.nativeElement.textContent.includes('Desktop notifications'),
+    );
+    expect(desktopItem).toBeTruthy();
+  });
+
+  it('desktop notifications toggle requests permission when turned on from default', async () => {
+    const notifService = TestBed.inject(NotificationService) as any;
+    fixture.detectChanges();
+
+    const items = fixture.debugElement.queryAll(By.css('.settings-toggle'));
+    const desktopItem = items.find((el) =>
+      el.nativeElement.textContent.includes('Desktop notifications'),
+    );
+    const checkbox = desktopItem?.query(By.css('input[type="checkbox"]'));
+    expect(checkbox).toBeTruthy();
+
+    // Simulate checking the box
+    checkbox!.nativeElement.checked = true;
+    checkbox!.nativeElement.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    // Wait for async requestPermission call
+    await fixture.whenStable();
+    expect(notifService.requestPermission).toHaveBeenCalled();
+    expect(preferences.desktopNotifications()).toBeTrue();
+  });
+
+  describe('export tasks as JSON', () => {
+    it('downloads a JSON file when export format is json', async () => {
+      comp.exportFormat.set('json');
+      await comp.exportTasks();
+
+      expect(anchor.download).toBe('yotara-tasks.json');
+      expect(createObjectURLSpy).toHaveBeenCalled();
+    });
+
+    it('includes project and label mappings in JSON output', async () => {
+      comp.exportFormat.set('json');
+      await comp.exportTasks();
+      const blob = createObjectURLSpy.calls.mostRecent().args[0] as Blob;
+      const json = JSON.parse(await blob.text());
+
+      expect(json.length).toBe(5);
+      const active = json.find((t: any) => t.title === 'Active task');
+      expect(active.project).toBe('Work');
+      expect(active.labels).toEqual(['urgent']);
+    });
+
+    it('respects includeDescriptions toggle in JSON output', async () => {
+      comp.exportFormat.set('json');
+      comp.includeDescriptions.set(false);
+      await comp.exportTasks();
+      const blob = createObjectURLSpy.calls.mostRecent().args[0] as Blob;
+      const json = JSON.parse(await blob.text());
+
+      for (const task of json) {
+        expect(task.description).toBeUndefined();
+      }
+    });
+
+    it('includes recurrence field when toggled on in JSON output', async () => {
+      comp.exportFormat.set('json');
+      comp.includeRecurrence.set(true);
+      await comp.exportTasks();
+      const blob = createObjectURLSpy.calls.mostRecent().args[0] as Blob;
+      const json = JSON.parse(await blob.text());
+      const archived = json.find((t: any) => t.title === 'Archived task');
+
+      expect(archived.recurrence).toBe('weekly every 1');
+    });
+  });
+
+  describe('export projects as JSON', () => {
+    it('downloads a JSON file when export format is json', async () => {
+      comp.exportFormat.set('json');
+      comp.exportProjects();
+
+      expect(anchor.download).toBe('yotara-projects.json');
+      const blob = createObjectURLSpy.calls.mostRecent().args[0] as Blob;
+      const json = JSON.parse(await blob.text());
+
+      expect(json.length).toBe(2);
+      expect(json[0].name).toBe('Work');
+      expect(json[0].taskCount).toBe(2);
+    });
+  });
+
+  describe('export labels as JSON', () => {
+    it('downloads a JSON file when export format is json', async () => {
+      comp.exportFormat.set('json');
+      comp.exportLabels();
+
+      expect(anchor.download).toBe('yotara-labels.json');
+      const blob = createObjectURLSpy.calls.mostRecent().args[0] as Blob;
+      const json = JSON.parse(await blob.text());
+
+      expect(json.length).toBe(2);
+      expect(json[0].name).toBe('urgent');
+      expect(json[0].color).toBe('#ff0000');
+    });
+  });
+
+  describe('onThemeChange', () => {
+    it('delegates to themeService.setTheme', () => {
+      const themeService = TestBed.inject(ThemeService) as any;
+      const event = { target: { value: 'dark-ocean' } } as unknown as Event;
+
+      comp.onThemeChange(event);
+
+      expect(themeService.setTheme).toHaveBeenCalledWith('dark-ocean');
+    });
+  });
+
+  describe('onArchiveCleanupChange', () => {
+    it('saves checkbox state via authState.updateProfile', async () => {
+      const authState = TestBed.inject(AuthStateService) as any;
+      const event = { target: { checked: false } } as unknown as Event;
+
+      await comp.onArchiveCleanupChange(event);
+
+      expect(authState.updateProfile).toHaveBeenCalledWith({ archiveAutoDelete: false });
+    });
+  });
+
+  describe('onCaptureBehaviorChange', () => {
+    it('saves select value via authState.updateProfile', async () => {
+      const authState = TestBed.inject(AuthStateService) as any;
+      const event = { target: { value: 'capture' } } as unknown as Event;
+
+      await comp.onCaptureBehaviorChange(event);
+
+      expect(authState.updateProfile).toHaveBeenCalledWith({ captureBehavior: 'capture' });
+    });
+  });
+
+  describe('onShowInsightsChange', () => {
+    it('persists the insights preference', () => {
+      const event = { target: { checked: false } } as unknown as Event;
+
+      comp.onShowInsightsChange(event);
+
+      expect(preferences.insightDismissed()).toBeTrue();
+    });
+  });
+
+  describe('onLogout', () => {
+    it('calls signOut and navigates to login', async () => {
+      const authState = TestBed.inject(AuthStateService) as any;
+      const router = TestBed.inject(Router);
+
+      await comp.onLogout();
+
+      expect(authState.signOut).toHaveBeenCalled();
+      expect(comp.isLoggingOut()).toBeFalse();
+      expect(router.navigate).toHaveBeenCalledWith(['/login']);
     });
   });
 });

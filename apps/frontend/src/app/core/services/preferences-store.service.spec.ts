@@ -131,4 +131,27 @@ describe('PreferencesStore', () => {
 
     expect(store.loginTipDismissed()).toBeTrue();
   });
+
+  it('desktopNotifications defaults to false', () => {
+    expect(store.desktopNotifications()).toBeFalse();
+  });
+
+  it('setDesktopNotifications updates signal and localStorage', () => {
+    store.setDesktopNotifications(true);
+    expect(store.desktopNotifications()).toBeTrue();
+    expect(localStorage.getItem('yotara_desktopNotifications')).toBe('true');
+
+    store.setDesktopNotifications(false);
+    expect(store.desktopNotifications()).toBeFalse();
+    expect(localStorage.getItem('yotara_desktopNotifications')).toBe('false');
+  });
+
+  it('desktopNotifications initializes from localStorage', () => {
+    localStorage.setItem('yotara_desktopNotifications', 'true');
+
+    TestBed.resetTestingModule();
+    store = TestBed.inject(PreferencesStore);
+
+    expect(store.desktopNotifications()).toBeTrue();
+  });
 });

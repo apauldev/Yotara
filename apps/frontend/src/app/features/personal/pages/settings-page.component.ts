@@ -10,6 +10,7 @@ import { ChangePasswordModalComponent } from '../components/change-password-moda
 import { DeleteAccountModalComponent } from '../components/delete-account-modal.component';
 import { LogoutConfirmModalComponent } from '../../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
 import { AuthStateService } from '../../../core/services/auth-state.service';
+import { NotificationService } from '../../../core/services/notification.service';
 import { Router } from '@angular/router';
 import { TaskService } from '../../../core/services/task.service';
 import { ProjectService } from '../../../core/services/project.service';
@@ -151,13 +152,31 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
             />
           </label>
 
-          <div class="settings-item settings-item-disabled">
+          <label class="settings-item settings-toggle">
             <div class="settings-item-copy">
               <strong>Desktop notifications</strong>
-              <span>Get notified about task updates.</span>
+              <span>
+                @if (!notificationService.isSupported) {
+                  Not supported in this browser
+                } @else if (notificationService.permission() === 'denied') {
+                  Blocked — enable in browser settings
+                } @else {
+                  Show browser notifications when tasks are due or completed.
+                }
+              </span>
             </div>
-            <span class="coming-soon">Coming soon</span>
-          </div>
+            @if (notificationService.isSupported && notificationService.permission() !== 'denied') {
+              <input
+                type="checkbox"
+                class="toggle-input"
+                [checked]="desktopNotifications()"
+                (change)="onDesktopNotificationsChange($event)"
+                aria-label="Toggle desktop notifications"
+              />
+            } @else {
+              <span class="coming-soon">N/A</span>
+            }
+          </label>
           <div class="settings-item settings-item-disabled">
             <div class="settings-item-copy">
               <strong>Email digests</strong>
@@ -782,6 +801,7 @@ export class SettingsPageComponent {
   protected readonly isSavingArchiveCleanup = signal(false);
   protected readonly isSavingCaptureBehavior = signal(false);
   private readonly preferences = inject(PreferencesStore);
+  protected readonly notificationService = inject(NotificationService);
 
   protected readonly dataCounts = signal<DataCounts>({ tasks: 0, projects: 0, labels: 0 });
   protected readonly taskCount = computed(() => this.dataCounts().tasks);
@@ -791,6 +811,7 @@ export class SettingsPageComponent {
 
   protected readonly skipCompleteConfirm = this.preferences.skipCompleteConfirm;
   protected readonly actionNotifications = this.preferences.actionNotifications;
+  protected readonly desktopNotifications = this.preferences.desktopNotifications;
 
   protected readonly showInsights = computed(() => !this.preferences.insightDismissed());
 
@@ -1020,6 +1041,14 @@ export class SettingsPageComponent {
 
   protected onActionNotificationsChange(event: Event) {
     this.preferences.setActionNotifications((event.target as HTMLInputElement).checked);
+  }
+
+  protected async onDesktopNotificationsChange(event: Event) {
+    const enabled = (event.target as HTMLInputElement).checked;
+    if (enabled && this.notificationService.permission() === 'default') {
+      await this.notificationService.requestPermission();
+    }
+    this.preferences.setDesktopNotifications(enabled);
   }
 
   protected onShowInsightsChange(event: Event) {

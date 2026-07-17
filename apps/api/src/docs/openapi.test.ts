@@ -4,13 +4,15 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { getOpenApiJson } from '../scripts/export-openapi.js';
 
 async function createTestApp() {
   const dbFile = join(tmpdir(), `yotara-openapi-test-${randomUUID()}.db`);
   process.env['DATABASE_URL'] = dbFile;
   process.env['BETTER_AUTH_SECRET'] = 'test-secret-with-enough-entropy-1234567890';
   process.env['APP_BASE_URL'] = 'http://localhost:3000';
+  // auth.ts has a module-level guard that refuses the default secret in
+  // production. Dynamic imports let us set env vars before that guard runs.
+  delete process.env['NODE_ENV'];
 
   const { buildApp } = await import('../server.js');
   const app = await buildApp();
@@ -76,6 +78,7 @@ test('docs ui is served from the api and export helper returns valid json', asyn
     assert.match(String(docsResponse.headers['content-type']), /text\/html/);
     assert.match(docsResponse.body, /Swagger UI/i);
 
+    const { getOpenApiJson } = await import('../scripts/export-openapi.js');
     const exported = await getOpenApiJson();
     const spec = JSON.parse(exported);
 

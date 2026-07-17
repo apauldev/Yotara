@@ -526,12 +526,29 @@ const recurrenceRuleSchema = {
   },
 } as const;
 
+const notificationSchema = {
+  $id: 'Notification',
+  type: 'object',
+  required: ['id', 'type', 'title', 'read', 'createdAt'],
+  properties: {
+    id: { type: 'string' },
+    taskId: { type: 'string' },
+    type: { type: 'string', enum: ['due_today', 'overdue'] },
+    title: { type: 'string' },
+    body: { type: 'string' },
+    read: { type: 'boolean' },
+    readAt: { type: 'string', format: 'date-time' },
+    createdAt: { type: 'string', format: 'date-time' },
+  },
+} as const;
+
 const sharedSchemas = [
   taskSchema,
   createTaskSchema,
   updateTaskSchema,
   recurrenceFrequencySchema,
   recurrenceRuleSchema,
+  notificationSchema,
   labelSchema,
   createLabelSchema,
   updateLabelSchema,

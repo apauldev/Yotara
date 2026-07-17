@@ -140,6 +140,22 @@ export const taskLabels = sqliteTable('task_labels', {
     .references(() => labels.id, { onDelete: 'cascade' }),
 });
 
+export const notifications = sqliteTable('notifications', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  taskId: text('task_id').references(() => tasks.id, { onDelete: 'set null' }),
+  type: text('type').notNull(),
+  title: text('title').notNull(),
+  body: text('body'),
+  read: integer('read', { mode: 'boolean' }).notNull().default(false),
+  readAt: text('read_at'),
+  createdAt: text('created_at').notNull(),
+});
+
+export type DbNotification = typeof notifications.$inferSelect;
+export type NewDbNotification = typeof notifications.$inferInsert;
 export type DbTask = typeof tasks.$inferSelect;
 export type NewDbTask = typeof tasks.$inferInsert;
 export type DbProject = typeof projects.$inferSelect;

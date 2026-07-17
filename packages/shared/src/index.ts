@@ -160,6 +160,21 @@ export interface CreateProjectDto {
 
 export type UpdateProjectDto = Partial<CreateProjectDto>;
 
+// ─── Notification Types ─────────────────────────────────────────────────────
+
+export type NotificationType = 'due_today' | 'overdue';
+
+export interface Notification {
+  id: string;
+  taskId: string | null;
+  type: NotificationType;
+  title: string;
+  body: string | null;
+  read: boolean;
+  readAt: string | null;
+  createdAt: string;
+}
+
 // ─── Search Types ───────────────────────────────────────────────────────────
 
 export interface SearchTaskResult {

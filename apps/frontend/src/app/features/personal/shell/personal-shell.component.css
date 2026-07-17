@@ -561,6 +561,7 @@
   cursor: pointer;
   display: grid;
   place-items: center;
+  overflow: visible;
   transition: all 180ms ease;
 }
 
@@ -807,4 +808,111 @@
 
 .tip-gotit:hover {
   opacity: 0.9;
+}
+
+/* Notification badge */
+.bell-button {
+  position: relative;
+  overflow: visible;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 0.2rem;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  line-height: 1.125rem;
+  text-align: center;
+  white-space: nowrap;
+  background: var(--status-overdue);
+  color: var(--surface-card);
+  z-index: 2;
+}
+
+.icon-button {
+  position: relative;
+}
+
+/* Notification dropdown */
+.notifications-dropdown {
+  width: min(20rem, calc(100vw - 2rem));
+}
+
+.notifications-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.85rem 0.25rem;
+}
+
+.notifications-dropdown-header strong {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--on-surface);
+}
+
+.view-all-link {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--primary-solid);
+  text-decoration: none;
+}
+
+.view-all-link:hover {
+  text-decoration: underline;
+}
+
+.notifications-empty {
+  padding: 1.5rem 0.85rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--on-surface-muted);
+}
+
+.notification-dropdown-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: var(--on-surface);
+  text-align: left;
+  padding: 0.6rem 0.85rem;
+  cursor: pointer;
+  text-decoration: none;
+  font: inherit;
+}
+
+.notification-dropdown-item:hover {
+  background: var(--surface-container-high);
+}
+
+.notification-dropdown-item.notification-unread {
+  background: color-mix(in srgb, var(--primary-solid) 6%, var(--surface-card));
+}
+
+.notification-dropdown-type {
+  flex: 0 0 auto;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.3rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--primary-solid);
+  background: var(--primary-soft);
+  margin-top: 0.1rem;
+}
+
+.notification-dropdown-body {
+  font-size: 0.78rem;
+  line-height: 1.3;
+  color: var(--on-surface-muted);
 }

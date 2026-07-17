@@ -9,6 +9,7 @@ import { registerOpenApi } from './docs/openapi.js';
 import healthRoutes from './routes/health.js';
 import meRoutes from './routes/me.js';
 import labelRoutes from './routes/labels.js';
+import notificationRoutes from './routes/notifications.js';
 import projectRoutes from './routes/projects.js';
 import rootRoutes from './routes/root.js';
 import searchRoutes from './routes/search.js';
@@ -102,6 +103,7 @@ export async function buildApp() {
   await app.register(healthRoutes);
   await app.register(meRoutes);
   await app.register(labelRoutes);
+  await app.register(notificationRoutes);
   await app.register(projectRoutes);
   await app.register(searchRoutes);
   await app.register(taskRoutes);

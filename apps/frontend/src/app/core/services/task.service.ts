@@ -311,8 +311,12 @@ export class TaskService {
     this.errorState.set(null);
 
     try {
+      const tz = getUserTimezone();
       const createdTask = await firstValueFrom(
-        this.http.post<Task>(`${this.baseUrl}/tasks`, payload, { withCredentials: true }),
+        this.http.post<Task>(`${this.baseUrl}/tasks`, payload, {
+          withCredentials: true,
+          params: { tz },
+        }),
       );
       this.refreshState.update((value: number) => value + 1);
       this.labelService.refresh();
