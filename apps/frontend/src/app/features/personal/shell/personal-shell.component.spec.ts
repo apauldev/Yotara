@@ -360,7 +360,6 @@ describe('PersonalShellComponent', () => {
 
   it('confirmLogout calls signOut and navigates to login', fakeAsync(() => {
     const fixture = TestBed.createComponent(PersonalShellComponent);
-    const router = TestBed.inject(Router);
     fixture.detectChanges();
 
     fixture.componentInstance['logoutDialogOpen'].set(true);
