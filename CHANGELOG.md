@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.70.0](https://github.com/apauldev/Yotara/compare/v0.69.0...v0.70.0) (2026-07-18)
+
+
+### Features
+
+* implement in-app notifications system ([b39ba03](https://github.com/apauldev/Yotara/commit/b39ba031dda3639d671896077f37c922532e1998))
+
+
+### Bug Fixes
+
+* e2e testing fixed selector changed ([362af99](https://github.com/apauldev/Yotara/commit/362af9945f8582e6ff318c53d35d10df73802556))
+* **e2e:** use calendar popover instead of input[type=date] for notification test ([cda7772](https://github.com/apauldev/Yotara/commit/cda777211bd200412d0f04d1b35f21eb489b5b0f))
+* enable Mark all read when notifications are unread ([9cd729d](https://github.com/apauldev/Yotara/commit/9cd729daf6318b310f1917df49498bda8d4b0c36))
+* fix timezone flaky test ([16c922d](https://github.com/apauldev/Yotara/commit/16c922de84f88a80216189078574f6f59f8b0835))
+* generate due/overdue notifications lazily on read path ([39f8589](https://github.com/apauldev/Yotara/commit/39f8589a2150a51cb54de2b20bc68be9a52907c0))
+* pass actual completed state to notification check on task update ([3a231e4](https://github.com/apauldev/Yotara/commit/3a231e48f36d14a7e8d890c1b344c25bb15ea35a))
+* refresh notification list when bell dropdown is opened ([efcf7dd](https://github.com/apauldev/Yotara/commit/efcf7dde2e5430b22ba2030e3b4d67db85c41532))
+* rename Notification type import in spec to avoid shadowing global ([3b893dd](https://github.com/apauldev/Yotara/commit/3b893ddd8b20fb8c296071ffd3c02e438fd710d3))
+
 ## [0.69.0](https://github.com/apauldev/Yotara/compare/v0.68.0...v0.69.0) (2026-07-16)
 
 
