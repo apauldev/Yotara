@@ -109,6 +109,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'notifications',
+        loadComponent: () =>
+          import('./features/personal/pages/notifications-page.component').then(
+            (m) => m.NotificationsPageComponent,
+          ),
+      },
+      {
         path: 'search',
         loadComponent: () =>
           import('./features/personal/pages/search-page/search-page.component').then(

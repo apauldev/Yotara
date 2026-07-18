@@ -714,3 +714,290 @@ test('tasks export endpoint returns all tasks without pagination limit', async (
     await ctx.cleanup();
   }
 });
+
+test('task created with due date today triggers due_today notification', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`trigger-today-${randomUUID()}@example.com`);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const createRes = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Notify today', dueDate: today },
+    });
+    assert.equal(createRes.statusCode, 201);
+
+    const listRes = await ctx.app.inject({
+      method: 'GET',
+      url: '/notifications?limit=10',
+      headers: { cookie },
+    });
+    assert.equal(listRes.statusCode, 200);
+    const notifs = listRes.json();
+    assert.equal(notifs.length, 1);
+    assert.equal(notifs[0].type, 'due_today');
+    assert.equal(notifs[0].body, 'Notify today');
+    assert.equal(notifs[0].read, false);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('editing non-dueDate fields does not create duplicate notifications', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`dedup-${randomUUID()}@example.com`);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const createRes = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Dedup task', dueDate: today },
+    });
+    assert.equal(createRes.statusCode, 201);
+    const taskId = createRes.json().id;
+
+    // Edit title (not dueDate) — should not create a duplicate
+    await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}`,
+      headers: { cookie },
+      payload: { title: 'Dedup task renamed' },
+    });
+
+    const listRes = await ctx.app.inject({
+      method: 'GET',
+      url: '/notifications?limit=10',
+      headers: { cookie },
+    });
+    // Still one notification — body is from creation time (not updated on rename)
+    assert.equal(listRes.json().length, 1);
+    assert.equal(listRes.json()[0].body, 'Dedup task');
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('moving due date to past creates overdue notification', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`overdue-${randomUUID()}@example.com`);
+    const yesterday = daysAgoIso(1).slice(0, 10);
+    const today = new Date().toISOString().slice(0, 10);
+
+    // Create a task due today first (triggers due_today)
+    const createRes = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Will become overdue', dueDate: today },
+    });
+    assert.equal(createRes.statusCode, 201);
+    const taskId = createRes.json().id;
+
+    // Now move it to yesterday (overdue)
+    await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}`,
+      headers: { cookie },
+      payload: { dueDate: yesterday },
+    });
+
+    const listRes = await ctx.app.inject({
+      method: 'GET',
+      url: '/notifications?limit=10',
+      headers: { cookie },
+    });
+    // Should have both: due_today (from creation) + overdue (from update)
+    const types = listRes.json().map((n: any) => n.type);
+    assert.ok(types.includes('due_today'));
+    assert.ok(types.includes('overdue'));
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('moving due date back to today after overdue does not duplicate', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`nodedup-${randomUUID()}@example.com`);
+    const yesterday = daysAgoIso(1).slice(0, 10);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const createRes = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Flip date', dueDate: yesterday },
+    });
+    assert.equal(createRes.statusCode, 201);
+    const taskId = createRes.json().id;
+
+    // Should have an overdue notification
+    let listRes = await ctx.app.inject({
+      method: 'GET',
+      url: '/notifications?limit=10',
+      headers: { cookie },
+    });
+    assert.equal(listRes.json().length, 1);
+    assert.equal(listRes.json()[0].type, 'overdue');
+
+    // Move it to today
+    await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}`,
+      headers: { cookie },
+      payload: { dueDate: today },
+    });
+
+    listRes = await ctx.app.inject({
+      method: 'GET',
+      url: '/notifications?limit=10',
+      headers: { cookie },
+    });
+    // Should have both overdue + due_today (different types, both valid)
+    const types = listRes.json().map((n: any) => n.type);
+    assert.ok(types.includes('overdue'));
+    assert.ok(types.includes('due_today'));
+
+    // Moving it back to yesterday — overdue again but same day, should NOT duplicate
+    await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}`,
+      headers: { cookie },
+      payload: { dueDate: yesterday },
+    });
+
+    listRes = await ctx.app.inject({
+      method: 'GET',
+      url: '/notifications?limit=10',
+      headers: { cookie },
+    });
+    // Still only: 1 overdue + 1 due_today
+    const overdueCount = listRes.json().filter((n: any) => n.type === 'overdue').length;
+    assert.equal(overdueCount, 1);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('completing a task does not trigger notification on subsequent edits', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`done-${randomUUID()}@example.com`);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const createRes = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Done task', dueDate: today },
+    });
+    assert.equal(createRes.statusCode, 201);
+    const taskId = createRes.json().id;
+
+    // Mark complete
+    await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}`,
+      headers: { cookie },
+      payload: { completed: true },
+    });
+
+    // Should still have just the original due_today notification
+    // (completing doesn't fire a trigger)
+    let listRes = await ctx.app.inject({
+      method: 'GET',
+      url: '/notifications?limit=10',
+      headers: { cookie },
+    });
+    assert.equal(listRes.json().length, 1);
+
+    // Edit title while completed
+    await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}`,
+      headers: { cookie },
+      payload: { title: 'Done task edited' },
+    });
+
+    listRes = await ctx.app.inject({
+      method: 'GET',
+      url: '/notifications?limit=10',
+      headers: { cookie },
+    });
+    // No new notifications — still 1
+    assert.equal(listRes.json().length, 1);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('uncompleting a due/overdue task triggers notification', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`undone-${randomUUID()}@example.com`);
+    const yesterday = daysAgoIso(1).slice(0, 10);
+
+    // Create overdue (incomplete, triggers overdue notification immediately)
+    const createRes = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Undone overdue', dueDate: yesterday },
+    });
+    assert.equal(createRes.statusCode, 201);
+    const taskId = createRes.json().id;
+
+    // Should have 1 notification (overdue from creation)
+    let listRes = await ctx.app.inject({
+      method: 'GET',
+      url: '/notifications?limit=10',
+      headers: { cookie },
+    });
+    assert.equal(listRes.json().length, 1);
+
+    // Complete it — no new notification (completed tasks don't trigger)
+    await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}`,
+      headers: { cookie },
+      payload: { completed: true },
+    });
+
+    listRes = await ctx.app.inject({
+      method: 'GET',
+      url: '/notifications?limit=10',
+      headers: { cookie },
+    });
+    assert.equal(listRes.json().length, 1);
+
+    // Uncomplete -- dedup prevents duplicate overdue on same day
+    await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}`,
+      headers: { cookie },
+      payload: { completed: false },
+    });
+
+    listRes = await ctx.app.inject({
+      method: 'GET',
+      url: '/notifications?limit=10',
+      headers: { cookie },
+    });
+    // Still 1 -- dedup prevents duplicate overdue for same task+type per day
+    assert.equal(listRes.json().length, 1);
+    assert.equal(listRes.json()[0].type, 'overdue');
+  } finally {
+    await ctx.cleanup();
+  }
+});

@@ -184,4 +184,133 @@ describe('AuthStateService', () => {
     expect(AuthService.getCounts).toHaveBeenCalled();
     expect(result).toEqual(mockCounts);
   });
+
+  it('returns early from initialize when already initialized', async () => {
+    spyOn(AuthService, 'getSession').and.resolveTo({ data: { session: null, user: null } } as any);
+    spyOn(AuthService, 'getProfile');
+
+    const service = TestBed.inject(AuthStateService);
+    await service.initialize();
+
+    expect(AuthService.getSession).toHaveBeenCalledTimes(1);
+
+    await service.initialize();
+
+    expect(AuthService.getSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('delegates signIn to AuthService and refreshes session on success', async () => {
+    spyOn(AuthService, 'signIn').and.resolveTo({ error: null } as any);
+    spyOn(AuthService, 'getSession').and.resolveTo({ data: { session: null, user: null } } as any);
+
+    const service = TestBed.inject(AuthStateService);
+    const result = await service.signIn('test@example.com', 'password');
+
+    expect(AuthService.signIn).toHaveBeenCalledWith('test@example.com', 'password');
+    expect(result.error).toBeNull();
+    expect(service.loading()).toBeFalse();
+  });
+
+  it('does not refresh session when signIn returns an error', async () => {
+    spyOn(AuthService, 'signIn').and.resolveTo({
+      error: { message: 'Invalid credentials', status: 401, statusText: 'Unauthorized' },
+    } as any);
+    spyOn(AuthService, 'getSession');
+
+    const service = TestBed.inject(AuthStateService);
+    const result = await service.signIn('test@example.com', 'wrong');
+
+    expect(AuthService.signIn).toHaveBeenCalled();
+    expect(result.error).toBeTruthy();
+    expect(AuthService.getSession).not.toHaveBeenCalled();
+    expect(service.loading()).toBeFalse();
+  });
+
+  it('delegates signUp to AuthService and refreshes session on success', async () => {
+    spyOn(AuthService, 'signUp').and.resolveTo({ error: null } as any);
+    spyOn(AuthService, 'getSession').and.resolveTo({ data: { session: null, user: null } } as any);
+
+    const service = TestBed.inject(AuthStateService);
+    const result = await service.signUp('test@example.com', 'password', 'Test User');
+
+    expect(AuthService.signUp).toHaveBeenCalledWith('test@example.com', 'password', 'Test User');
+    expect(result.error).toBeNull();
+    expect(service.loading()).toBeFalse();
+  });
+
+  it('does not refresh session when signUp returns an error', async () => {
+    spyOn(AuthService, 'signUp').and.resolveTo({
+      error: { message: 'Email already in use', status: 409, statusText: 'Conflict' },
+    } as any);
+    spyOn(AuthService, 'getSession');
+
+    const service = TestBed.inject(AuthStateService);
+    const result = await service.signUp('test@example.com', 'password', 'Test User');
+
+    expect(result.error).toBeTruthy();
+    expect(AuthService.getSession).not.toHaveBeenCalled();
+    expect(service.loading()).toBeFalse();
+  });
+
+  it('delegates signOut to AuthService and clears auth state', async () => {
+    spyOn(AuthService, 'signOut').and.resolveTo(undefined);
+    spyOn(AuthService, 'getSession').and.resolveTo({ data: { session: null, user: null } } as any);
+
+    const service = TestBed.inject(AuthStateService);
+    await service.initialize();
+
+    await service.signOut();
+
+    expect(AuthService.signOut).toHaveBeenCalled();
+    expect(service.session()).toBeNull();
+    expect(service.user()).toBeNull();
+    expect(service.initialized()).toBeFalse();
+    expect(service.loading()).toBeFalse();
+  });
+
+  it('delegates changePassword to AuthService', async () => {
+    spyOn(AuthService, 'changePassword').and.resolveTo(undefined);
+
+    const service = TestBed.inject(AuthStateService);
+    await service.changePassword('oldPass', 'newPass', false);
+
+    expect(AuthService.changePassword).toHaveBeenCalledWith('oldPass', 'newPass', false);
+    expect(service.loading()).toBeFalse();
+  });
+
+  it('sets loading false even when changePassword throws', async () => {
+    spyOn(AuthService, 'changePassword').and.rejectWith(new Error('weak password'));
+
+    const service = TestBed.inject(AuthStateService);
+    await expectAsync(service.changePassword('old', 'weak')).toBeRejected();
+    expect(service.loading()).toBeFalse();
+  });
+
+  it('delegates updateProfile to AuthService', async () => {
+    spyOn(AuthService, 'updateProfile').and.resolveTo({
+      user: {
+        id: 'user-1',
+        email: 'test@example.com',
+        name: 'Test',
+        onboardingCompleted: true,
+        workspaceMode: 'personal',
+        createdAt: '2026-01-01T00:00:00.000Z',
+      },
+    });
+
+    const service = TestBed.inject(AuthStateService);
+    await service.updateProfile({ archiveAutoDelete: false });
+
+    expect(AuthService.updateProfile).toHaveBeenCalledWith({ archiveAutoDelete: false });
+    expect(service.user()?.workspaceMode).toBe('personal');
+    expect(service.loading()).toBeFalse();
+  });
+
+  it('sets loading false even when updateProfile throws', async () => {
+    spyOn(AuthService, 'updateProfile').and.rejectWith(new Error('server error'));
+
+    const service = TestBed.inject(AuthStateService);
+    await expectAsync(service.updateProfile({ captureBehavior: 'capture' })).toBeRejected();
+    expect(service.loading()).toBeFalse();
+  });
 });

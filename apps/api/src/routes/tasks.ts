@@ -155,13 +155,23 @@ export default async function taskRoutes(fastify: FastifyInstance) {
     },
   );
 
-  fastify.post<{ Body: CreateTaskDto; Reply: Task | { message: string } }>(
+  fastify.post<{
+    Body: CreateTaskDto;
+    Querystring: { tz?: string };
+    Reply: Task | { message: string };
+  }>(
     '/tasks',
     {
       schema: withJsonResponse({
         tags: ['tasks'],
         summary: 'Create a task',
         security: authCookieSecurity,
+        querystring: {
+          type: 'object',
+          properties: {
+            tz: { type: 'string' },
+          },
+        },
         body: {
           $ref: 'CreateTaskDto#',
         },
@@ -190,7 +200,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         }
       }
 
-      const created = await createTaskForOwner(userId, request.body);
+      const created = await createTaskForOwner(userId, request.body, request.query.tz);
       if (!created) {
         return reply.code(500).send({ message: 'Failed to create task' });
       }

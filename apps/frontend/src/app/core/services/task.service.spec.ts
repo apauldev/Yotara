@@ -539,8 +539,9 @@ describe('TaskService', () => {
         createdTask = task;
       });
 
-    const postRequest = http.expectOne('http://localhost:3000/tasks');
-    expect(postRequest.request.method).toBe('POST');
+    const postRequest = http.expectOne(
+      (req) => req.url.startsWith('http://localhost:3000/tasks') && req.method === 'POST',
+    );
     expect(postRequest.request.withCredentials).toBeTrue();
     postRequest.flush({
       id: 'created-1',
@@ -949,5 +950,306 @@ describe('TaskService', () => {
       expect(service.upcomingTasks()).toEqual([]);
       expect(service.error()).toBe('Could not load upcoming tasks right now.');
     }));
+
+    it('sets error state when createTask fails', fakeAsync(() => {
+      const service = TestBed.inject(TaskService);
+      const http = TestBed.inject(HttpTestingController);
+
+      initialized.set(true);
+      isAuthenticated.set(true);
+      currentUserId.set('user-1');
+      tick();
+
+      http.expectOne(ACTIVE_URL).flush(paginated([]));
+      flushCompletedTasks(http);
+      tick();
+
+      let thrown = false;
+      void service
+        .createTask({
+          title: 'Failing task',
+          status: 'inbox',
+          priority: 'medium',
+        })
+        .catch(() => {
+          thrown = true;
+        });
+
+      const postReq = http.expectOne(
+        (req) => req.url.startsWith('http://localhost:3000/tasks') && req.method === 'POST',
+      );
+      postReq.flush(
+        { message: 'Internal Server Error' },
+        { status: 500, statusText: 'Internal Server Error' },
+      );
+      tick();
+
+      expect(thrown).toBeTrue();
+      expect(service.error()).toBe('Could not save your task right now.');
+    }));
+
+    it('sets error state when updateTask fails', fakeAsync(() => {
+      const service = TestBed.inject(TaskService);
+      const http = TestBed.inject(HttpTestingController);
+
+      initialized.set(true);
+      isAuthenticated.set(true);
+      currentUserId.set('user-1');
+      tick();
+
+      http.expectOne(ACTIVE_URL).flush(paginated([]));
+      flushCompletedTasks(http);
+      tick();
+
+      let thrown = false;
+      void service.updateTask('task-1', { title: 'Updated' }).catch(() => {
+        thrown = true;
+      });
+
+      const patchReq = http.expectOne(
+        (req) => req.method === 'PATCH' && req.url.startsWith('http://localhost:3000/tasks/task-1'),
+      );
+      patchReq.flush(
+        { message: 'Internal Server Error' },
+        { status: 500, statusText: 'Internal Server Error' },
+      );
+      tick();
+
+      expect(thrown).toBeTrue();
+      expect(service.error()).toBe('Could not update your task right now.');
+    }));
+
+    it('sets error state when deleteTask fails', fakeAsync(() => {
+      const service = TestBed.inject(TaskService);
+      const http = TestBed.inject(HttpTestingController);
+
+      initialized.set(true);
+      isAuthenticated.set(true);
+      currentUserId.set('user-1');
+      tick();
+
+      http.expectOne(ACTIVE_URL).flush(paginated([]));
+      flushCompletedTasks(http);
+      tick();
+
+      let thrown = false;
+      void service.deleteTask('task-1').catch(() => {
+        thrown = true;
+      });
+
+      const deleteReq = http.expectOne('http://localhost:3000/tasks/task-1');
+      deleteReq.flush(
+        { message: 'Internal Server Error' },
+        { status: 500, statusText: 'Internal Server Error' },
+      );
+      tick();
+
+      expect(thrown).toBeTrue();
+      expect(service.error()).toBe('Could not delete your task right now.');
+    }));
   });
+
+  it('fetchAllTasks returns all tasks from the export endpoint', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    let result: Task[] | undefined;
+    void service.fetchAllTasks().then((tasks) => {
+      result = tasks;
+    });
+
+    const req = http.expectOne((r) => r.url.includes('/tasks') && r.url.includes('export=true'));
+    req.flush(
+      paginated([
+        {
+          id: 't1',
+          title: 'Task 1',
+          status: 'inbox',
+          priority: 'medium',
+          completed: false,
+          order: 0,
+          createdAt: '',
+          updatedAt: '',
+        },
+        {
+          id: 't2',
+          title: 'Task 2',
+          status: 'done',
+          priority: 'low',
+          completed: true,
+          order: 1,
+          createdAt: '',
+          updatedAt: '',
+        },
+      ]),
+    );
+    tick();
+
+    expect(result?.length).toBe(2);
+    expect(result?.map((t) => t.id)).toEqual(['t1', 't2']);
+  }));
+
+  it('fetchSubtasks returns subtasks for a given parent', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    let result: Task[] | undefined;
+    void service.fetchSubtasks('parent-1').then((tasks) => {
+      result = tasks;
+    });
+
+    const req = http.expectOne(
+      (r) => r.url.includes('parentId=parent-1') && r.url.includes('pageSize=100'),
+    );
+    req.flush(
+      paginated([
+        {
+          id: 'sub-1',
+          title: 'Subtask 1',
+          status: 'inbox',
+          priority: 'low',
+          completed: false,
+          order: 0,
+          createdAt: '',
+          updatedAt: '',
+          parentId: 'parent-1',
+        },
+      ]),
+    );
+    tick();
+
+    expect(result?.length).toBe(1);
+    expect(result?.[0].id).toBe('sub-1');
+  }));
+
+  it('fetchSubtasks returns empty array on error', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    let result: Task[] | undefined;
+    void service.fetchSubtasks('parent-1').then((tasks) => {
+      result = tasks;
+    });
+
+    const req = http.expectOne((r) => r.url.includes('parentId=parent-1'));
+    req.flush(
+      { message: 'Internal Server Error' },
+      { status: 500, statusText: 'Internal Server Error' },
+    );
+    tick();
+
+    expect(result).toEqual([]);
+  }));
+
+  it('formatTaskDate returns formatted date string', () => {
+    const service = TestBed.inject(TaskService);
+    const result = service.formatTaskDate('2026-04-08');
+    expect(result).toBeTruthy();
+    expect(result).toContain('Apr');
+    expect(result).toContain('8');
+  });
+
+  it('formatTaskDate returns empty string for null input', () => {
+    const service = TestBed.inject(TaskService);
+    expect(service.formatTaskDate(null)).toBe('');
+    expect(service.formatTaskDate(undefined)).toBe('');
+  });
+
+  it('upcomingBucketForTask returns Later for tasks without due date', () => {
+    const service = TestBed.inject(TaskService);
+    const task: Task = {
+      id: 'no-due',
+      title: 'No due date',
+      status: 'inbox',
+      priority: 'medium',
+      completed: false,
+      order: 0,
+      createdAt: '',
+      updatedAt: '',
+    };
+    expect(service.upcomingBucketForTask(task)).toBe('Later');
+  });
+
+  it('upcomingBucketForTask returns This Week for tasks due within 7 days', () => {
+    const service = TestBed.inject(TaskService);
+    const task: Task = {
+      id: 'this-week',
+      title: 'This week',
+      status: 'inbox',
+      priority: 'medium',
+      completed: false,
+      order: 0,
+      createdAt: '',
+      updatedAt: '',
+      dueDate: dayOffset(3),
+    };
+    expect(service.upcomingBucketForTask(task)).toBe('This Week');
+  });
+
+  it('upcomingBucketForTask returns Next Week for tasks due in 8-14 days', () => {
+    const service = TestBed.inject(TaskService);
+    const task: Task = {
+      id: 'next-week',
+      title: 'Next week',
+      status: 'inbox',
+      priority: 'medium',
+      completed: false,
+      order: 0,
+      createdAt: '',
+      updatedAt: '',
+      dueDate: dayOffset(10),
+    };
+    expect(service.upcomingBucketForTask(task)).toBe('Next Week');
+  });
+
+  it('upcomingBucketForTask returns Later for tasks due beyond 14 days', () => {
+    const service = TestBed.inject(TaskService);
+    const task: Task = {
+      id: 'far-out',
+      title: 'Far out',
+      status: 'inbox',
+      priority: 'medium',
+      completed: false,
+      order: 0,
+      createdAt: '',
+      updatedAt: '',
+      dueDate: dayOffset(21),
+    };
+    expect(service.upcomingBucketForTask(task)).toBe('Later');
+  });
+
+  it('getArchivedTasks returns an observable with paginated tasks', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    let result: any;
+    service.getArchivedTasks(1, 20).subscribe((res) => {
+      result = res;
+    });
+
+    const req = http.expectOne(
+      (r) =>
+        r.url.includes('page=1') &&
+        r.url.includes('pageSize=20') &&
+        r.url.includes('completed=true'),
+    );
+    req.flush(
+      paginated([
+        {
+          id: 'archived-1',
+          title: 'Archived',
+          status: 'done',
+          priority: 'low',
+          completed: true,
+          order: 0,
+          createdAt: '',
+          updatedAt: '',
+        },
+      ]),
+    );
+    tick();
+
+    expect(result.data.length).toBe(1);
+    expect(result.data[0].id).toBe('archived-1');
+  }));
 });

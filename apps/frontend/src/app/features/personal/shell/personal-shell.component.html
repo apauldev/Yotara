@@ -140,9 +140,59 @@
       </div>
 
       <div class="topbar-actions">
-        <button type="button" class="icon-button" aria-label="Notifications">
+        <button
+          type="button"
+          class="icon-button bell-button"
+          [attr.aria-expanded]="notificationsOpen()"
+          aria-label="Notifications"
+          (click)="toggleNotifications()"
+        >
           <fa-icon [icon]="faBell" aria-hidden="true"></fa-icon>
+          @if (notificationService.unreadCount() > 0) {
+            <span class="notification-badge">{{ notificationService.unreadCount() }}</span>
+          }
         </button>
+        @if (notificationsOpen()) {
+          <button
+            type="button"
+            class="preferences-backdrop"
+            aria-label="Close notifications"
+            (click)="closeNotifications()"
+          ></button>
+
+          <div
+            class="preferences-menu notifications-dropdown"
+            role="menu"
+            aria-label="Notifications"
+          >
+            <div class="notifications-dropdown-header">
+              <strong>Notifications</strong>
+              <a
+                [routerLink]="['/notifications']"
+                class="view-all-link"
+                (click)="closeNotifications()"
+                >View all</a
+              >
+            </div>
+            @if (notificationService.notifications().length === 0) {
+              <p class="notifications-empty">No notifications yet</p>
+            } @else {
+              @for (notif of notificationService.notifications(); track notif.id) {
+                <button
+                  type="button"
+                  class="notification-dropdown-item"
+                  [class.notification-unread]="!notif.read"
+                  (click)="onNotificationClick(notif)"
+                >
+                  <span class="notification-dropdown-type">{{
+                    notif.type === 'due_today' ? 'Today' : 'Overdue'
+                  }}</span>
+                  <span class="notification-dropdown-body">{{ notif.body }}</span>
+                </button>
+              }
+            }
+          </div>
+        }
         <button
           type="button"
           class="icon-button"

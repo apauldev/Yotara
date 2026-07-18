@@ -139,6 +139,26 @@ const SQLITE_BOOTSTRAP_SQL = `
 
   CREATE INDEX IF NOT EXISTS idx_email_sends_email ON email_sends(email);
   CREATE INDEX IF NOT EXISTS idx_email_sends_created ON email_sends(created_at);
+
+  CREATE TABLE IF NOT EXISTS notifications (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    task_id TEXT,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    body TEXT,
+    read INTEGER NOT NULL DEFAULT 0,
+    read_at TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+    FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE SET NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_notifications_user_read_created
+    ON notifications(user_id, read, created_at);
+
+  CREATE INDEX IF NOT EXISTS idx_notifications_task_type_created
+    ON notifications(task_id, type, created_at);
 `;
 
 function normalizeTextTimestamp(value: unknown, fallback: string): string {

@@ -8,6 +8,7 @@ import {
 } from '../lib/login-lockout.js';
 import { checkRateLimitOrThrow } from '../lib/email.js';
 import { recordEmailSend } from '../lib/email-rate-limit.js';
+import { scanDueNotifications } from '../services/notification-service.js';
 
 function toHeaders(source: Record<string, string | string[] | undefined>) {
   const headers = new Headers();
@@ -161,6 +162,14 @@ export default async function authBridgePlugin(app: FastifyInstance) {
       if (isSignIn && loginEmail) {
         if (response.status === 200) {
           clearAttempts(clientIp, loginEmail);
+          // Scan for due/overdue notifications on login so the user sees them immediately
+          const respJson = (await response.clone().json()) as {
+            user?: { id: string };
+          };
+          const userId = respJson?.user?.id;
+          if (userId) {
+            scanDueNotifications(userId);
+          }
         } else if (response.status === 401) {
           const result = recordFailedAttempt(clientIp, loginEmail);
           if (result.locked) {

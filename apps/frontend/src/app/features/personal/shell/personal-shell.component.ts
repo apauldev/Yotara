@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import {
   ActivatedRoute,
   NavigationEnd,
@@ -33,7 +33,9 @@ import { AuthStateService } from '../../../core/services/auth-state.service';
 import { TaskService } from '../../../core/services/task.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
+import { NotificationService } from '../../../core/services/notification.service';
 import { LogoutConfirmModalComponent } from '../../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
+import type { Notification } from '@yotara/shared';
 import { AppStatusComponent } from '../../../shared/ui/app-status/app-status.component';
 
 const TIPS = [
@@ -115,6 +117,7 @@ export class PersonalShellComponent {
   private authState = inject(AuthStateService);
   protected readonly taskService = inject(TaskService);
   protected readonly themeService = inject(ThemeService);
+  protected readonly notificationService = inject(NotificationService);
   protected readonly searchQuery = signal(this.route.snapshot.queryParamMap.get('q') ?? '');
   protected readonly showTip = signal<string | null>(null);
   protected readonly tipDontShowAgain = signal(false);
@@ -132,6 +135,7 @@ export class PersonalShellComponent {
   protected readonly sidebarCollapsed = signal(false);
   protected readonly profileMenuOpen = signal(false);
   protected readonly preferencesMenuOpen = signal(false);
+  protected readonly notificationsOpen = signal(false);
   protected readonly logoutDialogOpen = signal(false);
   protected readonly signingOut = signal(false);
   protected readonly userInitials = computed(() => {
@@ -154,6 +158,7 @@ export class PersonalShellComponent {
       this.mobileMenuOpen.set(false);
       this.profileMenuOpen.set(false);
       this.preferencesMenuOpen.set(false);
+      this.notificationsOpen.set(false);
     });
 
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
@@ -163,6 +168,13 @@ export class PersonalShellComponent {
     if (!this.preferences.loginTipDismissed()) {
       this.showTip.set(TIPS[Math.floor(Math.random() * TIPS.length)]);
     }
+
+    effect(() => {
+      if (this.authState.initialized()) {
+        this.notificationService.fetchUnreadCount();
+        this.notificationService.fetchNotifications();
+      }
+    });
   }
 
   protected onTipCheckboxChange(event: Event) {
@@ -208,11 +220,33 @@ export class PersonalShellComponent {
 
   protected togglePreferencesMenu() {
     this.profileMenuOpen.set(false);
+    this.notificationsOpen.set(false);
     this.preferencesMenuOpen.update((open) => !open);
   }
 
   protected closePreferencesMenu() {
     this.preferencesMenuOpen.set(false);
+  }
+
+  protected toggleNotifications() {
+    this.preferencesMenuOpen.set(false);
+    this.profileMenuOpen.set(false);
+    this.notificationsOpen.update((open) => !open);
+    if (this.notificationsOpen()) {
+      this.notificationService.fetchNotifications();
+      this.notificationService.fetchUnreadCount();
+    }
+  }
+
+  protected closeNotifications() {
+    this.notificationsOpen.set(false);
+  }
+
+  protected async onNotificationClick(notif: Notification) {
+    if (!notif.read) {
+      await this.notificationService.markAsRead(notif.id);
+    }
+    this.closeNotifications();
   }
 
   protected handleStayFocused() {
