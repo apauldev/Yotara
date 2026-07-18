@@ -27,7 +27,9 @@ test.describe('Notifications', () => {
     await expect(modal).toBeVisible({ timeout: 5_000 });
 
     // Turn off Simple mode so the date picker becomes enabled
-    const simpleModeCheckbox = modal.locator('label.toggle-row input[type="checkbox"]');
+    const simpleModeCheckbox = modal.getByRole('checkbox', {
+      name: 'Keep it lightweight with no date metadata',
+    });
     await expect(simpleModeCheckbox).toBeVisible({ timeout: 3_000 });
     if (await simpleModeCheckbox.isChecked()) {
       await simpleModeCheckbox.click();
