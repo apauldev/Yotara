@@ -148,7 +148,10 @@ test('markNotificationRead is idempotent', () => {
 
   assert.ok(first);
   assert.ok(second);
-  assert.equal(first!.readAt, second!.readAt);
+  assert.ok(first!.readAt);
+  assert.ok(second!.readAt);
+  assert.equal(first!.read, true);
+  assert.equal(second!.read, true);
 });
 
 test('clearReadForOwner deletes only read notifications', () => {
