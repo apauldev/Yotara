@@ -1,3 +1,11 @@
 #!/bin/sh
 set -e
 pnpm lint-staged
+
+# Quick secret scan on staged files (requires gitleaks CLI; skip if not installed)
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --pre-commit --staged 2>/dev/null || {
+    echo "⚠️  Secret scan detected potential secrets. Use 'gitleaks git --pre-commit --staged --verbose' to inspect."
+    exit 1
+  }
+fi
