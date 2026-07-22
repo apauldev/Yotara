@@ -101,7 +101,7 @@ describe('LogService', () => {
     const sensitiveData = {
       email: 'user@example.com',
       password: 'supersecret',
-      token: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0',
+      token: 'fake-test-token-value',
       nested: {
         authorization: 'Bearer tok123',
         normalField: 'hello',
