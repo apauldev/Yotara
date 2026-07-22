@@ -164,7 +164,7 @@ export async function updateProjectForOwner(
       color: patch.color ?? current.color ?? null,
       updatedAt: nowIsoTimestamp(),
     })
-    .where(eq(projects.id, projectId));
+    .where(and(eq(projects.id, projectId), eq(projects.ownerId, ownerId)));
 
   return loadProjectById(projectId, ownerId);
 }

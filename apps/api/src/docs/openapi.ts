@@ -105,10 +105,12 @@ const createTaskSchema = {
     baseTaskId: { type: 'string' },
     labels: {
       type: 'array',
+      maxItems: 50,
       items: { type: 'string' },
     },
     subtasks: {
       type: 'array',
+      maxItems: 50,
       items: {
         type: 'object',
         required: ['title'],
@@ -153,6 +155,7 @@ const updateTaskSchema = {
     },
     labels: {
       type: 'array',
+      maxItems: 50,
       items: { type: 'string' },
     },
     completed: { type: 'boolean' },
@@ -160,6 +163,7 @@ const updateTaskSchema = {
     permanentArchive: { type: 'boolean' },
     subtasks: {
       type: 'array',
+      maxItems: 50,
       items: {
         type: 'object',
         required: ['title'],

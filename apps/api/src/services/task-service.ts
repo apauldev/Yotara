@@ -572,7 +572,7 @@ function updateTaskForOwnerSync(
         permanentArchive: completed ? nextPermanentArchive : false,
         updatedAt: nowIsoTimestamp(),
       })
-      .where(eq(tasks.id, taskId))
+      .where(and(eq(tasks.id, taskId), eq(tasks.userId, ownerId)))
       .run();
 
     syncTaskLabels(ownerId, taskId, body.labels, client);
