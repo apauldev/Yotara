@@ -22,6 +22,13 @@ async function createTestApp() {
   return {
     app,
     async cleanup() {
+      // Clear email rate-limit state so tests don't hit the IP cap
+      try {
+        const { sqlite } = await import('../db/client.js');
+        sqlite.prepare('DELETE FROM email_sends').run();
+      } catch {
+        // best-effort: db might already be closed
+      }
       await app.close();
       delete process.env['BETTER_AUTH_SECRET'];
       delete process.env['APP_BASE_URL'];

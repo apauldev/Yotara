@@ -137,7 +137,7 @@ export default async function authBridgePlugin(app: FastifyInstance) {
       if (actionEmail) {
         const actionType = isSignUp ? ('signup' as const) : ('reset' as const);
         try {
-          checkRateLimitOrThrow(actionEmail, actionType);
+          checkRateLimitOrThrow(actionEmail, actionType, clientIp);
         } catch (err) {
           const error = err as { statusCode: number; retryAfterSeconds: number; message: string };
           reply.header('Retry-After', String(error.retryAfterSeconds));
