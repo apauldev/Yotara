@@ -1,0 +1,19 @@
+# Gitleaks configuration for Yotara.
+# Extends the default config with project-specific allowlists.
+
+title = "Yotara gitleaks config"
+
+# Use the default rules as a base
+[extend]
+useDefault = true
+
+# Allowlist false positives — test data and documentation examples
+[allowlist]
+description = "Known false positives in test files and documentation"
+paths = [
+  # Test files often contain fake credentials and tokens — these are intentional test data
+  # and not real secrets.
+  '''.*\.spec\.ts$''',
+  '''.*\.test\.ts$''',
+  '''.*__tests__/.*''',
+]
