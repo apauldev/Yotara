@@ -455,11 +455,10 @@ export function createDbClient(databaseUrl = process.env['DATABASE_URL'] ?? DEFA
 
   const sqlite = new Database(databasePath);
 
-  // 7a. Tighten permissions on the database file and data directory
+  // 7a. Tighten permissions on the database file only (avoid chmodding shared dirs)
   if (databasePath !== ':memory:') {
     try {
       chmodSync(databasePath, 0o600);
-      chmodSync(dirname(databasePath), 0o700);
     } catch {
       // best-effort: don't crash if permissions can't be tightened
     }
