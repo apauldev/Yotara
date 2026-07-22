@@ -1,4 +1,4 @@
-import { mkdirSync } from 'node:fs';
+import { chmodSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
@@ -293,86 +293,90 @@ function ensureDatabasePath(databasePath: string): void {
 }
 
 function ensureSqliteSchema(sqlite: Database.Database): void {
-  sqlite.exec(SQLITE_BOOTSTRAP_SQL);
+  sqlite.exec('BEGIN IMMEDIATE');
+  try {
+    sqlite.exec(SQLITE_BOOTSTRAP_SQL);
 
-  const columns = sqlite.prepare(`PRAGMA table_info('user')`).all() as Array<{ name: string }>;
-  const columnNames = new Set(columns.map((column) => column.name));
+    const columns = sqlite.prepare(`PRAGMA table_info('user')`).all() as Array<{ name: string }>;
+    const columnNames = new Set(columns.map((column) => column.name));
 
-  if (!columnNames.has('workspaceMode')) {
-    sqlite.exec(`ALTER TABLE user ADD COLUMN workspaceMode TEXT`);
-  }
+    if (!columnNames.has('workspaceMode')) {
+      sqlite.exec(`ALTER TABLE user ADD COLUMN workspaceMode TEXT`);
+    }
 
-  if (!columnNames.has('onboardingCompleted')) {
-    sqlite.exec(`ALTER TABLE user ADD COLUMN onboardingCompleted INTEGER NOT NULL DEFAULT 0`);
-  }
+    if (!columnNames.has('onboardingCompleted')) {
+      sqlite.exec(`ALTER TABLE user ADD COLUMN onboardingCompleted INTEGER NOT NULL DEFAULT 0`);
+    }
 
-  if (!columnNames.has('archiveAutoDelete')) {
-    sqlite.exec(`ALTER TABLE user ADD COLUMN archiveAutoDelete INTEGER NOT NULL DEFAULT 1`);
-  }
+    if (!columnNames.has('archiveAutoDelete')) {
+      sqlite.exec(`ALTER TABLE user ADD COLUMN archiveAutoDelete INTEGER NOT NULL DEFAULT 1`);
+    }
 
-  if (!columnNames.has('captureBehavior')) {
-    sqlite.exec(`ALTER TABLE user ADD COLUMN captureBehavior TEXT NOT NULL DEFAULT 'quick'`);
-  }
+    if (!columnNames.has('captureBehavior')) {
+      sqlite.exec(`ALTER TABLE user ADD COLUMN captureBehavior TEXT NOT NULL DEFAULT 'quick'`);
+    }
 
-  const taskColumns = sqlite.prepare(`PRAGMA table_info('tasks')`).all() as Array<{ name: string }>;
-  const taskColumnNames = new Set(taskColumns.map((column) => column.name));
+    const taskColumns = sqlite.prepare(`PRAGMA table_info('tasks')`).all() as Array<{
+      name: string;
+    }>;
+    const taskColumnNames = new Set(taskColumns.map((column) => column.name));
 
-  if (!taskColumnNames.has('simple_mode')) {
-    sqlite.exec(`ALTER TABLE tasks ADD COLUMN simple_mode INTEGER NOT NULL DEFAULT 0`);
-  }
+    if (!taskColumnNames.has('simple_mode')) {
+      sqlite.exec(`ALTER TABLE tasks ADD COLUMN simple_mode INTEGER NOT NULL DEFAULT 0`);
+    }
 
-  if (!taskColumnNames.has('bucket')) {
-    sqlite.exec(`ALTER TABLE tasks ADD COLUMN bucket TEXT DEFAULT 'personal-sanctuary'`);
-  }
+    if (!taskColumnNames.has('bucket')) {
+      sqlite.exec(`ALTER TABLE tasks ADD COLUMN bucket TEXT DEFAULT 'personal-sanctuary'`);
+    }
 
-  if (!taskColumnNames.has('deleted_at')) {
-    sqlite.exec(`ALTER TABLE tasks ADD COLUMN deleted_at TEXT`);
-  }
+    if (!taskColumnNames.has('deleted_at')) {
+      sqlite.exec(`ALTER TABLE tasks ADD COLUMN deleted_at TEXT`);
+    }
 
-  if (!taskColumnNames.has('project_id')) {
+    if (!taskColumnNames.has('project_id')) {
+      sqlite.exec(
+        `ALTER TABLE tasks ADD COLUMN project_id TEXT REFERENCES projects(id) ON DELETE SET NULL`,
+      );
+    }
+
+    if (!taskColumnNames.has('archived_at')) {
+      sqlite.exec(`ALTER TABLE tasks ADD COLUMN archived_at TEXT`);
+    }
+
+    // Backfill archived_at for existing completed tasks if missing
     sqlite.exec(
-      `ALTER TABLE tasks ADD COLUMN project_id TEXT REFERENCES projects(id) ON DELETE SET NULL`,
+      `UPDATE tasks SET archived_at = updated_at WHERE completed = 1 AND archived_at IS NULL`,
     );
-  }
 
-  if (!taskColumnNames.has('archived_at')) {
-    sqlite.exec(`ALTER TABLE tasks ADD COLUMN archived_at TEXT`);
-  }
+    if (!taskColumnNames.has('permanent_archive')) {
+      sqlite.exec(`ALTER TABLE tasks ADD COLUMN permanent_archive INTEGER NOT NULL DEFAULT 0`);
+    }
 
-  // Backfill archived_at for existing completed tasks if missing
-  sqlite.exec(
-    `UPDATE tasks SET archived_at = updated_at WHERE completed = 1 AND archived_at IS NULL`,
-  );
+    if (!taskColumnNames.has('parent_id')) {
+      sqlite.exec(
+        `ALTER TABLE tasks ADD COLUMN parent_id TEXT REFERENCES tasks(id) ON DELETE SET NULL`,
+      );
+    }
 
-  if (!taskColumnNames.has('permanent_archive')) {
-    sqlite.exec(`ALTER TABLE tasks ADD COLUMN permanent_archive INTEGER NOT NULL DEFAULT 0`);
-  }
+    if (!taskColumnNames.has('recurrence_rule')) {
+      sqlite.exec(`ALTER TABLE tasks ADD COLUMN recurrence_rule TEXT`);
+    }
 
-  if (!taskColumnNames.has('parent_id')) {
-    sqlite.exec(
-      `ALTER TABLE tasks ADD COLUMN parent_id TEXT REFERENCES tasks(id) ON DELETE SET NULL`,
-    );
-  }
+    if (!taskColumnNames.has('base_task_id')) {
+      sqlite.exec(
+        `ALTER TABLE tasks ADD COLUMN base_task_id TEXT REFERENCES tasks(id) ON DELETE SET NULL`,
+      );
+    }
 
-  if (!taskColumnNames.has('recurrence_rule')) {
-    sqlite.exec(`ALTER TABLE tasks ADD COLUMN recurrence_rule TEXT`);
-  }
+    sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_parent_id ON tasks(parent_id)`);
+    sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_base_task_id ON tasks(base_task_id)`);
 
-  if (!taskColumnNames.has('base_task_id')) {
-    sqlite.exec(
-      `ALTER TABLE tasks ADD COLUMN base_task_id TEXT REFERENCES tasks(id) ON DELETE SET NULL`,
-    );
-  }
-
-  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_parent_id ON tasks(parent_id)`);
-  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_base_task_id ON tasks(base_task_id)`);
-
-  const labelColumns = sqlite.prepare(`PRAGMA table_info('labels')`).all() as Array<{
-    name: string;
-  }>;
-  const labelColumnNames = new Set(labelColumns.map((column) => column.name));
-  if (labelColumns.length === 0) {
-    sqlite.exec(`CREATE TABLE labels (
+    const labelColumns = sqlite.prepare(`PRAGMA table_info('labels')`).all() as Array<{
+      name: string;
+    }>;
+    const labelColumnNames = new Set(labelColumns.map((column) => column.name));
+    if (labelColumns.length === 0) {
+      sqlite.exec(`CREATE TABLE labels (
       id TEXT PRIMARY KEY NOT NULL,
       user_id TEXT NOT NULL,
       name TEXT NOT NULL,
@@ -381,41 +385,43 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
       updated_at TEXT NOT NULL,
       FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
     )`);
-  } else {
-    if (!labelColumnNames.has('created_at')) {
-      sqlite.exec(`ALTER TABLE labels ADD COLUMN created_at TEXT NOT NULL DEFAULT ''`);
+    } else {
+      if (!labelColumnNames.has('created_at')) {
+        sqlite.exec(`ALTER TABLE labels ADD COLUMN created_at TEXT NOT NULL DEFAULT ''`);
+      }
+      if (!labelColumnNames.has('updated_at')) {
+        sqlite.exec(`ALTER TABLE labels ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''`);
+      }
     }
-    if (!labelColumnNames.has('updated_at')) {
-      sqlite.exec(`ALTER TABLE labels ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''`);
-    }
-  }
 
-  const joinColumns = sqlite.prepare(`PRAGMA table_info('task_labels')`).all() as Array<{
-    name: string;
-  }>;
-  if (joinColumns.length === 0) {
-    sqlite.exec(`CREATE TABLE task_labels (
+    const joinColumns = sqlite.prepare(`PRAGMA table_info('task_labels')`).all() as Array<{
+      name: string;
+    }>;
+    if (joinColumns.length === 0) {
+      sqlite.exec(`CREATE TABLE task_labels (
       task_id TEXT NOT NULL,
       label_id TEXT NOT NULL,
       PRIMARY KEY (task_id, label_id),
       FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
       FOREIGN KEY (label_id) REFERENCES labels(id) ON DELETE CASCADE
     )`);
-  }
+    }
 
-  // Migrate login_attempts to a composite (ip, email) primary key. The old shape
-  // keyed only by email, which allowed a single attacker to lock any victim's
-  // account. The table holds only transient failed-login counters, so dropping
-  // and recreating it on upgrade is safe.
-  const loginAttemptColumns = sqlite.prepare(`PRAGMA table_info('login_attempts')`).all() as Array<{
-    name: string;
-  }>;
-  const isNewShape = loginAttemptColumns.some((column) => column.name === 'ip');
-  if (loginAttemptColumns.length > 0 && !isNewShape) {
-    sqlite.exec(`DROP TABLE login_attempts`);
-  }
-  if (loginAttemptColumns.length === 0 || !isNewShape) {
-    sqlite.exec(`CREATE TABLE login_attempts (
+    // Migrate login_attempts to a composite (ip, email) primary key. The old shape
+    // keyed only by email, which allowed a single attacker to lock any victim's
+    // account. The table holds only transient failed-login counters, so dropping
+    // and recreating it on upgrade is safe.
+    const loginAttemptColumns = sqlite
+      .prepare(`PRAGMA table_info('login_attempts')`)
+      .all() as Array<{
+      name: string;
+    }>;
+    const isNewShape = loginAttemptColumns.some((column) => column.name === 'ip');
+    if (loginAttemptColumns.length > 0 && !isNewShape) {
+      sqlite.exec(`DROP TABLE login_attempts`);
+    }
+    if (loginAttemptColumns.length === 0 || !isNewShape) {
+      sqlite.exec(`CREATE TABLE login_attempts (
       ip TEXT NOT NULL,
       email TEXT NOT NULL,
       attempts INTEGER NOT NULL DEFAULT 0,
@@ -423,19 +429,24 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
       last_attempt_at INTEGER NOT NULL,
       PRIMARY KEY (ip, email)
     )`);
-  }
+    }
 
-  // 3g. Add ip column to email_sends for IP-based per-email rate limiting
-  const emailSendCols = sqlite.prepare(`PRAGMA table_info('email_sends')`).all() as Array<{
-    name: string;
-  }>;
-  if (!emailSendCols.some((c) => c.name === 'ip')) {
-    sqlite.exec(`ALTER TABLE email_sends ADD COLUMN ip TEXT NOT NULL DEFAULT ''`);
-  }
-  // Create the index after the column exists (safe for fresh and migrated DBs)
-  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_email_sends_ip ON email_sends(ip)`);
+    // 3g. Add ip column to email_sends for IP-based per-email rate limiting
+    const emailSendCols = sqlite.prepare(`PRAGMA table_info('email_sends')`).all() as Array<{
+      name: string;
+    }>;
+    if (!emailSendCols.some((c) => c.name === 'ip')) {
+      sqlite.exec(`ALTER TABLE email_sends ADD COLUMN ip TEXT NOT NULL DEFAULT ''`);
+    }
+    // Create the index after the column exists (safe for fresh and migrated DBs)
+    sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_email_sends_ip ON email_sends(ip)`);
 
-  normalizeAppTimestampStorage(sqlite);
+    normalizeAppTimestampStorage(sqlite);
+    sqlite.exec('COMMIT');
+  } catch (err) {
+    sqlite.exec('ROLLBACK');
+    throw err;
+  }
 }
 
 export function createDbClient(databaseUrl = process.env['DATABASE_URL'] ?? DEFAULT_DATABASE_URL) {
@@ -443,6 +454,17 @@ export function createDbClient(databaseUrl = process.env['DATABASE_URL'] ?? DEFA
   ensureDatabasePath(databasePath);
 
   const sqlite = new Database(databasePath);
+
+  // 7a. Tighten permissions on the database file and data directory
+  if (databasePath !== ':memory:') {
+    try {
+      chmodSync(databasePath, 0o600);
+      chmodSync(dirname(databasePath), 0o700);
+    } catch {
+      // best-effort: don't crash if permissions can't be tightened
+    }
+  }
+
   ensureSqliteSchema(sqlite);
 
   sqlite.pragma('journal_mode = WAL');

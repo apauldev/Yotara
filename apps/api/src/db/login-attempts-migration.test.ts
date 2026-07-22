@@ -81,3 +81,56 @@ test('fresh database creates login_attempts with composite key', () => {
     rmSync(dbFile, { force: true });
   }
 });
+
+test('schema bootstrap wraps DDL in a transaction (7b)', () => {
+  const dbFile = join(tmpdir(), `yotara-schema-tx-${randomUUID()}.db`);
+
+  const { sqlite } = createDbClient(dbFile);
+
+  try {
+    // All core tables should exist after bootstrap
+    const tables = sqlite
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+      .all() as Array<{ name: string }>;
+    const tableNames = tables.map((t) => t.name);
+
+    assert.ok(tableNames.includes('user'));
+    assert.ok(tableNames.includes('session'));
+    assert.ok(tableNames.includes('account'));
+    assert.ok(tableNames.includes('tasks'));
+    assert.ok(tableNames.includes('projects'));
+    assert.ok(tableNames.includes('labels'));
+    assert.ok(tableNames.includes('email_sends'));
+    assert.ok(tableNames.includes('login_attempts'));
+    assert.ok(tableNames.includes('notifications'));
+
+    // Verify indexes were also created
+    const indexes = sqlite
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%' ORDER BY name",
+      )
+      .all() as Array<{ name: string }>;
+    const indexNames = indexes.map((i) => i.name);
+    assert.ok(indexNames.includes('idx_email_sends_ip'));
+  } finally {
+    sqlite.close();
+    rmSync(dbFile, { force: true });
+  }
+});
+
+test('database file permissions are locked down (7a)', async () => {
+  const { statSync } = await import('node:fs');
+  const dbFile = join(tmpdir(), `yotara-perm-${randomUUID()}.db`);
+
+  const { sqlite } = createDbClient(dbFile);
+
+  try {
+    const stats = statSync(dbFile);
+    const perms = stats.mode & 0o777;
+    assert.ok((perms & 0o007) === 0, 'file should not be world-readable');
+    assert.ok((perms & 0o070) === 0, 'file should not be group-readable');
+  } finally {
+    sqlite.close();
+    rmSync(dbFile, { force: true });
+  }
+});
