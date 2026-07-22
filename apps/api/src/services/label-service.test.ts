@@ -209,6 +209,30 @@ test('Label Service', async (t) => {
       const emptyMap = await ctx.labelService.getLabelsForTasks([]);
       assert.equal(emptyMap.size, 0);
     });
+
+    await t.test('updateLabelForOwner returns null for wrong ownerId (4b)', async () => {
+      const label = await ctx.labelService.createLabelForOwner(ownerId, { name: 'Owner Check' });
+      assert.ok(label);
+
+      const wrongOwner = randomUUID();
+      const result = await ctx.labelService.updateLabelForOwner(wrongOwner, label.id, {
+        name: 'Hacked Name',
+      });
+      assert.equal(result, null);
+    });
+
+    await t.test('deleteLabelForOwner returns null for wrong ownerId (4b)', async () => {
+      const label = await ctx.labelService.createLabelForOwner(ownerId, { name: 'Delete Check' });
+      assert.ok(label);
+
+      const wrongOwner = randomUUID();
+      const result = await ctx.labelService.deleteLabelForOwner(wrongOwner, label.id);
+      assert.equal(result, null);
+
+      // Label should still exist for the real owner
+      const stillThere = await ctx.labelService.getLabelForOwner(label.id, ownerId);
+      assert.ok(stillThere);
+    });
   } finally {
     ctx.cleanup();
   }

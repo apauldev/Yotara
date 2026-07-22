@@ -22,6 +22,12 @@ test.describe('Reset password page', () => {
     await expect(page.getByRole('button', { name: 'Reset password' })).toBeVisible();
   });
 
+  test('shows full password policy requirements in helper text (5b)', async ({ page }) => {
+    await page.goto('/reset-password?token=valid-test-token-123');
+    // The subtitle should describe the full password policy
+    await expect(page.getByText(/uppercase.*lowercase.*number.*symbol/i)).toBeVisible();
+  });
+
   test('shows validation error for empty password', async ({ page }) => {
     await page.goto('/reset-password?token=valid-test-token-123');
     await page.getByRole('button', { name: 'Reset password' }).click();

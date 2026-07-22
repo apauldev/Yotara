@@ -23,7 +23,7 @@ import taskRoutes from './routes/tasks.js';
 export const CONTENT_SECURITY_POLICY =
   process.env['CONTENT_SECURITY_POLICY'] ??
   "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
-    "img-src 'self' data:; connect-src 'self' http://localhost:3000; " +
+    "img-src 'self' data:; connect-src 'self'; " +
     "frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
 
 // Defense-in-depth security headers. The CSP is shared with nginx (above); the
@@ -40,8 +40,10 @@ export async function buildApp() {
   // HMAC-signed with this secret, so a default/placeholder value lets anyone forge
   // sessions for any account. Better Auth reads BETTER_AUTH_SECRET from the env by
   // default; this guard is defense-in-depth in case auth.ts is not imported first.
+  const nodeEnv = process.env['NODE_ENV'] ?? 'development';
   if (
-    process.env['NODE_ENV'] === 'production' &&
+    nodeEnv !== 'development' &&
+    nodeEnv !== 'test' &&
     (!process.env['BETTER_AUTH_SECRET'] ||
       process.env['BETTER_AUTH_SECRET'] === 'local-dev-secret-change-me')
   ) {
@@ -59,7 +61,7 @@ export async function buildApp() {
   // Global rate limiting (read at registration time so tests can configure via env).
   // Relies on trustProxy: 1 (set above) so request.ip is the real client IP
   // from the last X-Forwarded-For entry, not the client-controlled first entry.
-  const rateLimitMax = Number(process.env['RATE_LIMIT_MAX'] ?? 1000);
+  const rateLimitMax = Number(process.env['RATE_LIMIT_MAX'] ?? 200);
   const rateLimitWindowMs = Number(process.env['RATE_LIMIT_WINDOW_MINUTES'] ?? 1) * 60 * 1000;
   await app.register(rateLimit, {
     max: rateLimitMax,

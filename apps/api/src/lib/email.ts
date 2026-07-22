@@ -48,8 +48,8 @@ async function sendEmail(payload: {
  * Check rate limit and throw if exceeded.
  * Call this BEFORE sending, then call recordEmailSend AFTER successful send.
  */
-export function checkRateLimitOrThrow(email: string, type: EmailType): void {
-  const result = checkEmailRateLimit(email, type);
+export function checkRateLimitOrThrow(email: string, type: EmailType, clientIp?: string): void {
+  const result = checkEmailRateLimit(email, type, clientIp);
   if (!result.allowed) {
     const err = new Error(
       `Too many ${type} requests. Please try again in ${Math.ceil(result.retryAfterSeconds! / 60)} minutes.`,

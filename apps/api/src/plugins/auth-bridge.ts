@@ -137,7 +137,7 @@ export default async function authBridgePlugin(app: FastifyInstance) {
       if (actionEmail) {
         const actionType = isSignUp ? ('signup' as const) : ('reset' as const);
         try {
-          checkRateLimitOrThrow(actionEmail, actionType);
+          checkRateLimitOrThrow(actionEmail, actionType, clientIp);
         } catch (err) {
           const error = err as { statusCode: number; retryAfterSeconds: number; message: string };
           reply.header('Retry-After', String(error.retryAfterSeconds));
@@ -147,6 +147,9 @@ export default async function authBridgePlugin(app: FastifyInstance) {
             retryAfterSeconds: error.retryAfterSeconds,
           });
         }
+        // 3h: Record email send on every attempt (regardless of response status)
+        // so the rate limit applies to both new and existing email addresses.
+        recordEmailSend(actionEmail, actionType, clientIp);
       }
 
       const headers = toHeaders(request.headers);
@@ -168,7 +171,11 @@ export default async function authBridgePlugin(app: FastifyInstance) {
           };
           const userId = respJson?.user?.id;
           if (userId) {
-            scanDueNotifications(userId);
+            try {
+              scanDueNotifications(userId);
+            } catch (err) {
+              app.log.error({ err, userId }, 'Failed to scan due notifications on login');
+            }
           }
         } else if (response.status === 401) {
           const result = recordFailedAttempt(clientIp, loginEmail);
@@ -191,22 +198,6 @@ export default async function authBridgePlugin(app: FastifyInstance) {
             remainingAttempts: result.remainingAttempts,
           });
         }
-      }
-
-      // Record email send count for rate-limiting purposes (post-auth-response).
-      // Record email sends synchronously after a 2xx response.
-      // Note: email.ts callbacks (sendVerificationEmail / sendPasswordResetEmail) are
-      // invoked by Better Auth via runInBackgroundOrAwait, so they can't be relied
-      // on for synchronous rate-limit recording. This auth-bridge call is the
-      // authoritative record point.
-      if (
-        actionEmail &&
-        (isSignUp || isForgetPassword) &&
-        response.status >= 200 &&
-        response.status < 300
-      ) {
-        const actionType = isSignUp ? ('signup' as const) : ('reset' as const);
-        recordEmailSend(actionEmail, actionType);
       }
 
       reply.code(response.status);

@@ -119,7 +119,7 @@ export async function updateLabelForOwner(ownerId: string, labelId: string, body
       color,
       updatedAt: nowIsoTimestamp(),
     })
-    .where(eq(labels.id, labelId));
+    .where(and(eq(labels.id, labelId), eq(labels.userId, ownerId)));
 
   const [label] = await db.select().from(labels).where(eq(labels.id, labelId)).limit(1);
   return label ?? null;
@@ -133,7 +133,10 @@ export function deleteLabelForOwner(ownerId: string, labelId: string, tx?: Datab
     }
 
     client.delete(taskLabels).where(eq(taskLabels.labelId, labelId)).run();
-    client.delete(labels).where(eq(labels.id, labelId)).run();
+    client
+      .delete(labels)
+      .where(and(eq(labels.id, labelId), eq(labels.userId, ownerId)))
+      .run();
     return true;
   };
 

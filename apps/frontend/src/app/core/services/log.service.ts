@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { environment } from '../../../environments/environment';
 
 export type LogLevel = 'info' | 'warn' | 'error';
 
@@ -85,6 +86,7 @@ export class LogService {
   }
 
   private saveToStorage() {
+    if (environment.production) return; // never persist to localStorage in prod
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.buffer));
     } catch (e) {
@@ -108,17 +110,49 @@ export class LogService {
     if (!data) return undefined;
 
     if (data instanceof Error) {
-      return {
-        ...data,
+      const result: Record<string, unknown> = {
         name: data.name,
         message: data.message,
-        stack: data.stack,
       };
+      // Only include stack in non-production builds
+      if (!environment.production) {
+        result['stack'] = data.stack;
+      }
+      return result;
     }
 
     try {
-      // Circular check / structure check
-      return JSON.parse(JSON.stringify(data));
+      // Deep clone + redact sensitive keys
+      const SENSITIVE_KEYS = new Set([
+        'authorization',
+        'cookie',
+        'set-cookie',
+        'password',
+        'token',
+        'accessToken',
+        'refreshToken',
+        'idToken',
+        'secret',
+        'BETTER_AUTH_SECRET',
+        'RESEND_API_KEY',
+      ]);
+
+      function redactSensitive(obj: Record<string, unknown>): Record<string, unknown> {
+        const cleaned: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(obj)) {
+          if (SENSITIVE_KEYS.has(key.toLowerCase())) {
+            cleaned[key] = '[REDACTED]';
+          } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            cleaned[key] = redactSensitive(value as Record<string, unknown>);
+          } else {
+            cleaned[key] = value;
+          }
+        }
+        return cleaned;
+      }
+
+      const cloned = JSON.parse(JSON.stringify(data));
+      return typeof cloned === 'object' && cloned !== null ? redactSensitive(cloned) : cloned;
     } catch {
       return '[Unserializable Data]';
     }

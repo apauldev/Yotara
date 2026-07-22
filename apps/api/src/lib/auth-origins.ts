@@ -13,7 +13,8 @@ export function getAppBaseUrl() {
 
 export function getTrustedOrigins() {
   const configuredOrigins = parseOriginList(process.env['TRUSTED_ORIGINS']);
-  const defaultOrigins = ['http://localhost:4200', 'http://127.0.0.1:4200'];
+  const isProd = process.env['NODE_ENV'] === 'production';
+  const defaultOrigins = isProd ? [] : ['http://localhost:4200', 'http://127.0.0.1:4200'];
 
   return Array.from(new Set([...defaultOrigins, ...configuredOrigins]));
 }

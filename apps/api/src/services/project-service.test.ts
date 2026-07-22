@@ -153,6 +153,25 @@ test('Project Service', async (t) => {
       assert.equal(tasks[0].title, 'Project Task');
       assert.equal(tasks[0].projectId, project.id);
     });
+
+    await t.test('updateProjectForOwner returns null for wrong ownerId (4b)', async () => {
+      const project = await ctx.projectService.createProjectForOwner(ownerId, {
+        name: 'Owner Check Project',
+      });
+      assert.ok(project);
+
+      const wrongOwner = randomUUID();
+      const result = await ctx.projectService.updateProjectForOwner(wrongOwner, project.id, {
+        name: 'Hacked Name',
+      });
+      assert.equal(result, null);
+
+      // Project should be unchanged for the real owner
+      const projects = await ctx.projectService.listProjectsForOwner(ownerId);
+      const found = projects.find((p) => p.id === project.id);
+      assert.ok(found);
+      assert.equal(found.name, 'Owner Check Project');
+    });
   } finally {
     ctx.cleanup();
   }

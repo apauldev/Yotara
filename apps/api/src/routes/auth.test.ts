@@ -22,6 +22,13 @@ async function createTestApp() {
   return {
     app,
     async cleanup() {
+      // Clear email rate-limit state so tests don't hit the IP cap
+      try {
+        const { sqlite } = await import('../db/client.js');
+        sqlite.prepare('DELETE FROM email_sends').run();
+      } catch {
+        // best-effort: db might already be closed
+      }
       await app.close();
       delete process.env['BETTER_AUTH_SECRET'];
       delete process.env['APP_BASE_URL'];
@@ -542,6 +549,47 @@ test('signup accepts password meeting minPasswordLength (8)', async () => {
     });
 
     assert.equal(response.statusCode, 200);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('duplicate signup attempt consumes rate-limit slot (3h)', async () => {
+  const ctx = await createTestApp();
+  const email = `dup-rate-${randomUUID()}@example.com`;
+
+  try {
+    // First sign-up should succeed
+    const firstSignUp = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: '[redacted]', name: 'Dup Rate' },
+    });
+    assert.equal(firstSignUp.statusCode, 200);
+
+    // Second sign-up with same email — rate-limited because the first
+    // attempt consumed a slot (1 per 5 min). The rate-limit check happens
+    // before the auth handler, so Better Auth never sees the duplicate.
+    const secondSignUp = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: '[redacted]', name: 'Dup Rate' },
+    });
+    assert.equal(secondSignUp.statusCode, 429);
+    const body = secondSignUp.json();
+    assert.ok(typeof body.retryAfterSeconds === 'number' && body.retryAfterSeconds > 0);
+
+    // Different email should still be allowed (same IP)
+    const otherEmail = `dup-rate-other-${randomUUID()}@example.com`;
+    const otherSignUp = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email: otherEmail, password: '[redacted]', name: 'Other' },
+    });
+    assert.equal(otherSignUp.statusCode, 200);
   } finally {
     await ctx.cleanup();
   }

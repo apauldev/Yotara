@@ -13,7 +13,12 @@ const DEFAULT_AUTH_SECRET = 'local-dev-secret-change-me';
 
 function assertAuthSecretConfigured(): void {
   const secret = process.env['BETTER_AUTH_SECRET'];
-  if (process.env['NODE_ENV'] === 'production' && (!secret || secret === DEFAULT_AUTH_SECRET)) {
+  const nodeEnv = process.env['NODE_ENV'] ?? 'development';
+  if (
+    nodeEnv !== 'development' &&
+    nodeEnv !== 'test' &&
+    (!secret || secret === DEFAULT_AUTH_SECRET)
+  ) {
     throw new Error(
       'Refusing to start: BETTER_AUTH_SECRET is missing or still set to the default ' +
         'placeholder. Generate a strong, unique secret (e.g. `openssl rand -base64 32`) ' +
@@ -43,6 +48,7 @@ export const auth = betterAuth({
     requireEmailVerification: false,
     minPasswordLength: 8,
     maxPasswordLength: 128,
+    resetPasswordTokenExpiresIn: 3600, // 1 hour (matches email copy)
     sendResetPassword: async ({ user, url }) => {
       const { sendPasswordResetEmail } = await import('./email.js');
       await sendPasswordResetEmail(user, url);
@@ -63,5 +69,9 @@ export const auth = betterAuth({
       secure: useSecureCookies,
     },
     useSecureCookies,
+  },
+  session: {
+    expiresIn: 60 * 60 * 24 * 7, // 7 days
+    updateAge: 60 * 60 * 24, // refresh after 24 hours
   },
 });

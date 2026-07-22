@@ -1001,3 +1001,61 @@ test('uncompleting a due/overdue task triggers notification', async () => {
     await ctx.cleanup();
   }
 });
+
+test('creating task with more than 50 subtasks returns 400 (4a)', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`subtask-cap-${randomUUID()}@example.com`);
+
+    // Create a task with 51 subtasks — should exceed maxItems: 50
+    const subtasks = Array.from({ length: 51 }, (_, i) => ({
+      title: `Subtask ${i + 1}`,
+    }));
+
+    const res = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: {
+        title: 'Task with too many subtasks',
+        subtasks,
+      },
+    });
+
+    assert.equal(res.statusCode, 400);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('updating task with more than 50 labels returns 400 (4a)', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`label-cap-${randomUUID()}@example.com`);
+
+    // First create a task
+    const createRes = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Label cap test' },
+    });
+    assert.equal(createRes.statusCode, 201);
+    const taskId = createRes.json().id;
+
+    // Update with 51 label IDs
+    const labels = Array.from({ length: 51 }, () => randomUUID());
+    const updateRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}`,
+      headers: { cookie },
+      payload: { labels },
+    });
+
+    assert.equal(updateRes.statusCode, 400);
+  } finally {
+    await ctx.cleanup();
+  }
+});

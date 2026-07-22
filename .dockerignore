@@ -9,4 +9,10 @@ coverage
 .angular
 **/.angular
 .reasonix
+**/.env
+**/.env.*
+data/
+**/*.db
+**/*.db-shm
+**/*.db-wal
 apps/api/data

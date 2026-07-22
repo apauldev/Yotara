@@ -454,15 +454,26 @@ test('search handles SQL LIKE wildcard characters safely', async () => {
   const app = await getApp();
   const cookie = await signUpAndGetCookie(`escape-${randomUUID()}@example.com`);
 
-  // SQL LIKE % matches any sequence, _ matches any single char.
-  // This is fine for personal use — searching with special chars still works
-  // as the user would expect (e.g. "100%" matches anything starting with "100").
-  await createTask(app, cookie, { title: 'Task 100 percent done' });
+  // SQL LIKE % and _ are escaped so they can't trigger full-table scans.
+  // A literal % or _ in the search query looks for a literal character.
+  await createTask(app, cookie, { title: 'Task with 100% success rate' });
+  await createTask(app, cookie, { title: 'Task with _underscore_' });
 
+  // Search for literal % — should match the title with %
   const res = await app.inject({ method: 'GET', url: '/tasks/search?q=100%', headers: { cookie } });
   assert.equal(res.statusCode, 200);
   const titles = res.json().tasks.map((t: any) => t.task.title);
-  assert.ok(titles.includes('Task 100 percent done'));
+  assert.ok(titles.includes('Task with 100% success rate'));
+
+  // Search for literal _ — should match the title with _
+  const res2 = await app.inject({
+    method: 'GET',
+    url: '/tasks/search?q=_underscore_',
+    headers: { cookie },
+  });
+  assert.equal(res2.statusCode, 200);
+  const titles2 = res2.json().tasks.map((t: any) => t.task.title);
+  assert.ok(titles2.includes('Task with _underscore_'));
 });
 
 test('full frontend search smoke test: active search + archive search + response shape', async () => {

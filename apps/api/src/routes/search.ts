@@ -263,8 +263,9 @@ export default async function searchRoutes(fastify: FastifyInstance) {
         } satisfies SearchResponse;
       }
 
-      const likeQuery = `%${normalizedQ}%`;
-      const startsWithQuery = `${normalizedQ}%`;
+      const escapedQ = normalizedQ.replace(/[%_\\]/g, '\\$&');
+      const likeQuery = `%${escapedQ}%`;
+      const startsWithQuery = `${escapedQ}%`;
 
       const completedFilter = request.query.completed;
       const taskWhereCompleted =
@@ -286,13 +287,13 @@ export default async function searchRoutes(fastify: FastifyInstance) {
             p.updated_at AS project_updated_at,
             MAX(
               CASE WHEN LOWER(t.title) = ${normalizedQ} THEN 120 ELSE 0 END
-              + CASE WHEN LOWER(t.title) LIKE ${startsWithQuery} THEN 100 ELSE 0 END
-              + CASE WHEN LOWER(t.title) LIKE ${likeQuery} THEN 80 ELSE 0 END
-              + CASE WHEN LOWER(t.description) LIKE ${likeQuery} THEN 50 ELSE 0 END
-              + CASE WHEN LOWER(p.name) LIKE ${likeQuery} THEN 70 ELSE 0 END
-              + CASE WHEN LOWER(p.description) LIKE ${likeQuery} THEN 30 ELSE 0 END
-              + CASE WHEN LOWER(l.name) LIKE ${likeQuery} THEN 60 ELSE 0 END
-              + CASE WHEN LOWER(t.status) LIKE ${likeQuery} THEN 40 ELSE 0 END
+              + CASE WHEN LOWER(t.title) LIKE ${startsWithQuery} ESCAPE '\\' THEN 100 ELSE 0 END
+              + CASE WHEN LOWER(t.title) LIKE ${likeQuery} ESCAPE '\\' THEN 80 ELSE 0 END
+              + CASE WHEN LOWER(t.description) LIKE ${likeQuery} ESCAPE '\\' THEN 50 ELSE 0 END
+              + CASE WHEN LOWER(p.name) LIKE ${likeQuery} ESCAPE '\\' THEN 70 ELSE 0 END
+              + CASE WHEN LOWER(p.description) LIKE ${likeQuery} ESCAPE '\\' THEN 30 ELSE 0 END
+              + CASE WHEN LOWER(l.name) LIKE ${likeQuery} ESCAPE '\\' THEN 60 ELSE 0 END
+              + CASE WHEN LOWER(t.status) LIKE ${likeQuery} ESCAPE '\\' THEN 40 ELSE 0 END
             ) AS score
           FROM tasks t
           LEFT JOIN projects p ON t.project_id = p.id
@@ -300,11 +301,11 @@ export default async function searchRoutes(fastify: FastifyInstance) {
           LEFT JOIN labels l ON tl.label_id = l.id
           WHERE t.user_id = ${request.userId} AND ${taskWhereCompleted}
             AND (
-              LOWER(t.title) LIKE ${likeQuery}
-              OR LOWER(t.description) LIKE ${likeQuery}
-              OR LOWER(p.name) LIKE ${likeQuery}
-              OR LOWER(l.name) LIKE ${likeQuery}
-              OR LOWER(t.status) LIKE ${likeQuery}
+              LOWER(t.title) LIKE ${likeQuery} ESCAPE '\\'
+              OR LOWER(t.description) LIKE ${likeQuery} ESCAPE '\\'
+              OR LOWER(p.name) LIKE ${likeQuery} ESCAPE '\\'
+              OR LOWER(l.name) LIKE ${likeQuery} ESCAPE '\\'
+              OR LOWER(t.status) LIKE ${likeQuery} ESCAPE '\\'
             )
           GROUP BY t.id
           HAVING score > 0
@@ -318,10 +319,10 @@ export default async function searchRoutes(fastify: FastifyInstance) {
             COALESCE(tc.completed_count, 0) AS completed_task_count,
             COALESCE(tc.open_count, 0) AS open_task_count,
             CASE WHEN LOWER(p.name) = ${normalizedQ} THEN 120
-                 WHEN LOWER(p.name) LIKE ${startsWithQuery} THEN 100
-                 WHEN LOWER(p.name) LIKE ${likeQuery} THEN 80
+                 WHEN LOWER(p.name) LIKE ${startsWithQuery} ESCAPE '\\' THEN 100
+                 WHEN LOWER(p.name) LIKE ${likeQuery} ESCAPE '\\' THEN 80
                  ELSE 0 END
-            + CASE WHEN LOWER(p.description) LIKE ${likeQuery} THEN 35 ELSE 0 END
+            + CASE WHEN LOWER(p.description) LIKE ${likeQuery} ESCAPE '\\' THEN 35 ELSE 0 END
             AS score
           FROM projects p
           LEFT JOIN (
@@ -335,8 +336,8 @@ export default async function searchRoutes(fastify: FastifyInstance) {
           ) tc ON p.id = tc.project_id
           WHERE p.owner_id = ${request.userId}
             AND (
-              LOWER(p.name) LIKE ${likeQuery}
-              OR LOWER(p.description) LIKE ${likeQuery}
+              LOWER(p.name) LIKE ${likeQuery} ESCAPE '\\'
+              OR LOWER(p.description) LIKE ${likeQuery} ESCAPE '\\'
             )
           ORDER BY score DESC, p.updated_at DESC
           LIMIT ${pageSize} OFFSET ${offset}
@@ -346,8 +347,8 @@ export default async function searchRoutes(fastify: FastifyInstance) {
             l.*,
             COALESCE(lc.task_count, 0) AS task_count,
             CASE WHEN LOWER(l.name) = ${normalizedQ} THEN 120
-                 WHEN LOWER(l.name) LIKE ${startsWithQuery} THEN 100
-                 WHEN LOWER(l.name) LIKE ${likeQuery} THEN 80
+                 WHEN LOWER(l.name) LIKE ${startsWithQuery} ESCAPE '\\' THEN 100
+                 WHEN LOWER(l.name) LIKE ${likeQuery} ESCAPE '\\' THEN 80
                  ELSE 0 END AS score
           FROM labels l
           LEFT JOIN (
@@ -358,7 +359,7 @@ export default async function searchRoutes(fastify: FastifyInstance) {
             GROUP BY tl.label_id
           ) lc ON l.id = lc.label_id
           WHERE l.user_id = ${request.userId}
-            AND LOWER(l.name) LIKE ${likeQuery}
+            AND LOWER(l.name) LIKE ${likeQuery} ESCAPE '\\'
           ORDER BY score DESC, l.name ASC
           LIMIT ${pageSize} OFFSET ${offset}
         `),

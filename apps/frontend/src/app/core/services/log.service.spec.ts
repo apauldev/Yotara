@@ -96,4 +96,26 @@ describe('LogService', () => {
     expect(data.message).toBe('Test Error Message');
     expect(data.stack).toBeDefined();
   });
+
+  it('should redact sensitive keys in logged data (5a)', () => {
+    const sensitiveData = {
+      email: 'user@example.com',
+      password: 'supersecret',
+      token: 'fake-test-token-value',
+      nested: {
+        authorization: 'Bearer tok123',
+        normalField: 'hello',
+      },
+    };
+
+    service.error('Sensitive Data Test', sensitiveData);
+    const logs = service.getLogs();
+    const data = logs[0].data as any;
+
+    expect(data.password).toBe('[REDACTED]');
+    expect(data.token).toBe('[REDACTED]');
+    expect(data.email).toBe('user@example.com');
+    expect(data.nested.authorization).toBe('[REDACTED]');
+    expect(data.nested.normalField).toBe('hello');
+  });
 });
