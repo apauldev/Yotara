@@ -9,8 +9,6 @@ import { nowIsoTimestamp, toIsoTimestamp } from '../lib/timestamps.js';
 
 const DEFAULT_DATABASE_URL = './data/yotara.db';
 const SQLITE_BOOTSTRAP_SQL = `
-  PRAGMA foreign_keys = ON;
-
   CREATE TABLE IF NOT EXISTS user (
     id TEXT PRIMARY KEY NOT NULL,
     name TEXT NOT NULL,
@@ -293,6 +291,8 @@ function ensureDatabasePath(databasePath: string): void {
 }
 
 function ensureSqliteSchema(sqlite: Database.Database): void {
+  // PRAGMA foreign_keys must be set outside a transaction (SQLite ignores it otherwise)
+  sqlite.exec('PRAGMA foreign_keys = ON');
   sqlite.exec('BEGIN IMMEDIATE');
   try {
     sqlite.exec(SQLITE_BOOTSTRAP_SQL);
