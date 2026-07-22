@@ -72,4 +72,8 @@ ENV TRUSTED_ORIGINS=http://localhost:8080
 
 EXPOSE 3000
 
+RUN mkdir -p /app/apps/api/data && chown node:node /app/apps/api/data
+
+USER node
+
 CMD ["node", "/app/apps/api/dist/server.js"]

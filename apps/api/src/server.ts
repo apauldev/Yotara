@@ -23,7 +23,7 @@ import taskRoutes from './routes/tasks.js';
 export const CONTENT_SECURITY_POLICY =
   process.env['CONTENT_SECURITY_POLICY'] ??
   "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
-    "img-src 'self' data:; connect-src 'self' http://localhost:3000; " +
+    "img-src 'self' data:; connect-src 'self'; " +
     "frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
 
 // Defense-in-depth security headers. The CSP is shared with nginx (above); the
