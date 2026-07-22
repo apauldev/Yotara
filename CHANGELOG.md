@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.70.1](https://github.com/apauldev/Yotara/compare/v0.70.0...v0.70.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* auth secret guard in server.ts — handle unset NODE_ENV ([54824f1](https://github.com/apauldev/Yotara/commit/54824f15d3759af4645719a3cda8b41506b45e69))
+* make email IP cap configurable, raise in CI for E2E tests ([f2d2c41](https://github.com/apauldev/Yotara/commit/f2d2c416bc08f63ae9fa90f73d7a0259276d491d))
+* move PRAGMA foreign_keys before BEGIN IMMEDIATE in schema bootstrap ([16bce69](https://github.com/apauldev/Yotara/commit/16bce69ba5f98061cfc6e1f335726f145ad6c318))
+* normalize sensitive log keys to lowercase before redaction ([caef3b6](https://github.com/apauldev/Yotara/commit/caef3b6c7bd86609b8486a790caef83c485a3d9b))
+* pass clientIp into checkRateLimitOrThrow for IP-based rate limiting ([5f2d04d](https://github.com/apauldev/Yotara/commit/5f2d04db72781911cd818166c077d73ceeb91531))
+* remove chmod of parent directory in DB permission lock ([5b69862](https://github.com/apauldev/Yotara/commit/5b6986211fbc604461cba240823feeabb8bdbf9c))
+* replace fake JWT token in test to silence gitleaks ([08724e4](https://github.com/apauldev/Yotara/commit/08724e44233b2c74def70c0d1b3c691d06d9dca7))
+
+
+### Chores
+
+* add .gitleaks.toml to allowlist test file false positives ([05f0cd9](https://github.com/apauldev/Yotara/commit/05f0cd9d241b7e03abf839198457eff24de5794d))
+* lower pnpm audit threshold from moderate to high ([d074fcc](https://github.com/apauldev/Yotara/commit/d074fcce1a748908580fcc8024a1efd642a6cc75))
+* make pnpm audit non-blocking in CI ([4865ac5](https://github.com/apauldev/Yotara/commit/4865ac55c37c67f196217f6093933c7b1903b90f))
+* phase 1 security hardening — secrets hygiene and git leakage ([822b84a](https://github.com/apauldev/Yotara/commit/822b84a557da4c29b7cce2f326f2f7f3126c6791))
+* phase 2 security hardening — infrastructure hardening ([e37aaec](https://github.com/apauldev/Yotara/commit/e37aaec785345a97c2cd20810040cb0a4ded3ce7))
+* phase 3 security hardening — auth & session hardening ([1d87629](https://github.com/apauldev/Yotara/commit/1d876298b50de736525219e587976ef447e0c864))
+* phase 3.5 — IP rate-limit, record on all attempts, tighten global limit ([6652ed8](https://github.com/apauldev/Yotara/commit/6652ed87342691045e7c48f12534d3bdb84e418f))
+* phase 4 security hardening — API defense-in-depth ([cd0b084](https://github.com/apauldev/Yotara/commit/cd0b08426e3dfe7b908e3ed3473e25eb74ba1b54))
+* phase 5 security hardening — frontend hardening ([32e877e](https://github.com/apauldev/Yotara/commit/32e877eecc0b62e6ad36aa7f3477ba20021d415b))
+* phase 6 security hardening — CI/CD gates ([1e1df09](https://github.com/apauldev/Yotara/commit/1e1df09c44a169b10a818106231e509427a51729))
+* phase 7 security hardening — database hygiene ([787e4d1](https://github.com/apauldev/Yotara/commit/787e4d1ae99478052dcd8d4a14a4459a58a1d4c5))
+
 ## [0.70.0](https://github.com/apauldev/Yotara/compare/v0.69.0...v0.70.0) (2026-07-18)
 
 
