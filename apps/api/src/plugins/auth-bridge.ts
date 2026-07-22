@@ -168,7 +168,11 @@ export default async function authBridgePlugin(app: FastifyInstance) {
           };
           const userId = respJson?.user?.id;
           if (userId) {
-            scanDueNotifications(userId);
+            try {
+              scanDueNotifications(userId);
+            } catch (err) {
+              app.log.error({ err, userId }, 'Failed to scan due notifications on login');
+            }
           }
         } else if (response.status === 401) {
           const result = recordFailedAttempt(clientIp, loginEmail);

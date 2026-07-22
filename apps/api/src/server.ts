@@ -41,7 +41,8 @@ export async function buildApp() {
   // sessions for any account. Better Auth reads BETTER_AUTH_SECRET from the env by
   // default; this guard is defense-in-depth in case auth.ts is not imported first.
   if (
-    process.env['NODE_ENV'] === 'production' &&
+    process.env['NODE_ENV'] !== 'development' &&
+    process.env['NODE_ENV'] !== 'test' &&
     (!process.env['BETTER_AUTH_SECRET'] ||
       process.env['BETTER_AUTH_SECRET'] === 'local-dev-secret-change-me')
   ) {

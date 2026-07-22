@@ -13,6 +13,7 @@ services:
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET?set a strong BETTER_AUTH_SECRET (openssl rand -base64 32)}
       HOST: 0.0.0.0
       PORT: ${PORT:-3000}
+      NODE_ENV: ${NODE_ENV:-production}
       CONTENT_SECURITY_POLICY: ${CONTENT_SECURITY_POLICY:-default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'}
     volumes:
       - yotara_api_data:/app/apps/api/data
