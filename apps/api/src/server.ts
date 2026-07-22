@@ -40,9 +40,10 @@ export async function buildApp() {
   // HMAC-signed with this secret, so a default/placeholder value lets anyone forge
   // sessions for any account. Better Auth reads BETTER_AUTH_SECRET from the env by
   // default; this guard is defense-in-depth in case auth.ts is not imported first.
+  const nodeEnv = process.env['NODE_ENV'] ?? 'development';
   if (
-    process.env['NODE_ENV'] !== 'development' &&
-    process.env['NODE_ENV'] !== 'test' &&
+    nodeEnv !== 'development' &&
+    nodeEnv !== 'test' &&
     (!process.env['BETTER_AUTH_SECRET'] ||
       process.env['BETTER_AUTH_SECRET'] === 'local-dev-secret-change-me')
   ) {
