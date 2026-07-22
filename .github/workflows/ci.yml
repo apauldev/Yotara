@@ -44,7 +44,7 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
       - name: Audit
-        run: pnpm audit --audit-level=moderate
+        run: pnpm audit --audit-level=high
 
   test:
     runs-on: ubuntu-latest
