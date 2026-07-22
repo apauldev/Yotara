@@ -140,7 +140,7 @@ export class LogService {
       function redactSensitive(obj: Record<string, unknown>): Record<string, unknown> {
         const cleaned: Record<string, unknown> = {};
         for (const [key, value] of Object.entries(obj)) {
-          if (SENSITIVE_KEYS.has(key)) {
+          if (SENSITIVE_KEYS.has(key.toLowerCase())) {
             cleaned[key] = '[REDACTED]';
           } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
             cleaned[key] = redactSensitive(value as Record<string, unknown>);
