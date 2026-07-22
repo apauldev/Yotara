@@ -128,7 +128,7 @@ jobs:
         run: pnpm --filter @yotara/shared build
       - name: Start API
         run: |
-          RATE_LIMIT_MAX=10000 pnpm --filter @yotara/api dev &
+          RATE_LIMIT_MAX=10000 EMAIL_RATE_IP_CAP=100 pnpm --filter @yotara/api dev &
           pnpm --filter @yotara/frontend e2e:wait --timeout 60000 http-get://localhost:3000/health
       - name: Start Frontend
         run: |

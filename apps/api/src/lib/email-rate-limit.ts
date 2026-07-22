@@ -18,8 +18,8 @@ export interface RateLimitResult {
  * Check whether an email send is allowed for the given email + type.
  * Cleans stale rows for this email on each check (lazy cleanup, scoped).
  */
-/** IP cap: max 5 unique email addresses per IP per hour */
-const IP_UNIQUE_CAP = 5;
+/** IP cap: max 5 unique email addresses per IP per hour (configurable via EMAIL_RATE_IP_CAP env var) */
+const IP_UNIQUE_CAP = Number(process.env['EMAIL_RATE_IP_CAP'] ?? 5);
 const IP_WINDOW_MS = 60 * 60 * 1000;
 
 /**
