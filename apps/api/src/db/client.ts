@@ -134,6 +134,7 @@ const SQLITE_BOOTSTRAP_SQL = `
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT NOT NULL,
     type TEXT NOT NULL CHECK(type IN ('signup', 'reset')),
+    ip TEXT NOT NULL DEFAULT '',
     created_at INTEGER NOT NULL
   );
 
@@ -423,6 +424,16 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
       PRIMARY KEY (ip, email)
     )`);
   }
+
+  // 3g. Add ip column to email_sends for IP-based per-email rate limiting
+  const emailSendCols = sqlite.prepare(`PRAGMA table_info('email_sends')`).all() as Array<{
+    name: string;
+  }>;
+  if (!emailSendCols.some((c) => c.name === 'ip')) {
+    sqlite.exec(`ALTER TABLE email_sends ADD COLUMN ip TEXT NOT NULL DEFAULT ''`);
+  }
+  // Create the index after the column exists (safe for fresh and migrated DBs)
+  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_email_sends_ip ON email_sends(ip)`);
 
   normalizeAppTimestampStorage(sqlite);
 }

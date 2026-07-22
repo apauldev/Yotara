@@ -18,7 +18,19 @@ export interface RateLimitResult {
  * Check whether an email send is allowed for the given email + type.
  * Cleans stale rows for this email on each check (lazy cleanup, scoped).
  */
-export function checkEmailRateLimit(email: string, type: EmailType): RateLimitResult {
+/** IP cap: max 5 unique email addresses per IP per hour */
+const IP_UNIQUE_CAP = 5;
+const IP_WINDOW_MS = 60 * 60 * 1000;
+
+/**
+ * Check whether an email send is allowed for the given email + type.
+ * Cleans stale rows for this email on each check (lazy cleanup, scoped).
+ */
+export function checkEmailRateLimit(
+  email: string,
+  type: EmailType,
+  clientIp?: string,
+): RateLimitResult {
   // Scoped cleanup — only delete stale rows for this email to avoid
   // paying a full-table scan cost on every check.
   const cutoff = Date.now() - TOTAL_WINDOW_MS;
@@ -75,15 +87,29 @@ export function checkEmailRateLimit(email: string, type: EmailType): RateLimitRe
     return { allowed: false, retryAfterSeconds: Math.max(1, retryAfter) };
   }
 
+  // Check 3: IP-based cap — max N unique emails per IP per hour
+  if (clientIp) {
+    const ipUniqueRow = sqlite
+      .prepare(
+        `SELECT COUNT(DISTINCT email) AS cnt FROM email_sends
+         WHERE ip = ? AND created_at >= ?`,
+      )
+      .get(clientIp, now - IP_WINDOW_MS) as { cnt: number };
+
+    if (ipUniqueRow.cnt >= IP_UNIQUE_CAP) {
+      return { allowed: false, retryAfterSeconds: 3600 }; // 1 hour
+    }
+  }
+
   return { allowed: true, retryAfterSeconds: null };
 }
 
 /** Record a successful email send. */
-export function recordEmailSend(email: string, type: EmailType): void {
+export function recordEmailSend(email: string, type: EmailType, clientIp?: string): void {
   sqlite
     .prepare(
-      `INSERT INTO email_sends (email, type, created_at)
-       VALUES (?, ?, ?)`,
+      `INSERT INTO email_sends (email, type, ip, created_at)
+       VALUES (?, ?, ?, ?)`,
     )
-    .run(email, type, Date.now());
+    .run(email, type, clientIp ?? '', Date.now());
 }

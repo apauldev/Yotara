@@ -57,3 +57,53 @@ test('email rate limiter enforces per-type 5-min cooldown and total 3-per-hour c
     rmSync(dbFile, { force: true });
   }
 });
+
+test('IP-based cap limits unique emails per IP per hour', async () => {
+  const dbFile = join(tmpdir(), `yotara-email-rate-ip-test-${randomUUID()}.db`);
+  process.env['DATABASE_URL'] = dbFile;
+
+  try {
+    await import('../db/client.js');
+    const { checkEmailRateLimit, recordEmailSend } = await import('./email-rate-limit.js');
+
+    const TEST_IP = '203.0.113.1';
+    const OTHER_IP = '198.51.100.1';
+    let firstEmail = '';
+
+    // ── Send to 5 unique emails from the same IP (should all succeed) ──
+    for (let i = 1; i <= 5; i++) {
+      const email = `ip-cap-${i}-${randomUUID()}@test.com`;
+      if (i === 1) firstEmail = email;
+      const result = checkEmailRateLimit(email, 'signup', TEST_IP);
+      assert.equal(result.allowed, true, `email ${i} should be allowed`);
+      recordEmailSend(email, 'signup', TEST_IP);
+    }
+
+    // ── 6th unique email from the same IP should be blocked ──
+    const blockedEmail = `ip-cap-blocked-${randomUUID()}@test.com`;
+    const blockedResult = checkEmailRateLimit(blockedEmail, 'signup', TEST_IP);
+    assert.equal(blockedResult.allowed, false, '6th unique email from same IP should be blocked');
+    assert.equal(blockedResult.retryAfterSeconds, 3600);
+
+    // ── A different IP should still be allowed ──
+    const otherEmail = `ip-cap-other-${randomUUID()}@test.com`;
+    const otherResult = checkEmailRateLimit(otherEmail, 'signup', OTHER_IP);
+    assert.equal(otherResult.allowed, true, 'different IP should not be affected');
+    assert.equal(otherResult.retryAfterSeconds, null);
+
+    // ── Previously seen email from same IP should still be allowed
+    //    (the IP cap counts distinct emails, not total sends) ──
+    // Clear per-email rows first so the per-email cap doesn't interfere
+    const { sqlite } = await import('../db/client.js');
+    sqlite.prepare('DELETE FROM email_sends WHERE email = ?').run(firstEmail);
+    const afterClear = checkEmailRateLimit(firstEmail, 'reset', TEST_IP);
+    assert.equal(afterClear.allowed, true, 'previously seen email should be allowed under IP cap');
+
+    // ── Cleanup ──
+    sqlite.prepare('DELETE FROM email_sends WHERE ip = ?').run(TEST_IP);
+    sqlite.prepare('DELETE FROM email_sends WHERE ip = ?').run(OTHER_IP);
+  } finally {
+    delete process.env['DATABASE_URL'];
+    rmSync(dbFile, { force: true });
+  }
+});
