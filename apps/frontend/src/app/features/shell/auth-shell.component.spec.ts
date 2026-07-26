@@ -44,7 +44,7 @@ describe('AuthShellComponent', () => {
         element.queryAll(By.css('span'))[1]?.nativeElement.textContent.replace(/\s+/g, ' ').trim(),
       );
 
-    expect(labels).toEqual(['Dashboard', 'My Tasks', 'Workspaces', 'Calendar', 'Team Settings']);
+    expect(labels).toEqual(['Dashboard']);
   });
 
   it('renders the workspace and user summary details from auth state', () => {

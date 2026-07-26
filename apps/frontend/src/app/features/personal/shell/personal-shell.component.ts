@@ -133,6 +133,7 @@ export class PersonalShellComponent {
   ];
   protected readonly mobileMenuOpen = signal(false);
   protected readonly sidebarCollapsed = signal(false);
+  protected readonly now = signal(new Date());
   protected readonly profileMenuOpen = signal(false);
   protected readonly preferencesMenuOpen = signal(false);
   protected readonly notificationsOpen = signal(false);

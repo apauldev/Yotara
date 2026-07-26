@@ -31,7 +31,6 @@ import { PaginatedResponse, Task } from '@yotara/shared';
     <app-personal-task-workspace #workspace>
       <section class="page">
         <app-page-header
-          eyebrow="Personal Sanctuary"
           title="Archive"
           subtitle="Completed tasks stay here, and permanent archives remain until you remove them."
         />

@@ -124,7 +124,7 @@ interface SidebarItem {
         </div>
 
         <div class="sidebar-bottom">
-          <button type="button" class="invite-button">Invite Member</button>
+          <!-- <button type="button" class="invite-button">Invite Member</button> -->
 
           <div class="profile-menu">
             @if (profileMenuOpen()) {
@@ -686,10 +686,10 @@ export class AuthShellComponent {
 
   protected readonly navItems: SidebarItem[] = [
     { label: 'Dashboard', icon: 'dashboard', route: '/dashboard' },
-    { label: 'My Tasks', icon: 'tasks', route: null, disabled: true },
-    { label: 'Workspaces', icon: 'workspaces', route: null, disabled: true },
-    { label: 'Calendar', icon: 'calendar', route: null, disabled: true },
-    { label: 'Team Settings', icon: 'team', route: null, disabled: true },
+    // { label: 'My Tasks', icon: 'tasks', route: null, disabled: true },
+    // { label: 'Workspaces', icon: 'workspaces', route: null, disabled: true },
+    // { label: 'Calendar', icon: 'calendar', route: null, disabled: true },
+    // { label: 'Team Settings', icon: 'team', route: null, disabled: true },
   ];
 
   protected readonly user = this.authState.user;

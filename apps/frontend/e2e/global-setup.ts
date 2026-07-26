@@ -67,10 +67,8 @@ async function setup() {
     await page.waitForURL(/\/onboarding/);
     log(`Onboarding URL: ${page.url()}`);
 
-    log('Selecting Personal workspace...');
-    await page.getByText('Personal & Simple').click();
+    log('Clicking Continue (personal mode is default)...');
 
-    log('Clicking Continue...');
     await page.getByRole('button', { name: 'Continue' }).click();
 
     log('Waiting for tasks...');

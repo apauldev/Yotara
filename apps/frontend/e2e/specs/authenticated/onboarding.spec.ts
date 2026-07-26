@@ -35,10 +35,8 @@ test.describe('Onboarding', () => {
     // Wait for onboarding page
     await page.waitForURL(/\/onboarding/, { timeout: 15_000 });
 
-    // Verify workspace selection is visible
-    await expect(page.getByText('Personal & Simple')).toBeVisible();
-
-    await expect(page.getByText('Light Team Sharing')).toBeVisible();
+    // Verify onboarding page is visible
+    await expect(page.getByText('Welcome to Yotara')).toBeVisible();
   });
 
   test('selects personal workspace and continues to tasks', async ({ page }) => {
@@ -57,10 +55,7 @@ test.describe('Onboarding', () => {
     // Wait for onboarding page
     await page.waitForURL(/\/onboarding/, { timeout: 15_000 });
 
-    // Select Personal workspace
-    await page.getByText('Personal & Simple').click();
-
-    // Click Continue
+    // Click Continue — personal mode is now the default
     await page.getByRole('button', { name: 'Continue' }).click();
 
     // Should redirect to tasks page

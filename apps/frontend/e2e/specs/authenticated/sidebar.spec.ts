@@ -74,13 +74,4 @@ test.describe('Sidebar & Navigation', () => {
     await page.getByRole('button', { name: 'Close preferences menu' }).click();
     await expect(page.getByRole('menuitem', { name: /Settings/ })).not.toBeVisible();
   });
-
-  test('simple mode toggle is visible in topbar', async ({ page }) => {
-    await page.goto('/tasks?view=inbox');
-    await page.waitForLoadState('networkidle');
-    await dismissTip(page);
-
-    // Simple mode button should be visible in the topbar
-    await expect(page.getByRole('button', { name: 'Simple' })).toBeVisible();
-  });
 });

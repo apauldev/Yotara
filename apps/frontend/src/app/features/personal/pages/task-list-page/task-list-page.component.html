@@ -4,7 +4,7 @@
   (taskSaved)="handleTaskSaved($event)"
 >
   <section class="page" [attr.data-view]="viewMode()">
-    <app-page-header eyebrow="Personal Sanctuary" [title]="pageTitle()" [subtitle]="pageSubtitle()">
+    <app-page-header [title]="pageTitle()" [subtitle]="pageSubtitle()">
       @if (
         insightPanelVisible() &&
         (viewMode() === 'inbox' || viewMode() === 'today' || viewMode() === 'upcoming')

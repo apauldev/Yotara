@@ -1,6 +1,6 @@
 <app-personal-task-workspace #workspace (taskSaved)="handleTaskSaved($event)">
   <section class="page" data-view="search">
-    <app-page-header eyebrow="Personal Sanctuary" [title]="pageTitle" [subtitle]="pageSubtitle()">
+    <app-page-header [title]="pageTitle" [subtitle]="pageSubtitle()">
       @if (searchQuery()) {
         <div page-header-actions class="header-chip" aria-live="polite">
           <span>{{ resultCount() }} matches</span>

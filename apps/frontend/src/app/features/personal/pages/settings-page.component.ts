@@ -32,7 +32,6 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
   template: `
     <section class="page">
       <app-page-header
-        eyebrow="Personal Sanctuary"
         title="Settings"
         subtitle="Manage your personal sanctuary preferences, including archive cleanup."
       />
@@ -177,16 +176,16 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
               <span class="coming-soon">N/A</span>
             }
           </label>
-          <div class="settings-item settings-item-disabled">
+          <!-- <div class="settings-item settings-item-disabled">
             <div class="settings-item-copy">
               <strong>Email digests</strong>
               <span>Weekly summary of your tasks.</span>
             </div>
             <span class="coming-soon">Coming soon</span>
-          </div>
+          </div> -->
         </div>
 
-        <div class="settings-section">
+        <!-- <div class="settings-section">
           <h3 class="section-title">Preferences</h3>
           <div class="settings-item settings-item-disabled">
             <div class="settings-item-copy">
@@ -202,7 +201,7 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
             </div>
             <span class="coming-soon">Coming soon</span>
           </div>
-        </div>
+        </div> -->
 
         <div class="settings-section">
           <h3 class="section-title">Account</h3>
@@ -216,20 +215,20 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
               <span>Update your account password.</span>
             </div>
           </button>
-          <button type="button" class="settings-item settings-link" disabled>
+          <!-- <button type="button" class="settings-item settings-link" disabled>
             <div class="settings-item-copy">
               <strong>Profile settings</strong>
               <span>Edit your name, email, and avatar.</span>
             </div>
             <span class="coming-soon">Coming soon</span>
-          </button>
-          <button type="button" class="settings-item settings-link" disabled>
+          </button> -->
+          <!-- <button type="button" class="settings-item settings-link" disabled>
             <div class="settings-item-copy">
               <strong>Two-factor authentication</strong>
               <span>Add extra security to your account.</span>
             </div>
             <span class="coming-soon">Coming soon</span>
-          </button>
+          </button> -->
           <button
             type="button"
             class="settings-item settings-link settings-link-danger"
@@ -347,16 +346,16 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
             </p>
           </details>
 
-          <button type="button" class="settings-item settings-link" disabled>
+          <!-- <button type="button" class="settings-item settings-link" disabled>
             <div class="settings-item-copy">
               <strong>Import data</strong>
               <span>Upload tasks from other apps.</span>
             </div>
             <span class="coming-soon">Coming soon</span>
-          </button>
+          </button> -->
         </div>
 
-        <div class="settings-section">
+        <!-- <div class="settings-section">
           <h3 class="section-title">Support</h3>
           <button type="button" class="settings-item settings-link" disabled>
             <div class="settings-item-copy">
@@ -372,7 +371,7 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
             </div>
             <span class="coming-soon">Coming soon</span>
           </button>
-        </div>
+        </div> -->
 
         <div class="settings-section">
           <h3 class="section-title">About</h3>
