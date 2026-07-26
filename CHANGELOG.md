@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.70.2](https://github.com/apauldev/Yotara/compare/v0.70.1...v0.70.2) (2026-07-26)
+
+
+### Bug Fixes
+
+* remove E2E test for removed mode switcher toggle ([f99cca1](https://github.com/apauldev/Yotara/commit/f99cca132b768a2aa74c862c64acfda1e283dea2))
+* update E2E global setup — personal mode is now the default ([54e8e2e](https://github.com/apauldev/Yotara/commit/54e8e2e5b10b41003de1379ffbfa5bcc42a0c496))
+
+
+### Refactoring
+
+* remove dead UI references to unreleased features ([15f3248](https://github.com/apauldev/Yotara/commit/15f32482747862fb2571863974acd27ceec20062))
+
 ## [0.70.1](https://github.com/apauldev/Yotara/compare/v0.70.0...v0.70.1) (2026-07-22)
 
 
