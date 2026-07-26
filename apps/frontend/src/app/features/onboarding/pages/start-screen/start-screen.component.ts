@@ -4,14 +4,14 @@ import { AuthStateService } from '../../../../core/services/auth-state.service';
 import { LogService } from '../../../../core/services/log.service';
 import { PreferencesStore } from '../../../../core/services/preferences-store.service';
 
-type WorkspaceType = 'personal' | 'team';
-
-interface WorkspaceOption {
-  id: WorkspaceType;
-  title: string;
-  description: string;
-  icon: 'leaf' | 'sprout';
-}
+// type WorkspaceType = 'personal' | 'team';
+//
+// interface WorkspaceOption {
+//   id: WorkspaceType;
+//   title: string;
+//   description: string;
+//   icon: 'leaf' | 'sprout';
+// }
 
 @Component({
   selector: 'app-start-screen',
@@ -27,42 +27,41 @@ export class StartScreenComponent {
   private logService = inject(LogService);
   private preferences = inject(PreferencesStore);
 
-  selectedWorkspace = signal<WorkspaceType>('team');
+  // selectedWorkspace = signal<WorkspaceType>('team');
   loading = signal(false);
   error = signal('');
   accountCreated = signal(false);
 
-  workspaceOptions: WorkspaceOption[] = [
-    {
-      id: 'personal',
-      title: 'Personal & Simple',
-      description: 'Focus on your own flow with a minimalist workspace.',
-      icon: 'leaf',
-    },
-    {
-      id: 'team',
-      title: 'Light Team Sharing',
-      description: 'Collaborate with small groups and sync effortlessly.',
-      icon: 'sprout',
-    },
-  ];
+  // workspaceOptions: WorkspaceOption[] = [
+  //   {
+  //     id: 'personal',
+  //     title: 'Personal & Simple',
+  //     description: 'Focus on your own flow with a minimalist workspace.',
+  //     icon: 'leaf',
+  //   },
+  //   {
+  //     id: 'team',
+  //     title: 'Light Team Sharing',
+  //     description: 'Collaborate with small groups and sync effortlessly.',
+  //     icon: 'sprout',
+  //   },
+  // ];
 
   constructor() {
     this.accountCreated.set(this.route.snapshot.queryParamMap.get('created') === '1');
   }
 
-  selectWorkspace(workspace: WorkspaceType) {
-    this.selectedWorkspace.set(workspace);
-  }
+  // selectWorkspace(workspace: WorkspaceType) {
+  //   this.selectedWorkspace.set(workspace);
+  // }
 
   async continue() {
-    const workspace = this.selectedWorkspace();
     this.loading.set(true);
     this.error.set('');
 
     try {
-      await this.authState.completeOnboarding(workspace);
-      this.preferences.setWorkspaceType(workspace);
+      await this.authState.completeOnboarding('personal');
+      this.preferences.setWorkspaceType('personal');
       this.preferences.setOnboardingCompleted();
       await this.router.navigateByUrl(this.authState.getPostAuthRedirectUrl());
     } catch (error) {
@@ -73,8 +72,7 @@ export class StartScreenComponent {
     }
   }
 
-  goToHelp() {
-    // Open help or navigate to help page
-    window.open('https://help.yotara.com', '_blank');
-  }
+  // goToHelp() {
+  //   window.open('https://help.yotara.com', '_blank');
+  // }
 }

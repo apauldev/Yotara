@@ -66,9 +66,7 @@ describe('StartScreenComponent', () => {
     fixture.detectChanges();
 
     expect(component.accountCreated()).toBeTrue();
-    expect(fixture.nativeElement.textContent).toContain(
-      'Account created. Choose a mode to continue.',
-    );
+    expect(fixture.nativeElement.textContent).toContain("Account created. You're all set!");
   });
 
   it('completes onboarding in personal mode and redirects to the default landing page', async () => {
@@ -84,8 +82,6 @@ describe('StartScreenComponent', () => {
     });
     authState.getPostAuthRedirectUrl.and.returnValue('/inbox');
     router.navigateByUrl.and.resolveTo(true);
-
-    component.selectWorkspace('personal');
 
     await component.continue();
 

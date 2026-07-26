@@ -10,7 +10,7 @@
       </div>
       <span class="brand-name">Yotara</span>
     </div>
-    <button class="help-button" type="button" (click)="goToHelp()">Help</button>
+    <!-- <button class="help-button" type="button" (click)="goToHelp()">Help</button> -->
   </header>
 
   <main class="onboarding-main">
@@ -30,10 +30,10 @@
     <p class="subtitle">Flow through your day, naturally</p>
 
     @if (accountCreated()) {
-      <p class="success-note">Account created. Choose a mode to continue.</p>
+      <p class="success-note">Account created. You're all set!</p>
     }
 
-    <div class="workspace-grid">
+    <!-- <div class="workspace-grid">
       @for (option of workspaceOptions; track option.id) {
         <button
           class="workspace-card"
@@ -61,7 +61,7 @@
           <p>{{ option.description }}</p>
         </button>
       }
-    </div>
+    </div> -->
 
     @if (error()) {
       <p class="submit-error">{{ error() }}</p>
@@ -71,10 +71,10 @@
       {{ loading() ? 'Saving...' : 'Continue' }}
     </button>
 
-    <div class="progress-dots" aria-hidden="true">
+    <!-- <div class="progress-dots" aria-hidden="true">
       <span class="dot active"></span>
       <span class="dot"></span>
       <span class="dot"></span>
-    </div>
+    </div> -->
   </main>
 </div>

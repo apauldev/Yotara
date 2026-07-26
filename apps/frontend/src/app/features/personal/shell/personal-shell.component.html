@@ -16,8 +16,8 @@
     <div class="sidebar-top">
       <div class="sidebar-brand">
         <div class="brand-content">
-          <h1>Personal Sanctuary</h1>
-          <p>Focus mode active</p>
+          <h1>{{ now() | date: 'EEEE' }}</h1>
+          <p>{{ now() | date: 'MMM d, y' }}</p>
         </div>
         <button
           type="button"
@@ -115,10 +115,10 @@
           <span>Yotara</span>
         </a>
 
-        <div class="mode-switcher">
+        <!-- <div class="mode-switcher">
           <button type="button" class="mode-button mode-button-active">Simple</button>
           <button type="button" class="mode-button" disabled>Team</button>
-        </div>
+        </div> -->
 
         <form class="search-shell" (ngSubmit)="submitSearch()">
           <span class="search-icon" aria-hidden="true">
@@ -242,12 +242,12 @@
               </div>
             </button> -->
 
-            <button type="button" class="preferences-item" role="menuitem" disabled>
+            <!-- <button type="button" class="preferences-item" role="menuitem" disabled>
               <span class="preferences-item-copy">
                 <strong>Compact mode</strong>
                 <span>Coming soon.</span>
               </span>
-            </button>
+            </button> -->
           </div>
         }
         <div class="profile-menu">
