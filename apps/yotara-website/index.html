@@ -622,9 +622,9 @@
             Built in public. Self-hosted. Yours.
           </h2>
           <p class="text-xl text-surface-variant leading-relaxed max-w-2xl mx-auto mb-10">
-            Yotara is open source under the MIT license. Deploy your own instance in one command. No
-            tracking, no telemetry, no data collection. Built for makers, students, freelancers, and
-            anyone who'd rather host their own task manager.
+            Yotara is open source under the MIT license. Deploy your own instance in three commands.
+            No tracking, no telemetry, no data collection. Built for makers, students, freelancers,
+            and anyone who'd rather host their own task manager.
           </p>
           <div
             class="flex flex-wrap justify-center gap-x-8 gap-y-3 mb-10 text-sm text-surface-variant"
@@ -667,8 +667,15 @@
           >
             <span class="text-surface-variant">$</span>
             <span class="text-primary-fixed"
-              >docker run -d --name yotara -p 8080:80 apauldev/yotara:latest</span
-            >
+              >curl -o docker-compose.yml
+              https://raw.githubusercontent.com/apauldev/yotara/main/docker-compose.hub.yml</span
+            ><br />
+            <span class="text-surface-variant">$</span>
+            <span class="text-primary-fixed"
+              >export BETTER_AUTH_SECRET=$(openssl rand -base64 32)</span
+            ><br />
+            <span class="text-surface-variant">$</span>
+            <span class="text-primary-fixed">docker compose up -d</span>
           </div>
           <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
             <a
