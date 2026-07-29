@@ -2,7 +2,7 @@
   {
     "date": "2026-07-08",
     "title": "Seven Themes",
-    "image": "https://images.unsplash.com/photo-1716471330475-f0669db8947a?w=900&h=506&fit=crop",
+    "image": "assets/blog/seven-themes.webp",
     "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
     "excerpt": "Seven themes, each with its own personality. None of them are inverted light modes. None of them are the same thing with a different tint.",
     "content": [
@@ -18,7 +18,7 @@
   {
     "date": "2026-07-08",
     "title": "Why SQLite?",
-    "image": "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=900&h=506&fit=crop",
+    "image": "assets/blog/why-sqlite.webp",
     "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
     "excerpt": "SQLite isn't the obvious database choice, but for a self-hosted app it makes more sense than you might think.",
     "content": [
@@ -33,7 +33,7 @@
   {
     "date": "2026-07-08",
     "title": "Inside the Docker Command",
-    "image": "https://images.unsplash.com/photo-1605745341112-85968b19335b?w=900&h=506&fit=crop",
+    "image": "assets/blog/docker-command.webp",
     "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
     "excerpt": "That one-line Docker command is doing more than you'd expect. Two containers, one volume, zero fuss.",
     "content": [
@@ -48,7 +48,7 @@
   {
     "date": "2026-07-07",
     "title": "Yotara Beta is Here",
-    "image": "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=900&h=506&fit=crop",
+    "image": "assets/blog/beta-is-here.webp",
     "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
     "excerpt": "After months of building this alone at night, the beta is open. A task manager that tries to stay out of your way.",
     "content": [
@@ -63,7 +63,7 @@
   {
     "date": "2026-07-07",
     "title": "Why Self-Host?",
-    "image": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=900&h=506&fit=crop",
+    "image": "assets/blog/why-self-host.webp",
     "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
     "excerpt": "Self-hosting Yotara wasn't really a technical decision. It was about who gets to hold your data.",
     "content": [
@@ -78,7 +78,7 @@
   {
     "date": "2026-07-07",
     "title": "The Art of Task Management",
-    "image": "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=900&h=506&fit=crop",
+    "image": "assets/blog/art-of-task-management.webp",
     "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
     "excerpt": "Task management isn't about getting more done. It's about seeing clearly what actually matters.",
     "content": [
@@ -93,7 +93,7 @@
   {
     "date": "2026-07-07",
     "title": "Designing for Focus",
-    "image": "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=900&h=506&fit=crop",
+    "image": "assets/blog/designing-for-focus.webp",
     "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
     "excerpt": "Every visual decision in Yotara gets one question: does this earn the attention it's asking for? Most of the time the answer is no.",
     "content": [
@@ -108,7 +108,7 @@
   {
     "date": "2026-07-07",
     "title": "Privacy by Design",
-    "image": "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=900&h=506&fit=crop",
+    "image": "assets/blog/privacy-by-design.webp",
     "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
     "excerpt": "Built around privacy from day one. No central service, no telemetry, no tracking. Not a feature but the foundation.",
     "content": [
@@ -123,7 +123,7 @@
   {
     "date": "2026-07-07",
     "title": "What Comes Next",
-    "image": "https://images.unsplash.com/photo-1512758017271-d7b84c2113f1?w=900&h=506&fit=crop",
+    "image": "assets/blog/what-comes-next.webp",
     "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
     "excerpt": "Team mode is the next milestone, then mobile, then an API. Here's what I'm thinking, in order of how sure I am.",
     "content": [
@@ -138,7 +138,7 @@
   {
     "date": "2026-07-07",
     "title": "Building in Public",
-    "image": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=900&h=506&fit=crop",
+    "image": "assets/blog/building-in-public.webp",
     "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
     "excerpt": "Built in public from the first commit. Every mistake is in the history. Here's why that's worth doing.",
     "content": [

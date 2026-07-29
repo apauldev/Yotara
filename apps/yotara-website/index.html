@@ -90,6 +90,62 @@
         }
       }
     </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Do I have to self-host Yotara?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Yotara is self-hosted only — there is no hosted cloud version today. You run it on your own server with Docker. A managed cloud option is planned but not yet available."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is there a mobile app?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Not yet. The web app is responsive and works on phones, but there is no native iOS or Android app. A progressive web app is on the roadmap."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do backups work?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "All your data lives in a single SQLite file. Back it up by copying the file somewhere safe — another disk, a remote server, or a cloud bucket. There is no dump or restore command needed."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I import tasks from other tools?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "There is no import feature yet. You can export all your tasks as JSON or CSV at any time from the settings page."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How much does Yotara cost?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yotara is free and open source under the MIT license. There is no paid tier. You pay for your own server, which can be as cheap as a $5/month VPS."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Will there be a hosted cloud version?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "It is being considered but not yet committed. If it happens, you would pay for hosting, not for access to your own data."
+            }
+          }
+        ]
+      }
+    </script>
   </head>
   <body
     class="bg-surface text-on-surface font-body antialiased min-h-screen flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed"
@@ -577,6 +633,110 @@
         </div>
       </section>
 
+      <section class="py-32 bg-surface-container-low animate-in">
+        <div class="max-w-3xl mx-auto px-8">
+          <h2
+            class="text-[1.75rem] md:text-[2.5rem] font-display font-bold mb-12 tracking-tight text-on-surface text-center"
+          >
+            Frequently asked questions
+          </h2>
+          <div class="space-y-4">
+            <details class="group rounded-2xl bg-surface p-6">
+              <summary
+                class="flex items-center justify-between cursor-pointer font-semibold text-on-surface text-lg list-none"
+              >
+                Do I have to self-host?
+                <span
+                  class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180"
+                  >expand_more</span
+                >
+              </summary>
+              <p class="text-on-surface-variant leading-relaxed mt-4">
+                Yes. Yotara is self-hosted only — there is no hosted cloud version today. You run it
+                on your own server with Docker. A managed cloud option is planned but not yet
+                available.
+              </p>
+            </details>
+            <details class="group rounded-2xl bg-surface p-6">
+              <summary
+                class="flex items-center justify-between cursor-pointer font-semibold text-on-surface text-lg list-none"
+              >
+                Is there a mobile app?
+                <span
+                  class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180"
+                  >expand_more</span
+                >
+              </summary>
+              <p class="text-on-surface-variant leading-relaxed mt-4">
+                Not yet. The web app is responsive and works on phones, but there is no native iOS
+                or Android app. A progressive web app is on the roadmap.
+              </p>
+            </details>
+            <details class="group rounded-2xl bg-surface p-6">
+              <summary
+                class="flex items-center justify-between cursor-pointer font-semibold text-on-surface text-lg list-none"
+              >
+                How do backups work?
+                <span
+                  class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180"
+                  >expand_more</span
+                >
+              </summary>
+              <p class="text-on-surface-variant leading-relaxed mt-4">
+                All your data lives in a single SQLite file. Back it up by copying the file
+                somewhere safe — another disk, a remote server, or a cloud bucket. There is no dump
+                or restore command needed.
+              </p>
+            </details>
+            <details class="group rounded-2xl bg-surface p-6">
+              <summary
+                class="flex items-center justify-between cursor-pointer font-semibold text-on-surface text-lg list-none"
+              >
+                Can I import tasks from other tools?
+                <span
+                  class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180"
+                  >expand_more</span
+                >
+              </summary>
+              <p class="text-on-surface-variant leading-relaxed mt-4">
+                There is no import feature yet. You can export all your tasks as JSON or CSV at any
+                time from the settings page.
+              </p>
+            </details>
+            <details class="group rounded-2xl bg-surface p-6">
+              <summary
+                class="flex items-center justify-between cursor-pointer font-semibold text-on-surface text-lg list-none"
+              >
+                How much does Yotara cost?
+                <span
+                  class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180"
+                  >expand_more</span
+                >
+              </summary>
+              <p class="text-on-surface-variant leading-relaxed mt-4">
+                Yotara is free and open source under the MIT license. There is no paid tier. You pay
+                for your own server, which can be as cheap as a $5/month VPS.
+              </p>
+            </details>
+            <details class="group rounded-2xl bg-surface p-6">
+              <summary
+                class="flex items-center justify-between cursor-pointer font-semibold text-on-surface text-lg list-none"
+              >
+                Will there be a hosted cloud version?
+                <span
+                  class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180"
+                  >expand_more</span
+                >
+              </summary>
+              <p class="text-on-surface-variant leading-relaxed mt-4">
+                It is being considered but not yet committed. If it happens, you would pay for
+                hosting, not for access to your own data.
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+
       <section class="py-32 bg-inverse-surface text-surface-bright">
         <div class="max-w-7xl mx-auto px-8 text-center">
           <h2 class="text-[1.75rem] md:text-[2.5rem] font-display font-bold mb-6 tracking-tight">
@@ -754,8 +914,7 @@
     >
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <p class="text-sm leading-relaxed flex-grow">
-          No cookies. No tracking. No analytics. Cloudflare handles CDN and hosting. Blog images
-          from Unsplash.
+          No cookies. No tracking. No analytics. Cloudflare handles CDN and hosting.
           <a
             href="/privacy/"
             class="text-primary-fixed underline hover:no-underline whitespace-nowrap"
