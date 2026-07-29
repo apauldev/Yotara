@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.71.0](https://github.com/apauldev/Yotara/compare/v0.70.2...v0.71.0) (2026-07-29)
+
+
+### Features
+
+* **docker:** publish pre-built images to Docker Hub ([b5e34e5](https://github.com/apauldev/Yotara/commit/b5e34e549753543189eb8b007d0dc0d18977e05e))
+* **marketing:** add FAQ, self-host blog images, interest capture ([f2c7cc0](https://github.com/apauldev/Yotara/commit/f2c7cc0ca0805de4cb0f3c924ee2530b901eb42b))
+* **marketing:** consolidate homepage and fix correctness ([d81ef6b](https://github.com/apauldev/Yotara/commit/d81ef6b1f64cc70105f0f1c260051d3649ac0aad))
+
+
+### Bug Fixes
+
+* **ci:** guard docker-publish job on CI success ([9b49d12](https://github.com/apauldev/Yotara/commit/9b49d12ca469a5cc3e5a3b4cff5ef9ade1cfd0c2))
+* **ci:** make docker-publish depend on release, use bumped version for tags ([86e754f](https://github.com/apauldev/Yotara/commit/86e754f5f1fcbc610ac1678fed798096cb12ad27))
+* **ci:** support workflow_dispatch for manual releases ([e1d385c](https://github.com/apauldev/Yotara/commit/e1d385c373b5a34e28ad7f39e8d00f16872aa7ef))
+* exclude marketing site from ESLint, fix e2e date-picker locator ([628e6b4](https://github.com/apauldev/Yotara/commit/628e6b4ed6eaab62a4e8f594fe409d41eb1f78f3))
+* **marketing:** add CSP to install docs, standardize og:image, proxy star count ([a1907b8](https://github.com/apauldev/Yotara/commit/a1907b8d0b5ff82793b82838d9c1fb355b478b3d))
+* **marketing:** revise FAQ with beta mention, fix Hub compose data path ([84c4b60](https://github.com/apauldev/Yotara/commit/84c4b60447f706f328b09545fe4c48d24ff27c6d))
+
+
+### Chores
+
+* **release:** sync website version automatically ([4414b6b](https://github.com/apauldev/Yotara/commit/4414b6bb133e24674acd8986cf53fbd524bea73e))
+
 ## [0.70.2](https://github.com/apauldev/Yotara/compare/v0.70.1...v0.70.2) (2026-07-26)
 
 
