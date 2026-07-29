@@ -346,6 +346,7 @@
       HOST: 0.0.0.0
       PORT: ${PORT:-3000}
       NODE_ENV: ${NODE_ENV:-production}
+      CONTENT_SECURITY_POLICY: ${CONTENT_SECURITY_POLICY:-default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'}
     volumes:
       - yotara_api_data:/data
     security_opt:
@@ -360,6 +361,8 @@
     image: apauldev/yotara-frontend:latest
     depends_on:
       - api
+    environment:
+      CONTENT_SECURITY_POLICY: ${CONTENT_SECURITY_POLICY:-default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'}
     ports:
       - "8080:80"
 

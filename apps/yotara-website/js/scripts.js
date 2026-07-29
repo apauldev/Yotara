@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
       starEl.textContent = cached;
       starEl.classList.remove('hidden');
     } else {
-      fetch('https://api.github.com/repos/apauldev/yotara')
+      fetch('/api/stars')
         .then((r) => r.json())
         .then((data) => {
           if (data.stargazers_count != null) {

@@ -134,7 +134,7 @@ function updatePageMeta(title, description, image) {
   const url = isPost
     ? `${SITE_URL}/blog#${encodeURIComponent(slugFor(title))}`
     : `${SITE_URL}/blog`;
-  const img = image || `${SITE_URL}/assets/project1.webp`;
+  const img = image || `${SITE_URL}/assets/inbox.webp`;
 
   setMeta('description', desc);
   setMeta('og:title', document.title);
