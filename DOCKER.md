@@ -25,6 +25,23 @@ Data persists in a named Docker volume.
 - Docker
 - Docker Compose
 
+## Pre-built images (Docker Hub)
+
+Yotara publishes multi-platform images (amd64 & arm64) to Docker Hub on every release:
+
+- [`apauldev/yotara-api`](https://hub.docker.com/r/apauldev/yotara-api) — Fastify + SQLite + Better Auth
+- [`apauldev/yotara-frontend`](https://hub.docker.com/r/apauldev/yotara-frontend) — Angular served by Nginx
+
+Use the [hub compose file](./docker-compose.hub.yml) for the quickest start:
+
+```bash
+curl -o docker-compose.yml https://raw.githubusercontent.com/apauldev/yotara/main/docker-compose.hub.yml
+export BETTER_AUTH_SECRET=$(openssl rand -base64 32)
+docker compose up -d
+```
+
+The rest of this document covers building from source.
+
 ## Quick Start
 
 ```bash

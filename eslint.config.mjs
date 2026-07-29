@@ -13,6 +13,7 @@ export default [
       '**/*.spec.ts',
       '**/environments/environment.prod.ts',
       'apps/api/data/**',
+      'apps/yotara-website/**',
       'pnpm-lock.yaml',
       'pnpm-workspace.yaml',
       '**/*.json',
@@ -60,29 +61,6 @@ export default [
       ],
       'prefer-const': 'error',
       'no-var': 'error',
-    },
-  },
-  {
-    files: ['apps/yotara-website/js/*.js'],
-    languageOptions: {
-      globals: {
-        document: 'readonly',
-        window: 'readonly',
-        fetch: 'readonly',
-        setTimeout: 'readonly',
-        clearTimeout: 'readonly',
-        requestAnimationFrame: 'readonly',
-        IntersectionObserver: 'readonly',
-        localStorage: 'readonly',
-        navigator: 'readonly',
-        console: 'readonly',
-        CSS: 'readonly',
-        history: 'readonly',
-      },
-    },
-    rules: {
-      'no-unused-vars': 'off',
-      '@typescript-eslint/no-unused-vars': 'off',
     },
   },
 ];

@@ -188,4 +188,26 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('gdpr-dismissed', 'true');
     });
   }
+
+  // GitHub star count
+  const starEl = document.querySelector('.github-star-count');
+  if (starEl) {
+    const cached = sessionStorage.getItem('gh-stars');
+    if (cached) {
+      starEl.textContent = cached;
+      starEl.classList.remove('hidden');
+    } else {
+      fetch('/api/stars')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.stargazers_count != null) {
+            const text = data.stargazers_count.toLocaleString();
+            sessionStorage.setItem('gh-stars', text);
+            starEl.textContent = text;
+            starEl.classList.remove('hidden');
+          }
+        })
+        .catch(() => {});
+    }
+  }
 });

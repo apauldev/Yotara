@@ -22,7 +22,7 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Yotara" />
     <meta property="og:locale" content="en_US" />
-    <meta property="og:image" content="https://yotara.website/assets/project1.webp" />
+    <meta property="og:image" content="https://yotara.website/assets/inbox.webp" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@apauldev" />
     <meta name="twitter:title" content="Yotara — Self-hosted task manager" />
@@ -30,7 +30,7 @@
       name="twitter:description"
       content="A lightweight, self-hosted task manager that puts your privacy first. Capture, organize, and focus — without the noise."
     />
-    <meta name="twitter:image" content="https://yotara.website/assets/project1.webp" />
+    <meta name="twitter:image" content="https://yotara.website/assets/inbox.webp" />
     <link
       rel="preload"
       href="assets/fonts/manrope-latin.woff2"
@@ -82,12 +82,68 @@
         "description": "A lightweight, self-hosted task manager that puts your privacy first.",
         "url": "https://yotara.website",
         "downloadUrl": "https://hub.docker.com/r/apauldev/yotara",
-        "softwareVersion": "0.66.1",
+        "softwareVersion": "0.70.2",
         "offers": {
           "@type": "Offer",
           "price": "0",
           "priceCurrency": "USD"
         }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Is there a demo I can try?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes — the beta is live at beta.yotara.website. No install needed. It's the full app: create an account and start using it right away. Beta data may be reset occasionally as we ship updates, so it's best for trying things out rather than long-term use."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Do I have to self-host?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "For your own permanent instance, yes. Yotara runs on your server with Docker and stores everything in a SQLite file. The beta at beta.yotara.website is a great way to try it before you install. A managed cloud option is on the roadmap for those who'd rather not self-host."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is there a mobile app?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Not yet. The web app is responsive and works well on phones, but there is no native iOS or Android app. A progressive web app is on the roadmap."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do backups work?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "All your data lives in a single SQLite file. Back it up by copying the file somewhere safe — another disk, a remote server, or a cloud bucket. No dump or restore commands needed."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I move my tasks from another tool?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Import isn't available yet, but you can export all your tasks as JSON or CSV from the settings page at any time. If you're switching from another tool, export from there first so you keep a copy of everything."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How much does Yotara cost?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yotara is free and open source under the MIT license. There is no paid tier, no subscriptions, no premium features. You pay for your own server, which can be as cheap as a $5/month VPS."
+            }
+          }
+        ]
       }
     </script>
   </head>
@@ -135,6 +191,19 @@
             href="/blog"
             >Blog</a
           >
+          <a
+            class="nav-link text-on-surface-variant hover:text-primary rounded-xl px-4 py-2 font-medium transition-colors hover:bg-surface-container-high/50 inline-flex items-center gap-1.5"
+            href="https://github.com/apauldev/yotara"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true">
+              <path
+                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
+              />
+            </svg>
+            <span class="github-star-count text-xs hidden"></span>
+          </a>
         </div>
         <a
           class="btn-primary bg-primary text-on-primary px-6 py-3 rounded-2xl font-medium tracking-wide hidden md:inline-block text-center"
@@ -200,7 +269,7 @@
               </p>
               <a
                 class="btn-ghost group inline-flex items-center gap-2 text-primary font-semibold text-lg hover:text-primary-container transition-colors mt-4"
-                href="#steps"
+                href="#features"
               >
                 How it works
                 <span
@@ -215,7 +284,7 @@
             >
               <img
                 class="w-full h-auto object-cover"
-                src="assets/blog/inbox.webp"
+                src="assets/inbox.webp"
                 alt="Yotara task management interface showing tasks organized by project in a clean, minimal UI"
                 width="1400"
                 height="875"
@@ -493,64 +562,12 @@
                 class="w-14 h-14 rounded-2xl bg-surface-container-highest flex items-center justify-center mb-6 group-hover:bg-primary-fixed/30 transition-colors"
                 aria-hidden="true"
               >
-                <span class="material-symbols-outlined text-3xl text-primary">shield</span>
+                <span class="material-symbols-outlined text-3xl text-primary">view_agenda</span>
               </div>
-              <h3 class="text-xl font-bold mb-3 font-headline text-on-surface">Self-Hosted</h3>
+              <h3 class="text-xl font-bold mb-3 font-headline text-on-surface">Buckets</h3>
               <p class="text-on-surface-variant leading-relaxed">
-                Your data stays on your server. No telemetry, no tracking, no vendor lock-in. Open
-                source under MIT &mdash; verify every line yourself.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="py-32 bg-surface-container-low animate-in" id="steps">
-        <div class="max-w-7xl mx-auto px-8">
-          <div class="mb-16 max-w-3xl">
-            <h2
-              class="text-[1.75rem] md:text-[2.5rem] font-display font-bold mb-6 tracking-tight text-on-surface"
-            >
-              Three steps to clarity
-            </h2>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
-            <div class="text-center">
-              <div
-                class="w-16 h-16 rounded-full bg-primary text-on-primary flex items-center justify-center mx-auto mb-6 text-2xl font-bold font-headline"
-                aria-hidden="true"
-              >
-                1
-              </div>
-              <h3 class="text-xl font-bold mb-3 font-headline text-on-surface">Capture</h3>
-              <p class="text-on-surface-variant leading-relaxed">
-                Hit the capture bar, type your task, and move on. Add dates and priorities as you go
-                &mdash; or just dump it in the inbox for later.
-              </p>
-            </div>
-            <div class="text-center">
-              <div
-                class="w-16 h-16 rounded-full bg-primary text-on-primary flex items-center justify-center mx-auto mb-6 text-2xl font-bold font-headline"
-                aria-hidden="true"
-              >
-                2
-              </div>
-              <h3 class="text-xl font-bold mb-3 font-headline text-on-surface">Organize</h3>
-              <p class="text-on-surface-variant leading-relaxed">
-                Add to a project, set a date, tag with labels. Your inbox stays clean &mdash; triage
-                when you&rsquo;re ready, not when the task arrives.
-              </p>
-            </div>
-            <div class="text-center">
-              <div
-                class="w-16 h-16 rounded-full bg-primary text-on-primary flex items-center justify-center mx-auto mb-6 text-2xl font-bold font-headline"
-                aria-hidden="true"
-              >
-                3
-              </div>
-              <h3 class="text-xl font-bold mb-3 font-headline text-on-surface">Focus</h3>
-              <p class="text-on-surface-variant leading-relaxed">
-                Let Today and Upcoming views guide your attention to what matters.
+                Batch related work into deep-focus sessions. When a project has too many moving
+                parts, buckets help you narrow your attention to what matters right now.
               </p>
             </div>
           </div>
@@ -616,15 +633,133 @@
         </div>
       </section>
 
+      <section class="py-32 bg-surface-container-low animate-in">
+        <div class="max-w-3xl mx-auto px-8">
+          <h2
+            class="text-[1.75rem] md:text-[2.5rem] font-display font-bold mb-12 tracking-tight text-on-surface text-center"
+          >
+            Frequently asked questions
+          </h2>
+          <div class="space-y-4">
+            <details class="group rounded-2xl bg-surface p-6">
+              <summary
+                class="flex items-center justify-between cursor-pointer font-semibold text-on-surface text-lg list-none"
+              >
+                Is there a demo I can try?
+                <span
+                  class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180"
+                  >expand_more</span
+                >
+              </summary>
+              <p class="text-on-surface-variant leading-relaxed mt-4">
+                Yes — the beta is live at
+                <a
+                  class="text-primary font-semibold hover:underline"
+                  href="https://beta.yotara.website"
+                  >beta.yotara.website</a
+                >. No install needed. It's the full app: create an account and start using it right
+                away. Beta data may be reset occasionally as we ship updates, so it's best for
+                trying things out rather than long-term use.
+              </p>
+            </details>
+            <details class="group rounded-2xl bg-surface p-6">
+              <summary
+                class="flex items-center justify-between cursor-pointer font-semibold text-on-surface text-lg list-none"
+              >
+                Do I have to self-host?
+                <span
+                  class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180"
+                  >expand_more</span
+                >
+              </summary>
+              <p class="text-on-surface-variant leading-relaxed mt-4">
+                For your own permanent instance, yes. Yotara runs on your server with Docker and
+                stores everything in a SQLite file. The beta at
+                <a
+                  class="text-primary font-semibold hover:underline"
+                  href="https://beta.yotara.website"
+                  >beta.yotara.website</a
+                >
+                is a great way to try it before you install. A managed cloud option is on the
+                roadmap for those who'd rather not self-host.
+              </p>
+            </details>
+            <details class="group rounded-2xl bg-surface p-6">
+              <summary
+                class="flex items-center justify-between cursor-pointer font-semibold text-on-surface text-lg list-none"
+              >
+                Is there a mobile app?
+                <span
+                  class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180"
+                  >expand_more</span
+                >
+              </summary>
+              <p class="text-on-surface-variant leading-relaxed mt-4">
+                Not yet. The web app is responsive and works well on phones, but there is no native
+                iOS or Android app. A progressive web app is on the roadmap.
+              </p>
+            </details>
+            <details class="group rounded-2xl bg-surface p-6">
+              <summary
+                class="flex items-center justify-between cursor-pointer font-semibold text-on-surface text-lg list-none"
+              >
+                How do backups work?
+                <span
+                  class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180"
+                  >expand_more</span
+                >
+              </summary>
+              <p class="text-on-surface-variant leading-relaxed mt-4">
+                All your data lives in a single SQLite file. Back it up by copying the file
+                somewhere safe — another disk, a remote server, or a cloud bucket. No dump or
+                restore commands needed.
+              </p>
+            </details>
+            <details class="group rounded-2xl bg-surface p-6">
+              <summary
+                class="flex items-center justify-between cursor-pointer font-semibold text-on-surface text-lg list-none"
+              >
+                Can I move my tasks from another tool?
+                <span
+                  class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180"
+                  >expand_more</span
+                >
+              </summary>
+              <p class="text-on-surface-variant leading-relaxed mt-4">
+                Import isn't available yet, but you can export all your tasks as JSON or CSV from
+                the settings page at any time. If you're switching from another tool, export from
+                there first so you keep a copy of everything.
+              </p>
+            </details>
+            <details class="group rounded-2xl bg-surface p-6">
+              <summary
+                class="flex items-center justify-between cursor-pointer font-semibold text-on-surface text-lg list-none"
+              >
+                How much does Yotara cost?
+                <span
+                  class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180"
+                  >expand_more</span
+                >
+              </summary>
+              <p class="text-on-surface-variant leading-relaxed mt-4">
+                Yotara is free and open source under the MIT license. There is no paid tier, no
+                subscriptions, no premium features. You pay for your own server, which can be as
+                cheap as a $5/month VPS.
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+
       <section class="py-32 bg-inverse-surface text-surface-bright">
         <div class="max-w-7xl mx-auto px-8 text-center">
           <h2 class="text-[1.75rem] md:text-[2.5rem] font-display font-bold mb-6 tracking-tight">
             Built in public. Self-hosted. Yours.
           </h2>
           <p class="text-xl text-surface-variant leading-relaxed max-w-2xl mx-auto mb-10">
-            Yotara is open source under the MIT license. Deploy your own instance in one command. No
-            tracking, no telemetry, no data collection. Built for makers, students, freelancers, and
-            anyone who'd rather host their own task manager.
+            Yotara is open source under the MIT license. Deploy your own instance in three commands.
+            No tracking, no telemetry, no data collection. Built for makers, students, freelancers,
+            and anyone who'd rather host their own task manager.
           </p>
           <div
             class="flex flex-wrap justify-center gap-x-8 gap-y-3 mb-10 text-sm text-surface-variant"
@@ -635,7 +770,7 @@
                 aria-hidden="true"
                 >tag</span
               >
-              v0.66.1 · released Jul 9, 2026
+              v0.70.2 · released Jul 29, 2026
             </span>
             <span class="inline-flex items-center gap-2">
               <span
@@ -667,8 +802,15 @@
           >
             <span class="text-surface-variant">$</span>
             <span class="text-primary-fixed"
-              >docker run -d --name yotara -p 8080:80 apauldev/yotara:latest</span
-            >
+              >curl -o docker-compose.yml
+              https://raw.githubusercontent.com/apauldev/yotara/main/docker-compose.hub.yml</span
+            ><br />
+            <span class="text-surface-variant">$</span>
+            <span class="text-primary-fixed"
+              >export BETTER_AUTH_SECRET=$(openssl rand -base64 32)</span
+            ><br />
+            <span class="text-surface-variant">$</span>
+            <span class="text-primary-fixed">docker compose up -d</span>
           </div>
           <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
             <a
@@ -679,9 +821,9 @@
             </a>
             <a
               class="bg-surface-bright text-inverse-surface px-8 py-4 rounded-2xl font-bold text-lg tracking-wide w-full sm:w-auto text-center hover:opacity-90 transition-opacity"
-              href="https://github.com/apauldev/yotara"
+              href="https://github.com/apauldev/yotara/releases"
             >
-              Explore the Repo
+              Browse Releases
             </a>
           </div>
         </div>
@@ -786,8 +928,7 @@
     >
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <p class="text-sm leading-relaxed flex-grow">
-          No cookies. No tracking. No analytics. Cloudflare handles CDN and hosting. Blog images
-          from Unsplash.
+          No cookies. No tracking. No analytics. Cloudflare handles CDN and hosting.
           <a
             href="/privacy/"
             class="text-primary-fixed underline hover:no-underline whitespace-nowrap"

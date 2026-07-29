@@ -252,7 +252,7 @@
             >
           </div>
           <h2 class="text-[2rem] font-display font-bold text-on-surface mb-8 tracking-tight">
-            Quick start with Docker
+            Quick start with Docker Compose
           </h2>
           <div class="rounded-2xl overflow-hidden ring-1 ring-outline-variant/15 mb-6">
             <div
@@ -266,10 +266,10 @@
                   class="text-xs text-on-surface-variant hover:text-on-surface transition-colors px-3 py-1 rounded-lg bg-surface-container-highest/50"
                   onclick="
                     navigator.clipboard?.writeText(
-                      'docker run -d --name yotara -p 8080:80 -e BETTER_AUTH_SECRET=$(openssl rand -base64 32) apauldev/yotara:latest',
+                      'curl -o docker-compose.yml https://raw.githubusercontent.com/apauldev/yotara/main/docker-compose.hub.yml && export BETTER_AUTH_SECRET=$(openssl rand -base64 32) && docker compose up -d',
                     )
                   "
-                  aria-label="Copy Docker command"
+                  aria-label="Copy Docker Compose command"
                 >
                   <span class="material-symbols-outlined text-base">content_copy</span>
                 </button>
@@ -278,11 +278,10 @@
             <pre
               class="p-6 text-sm leading-relaxed overflow-x-auto font-mono text-on-surface"
               style="background: #1c1c17; color: #e5e2da"
-            ><span style="color: #acf2cb;">$</span> docker run -d \
-  --name yotara \
-  -p 8080:80 \
-  -e BETTER_AUTH_SECRET=$(openssl rand -base64 32) \
-  apauldev/yotara:latest</pre>
+            ><span style="color: #acf2cb;">$</span> curl -o docker-compose.yml \
+  https://raw.githubusercontent.com/apauldev/yotara/main/docker-compose.hub.yml
+<span style="color: #acf2cb;">$</span> export BETTER_AUTH_SECRET=$(openssl rand -base64 32)
+<span style="color: #acf2cb;">$</span> docker compose up -d</pre>
           </div>
           <p class="text-on-surface-variant text-lg">
             → Open
@@ -302,7 +301,7 @@
             >
           </div>
           <h2 class="text-[2rem] font-display font-bold text-on-surface mb-8 tracking-tight">
-            Recommended — Docker Compose
+            Recommended — manual Docker Compose
           </h2>
           <p class="text-lg text-on-surface-variant mb-8 leading-relaxed">
             Create a
@@ -340,27 +339,43 @@
   api:
     image: apauldev/yotara-api:latest
     environment:
-      DATABASE_URL: /data/yotara.db
+      DATABASE_URL: /app/apps/api/data/yotara.db
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080/api}
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost:8080}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET?set a strong secret}
+      HOST: 0.0.0.0
+      PORT: ${PORT:-3000}
+      NODE_ENV: ${NODE_ENV:-production}
+      CONTENT_SECURITY_POLICY: ${CONTENT_SECURITY_POLICY:-default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'}
     volumes:
-      - yotara_data:/data
+      - yotara_api_data:/app/apps/api/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
 
   frontend:
     image: apauldev/yotara-frontend:latest
-    ports:
-      - "8080:80"
     depends_on:
       - api
+    environment:
+      CONTENT_SECURITY_POLICY: ${CONTENT_SECURITY_POLICY:-default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'}
+    ports:
+      - "8080:80"
 
 <span style="color: #91d5b0;">volumes:</span>
-  yotara_data:</pre>
+  yotara_api_data:</pre>
           </div>
           <p class="text-lg text-on-surface-variant mb-4">Then run:</p>
           <div class="rounded-2xl overflow-hidden ring-1 ring-outline-variant/15 mb-6">
             <pre
               class="p-4 text-sm leading-relaxed overflow-x-auto font-mono"
               style="background: #1c1c17; color: #e5e2da"
-            ><span style="color: #acf2cb;">$</span> docker compose up -d</pre>
+            ><span style="color: #acf2cb;">$</span> export BETTER_AUTH_SECRET=$(openssl rand -base64 32)
+<span style="color: #acf2cb;">$</span> docker compose up -d</pre>
           </div>
           <p class="text-on-surface-variant text-lg">
             → Open
@@ -533,8 +548,11 @@
             Coming soon
           </h2>
           <div class="stagger-container grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div
-              class="stagger-item p-8 rounded-2xl bg-surface/60 ring-1 ring-outline-variant/10 opacity-60"
+            <a
+              href="https://github.com/apauldev/yotara/discussions"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="stagger-item p-8 rounded-2xl bg-surface/60 ring-1 ring-outline-variant/10 hover:bg-surface-container-high/50 transition-colors block"
             >
               <div class="flex items-center gap-3 mb-4">
                 <span class="text-2xl" aria-hidden="true">🔜</span>
@@ -547,12 +565,18 @@
                 required.
               </p>
               <span
-                class="inline-flex items-center px-3 py-1 rounded-full bg-surface-container-highest text-on-surface-variant text-sm"
-                >Coming soon</span
+                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-fixed/30 text-primary text-sm font-medium"
+                >Follow along
+                <span class="material-symbols-outlined text-base" aria-hidden="true"
+                  >arrow_forward</span
+                ></span
               >
-            </div>
-            <div
-              class="stagger-item p-8 rounded-2xl bg-surface/60 ring-1 ring-outline-variant/10 opacity-60"
+            </a>
+            <a
+              href="https://github.com/apauldev/yotara/discussions"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="stagger-item p-8 rounded-2xl bg-surface/60 ring-1 ring-outline-variant/10 hover:bg-surface-container-high/50 transition-colors block"
             >
               <div class="flex items-center gap-3 mb-4">
                 <span class="text-2xl" aria-hidden="true">🔜</span>
@@ -564,10 +588,13 @@
                 Let us host it for you. Managed backups, automatic updates, and priority support.
               </p>
               <span
-                class="inline-flex items-center px-3 py-1 rounded-full bg-surface-container-highest text-on-surface-variant text-sm"
-                >Coming soon</span
+                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-fixed/30 text-primary text-sm font-medium"
+                >Follow along
+                <span class="material-symbols-outlined text-base" aria-hidden="true"
+                  >arrow_forward</span
+                ></span
               >
-            </div>
+            </a>
           </div>
         </div>
       </section>
@@ -671,8 +698,7 @@
     >
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <p class="text-sm leading-relaxed flex-grow">
-          No cookies. No tracking. No analytics. Cloudflare handles CDN and hosting. Blog images
-          from Unsplash.
+          No cookies. No tracking. No analytics. Cloudflare handles CDN and hosting.
           <a
             href="/privacy/"
             class="text-primary-fixed underline hover:no-underline whitespace-nowrap"

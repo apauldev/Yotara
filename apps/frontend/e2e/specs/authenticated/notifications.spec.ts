@@ -42,7 +42,7 @@ test.describe('Notifications', () => {
 
     const todayDay = new Date().getDate();
     const todayButton = page
-      .locator('.date-picker-grid button')
+      .locator('.date-picker-grid button:not([data-outside])')
       .getByText(String(todayDay), { exact: true });
     await expect(todayButton).toBeVisible({ timeout: 3_000 });
     await todayButton.click();
