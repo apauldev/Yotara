@@ -8,5 +8,8 @@
     { "type": "misc", "section": "Miscellaneous" },
     { "type": "perf", "section": "Performance" },
     { "type": "test", "section": "Tests" }
-  ]
+  ],
+  "scripts": {
+    "postbump": "node scripts/sync-website-version.mjs && git add apps/yotara-website/index.html"
+  }
 }
