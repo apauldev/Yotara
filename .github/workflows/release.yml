@@ -17,6 +17,8 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
     if: >
       github.event.workflow_run.conclusion == 'success' &&
       !contains(github.event.workflow_run.head_commit.message, 'chore(release)')
@@ -68,17 +70,12 @@ jobs:
 
   docker-publish:
     runs-on: ubuntu-latest
+    needs: release
     if: github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-
-      - name: Get version
-        id: get_version
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - uses: docker/setup-qemu-action@v3
 
@@ -98,8 +95,8 @@ jobs:
           push: true
           tags: |
             apauldev/yotara-api:latest
-            apauldev/yotara-api:${{ steps.get_version.outputs.version }}
-            apauldev/yotara-api:v${{ steps.get_version.outputs.version }}
+            apauldev/yotara-api:${{ needs.release.outputs.version }}
+            apauldev/yotara-api:v${{ needs.release.outputs.version }}
 
       - name: Build and push Frontend
         uses: docker/build-push-action@v5
@@ -110,5 +107,5 @@ jobs:
           push: true
           tags: |
             apauldev/yotara-frontend:latest
-            apauldev/yotara-frontend:${{ steps.get_version.outputs.version }}
-            apauldev/yotara-frontend:v${{ steps.get_version.outputs.version }}
+            apauldev/yotara-frontend:${{ needs.release.outputs.version }}
+            apauldev/yotara-frontend:v${{ needs.release.outputs.version }}
