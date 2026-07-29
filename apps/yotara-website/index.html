@@ -97,10 +97,18 @@
         "mainEntity": [
           {
             "@type": "Question",
-            "name": "Do I have to self-host Yotara?",
+            "name": "Is there a demo I can try?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yes. Yotara is self-hosted only — there is no hosted cloud version today. You run it on your own server with Docker. A managed cloud option is planned but not yet available."
+              "text": "Yes — the beta is live at beta.yotara.website. No install needed. It's the full app: create an account and start using it right away. Beta data may be reset occasionally as we ship updates, so it's best for trying things out rather than long-term use."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Do I have to self-host?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "For your own permanent instance, yes. Yotara runs on your server with Docker and stores everything in a SQLite file. The beta at beta.yotara.website is a great way to try it before you install. A managed cloud option is on the roadmap for those who'd rather not self-host."
             }
           },
           {
@@ -108,7 +116,7 @@
             "name": "Is there a mobile app?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Not yet. The web app is responsive and works on phones, but there is no native iOS or Android app. A progressive web app is on the roadmap."
+              "text": "Not yet. The web app is responsive and works well on phones, but there is no native iOS or Android app. A progressive web app is on the roadmap."
             }
           },
           {
@@ -116,15 +124,15 @@
             "name": "How do backups work?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "All your data lives in a single SQLite file. Back it up by copying the file somewhere safe — another disk, a remote server, or a cloud bucket. There is no dump or restore command needed."
+              "text": "All your data lives in a single SQLite file. Back it up by copying the file somewhere safe — another disk, a remote server, or a cloud bucket. No dump or restore commands needed."
             }
           },
           {
             "@type": "Question",
-            "name": "Can I import tasks from other tools?",
+            "name": "Can I move my tasks from another tool?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "There is no import feature yet. You can export all your tasks as JSON or CSV at any time from the settings page."
+              "text": "Import isn't available yet, but you can export all your tasks as JSON or CSV from the settings page at any time. If you're switching from another tool, export from there first so you keep a copy of everything."
             }
           },
           {
@@ -132,15 +140,7 @@
             "name": "How much does Yotara cost?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yotara is free and open source under the MIT license. There is no paid tier. You pay for your own server, which can be as cheap as a $5/month VPS."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "Will there be a hosted cloud version?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "It is being considered but not yet committed. If it happens, you would pay for hosting, not for access to your own data."
+              "text": "Yotara is free and open source under the MIT license. There is no paid tier, no subscriptions, no premium features. You pay for your own server, which can be as cheap as a $5/month VPS."
             }
           }
         ]
@@ -645,6 +645,27 @@
               <summary
                 class="flex items-center justify-between cursor-pointer font-semibold text-on-surface text-lg list-none"
               >
+                Is there a demo I can try?
+                <span
+                  class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180"
+                  >expand_more</span
+                >
+              </summary>
+              <p class="text-on-surface-variant leading-relaxed mt-4">
+                Yes — the beta is live at
+                <a
+                  class="text-primary font-semibold hover:underline"
+                  href="https://beta.yotara.website"
+                  >beta.yotara.website</a
+                >. No install needed. It's the full app: create an account and start using it right
+                away. Beta data may be reset occasionally as we ship updates, so it's best for
+                trying things out rather than long-term use.
+              </p>
+            </details>
+            <details class="group rounded-2xl bg-surface p-6">
+              <summary
+                class="flex items-center justify-between cursor-pointer font-semibold text-on-surface text-lg list-none"
+              >
                 Do I have to self-host?
                 <span
                   class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180"
@@ -652,9 +673,15 @@
                 >
               </summary>
               <p class="text-on-surface-variant leading-relaxed mt-4">
-                Yes. Yotara is self-hosted only — there is no hosted cloud version today. You run it
-                on your own server with Docker. A managed cloud option is planned but not yet
-                available.
+                For your own permanent instance, yes. Yotara runs on your server with Docker and
+                stores everything in a SQLite file. The beta at
+                <a
+                  class="text-primary font-semibold hover:underline"
+                  href="https://beta.yotara.website"
+                  >beta.yotara.website</a
+                >
+                is a great way to try it before you install. A managed cloud option is on the
+                roadmap for those who'd rather not self-host.
               </p>
             </details>
             <details class="group rounded-2xl bg-surface p-6">
@@ -668,8 +695,8 @@
                 >
               </summary>
               <p class="text-on-surface-variant leading-relaxed mt-4">
-                Not yet. The web app is responsive and works on phones, but there is no native iOS
-                or Android app. A progressive web app is on the roadmap.
+                Not yet. The web app is responsive and works well on phones, but there is no native
+                iOS or Android app. A progressive web app is on the roadmap.
               </p>
             </details>
             <details class="group rounded-2xl bg-surface p-6">
@@ -684,23 +711,24 @@
               </summary>
               <p class="text-on-surface-variant leading-relaxed mt-4">
                 All your data lives in a single SQLite file. Back it up by copying the file
-                somewhere safe — another disk, a remote server, or a cloud bucket. There is no dump
-                or restore command needed.
+                somewhere safe — another disk, a remote server, or a cloud bucket. No dump or
+                restore commands needed.
               </p>
             </details>
             <details class="group rounded-2xl bg-surface p-6">
               <summary
                 class="flex items-center justify-between cursor-pointer font-semibold text-on-surface text-lg list-none"
               >
-                Can I import tasks from other tools?
+                Can I move my tasks from another tool?
                 <span
                   class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180"
                   >expand_more</span
                 >
               </summary>
               <p class="text-on-surface-variant leading-relaxed mt-4">
-                There is no import feature yet. You can export all your tasks as JSON or CSV at any
-                time from the settings page.
+                Import isn't available yet, but you can export all your tasks as JSON or CSV from
+                the settings page at any time. If you're switching from another tool, export from
+                there first so you keep a copy of everything.
               </p>
             </details>
             <details class="group rounded-2xl bg-surface p-6">
@@ -714,23 +742,9 @@
                 >
               </summary>
               <p class="text-on-surface-variant leading-relaxed mt-4">
-                Yotara is free and open source under the MIT license. There is no paid tier. You pay
-                for your own server, which can be as cheap as a $5/month VPS.
-              </p>
-            </details>
-            <details class="group rounded-2xl bg-surface p-6">
-              <summary
-                class="flex items-center justify-between cursor-pointer font-semibold text-on-surface text-lg list-none"
-              >
-                Will there be a hosted cloud version?
-                <span
-                  class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180"
-                  >expand_more</span
-                >
-              </summary>
-              <p class="text-on-surface-variant leading-relaxed mt-4">
-                It is being considered but not yet committed. If it happens, you would pay for
-                hosting, not for access to your own data.
+                Yotara is free and open source under the MIT license. There is no paid tier, no
+                subscriptions, no premium features. You pay for your own server, which can be as
+                cheap as a $5/month VPS.
               </p>
             </details>
           </div>
