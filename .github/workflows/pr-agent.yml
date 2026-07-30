@@ -16,7 +16,7 @@ jobs:
       issues: write
     steps:
       - name: PR Agent action step
-        uses: the-pr-agent/pr-agent@main
+        uses: the-pr-agent/pr-agent@v0.41.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           config.model: 'deepseek/deepseek-v4-pro'
