@@ -26,3 +26,14 @@ updates:
       - 'apauldev'
     labels:
       - 'dependencies'
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+    open-pull-requests-limit: 10
+    assignees:
+      - 'apauldev'
+    labels:
+      - 'dependencies'
