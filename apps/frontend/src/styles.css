@@ -437,6 +437,11 @@
 
     font-family: var(--font-sans);
   }
+
+  :focus-visible {
+    outline: 2px solid var(--primary-solid);
+    outline-offset: 2px;
+  }
 }
 
 /* Inline command highlighting for capture bar — chip style */
