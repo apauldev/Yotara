@@ -18,9 +18,12 @@ pnpm monorepo. The current product is substantially beyond the original MVP:
 - Fastify 5 API with a route → service → database shape.
 - SQLite with Drizzle ORM, transactional multi-table writes, startup schema
   bootstrap, timestamp normalization, and database permission hardening.
-- Better Auth session-cookie authentication, password reset and verification
-  email flows, account deletion, rate limiting, login lockout, and security
-  headers.
+- Better Auth session-cookie authentication, password reset email flow,
+  account deletion, rate limiting, login lockout, and security headers.
+- Email verification is wired but dormant: the verification callback exists in
+  the API, but `requireEmailVerification` is `false`, so the flow is inactive
+  until that flag is flipped (tracked as future work in
+  [docs/admin-notifications.md](./admin-notifications.md)).
 - Personal task views, projects, labels, archive, search, subtasks, recurring
   tasks, themes, keyboard shortcuts, and in-app notifications.
 - Docker deployment behind nginx, published container images, OpenAPI docs,
