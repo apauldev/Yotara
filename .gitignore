@@ -20,3 +20,5 @@ packages/shared/src/*.js.map
 .commandcode/taste/taste.md
 .codegraph/
 reasonix.toml
+.commandcode/taste/workflow/taste.md
+.commandcode/settings.json

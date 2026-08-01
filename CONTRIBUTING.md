@@ -48,11 +48,12 @@ Browse [good-first-issue](https://github.com/apauldev/Yotara/issues?q=is%3Aissue
 
 Read [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for:
 
-- Current state vs planned work
-- Sprint tracking and issue links
-- Anti-pattern registry
-- Code quality standards
-- Technical decisions
+- Current state and system shape
+- Architectural decisions and engineering principles
+- Known risks and technical debt
+- Testing and verification policy
+
+For what's being worked on now, see the [Yotara Roadmap](https://github.com/users/apauldev/projects/1) Project board and GitHub Issues.
 
 ### Ideas
 
@@ -190,7 +191,7 @@ pnpm release                 # Create release
 ## Helpful Resources
 
 - [PROJECT_README.md](./PROJECT_README.md) -- Setup, scripts, dev environment
-- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) -- Technical roadmap and anti-patterns
+- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) -- Architecture decisions, constraints, known risks
 - [testing.md](./testing.md) -- Testing patterns and best practices
 - [docs/RELEASING.md](./docs/RELEASING.md) -- Release process
 - [Conventional Commits](https://www.conventionalcommits.org/) -- Commit message format

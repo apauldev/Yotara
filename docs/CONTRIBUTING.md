@@ -30,7 +30,7 @@ apps/
 packages/
   shared/                  Domain types, DTOs, shared client code
 docs/
-  ARCHITECTURE.md          Architecture decisions, anti-patterns, roadmap
+  ARCHITECTURE.md          Architecture decisions, constraints, known risks
   CONTRIBUTING.md          ← you are here
 ```
 
@@ -81,10 +81,14 @@ docs/
 
 ### Process
 
-- **Architecture decisions live in `docs/ARCHITECTURE.md`.**
+- **Architecture decisions live in `docs/ARCHITECTURE.md`**, and the "Important
+  architectural decisions" section there is the tripwire: if a change would
+  reverse one of those decisions (e.g. server-side filtering, SQLite first,
+  explicit timezone handling, security at the deployment boundary), it needs an
+  explicit re-evaluation — a discussion, a written decision, and an update to
+  the document — rather than "let me just add it."
 - **New work goes in GitHub Issues** and is tracked on the [Yotara Roadmap](https://github.com/users/apauldev/projects/1) Project board.
 - **Refactors don't change behavior.** A reviewer should be able to skip a refactor PR without reading it and not break anything. If a refactor is fixing a bug, split the commit.
-- **The "Explicit non-goals" subsection in ARCHITECTURE.md is a tripwire.** If you find yourself wanting to add a feature listed there, the answer is "not without an explicit re-evaluation," not "let me just add it." Re-evaluation means a discussion, a written decision, and an update to the document removing the non-goal.
 
 ### Before submitting a PR
 

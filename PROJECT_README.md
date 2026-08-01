@@ -2,7 +2,7 @@
 
 This document is the technical companion to the main repository page.
 
-For the product overview and project positioning, start with [`README.md`](./README.md). For the technical roadmap and anti-pattern registry, see [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
+For the product overview and project positioning, start with [`README.md`](./README.md). For architecture decisions, constraints, and engineering principles, see [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
 
 ## Overview
 
@@ -296,7 +296,7 @@ The production setting assumes the frontend and API are served behind the same o
 ├── packages/
 │   └── shared/                 Domain types, DTOs, auth client
 ├── docs/
-│   └── ARCHITECTURE.md         Technical roadmap and anti-patterns
+│   └── ARCHITECTURE.md         Architecture decisions, constraints, known risks
 ├── scripts/                    Release automation
 └── testing.md                  Testing guide
 ```
