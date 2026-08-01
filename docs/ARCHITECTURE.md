@@ -113,10 +113,16 @@ date parsing or raw UTC assumptions.
 
 ### Security at deployment boundaries
 
-The supported deployment is nginx in front of the API. The API's proxy trust
-and IP-based rate limiting depend on that proxy overwriting/forwarding the real
-client address correctly. The API must not be exposed directly with an
-unrestricted `trustProxy` setting.
+The supported deployment is nginx in front of the API. The API runs with
+`trustProxy: 1` and derives `request.ip` from `X-Forwarded-For`; both the
+global IP rate limiter and the per-IP login lockout depend on that IP being
+the real client address. That is only true when the proxy overwrites
+`X-Forwarded-For` with the real client IP — which the bundled
+`docker/nginx.conf` does (`$proxy_add_x_forwarded_for`). Never expose the API
+directly with an unrestricted `trustProxy` setting: a client could then forge
+`X-Forwarded-For`, making `request.ip` attacker-controllable and defeating
+rate limiting and login-lockout scoping. If you must run without nginx, scope
+`trustProxy` to the proxy's subnet (CIDR or function) instead of `1`.
 
 Security-sensitive behavior belongs at the boundary where it can be enforced:
 
