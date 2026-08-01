@@ -144,7 +144,7 @@ After week 16, Yotara should be ready for v1.0 across self-hosted and SaaS paths
 
 ## Immediate Next Task
 
-> Stale: this section suggested "Start with P1 #10 (markdown preview)" but that work shipped in 0.51.0. The current next actions are in `docs/ARCHITECTURE.md` → "Recommended roadmap" → Sprint 0.
+> Stale: this section suggested "Start with P1 #10 (markdown preview)" but that work shipped in 0.51.0. Current priorities live on the [Yotara Roadmap](https://github.com/users/apauldev/projects/1) Project board and GitHub Issues, not in a doc.
 
 Historical next task (for context only):
 

@@ -126,7 +126,7 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 
 ### P3 – Deployment & Distribution
 
-> Numbered `P3-N`. Most of these items are now Sprint 0 in `docs/ARCHITECTURE.md`.
+> Numbered `P3-N`. Most of these items are now tracked on the **[Yotara Roadmap](https://github.com/users/apauldev/projects/1)** Project board.
 
 | # | Task | Status | Effort | Notes |
 |---|------|--------|--------|-------|
@@ -143,7 +143,7 @@ Status legend: ✅ Done, 🟡 Partial, ⬜ Not started.
 
 ### P4 – Polish & Nice-to-Haves (Post-v1)
 
-> Numbered `P4-N`. Most items are intentionally deferred — see `docs/ARCHITECTURE.md` for the runtime anti-patterns that should be closed before adding any of this.
+> Numbered `P4-N`. Most items are intentionally deferred — see `docs/ARCHITECTURE.md` for the durable engineering principles and known risks before adding any of this.
 
 | # | Task | Status | Effort | Notes |
 |---|------|--------|--------|-------|
