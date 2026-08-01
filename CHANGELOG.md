@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.71.1](https://github.com/apauldev/Yotara/compare/v0.71.0...v0.71.1) (2026-08-01)
+
+
+### Bug Fixes
+
+* **ci:** add synchronize to pr_actions so auto-tools run on new commits ([0ae019c](https://github.com/apauldev/Yotara/commit/0ae019cbe22e4f79f69587526ee32b00bb18e8a6))
+* **ci:** pin PR Agent to v0.41.0, add Dependabot for action updates ([79887c4](https://github.com/apauldev/Yotara/commit/79887c4068aed30832ada881196bcc7800e4edb5))
+* flash is stronger for now ([3c4e534](https://github.com/apauldev/Yotara/commit/3c4e5340d384ff0241b8c8b11541bde720b3d7cd))
+
+
+### Documentation
+
+* add DCO signed-off-by trailer to docs revamp ([fce3082](https://github.com/apauldev/Yotara/commit/fce308229f7fda7e1ce59e06e5a0993b02fa98e6))
+* clarify dormant email verification in current-state section ([2830a04](https://github.com/apauldev/Yotara/commit/2830a047cdad42da5c80b4af339d390f0543b56d))
+* restore X-Forwarded-For forging rationale for trustProxy constraint ([71f20ee](https://github.com/apauldev/Yotara/commit/71f20ee1cbba120690a83cffe9ce01967cae8d29))
+* revamp architecture guide, move planning to GitHub Project board ([a6f904e](https://github.com/apauldev/Yotara/commit/a6f904ec1bf07c416236e16220359b1f7d7a9c46))
+
 ## [0.71.0](https://github.com/apauldev/Yotara/compare/v0.70.2...v0.71.0) (2026-07-29)
 
 
