@@ -1,5 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, effect, inject, signal, viewChild } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+  viewChild,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
@@ -33,6 +41,7 @@ type ProjectLoadState = 'loading' | 'ready' | 'not-found' | 'error';
     EmptyStateComponent,
   ],
   templateUrl: './project-detail-page.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './project-detail-page.component.scss',
 })
 export class ProjectDetailPageComponent {

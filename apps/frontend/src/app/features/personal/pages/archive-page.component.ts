@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faBoxArchive, faTrash } from '@fortawesome/free-solid-svg-icons';
@@ -118,6 +118,7 @@ import { PaginatedResponse, Task } from '@yotara/shared';
       </div>
     </app-confirm-dialog>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [
     `
       :host {

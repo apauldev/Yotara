@@ -1,4 +1,4 @@
-import { Component, Input, TemplateRef } from '@angular/core';
+import { Component, Input, TemplateRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { Task } from '@yotara/shared';
@@ -58,6 +58,7 @@ import { Task } from '@yotara/shared';
         inset 0 0 0 1px var(--outline-variant);
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   animations: [
     trigger('taskSlide', [
       transition(':enter', [

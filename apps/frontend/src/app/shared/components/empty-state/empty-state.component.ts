@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 
@@ -8,6 +8,7 @@ import { IconDefinition } from '@fortawesome/free-solid-svg-icons';
   standalone: true,
   imports: [CommonModule, FontAwesomeModule],
   templateUrl: './empty-state.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './empty-state.component.css',
 })
 export class EmptyStateComponent {

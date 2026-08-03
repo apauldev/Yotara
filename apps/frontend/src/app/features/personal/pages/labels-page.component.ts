@@ -1,5 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal, viewChild, ElementRef } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  signal,
+  viewChild,
+  ElementRef,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
@@ -28,6 +36,7 @@ import { faEdit, faTag, faInbox } from '@fortawesome/free-solid-svg-icons';
     EmptyStateComponent,
   ],
   templateUrl: './labels-page.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './labels-page.component.scss',
 })
 export class LabelsPageComponent {

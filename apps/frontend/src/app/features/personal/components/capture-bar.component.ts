@@ -8,6 +8,7 @@ import {
   ElementRef,
   viewChild,
   inject,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
@@ -97,6 +98,7 @@ import { highlightInlineCommands } from '../../../shared/utils/html-helpers';
       <p id="capture-error" class="capture-error" role="alert">{{ error() }}</p>
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: `
     :host {
       display: block;

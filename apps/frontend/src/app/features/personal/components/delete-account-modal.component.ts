@@ -1,5 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  computed,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
@@ -97,6 +106,7 @@ import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confir
       </div>
     </app-confirm-dialog>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [
     `
       :host {

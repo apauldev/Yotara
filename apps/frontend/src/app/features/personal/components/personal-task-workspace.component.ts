@@ -1,5 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CreateTaskDto, Task, UpdateTaskDto } from '@yotara/shared';
 import { ProjectService } from '../../../core/services/project.service';
 import { StatusService } from '../../../core/services/status.service';
@@ -16,6 +24,7 @@ type SavePayload =
   selector: 'app-personal-task-workspace',
   standalone: true,
   imports: [CommonModule, PersonalTaskModalComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <ng-content />
 

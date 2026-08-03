@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, OnInit } from '@angular/core';
+import { Component, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faBell, faCheck, faCheckDouble, faTrash } from '@fortawesome/free-solid-svg-icons';
 import type { Notification } from '@yotara/shared';
@@ -78,6 +78,7 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
       </div>
     </section>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [
     `
       :host {

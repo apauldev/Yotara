@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import type { CreateProjectDto, Project } from '@yotara/shared';
 import { ProjectService } from '../../../core/services/project.service';
@@ -21,6 +21,7 @@ import { faEdit } from '@fortawesome/free-solid-svg-icons';
     EmptyStateComponent,
   ],
   templateUrl: './projects-page.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './projects-page.component.scss',
 })
 export class ProjectsPageComponent {

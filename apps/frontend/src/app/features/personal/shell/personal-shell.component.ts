@@ -1,5 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import {
   ActivatedRoute,
   NavigationEnd,
@@ -94,6 +101,7 @@ interface PersonalNavItem {
     LogoutConfirmModalComponent,
     AppStatusComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './personal-shell.component.html',
 })
 export class PersonalShellComponent {

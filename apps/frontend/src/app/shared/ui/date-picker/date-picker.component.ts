@@ -9,6 +9,7 @@ import {
   computed,
   signal,
   viewChild,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {
@@ -127,6 +128,7 @@ import { parseCalendarDate } from '../../utils/timestamps';
       </brn-popover>
     </div>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [
     `
       :host {

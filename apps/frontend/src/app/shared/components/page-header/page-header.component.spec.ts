@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { PageHeaderComponent } from './page-header.component';
@@ -6,6 +6,7 @@ import { PageHeaderComponent } from './page-header.component';
 @Component({
   standalone: true,
   imports: [PageHeaderComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <app-page-header title="Inbox" subtitle="Collect what matters">
       <button page-header-actions type="button">New task</button>

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { SectionHeaderComponent } from './section-header.component';
@@ -6,6 +6,7 @@ import { SectionHeaderComponent } from './section-header.component';
 @Component({
   standalone: true,
   imports: [SectionHeaderComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <app-section-header title="Inbox" count="12 tasks" size="sm" tone="accent">
       <button section-header-actions type="button">Filter</button>

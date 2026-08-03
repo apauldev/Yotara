@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, ChangeDetectionStrategy } from '@angular/core';
 import { checkPasswordPolicy } from '../../../features/auth/password-policy';
 
 export interface StrengthResult {
@@ -33,6 +33,7 @@ export interface StrengthResult {
       </div>
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './strength-meter.component.css',
 })
 export class StrengthMeterComponent {

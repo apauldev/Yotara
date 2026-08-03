@@ -6,6 +6,7 @@ import {
   Output,
   ViewChild,
   signal,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MarkdownComponent } from 'ngx-markdown';
@@ -16,6 +17,7 @@ import { FormatToolbarComponent, SyntaxInsert } from './format-toolbar.component
   standalone: true,
   imports: [FormsModule, MarkdownComponent, FormatToolbarComponent],
   templateUrl: './markdown-editor.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './markdown-editor.component.css',
 })
 export class MarkdownEditorComponent {

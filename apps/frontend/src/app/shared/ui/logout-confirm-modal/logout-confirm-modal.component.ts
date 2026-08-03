@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 
 @Component({
@@ -29,6 +29,7 @@ import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.compone
       </div>
     </app-confirm-dialog>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [
     `
       :host {

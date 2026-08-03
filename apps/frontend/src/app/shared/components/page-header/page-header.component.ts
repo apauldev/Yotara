@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
@@ -9,6 +9,7 @@ import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
   standalone: true,
   imports: [CommonModule, RouterLink, FontAwesomeModule],
   templateUrl: './page-header.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './page-header.component.css',
 })
 export class PageHeaderComponent {

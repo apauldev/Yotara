@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
@@ -76,6 +76,7 @@ import { AuthStateService } from '../../core/services/auth-state.service';
       </div>
     </div>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./login.component.scss', './forgot-password.component.scss'],
 })
 export class ForgotPasswordComponent {

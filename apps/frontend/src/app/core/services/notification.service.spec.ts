@@ -1,6 +1,6 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { NotificationService } from './notification.service';
 import { PreferencesStore } from './preferences-store.service';
 import { environment } from '../../../environments/environment';
@@ -39,7 +39,7 @@ describe('NotificationService', () => {
     localStorage.clear();
 
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting(), NotificationService],
+      providers: [provideHttpClient(withXhr()), provideHttpClientTesting(), NotificationService],
     });
 
     service = TestBed.inject(NotificationService);

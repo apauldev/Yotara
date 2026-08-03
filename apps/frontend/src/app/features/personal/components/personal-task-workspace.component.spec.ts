@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { signal } from '@angular/core';
@@ -14,6 +14,7 @@ import { PreferencesStore } from '../../../core/services/preferences-store.servi
 @Component({
   standalone: true,
   imports: [PersonalTaskWorkspaceComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <app-personal-task-workspace
       [initialProjectId]="initialProjectId"
