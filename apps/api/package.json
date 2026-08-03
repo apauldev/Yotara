@@ -18,11 +18,11 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@fastify/cors": "^11.2.0",
+    "@fastify/cors": "^11.3.0",
     "@fastify/rate-limit": "^11.0.0",
     "@fastify/swagger": "^9.5.1",
     "@fastify/swagger-ui": "^5.2.3",
-    "@types/luxon": "^3.7.1",
+    "@types/luxon": "^3.7.2",
     "@yotara/shared": "workspace:*",
     "better-auth": "^1.5.4",
     "better-sqlite3": "^12.10.0",
@@ -37,7 +37,7 @@
     "c8": "^11.0.0",
     "drizzle-kit": "^0.31.10",
     "rimraf": "^6.0.1",
-    "tsx": "^4.21.0",
+    "tsx": "^4.23.1",
     "typescript": "^5.9.3"
   }
 }
