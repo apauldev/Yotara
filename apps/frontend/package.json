@@ -14,10 +14,10 @@
     "e2e:debug": "playwright test --debug",
     "e2e:codegen": "playwright codegen",
     "e2e:wait": "wait-on",
-    "lint": "tsc -p tsconfig.app.json --noEmit && stylelint \"src/app/**/*.{css,scss}\"",
+    "lint": "tsc -p tsconfig.typecheck.json --noEmit && stylelint \"src/app/**/*.{css,scss}\"",
     "lint:css": "stylelint \"src/app/**/*.{css,scss}\"",
     "lint:css:fix": "stylelint \"src/app/**/*.{css,scss}\" --fix",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc -p tsconfig.typecheck.json --noEmit"
   },
   "private": true,
   "dependencies": {

@@ -8,7 +8,12 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "@yotara/shared": ["../../packages/shared/dist/index"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
