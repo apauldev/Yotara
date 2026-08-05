@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:22.22.1-alpine AS build
+FROM node:22.22.3-alpine AS build
 
 WORKDIR /app
 RUN corepack enable
@@ -30,7 +30,7 @@ RUN pnpm --filter @yotara/api build
 
 # --- Production stage — clean Node image, no python/build-base ---
 
-FROM node:22.22.1-alpine
+FROM node:22.22.3-alpine
 
 WORKDIR /app
 RUN corepack enable
