@@ -297,3 +297,5 @@ jobs:
       - name: Stop API containers
         if: always()
         run: docker compose -f docker-compose.yml -f docker-compose.api-ci.yml down -v
+        env:
+          BETTER_AUTH_SECRET: ci-test-secret-${{ matrix.architecture }}-not-for-production-use
