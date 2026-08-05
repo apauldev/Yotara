@@ -135,7 +135,7 @@ Use the [PR template](./.github/pull_request_template.md). Include:
 
 ```
 apps/
-  frontend/          Angular 21 application
+  frontend/          Angular 22 application
     src/app/
       core/          Guards, interceptors, services
       features/      Feature modules (auth, error, onboarding, personal, shell, tasks)

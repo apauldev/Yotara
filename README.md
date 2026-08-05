@@ -200,7 +200,7 @@ Yotara makes opinionated bets about its stack and deployment model. If you're cu
 
 | Layer | Technology |
 |:---|:---|
-| **Frontend** | [Angular 21](https://angular.dev) (standalone, signals, lazy routes) |
+| **Frontend** | [Angular 22](https://angular.dev) (standalone, signals, lazy routes) |
 | **Backend** | [Fastify 5](https://www.fastify.io) + [TypeScript](https://www.typescriptlang.org) |
 | **Auth** | [Better Auth](https://www.better-auth.com) (session cookies, CORS, CSRF) |
 | **Database** | [SQLite](https://www.sqlite.org) + [Drizzle ORM](https://orm.drizzle.team) |
@@ -263,7 +263,7 @@ Yotara/
         db/             Schema, migrations, client
         docs/           OpenAPI spec generation
       drizzle/          SQLite migrations
-    frontend/           Angular 21 application
+    frontend/           Angular 22 application
       src/app/
         core/           Auth guards, services, interceptors
         features/       Feature modules (personal, team, onboarding)

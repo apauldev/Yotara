@@ -8,7 +8,7 @@ For the product overview and project positioning, start with [`README.md`](./REA
 
 Yotara is a TypeScript monorepo with:
 
-- `apps/frontend`: Angular 21 application (standalone components, signals, lazy routes)
+- `apps/frontend`: Angular 22 application (standalone components, signals, lazy routes)
 - `apps/api`: Fastify API with Better Auth and SQLite, with Postgres planned for team-mode SaaS
 - `packages/shared`: shared domain types, DTOs, and auth client
 - `scripts/dev.mjs`: local dev runner for the frontend, API, and Drizzle Studio
@@ -288,7 +288,7 @@ The production setting assumes the frontend and API are served behind the same o
 │   │   │   └── server.ts       Entry point
 │   │   ├── drizzle/            Generated migrations
 │   │   └── drizzle.config.ts
-│   └── frontend/               Angular 21 application
+│   └── frontend/               Angular 22 application
 │       └── src/app/
 │           ├── core/           Guards, interceptors, services
 │           ├── features/       Feature modules (auth, error, onboarding, personal, shell, tasks)

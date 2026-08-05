@@ -23,7 +23,7 @@ apps/
     src/plugins/           Fastify plugins (auth-bridge, auth-required, cors)
     src/db/                Drizzle schema and migrations
     src/docs/openapi.ts    Shared OpenAPI schema helpers
-  frontend/                Angular 21 frontend
+  frontend/                Angular 22 frontend
     src/app/core/          Cross-cutting services, guards, interceptors
     src/app/features/      Feature modules (auth, personal, team, onboarding)
     src/app/shared/        Reusable UI primitives, utils, pipes
