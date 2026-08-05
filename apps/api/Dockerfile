@@ -41,6 +41,7 @@ COPY apps/api/package.json apps/api/package.json
 COPY packages/shared/package.json packages/shared/package.json
 
 RUN pnpm install --frozen-lockfile --prod --ignore-scripts
+RUN node -e "require('./apps/api/node_modules/better-sqlite3'); console.log('better-sqlite3 loaded successfully')"
 
 # better-sqlite3 v13 uses the prebuilt binaries shipped in its tarball,
 # so no native rebuild or binary copying is needed.

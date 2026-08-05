@@ -13,6 +13,8 @@ const TEST_ORIGIN = 'http://localhost:4200';
 import { setLockoutConfig } from '../lib/login-lockout.js';
 
 async function createTestApp() {
+  const previousNodeEnv = process.env['NODE_ENV'];
+
   process.env['NODE_ENV'] = 'test';
   process.env['BETTER_AUTH_SECRET'] = 'test-secret-with-enough-entropy-1234567890';
   process.env['APP_BASE_URL'] = 'http://localhost:3000';
@@ -31,7 +33,11 @@ async function createTestApp() {
         // best-effort: db might already be closed
       }
       await app.close();
-      delete process.env['NODE_ENV'];
+      if (previousNodeEnv === undefined) {
+        delete process.env['NODE_ENV'];
+      } else {
+        process.env['NODE_ENV'] = previousNodeEnv;
+      }
       delete process.env['BETTER_AUTH_SECRET'];
       delete process.env['APP_BASE_URL'];
     },
