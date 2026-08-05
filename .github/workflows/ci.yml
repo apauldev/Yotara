@@ -33,7 +33,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.22.1
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -58,7 +58,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.22.1
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -77,7 +77,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.22.1
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -100,7 +100,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.22.1
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -118,7 +118,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.22.1
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -201,7 +201,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.22.1
           cache: 'pnpm'
 
       - name: Run Smoke Test
@@ -223,3 +223,77 @@ jobs:
           else
             docker compose -f docker-compose.yml logs
           fi
+
+  docker-api-native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            architecture: amd64
+          - platform: linux/arm64
+            architecture: arm64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build API image for ${{ matrix.platform }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          platforms: ${{ matrix.platform }}
+          load: true
+          tags: yotara-api:${{ matrix.architecture }}
+          cache-from: type=gha,scope=api-${{ matrix.architecture }}
+          cache-to: type=gha,mode=max,scope=api-${{ matrix.architecture }}
+
+      - name: Create API Compose override
+        run: |
+          cat > docker-compose.api-ci.yml <<'EOF'
+          services:
+            api:
+              image: yotara-api:${{ matrix.architecture }}
+              build: !reset
+              ports:
+                - "3000:3000"
+              environment:
+                APP_BASE_URL: http://localhost:3000
+                TRUSTED_ORIGINS: http://localhost:3000
+          EOF
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.1
+          cache: pnpm
+
+      - name: Run API native and database smoke test
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.api-ci.yml up -d api
+          pnpm smoke:docker:api
+        env:
+          BETTER_AUTH_SECRET: ci-test-secret-${{ matrix.architecture }}-not-for-production-use
+          DOCKER_SMOKE_COMPOSE_FILES: -f docker-compose.yml -f docker-compose.api-ci.yml
+          DOCKER_SMOKE_SERVICE: api
+
+      - name: Logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.yml -f docker-compose.api-ci.yml logs api
+
+      - name: Stop API containers
+        if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.api-ci.yml down -v
