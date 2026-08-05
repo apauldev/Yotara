@@ -1,7 +1,11 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "paths": {
+      "@yotara/shared": ["../../packages/shared/dist/index"]
+    }
   },
   "exclude": ["node_modules", "dist", "src/**/*.test.ts"]
 }

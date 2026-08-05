@@ -12,7 +12,7 @@
     "baseUrl": ".",
     "ignoreDeprecations": "6.0",
     "paths": {
-      "@yotara/shared": ["../../packages/shared/dist/index"]
+      "@yotara/shared": ["./node_modules/@yotara/shared/src/index.ts"]
     }
   },
   "include": ["src/**/*"],
