@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, ChangeDetectionStrategy } from '@angular/core';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faTriangleExclamation, faLock } from '@fortawesome/free-solid-svg-icons';
 
@@ -20,6 +20,7 @@ import { faTriangleExclamation, faLock } from '@fortawesome/free-solid-svg-icons
       </div>
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './password-trial.component.scss',
 })
 export class PasswordTrialComponent {

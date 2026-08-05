@@ -10,6 +10,7 @@ import {
   inject,
   signal,
   computed,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
@@ -38,6 +39,7 @@ type SavePayload =
   standalone: true,
   imports: [CommonModule, DatePickerComponent, FormsModule, MarkdownEditorComponent],
   templateUrl: './personal-task-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './personal-task-modal.component.scss',
 })
 export class PersonalTaskModalComponent implements OnDestroy {

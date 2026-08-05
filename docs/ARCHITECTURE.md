@@ -13,7 +13,7 @@
 Yotara is a personal-first, self-hosted task manager built as a TypeScript
 pnpm monorepo. The current product is substantially beyond the original MVP:
 
-- Angular 21 frontend using standalone components, signals, lazy routes, and
+- Angular 22 frontend using standalone components, signals, lazy routes, and
   shared UI primitives.
 - Fastify 5 API with a route → service → database shape.
 - SQLite with Drizzle ORM, transactional multi-table writes, startup schema

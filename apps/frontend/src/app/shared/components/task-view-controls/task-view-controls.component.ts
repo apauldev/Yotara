@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { TaskSortOption } from '../../utils/task-sort';
 
 @Component({
@@ -48,6 +48,7 @@ import { TaskSortOption } from '../../utils/task-sort';
       </div>
     </div>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: `
     :host {
       display: block;

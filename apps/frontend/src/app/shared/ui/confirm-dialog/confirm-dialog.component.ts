@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { ModalComponent } from '../modal/modal.component';
 
 @Component({
@@ -7,6 +7,7 @@ import { ModalComponent } from '../modal/modal.component';
   standalone: true,
   imports: [CommonModule, ModalComponent],
   templateUrl: './confirm-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './confirm-dialog.component.scss',
 })
 export class ConfirmDialogComponent {

@@ -5,14 +5,15 @@
     "moduleResolution": "NodeNext",
     "outDir": "./dist",
     "rootDir": "src",
-    "baseUrl": ".",
-    "paths": {
-      "@yotara/shared": ["./node_modules/@yotara/shared/src/index.ts"]
-    },
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "@yotara/shared": ["./node_modules/@yotara/shared/src/index.ts"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

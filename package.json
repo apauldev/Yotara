@@ -4,7 +4,7 @@
   "version": "0.71.1",
   "description": "Yotara: lightweight self-hosted task manager",
   "engines": {
-    "node": ">=22.22.1"
+    "node": ">=22.22.3"
   },
   "packageManager": "pnpm@10.30.3",
   "scripts": {
@@ -38,7 +38,8 @@
     "contributors:check": "all-contributors check",
     "docker:up": "docker compose up --build -d",
     "docker:down": "docker compose down",
-    "smoke:docker": "bash scripts/docker-smoke.sh"
+    "smoke:docker": "bash scripts/docker-smoke.sh",
+    "smoke:docker:api": "bash scripts/docker-api-smoke.sh"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.0",
@@ -50,7 +51,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.0.8",
     "prettier": "^3.8.4",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "typescript-eslint": "^8.62.0"
   }
 }

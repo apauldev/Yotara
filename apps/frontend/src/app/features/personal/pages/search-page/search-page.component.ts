@@ -1,5 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal, viewChild, effect } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  signal,
+  viewChild,
+  effect,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Project, Task, SearchResponse, SearchTaskResult } from '@yotara/shared';
@@ -38,6 +46,7 @@ export type TaskSortOption = 'date' | 'alpha';
     FontAwesomeModule,
   ],
   templateUrl: './search-page.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './search-page.component.scss',
 })
 export class SearchPageComponent {

@@ -10,6 +10,9 @@ import test from 'node:test';
 import '../db/test-db.js';
 
 async function createAuthedApp() {
+  const previousNodeEnv = process.env['NODE_ENV'];
+
+  process.env['NODE_ENV'] = 'test';
   process.env['BETTER_AUTH_SECRET'] = 'test-secret-with-enough-entropy-1234567890';
   process.env['APP_BASE_URL'] = 'http://localhost:3000';
 
@@ -22,6 +25,11 @@ async function createAuthedApp() {
       return Promise.resolve()
         .then(() => app.close())
         .finally(() => {
+          if (previousNodeEnv === undefined) {
+            delete process.env['NODE_ENV'];
+          } else {
+            process.env['NODE_ENV'] = previousNodeEnv;
+          }
           delete process.env['BETTER_AUTH_SECRET'];
           delete process.env['APP_BASE_URL'];
         });

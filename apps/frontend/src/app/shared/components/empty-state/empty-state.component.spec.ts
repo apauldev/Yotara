@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { faStar } from '@fortawesome/free-solid-svg-icons';
 import { By } from '@angular/platform-browser';
@@ -7,6 +7,7 @@ import { EmptyStateComponent } from './empty-state.component';
 @Component({
   standalone: true,
   imports: [EmptyStateComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <app-empty-state [title]="title" [description]="description" [icon]="icon">
       <button empty-state-actions type="button">Action Button</button>

@@ -11,6 +11,7 @@ import {
   SimpleChanges,
   ViewChild,
   inject,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 
 type ModalSize = 'sm' | 'md' | 'lg';
@@ -20,6 +21,7 @@ type ModalSize = 'sm' | 'md' | 'lg';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './modal.component.scss',
 })
 export class ModalComponent implements OnChanges, AfterViewChecked, OnDestroy {

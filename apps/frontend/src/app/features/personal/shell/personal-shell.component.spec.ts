@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { signal } from '@angular/core';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
@@ -10,18 +10,21 @@ import { PreferencesStore } from '../../../core/services/preferences-store.servi
 
 @Component({
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: '<p>Inbox</p>',
 })
 class InboxStubComponent {}
 
 @Component({
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: '<p>Search</p>',
 })
 class SearchStubComponent {}
 
 @Component({
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: '<p>Login</p>',
 })
 class LoginStubComponent {}

@@ -1,4 +1,13 @@
-import { Component, computed, inject, signal, viewChild, OnInit, effect } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  signal,
+  viewChild,
+  OnInit,
+  effect,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Task } from '@yotara/shared';
 import { PreferencesStore } from '../../../../core/services/preferences-store.service';
@@ -51,6 +60,7 @@ import { map } from 'rxjs';
     TaskStackComponent,
   ],
   templateUrl: './task-list-page.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './task-list-page.component.scss',
 })
 export class TaskListPageComponent implements OnInit {

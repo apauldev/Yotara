@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpClient, provideHttpClient, withInterceptors, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { loadingInterceptor } from './loading.interceptor';
 import { errorInterceptor } from './error.interceptor';
@@ -14,7 +14,7 @@ describe('Interceptors', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        provideHttpClient(withInterceptors([loadingInterceptor, errorInterceptor])),
+        provideHttpClient(withXhr(), withInterceptors([loadingInterceptor, errorInterceptor])),
         provideHttpClientTesting(),
         StatusService,
         LogService,

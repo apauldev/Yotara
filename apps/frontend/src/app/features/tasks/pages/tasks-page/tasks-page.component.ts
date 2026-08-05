@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { TaskService } from '../../../../core/services/task.service';
 import { TaskListComponent } from '../../components/task-list/task-list.component';
 
@@ -6,6 +6,7 @@ import { TaskListComponent } from '../../components/task-list/task-list.componen
   selector: 'app-tasks-page',
   standalone: true,
   imports: [TaskListComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <app-task-list heading="Pending" [tasks]="pendingTasks()" [showStatus]="true" />
     <app-task-list heading="Completed" [tasks]="taskService.recentlyCompleted()" />

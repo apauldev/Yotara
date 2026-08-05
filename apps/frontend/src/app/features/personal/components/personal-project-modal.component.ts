@@ -7,6 +7,7 @@ import {
   Output,
   SimpleChanges,
   signal,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import type { CreateProjectDto, Project, ProjectColor } from '@yotara/shared';
@@ -108,6 +109,7 @@ import { PROJECT_PALETTE } from '../project-presentation';
       </div>
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [
     `
       :host {

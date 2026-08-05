@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { animate, style, transition, trigger } from '@angular/animations';
@@ -16,6 +16,7 @@ import { StatusService } from '../../../core/services/status.service';
   imports: [CommonModule, FontAwesomeModule],
   templateUrl: './app-status.component.html',
   styleUrl: './app-status.component.css',
+  changeDetection: ChangeDetectionStrategy.Eager,
   animations: [
     trigger('loadingBar', [
       transition(':leave', [animate('250ms ease-out', style({ opacity: 0 }))]),

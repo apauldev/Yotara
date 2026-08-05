@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faXmark, faWandMagicSparkles, faPenNib } from '@fortawesome/free-solid-svg-icons';
 import { InsightType } from '../pages/task-list-page/types';
@@ -39,6 +39,7 @@ import { InsightType } from '../pages/task-list-page/types';
       </div>
     </div>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: `
     :host {
       display: block;

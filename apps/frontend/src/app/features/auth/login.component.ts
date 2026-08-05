@@ -1,4 +1,4 @@
-import { Component, OnDestroy, computed, signal } from '@angular/core';
+import { Component, OnDestroy, computed, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
@@ -13,6 +13,7 @@ import { AuthStateService } from '../../core/services/auth-state.service';
   standalone: true,
   imports: [FormsModule, FontAwesomeModule, PasswordTrialComponent, StrengthMeterComponent],
   templateUrl: './login.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./login.component.scss'],
 })
 export class LoginComponent implements OnDestroy {

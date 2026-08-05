@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    "paths": {
+      "@yotara/shared": ["./node_modules/@yotara/shared/src/index.ts"],
+      "@yotara/ui/button": ["./src/app/shared/ui/button/src/index.ts"],
+      "@yotara/ui/utils": ["./src/app/shared/ui/utils/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "e2e/**/*.ts", "playwright.config.ts"],
+  "exclude": ["src/**/*.spec.ts"]
+}

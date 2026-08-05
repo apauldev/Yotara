@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthStateService } from '../../../../core/services/auth-state.service';
 import { LogService } from '../../../../core/services/log.service';
@@ -18,6 +18,7 @@ import { PreferencesStore } from '../../../../core/services/preferences-store.se
   standalone: true,
   imports: [],
   templateUrl: './start-screen.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './start-screen.component.css',
 })
 export class StartScreenComponent {
