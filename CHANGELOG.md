@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.72.0](https://github.com/apauldev/Yotara/compare/v0.71.1...v0.72.0) (2026-08-05)
+
+
+### Features
+
+* **frontend:** upgrade Angular 21 to 22 ([c04c0c6](https://github.com/apauldev/Yotara/commit/c04c0c6366fa2b3d6d6b69b0b66d72b7343852a8))
+* **frontend:** upgrade Tailwind CSS 3 to 4 ([0eb1f8c](https://github.com/apauldev/Yotara/commit/0eb1f8c2542639bb9045b7b3dd6decb9913bcca6))
+
+
+### Bug Fixes
+
+* added dummy better auth secret ([69a63de](https://github.com/apauldev/Yotara/commit/69a63debcd46959c2185df54923e4a48706ca363))
+* fixed the CI build failure by updating Node from 22.22.1 to 22.22.3 in package.json, CI ([20ba827](https://github.com/apauldev/Yotara/commit/20ba8271472722bd4a9bbc8ca31942fc247182bb))
+* harden Docker release and native SQLite validation ([7354a5d](https://github.com/apauldev/Yotara/commit/7354a5d395287818e15789bccb9dc29473bf517a))
+* restore @yotara/shared source alias for dev/typecheck/tests ([57ae2ca](https://github.com/apauldev/Yotara/commit/57ae2ca81b5dbb305a1a7e24e57c11269e95139d))
+* restore test env and verify Docker SQLite ([e976f6e](https://github.com/apauldev/Yotara/commit/e976f6e9d7bfb4f0e42f0bce68ee70b796c96db8))
+
+
+### Documentation
+
+* add DCO signed-off-by trailer for dependency upgrade commits ([e726280](https://github.com/apauldev/Yotara/commit/e726280ff7bd1107ea0983c3648d7b2abe7730d2))
+* update Angular 22 and v0.71.1 references across docs and marketing site ([e657163](https://github.com/apauldev/Yotara/commit/e6571630aa11e7c0f118c3528ca4aa01cc4515ab))
+
+
+### Chores
+
+* **deps:** apply clean Dependabot patch bumps (@fastify/cors, tsx, playwright, @types/luxon) ([6981e28](https://github.com/apauldev/Yotara/commit/6981e28c9046619b10017946dc858ab5302323cd))
+* **deps:** upgrade better-sqlite3 to 13.0.1 ([37f1dc2](https://github.com/apauldev/Yotara/commit/37f1dc224c237eebcab8818f5f8e20d89dcb197a))
+* **deps:** upgrade TypeScript to 6.0.3 ([4243037](https://github.com/apauldev/Yotara/commit/424303742cd6bfcdea04272234ec615ccede03c5))
+* harden build/test config for TypeScript 6 and Angular 22 upgrades ([a48b3bc](https://github.com/apauldev/Yotara/commit/a48b3bcbc09ae6c797bce2c8ea2094540cb1e40a))
+
 ## [0.71.1](https://github.com/apauldev/Yotara/compare/v0.71.0...v0.71.1) (2026-08-01)
 
 
