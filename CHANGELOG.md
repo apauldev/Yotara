@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.72.1](https://github.com/apauldev/Yotara/compare/v0.72.0...v0.72.1) (2026-08-06)
+
+
+### Bug Fixes
+
+* **frontend:** add global focus ring ([253ae05](https://github.com/apauldev/Yotara/commit/253ae05c3c42da18f52f1944c07756aa80346a36))
+
 ## [0.72.0](https://github.com/apauldev/Yotara/compare/v0.71.1...v0.72.0) (2026-08-05)
 
 
