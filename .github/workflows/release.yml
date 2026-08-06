@@ -99,9 +99,9 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            apauldev/yotara-api:latest
-            apauldev/yotara-api:${{ needs.release.outputs.version }}
-            apauldev/yotara-api:v${{ needs.release.outputs.version }}
+            apauldev2/yotara-api:latest
+            apauldev2/yotara-api:${{ needs.release.outputs.version }}
+            apauldev2/yotara-api:v${{ needs.release.outputs.version }}
 
       - name: Build and push Frontend
         uses: docker/build-push-action@v5
@@ -111,6 +111,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            apauldev/yotara-frontend:latest
-            apauldev/yotara-frontend:${{ needs.release.outputs.version }}
-            apauldev/yotara-frontend:v${{ needs.release.outputs.version }}
+            apauldev2/yotara-frontend:latest
+            apauldev2/yotara-frontend:${{ needs.release.outputs.version }}
+            apauldev2/yotara-frontend:v${{ needs.release.outputs.version }}

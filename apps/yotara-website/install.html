@@ -337,7 +337,7 @@
               style="background: #1c1c17; color: #e5e2da"
             ><span style="color: #91d5b0;">services:</span>
   api:
-    image: apauldev/yotara-api:latest
+    image: apauldev2/yotara-api:latest
     environment:
       DATABASE_URL: /app/apps/api/data/yotara.db
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080/api}
@@ -358,7 +358,7 @@
       - /tmp
 
   frontend:
-    image: apauldev/yotara-frontend:latest
+    image: apauldev2/yotara-frontend:latest
     depends_on:
       - api
     environment:
@@ -524,7 +524,7 @@
             </a>
             <a
               class="inline-flex items-center gap-2 bg-surface-container-low text-on-surface font-semibold px-8 py-4 rounded-2xl hover:bg-surface-container-high transition-all ring-1 ring-outline-variant/20"
-              href="https://hub.docker.com/r/apauldev/yotara"
+              href="https://hub.docker.com/r/apauldev2/yotara-frontend"
             >
               <span class="material-symbols-outlined" aria-hidden="true">container</span>
               Docker Hub

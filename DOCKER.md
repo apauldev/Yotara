@@ -29,8 +29,8 @@ Data persists in a named Docker volume.
 
 Yotara publishes multi-platform images (amd64 & arm64) to Docker Hub on every release:
 
-- [`apauldev/yotara-api`](https://hub.docker.com/r/apauldev/yotara-api) — Fastify + SQLite + Better Auth
-- [`apauldev/yotara-frontend`](https://hub.docker.com/r/apauldev/yotara-frontend) — Angular served by Nginx
+- [`apauldev2/yotara-api`](https://hub.docker.com/r/apauldev2/yotara-api) — Fastify + SQLite + Better Auth
+- [`apauldev2/yotara-frontend`](https://hub.docker.com/r/apauldev2/yotara-frontend) — Angular served by Nginx
 
 Use the [hub compose file](./docker-compose.hub.yml) for the quickest start:
 
