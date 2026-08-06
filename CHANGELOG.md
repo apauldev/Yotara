@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.72.2](https://github.com/apauldev/Yotara/compare/v0.72.1...v0.72.2) (2026-08-06)
+
+
+### Chores
+
+* **docker:** point Docker Hub images to apauldev2 account ([0e3b844](https://github.com/apauldev/Yotara/commit/0e3b8446147d7761922a3b8ea52328f934391c66))
+
 ## [0.72.1](https://github.com/apauldev/Yotara/compare/v0.72.0...v0.72.1) (2026-08-06)
 
 
