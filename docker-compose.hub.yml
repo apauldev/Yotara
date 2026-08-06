@@ -1,6 +1,6 @@
 services:
   api:
-    image: apauldev/yotara-api:latest
+    image: apauldev2/yotara-api:latest
     environment:
       DATABASE_URL: /app/apps/api/data/yotara.db
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080/api}
@@ -21,7 +21,7 @@ services:
       - /tmp
 
   frontend:
-    image: apauldev/yotara-frontend:latest
+    image: apauldev2/yotara-frontend:latest
     depends_on:
       - api
     environment:

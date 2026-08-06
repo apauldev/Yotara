@@ -475,10 +475,10 @@ These features should be built as personal-mode improvements first, but they sho
 - **Status**: Not started
 - **Effort**: 2 hours
 - **Impact**: 200-300 early users (indie devs)
-- Build `apauldev/yotara-api` and `apauldev/yotara-frontend` images
+- Build `apauldev2/yotara-api` and `apauldev2/yotara-frontend` images
 - Setup GitHub Actions CI to push on release tags
 - Push to Docker Hub for instant zero-build deployment
-- Update docs with: `docker run -p 8080:80 apauldev/yotara:latest`
+- Update docs with: `curl -o docker-compose.yml https://raw.githubusercontent.com/apauldev/yotara/main/docker-compose.hub.yml` and `BETTER_AUTH_SECRET=$(openssl rand -base64 32) docker compose up -d`
 
 ### Docker Compose with Pre-Built Images
 - **Status**: Not started
