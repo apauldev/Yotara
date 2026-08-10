@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.72.3](https://github.com/apauldev/Yotara/compare/v0.72.2...v0.72.3) (2026-08-10)
+
+
+### Bug Fixes
+
+* **frontend:** make notifications dropdown scrollable, aligned, and mobile-safe ([f329c16](https://github.com/apauldev/Yotara/commit/f329c16ff55e3004eb11efaafebf30495147d316))
+
+
+### Chores
+
+* add DCO sign-off for Developer Certificate of Origin ([8eaac1a](https://github.com/apauldev/Yotara/commit/8eaac1a9981d64bf94113f3e9ff76679dada73cf))
+
 ## [0.72.2](https://github.com/apauldev/Yotara/compare/v0.72.1...v0.72.2) (2026-08-06)
 
 
