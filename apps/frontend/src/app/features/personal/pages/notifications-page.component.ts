@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faBell, faCheck, faCheckDouble, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faCheckDouble, faEnvelope, faTrash } from '@fortawesome/free-solid-svg-icons';
 import type { Notification } from '@yotara/shared';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
@@ -20,7 +20,7 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
       <div class="notifications-card">
         @if (service.notifications().length === 0) {
           <div class="empty-state">
-            <fa-icon [icon]="faBell" class="empty-icon"></fa-icon>
+            <fa-icon [icon]="faEnvelope" class="empty-icon"></fa-icon>
             <p class="empty-title">No notifications yet</p>
             <p class="empty-subtitle">When tasks are due or overdue, you'll see them here.</p>
           </div>
@@ -177,7 +177,7 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
       .notifications-list {
         display: flex;
         flex-direction: column;
-        gap: 0.35rem;
+        gap: 0.625rem;
       }
 
       .notification-item {
@@ -265,6 +265,15 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
           border-radius: 1.25rem;
         }
 
+        .notifications-header {
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .notifications-actions {
+          flex-wrap: wrap;
+        }
+
         .notification-item {
           padding: 0.6rem;
           gap: 0.5rem;
@@ -275,7 +284,7 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
 })
 export class NotificationsPageComponent implements OnInit {
   protected readonly service = inject(NotificationService);
-  protected readonly faBell = faBell;
+  protected readonly faEnvelope = faEnvelope;
   protected readonly faCheck = faCheck;
   protected readonly faCheckDouble = faCheckDouble;
   protected readonly faTrash = faTrash;

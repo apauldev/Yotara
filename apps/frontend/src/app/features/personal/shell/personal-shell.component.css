@@ -667,6 +667,11 @@
     justify-content: flex-end;
   }
 
+  .notifications-dropdown {
+    right: 0;
+    max-height: min(24rem, calc(100dvh - 14rem));
+  }
+
   .topbar-brand {
     order: 1;
     font-size: 1.35rem;
@@ -841,6 +846,20 @@
 /* Notification dropdown */
 .notifications-dropdown {
   width: min(20rem, calc(100vw - 2rem));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Desktop: align the right edge with the bell button (bell + sliders + avatar
+   buttons plus two 0.75rem gaps from the right edge of .topbar-actions) and cap
+   the height. Mobile uses right: 0 and a shorter cap from the responsive section
+   below, which must not be overridden by these desktop-only values. */
+@media (width > 720px) {
+  .notifications-dropdown {
+    right: 6.5rem;
+    max-height: min(26rem, calc(100dvh - 8rem));
+  }
 }
 
 .notifications-dropdown-header {
@@ -848,6 +867,16 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.5rem 0.85rem 0.25rem;
+  flex-shrink: 0;
+}
+
+.notifications-dropdown-list {
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.1rem 0.15rem 0.3rem;
 }
 
 .notifications-dropdown-header strong {

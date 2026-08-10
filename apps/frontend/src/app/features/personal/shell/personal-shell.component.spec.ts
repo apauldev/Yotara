@@ -234,6 +234,45 @@ describe('PersonalShellComponent', () => {
     expect(notifService.fetchUnreadCount).toHaveBeenCalled();
   });
 
+  it('keeps the notification list scrollable when there are many notifications', () => {
+    const notifService = TestBed.inject(NotificationService) as any;
+    notifService.notifications.set(
+      Array.from({ length: 25 }, (_, i) => ({
+        id: `n${i}`,
+        type: 'due_today' as const,
+        title: `Task ${i}`,
+        body: `Body ${i}`,
+        read: false,
+        readAt: null,
+        createdAt: '2026-07-17T10:00:00.000Z',
+      })),
+    );
+
+    const fixture = TestBed.createComponent(PersonalShellComponent);
+    fixture.detectChanges();
+
+    const bellButton = fixture.debugElement.queryAll(By.css('.icon-button'))[0];
+    bellButton.nativeElement.click();
+    fixture.detectChanges();
+
+    const dropdown = fixture.debugElement.query(By.css('.notifications-dropdown'));
+    const list = fixture.debugElement.query(By.css('.notifications-dropdown-list'));
+
+    expect(dropdown).toBeTruthy();
+    expect(list).toBeTruthy();
+    expect(list.nativeElement.querySelectorAll('.notification-dropdown-item').length).toBe(25);
+
+    const dropdownStyle = getComputedStyle(dropdown.nativeElement);
+    const listStyle = getComputedStyle(list.nativeElement);
+    expect(dropdownStyle.maxHeight).not.toBe('none');
+    expect(listStyle.overflowY).toBe('auto');
+
+    // The header stays fixed while only the list scrolls.
+    const header = fixture.debugElement.query(By.css('.notifications-dropdown-header'));
+    expect(header.nativeElement.parentElement).toBe(dropdown.nativeElement);
+    expect(list.nativeElement.parentElement).toBe(dropdown.nativeElement);
+  });
+
   it('calls markAsRead when clicking an unread notification in the dropdown', async () => {
     const notifService = TestBed.inject(NotificationService) as any;
     notifService.notifications.set([
