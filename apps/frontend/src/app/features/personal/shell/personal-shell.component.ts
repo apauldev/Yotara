@@ -19,7 +19,7 @@ import { FormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {
   faBars,
-  faBell,
+  faEnvelope,
   faCalendarDays,
   faBoxArchive,
   faInbox,
@@ -107,7 +107,7 @@ interface PersonalNavItem {
 export class PersonalShellComponent {
   protected readonly appVersion = APP_VERSION;
   protected readonly faBars = faBars;
-  protected readonly faBell = faBell;
+  protected readonly faEnvelope = faEnvelope;
   protected readonly faArrowRightLong = faArrowRightLong;
   protected readonly faCalendarDays = faCalendarDays;
   protected readonly faBoxArchive = faBoxArchive;
