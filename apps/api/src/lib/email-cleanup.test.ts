@@ -113,6 +113,13 @@ test('unverified account cleanup', async () => {
     assert.equal(count('projects', `owner_id = '${staleId}'`), 0, 'projects removed');
     assert.equal(count('verification', `identifier = '${staleEmail}'`), 0, 'verifications removed');
     assert.equal(count('user', `id = '${staleId}'`), 0, 'user removed');
+
+    // Job lifecycle: start runs once on boot, then on an interval; stop clears it.
+    const { startUnverifiedCleanupJob, stopUnverifiedCleanupJob } =
+      await import('./email-cleanup.js');
+    startUnverifiedCleanupJob(10_000); // long interval; boot run happens synchronously
+    startUnverifiedCleanupJob(10_000); // idempotent — no second timer
+    stopUnverifiedCleanupJob();
   } finally {
     delete process.env['DATABASE_URL'];
     if (previousEnv === undefined) {
