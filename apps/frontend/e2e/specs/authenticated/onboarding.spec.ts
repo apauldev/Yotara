@@ -5,23 +5,23 @@ test.use({ storageState: { cookies: [], origins: [] } });
 
 const EMAIL_FIRST = process.env['REQUIRE_EMAIL_VERIFICATION'] === 'true';
 
-/** Read the most recent verification URL from the API log (console fallback). */
-function getVerificationToken(): string {
+/** Read the exact frontend verification URL emitted in the email log. */
+function getVerificationUrl(): string {
   const logFile = process.env['E2E_API_LOG'] ?? process.env['API_LOG_FILE'];
   if (!logFile) {
     throw new Error('E2E_API_LOG must point at the API log file');
   }
   const log = fs.readFileSync(logFile, 'utf8');
   const lines = log.split('\n').reverse();
-  const linkLine = lines.find((l) => l.includes('verify-email?token='));
+  const linkLine = lines.find((l) => l.includes('/verify-email?token='));
   if (!linkLine) {
     throw new Error(`No verification link found in ${logFile}`);
   }
-  const match = linkLine.match(/verify-email\?token=([^&\s]+)/);
+  const match = linkLine.match(/https?:\/\/[^\s]+\/verify-email\?token=[^&\s]+/);
   if (!match) {
-    throw new Error(`Could not extract token from: ${linkLine}`);
+    throw new Error(`Could not extract verification URL from: ${linkLine}`);
   }
-  return decodeURIComponent(match[1]);
+  return match[0];
 }
 
 /** Complete signup in either mode (legacy password form, or email-first). */
@@ -41,8 +41,8 @@ async function signUp(
   if (EMAIL_FIRST) {
     await page.getByRole('button', { name: 'Create account' }).click();
     await page.getByRole('heading', { name: 'Check your email' }).waitFor();
-    const token = getVerificationToken();
-    await page.goto(`/verify-email?token=${token}`);
+    const verificationUrl = getVerificationUrl();
+    await page.goto(verificationUrl);
     await page.getByLabel('Password').fill(password);
     await page.getByRole('button', { name: 'Set password and continue' }).click();
   } else {

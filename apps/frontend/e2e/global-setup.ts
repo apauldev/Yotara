@@ -33,9 +33,7 @@ async function waitForServer(url: string, label: string, maxRetries = 30) {
 }
 
 /** Read the most recent verification URL from the API log (console fallback). */
-function getVerificationToken(): string {
-  // Better Auth emails a JWT link and does not persist the token in the DB;
-  // in dev/test the email body (with the link) is logged to the API console.
+function getVerificationUrl(): string {
   const logFile = process.env['E2E_API_LOG'] ?? process.env['API_LOG_FILE'];
   if (!logFile) {
     throw new Error(
@@ -43,17 +41,16 @@ function getVerificationToken(): string {
     );
   }
   const log = fs.readFileSync(logFile, 'utf8');
-  // The setup just created the account, so the most recent verify link is ours.
   const lines = log.split('\n').reverse();
-  const linkLine = lines.find((l) => l.includes('verify-email?token='));
+  const linkLine = lines.find((l) => l.includes('/verify-email?token='));
   if (!linkLine) {
     throw new Error(`No verification link found in ${logFile}`);
   }
-  const match = linkLine.match(/verify-email\?token=([^&\s]+)/);
+  const match = linkLine.match(/https?:\/\/[^\s]+\/verify-email\?token=[^&\s]+/);
   if (!match) {
-    throw new Error(`Could not extract token from: ${linkLine}`);
+    throw new Error(`Could not extract verification URL from: ${linkLine}`);
   }
-  return decodeURIComponent(match[1]);
+  return match[0];
 }
 
 async function setup() {
@@ -85,12 +82,12 @@ async function setup() {
     await page.getByLabel('Email').fill(TEST_EMAIL);
 
     if (EMAIL_FIRST) {
-      // Email-first: no password field at signup; the verification link is
-      // emailed (logged to the API console / stored in the verification table).
+      // Email-first: no password field at signup; use the exact verification
+      // link emitted in the API console fallback.
       await page.getByRole('button', { name: 'Create account' }).click();
       await page.getByRole('heading', { name: 'Check your email' }).waitFor();
-      const token = getVerificationToken();
-      await page.goto(`${BASE_URL}/verify-email?token=${token}`);
+      const verificationUrl = getVerificationUrl();
+      await page.goto(verificationUrl);
       await page.getByLabel('Password').fill(TEST_PASSWORD);
       await page.getByRole('button', { name: 'Set password and continue' }).click();
     } else {

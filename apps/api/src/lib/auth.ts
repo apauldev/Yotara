@@ -2,7 +2,7 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { db } from '../db/client.js';
 import { accounts, sessions, users, verifications } from '../db/schema.js';
-import { getAppBaseUrl, getTrustedOrigins } from './auth-origins.js';
+import { getAppBaseUrl, getFrontendVerificationUrl, getTrustedOrigins } from './auth-origins.js';
 
 const appBaseUrl = getAppBaseUrl();
 const trustedOrigins = getTrustedOrigins();
@@ -79,7 +79,7 @@ export const auth = betterAuth({
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
       const { sendVerificationEmail } = await import('./email.js');
-      await sendVerificationEmail(user, url);
+      await sendVerificationEmail(user, getFrontendVerificationUrl(url));
     },
   },
   advanced: {

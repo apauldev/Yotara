@@ -9,24 +9,23 @@ const emailFirst = process.env['REQUIRE_EMAIL_VERIFICATION'] === 'true';
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
-// Better Auth emails a JWT link (console fallback in dev) and does not persist
-// the token in the DB, so read the most recent verification URL from the API log.
-function getVerificationToken(): string {
+// Read the exact frontend verification URL emitted in the email log.
+function getVerificationUrl(): string {
   const logFile = process.env['E2E_API_LOG'] ?? process.env['API_LOG_FILE'];
   if (!logFile) {
     throw new Error('E2E_API_LOG must point at the API log file');
   }
   const log = fs.readFileSync(logFile, 'utf8');
   const lines = log.split('\n').reverse();
-  const linkLine = lines.find((l) => l.includes('verify-email?token='));
+  const linkLine = lines.find((l) => l.includes('/verify-email?token='));
   if (!linkLine) {
     throw new Error(`No verification link found in ${logFile}`);
   }
-  const match = linkLine.match(/verify-email\?token=([^&\s]+)/);
+  const match = linkLine.match(/https?:\/\/[^\s]+\/verify-email\?token=[^&\s]+/);
   if (!match) {
-    throw new Error(`Could not extract token from: ${linkLine}`);
+    throw new Error(`Could not extract verification URL from: ${linkLine}`);
   }
-  return decodeURIComponent(match[1]);
+  return match[0];
 }
 
 test.describe('Email-first signup', () => {
@@ -51,9 +50,9 @@ test.describe('Email-first signup', () => {
     // Check-your-inbox screen.
     await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
 
-    // Grab the verification token and open the emailed link.
-    const token = getVerificationToken();
-    await page.goto(`/verify-email?token=${token}`);
+    // Open the exact verification link emitted in the email.
+    const verificationUrl = getVerificationUrl();
+    await page.goto(verificationUrl);
 
     // Set-password step.
     await expect(page.getByText('Your email is verified')).toBeVisible();
