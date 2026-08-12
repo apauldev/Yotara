@@ -104,6 +104,8 @@ export default async function authBridgePlugin(app: FastifyInstance) {
       const isSignUp = request.method === 'POST' && url.pathname.startsWith('/auth/sign-up/email');
       const isForgetPassword =
         request.method === 'POST' && url.pathname.startsWith('/auth/request-password-reset');
+      const isSendVerificationEmail =
+        request.method === 'POST' && url.pathname === '/auth/send-verification-email';
 
       // Real client IP (resolves via trustProxy: 1 + nginx X-Forwarded-For) used
       // to scope the lockout tuple so an attacker can't lock a victim's account
@@ -135,9 +137,16 @@ export default async function authBridgePlugin(app: FastifyInstance) {
       const loginEmail =
         isSignIn && parsedBody && typeof parsedBody.email === 'string' ? parsedBody.email : null;
       const actionEmail =
-        (isSignUp || isForgetPassword) && parsedBody && typeof parsedBody.email === 'string'
+        (isSignUp || isForgetPassword || isSendVerificationEmail) &&
+        parsedBody &&
+        typeof parsedBody.email === 'string'
           ? parsedBody.email
           : null;
+      const actionType = isSignUp
+        ? ('signup' as const)
+        : isForgetPassword
+          ? ('reset' as const)
+          : ('verify' as const);
 
       if (isSignIn && loginEmail) {
         const remaining = getRemainingLockoutSeconds(clientIp, loginEmail);
@@ -152,7 +161,6 @@ export default async function authBridgePlugin(app: FastifyInstance) {
       }
 
       if (actionEmail) {
-        const actionType = isSignUp ? ('signup' as const) : ('reset' as const);
         try {
           checkRateLimitOrThrow(actionEmail, actionType, clientIp);
         } catch (err) {

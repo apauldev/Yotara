@@ -87,6 +87,35 @@ test('config endpoint exposes requireEmailVerification from env', async () => {
   }
 });
 
+test('verification resend is rate-limited without revealing account existence', async () => {
+  const ctx = await createTestApp();
+  const email = `resend-${randomUUID()}@example.com`;
+
+  try {
+    const firstResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/send-verification-email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email },
+    });
+    assert.equal(firstResponse.statusCode, 200);
+    assert.equal(firstResponse.json().status, true);
+
+    const secondResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/send-verification-email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email },
+    });
+    assert.equal(secondResponse.statusCode, 429);
+    assert.equal(secondResponse.headers['retry-after'] !== undefined, true);
+    assert.equal(secondResponse.json().retryAfterSeconds > 1500, true);
+    assert.match(secondResponse.json().message, /Too many verify requests/);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
 test('honeypot signup triggers IP ban and creates no user', async () => {
   const ctx = await createTestApp();
 
