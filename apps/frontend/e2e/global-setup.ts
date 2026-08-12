@@ -9,6 +9,7 @@ const TEST_EMAIL = `e2e-${Date.now()}@yotara.test`;
 const TEST_PASSWORD = 'E2eTestPass123!';
 const TEST_NAME = 'E2E Tester';
 const LOG_FILE = path.resolve('e2e/.auth/setup-log.txt');
+const EMAIL_FIRST = process.env['REQUIRE_EMAIL_VERIFICATION'] === 'true';
 
 function log(msg: string) {
   try {
@@ -29,6 +30,30 @@ async function waitForServer(url: string, label: string, maxRetries = 30) {
     await new Promise((r) => setTimeout(r, 1000));
   }
   throw new Error(`${label} at ${url} did not become available`);
+}
+
+/** Read the most recent verification URL from the API log (console fallback). */
+function getVerificationToken(): string {
+  // Better Auth emails a JWT link and does not persist the token in the DB;
+  // in dev/test the email body (with the link) is logged to the API console.
+  const logFile = process.env['E2E_API_LOG'] ?? process.env['API_LOG_FILE'];
+  if (!logFile) {
+    throw new Error(
+      'E2E_API_LOG must point at the API log file (it contains the console-printed verification link).',
+    );
+  }
+  const log = fs.readFileSync(logFile, 'utf8');
+  // The setup just created the account, so the most recent verify link is ours.
+  const lines = log.split('\n').reverse();
+  const linkLine = lines.find((l) => l.includes('verify-email?token='));
+  if (!linkLine) {
+    throw new Error(`No verification link found in ${logFile}`);
+  }
+  const match = linkLine.match(/verify-email\?token=([^&\s]+)/);
+  if (!match) {
+    throw new Error(`Could not extract token from: ${linkLine}`);
+  }
+  return decodeURIComponent(match[1]);
 }
 
 async function setup() {
@@ -58,10 +83,20 @@ async function setup() {
     log('Filling form...');
     await page.getByLabel('Name').fill(TEST_NAME);
     await page.getByLabel('Email').fill(TEST_EMAIL);
-    await page.getByLabel('Password').fill(TEST_PASSWORD);
 
-    log('Submitting...');
-    await page.getByRole('button', { name: 'Create account' }).click();
+    if (EMAIL_FIRST) {
+      // Email-first: no password field at signup; the verification link is
+      // emailed (logged to the API console / stored in the verification table).
+      await page.getByRole('button', { name: 'Create account' }).click();
+      await page.getByRole('heading', { name: 'Check your email' }).waitFor();
+      const token = getVerificationToken();
+      await page.goto(`${BASE_URL}/verify-email?token=${token}`);
+      await page.getByLabel('Password').fill(TEST_PASSWORD);
+      await page.getByRole('button', { name: 'Set password and continue' }).click();
+    } else {
+      await page.getByLabel('Password').fill(TEST_PASSWORD);
+      await page.getByRole('button', { name: 'Create account' }).click();
+    }
 
     log('Waiting for onboarding...');
     await page.waitForURL(/\/onboarding/);
