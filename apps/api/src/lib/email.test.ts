@@ -133,6 +133,44 @@ test('email module', async (t) => {
         },
       );
     });
+    await t.test('escapeHtml and escapeAttribute neutralize injection', async () => {
+      const { escapeHtml, escapeAttribute } = await import('./email.js');
+      const name = '<script>alert("x")</script>';
+      assert.equal(escapeHtml(name), '&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;');
+      const url = 'https://example.com/verify?token=abc&x=" onmouseover="alert(1)';
+      assert.equal(
+        escapeAttribute(url),
+        'https://example.com/verify?token=abc&amp;x=&quot; onmouseover=&quot;alert(1)',
+      );
+    });
+
+    await t.test('production with no RESEND_API_KEY fails loudly', async () => {
+      const previousNodeEnv = process.env['NODE_ENV'];
+      const previousApiKey = process.env['RESEND_API_KEY'];
+
+      process.env['NODE_ENV'] = 'production';
+      delete process.env['RESEND_API_KEY'];
+
+      try {
+        // Module-level assertEmailConfigured runs on import; use dynamic import
+        // after clearing any cached instance via a fresh query string.
+        await assert.rejects(
+          () => import(`./email.js?fail=${Date.now()}`),
+          /RESEND_API_KEY must be set in production/,
+        );
+      } finally {
+        if (previousNodeEnv === undefined) {
+          delete process.env['NODE_ENV'];
+        } else {
+          process.env['NODE_ENV'] = previousNodeEnv;
+        }
+        if (previousApiKey === undefined) {
+          delete process.env['RESEND_API_KEY'];
+        } else {
+          process.env['RESEND_API_KEY'] = previousApiKey;
+        }
+      }
+    });
   } finally {
     delete process.env['DATABASE_URL'];
     mock.restoreAll();

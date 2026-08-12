@@ -11,6 +11,22 @@ const useSecureCookies =
 
 const DEFAULT_AUTH_SECRET = 'local-dev-secret-change-me';
 
+/**
+ * Whether email verification is required for sign-in.
+ *
+ * True in production, or in any env when REQUIRE_EMAIL_VERIFICATION=true (the
+ * dev/test override so the email-first flow is testable locally). False
+ * otherwise — dev/test default keeps registration frictionless.
+ *
+ * This is the single source of truth for gating: auth config, the runtime flag
+ * exposed to the frontend, and the unverified-account cleanup all read it.
+ */
+export function emailVerificationRequired(): boolean {
+  return (
+    process.env['NODE_ENV'] === 'production' || process.env['REQUIRE_EMAIL_VERIFICATION'] === 'true'
+  );
+}
+
 function assertAuthSecretConfigured(): void {
   const secret = process.env['BETTER_AUTH_SECRET'];
   const nodeEnv = process.env['NODE_ENV'] ?? 'development';
@@ -45,7 +61,7 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: false,
+    requireEmailVerification: emailVerificationRequired(),
     minPasswordLength: 8,
     maxPasswordLength: 128,
     resetPasswordTokenExpiresIn: 3600, // 1 hour (matches email copy)
@@ -54,9 +70,13 @@ export const auth = betterAuth({
       await sendPasswordResetEmail(user, url);
     },
   },
-  // Wired up but dormant: requireEmailVerification is false above, so this
-  // callback will only fire when that flag is flipped to true.
   emailVerification: {
+    // 15-minute verification link (matches the email copy).
+    expiresIn: 900,
+    // Auto-create a session once the email link is clicked, so the user can
+    // set a real password immediately (the account starts with a throwaway
+    // placeholder password).
+    autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
       const { sendVerificationEmail } = await import('./email.js');
       await sendVerificationEmail(user, url);
