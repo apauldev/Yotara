@@ -233,7 +233,12 @@ describe('AuthStateService', () => {
     const service = TestBed.inject(AuthStateService);
     const result = await service.signUp('test@example.com', 'password', 'Test User');
 
-    expect(AuthService.signUp).toHaveBeenCalledWith('test@example.com', 'password', 'Test User');
+    expect(AuthService.signUp).toHaveBeenCalledWith(
+      'test@example.com',
+      'password',
+      'Test User',
+      '',
+    );
     expect(result.error).toBeNull();
     expect(service.loading()).toBeFalse();
   });

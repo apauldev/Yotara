@@ -11,6 +11,8 @@ describe('LoginComponent', () => {
     signIn: jasmine.Spy;
     signUp: jasmine.Spy;
     getPostAuthRedirectUrl: jasmine.Spy;
+    requireEmailVerification: () => boolean;
+    sendVerificationEmail: jasmine.Spy;
   };
 
   beforeEach(async () => {
@@ -23,6 +25,8 @@ describe('LoginComponent', () => {
       signIn: jasmine.createSpy('signIn').and.resolveTo({ error: null }),
       signUp: jasmine.createSpy('signUp').and.resolveTo({ error: null }),
       getPostAuthRedirectUrl: jasmine.createSpy('getPostAuthRedirectUrl').and.returnValue('/inbox'),
+      requireEmailVerification: () => false,
+      sendVerificationEmail: jasmine.createSpy('sendVerificationEmail').and.resolveTo(undefined),
     };
 
     await TestBed.configureTestingModule({
@@ -97,10 +101,58 @@ describe('LoginComponent', () => {
       'alex@example.com',
       'LongEn0ugh!Pass',
       'Alex Rivers',
+      '',
     );
     expect(router.navigate).toHaveBeenCalledWith(['/onboarding'], {
       queryParams: { created: '1' },
     });
+  });
+
+  it('email-first signup shows no password field and a check-email screen', async () => {
+    authState.requireEmailVerification = () => true;
+    fixture.detectChanges();
+    component.toggleMode();
+    fixture.detectChanges();
+
+    // No password field when verification is required.
+    expect(fixture.nativeElement.querySelector('input[name="password"]')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('verification link');
+
+    component.name.set('Alex Rivers');
+    component.email.set('alex@example.com');
+
+    await component.onSubmit();
+    fixture.detectChanges();
+
+    // Signup called with a throwaway placeholder (email + 5 letters) and the
+    // empty honeypot website value; no auto-login redirect.
+    expect(authState.signUp).toHaveBeenCalledWith(
+      'alex@example.com',
+      jasmine.stringMatching(/^alex@example\.com[a-z]{5}$/),
+      'Alex Rivers',
+      '',
+    );
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('Check your email');
+  });
+
+  it('email-first signup sends the honeypot website value when a bot fills it', async () => {
+    authState.requireEmailVerification = () => true;
+    fixture.detectChanges();
+    component.toggleMode();
+
+    component.name.set('Bot');
+    component.email.set('bot@example.com');
+    component.website.set('http://spam.example.com');
+
+    await component.onSubmit();
+
+    expect(authState.signUp).toHaveBeenCalledWith(
+      'bot@example.com',
+      jasmine.stringMatching(/^bot@example\.com[a-z]{5}$/),
+      'Bot',
+      'http://spam.example.com',
+    );
   });
 
   it('shows field error for empty name in sign-up mode', () => {
