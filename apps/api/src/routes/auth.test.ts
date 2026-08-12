@@ -149,6 +149,60 @@ test('unverified sign-in returns EMAIL_NOT_VERIFIED without burning lockout', as
   }
 });
 
+test('set-password endpoint requires verified email and sets the password', async () => {
+  const ctx = await createTestApp();
+  const email = `setpw-${randomUUID()}@example.com`;
+
+  try {
+    // Register + login normally (verified in test env), then call the endpoint.
+    const registerResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: TEST_PASSWORD, name: 'Set PW User' },
+    });
+    assert.equal(registerResponse.statusCode, 200);
+    const cookie = readCookie(registerResponse);
+
+    // Unauthenticated → 401.
+    const unauth = await ctx.app.inject({
+      method: 'POST',
+      url: '/me/password/set',
+      payload: { newPassword: 'NewPassword123!' },
+    });
+    assert.equal(unauth.statusCode, 401);
+
+    const NEW_PW = 'NewPassword123!';
+    const setPw = await ctx.app.inject({
+      method: 'POST',
+      url: '/me/password/set',
+      headers: { origin: TEST_ORIGIN, cookie },
+      payload: { newPassword: NEW_PW },
+    });
+    assert.equal(setPw.statusCode, 200);
+    assert.equal(setPw.json().ok, true);
+
+    // Old password no longer works; the new one does.
+    const oldSignIn = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-in/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: TEST_PASSWORD },
+    });
+    assert.notEqual(oldSignIn.statusCode, 200);
+
+    const newSignIn = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-in/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: NEW_PW },
+    });
+    assert.equal(newSignIn.statusCode, 200);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
 test('auth routes register and login with email/password', async () => {
   const ctx = await createTestApp();
 

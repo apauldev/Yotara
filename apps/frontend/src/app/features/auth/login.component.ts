@@ -1,4 +1,11 @@
-import { Component, OnDestroy, computed, signal, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  OnDestroy,
+  computed,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
@@ -30,16 +37,40 @@ export class LoginComponent implements OnDestroy {
   error = signal('');
   remainingAttempts = signal<number | null>(null);
   retryAfterSeconds = signal<number | null>(null);
+  /** Email-first signup state: email submitted → check-your-inbox screen. */
+  emailSubmitted = signal(false);
+  /** Hidden honeypot field — bots fill it, humans never see it. */
+  website = signal('');
+  /** The placeholder password used for the unverified signup, kept so the user
+   *  can set a real password after verification (changePassword needs it). */
+  placeholderPassword = signal('');
   protected locked = computed(() => (this.retryAfterSeconds() ?? 0) > 0);
   private countdownInterval: ReturnType<typeof setInterval> | null = null;
+  private authState = inject(AuthStateService);
+  private router = inject(Router);
 
-  constructor(
-    private router: Router,
-    private authState: AuthStateService,
-  ) {}
+  constructor() {}
+
+  /** Whether the signup form should collect a password (false when email
+   *  verification is required — email-first flow). */
+  protected get emailFirstSignup(): boolean {
+    return !this.isLogin() && this.authState.requireEmailVerification();
+  }
 
   goToForgotPassword() {
     this.router.navigate(['/forgot-password']);
+  }
+
+  /** Resend the verification email from the check-your-inbox screen. */
+  async resendVerification() {
+    this.error.set('');
+    try {
+      await this.authState.sendVerificationEmail(this.email().trim());
+      this.error.set('Verification email resent. Check your inbox.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Could not resend the email.';
+      this.error.set(message);
+    }
   }
 
   ngOnDestroy() {
@@ -128,6 +159,11 @@ export class LoginComponent implements OnDestroy {
       return null;
     }
 
+    // Email-first signup collects no password.
+    if (this.emailFirstSignup) {
+      return null;
+    }
+
     if (!password) {
       return 'Password is required';
     }
@@ -154,6 +190,17 @@ export class LoginComponent implements OnDestroy {
     );
   }
 
+  /** Generate the throwaway placeholder password (email + 5 random letters). */
+  private generatePlaceholderPassword(email: string): string {
+    const letters = 'abcdefghijklmnopqrstuvwxyz';
+    let suffix = '';
+    for (let i = 0; i < 5; i++) {
+      suffix += letters[Math.floor(Math.random() * letters.length)];
+    }
+    // email is always >= 8 chars; truncate to stay under Better Auth's max.
+    return `${email}${suffix}`.slice(0, 128);
+  }
+
   async onSubmit() {
     this.markAllTouched();
     this.error.set('');
@@ -169,8 +216,26 @@ export class LoginComponent implements OnDestroy {
       let res;
       if (this.isLogin()) {
         res = await this.authState.signIn(this.email().trim(), this.password());
+      } else if (this.emailFirstSignup) {
+        const placeholder = this.generatePlaceholderPassword(this.email().trim());
+        this.placeholderPassword.set(placeholder);
+        res = await this.authState.signUp(
+          this.email().trim(),
+          placeholder,
+          this.name().trim(),
+          this.website(),
+        );
+        // Email-first: never auto-login; show the check-your-inbox screen even
+        // when the signup succeeded (fake success for honeypot or real).
+        this.emailSubmitted.set(true);
+        return;
       } else {
-        res = await this.authState.signUp(this.email().trim(), this.password(), this.name().trim());
+        res = await this.authState.signUp(
+          this.email().trim(),
+          this.password(),
+          this.name().trim(),
+          this.website(),
+        );
       }
 
       if (res.error) {

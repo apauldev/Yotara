@@ -63,18 +63,35 @@ export const AuthService = {
   getConfig: async () => {
     return await request<ClientConfig>('/config');
   },
+  verifyEmail: async (token: string) => {
+    return await getAuthClient().verifyEmail({ query: { token } });
+  },
+  sendVerificationEmail: async (email: string) => {
+    return await getAuthClient().sendVerificationEmail({ email });
+  },
+  setPassword: async (newPassword: string) => {
+    return await request<{ ok: true }>('/me/password/set', {
+      method: 'POST',
+      body: JSON.stringify({ newPassword }),
+    });
+  },
   signIn: async (email: string, password: string) => {
     return await getAuthClient().signIn.email({
       email,
       password,
     });
   },
-  signUp: async (email: string, password: string, name: string) => {
-    return await getAuthClient().signUp.email({
+  signUp: async (email: string, password: string, name: string, website = '') => {
+    // The honeypot "website" field is sent so the auth bridge can detect bots.
+    // Better Auth's client type is strict; the server accepts and strips it.
+    const authClient = getAuthClient();
+    type SignUpBody = Parameters<typeof authClient.signUp.email>[0];
+    return await authClient.signUp.email({
       email,
       password,
       name,
-    });
+      website,
+    } as unknown as SignUpBody);
   },
   signOut: async () => {
     return await getAuthClient().signOut();

@@ -17,104 +17,143 @@
       {{ isLogin() ? 'A calm space for your tasks' : 'Set up your workspace in under a minute' }}
     </p>
 
-    <form (ngSubmit)="onSubmit()">
-      @if (!isLogin()) {
+    @if (emailSubmitted()) {
+      <div class="check-email">
+        <div class="hero-icon" aria-hidden="true">
+          <fa-icon [icon]="faEnvelope" size="2x"></fa-icon>
+        </div>
+        <h2>Check your email</h2>
+        <p>
+          We sent a verification link to <strong>{{ email() }}</strong
+          >. Click it within 15 minutes, then choose a password to finish setting up your account.
+        </p>
+        <p class="check-email-resend">
+          Didn't get it?
+          <button type="button" class="link-button accent-link" (click)="resendVerification()">
+            Resend email
+          </button>
+        </p>
+      </div>
+    } @else {
+      <form (ngSubmit)="onSubmit()">
+        @if (!isLogin()) {
+          <div class="field-group">
+            <label for="name">Name</label>
+            <div class="input-wrap" [class.input-wrap-invalid]="shouldShowFieldError('name')">
+              <input
+                id="name"
+                type="text"
+                [ngModel]="name()"
+                (ngModelChange)="name.set($event)"
+                (blur)="markTouched('name')"
+                name="name"
+                placeholder="Your name"
+                autocomplete="name"
+                required
+              />
+            </div>
+            @if (shouldShowFieldError('name')) {
+              <div class="field-error">{{ getFieldError('name') }}</div>
+            }
+          </div>
+        }
+
         <div class="field-group">
-          <label for="name">Name</label>
-          <div class="input-wrap" [class.input-wrap-invalid]="shouldShowFieldError('name')">
+          <label for="email">Email</label>
+          <div class="input-wrap" [class.input-wrap-invalid]="shouldShowFieldError('email')">
+            <fa-icon class="input-icon" [icon]="faEnvelope" aria-hidden="true"></fa-icon>
             <input
-              id="name"
-              type="text"
-              [ngModel]="name()"
-              (ngModelChange)="name.set($event)"
-              (blur)="markTouched('name')"
-              name="name"
-              placeholder="Your name"
-              autocomplete="name"
+              id="email"
+              type="email"
+              [ngModel]="email()"
+              (ngModelChange)="email.set($event)"
+              (blur)="markTouched('email')"
+              name="email"
+              placeholder="your@email.com"
+              autocomplete="email"
               required
             />
           </div>
-          @if (shouldShowFieldError('name')) {
-            <div class="field-error">{{ getFieldError('name') }}</div>
+          @if (shouldShowFieldError('email')) {
+            <div class="field-error">{{ getFieldError('email') }}</div>
           }
         </div>
-      }
 
-      <div class="field-group">
-        <label for="email">Email</label>
-        <div class="input-wrap" [class.input-wrap-invalid]="shouldShowFieldError('email')">
-          <fa-icon class="input-icon" [icon]="faEnvelope" aria-hidden="true"></fa-icon>
-          <input
-            id="email"
-            type="email"
-            [ngModel]="email()"
-            (ngModelChange)="email.set($event)"
-            (blur)="markTouched('email')"
-            name="email"
-            placeholder="your@email.com"
-            autocomplete="email"
-            required
-          />
-        </div>
-        @if (shouldShowFieldError('email')) {
-          <div class="field-error">{{ getFieldError('email') }}</div>
-        }
-      </div>
+        <div class="field-group">
+          <div class="password-label">
+            <label for="password">Password</label>
+            @if (isLogin()) {
+              <button type="button" class="link-button" (click)="goToForgotPassword()">
+                Forgot password?
+              </button>
+            }
+          </div>
+          @if (!emailFirstSignup) {
+            <div class="input-wrap" [class.input-wrap-invalid]="shouldShowFieldError('password')">
+              <fa-icon class="input-icon" [icon]="faLock" aria-hidden="true"></fa-icon>
+              <input
+                id="password"
+                type="password"
+                [ngModel]="password()"
+                (ngModelChange)="password.set($event)"
+                (blur)="markTouched('password')"
+                name="password"
+                placeholder="••••••••"
+                [attr.minlength]="!isLogin() ? 8 : null"
+                [attr.autocomplete]="isLogin() ? 'current-password' : 'new-password'"
+                required
+              />
+            </div>
+            @if (shouldShowFieldError('password')) {
+              <div class="field-error">{{ getFieldError('password') }}</div>
+            }
 
-      <div class="field-group">
-        <div class="password-label">
-          <label for="password">Password</label>
-          @if (isLogin()) {
-            <button type="button" class="link-button" (click)="goToForgotPassword()">
-              Forgot password?
-            </button>
+            @if (!isLogin()) {
+              <app-strength-meter [password]="password()" />
+            }
+          } @else {
+            <p class="email-first-note">
+              We'll email you a verification link (valid 15 minutes) before you choose a password.
+            </p>
           }
         </div>
-        <div class="input-wrap" [class.input-wrap-invalid]="shouldShowFieldError('password')">
-          <fa-icon class="input-icon" [icon]="faLock" aria-hidden="true"></fa-icon>
-          <input
-            id="password"
-            type="password"
-            [ngModel]="password()"
-            (ngModelChange)="password.set($event)"
-            (blur)="markTouched('password')"
-            name="password"
-            placeholder="••••••••"
-            [attr.minlength]="!isLogin() ? 8 : null"
-            [attr.autocomplete]="isLogin() ? 'current-password' : 'new-password'"
-            required
-          />
-        </div>
-        @if (shouldShowFieldError('password')) {
-          <div class="field-error">{{ getFieldError('password') }}</div>
-        }
 
         @if (!isLogin()) {
-          <app-strength-meter [password]="password()" />
+          <!-- Honeypot: hidden from humans, bots will fill it. -->
+          <input
+            class="honeypot"
+            type="text"
+            name="website"
+            tabindex="-1"
+            autocomplete="off"
+            aria-hidden="true"
+            [ngModel]="website()"
+            (ngModelChange)="website.set($event)"
+          />
         }
-      </div>
 
-      @if (error()) {
-        <div class="error-msg">{{ error() }}</div>
-      }
+        @if (error()) {
+          <div class="error-msg">{{ error() }}</div>
+        }
 
-      <app-password-trial
-        [remainingAttempts]="remainingAttempts()"
-        [retryAfterSeconds]="retryAfterSeconds()"
-      />
+        <app-password-trial
+          [remainingAttempts]="remainingAttempts()"
+          [retryAfterSeconds]="retryAfterSeconds()"
+        />
 
-      <button type="submit" [disabled]="loading() || locked()" class="submit-button">
-        {{ loading() ? 'Loading...' : isLogin() ? 'Sign In' : 'Create account' }}
-      </button>
-    </form>
+        <button type="submit" [disabled]="loading() || locked()" class="submit-button">
+          {{ loading() ? 'Loading...' : isLogin() ? 'Sign In' : 'Create account' }}
+        </button>
+      </form>
 
-    <div class="divider"></div>
-    <p class="toggle-mode">
-      {{ isLogin() ? 'New to Yotara?' : 'Already have an account?' }}
-      <button type="button" (click)="toggleMode()" class="link-button accent-link">
-        {{ isLogin() ? 'Create an account' : 'Sign in' }}
-      </button>
-    </p>
+      <div class="divider"></div>
+      <p class="toggle-mode">
+        {{ isLogin() ? 'New to Yotara?' : 'Already have an account?' }}
+        <button type="button" (click)="toggleMode()" class="link-button accent-link">
+          {{ isLogin() ? 'Create an account' : 'Sign in' }}
+        </button>
+      </p>
+    }
   </div>
   <p class="footer-note">© 2026 Yotara. Designed for focused productivity.</p>
 </div>

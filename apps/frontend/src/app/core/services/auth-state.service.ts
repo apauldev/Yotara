@@ -89,15 +89,48 @@ export class AuthStateService {
     }
   }
 
-  async signUp(email: string, password: string, name: string) {
+  async signUp(email: string, password: string, name: string, website = '') {
     this.loadingState.set(true);
 
     try {
-      const result = await AuthService.signUp(email, password, name);
+      // When email verification is required, the "password" is a throwaway
+      // placeholder (email + 5 random letters) — the user sets a real one
+      // after clicking the verification link. Never auto-login for an
+      // unverified account.
+      const result = await AuthService.signUp(email, password, name, website);
+      if (!result.error && !this.requireEmailVerificationState()) {
+        await this.refreshSession();
+      }
+      return result;
+    } finally {
+      this.loadingState.set(false);
+    }
+  }
+
+  /** Verify the email token from the emailed link (auto-signs-in if enabled). */
+  async verifyEmail(token: string) {
+    this.loadingState.set(true);
+    try {
+      const result = await AuthService.verifyEmail(token);
       if (!result.error) {
         await this.refreshSession();
       }
       return result;
+    } finally {
+      this.loadingState.set(false);
+    }
+  }
+
+  /** Resend the verification email (rate-limited server-side). */
+  async sendVerificationEmail(email: string) {
+    return await AuthService.sendVerificationEmail(email);
+  }
+
+  /** Set the real password after email verification (no current password needed). */
+  async setPassword(newPassword: string) {
+    this.loadingState.set(true);
+    try {
+      await AuthService.setPassword(newPassword);
     } finally {
       this.loadingState.set(false);
     }
