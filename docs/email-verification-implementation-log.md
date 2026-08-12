@@ -39,3 +39,20 @@ Implemented the email-first signup + verification + anti-bot flow:
 - The unverified-sign-in test runs in a subprocess because the gating is read at module load (env-at-boot contract).
 - `email_sends` CHECK constraint migration recreates the table (transient rate-limit data), matching the existing `login_attempts` migration pattern.
 - Docs (`email-verification-design.md` etc.) remain untracked per instruction.
+
+## E2E + coverage follow-up (2026-08-12)
+
+### E2E
+
+- The suite had **no coverage of the email-first flow** and the global-setup broke when `REQUIRE_EMAIL_VERIFICATION=true`. Fixed:
+  - `e2e/specs/login/email-first.spec.ts` (new): signs up with email only → check-email screen → reads the verification link from the API log → verify → set password → onboarding. **Skipped when the flag is off** (CI default).
+  - `e2e/global-setup.ts`: mode-aware — legacy password signup (flag off) or email-first verify+set-password (flag on).
+  - `e2e/specs/authenticated/onboarding.spec.ts`: shared mode-aware `signUp` helper.
+- **Key finding**: Better Auth emails a **JWT** verification link and does **not** persist the token in the `verification` table, so the E2E reads the token from the API's console log (`E2E_API_LOG` env).
+- Verified: **77/77 pass** with the flag on; **76 pass + 1 skip** in the default CI mode (the email-first spec correctly skips).
+
+### Unit coverage
+
+- Frontend (`ng test --code-coverage`): **84.16% stmts / 69.58% branch / 80.87% funcs / 85.12% lines**. New auth files: login.component 95.2%, verify-email 94.6%, auth-state.service 88.1%, settings-page 100%.
+- API (`c8`): **94.43% stmts / 79.44% branch / 90.05% funcs / 94.43% lines**. New files: auth-bridge 93.97%, config 100%, blocked-ips 89.47%, email-rate-limit 98.36%, email-cleanup 65.3% → raised to ~90% with lifecycle tests (start/stop/idempotent + orphan-row cleanup).
+
