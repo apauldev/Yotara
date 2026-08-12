@@ -1,9 +1,14 @@
 import { sqlite } from '../db/client.js';
 
-export type EmailType = 'signup' | 'reset';
+export type EmailType = 'signup' | 'reset' | 'verify';
 
-/** Cooldown per type: 1 email of the same type per 5 minutes */
-const PER_TYPE_WINDOW_MS = 5 * 60 * 1000;
+/** Cooldown per type. 'verify' (verification email resends) is 30 min; the
+ *  signup and reset emails keep the original 5-minute window. */
+const PER_TYPE_WINDOW_MS: Record<EmailType, number> = {
+  signup: 5 * 60 * 1000,
+  reset: 5 * 60 * 1000,
+  verify: 30 * 60 * 1000,
+};
 
 /** Total cap: 3 emails of any type per 1 hour */
 const TOTAL_WINDOW_MS = 60 * 60 * 1000;
@@ -37,9 +42,11 @@ export function checkEmailRateLimit(
   sqlite.prepare('DELETE FROM email_sends WHERE email = ? AND created_at < ?').run(email, cutoff);
 
   const now = Date.now();
-  const perTypeCutoff = now - PER_TYPE_WINDOW_MS;
+  const perTypeWindow = PER_TYPE_WINDOW_MS[type];
+  const perTypeCutoff = now - perTypeWindow;
 
-  // Check 1: same type in last 5 minutes
+  // Check 1: same type in the per-type window (5 min for signup/reset, 30 min
+  // for verify resends)
   const sameTypeRow = sqlite
     .prepare(
       `SELECT COUNT(*) AS cnt FROM email_sends
@@ -57,8 +64,8 @@ export function checkEmailRateLimit(
       .get(email, type) as { last_ts: number | null };
 
     const retryAfter = lastSend.last_ts
-      ? Math.ceil((lastSend.last_ts + PER_TYPE_WINDOW_MS - now) / 1000)
-      : PER_TYPE_WINDOW_MS / 1000;
+      ? Math.ceil((lastSend.last_ts + perTypeWindow - now) / 1000)
+      : perTypeWindow / 1000;
 
     return { allowed: false, retryAfterSeconds: Math.max(1, retryAfter) };
   }

@@ -6,6 +6,7 @@ import { AppError } from './lib/app-error.js';
 import corsPlugin from './plugins/cors.js';
 import authBridgePlugin, { applyCorsHeaders } from './plugins/auth-bridge.js';
 import { registerOpenApi } from './docs/openapi.js';
+import { startUnverifiedCleanupJob } from './lib/email-cleanup.js';
 import healthRoutes from './routes/health.js';
 import meRoutes from './routes/me.js';
 import configRoutes from './routes/config.js';
@@ -120,6 +121,9 @@ export async function startServer() {
   const app = await buildApp();
   const port = Number(process.env['PORT'] ?? 3000);
   const host = process.env['HOST'] ?? '0.0.0.0';
+
+  // Delete unverified accounts older than 24h (production or dev override).
+  startUnverifiedCleanupJob();
 
   try {
     await app.listen({ port, host });

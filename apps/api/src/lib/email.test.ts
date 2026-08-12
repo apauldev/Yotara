@@ -118,6 +118,25 @@ test('email module', async (t) => {
       assert.doesNotThrow(() => checkRateLimitOrThrow(freshEmail, 'reset'));
     });
 
+    await t.test('verify resend type enforces a 30-minute cooldown', async () => {
+      const { checkRateLimitOrThrow } = await import('./email.js');
+      const { recordEmailSend } = await import('./email-rate-limit.js');
+
+      const verifyEmail = `verify-${randomUUID()}@test.com`;
+      recordEmailSend(verifyEmail, 'verify');
+
+      assert.throws(
+        () => checkRateLimitOrThrow(verifyEmail, 'verify'),
+        (err: Error & { statusCode?: number; retryAfterSeconds?: number }) => {
+          assert.equal(err.statusCode, 429);
+          assert.equal(err.message.includes('Too many verify requests'), true);
+          // 30-minute window: retry after should be > 25 minutes (1500s).
+          assert.ok(err.retryAfterSeconds! > 1500, 'verify cooldown should be ~30 min');
+          return true;
+        },
+      );
+    });
+
     await t.test('checkRateLimitOrThrow includes retry minutes in message', async () => {
       const { checkRateLimitOrThrow } = await import('./email.js');
       const { recordEmailSend } = await import('./email-rate-limit.js');
