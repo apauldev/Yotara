@@ -50,6 +50,43 @@ function readCookie(response: { headers: Record<string, unknown> }) {
   return Array.isArray(cookie) ? cookie[0] : cookie;
 }
 
+test('config endpoint exposes requireEmailVerification from env', async () => {
+  const ctx = await createTestApp();
+
+  try {
+    // createTestApp sets NODE_ENV=test; flag unset → false.
+    const response = await ctx.app.inject({
+      method: 'GET',
+      url: '/config',
+    });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().requireEmailVerification, false);
+
+    // With the override flag, verification is required even in test env.
+    const previousFlag = process.env['REQUIRE_EMAIL_VERIFICATION'];
+    process.env['REQUIRE_EMAIL_VERIFICATION'] = 'true';
+    try {
+      const { buildApp } = await import('../server.js');
+      const overrideApp = await buildApp();
+      const overrideResponse = await overrideApp.inject({
+        method: 'GET',
+        url: '/config',
+      });
+      assert.equal(overrideResponse.statusCode, 200);
+      assert.equal(overrideResponse.json().requireEmailVerification, true);
+      await overrideApp.close();
+    } finally {
+      if (previousFlag === undefined) {
+        delete process.env['REQUIRE_EMAIL_VERIFICATION'];
+      } else {
+        process.env['REQUIRE_EMAIL_VERIFICATION'] = previousFlag;
+      }
+    }
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
 test('auth routes register and login with email/password', async () => {
   const ctx = await createTestApp();
 

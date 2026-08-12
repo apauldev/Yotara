@@ -55,7 +55,14 @@ export interface DataCounts {
   labels: number;
 }
 
+export interface ClientConfig {
+  requireEmailVerification: boolean;
+}
+
 export const AuthService = {
+  getConfig: async () => {
+    return await request<ClientConfig>('/config');
+  },
   signIn: async (email: string, password: string) => {
     return await getAuthClient().signIn.email({
       email,

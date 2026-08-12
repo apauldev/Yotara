@@ -12,6 +12,7 @@ export class AuthStateService {
   private userState = signal<ProfileUser | null>(null);
   private initializedState = signal(false);
   private loadingState = signal(false);
+  private requireEmailVerificationState = signal(false);
   private logService = inject(LogService);
   private initPromise: Promise<SessionResponse> | null = null;
 
@@ -19,6 +20,7 @@ export class AuthStateService {
   readonly user = this.userState.asReadonly();
   readonly initialized = this.initializedState.asReadonly();
   readonly loading = this.loadingState.asReadonly();
+  readonly requireEmailVerification = this.requireEmailVerificationState.asReadonly();
   readonly isAuthenticated = computed(() => !!this.sessionState());
   readonly currentUserId = computed(
     () => this.userState()?.id ?? this.sessionState()?.userId ?? null,
@@ -36,7 +38,17 @@ export class AuthStateService {
       return this.initPromise;
     }
 
-    this.initPromise = this.refreshSession().finally(() => {
+    this.initPromise = (async () => {
+      // Best-effort: the runtime flag decides which signup form to render.
+      // If it fails, default to the legacy form; the flag is not fatal.
+      try {
+        const config = await AuthService.getConfig();
+        this.requireEmailVerificationState.set(config.requireEmailVerification);
+      } catch (error) {
+        this.logService.error('Failed to load client config', error, 'AuthStateService');
+      }
+      return await this.refreshSession();
+    })().finally(() => {
       this.initPromise = null;
     });
 
