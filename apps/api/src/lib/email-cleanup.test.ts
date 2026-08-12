@@ -51,26 +51,26 @@ test('unverified account cleanup', async () => {
     // Default (no flag): verification not required → cleanup is a no-op.
     const { cleanupUnverifiedAccounts } = await import('./email-cleanup.js');
     assert.equal(cleanupUnverifiedAccounts(), 0);
-    assert.equal(
-      sqlite.prepare(`SELECT COUNT(*) AS c FROM user WHERE emailVerified = 0`).get()?.c,
-      2,
-      'no users deleted when verification not required',
-    );
+    const countUnverified = () =>
+      (
+        sqlite.prepare(`SELECT COUNT(*) AS c FROM user WHERE emailVerified = 0`).get() as {
+          c: number;
+        }
+      ).c;
+    const countVerified = () =>
+      (
+        sqlite.prepare(`SELECT COUNT(*) AS c FROM user WHERE emailVerified = 1`).get() as {
+          c: number;
+        }
+      ).c;
+    assert.equal(countUnverified(), 2, 'no users deleted when verification not required');
 
     // With the override flag: only the old unverified account is deleted.
     process.env['REQUIRE_EMAIL_VERIFICATION'] = 'true';
     const deleted = cleanupUnverifiedAccounts();
     assert.equal(deleted, 1, 'exactly one unverified account older than 24h deleted');
-    assert.equal(
-      sqlite.prepare(`SELECT COUNT(*) AS c FROM user WHERE emailVerified = 0`).get()?.c,
-      1,
-      'new unverified account survives',
-    );
-    assert.equal(
-      sqlite.prepare(`SELECT COUNT(*) AS c FROM user WHERE emailVerified = 1`).get()?.c,
-      1,
-      'verified account survives',
-    );
+    assert.equal(countUnverified(), 1, 'new unverified account survives');
+    assert.equal(countVerified(), 1, 'verified account survives');
   } finally {
     delete process.env['DATABASE_URL'];
     if (previousEnv === undefined) {
