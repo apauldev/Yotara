@@ -87,6 +87,68 @@ test('config endpoint exposes requireEmailVerification from env', async () => {
   }
 });
 
+test('honeypot signup triggers IP ban and creates no user', async () => {
+  const ctx = await createTestApp();
+
+  try {
+    const { isIpBanned } = await import('../lib/blocked-ips.js');
+
+    // Bot fills the hidden website field → fake success, no user created.
+    const honeypotResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: {
+        email: `honeypot-${randomUUID()}@example.com`,
+        password: TEST_PASSWORD,
+        name: 'Bot',
+        website: 'http://spam.example.com',
+      },
+    });
+    assert.equal(honeypotResponse.statusCode, 200, 'fake success so bots cannot detect the trap');
+
+    // The IP is now banned → subsequent auth requests from it are 403.
+    const bannedResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: {
+        email: `second-${randomUUID()}@example.com`,
+        password: TEST_PASSWORD,
+        name: 'Bot 2',
+      },
+    });
+    assert.equal(bannedResponse.statusCode, 403);
+    assert.equal(isIpBanned('127.0.0.1'), true);
+  } finally {
+    // Remove the ban so it doesn't leak into other tests sharing the DB.
+    const { sqlite } = await import('../db/client.js');
+    sqlite.prepare(`DELETE FROM blocked_ips WHERE ip = '127.0.0.1'`).run();
+    await ctx.cleanup();
+  }
+});
+
+test('unverified sign-in returns EMAIL_NOT_VERIFIED without burning lockout', async () => {
+  // The verification gating is read at module load (env-at-boot contract), so
+  // this scenario must run in a fresh process with the flag set before import.
+  const { execFileSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const scriptPath = fileURLToPath(new URL('./unverified-signin.script.ts', import.meta.url));
+
+  try {
+    const output = execFileSync(process.execPath, ['--import', 'tsx', scriptPath], {
+      encoding: 'utf8',
+      env: { ...process.env, REQUIRE_EMAIL_VERIFICATION: 'true', NODE_ENV: 'test' },
+    });
+    const lines = output.trim().split('\n');
+    assert.ok(lines.includes('SIGNIN_STATUS:403'), `expected 403, got:\n${output}`);
+    assert.ok(lines.includes('SIGNIN_CODE:EMAIL_NOT_VERIFIED'), `expected code, got:\n${output}`);
+    assert.ok(lines.includes('LOCKOUT_REMAINING:0'), `expected no lockout burn, got:\n${output}`);
+  } catch (err) {
+    assert.fail(`subprocess failed: ${(err as Error).message}`);
+  }
+});
+
 test('auth routes register and login with email/password', async () => {
   const ctx = await createTestApp();
 

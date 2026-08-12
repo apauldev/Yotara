@@ -8,6 +8,7 @@ import {
 } from '../lib/login-lockout.js';
 import { checkRateLimitOrThrow } from '../lib/email.js';
 import { recordEmailSend } from '../lib/email-rate-limit.js';
+import { banIp, isIpBanned } from '../lib/blocked-ips.js';
 import { scanDueNotifications } from '../services/notification-service.js';
 
 function toHeaders(source: Record<string, string | string[] | undefined>) {
@@ -104,10 +105,31 @@ export default async function authBridgePlugin(app: FastifyInstance) {
       const isForgetPassword =
         request.method === 'POST' && url.pathname.startsWith('/auth/request-password-reset');
 
+      // Real client IP (resolves via trustProxy: 1 + nginx X-Forwarded-For) used
+      // to scope the lockout tuple so an attacker can't lock a victim's account
+      // from a different IP.
+      const clientIp = request.ip ?? 'unknown';
+
+      // Honeypot-triggered IPs are banned from auth endpoints for 24h.
+      if (isIpBanned(clientIp)) {
+        return reply.code(403).send({ message: 'Forbidden' });
+      }
+
       // Parse body once for all branches
       const parsedBody = parseRequestBody(request.body);
       if (request.method === 'POST' && parsedBody === null) {
         return reply.code(400).send({ message: 'Invalid JSON body' });
+      }
+
+      // Honeypot: hidden "website" field on the signup form. Bots fill it;
+      // humans never see it. On trigger: ban the IP, return a fake success so
+      // the bot can't tell it was caught, and create no user / send no email.
+      if (isSignUp) {
+        const website = parsedBody?.['website'];
+        if (typeof website === 'string' && website.trim() !== '') {
+          banIp(clientIp);
+          return reply.code(200).send({ user: null, token: null });
+        }
       }
 
       const loginEmail =
@@ -116,11 +138,6 @@ export default async function authBridgePlugin(app: FastifyInstance) {
         (isSignUp || isForgetPassword) && parsedBody && typeof parsedBody.email === 'string'
           ? parsedBody.email
           : null;
-
-      // Real client IP (resolves via trustProxy: 1 + nginx X-Forwarded-For) used
-      // to scope the lockout tuple so an attacker can't lock a victim's account
-      // from a different IP.
-      const clientIp = request.ip ?? 'unknown';
 
       if (isSignIn && loginEmail) {
         const remaining = getRemainingLockoutSeconds(clientIp, loginEmail);
@@ -197,6 +214,20 @@ export default async function authBridgePlugin(app: FastifyInstance) {
             message,
             remainingAttempts: result.remainingAttempts,
           });
+        } else if (response.status === 403) {
+          // Better Auth returns 403 EMAIL_NOT_VERIFIED when the account exists
+          // but the email was never verified. This is not a bad password — it
+          // must not burn a lockout attempt or show "invalid credentials".
+          const respJson = (await response
+            .clone()
+            .json()
+            .catch(() => null)) as { code?: string; message?: string } | null;
+          if (respJson?.code === 'EMAIL_NOT_VERIFIED') {
+            return reply.code(403).send({
+              code: 'EMAIL_NOT_VERIFIED',
+              message: 'Please verify your email before signing in.',
+            });
+          }
         }
       }
 
