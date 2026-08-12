@@ -12,6 +12,10 @@ let cleanupTimer: ReturnType<typeof setInterval> | null = null;
  * REQUIRE_EMAIL_VERIFICATION dev/test override) — otherwise dev/test users who
  * registered without verification would be deleted.
  *
+ * The user row is deleted alongside its related rows. session/account/projects
+ * use ON DELETE NO ACTION (see db/client.ts bootstrap), so they must be deleted
+ * explicitly to avoid orphaned rows.
+ *
  * Returns the number of accounts deleted (useful for tests).
  */
 export function cleanupUnverifiedAccounts(): number {
@@ -20,13 +24,40 @@ export function cleanupUnverifiedAccounts(): number {
   }
 
   const cutoff = Date.now() - UNVERIFIED_TTL_MS;
-  const result = sqlite
-    .prepare(`DELETE FROM user WHERE emailVerified = 0 AND createdAt < ?`)
-    .run(cutoff);
+  const staleUsers = sqlite
+    .prepare(`SELECT id, email FROM user WHERE emailVerified = 0 AND createdAt < ?`)
+    .all(cutoff) as Array<{ id: string; email: string }>;
 
-  // Related rows cascade via FK where configured; be explicit about the
-  // Better Auth tables that use NO ACTION, to avoid orphaned rows.
-  return result.changes;
+  if (staleUsers.length === 0) {
+    return 0;
+  }
+
+  const deleteSessions = sqlite.prepare(`DELETE FROM session WHERE userId = ?`);
+  const deleteAccounts = sqlite.prepare(`DELETE FROM account WHERE userId = ?`);
+  const deleteProjects = sqlite.prepare(`DELETE FROM projects WHERE owner_id = ?`);
+  const deleteVerifications = sqlite.prepare(`DELETE FROM verification WHERE identifier = ?`);
+  const deleteLoginAttempts = sqlite.prepare(`DELETE FROM login_attempts WHERE email = ?`);
+  const deleteEmailSends = sqlite.prepare(`DELETE FROM email_sends WHERE email = ?`);
+  const deleteUser = sqlite.prepare(`DELETE FROM user WHERE id = ?`);
+
+  sqlite.exec('BEGIN IMMEDIATE');
+  try {
+    for (const user of staleUsers) {
+      deleteSessions.run(user.id);
+      deleteAccounts.run(user.id);
+      deleteProjects.run(user.id);
+      deleteVerifications.run(user.email);
+      deleteLoginAttempts.run(user.email);
+      deleteEmailSends.run(user.email);
+      deleteUser.run(user.id);
+    }
+    sqlite.exec('COMMIT');
+  } catch (err) {
+    sqlite.exec('ROLLBACK');
+    throw err;
+  }
+
+  return staleUsers.length;
 }
 
 /**

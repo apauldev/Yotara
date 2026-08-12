@@ -39,6 +39,35 @@ test('unverified account cleanup', async () => {
       now - 48 * 3600_000,
       now,
     );
+    // Track the old unverified user id + email to assert orphan cleanup.
+    const staleId = `stale-${randomUUID()}`;
+    const staleEmail = `stale-${randomUUID()}@test.com`;
+    insert.run(staleId, 'Stale', staleEmail, 0, now - 48 * 3600_000, now);
+    // Orphan-prone related rows (NO ACTION FKs).
+    sqlite
+      .prepare(
+        `INSERT INTO session (id, userId, token, expiresAt, createdAt, updatedAt)
+                VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+      .run(`sess-${randomUUID()}`, staleId, 'tok', now + 3600_000, now, now);
+    sqlite
+      .prepare(
+        `INSERT INTO account (id, userId, accountId, providerId, createdAt, updatedAt)
+                VALUES (?, ?, ?, 'credential', ?, ?)`,
+      )
+      .run(`acct-${randomUUID()}`, staleId, staleId, now, now);
+    sqlite
+      .prepare(
+        `INSERT INTO projects (id, owner_id, name, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?)`,
+      )
+      .run(
+        `proj-${randomUUID()}`,
+        staleId,
+        'P',
+        new Date(now).toISOString(),
+        new Date(now).toISOString(),
+      );
     insert.run(
       `unverified-new-${randomUUID()}`,
       'New Unverified',
@@ -63,14 +92,27 @@ test('unverified account cleanup', async () => {
           c: number;
         }
       ).c;
-    assert.equal(countUnverified(), 2, 'no users deleted when verification not required');
+    assert.equal(countUnverified(), 3, 'no users deleted when verification not required');
 
-    // With the override flag: only the old unverified account is deleted.
+    // With the override flag: only the old unverified accounts (2) are deleted.
     process.env['REQUIRE_EMAIL_VERIFICATION'] = 'true';
     const deleted = cleanupUnverifiedAccounts();
-    assert.equal(deleted, 1, 'exactly one unverified account older than 24h deleted');
+    assert.equal(deleted, 2, 'exactly two unverified accounts older than 24h deleted');
     assert.equal(countUnverified(), 1, 'new unverified account survives');
     assert.equal(countVerified(), 1, 'verified account survives');
+
+    // Related rows (NO ACTION FKs) must be cleaned up, not orphaned.
+    const count = (table: string, where: string) =>
+      (
+        sqlite.prepare(`SELECT COUNT(*) AS c FROM ${table} WHERE ${where}`).get() as {
+          c: number;
+        }
+      ).c;
+    assert.equal(count('session', `userId = '${staleId}'`), 0, 'sessions removed');
+    assert.equal(count('account', `userId = '${staleId}'`), 0, 'accounts removed');
+    assert.equal(count('projects', `owner_id = '${staleId}'`), 0, 'projects removed');
+    assert.equal(count('verification', `identifier = '${staleEmail}'`), 0, 'verifications removed');
+    assert.equal(count('user', `id = '${staleId}'`), 0, 'user removed');
   } finally {
     delete process.env['DATABASE_URL'];
     if (previousEnv === undefined) {
