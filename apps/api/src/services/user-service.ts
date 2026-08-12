@@ -4,6 +4,7 @@ import {
   verifyPassword as betterAuthVerifyPassword,
 } from 'better-auth/crypto';
 import { db } from '../db/client.js';
+import { AppError } from '../lib/app-error.js';
 import { accounts, labels, projects, sessions, tasks, users, verifications } from '../db/schema.js';
 
 export type DeleteAccountResult =
@@ -17,8 +18,8 @@ export type DeleteAccountResult =
  * Used by the email-first signup flow: the account is created with a throwaway
  * placeholder password that the user never knows, so after email verification
  * they must be able to set a real password without proving the placeholder.
- * The caller (the /auth/set-password route) is responsible for ensuring the
- * user is authenticated AND email-verified.
+ * The caller is responsible for ensuring the user is authenticated, verified,
+ * and marked for initial password setup.
  */
 export async function setPasswordForUser(
   userId: string,
@@ -26,12 +27,29 @@ export async function setPasswordForUser(
   hash: (password: string) => Promise<string> = (password) => betterAuthHashPassword(password),
 ): Promise<boolean> {
   const passwordHash = await hash(newPassword);
-  const result = await db
-    .update(accounts)
-    .set({ password: passwordHash, updatedAt: new Date() })
-    .where(and(eq(accounts.userId, userId), eq(accounts.providerId, 'credential')));
+  return db.transaction(
+    (tx) => {
+      const flag = tx
+        .update(users)
+        .set({ passwordSetupRequired: false, updatedAt: new Date() })
+        .where(and(eq(users.id, userId), eq(users.passwordSetupRequired, true)))
+        .run();
+      if (flag.changes === 0) {
+        return false;
+      }
 
-  return result.changes > 0;
+      const result = tx
+        .update(accounts)
+        .set({ password: passwordHash, updatedAt: new Date() })
+        .where(and(eq(accounts.userId, userId), eq(accounts.providerId, 'credential')))
+        .run();
+      if (result.changes === 0) {
+        throw new AppError(500, 'Credential account not found while setting password.');
+      }
+      return true;
+    },
+    { behavior: 'immediate' },
+  );
 }
 
 /**

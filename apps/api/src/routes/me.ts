@@ -9,7 +9,6 @@ import { toPublicUser } from '../lib/public-user.js';
 import { seedDefaultLabelsForOwner } from '../services/label-service.js';
 import { seedDefaultProjectsForOwner } from '../services/project-service.js';
 import { deleteAccountForUser, setPasswordForUser } from '../services/user-service.js';
-import { emailVerificationRequired } from '../lib/auth.js';
 
 export default async function meRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', requireAuthenticatedUser);
@@ -197,21 +196,23 @@ export default async function meRoutes(fastify: FastifyInstance) {
         return sendUnauthorized(reply);
       }
 
-      // Only allow setting the initial password once the email is verified —
-      // this is the email-first signup completion step. In dev/test where
-      // verification is not required, any authenticated user may set it.
+      // Only allow the one-time initial password step for verified users marked
+      // by the verification-required email-first signup flow.
       const [user] = await db
-        .select({ emailVerified: users.emailVerified })
+        .select({
+          emailVerified: users.emailVerified,
+          passwordSetupRequired: users.passwordSetupRequired,
+        })
         .from(users)
         .where(eq(users.id, userId))
         .limit(1);
       if (!user) {
         return sendUnauthorized(reply);
       }
-      if (emailVerificationRequired() && !user.emailVerified) {
+      if (!user.emailVerified || !user.passwordSetupRequired) {
         return reply
           .code(403)
-          .send({ message: 'Email must be verified before setting a password.' });
+          .send({ message: 'Password setup is only available after email verification.' });
       }
 
       const ok = await setPasswordForUser(userId, request.body.newPassword);

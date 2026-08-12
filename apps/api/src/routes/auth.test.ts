@@ -157,6 +157,17 @@ test('honeypot signup triggers IP ban and creates no user', async () => {
   }
 });
 
+test('verification-required signup marks password setup as required', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const scriptPath = fileURLToPath(new URL('./password-setup-signup.script.ts', import.meta.url));
+  const output = execFileSync(process.execPath, ['--import', 'tsx', scriptPath], {
+    encoding: 'utf8',
+    env: { ...process.env, REQUIRE_EMAIL_VERIFICATION: 'true', NODE_ENV: 'test' },
+  });
+  assert.ok(output.includes('PASSWORD_SETUP_REQUIRED:1'), `expected setup flag, got:\n${output}`);
+});
+
 test('unverified sign-in returns EMAIL_NOT_VERIFIED without burning lockout', async () => {
   // The verification gating is read at module load (env-at-boot contract), so
   // this scenario must run in a fresh process with the flag set before import.
@@ -183,7 +194,7 @@ test('set-password endpoint requires verified email and sets the password', asyn
   const email = `setpw-${randomUUID()}@example.com`;
 
   try {
-    // Register + login normally (verified in test env), then call the endpoint.
+    // Register + login normally; verified users without the setup flag are denied.
     const registerResponse = await ctx.app.inject({
       method: 'POST',
       url: '/auth/sign-up/email',
@@ -201,6 +212,19 @@ test('set-password endpoint requires verified email and sets the password', asyn
     });
     assert.equal(unauth.statusCode, 401);
 
+    const normalUserSetPw = await ctx.app.inject({
+      method: 'POST',
+      url: '/me/password/set',
+      headers: { origin: TEST_ORIGIN, cookie },
+      payload: { newPassword: 'NewPassword123!' },
+    });
+    assert.equal(normalUserSetPw.statusCode, 403);
+
+    const { sqlite } = await import('../db/client.js');
+    sqlite
+      .prepare('UPDATE user SET emailVerified = 1, passwordSetupRequired = 1 WHERE email = ?')
+      .run(email);
+
     const NEW_PW = 'NewPassword123!';
     const setPw = await ctx.app.inject({
       method: 'POST',
@@ -210,6 +234,14 @@ test('set-password endpoint requires verified email and sets the password', asyn
     });
     assert.equal(setPw.statusCode, 200);
     assert.equal(setPw.json().ok, true);
+
+    const secondSetPw = await ctx.app.inject({
+      method: 'POST',
+      url: '/me/password/set',
+      headers: { origin: TEST_ORIGIN, cookie },
+      payload: { newPassword: 'AnotherPassword123!' },
+    });
+    assert.equal(secondSetPw.statusCode, 403);
 
     // Old password no longer works; the new one does.
     const oldSignIn = await ctx.app.inject({

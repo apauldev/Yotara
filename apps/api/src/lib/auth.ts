@@ -59,6 +59,30 @@ export const auth = betterAuth({
       verification: verifications,
     },
   }),
+  user: {
+    additionalFields: {
+      passwordSetupRequired: {
+        type: 'boolean',
+        required: false,
+        defaultValue: false,
+        returned: false,
+      },
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user, context) => {
+          if (
+            emailVerificationRequired() &&
+            context?.request?.url.includes('/auth/sign-up/email')
+          ) {
+            return { data: { ...user, passwordSetupRequired: true } };
+          }
+        },
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: emailVerificationRequired(),
