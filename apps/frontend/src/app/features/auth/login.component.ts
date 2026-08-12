@@ -225,8 +225,12 @@ export class LoginComponent implements OnDestroy {
           this.name().trim(),
           this.website(),
         );
-        // Email-first: never auto-login; show the check-your-inbox screen even
-        // when the signup succeeded (fake success for honeypot or real).
+        if (res.error) {
+          this.error.set(res.error.message || 'Authentication failed');
+          return;
+        }
+        // Email-first: never auto-login; show the check-your-inbox screen only
+        // on success (including the honeypot fake-success).
         this.emailSubmitted.set(true);
         return;
       } else {

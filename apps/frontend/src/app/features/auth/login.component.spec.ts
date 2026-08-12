@@ -136,6 +136,24 @@ describe('LoginComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Check your email');
   });
 
+  it('email-first signup shows the error instead of check-email on failure', async () => {
+    authState.requireEmailVerification = () => true;
+    authState.signUp.and.resolveTo({ error: { message: 'Email already in use' } });
+    fixture.detectChanges();
+    component.toggleMode();
+
+    component.name.set('Alex Rivers');
+    component.email.set('alex@example.com');
+
+    await component.onSubmit();
+    fixture.detectChanges();
+
+    expect(component.error()).toBe('Email already in use');
+    expect(component.emailSubmitted()).toBeFalse();
+    expect(fixture.nativeElement.textContent).toContain('Email already in use');
+    expect(fixture.nativeElement.textContent).not.toContain('Check your email');
+  });
+
   it('email-first signup sends the honeypot website value when a bot fills it', async () => {
     authState.requireEmailVerification = () => true;
     fixture.detectChanges();
