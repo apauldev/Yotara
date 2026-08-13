@@ -1,1 +1,6 @@
+#!/bin/sh
+# Strip AI-agent attribution trailers (Co-authored-by: CommandCodeBot) that
+# tooling adds without consent. The git history should credit the author only.
+stripped=$(grep -v '^Co-authored-by: CommandCodeBot <noreply@commandcode.ai>$' "$1")
+printf '%s\n' "$stripped" > "$1"
 npx --no -- commitlint --edit "$1"

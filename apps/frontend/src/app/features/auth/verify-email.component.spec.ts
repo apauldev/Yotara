@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { VerifyEmailComponent } from './verify-email.component';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { StatusService } from '../../core/services/status.service';
+import { AuthService } from '@yotara/shared';
 import { ActivatedRoute, Router } from '@angular/router';
 
 describe('VerifyEmailComponent', () => {
@@ -12,6 +13,7 @@ describe('VerifyEmailComponent', () => {
   let authState: {
     verifyEmail: jasmine.Spy;
     setPassword: jasmine.Spy;
+    user: () => Record<string, unknown> | null;
   };
 
   beforeEach(async () => {
@@ -20,6 +22,7 @@ describe('VerifyEmailComponent', () => {
     authState = {
       verifyEmail: jasmine.createSpy('verifyEmail').and.resolveTo({ error: null }),
       setPassword: jasmine.createSpy('setPassword').and.resolveTo(undefined),
+      user: () => null,
     };
 
     await TestBed.configureTestingModule({
@@ -70,12 +73,40 @@ describe('VerifyEmailComponent', () => {
   });
 
   it('shows invalid state when verification fails', async () => {
+    const getProfileSpy = spyOn(AuthService, 'getProfile');
+    getProfileSpy.and.rejectWith(new Error('no session'));
     authState.verifyEmail.and.resolveTo({ error: { message: 'expired' } });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.state()).toBe('invalid');
+  });
+
+  it('skips password setup and goes to the workspace for an already set-up account', async () => {
+    authState.user = () => ({ emailVerified: true, passwordSetupRequired: false });
     fixture.detectChanges();
     await Promise.resolve();
     fixture.detectChanges();
 
-    expect(component.state()).toBe('invalid');
+    expect(component.state()).toBe('done');
+    expect(component.doneMessage()).toContain('already have an account');
+    expect(router.navigate).toHaveBeenCalledWith(['/']);
+  });
+
+  it('treats a consumed link as success when the profile is already verified', async () => {
+    const getProfileSpy = spyOn(AuthService, 'getProfile');
+    getProfileSpy.and.resolveTo({
+      user: { id: 'u1', email: 'x@example.com', name: 'X', createdAt: 0, emailVerified: true },
+    });
+    authState.verifyEmail.and.resolveTo({ error: { message: 'Token already used' } });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.state()).toBe('done');
+    expect(component.doneMessage()).toContain('already have an account');
+    expect(router.navigate).toHaveBeenCalledWith(['/']);
   });
 
   it('sets the password and navigates to onboarding with a toast', async () => {

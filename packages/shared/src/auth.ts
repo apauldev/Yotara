@@ -40,6 +40,7 @@ export interface ProfileResponse {
     name: string;
     image?: string | null;
     emailVerified?: boolean;
+    passwordSetupRequired?: boolean;
     createdAt: string | number;
     updatedAt?: string | number;
     workspaceMode?: WorkspaceMode | null;

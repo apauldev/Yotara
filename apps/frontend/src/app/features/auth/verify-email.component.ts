@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '@yotara/shared';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { StatusService } from '../../core/services/status.service';
 import { passwordPolicyMessage } from './password-policy';
@@ -55,7 +56,7 @@ import { passwordPolicyMessage } from './password-policy';
         }
 
         @if (state() === 'done') {
-          <p class="success-msg">Your email is verified. Taking you to your workspace…</p>
+          <p class="success-msg">{{ doneMessage() }}</p>
         }
       </div>
     </div>
@@ -74,8 +75,8 @@ import { passwordPolicyMessage } from './password-policy';
         width: 100%;
         padding: 2rem;
         border-radius: 12px;
-        background: var(--surface-container);
-        box-shadow: 0 8px 30px var(--outline-variant);
+        background: var(--surface-card);
+        box-shadow: inset 0 0 0 1px var(--outline-variant);
       }
       h1 {
         margin: 0 0 1rem;
@@ -116,8 +117,8 @@ import { passwordPolicyMessage } from './password-policy';
         padding: 0.7rem;
         border: 0;
         border-radius: 8px;
-        background: var(--primary-solid);
-        color: var(--on-primary);
+        background: var(--primary-gradient);
+        color: hsl(var(--primary-foreground));
         font-size: 1rem;
         font-weight: 600;
         cursor: pointer;
@@ -138,6 +139,7 @@ export class VerifyEmailComponent implements OnInit {
   state = signal<'verifying' | 'invalid' | 'set-password' | 'done'>('verifying');
   error = signal('');
   loading = signal(false);
+  doneMessage = signal('Your email is verified. Taking you to your workspace…');
   newPassword = '';
   private token = '';
 
@@ -150,7 +152,22 @@ export class VerifyEmailComponent implements OnInit {
     }
 
     const result = await this.authState.verifyEmail(this.token);
+    const user = this.authState.user();
+    const alreadySetUp =
+      !!user && user.emailVerified === true && user.passwordSetupRequired === false;
+
+    // A consumed or expired link is not an error for an account that is
+    // already verified and has a password — it means the link did its job.
+    if (alreadySetUp && !result.error) {
+      this.finishAsDone();
+      return;
+    }
+
     if (result.error) {
+      if (await this.hasVerifiedProfile()) {
+        this.finishAsDone();
+        return;
+      }
       this.state.set('invalid');
       this.error.set(
         (result.error as { message?: string })?.message ??
@@ -160,6 +177,28 @@ export class VerifyEmailComponent implements OnInit {
     }
 
     this.state.set('set-password');
+  }
+
+  /**
+   * Fallback check for stale/consumed links: if a session exists and the
+   * profile is verified, the link was already used successfully — never
+   * present that as an error.
+   */
+  private async hasVerifiedProfile(): Promise<boolean> {
+    try {
+      const profile = await AuthService.getProfile();
+      return profile.user.emailVerified === true;
+    } catch {
+      return false;
+    }
+  }
+
+  private finishAsDone() {
+    this.doneMessage.set(
+      'You already have an account with this email — it is verified. Taking you to your workspace…',
+    );
+    this.state.set('done');
+    void this.router.navigate(['/']);
   }
 
   passwordError(): string | null {
