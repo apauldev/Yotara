@@ -26,12 +26,25 @@ Implemented the email-first signup + verification + anti-bot flow:
 | `055be45` | feat(auth): email-first signup, verify landing, and set-password endpoint |
 | `d444231` | test(frontend): cover email-first signup and verify-email flow |
 | `cebe7ec` | feat(frontend): show email with a Verified badge in settings |
+| `7d6edbd` | docs: note E2E coverage and unit coverage in implementation log |
+| `d89b9bf` | test(e2e): cover email-first signup and make setup mode-aware |
+| `638242a` | test(api): cover cleanup job lifecycle (start/stop/idempotent) |
+| `4052666` | fix(api): remove orphaned rows when cleaning up unverified accounts |
+| `935832b` | fix(frontend): show signup error instead of check-email on failure |
+| `9f12faf` | fix(auth): throttle verification email resends |
+| `087adb4` | fix(auth): route verification links to frontend |
+| `caa2fee` | fix(auth): restrict initial password setup |
+| `ccef0cf` | fix(auth): honor passwordSetupRequired in verify flow |
+| `53aedb0` | fix(auth): route password-reset links to the frontend |
+| pending | fix(auth): harden production secret validation and complete dev-mode/deployment batching |
 
 ## Test results
 
-- API: `NODE_ENV=test pnpm exec tsx --test src/**/*.test.ts` → **220/220 pass** (incl. new: /config env gating, honeypot ban, unverified sign-in 403 without lockout burn, verify-resend 30-min cooldown, cleanup gating/age cutoff, email escaping, prod fail-loud without RESEND_API_KEY, set-password endpoint).
-- Frontend: `ng test --no-watch --browsers ChromeHeadless` → **644/644 pass** (incl. new: email-first signup form + check-email screen, honeypot passthrough, verify-email component).
-- `pnpm --filter @yotara/api typecheck`, `@yotara/shared typecheck`, `@yotara/frontend typecheck` — all clean.
+- API: `pnpm --filter @yotara/api test` → **245/245 pass** (including dev-mode, secret validation, email safety, runtime config, verification, cleanup, and anti-abuse coverage).
+- Frontend: `pnpm --filter @yotara/frontend test` → **653/653 pass**.
+- Repository: `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` — all pass; lint emits existing warnings only.
+- Docker: isolated image build plus `pnpm smoke:docker` through the published nginx port — pass.
+- E2E: CI now passes explicit runtime-config and API-log environment variables and always cleans services; local email-first execution requires running the Angular dev server against the same API port because the default environment points at port 3000.
 
 ## Notes / decisions applied
 

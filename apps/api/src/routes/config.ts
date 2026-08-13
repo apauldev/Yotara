@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { emailVerificationRequired } from '../lib/auth.js';
+import { devMode } from '../lib/dev-mode.js';
 
 export default async function configRoutes(fastify: FastifyInstance) {
   fastify.get(
@@ -11,9 +12,10 @@ export default async function configRoutes(fastify: FastifyInstance) {
         response: {
           200: {
             type: 'object',
-            required: ['requireEmailVerification'],
+            required: ['requireEmailVerification', 'devMode'],
             properties: {
               requireEmailVerification: { type: 'boolean' },
+              devMode: { type: 'boolean' },
             },
           },
         },
@@ -22,6 +24,7 @@ export default async function configRoutes(fastify: FastifyInstance) {
     async () => {
       return {
         requireEmailVerification: emailVerificationRequired(),
+        devMode: devMode(),
       };
     },
   );

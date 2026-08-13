@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { checkEmailRateLimit, type EmailType } from './email-rate-limit.js';
+import { emailToConsole } from './dev-mode.js';
 
 const RESEND_API_KEY = process.env['RESEND_API_KEY'] ?? '';
 const EMAIL_FROM = process.env['EMAIL_FROM'] ?? 'noreply@email.yotara.website';
@@ -8,11 +9,13 @@ const NODE_ENV = process.env['NODE_ENV'] ?? 'development';
 
 /**
  * Console fallback (logging the email body, which contains the verification or
- * reset link) is only permitted in development or test. In production, sending
- * an email with no provider configured must fail loudly — never silently leak
- * a reset/verification link into the container logs.
+ * reset link) is permitted in development/test, or whenever dev mode asks for
+ * console emailing. In production, sending an email with no provider
+ * configured must fail loudly — never silently leak a reset/verification link
+ * into the container logs.
  */
-const consoleFallbackAllowed = NODE_ENV === 'development' || NODE_ENV === 'test';
+const consoleFallbackAllowed =
+  NODE_ENV === 'development' || NODE_ENV === 'test' || emailToConsole();
 
 function assertEmailConfigured(): void {
   if (!RESEND_API_KEY && !consoleFallbackAllowed) {
@@ -47,8 +50,17 @@ export function escapeAttribute(value: string): string {
 }
 
 export function getResend(): Resend | null {
-  if (!RESEND_API_KEY) return null;
-  return new Resend(RESEND_API_KEY);
+  // Dev mode with emailToConsole never sends real email — a configured
+  // RESEND_API_KEY is deliberately ignored so local/test runs can't spam
+  // real inboxes (the links are logged to the console instead).
+  if (emailToConsole()) {
+    return null;
+  }
+  const key = process.env['RESEND_API_KEY'] ?? '';
+  if (!key) {
+    return null;
+  }
+  return new Resend(key);
 }
 
 async function sendEmail(payload: {

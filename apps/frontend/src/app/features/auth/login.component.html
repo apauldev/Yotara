@@ -12,6 +12,9 @@
         />
       </svg>
     </div>
+    @if (showDevBadge()) {
+      <div class="dev-badge">DEV MODE</div>
+    }
     <h1>{{ isLogin() ? 'Welcome to Yotara' : 'Create your Yotara account' }}</h1>
     <p class="subtitle">
       {{ isLogin() ? 'A calm space for your tasks' : 'Set up your workspace in under a minute' }}

@@ -1,9 +1,7 @@
-import { test, expect } from '../../fixtures/auth';
+import { test, expect, getRuntimeConfig } from '../../fixtures/auth';
 import fs from 'node:fs';
 
 test.use({ storageState: { cookies: [], origins: [] } });
-
-const EMAIL_FIRST = process.env['REQUIRE_EMAIL_VERIFICATION'] === 'true';
 
 /** Read the exact frontend verification URL emitted in the email log. */
 function getVerificationUrl(): string {
@@ -38,7 +36,8 @@ async function signUp(
   await page.getByLabel('Name').fill(name);
   await page.getByLabel('Email').fill(email);
 
-  if (EMAIL_FIRST) {
+  const { requireEmailVerification } = await getRuntimeConfig();
+  if (requireEmailVerification) {
     await page.getByRole('button', { name: 'Create account' }).click();
     await page.getByRole('heading', { name: 'Check your email' }).waitFor();
     const verificationUrl = getVerificationUrl();

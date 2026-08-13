@@ -50,12 +50,17 @@ RUN node -e "require('./apps/api/node_modules/better-sqlite3'); console.log('bet
 COPY --from=build /app/packages/shared/dist /app/packages/shared/dist
 COPY --from=build /app/apps/api/dist /app/apps/api/dist
 COPY --from=build /app/apps/api/drizzle /app/apps/api/drizzle
+# Dev-mode config (defaults to disabled in the image; override at runtime via
+# the DEV_MODE env var or a mounted file).
+COPY --from=build /app/apps/api/dev-mode.json /app/apps/api/dev-mode.json
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
 ENV DATABASE_URL=./apps/api/data/yotara.db
-ENV APP_BASE_URL=http://localhost:8080/api
+# No /api path: the frontend nginx strips the /api prefix before proxying, so
+# Better Auth must match /auth/* (its baseURL path must be empty).
+ENV APP_BASE_URL=http://localhost:8080
 ENV TRUSTED_ORIGINS=http://localhost:8080
 
 EXPOSE 3000

@@ -1,4 +1,5 @@
 import { sqlite } from '../db/client.js';
+import { bypassEmailRateLimits } from './dev-mode.js';
 
 export type EmailType = 'signup' | 'reset' | 'verify';
 
@@ -36,6 +37,12 @@ export function checkEmailRateLimit(
   type: EmailType,
   clientIp?: string,
 ): RateLimitResult {
+  // Dev mode bypasses rate limiting entirely so rapid local testing never
+  // hits 429s.
+  if (bypassEmailRateLimits()) {
+    return { allowed: true, retryAfterSeconds: null };
+  }
+
   // Scoped cleanup — only delete stale rows for this email to avoid
   // paying a full-table scan cost on every check.
   const cutoff = Date.now() - TOTAL_WINDOW_MS;
@@ -113,6 +120,9 @@ export function checkEmailRateLimit(
 
 /** Record a successful email send. */
 export function recordEmailSend(email: string, type: EmailType, clientIp?: string): void {
+  if (bypassEmailRateLimits()) {
+    return;
+  }
   sqlite
     .prepare(
       `INSERT INTO email_sends (email, type, ip, created_at)

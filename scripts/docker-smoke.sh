@@ -1,51 +1,32 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Smoke test that runs against the published host port (via nginx), so the
+# real routing path — host -> nginx -> containers — is exercised. Previously
+# the checks fetched from INSIDE the containers with `docker compose exec`,
+# which never tested port publishing or the nginx proxy config.
 base_url="${DOCKER_SMOKE_BASE_URL:-http://localhost:8080}"
 attempts="${DOCKER_SMOKE_ATTEMPTS:-60}"
 delay_ms="${DOCKER_SMOKE_DELAY_MS:-1000}"
 sleep_seconds="$(awk "BEGIN { printf \"%.3f\", ${delay_ms} / 1000 }")"
 
-docker_request() {
-  local service="$1"
-  local url="$2"
-  local attempt output status body output_file
+# Fetch a URL from the host. Prints "STATUS" on the first line and the body
+# after it. Retries while the stack is still starting (curl errors / 502).
+host_request() {
+  local url="$1"
+  local attempt status output_file
   output_file="$(mktemp)"
 
   for ((attempt = 1; attempt <= attempts; attempt++)); do
-    if ! docker compose ps "$service" --format json | grep -q '"State":"running"'; then
-      if [[ "$attempt" -eq "$attempts" ]]; then
-        printf 'Service "%s" is not running. Logs:\n' "$service" >&2
-        docker compose logs "$service" >&2
-      fi
-      sleep "$sleep_seconds"
-      continue
-    fi
-
-    if docker compose exec -T "$service" node -e "
-        const url = process.argv[1];
-        fetch(url)
-          .then(async (response) => {
-            console.log('STATUS:' + response.status);
-            console.log('BODY:');
-            process.stdout.write(await response.text());
-          })
-          .catch((error) => {
-            console.error(error instanceof Error ? error.message : String(error));
-            process.exit(1);
-          });
-      " "$url" >"$output_file"; then
-      output="$(cat "$output_file")"
-      status="$(grep '^STATUS:' <<<"$output" | head -n1 | cut -d: -f2)"
-      body="$(tail -n +3 <<<"$output")"
-
+    if status="$(curl -sS -o "$output_file" -w '%{http_code}' "$url" 2>/dev/null)"; then
       if [[ "$status" == "502" && "$attempt" -lt "$attempts" ]]; then
         sleep "$sleep_seconds"
         continue
       fi
 
+      printf '%s\n' "$status"
+      cat "$output_file"
       rm -f "$output_file"
-      printf '%s\n%s' "$status" "$body"
       return 0
     fi
 
@@ -59,53 +40,43 @@ docker_request() {
   return 1
 }
 
-api_response() {
+check() {
   local path="$1"
-  docker_request api "http://localhost:3000${path}"
+  local expected_status="$2"
+  local url="${base_url}${path}"
+  local result status body
+
+  result="$(host_request "$url")"
+  status="$(head -n 1 <<<"$result")"
+  body="$(tail -n +2 <<<"$result")"
+
+  [[ "$status" == "$expected_status" ]] || {
+    printf 'Expected %s to return %s, got %s\n' "$url" "$expected_status" "$status" >&2
+    exit 1
+  }
+
+  printf '%s\n' "$body"
 }
 
-frontend_response() {
-  docker_request api 'http://frontend/'
-}
-
-result="$(frontend_response)"
-body="${result#*$'\n'}"
+body="$(check '/' 200)"
 grep -q '<app-root>' <<<"$body" || {
   printf 'Frontend root page did not include the app root placeholder\n' >&2
   exit 1
 }
 
-result="$(api_response '/health')"
-status="${result%%$'\n'*}"
-body="${result#*$'\n'}"
-[[ "$status" == "200" ]] || {
-  printf 'Expected /api/health to return 200, got %s\n' "$status" >&2
-  exit 1
-}
+body="$(check '/api/health' 200)"
 grep -q '"status":"ok"' <<<"$body" || {
   printf 'API health did not report ok\n' >&2
   exit 1
 }
 
-result="$(api_response '/docs')"
-status="${result%%$'\n'*}"
-body="${result#*$'\n'}"
-[[ "$status" == "200" ]] || {
-  printf 'Expected /docs to return 200, got %s\n' "$status" >&2
-  exit 1
-}
+body="$(check '/docs' 200)"
 grep -q 'Swagger UI' <<<"$body" || {
   printf 'Docs page did not look like Swagger UI\n' >&2
   exit 1
 }
 
-result="$(api_response '/docs/openapi.json')"
-status="${result%%$'\n'*}"
-body="${result#*$'\n'}"
-[[ "$status" == "200" ]] || {
-  printf 'Expected /docs/openapi.json to return 200, got %s\n' "$status" >&2
-  exit 1
-}
+body="$(check '/docs/openapi.json' 200)"
 grep -q '"openapi":"3.1.0"' <<<"$body" || {
   printf 'OpenAPI document did not report version 3.1.0\n' >&2
   exit 1
@@ -115,13 +86,7 @@ grep -q '"/tasks"' <<<"$body" || {
   exit 1
 }
 
-result="$(api_response '/tasks')"
-status="${result%%$'\n'*}"
-body="${result#*$'\n'}"
-[[ "$status" == "401" ]] || {
-  printf 'Expected /api/tasks to return 401, got %s\n' "$status" >&2
-  exit 1
-}
+body="$(check '/api/tasks' 401)"
 grep -q '"Unauthorized"' <<<"$body" || {
   printf 'Unauthorized task response did not match expected shape\n' >&2
   exit 1

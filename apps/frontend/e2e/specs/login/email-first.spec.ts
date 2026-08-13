@@ -1,11 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, getRuntimeConfig } from '../../fixtures/auth';
 import fs from 'node:fs';
 
 // This spec exercises the email-first signup flow (verification required).
 // It only runs when REQUIRE_EMAIL_VERIFICATION=true (dev/test override or
 // production), because the signup form differs in that mode. In the default
 // dev/test CI run the flag is off, so the legacy flow is what runs.
-const emailFirst = process.env['REQUIRE_EMAIL_VERIFICATION'] === 'true';
+let emailFirst = false;
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
@@ -29,11 +29,14 @@ function getVerificationUrl(): string {
 }
 
 test.describe('Email-first signup', () => {
-  test.skip(!emailFirst, 'REQUIRE_EMAIL_VERIFICATION=true is not set');
+  test.beforeAll(async () => {
+    emailFirst = (await getRuntimeConfig()).requireEmailVerification;
+  });
 
   test('signs up with email only, verifies, sets password, and reaches onboarding', async ({
     page,
   }) => {
+    test.skip(!emailFirst, 'Email verification is not required by the running API');
     const email = `e2e-email-first-${Date.now()}@yotara.test`;
 
     await page.goto('/login');

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
+import { createServer } from 'node:net';
 import { rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -37,10 +38,17 @@ async function createTestApp() {
 // Spawn the real server entry point and assert it refuses to start with a
 // default/placeholder BETTER_AUTH_SECRET in production. Runs out-of-process so
 // the auth module cache is isolated from the other tests.
+type BootResult = {
+  code: number | null;
+  stderr: string;
+  timedOut: boolean;
+};
+
 function bootServer(
   execArgv: string[],
   env: NodeJS.ProcessEnv,
-): Promise<{ code: number | null; stderr: string }> {
+  timeoutMs = 15_000,
+): Promise<BootResult> {
   return new Promise((resolve) => {
     const child = spawn('pnpm', ['exec', 'tsx', ...execArgv], {
       cwd: join(import.meta.dirname, '..', '..'),
@@ -48,38 +56,138 @@ function bootServer(
       stdio: ['ignore', 'ignore', 'pipe'],
     });
     let stderr = '';
+    let timedOut = false;
     child.stderr.on('data', (chunk) => {
       stderr += chunk.toString();
     });
-    const timer = setTimeout(() => child.kill(), 15_000);
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill();
+    }, timeoutMs);
     child.on('close', (code) => {
       clearTimeout(timer);
-      resolve({ code, stderr });
+      resolve({ code, stderr, timedOut });
     });
   });
 }
 
-test('production boot refuses a default/placeholder BETTER_AUTH_SECRET', async () => {
+async function getFreePort(): Promise<number> {
+  const server = createServer();
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', () => resolve());
+  });
+  const address = server.address();
+  assert.ok(address && typeof address !== 'string');
+  const port = address.port;
+  await new Promise<void>((resolve, reject) =>
+    server.close((error) => (error ? reject(error) : resolve())),
+  );
+  return port;
+}
+
+async function waitForHealth(port: number, child: ReturnType<typeof spawn>): Promise<void> {
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    if (child.exitCode !== null) {
+      throw new Error(`server exited before becoming healthy with code ${child.exitCode}`);
+    }
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/health`);
+      if (response.ok) {
+        return;
+      }
+    } catch {
+      // The server may still be starting.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error('server did not become healthy before the timeout');
+}
+
+function waitForChildClose(child: ReturnType<typeof spawn>): Promise<void> {
+  if (child.exitCode !== null) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => child.once('close', () => resolve()));
+}
+
+async function assertProductionBootRejects(secret: string, expectedMessage: RegExp): Promise<void> {
   const dbFile = join(tmpdir(), `yotara-boot-${randomUUID()}.db`);
-  const { code, stderr } = await bootServer(
-    [join(import.meta.dirname, '..', '..', 'src', 'server.ts')],
-    {
+  try {
+    const result = await bootServer([join(import.meta.dirname, '..', '..', 'src', 'server.ts')], {
       ...process.env,
       NODE_ENV: 'production',
-      BETTER_AUTH_SECRET: 'local-dev-secret-change-me',
+      BETTER_AUTH_SECRET: secret,
+      RESEND_API_KEY: 're_test_bootstrap_key',
       DATABASE_URL: dbFile,
       APP_BASE_URL: 'http://localhost:3000',
+      HOST: '127.0.0.1',
+    });
+
+    assert.equal(result.timedOut, false, 'invalid secret must fail instead of hanging');
+    assert.notEqual(result.code, 0, 'server must exit non-zero for an invalid secret');
+    assert.match(result.stderr, expectedMessage);
+  } finally {
+    rmSync(dbFile, { force: true });
+  }
+}
+
+test('production boot refuses predictable or malformed BETTER_AUTH_SECRET values', async () => {
+  const cases: Array<[string, RegExp]> = [
+    ['local-dev-secret-change-me', /placeholder/],
+    ['0'.repeat(64), /repeated or sequential pattern/],
+    ['0123456789abcdef'.repeat(4), /repeated or sequential pattern/],
+    [
+      '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f',
+      /repeated or sequential pattern/,
+    ],
+    ['correct-horse-battery-staple-into-the-woods', /canonical hex or Base64/],
+    ['ABEiM0RVZneImaq7zN3u/xAhMkNUZXaHmKm6y9zt/g8', /canonical hex or Base64/],
+    ['00'.repeat(31), /canonical hex or Base64/],
+  ];
+
+  for (const [secret, expectedMessage] of cases) {
+    await assertProductionBootRejects(secret, expectedMessage);
+  }
+});
+
+test('production boot reaches health with a canonical generated secret', async () => {
+  const dbFile = join(tmpdir(), `yotara-boot-${randomUUID()}.db`);
+  const port = await getFreePort();
+  const child = spawn(
+    'pnpm',
+    ['exec', 'tsx', join(import.meta.dirname, '..', '..', 'src', 'server.ts')],
+    {
+      cwd: join(import.meta.dirname, '..', '..'),
+      env: {
+        ...process.env,
+        NODE_ENV: 'production',
+        BETTER_AUTH_SECRET: '903d44f75ea956577ae15335bbbef8532a867cdeae599cccac72357d40f14214',
+        RESEND_API_KEY: 're_test_bootstrap_key',
+        DATABASE_URL: dbFile,
+        APP_BASE_URL: `http://127.0.0.1:${port}`,
+        HOST: '127.0.0.1',
+        PORT: String(port),
+      },
+      stdio: ['ignore', 'ignore', 'pipe'],
     },
   );
+  let stderr = '';
+  child.stderr.on('data', (chunk) => {
+    stderr += chunk.toString();
+  });
 
-  assert.notEqual(
-    code,
-    0,
-    'server must exit non-zero when the default secret is used in production',
-  );
-  assert.match(stderr, /BETTER_AUTH_SECRET/i, 'failure must mention the missing/insecure secret');
-
-  rmSync(dbFile, { force: true });
+  try {
+    await waitForHealth(port, child);
+    assert.equal(stderr, '', 'a valid secret must not produce a bootstrap error');
+  } finally {
+    if (child.exitCode === null) {
+      child.kill();
+    }
+    await waitForChildClose(child);
+    rmSync(dbFile, { force: true });
+  }
 });
 
 test('lockout is scoped to (ip, email) — a victim can still log in from their own IP', async () => {

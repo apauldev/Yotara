@@ -9,6 +9,7 @@ import {
 import { checkRateLimitOrThrow } from '../lib/email.js';
 import { recordEmailSend } from '../lib/email-rate-limit.js';
 import { banIp, isIpBanned } from '../lib/blocked-ips.js';
+import { bypassLoginLockout } from '../lib/dev-mode.js';
 import { scanDueNotifications } from '../services/notification-service.js';
 
 function toHeaders(source: Record<string, string | string[] | undefined>) {
@@ -203,6 +204,12 @@ export default async function authBridgePlugin(app: FastifyInstance) {
             }
           }
         } else if (response.status === 401) {
+          if (bypassLoginLockout()) {
+            // Dev mode: plain invalid-credentials response — no attempt
+            // counting, no lockout messaging.
+            return reply.code(401).send({ message: 'Invalid email or password.' });
+          }
+
           const result = recordFailedAttempt(clientIp, loginEmail);
           if (result.locked) {
             reply.header('Retry-After', String(result.remainingLockoutSeconds));

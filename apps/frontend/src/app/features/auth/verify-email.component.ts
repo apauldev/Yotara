@@ -151,7 +151,21 @@ export class VerifyEmailComponent implements OnInit {
       return;
     }
 
-    const result = await this.authState.verifyEmail(this.token);
+    let result: Awaited<ReturnType<typeof this.authState.verifyEmail>>;
+    try {
+      result = await this.authState.verifyEmail(this.token);
+    } catch (error) {
+      // A thrown error (network failure, 5xx) must not leave the UI stuck on
+      // "Verifying your email…" — show a recoverable error state instead.
+      this.state.set('invalid');
+      this.error.set(
+        error instanceof Error && error.message
+          ? error.message
+          : 'Something went wrong verifying your email. Please try again.',
+      );
+      return;
+    }
+
     const user = this.authState.user();
     const alreadySetUp =
       !!user && user.emailVerified === true && user.passwordSetupRequired === false;

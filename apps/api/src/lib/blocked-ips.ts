@@ -1,4 +1,5 @@
 import { sqlite } from '../db/client.js';
+import { bypassIpBan } from './dev-mode.js';
 
 /** How long a honeypot-triggered IP stays banned (configurable via env). */
 export function getIpBanWindowMs(): number {
@@ -23,6 +24,12 @@ export function banIp(ip: string): void {
 
 /** Whether the given IP is currently banned (ban window has not elapsed). */
 export function isIpBanned(ip: string): boolean {
+  // Dev mode never enforces bans — a browser autofill tripping the honeypot
+  // must not lock a developer out of auth endpoints for 24h.
+  if (bypassIpBan()) {
+    return false;
+  }
+
   const row = sqlite.prepare(`SELECT blocked_until FROM blocked_ips WHERE ip = ?`).get(ip) as
     | { blocked_until: number }
     | undefined;

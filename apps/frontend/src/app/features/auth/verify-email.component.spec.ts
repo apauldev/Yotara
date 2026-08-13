@@ -83,6 +83,28 @@ describe('VerifyEmailComponent', () => {
     expect(component.state()).toBe('invalid');
   });
 
+  it('shows an error state when verifyEmail throws instead of getting stuck', async () => {
+    authState.verifyEmail.and.rejectWith(new Error('network down'));
+    fixture.detectChanges();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    // The UI must not remain on "Verifying your email…" — it shows the error.
+    expect(component.state()).toBe('invalid');
+    expect(component.error()).toContain('network down');
+    expect(fixture.nativeElement.textContent).toContain('Back to login');
+  });
+
+  it('falls back to a generic message when the thrown error has no message', async () => {
+    authState.verifyEmail.and.rejectWith(new Error());
+    fixture.detectChanges();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(component.state()).toBe('invalid');
+    expect(component.error()).toContain('Something went wrong verifying your email');
+  });
+
   it('skips password setup and goes to the workspace for an already set-up account', async () => {
     authState.user = () => ({ emailVerified: true, passwordSetupRequired: false });
     fixture.detectChanges();

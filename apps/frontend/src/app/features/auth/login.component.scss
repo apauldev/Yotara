@@ -39,6 +39,20 @@
   display: block;
 }
 
+.dev-badge {
+  width: fit-content;
+  margin: 0 auto 1rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: var(--status-overdue);
+  color: var(--surface-container-lowest);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
 .hero-leaf {
   fill: currentcolor;
 }

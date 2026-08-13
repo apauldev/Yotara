@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { LoginComponent } from './login.component';
+import { LoginComponent, isLocalhostHostname } from './login.component';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { Router } from '@angular/router';
 
@@ -12,6 +12,7 @@ describe('LoginComponent', () => {
     signUp: jasmine.Spy;
     getPostAuthRedirectUrl: jasmine.Spy;
     requireEmailVerification: () => boolean;
+    devMode: () => boolean;
     sendVerificationEmail: jasmine.Spy;
   };
 
@@ -26,6 +27,7 @@ describe('LoginComponent', () => {
       signUp: jasmine.createSpy('signUp').and.resolveTo({ error: null }),
       getPostAuthRedirectUrl: jasmine.createSpy('getPostAuthRedirectUrl').and.returnValue('/inbox'),
       requireEmailVerification: () => false,
+      devMode: () => false,
       sendVerificationEmail: jasmine.createSpy('sendVerificationEmail').and.resolveTo(undefined),
     };
 
@@ -341,5 +343,29 @@ describe('LoginComponent', () => {
     forgotBtn.click();
 
     expect(router.navigate).toHaveBeenCalledWith(['/forgot-password']);
+  });
+
+  it('shows the DEV MODE badge on localhost when dev mode is on', () => {
+    authState.devMode = () => true;
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('DEV MODE');
+  });
+
+  it('hides the DEV MODE badge when dev mode is off', () => {
+    authState.devMode = () => false;
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain('DEV MODE');
+  });
+
+  it('hides the DEV MODE badge on non-localhost hosts even when dev mode is on', () => {
+    // The test URL must not advertise dev mode on screen — the hostname gate
+    // is a pure function so it can be tested without touching window.location.
+    expect(isLocalhostHostname('localhost')).toBeTrue();
+    expect(isLocalhostHostname('127.0.0.1')).toBeTrue();
+    expect(isLocalhostHostname('::1')).toBeTrue();
+    expect(isLocalhostHostname('test.yotara.website')).toBeFalse();
+    expect(isLocalhostHostname('yotara.website')).toBeFalse();
   });
 });

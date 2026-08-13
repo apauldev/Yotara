@@ -158,12 +158,12 @@ Separate Playwright project with empty `storageState` so it creates a fresh user
 |------|--------|-------|
 | `RATE_LIMIT_MAX` dev default | 1000 | 55 tests make ~250-500 API calls — well under limit |
 | Login spec `test.use` | Redundant | `storageState` is already set at project level; no impact on correctness |
-| CI integration | In progress | Pipeline runs but fails on `wait-on`/`@types/node` — fixes applied, awaiting next run |
+| CI integration | Configured | CI starts both services with explicit logs/PIDs, runs mode-aware E2E, uploads diagnostics, and always cleans up; verify on the next CI run |
 | Test run duration | ~2 min | Full suite runs in ~2 minutes locally; CI may be slower |
 
 ### Next steps
 
-1. **Re-run CI pipeline**: Latest commit fixes `wait-on` invocation (via npm script) and `@types/node` typecheck errors. Push and verify green.
+1. **Run CI verification**: Confirm the configured service cleanup and diagnostics steps pass on the next CI run.
 2. **Monitor flakiness**: The 5s confirm-dialog timeout is generous but may need adjustment on slower CI runners.
 3. **Clean up redundant config**: The login spec's `test.use({ storageState: { cookies: [], origins: [] } })` is duplicative of the project-level config.
 4. **Add more edge cases**: Data export in settings, pagination (10/25/page nav), search sort (Date/A-Z), #tag label resolution in capture bar.

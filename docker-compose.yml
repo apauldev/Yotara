@@ -5,7 +5,7 @@ services:
       dockerfile: apps/api/Dockerfile
     environment:
       DATABASE_URL: ${DATABASE_URL:-./apps/api/data/yotara.db}
-      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080/api}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:8080}
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost:8080}
       # REQUIRED: a strong unique secret, e.g. `openssl rand -base64 32`.
@@ -15,6 +15,17 @@ services:
       HOST: 0.0.0.0
       PORT: ${PORT:-3000}
       NODE_ENV: ${NODE_ENV:-production}
+      # Dev mode for the test instance: set DEV_MODE=true here (or in the
+      # shell) to disable email verification, log emails to console, and
+      # bypass anti-abuse. Because NODE_ENV defaults to production here,
+      # enabling dev mode also requires ALLOW_DEV_MODE_IN_PRODUCTION=true
+      # (deliberate double opt-in — dev mode disables auth protections).
+      DEV_MODE: ${DEV_MODE:-}
+      ALLOW_DEV_MODE_IN_PRODUCTION: ${ALLOW_DEV_MODE_IN_PRODUCTION:-}
+      # REQUIRED for production mode: the API refuses to boot without it when
+      # NODE_ENV=production (fail-loud contract). Dev mode ignores it.
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@email.yotara.website}
       CONTENT_SECURITY_POLICY: ${CONTENT_SECURITY_POLICY:-default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'}
     volumes:
       - yotara_api_data:/app/apps/api/data

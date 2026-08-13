@@ -158,6 +158,85 @@ test('honeypot signup triggers IP ban and creates no user', async () => {
   }
 });
 
+test('dev mode flips the require-email flag and bypasses rate limit, lockout, and IP ban', async () => {
+  const ctx = await createTestApp();
+  const previousDevMode = process.env['DEV_MODE'];
+
+  try {
+    process.env['DEV_MODE'] = 'true';
+
+    // The runtime flag is flipped off even if REQUIRE_EMAIL_VERIFICATION
+    // would otherwise force it on (it is unset here; the unit-level flip is
+    // covered in dev-mode.test.ts).
+    const configResponse = await ctx.app.inject({ method: 'GET', url: '/config' });
+    assert.equal(configResponse.statusCode, 200);
+    assert.equal(configResponse.json().requireEmailVerification, false);
+    assert.equal(configResponse.json().devMode, true);
+
+    // Email rate limit bypassed: two verification resends for the same email
+    // both succeed (normally the second is a 429 from the 30-min cooldown).
+    const resendEmail = `devmode-resend-${randomUUID()}@example.com`;
+    const firstResend = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/send-verification-email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email: resendEmail },
+    });
+    const secondResend = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/send-verification-email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email: resendEmail },
+    });
+    assert.equal(firstResend.statusCode, 200);
+    assert.equal(secondResend.statusCode, 200);
+
+    // Lockout bypassed: repeated wrong passwords never lock (no 429), and the
+    // response is a plain 401 without attempt-counting noise.
+    const lockoutEmail = `devmode-lockout-${randomUUID()}@example.com`;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const signIn = await ctx.app.inject({
+        method: 'POST',
+        url: '/auth/sign-in/email',
+        headers: { origin: TEST_ORIGIN },
+        payload: { email: lockoutEmail, password: 'WrongPassword1!' },
+      });
+      assert.equal(signIn.statusCode, 401, `attempt ${attempt + 1} should stay 401`);
+      assert.equal(signIn.json().message, 'Invalid email or password.');
+    }
+
+    // IP ban bypassed: a banned IP can still reach auth endpoints.
+    const { banIp } = await import('../lib/blocked-ips.js');
+    banIp('127.0.0.1');
+    const { sqlite } = await import('../db/client.js');
+    const banRow = sqlite
+      .prepare(`SELECT blocked_until FROM blocked_ips WHERE ip = '127.0.0.1'`)
+      .get() as { blocked_until: number } | undefined;
+    assert.ok(banRow, 'ban is recorded even in dev mode');
+    const bannedSignUp = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: {
+        email: `devmode-ban-${randomUUID()}@example.com`,
+        password: TEST_PASSWORD,
+        name: 'Dev Mode User',
+      },
+    });
+    assert.equal(bannedSignUp.statusCode, 200, 'banned IP is not blocked in dev mode');
+  } finally {
+    if (previousDevMode === undefined) {
+      delete process.env['DEV_MODE'];
+    } else {
+      process.env['DEV_MODE'] = previousDevMode;
+    }
+    // Remove the ban so it doesn't leak into other tests sharing the DB.
+    const { sqlite } = await import('../db/client.js');
+    sqlite.prepare(`DELETE FROM blocked_ips WHERE ip = '127.0.0.1'`).run();
+    await ctx.cleanup();
+  }
+});
+
 test('verification-required signup marks password setup as required', async () => {
   const { execFileSync } = await import('node:child_process');
   const { fileURLToPath } = await import('node:url');

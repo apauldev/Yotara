@@ -128,7 +128,7 @@ docker compose up --build -d
 # Open http://localhost:8080
 ```
 
-**`BETTER_AUTH_SECRET` is mandatory.** Compose fails fast with a clear error if it's unset, and the API refuses to boot with the old default placeholder. This key signs session tokens — without a strong secret, an attacker can forge sessions for any account. Set it on every deploy and never commit a real value.
+**`BETTER_AUTH_SECRET` is mandatory.** Compose fails fast if it's unset, and the API refuses to boot with placeholders, plain-text passphrases, malformed values, or values representing fewer than 32 decoded bytes. Generate a unique canonical hex or Base64 value with `openssl rand -hex 32` or `openssl rand -base64 32`; never commit a real value.
 
 The stack includes security hardening by default:
 

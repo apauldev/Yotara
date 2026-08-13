@@ -7,7 +7,31 @@ import {
   getFrontendResetUrl,
   getFrontendVerificationUrl,
   getTrustedOrigins,
+  parseOriginList,
 } from './auth-origins.js';
+
+test('parseOriginList trims, filters empty and whitespace-only entries', () => {
+  assert.deepEqual(parseOriginList(undefined), []);
+  assert.deepEqual(parseOriginList(''), []);
+  assert.deepEqual(parseOriginList('   , , '), []);
+  assert.deepEqual(parseOriginList('https://a.com ,  ,https://b.com\t,'), [
+    'https://a.com',
+    'https://b.com',
+  ]);
+});
+
+test('parseOriginList passes malformed entries through unchanged', () => {
+  // Malformed values never match a real origin, so they are inert — pin that
+  // behavior rather than guessing at validation rules here.
+  assert.deepEqual(parseOriginList('http://[::1'), ['http://[::1']);
+  assert.deepEqual(parseOriginList('not a url'), ['not a url']);
+});
+
+test('parseOriginList refuses wildcard origins', () => {
+  assert.throws(() => parseOriginList('*'), /Wildcard origins are not allowed/);
+  assert.throws(() => parseOriginList('https://*.example.com'), /Wildcard origins are not allowed/);
+  assert.throws(() => parseOriginList('https://a.com, *'), /Wildcard origins are not allowed/);
+});
 
 test('auth origin helpers merge defaults with configured origins', () => {
   const previous = {

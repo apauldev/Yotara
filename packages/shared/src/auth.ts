@@ -58,6 +58,7 @@ export interface DataCounts {
 
 export interface ClientConfig {
   requireEmailVerification: boolean;
+  devMode: boolean;
 }
 
 export const AuthService = {

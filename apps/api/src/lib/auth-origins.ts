@@ -1,10 +1,21 @@
-function parseOriginList(value: string | undefined) {
-  return (
+export function parseOriginList(value: string | undefined): string[] {
+  const origins =
     value
       ?.split(',')
       .map((origin) => origin.trim())
-      .filter(Boolean) ?? []
-  );
+      .filter(Boolean) ?? [];
+
+  // A wildcard origin (e.g. "*") makes origin checks match every site —
+  // effectively disabling CSRF/origin protection. Refuse it loudly at boot
+  // (this runs from auth module load) rather than silently weakening checks.
+  if (origins.some((origin) => origin.includes('*'))) {
+    throw new Error(
+      'Wildcard origins are not allowed ("*" would match every site and disable ' +
+        'origin checks). List explicit origins instead.',
+    );
+  }
+
+  return origins;
 }
 
 export function getAppBaseUrl() {

@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import rateLimit from '@fastify/rate-limit';
 import { AppError } from './lib/app-error.js';
+import { assertAuthSecretConfigured } from './lib/auth-secret.js';
 import corsPlugin from './plugins/cors.js';
 import authBridgePlugin, { applyCorsHeaders } from './plugins/auth-bridge.js';
 import { registerOpenApi } from './docs/openapi.js';
@@ -38,19 +39,12 @@ const SECURITY_HEADERS: Record<string, string> = {
 };
 
 export async function buildApp() {
-  // Fail fast if Better Auth has no real secret in production. Session tokens are
-  // HMAC-signed with this secret, so a default/placeholder value lets anyone forge
-  // sessions for any account. Better Auth reads BETTER_AUTH_SECRET from the env by
-  // default; this guard is defense-in-depth in case auth.ts is not imported first.
-  const nodeEnv = process.env['NODE_ENV'] ?? 'development';
-  if (
-    nodeEnv !== 'development' &&
-    nodeEnv !== 'test' &&
-    (!process.env['BETTER_AUTH_SECRET'] ||
-      process.env['BETTER_AUTH_SECRET'] === 'local-dev-secret-change-me')
-  ) {
-    throw new Error('BETTER_AUTH_SECRET must be set to a unique value in production.');
-  }
+  // Fail fast if Better Auth has no strong secret in production. Session
+  // tokens are HMAC-signed with this secret, so a missing/weak value lets
+  // anyone forge sessions for any account. Better Auth reads
+  // BETTER_AUTH_SECRET from the env by default; this guard is defense-in-depth
+  // in case auth.ts is not imported first.
+  assertAuthSecretConfigured();
 
   // trustProxy: 1 — nginx sits in front and appends the real client IP as the
   // last entry in X-Forwarded-For ($proxy_add_x_forwarded_for). Fastify reads

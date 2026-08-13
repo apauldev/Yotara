@@ -10,6 +10,11 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faEnvelope, faLock } from '@fortawesome/free-solid-svg-icons';
+
+/** Localhost hostnames that may show the dev-mode badge on screen. */
+export function isLocalhostHostname(hostname: string): boolean {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+}
 import { PasswordTrialComponent } from './password-trial.component';
 import { StrengthMeterComponent } from '../../shared/ui/strength-meter/strength-meter.component';
 import { passwordPolicyMessage } from './password-policy';
@@ -56,6 +61,15 @@ export class LoginComponent implements OnDestroy {
   protected get emailFirstSignup(): boolean {
     return !this.isLogin() && this.authState.requireEmailVerification();
   }
+
+  /**
+   * Dev-mode badge: only when the server reports dev mode AND the app is
+   * served from localhost — a test deployment running dev mode must not
+   * advertise it on screen.
+   */
+  protected readonly showDevBadge = computed(() => {
+    return this.authState.devMode() && isLocalhostHostname(window.location.hostname);
+  });
 
   goToForgotPassword() {
     this.router.navigate(['/forgot-password']);

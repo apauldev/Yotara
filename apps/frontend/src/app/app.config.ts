@@ -17,6 +17,8 @@ import { loadingInterceptor } from './core/interceptors/loading.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { AuthStateService } from './core/services/auth-state.service';
 
+type E2EWindow = Window & { __YOTARA_E2E_API_URL__?: string };
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
@@ -33,7 +35,8 @@ export const appConfig: ApplicationConfig = {
       useFactory: () => {
         const authState = inject(AuthStateService);
         return () => {
-          configureAuthClient(`${environment.apiBaseUrl}/auth`);
+          const apiBaseUrl = (window as E2EWindow).__YOTARA_E2E_API_URL__ ?? environment.apiBaseUrl;
+          configureAuthClient(`${apiBaseUrl}/auth`);
           return authState.initialize();
         };
       },

@@ -13,6 +13,7 @@ export class AuthStateService {
   private initializedState = signal(false);
   private loadingState = signal(false);
   private requireEmailVerificationState = signal(false);
+  private devModeState = signal(false);
   private logService = inject(LogService);
   private initPromise: Promise<SessionResponse> | null = null;
 
@@ -21,6 +22,7 @@ export class AuthStateService {
   readonly initialized = this.initializedState.asReadonly();
   readonly loading = this.loadingState.asReadonly();
   readonly requireEmailVerification = this.requireEmailVerificationState.asReadonly();
+  readonly devMode = this.devModeState.asReadonly();
   readonly isAuthenticated = computed(() => !!this.sessionState());
   readonly currentUserId = computed(
     () => this.userState()?.id ?? this.sessionState()?.userId ?? null,
@@ -39,11 +41,13 @@ export class AuthStateService {
     }
 
     this.initPromise = (async () => {
-      // Best-effort: the runtime flag decides which signup form to render.
-      // If it fails, default to the legacy form; the flag is not fatal.
+      // Best-effort: the runtime flags decide which signup form to render and
+      // whether the dev-mode badge is shown. If this fails, default to the
+      // legacy form; the flags are not fatal.
       try {
         const config = await AuthService.getConfig();
         this.requireEmailVerificationState.set(config.requireEmailVerification);
+        this.devModeState.set(config.devMode);
       } catch (error) {
         this.logService.error('Failed to load client config', error, 'AuthStateService');
       }

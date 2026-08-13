@@ -239,6 +239,35 @@ the full API surface to anyone. Restrict it to local/LAN access by default.
   proxy with auth, not open it to the internet. (Alternative: drop the `/docs` proxy
   entirely and only serve Swagger when running the API container directly for dev.)
 
+## 5. BETTER_AUTH_SECRET hardening (implemented)
+
+The production secret contract is now explicit and format-agnostic within the two secure
+OpenSSL workflows documented by the project:
+
+- `NODE_ENV=production` and other non-exempt environments require `BETTER_AUTH_SECRET`.
+- The value must be canonical hexadecimal or standard padded Base64 representing at least
+  32 decoded bytes. `openssl rand -hex 32` and `openssl rand -base64 32` produce accepted
+  values.
+- Missing values, the development placeholder, plain-text passphrases, malformed
+  encodings, whitespace, undersized encodings, repeated values, and obvious sequential values are
+  rejected before the API serves traffic.
+- `development` and `test` intentionally allow a missing secret for local and CI flows.
+- Format and structural checks cannot prove that a value was generated randomly; deployment
+  operators must still use a cryptographically secure random generator and keep the value
+  unique and secret.
+
+Implementation and regression coverage:
+
+- `apps/api/src/lib/auth-secret.ts` is the shared validator used by both auth configuration
+  and server bootstrap.
+- `apps/api/src/lib/auth-secret.test.ts` covers accepted encodings, malformed/structured
+  values, environment exemptions, and production/staging behavior.
+- `apps/api/src/lib/security-audit.test.ts` executes the real server entry point in a child
+  process, verifies predictable values fail without hanging, and verifies a valid generated
+  secret reaches `/health`.
+- Deployment guidance is synchronized in `apps/api/.env.example`, `DOCKER.md`, `README.md`,
+  and `PROJECT_README.md`.
+
 ## Non-action (documented trade-offs, do not fix now)
 - **Account enumeration on signup** — Better Auth returns `USER_ALREADY_EXISTS` when an
   email is taken. Suppressing it cleanly requires a custom flow; the standard
@@ -265,5 +294,7 @@ the full API surface to anyone. Restrict it to local/LAN access by default.
 - `curl -X POST .../auth/sign-up/email -d '{"password":"short"}'` → 400 with a
   password-too-short error; `{"password":"alllower1"}` → 400 complexity error;
   a compliant password → 200.
-- Confirm `NODE_ENV=production` makes the api container refuse the default
-  `BETTER_AUTH_SECRET` (already covered by `security-audit.test.ts` boot test).
+- Confirm `NODE_ENV=production` makes the API refuse missing, placeholder, malformed,
+  undersized, repeated, and sequential `BETTER_AUTH_SECRET` values, while a canonical
+  generated secret reaches `/health` (covered by `auth-secret.test.ts` and
+  `security-audit.test.ts`).

@@ -199,6 +199,21 @@ describe('AuthStateService', () => {
     expect(AuthService.getSession).toHaveBeenCalledTimes(1);
   });
 
+  it('exposes the runtime config flags from getConfig', async () => {
+    spyOn(AuthService, 'getConfig').and.resolveTo({
+      requireEmailVerification: true,
+      devMode: true,
+    });
+    spyOn(AuthService, 'getSession').and.resolveTo({ data: { session: null, user: null } } as any);
+    spyOn(AuthService, 'getProfile');
+
+    const service = TestBed.inject(AuthStateService);
+    await service.initialize();
+
+    expect(service.requireEmailVerification()).toBeTrue();
+    expect(service.devMode()).toBeTrue();
+  });
+
   it('delegates signIn to AuthService and refreshes session on success', async () => {
     spyOn(AuthService, 'signIn').and.resolveTo({ error: null } as any);
     spyOn(AuthService, 'getSession').and.resolveTo({ data: { session: null, user: null } } as any);

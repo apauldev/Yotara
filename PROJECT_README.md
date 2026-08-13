@@ -64,9 +64,12 @@ The Fastify API exposes:
 - `POST /auth/sign-in/email` — Sign in
 - `POST /auth/sign-out` — Sign out
 - `GET /auth/session` — Current session
+- `POST /auth/send-verification-email` — Resend verification email
+- `GET /config` — Runtime auth configuration
 - `GET /me` — Authenticated user profile
 - `PATCH /me` — Update user (display_name, timezone)
 - `PATCH /me/password` — Change password
+- `POST /me/password/set` — Set the initial password after verification
 - `GET /tasks` — List tasks (paginated, filterable by status, completion, overdue)
 - `GET /tasks/:id` — Get task
 - `POST /tasks` — Create task
@@ -139,7 +142,7 @@ The API uses SQLite through Drizzle and bootstraps the required tables automatic
 
 **Tables:**
 - Better Auth: `user`, `session`, `account`, `verification`
-- App: `projects`, `tasks`, `labels`, `task_labels`
+- App: `projects`, `tasks`, `labels`, `task_labels`, `email_sends`, `blocked_ips`
 
 Default local database path:
 
@@ -255,11 +258,13 @@ pnpm lint             # TypeScript compile check
 | `CORS_ORIGIN` | inherits trusted origins | Extra CORS origins |
 | `PORT` | `3000` | API port |
 | `HOST` | `0.0.0.0` | API bind host |
-| `NODE_ENV` | unset | Enables secure cookies in production |
-| `BETTER_AUTH_SECRET` | required | Session signing secret |
+| `NODE_ENV` | unset (`production` in Compose) | Enables secure cookies and secret validation in production |
+| `BETTER_AUTH_SECRET` | required in production | Canonical hex or Base64 session key representing at least 32 decoded bytes |
 
 Notes:
 - Better Auth secure cookies are enabled when `NODE_ENV=production` or `APP_BASE_URL` starts with `https://`.
+- In production, the API rejects missing, placeholder, plain-text passphrase, malformed, or undersized secrets before serving traffic.
+- Development and test environments intentionally allow a missing secret for local and CI flows; see [DOCKER.md](./DOCKER.md) for deployment requirements.
 - The API bootstraps the SQLite schema on startup.
 - If frontend and API run on different origins, update `APP_BASE_URL`, `TRUSTED_ORIGINS`, and `CORS_ORIGIN` together.
 
