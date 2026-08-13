@@ -4,6 +4,7 @@ import {
   getAppBaseUrl,
   getCorsOrigins,
   getFrontendBaseUrl,
+  getFrontendResetUrl,
   getFrontendVerificationUrl,
   getTrustedOrigins,
 } from './auth-origins.js';
@@ -44,6 +45,15 @@ test('auth origin helpers merge defaults with configured origins', () => {
       getFrontendVerificationUrl('https://api.example.com/verify-email?token=a%2Bb'),
       'https://frontend.example.com/verify-email?token=a%2Bb',
     );
+    // Reset links put the token in the URL path (Better Auth shape) and must
+    // be rewritten to a direct frontend link with the token in the query —
+    // never the API's redirect-based /auth/reset-password/<token> route.
+    assert.equal(
+      getFrontendResetUrl(
+        'https://api.example.com/auth/reset-password/abc123?callbackURL=https%3A%2F%2Ffrontend.example.com%2Freset-password',
+      ),
+      'https://frontend.example.com/reset-password?token=abc123',
+    );
 
     process.env['NODE_ENV'] = 'production';
     delete process.env['FRONTEND_BASE_URL'];
@@ -53,8 +63,16 @@ test('auth origin helpers merge defaults with configured origins', () => {
       getFrontendVerificationUrl('https://example.com/api/verify-email?token=abc'),
       'https://example.com/verify-email?token=abc',
     );
+    assert.equal(
+      getFrontendResetUrl('https://example.com/api/auth/reset-password/xyz?callbackURL='),
+      'https://example.com/reset-password?token=xyz',
+    );
     assert.throws(
       () => getFrontendVerificationUrl('https://example.com/api/verify-email'),
+      /missing its token/,
+    );
+    assert.throws(
+      () => getFrontendResetUrl('https://example.com/api/auth/reset-password?callbackURL=x'),
       /missing its token/,
     );
   } finally {

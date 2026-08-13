@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
+import { mock } from 'node:test';
 import test from 'node:test';
 
 // Ensure the SQLite singleton uses a shared temp DB before any module imports it.
@@ -695,16 +696,40 @@ test('sendResetPassword callback is wired correctly', async () => {
       payload: { email, password: TEST_PASSWORD, name: 'Reset CB User' },
     });
 
-    // Trigger the requestPasswordReset flow — this invokes the sendResetPassword
-    // callback configured in auth.ts, which dynamically imports email.js and
-    // calls sendPasswordResetEmail. Without RESEND_API_KEY, it logs to console.
-    const { auth } = await import('../lib/auth.js');
-    const result = await auth.api.requestPasswordReset({
-      body: { email },
+    // Capture the console-logged email body (test env logs instead of sending).
+    const logs: string[] = [];
+    mock.method(console, 'log', (msg: string) => {
+      if (typeof msg === 'string' && msg.startsWith('[email]')) logs.push(msg);
     });
 
-    // Better Auth returns { status: true } on success
-    assert.equal(result.status, true);
+    try {
+      // Trigger the requestPasswordReset flow — this invokes the sendResetPassword
+      // callback configured in auth.ts, which dynamically imports email.js and
+      // calls sendPasswordResetEmail. Without RESEND_API_KEY, it logs to console.
+      const { auth } = await import('../lib/auth.js');
+      const result = await auth.api.requestPasswordReset({
+        body: { email, redirectTo: 'http://localhost:4200/reset-password' },
+      });
+
+      // Better Auth returns { status: true } on success
+      assert.equal(result.status, true);
+
+      // The emailed link must point straight at the frontend with the token in
+      // the query — never at the API's redirect-based /auth/reset-password/<token>
+      // route (whose empty-callbackURL failure mode dead-ends on
+      // /auth/error?error=INVALID_TOKEN).
+      const body = logs.find((l) => l.includes('reset-password'));
+      assert.ok(body, 'reset email was logged: ' + JSON.stringify(logs));
+      const match = body!.match(/https?:\/\/[^\s]+/);
+      assert.ok(match, 'email body contains a URL');
+      const emailedUrl = new URL(match![0]);
+      assert.equal(emailedUrl.origin, 'http://localhost:4200');
+      assert.equal(emailedUrl.pathname, '/reset-password');
+      assert.ok(emailedUrl.searchParams.get('token'), 'token is in the query');
+      assert.equal(emailedUrl.searchParams.get('callbackURL'), null);
+    } finally {
+      mock.restoreAll();
+    }
   } finally {
     await ctx.cleanup();
   }

@@ -2,7 +2,12 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { db } from '../db/client.js';
 import { accounts, sessions, users, verifications } from '../db/schema.js';
-import { getAppBaseUrl, getFrontendVerificationUrl, getTrustedOrigins } from './auth-origins.js';
+import {
+  getAppBaseUrl,
+  getFrontendResetUrl,
+  getFrontendVerificationUrl,
+  getTrustedOrigins,
+} from './auth-origins.js';
 
 const appBaseUrl = getAppBaseUrl();
 const trustedOrigins = getTrustedOrigins();
@@ -91,7 +96,10 @@ export const auth = betterAuth({
     resetPasswordTokenExpiresIn: 3600, // 1 hour (matches email copy)
     sendResetPassword: async ({ user, url }) => {
       const { sendPasswordResetEmail } = await import('./email.js');
-      await sendPasswordResetEmail(user, url);
+      // The email must link straight to the frontend, not the API's
+      // redirect-based callback route (whose empty-callbackURL failure mode
+      // dead-ends on /auth/error?error=INVALID_TOKEN).
+      await sendPasswordResetEmail(user, getFrontendResetUrl(url));
     },
   },
   emailVerification: {
