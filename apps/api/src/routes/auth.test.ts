@@ -269,6 +269,42 @@ test('unverified sign-in returns EMAIL_NOT_VERIFIED without burning lockout', as
   }
 });
 
+test('pending password setup accounts cannot sign in with their temporary password', async () => {
+  const ctx = await createTestApp();
+  const email = `pending-password-${randomUUID()}@example.com`;
+
+  try {
+    const registerResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: TEST_PASSWORD, name: 'Pending Password User' },
+    });
+    assert.equal(registerResponse.statusCode, 200);
+
+    const { sqlite } = await import('../db/client.js');
+    sqlite
+      .prepare('UPDATE user SET emailVerified = 1, passwordSetupRequired = 1 WHERE email = ?')
+      .run(email);
+
+    const signIn = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-in/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: TEST_PASSWORD },
+    });
+
+    assert.equal(signIn.statusCode, 401);
+    assert.deepEqual(signIn.json(), { message: 'Invalid email or password.' });
+    const lockout = sqlite
+      .prepare('SELECT attempts FROM login_attempts WHERE email = ?')
+      .get(email) as { attempts: number } | undefined;
+    assert.equal(lockout, undefined);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
 test('set-password endpoint requires verified email and sets the password', async () => {
   const ctx = await createTestApp();
   const email = `setpw-${randomUUID()}@example.com`;

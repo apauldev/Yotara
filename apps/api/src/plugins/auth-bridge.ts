@@ -1,5 +1,8 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
+import { eq } from 'drizzle-orm';
 import { auth } from '../lib/auth.js';
+import { db } from '../db/client.js';
+import { users } from '../db/schema.js';
 import { getCorsOrigins } from '../lib/auth-origins.js';
 import {
   getRemainingLockoutSeconds,
@@ -176,6 +179,21 @@ export default async function authBridgePlugin(app: FastifyInstance) {
         // 3h: Record email send on every attempt (regardless of response status)
         // so the rate limit applies to both new and existing email addresses.
         recordEmailSend(actionEmail, actionType, clientIp);
+      }
+
+      if (isSignIn && loginEmail) {
+        const [user] = await db
+          .select({
+            emailVerified: users.emailVerified,
+            passwordSetupRequired: users.passwordSetupRequired,
+          })
+          .from(users)
+          .where(eq(users.email, loginEmail))
+          .limit(1);
+
+        if (user?.emailVerified && user.passwordSetupRequired) {
+          return reply.code(401).send({ message: 'Invalid email or password.' });
+        }
       }
 
       const headers = toHeaders(request.headers);

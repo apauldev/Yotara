@@ -126,11 +126,11 @@ describe('LoginComponent', () => {
     await component.onSubmit();
     fixture.detectChanges();
 
-    // Signup called with a throwaway placeholder (email + 5 letters) and the
-    // empty honeypot website value; no auto-login redirect.
+    // Signup receives a cryptographically random placeholder and the empty
+    // honeypot website value; no auto-login redirect.
     expect(authState.signUp).toHaveBeenCalledWith(
       'alex@example.com',
-      jasmine.stringMatching(/^alex@example\.com[a-z]{5}$/),
+      jasmine.stringMatching(/^[0-9a-f]{64}$/),
       'Alex Rivers',
       '',
     );
@@ -169,7 +169,7 @@ describe('LoginComponent', () => {
 
     expect(authState.signUp).toHaveBeenCalledWith(
       'bot@example.com',
-      jasmine.stringMatching(/^bot@example\.com[a-z]{5}$/),
+      jasmine.stringMatching(/^[0-9a-f]{64}$/),
       'Bot',
       'http://spam.example.com',
     );

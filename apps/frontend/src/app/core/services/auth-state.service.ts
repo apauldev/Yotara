@@ -97,10 +97,9 @@ export class AuthStateService {
     this.loadingState.set(true);
 
     try {
-      // When email verification is required, the "password" is a throwaway
-      // placeholder (email + 5 random letters) — the user sets a real one
-      // after clicking the verification link. Never auto-login for an
-      // unverified account.
+      // When email verification is required, the "password" is a cryptographically
+      // random throwaway value — the user sets a real one after clicking the
+      // verification link. Never auto-login for an unverified account.
       const result = await AuthService.signUp(email, password, name, website);
       if (!result.error && !this.requireEmailVerificationState()) {
         await this.refreshSession();

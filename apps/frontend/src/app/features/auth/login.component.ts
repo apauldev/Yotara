@@ -204,15 +204,11 @@ export class LoginComponent implements OnDestroy {
     );
   }
 
-  /** Generate the throwaway placeholder password (email + 5 random letters). */
-  private generatePlaceholderPassword(email: string): string {
-    const letters = 'abcdefghijklmnopqrstuvwxyz';
-    let suffix = '';
-    for (let i = 0; i < 5; i++) {
-      suffix += letters[Math.floor(Math.random() * letters.length)];
-    }
-    // email is always >= 8 chars; truncate to stay under Better Auth's max.
-    return `${email}${suffix}`.slice(0, 128);
+  /** Generate a cryptographically random throwaway password. */
+  private generatePlaceholderPassword(): string {
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
   }
 
   async onSubmit() {
@@ -231,7 +227,7 @@ export class LoginComponent implements OnDestroy {
       if (this.isLogin()) {
         res = await this.authState.signIn(this.email().trim(), this.password());
       } else if (this.emailFirstSignup) {
-        const placeholder = this.generatePlaceholderPassword(this.email().trim());
+        const placeholder = this.generatePlaceholderPassword();
         this.placeholderPassword.set(placeholder);
         res = await this.authState.signUp(
           this.email().trim(),
