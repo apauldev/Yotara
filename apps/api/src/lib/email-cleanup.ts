@@ -7,10 +7,13 @@ const UNVERIFIED_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 let cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
 /**
- * Delete accounts that were created but never verified, once they are older
- * than 24h. Only runs when email verification is required (production, or the
- * REQUIRE_EMAIL_VERIFICATION dev/test override) — otherwise dev/test users who
- * registered without verification would be deleted.
+ * Delete email-first pending accounts that were created but never verified,
+ * once they are older than 24h. Only runs when email verification is required
+ * (production, or the REQUIRE_EMAIL_VERIFICATION dev/test override).
+ *
+ * The query targets only accounts marked by the email-first signup flow
+ * (passwordSetupRequired = 1). Legacy unverified accounts from before this
+ * flow are preserved to avoid data loss.
  *
  * The user row is deleted alongside its related rows. session/account/projects
  * use ON DELETE NO ACTION (see db/client.ts bootstrap), so they must be deleted
@@ -25,7 +28,9 @@ export function cleanupUnverifiedAccounts(): number {
 
   const cutoff = Date.now() - UNVERIFIED_TTL_MS;
   const staleUsers = sqlite
-    .prepare(`SELECT id, email FROM user WHERE emailVerified = 0 AND createdAt < ?`)
+    .prepare(
+      `SELECT id, email FROM user WHERE emailVerified = 0 AND passwordSetupRequired = 1 AND createdAt < ?`,
+    )
     .all(cutoff) as Array<{ id: string; email: string }>;
 
   if (staleUsers.length === 0) {

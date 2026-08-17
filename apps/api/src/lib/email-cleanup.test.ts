@@ -16,11 +16,11 @@ test('unverified account cleanup', async () => {
   try {
     const { sqlite } = await import('../db/client.js');
 
-    // Create users directly: one verified, one unverified old, one unverified new.
+    // Create users directly: one verified, one legacy unverified, one email-first pending, one email-first new.
     const now = Date.now();
     const insert = sqlite.prepare(
-      `INSERT INTO user (id, name, email, emailVerified, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO user (id, name, email, emailVerified, passwordSetupRequired, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
     );
 
     insert.run(
@@ -28,21 +28,24 @@ test('unverified account cleanup', async () => {
       'Verified',
       `v-${randomUUID()}@test.com`,
       1,
-      now - 48 * 3600_000,
-      now,
-    );
-    insert.run(
-      `unverified-old-${randomUUID()}`,
-      'Old Unverified',
-      `o-${randomUUID()}@test.com`,
       0,
       now - 48 * 3600_000,
       now,
     );
-    // Track the old unverified user id + email to assert orphan cleanup.
+    // Legacy unverified user: passwordSetupRequired = 0 → must survive cleanup.
+    insert.run(
+      `legacy-unverified-${randomUUID()}`,
+      'Legacy Unverified',
+      `l-${randomUUID()}@test.com`,
+      0,
+      0,
+      now - 48 * 3600_000,
+      now,
+    );
+    // Email-first pending: passwordSetupRequired = 1, old → must be deleted.
     const staleId = `stale-${randomUUID()}`;
     const staleEmail = `stale-${randomUUID()}@test.com`;
-    insert.run(staleId, 'Stale', staleEmail, 0, now - 48 * 3600_000, now);
+    insert.run(staleId, 'Stale', staleEmail, 0, 1, now - 48 * 3600_000, now);
     // Orphan-prone related rows (NO ACTION FKs).
     sqlite
       .prepare(
@@ -68,11 +71,13 @@ test('unverified account cleanup', async () => {
         new Date(now).toISOString(),
         new Date(now).toISOString(),
       );
+    // New email-first pending: passwordSetupRequired = 1, recent → must survive.
     insert.run(
-      `unverified-new-${randomUUID()}`,
-      'New Unverified',
+      `new-pending-${randomUUID()}`,
+      'New Pending',
       `n-${randomUUID()}@test.com`,
       0,
+      1,
       now - 1 * 3600_000,
       now,
     );
@@ -94,11 +99,12 @@ test('unverified account cleanup', async () => {
       ).c;
     assert.equal(countUnverified(), 3, 'no users deleted when verification not required');
 
-    // With the override flag: only the old unverified accounts (2) are deleted.
+    // With the override flag: only the email-first pending account older than 24h is deleted.
+    // Legacy unverified (passwordSetupRequired = 0) and recent pending survive.
     process.env['REQUIRE_EMAIL_VERIFICATION'] = 'true';
     const deleted = cleanupUnverifiedAccounts();
-    assert.equal(deleted, 2, 'exactly two unverified accounts older than 24h deleted');
-    assert.equal(countUnverified(), 1, 'new unverified account survives');
+    assert.equal(deleted, 1, 'only the old email-first pending account is deleted');
+    assert.equal(countUnverified(), 2, 'legacy and recent pending accounts survive');
     assert.equal(countVerified(), 1, 'verified account survives');
 
     // Related rows (NO ACTION FKs) must be cleaned up, not orphaned.
