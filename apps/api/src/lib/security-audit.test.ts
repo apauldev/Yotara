@@ -212,7 +212,8 @@ test('lockout is scoped to (ip, email) — a victim can still log in from their 
       const fail = await ctx.app.inject({
         method: 'POST',
         url: '/auth/sign-in/email',
-        headers: { origin: TEST_ORIGIN, 'x-forwarded-for': attackerIp },
+        remoteAddress: attackerIp,
+        headers: { origin: TEST_ORIGIN },
         payload: { email, password: `WrongPassword${i}!` },
       });
       if (i < 2) {
@@ -227,7 +228,8 @@ test('lockout is scoped to (ip, email) — a victim can still log in from their 
     const victimLogin = await ctx.app.inject({
       method: 'POST',
       url: '/auth/sign-in/email',
-      headers: { origin: TEST_ORIGIN, 'x-forwarded-for': victimIp },
+      remoteAddress: victimIp,
+      headers: { origin: TEST_ORIGIN },
       payload: { email, password: TEST_PASSWORD },
     });
     assert.equal(victimLogin.statusCode, 200, 'victim must still be able to log in from their IP');
@@ -237,7 +239,8 @@ test('lockout is scoped to (ip, email) — a victim can still log in from their 
     const attackerRetry = await ctx.app.inject({
       method: 'POST',
       url: '/auth/sign-in/email',
-      headers: { origin: TEST_ORIGIN, 'x-forwarded-for': attackerIp },
+      remoteAddress: attackerIp,
+      headers: { origin: TEST_ORIGIN },
       payload: { email, password: TEST_PASSWORD },
     });
     assert.equal(attackerRetry.statusCode, 429, 'attacker IP stays locked');
