@@ -367,6 +367,7 @@ test('auth routes register and login with email/password', async () => {
     const registerBody = registerResponse.json();
     assert.equal(registerBody.user.email, TEST_EMAIL);
     assert.equal(registerBody.user.name, TEST_NAME);
+    assert.equal(registerBody.user.passwordSetupRequired, false);
     const registerCookie = readCookie(registerResponse);
 
     const meAfterRegister = await ctx.app.inject({

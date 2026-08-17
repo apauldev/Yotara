@@ -59,7 +59,7 @@ export const auth = betterAuth({
         type: 'boolean',
         required: false,
         defaultValue: false,
-        returned: false,
+        returned: true,
       },
     },
   },
