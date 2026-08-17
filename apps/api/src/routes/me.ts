@@ -175,7 +175,12 @@ export default async function meRoutes(fastify: FastifyInstance) {
           type: 'object',
           required: ['newPassword'],
           properties: {
-            newPassword: { type: 'string', minLength: 8, maxLength: 128 },
+            newPassword: {
+              type: 'string',
+              minLength: 8,
+              maxLength: 128,
+              pattern: '^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,128}$',
+            },
           },
         },
         response: {

@@ -397,6 +397,17 @@ test('set-password endpoint requires verified email and sets the password', asyn
       .prepare('UPDATE user SET emailVerified = 1, passwordSetupRequired = 1 WHERE email = ?')
       .run(email);
 
+    const weakPasswords = ['abcdefgh1!', 'ABCDEFGH1!', 'Abcdefgh!', 'Abcdefgh1', 'short1!'];
+    for (const weakPassword of weakPasswords) {
+      const weakSetPw = await ctx.app.inject({
+        method: 'POST',
+        url: '/me/password/set',
+        headers: { origin: TEST_ORIGIN, cookie },
+        payload: { newPassword: weakPassword },
+      });
+      assert.equal(weakSetPw.statusCode, 400, `weak password should be rejected: ${weakPassword}`);
+    }
+
     const NEW_PW = 'NewPassword123!';
     const setPw = await ctx.app.inject({
       method: 'POST',
