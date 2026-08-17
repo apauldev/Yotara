@@ -36,6 +36,9 @@
             Resend email
           </button>
         </p>
+        @if (error()) {
+          <div class="error-msg" role="alert">{{ error() }}</div>
+        }
       </div>
     } @else {
       <form (ngSubmit)="onSubmit()">

@@ -175,6 +175,56 @@ describe('LoginComponent', () => {
     );
   });
 
+  it('email-first signup shows resend error on check-email screen', async () => {
+    authState.requireEmailVerification = () => true;
+    authState.sendVerificationEmail.and.rejectWith(new Error('Rate limited'));
+    fixture.detectChanges();
+    component.toggleMode();
+
+    component.name.set('Alex Rivers');
+    component.email.set('alex@example.com');
+    await component.onSubmit();
+    fixture.detectChanges();
+
+    expect(component.emailSubmitted()).toBeTrue();
+    expect(fixture.nativeElement.textContent).toContain('Check your email');
+
+    // Resend fails; the error must be visible on the check-email screen.
+    const resendBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '.check-email .link-button',
+    );
+    resendBtn.click();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(component.error()).toContain('Rate limited');
+    expect(fixture.nativeElement.querySelector('.error-msg')).not.toBeNull();
+  });
+
+  it('email-first signup shows resend success message on check-email screen', async () => {
+    authState.requireEmailVerification = () => true;
+    fixture.detectChanges();
+    component.toggleMode();
+
+    component.name.set('Alex Rivers');
+    component.email.set('alex@example.com');
+    await component.onSubmit();
+    fixture.detectChanges();
+
+    expect(component.emailSubmitted()).toBeTrue();
+
+    // Resend succeeds; the success message must be visible.
+    const resendBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '.check-email .link-button',
+    );
+    resendBtn.click();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(component.error()).toContain('Verification email resent');
+    expect(fixture.nativeElement.querySelector('.error-msg')).not.toBeNull();
+  });
+
   it('shows field error for empty name in sign-up mode', () => {
     fixture.detectChanges();
     component.toggleMode();
