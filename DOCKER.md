@@ -92,6 +92,7 @@ random generator rather than a hand-written value.
 | `DATABASE_URL` | `./apps/api/data/yotara.db` | SQLite path (inside container or volume) |
 | `APP_BASE_URL` | `http://localhost:8080/api` | Public URL for Better Auth callbacks |
 | `TRUSTED_ORIGINS` | `http://localhost:8080` | Allowed auth/CORS origins |
+| `TRUST_PROXY` | `172.16.0.0/12` in Compose | Trusted reverse-proxy IPs/CIDRs; unset for direct API access |
 | `PORT` | `3000` | API container port |
 | `CONTENT_SECURITY_POLICY` | *(see below)* | Override the CSP for both nginx and the API |
 

@@ -158,6 +158,38 @@ test('honeypot signup triggers IP ban and creates no user', async () => {
   }
 });
 
+test('direct clients cannot ban a spoofed forwarded IP', async () => {
+  const ctx = await createTestApp();
+  const spoofedIp = '203.0.113.99';
+
+  try {
+    const response = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      remoteAddress: '198.51.100.10',
+      headers: {
+        origin: TEST_ORIGIN,
+        'x-forwarded-for': spoofedIp,
+      },
+      payload: {
+        email: `spoof-${randomUUID()}@example.com`,
+        password: TEST_PASSWORD,
+        name: 'Spoofed Bot',
+        website: 'http://spam.example.com',
+      },
+    });
+    assert.equal(response.statusCode, 200);
+
+    const { isIpBanned } = await import('../lib/blocked-ips.js');
+    assert.equal(isIpBanned(spoofedIp), false);
+    assert.equal(isIpBanned('198.51.100.10'), true);
+  } finally {
+    const { sqlite } = await import('../db/client.js');
+    sqlite.prepare(`DELETE FROM blocked_ips WHERE ip IN ('198.51.100.10', ?)`).run(spoofedIp);
+    await ctx.cleanup();
+  }
+});
+
 test('dev mode flips the require-email flag and bypasses rate limit, lockout, and IP ban', async () => {
   const ctx = await createTestApp();
   const previousDevMode = process.env['DEV_MODE'];

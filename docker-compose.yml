@@ -8,6 +8,7 @@ services:
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:8080}
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost:8080}
+      TRUST_PROXY: ${TRUST_PROXY:-172.16.0.0/12}
       # REQUIRED: a strong unique secret, e.g. `openssl rand -base64 32`.
       # No default — compose fails fast if BETTER_AUTH_SECRET is unset, and the
       # API also refuses to boot with the old placeholder value.

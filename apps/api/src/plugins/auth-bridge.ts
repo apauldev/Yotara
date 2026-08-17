@@ -111,9 +111,9 @@ export default async function authBridgePlugin(app: FastifyInstance) {
       const isSendVerificationEmail =
         request.method === 'POST' && url.pathname === '/auth/send-verification-email';
 
-      // Real client IP (resolves via trustProxy: 1 + nginx X-Forwarded-For) used
-      // to scope the lockout tuple so an attacker can't lock a victim's account
-      // from a different IP.
+      // Client IP is socket-derived unless the connection comes from an
+      // explicitly trusted proxy, preventing spoofed forwarding headers from
+      // selecting lockout or honeypot-ban keys.
       const clientIp = request.ip ?? 'unknown';
 
       // Honeypot-triggered IPs are banned from auth endpoints for 24h.

@@ -6,6 +6,7 @@ services:
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:8080}
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost:8080}
+      TRUST_PROXY: ${TRUST_PROXY:-172.16.0.0/12}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET?set a strong BETTER_AUTH_SECRET (openssl rand -base64 32)}
       HOST: 0.0.0.0
       PORT: ${PORT:-3000}

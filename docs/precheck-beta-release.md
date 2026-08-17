@@ -29,19 +29,19 @@ for production deployments; configure Resend and a verified `EMAIL_FROM` before 
 `apps/api/src/lib/email.ts` HTML-escapes display names and attribute-escapes URLs; the email
 tests cover special characters. No further code change is required before upload.
 
-### 1.3 Proxy trust assumes exactly one reverse proxy
+### 1.3 Proxy trust is explicitly configured
 
-- `apps/api/src/server.ts:56` sets `trustProxy: 1`; rate limiting keys off `request.ip` (`server.ts:69`).
-- The API binds `0.0.0.0` (`Dockerfile`), and nginx sets `X-Forwarded-For` from the real client IP (`docker/nginx.conf:30`).
+- `apps/api/src/server.ts` trusts only the addresses/CIDRs configured in `TRUST_PROXY`; it defaults to no proxy trust. Rate limiting keys off `request.ip`.
+- The API binds `0.0.0.0` (`Dockerfile`), and bundled nginx overwrites `X-Forwarded-For` with the address it observes (`docker/nginx.conf`).
 
-**For the beta EC2 instance:** only the bundled nginx container must be exposed; port 3000 must not be reachable from outside. If anything else terminates TLS/proxies in front (Caddy, Traefik, an ALB), the hop count changes and `request.ip` may become client-spoofable or the proxy IP.
+**For the beta EC2 instance:** only the bundled nginx container must be exposed; port 3000 must not be reachable from outside. If anything else terminates TLS/proxies in front (Caddy, Traefik, an ALB), configure that proxy's actual address or CIDR in `TRUST_PROXY`.
 
 **Fix before upload**
 
 - On EC2, publish only port 8080; keep the API container port private.
 - Document the exact topology in the deployment notes (one nginx hop, or N hops).
-- If the topology is not exactly "one trusted proxy", replace the blanket `trustProxy: 1` with a trusted-proxy IP range before upload.
-- Add a test with spoofed `X-Forwarded-For` headers to lock in the behavior.
+- Set `TRUST_PROXY` to the actual trusted proxy IP/CIDR for the deployment topology; do not use a blanket hop count.
+- Add or retain tests with spoofed `X-Forwarded-For` headers to lock in the behavior.
 
 ## 2. Strongly recommended before upload
 
