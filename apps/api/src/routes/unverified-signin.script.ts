@@ -30,8 +30,16 @@ try {
   });
 
   console.log(`SIGNIN_STATUS:${signIn.statusCode}`);
-  const body = signIn.json() as { code?: string };
-  console.log(`SIGNIN_CODE:${body.code ?? 'none'}`);
+  console.log(`SIGNIN_BODY:${JSON.stringify(signIn.json())}`);
+
+  const unknownSignIn = await app.inject({
+    method: 'POST',
+    url: '/auth/sign-in/email',
+    headers: { origin: 'http://localhost:4200' },
+    payload: { email: `unknown-${randomUUID()}@example.com`, password: 'Password123!' },
+  });
+  console.log(`UNKNOWN_SIGNIN_STATUS:${unknownSignIn.statusCode}`);
+  console.log(`UNKNOWN_SIGNIN_BODY:${JSON.stringify(unknownSignIn.json())}`);
 
   const { getRemainingLockoutSeconds } = await import('../lib/login-lockout.js');
   console.log(`LOCKOUT_REMAINING:${getRemainingLockoutSeconds('127.0.0.1', email)}`);

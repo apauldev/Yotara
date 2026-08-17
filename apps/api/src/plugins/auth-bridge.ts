@@ -238,28 +238,17 @@ export default async function authBridgePlugin(app: FastifyInstance) {
             });
           }
 
-          const message =
-            result.remainingAttempts <= 1
-              ? `Invalid email or password. ${result.remainingAttempts} attempt remaining.`
-              : `Invalid email or password. ${result.remainingAttempts} attempts remaining.`;
-
-          return reply.code(401).send({
-            message,
-            remainingAttempts: result.remainingAttempts,
-          });
+          return reply.code(401).send({ message: 'Invalid email or password.' });
         } else if (response.status === 403) {
-          // Better Auth returns 403 EMAIL_NOT_VERIFIED when the account exists
-          // but the email was never verified. This is not a bad password — it
-          // must not burn a lockout attempt or show "invalid credentials".
+          // Do not reveal whether an account exists but remains unverified.
+          // Normalize Better Auth's response to the generic sign-in failure
+          // without recording a failed password attempt.
           const respJson = (await response
             .clone()
             .json()
-            .catch(() => null)) as { code?: string; message?: string } | null;
+            .catch(() => null)) as { code?: string } | null;
           if (respJson?.code === 'EMAIL_NOT_VERIFIED') {
-            return reply.code(403).send({
-              code: 'EMAIL_NOT_VERIFIED',
-              message: 'Please verify your email before signing in.',
-            });
+            return reply.code(401).send({ message: 'Invalid email or password.' });
           }
         }
       }

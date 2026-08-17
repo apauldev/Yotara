@@ -280,7 +280,7 @@ test('verification-required signup marks password setup as required', async () =
   assert.ok(output.includes('PASSWORD_SETUP_REQUIRED:1'), `expected setup flag, got:\n${output}`);
 });
 
-test('unverified sign-in returns EMAIL_NOT_VERIFIED without burning lockout', async () => {
+test('unverified sign-in uses the generic response without burning lockout', async () => {
   // The verification gating is read at module load (env-at-boot contract), so
   // this scenario must run in a fresh process with the flag set before import.
   const { execFileSync } = await import('node:child_process');
@@ -293,12 +293,36 @@ test('unverified sign-in returns EMAIL_NOT_VERIFIED without burning lockout', as
       env: { ...process.env, REQUIRE_EMAIL_VERIFICATION: 'true', NODE_ENV: 'test' },
     });
     const lines = output.trim().split('\n');
-    assert.ok(lines.includes('SIGNIN_STATUS:403'), `expected 403, got:\n${output}`);
-    assert.ok(lines.includes('SIGNIN_CODE:EMAIL_NOT_VERIFIED'), `expected code, got:\n${output}`);
+    assert.ok(lines.includes('SIGNIN_STATUS:401'), `expected 401, got:\n${output}`);
+    assert.ok(
+      lines.includes('SIGNIN_BODY:{"message":"Invalid email or password."}'),
+      `expected generic body, got:\n${output}`,
+    );
     assert.ok(lines.includes('LOCKOUT_REMAINING:0'), `expected no lockout burn, got:\n${output}`);
   } catch (err) {
     assert.fail(`subprocess failed: ${(err as Error).message}`);
   }
+});
+
+test('unknown and unverified sign-ins have the same observable failure response', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const scriptPath = fileURLToPath(new URL('./unverified-signin.script.ts', import.meta.url));
+  const output = execFileSync(process.execPath, ['--import', 'tsx', scriptPath], {
+    encoding: 'utf8',
+    env: { ...process.env, REQUIRE_EMAIL_VERIFICATION: 'true', NODE_ENV: 'test' },
+  });
+  const lines = output.trim().split('\n');
+  assert.ok(lines.includes('SIGNIN_STATUS:401'), `expected unverified 401, got:\n${output}`);
+  assert.ok(lines.includes('UNKNOWN_SIGNIN_STATUS:401'), `expected unknown 401, got:\n${output}`);
+  assert.ok(
+    lines.includes('SIGNIN_BODY:{"message":"Invalid email or password."}'),
+    `expected generic unverified body, got:\n${output}`,
+  );
+  assert.ok(
+    lines.includes('UNKNOWN_SIGNIN_BODY:{"message":"Invalid email or password."}'),
+    `expected generic unknown body, got:\n${output}`,
+  );
 });
 
 test('pending password setup accounts cannot sign in with their temporary password', async () => {
@@ -647,7 +671,7 @@ test('password lockout locks account after repeated failed login attempts', asyn
     });
     assert.equal(registerResponse.statusCode, 200);
 
-    // First wrong password -> remainingAttempts: 1
+    // First wrong password -> generic 401 without account-dependent metadata
     const firstFail = await ctx.app.inject({
       method: 'POST',
       url: '/auth/sign-in/email',
@@ -655,9 +679,7 @@ test('password lockout locks account after repeated failed login attempts', asyn
       payload: { email, password: 'WrongPassword1!' },
     });
     assert.equal(firstFail.statusCode, 401);
-    const firstBody = firstFail.json();
-    assert.equal(firstBody.remainingAttempts, 1);
-    assert.equal(typeof firstBody.message, 'string');
+    assert.deepEqual(firstFail.json(), { message: 'Invalid email or password.' });
 
     // Second wrong password -> lockout, remainingAttempts: 0
     const secondFail = await ctx.app.inject({
@@ -795,7 +817,7 @@ test('locked account can log in after lockout window expires', { timeout: 60_000
     assert.ok(successResponse, 'Login should succeed after lockout expires');
     assert.equal(successResponse!.statusCode, 200);
 
-    // After successful login, a wrong password should start fresh (remainingAttempts: 1)
+    // After successful login, a wrong password should return the generic 401 response.
     const failAfterRecovery = await ctx.app.inject({
       method: 'POST',
       url: '/auth/sign-in/email',
@@ -803,8 +825,7 @@ test('locked account can log in after lockout window expires', { timeout: 60_000
       payload: { email, password: 'WrongAgain1!' },
     });
     assert.equal(failAfterRecovery.statusCode, 401);
-    const afterRecoveryBody = failAfterRecovery.json();
-    assert.equal(afterRecoveryBody.remainingAttempts, 1);
+    assert.deepEqual(failAfterRecovery.json(), { message: 'Invalid email or password.' });
   } finally {
     await ctx.cleanup();
   }
