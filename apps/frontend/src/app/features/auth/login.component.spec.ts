@@ -175,6 +175,17 @@ describe('LoginComponent', () => {
     );
   });
 
+  it('email-first signup clears error and remainingAttempts when toggling mode', () => {
+    fixture.detectChanges();
+    component.error.set('previous error');
+    component.remainingAttempts.set(2);
+
+    component.toggleMode();
+
+    expect(component.error()).toBe('');
+    expect(component.remainingAttempts()).toBeNull();
+  });
+
   it('email-first signup shows resend error on check-email screen', async () => {
     authState.requireEmailVerification = () => true;
     authState.sendVerificationEmail.and.rejectWith(new Error('Rate limited'));

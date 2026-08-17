@@ -333,4 +333,45 @@ describe('AuthStateService', () => {
     await expectAsync(service.updateProfile({ captureBehavior: 'capture' })).toBeRejected();
     expect(service.loading()).toBeFalse();
   });
+
+  it('does not refresh session when signUp succeeds with requireEmailVerification', async () => {
+    spyOn(AuthService, 'signUp').and.resolveTo({ error: null } as any);
+    spyOn(AuthService, 'getSession');
+
+    const service = TestBed.inject(AuthStateService);
+    // Mimic the runtime config flag
+    (service as any).requireEmailVerificationState.set(true);
+    const result = await service.signUp('test@example.com', 'placeholder', 'Test User');
+
+    expect(result.error).toBeNull();
+    expect(AuthService.getSession).not.toHaveBeenCalled();
+    expect(service.loading()).toBeFalse();
+  });
+
+  it('delegates sendVerificationEmail to AuthService', async () => {
+    spyOn(AuthService, 'sendVerificationEmail').and.resolveTo(undefined as any);
+
+    const service = TestBed.inject(AuthStateService);
+    await service.sendVerificationEmail('test@example.com');
+
+    expect(AuthService.sendVerificationEmail).toHaveBeenCalledWith('test@example.com');
+  });
+
+  it('delegates setPassword to AuthService', async () => {
+    spyOn(AuthService, 'setPassword').and.resolveTo(undefined);
+
+    const service = TestBed.inject(AuthStateService);
+    await service.setPassword('newPass123!');
+
+    expect(AuthService.setPassword).toHaveBeenCalledWith('newPass123!');
+    expect(service.loading()).toBeFalse();
+  });
+
+  it('sets loading false even when setPassword throws', async () => {
+    spyOn(AuthService, 'setPassword').and.rejectWith(new Error('expired token'));
+
+    const service = TestBed.inject(AuthStateService);
+    await expectAsync(service.setPassword('newPass123!')).toBeRejected();
+    expect(service.loading()).toBeFalse();
+  });
 });
