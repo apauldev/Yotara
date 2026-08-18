@@ -19,9 +19,10 @@ jobs:
         uses: the-pr-agent/pr-agent@v0.41.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          config.model: 'deepseek/deepseek-v4-flash'
-          config.fallback_models: '["deepseek/deepseek-v4-pro"]'
-          DEEPSEEK.KEY: ${{ secrets.REVIEW_API_KEY }}
+          config.model: 'dots-studio/dots-3-note-preview:free'
+          config.fallback_models: '["nvidia/nemotron-3-ultra-550b-a55b:free"]'
+          OPENAI.KEY: ${{ secrets.OPENROUTER_REVIEW_KEY }}
+          config.openai_api_base: 'https://openrouter.ai/api/v1'
           github_action_config.auto_review: 'true'
           github_action_config.auto_describe: 'true'
           github_action_config.auto_improve: 'true'
