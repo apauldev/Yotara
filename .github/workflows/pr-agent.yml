@@ -21,8 +21,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           config.model: 'openrouter/dots-studio/dots-3-note-preview:free'
           config.fallback_models: '["openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"]'
-          OPENAI.KEY: ${{ secrets.OPENROUTER_REVIEW_KEY }}
-          config.openai_api_base: 'https://openrouter.ai/api/v1'
+          openrouter__key: ${{ secrets.OPENROUTER_REVIEW_KEY }}
           github_action_config.auto_review: 'true'
           github_action_config.auto_describe: 'true'
           github_action_config.auto_improve: 'true'
