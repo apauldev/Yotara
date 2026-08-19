@@ -250,6 +250,8 @@ export default async function authBridgePlugin(app: FastifyInstance) {
           if (respJson?.code === 'EMAIL_NOT_VERIFIED') {
             return reply.code(401).send({ message: 'Invalid email or password.' });
           }
+          // Any other 403 code — still normalize to avoid leaking info.
+          return reply.code(401).send({ message: 'Invalid email or password.' });
         }
       }
 
