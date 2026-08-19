@@ -1,5 +1,5 @@
 import { parseCalendarDate, startOfToday } from './timestamps';
-import { DateTime, Settings } from 'luxon';
+import { DateTime } from 'luxon';
 
 describe('parseCalendarDate', () => {
   it('parses date-only strings as local calendar dates', () => {
