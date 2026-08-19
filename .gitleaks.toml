@@ -21,5 +21,5 @@ paths = [
 # value used so the API can boot during Docker smoke tests. It is never used
 # for production signing.
 regexes = [
-  '''(?i)BETTER_AUTH_SECRET.*=.*[0-9a-f]{64}''',
+  '''903d44f75ea956577ae15335bbbef8532a867cdeae599cccac72357d40f14214''',
 ]
