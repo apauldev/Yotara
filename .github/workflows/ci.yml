@@ -244,6 +244,8 @@ jobs:
           else
             docker compose -f docker-compose.yml logs
           fi
+        env:
+          BETTER_AUTH_SECRET: 903d44f75ea956577ae15335bbbef8532a867cdeae599cccac72357d40f14214
 
       - name: Tear down stack
         # Always run so containers never leak past the job, even on failure.
@@ -254,6 +256,8 @@ jobs:
           else
             docker compose -f docker-compose.yml down -v
           fi
+        env:
+          BETTER_AUTH_SECRET: 903d44f75ea956577ae15335bbbef8532a867cdeae599cccac72357d40f14214
 
   docker-api-native:
     strategy:
@@ -335,6 +339,8 @@ jobs:
       - name: Logs on failure
         if: failure()
         run: docker compose -f docker-compose.yml -f docker-compose.api-ci.yml logs api
+        env:
+          BETTER_AUTH_SECRET: 903d44f75ea956577ae15335bbbef8532a867cdeae599cccac72357d40f14214
 
       - name: Stop API containers
         if: always()
