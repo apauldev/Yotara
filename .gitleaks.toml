@@ -17,3 +17,9 @@ paths = [
   '''.*\.test\.ts$''',
   '''.*__tests__/.*''',
 ]
+# CI smoke-test secrets: the BETTER_AUTH_SECRET here is a well-known test-only
+# value used so the API can boot during Docker smoke tests. It is never used
+# for production signing.
+regexes = [
+  '''(?i)BETTER_AUTH_SECRET.*=.*[0-9a-f]{64}''',
+]
