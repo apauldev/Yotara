@@ -2,6 +2,70 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.73.0](https://github.com/apauldev/Yotara/compare/v0.72.3...v0.73.0) (2026-08-19)
+
+
+### Features
+
+* **api:** expose requireEmailVerification runtime flag ([b036849](https://github.com/apauldev/Yotara/commit/b036849a56a2451cccfdcfb10c3eb90f38ed8935))
+* **api:** gate email verification by env and harden email sending ([8604d7e](https://github.com/apauldev/Yotara/commit/8604d7ee350c724a7f04b258063704b18113b6d9))
+* **api:** honeypot IP ban and unverified-sign-in handling ([ce0eb89](https://github.com/apauldev/Yotara/commit/ce0eb89e93530a4089fb8f4e36b58f95e83832cc))
+* **api:** verify-resend rate limit and unverified-account cleanup ([740bf73](https://github.com/apauldev/Yotara/commit/740bf736709e2bc3752dfbc994d9954411426f2c))
+* **auth:** beta-release hardening — dev mode, email verification, auth secrets ([e0696a2](https://github.com/apauldev/Yotara/commit/e0696a25cf9ceeaeea36c6af27ee0a8900a565b8))
+* **auth:** email-first signup, verify landing, and set-password endpoint ([055be45](https://github.com/apauldev/Yotara/commit/055be45f5a76450f81e04f0b2f0f6338819b32e6))
+* **frontend:** show email with a Verified badge in settings ([cebe7ec](https://github.com/apauldev/Yotara/commit/cebe7ec87abe2501b951f793d1e55b7bf8875733))
+
+
+### Bug Fixes
+
+* add missing BETTER_AUTH_SECRET env to docker logs and teardown steps ([8d97ffd](https://github.com/apauldev/Yotara/commit/8d97ffd7c30d9c39c0e350d3c2881ae58ce6e18e))
+* allowlist CI smoke-test BETTER_AUTH_SECRET in gitleaks config ([f3abd89](https://github.com/apauldev/Yotara/commit/f3abd89e297c136ac0bd4951a6deba63715a6532))
+* **api:** remove orphaned rows when cleaning up unverified accounts ([4052666](https://github.com/apauldev/Yotara/commit/40526663d0394f9ce066d6171a008d1467fa9772))
+* **auth:** enforce password complexity during setup ([51f6584](https://github.com/apauldev/Yotara/commit/51f6584639d8e6883f1b0854dd8d071255123a29))
+* **auth:** expose password setup state to clients ([9138d33](https://github.com/apauldev/Yotara/commit/9138d336a67fd74977bb079f65cde06758abd83c))
+* **auth:** harden email signup placeholder passwords ([6eb9142](https://github.com/apauldev/Yotara/commit/6eb914270eeacdc29284e7326d08f004e8bd0bec))
+* **auth:** honor passwordSetupRequired in verify flow ([ccef0cf](https://github.com/apauldev/Yotara/commit/ccef0cfbb6aaeae454fc17e7f2ba7d0884f5a070))
+* **auth:** prevent sign-in account enumeration ([952770c](https://github.com/apauldev/Yotara/commit/952770cdf19c2783e48a51e226ed9e0c4e72c65b))
+* **auth:** restrict initial password setup ([caa2fee](https://github.com/apauldev/Yotara/commit/caa2fee6649e99fad88dc12e7b313b381f95b98f))
+* **auth:** route password-reset links to the frontend ([53aedb0](https://github.com/apauldev/Yotara/commit/53aedb0286c619eaa9f2c4d150cf921a61751db3))
+* **auth:** route verification links to frontend ([087adb4](https://github.com/apauldev/Yotara/commit/087adb46137136e4ac0e5c386202b25c16b54680))
+* **auth:** scope cleanup to email-first pending accounts only ([cd46a40](https://github.com/apauldev/Yotara/commit/cd46a403e9c47991a19a9f72cf927f1ada96a91b))
+* **auth:** throttle verification email resends ([9f12faf](https://github.com/apauldev/Yotara/commit/9f12faf889552d7b2a54f5e630e630fcb0909e7c))
+* **ci:** add openrouter/ prefix to PR Agent model names ([ad72456](https://github.com/apauldev/Yotara/commit/ad724563208537ecef43d2449d45330c69f77c17))
+* **ci:** configure custom PR Agent model token limit ([a239fc4](https://github.com/apauldev/Yotara/commit/a239fc463cde25f52f9e7202a26072c14c5b7457))
+* **ci:** correct OpenRouter env var to lowercase openrouter__key ([a231e76](https://github.com/apauldev/Yotara/commit/a231e76b807bab4438465b3b333ed6bee9a589a1))
+* **ci:** update pr-agent model configuration ([145522a](https://github.com/apauldev/Yotara/commit/145522ac580320fef33177050af46693ff6c63ae))
+* **ci:** use openrouter__key for OpenRouter authentication ([5ff7503](https://github.com/apauldev/Yotara/commit/5ff750349b2cd30206fa9e0e8823c30e93876537))
+* **ci:** use uppercase OPENROUTER__KEY for GitHub Actions ([ff5f19c](https://github.com/apauldev/Yotara/commit/ff5f19cb6d5bb2e36be4020cf0a191bf6847429a))
+* correct gitleaks allowlist regex to match secret value directly ([94518ea](https://github.com/apauldev/Yotara/commit/94518eae002e1f243a556196991f0edb09125604))
+* **frontend:** show signup error instead of check-email on failure ([935832b](https://github.com/apauldev/Yotara/commit/935832b81c386f25e8ac676fbd49aa9f1c1d77bc))
+* normalize all 403 sign-in responses to generic 401 ([54923f1](https://github.com/apauldev/Yotara/commit/54923f1b53973f1ff5d22ec9acec8c11dd65189d))
+* resolve CodeQL alerts — unused imports/vars and shell command injection ([194d0a1](https://github.com/apauldev/Yotara/commit/194d0a1495d9720831c1bba4805085f35c4dda30))
+* **security:** restrict trusted proxy IP handling ([27a881a](https://github.com/apauldev/Yotara/commit/27a881aeb0ad569acf307b48cd09aaeae971f893))
+* **test:** update lockout-scope test to use trusted-proxy-aware IP simulation ([c1641ae](https://github.com/apauldev/Yotara/commit/c1641aea456fe8678c68f45324c8581b0204f1b6))
+* **ui:** show resend verification errors on check-email screen ([a1814db](https://github.com/apauldev/Yotara/commit/a1814dba6605ac4f03230b84dd079eab0a34e705))
+
+
+### Documentation
+
+* add email verification implementation log ([43f9487](https://github.com/apauldev/Yotara/commit/43f94874979fb6dc2e939bc09aae354b362a3d2a))
+* note E2E coverage and unit coverage in implementation log ([7d6edbd](https://github.com/apauldev/Yotara/commit/7d6edbd09f24697af0d65396c83b3d3ec7ced981))
+
+
+### Chores
+
+* add DCO sign-off for Developer Certificate of Origin ([8b8459e](https://github.com/apauldev/Yotara/commit/8b8459ef8b4138490012fdd0e72118706bde7976))
+* increase PR agent model max tokens to 512k ([38c714d](https://github.com/apauldev/Yotara/commit/38c714d1a29eb104a9a6fc5d1dc026e071c16e8e))
+
+
+### Tests
+
+* add coverage for email-first auth branches ([7acf4e5](https://github.com/apauldev/Yotara/commit/7acf4e5500ad835a9c4610ecefeaf0a78928ba9b))
+* **api:** cover cleanup job lifecycle (start/stop/idempotent) ([638242a](https://github.com/apauldev/Yotara/commit/638242abdae7a4f64dd8ac6efae984ae0f7c5a6b))
+* **api:** fix typed count access in unverified cleanup test ([b86971d](https://github.com/apauldev/Yotara/commit/b86971de6cf2e51a2263c62a7edb9496c919dff2))
+* **e2e:** cover email-first signup and make setup mode-aware ([d89b9bf](https://github.com/apauldev/Yotara/commit/d89b9bf9f970d365fbc9427bc5e12f5aea972aeb))
+* **frontend:** cover email-first signup and verify-email flow ([d444231](https://github.com/apauldev/Yotara/commit/d44423184dfe9e371cd7245e0afd3ddb63c773c6))
+
 ## [0.72.3](https://github.com/apauldev/Yotara/compare/v0.72.2...v0.72.3) (2026-08-10)
 
 
