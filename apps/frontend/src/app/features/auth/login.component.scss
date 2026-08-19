@@ -39,6 +39,20 @@
   display: block;
 }
 
+.dev-badge {
+  width: fit-content;
+  margin: 0 auto 1rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: var(--status-overdue);
+  color: var(--surface-container-lowest);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
 .hero-leaf {
   fill: currentcolor;
 }
@@ -187,6 +201,47 @@ input::placeholder {
   color: var(--on-surface-subtle);
   font-size: 0.72rem;
   text-align: center;
+}
+
+/* Email-first signup: hidden honeypot field (bots fill it, humans never see it) */
+.honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.email-first-note {
+  margin: 0.25rem 0 0;
+  color: var(--on-surface-subtle);
+  font-size: 0.88rem;
+}
+
+.check-email {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  text-align: center;
+  padding: 0.5rem 0 0.25rem;
+
+  h2 {
+    margin: 0;
+    font-size: 1.35rem;
+  }
+
+  p {
+    margin: 0;
+    color: var(--on-surface-subtle);
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+}
+
+.check-email-resend {
+  margin-top: 0.4rem;
 }
 
 @media (width <= 640px) {

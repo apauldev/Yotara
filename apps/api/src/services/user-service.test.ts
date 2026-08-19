@@ -298,6 +298,39 @@ test('User Service — deleteAccountForUser', async (t) => {
       );
     });
 
+    await t.test('sets password once for a flagged verified account', async () => {
+      const email = `${randomUUID()}@test.com`;
+      const userId = await seedUser(ctx, email, 'initial-password');
+      await ctx.db
+        .update(ctx.schema.users)
+        .set({ passwordSetupRequired: true })
+        .where(eq(ctx.schema.users.id, userId));
+
+      const first = await ctx.userService.setPasswordForUser(
+        userId,
+        'new-password',
+        async () => 'hashed-new-password',
+      );
+      assert.equal(first, true);
+      const second = await ctx.userService.setPasswordForUser(
+        userId,
+        'another-password',
+        async () => 'hashed-another-password',
+      );
+      assert.equal(second, false);
+
+      const [user] = await ctx.db
+        .select({ passwordSetupRequired: ctx.schema.users.passwordSetupRequired })
+        .from(ctx.schema.users)
+        .where(eq(ctx.schema.users.id, userId));
+      assert.equal(user.passwordSetupRequired, false);
+      const [account] = await ctx.db
+        .select({ password: ctx.schema.accounts.password })
+        .from(ctx.schema.accounts)
+        .where(eq(ctx.schema.accounts.userId, userId));
+      assert.equal(account.password, 'hashed-new-password');
+    });
+
     await t.test('returns user_not_found for non-existent user', async () => {
       const result = await ctx.userService.deleteAccountForUser(randomUUID(), 'any-password');
       assert.deepEqual(result, { ok: false, reason: 'user_not_found' });

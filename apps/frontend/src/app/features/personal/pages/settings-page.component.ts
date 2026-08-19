@@ -205,6 +205,19 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
 
         <div class="settings-section">
           <h3 class="section-title">Account</h3>
+          <div class="settings-item">
+            <div class="settings-item-copy">
+              <strong>Email</strong>
+              <span>{{ userEmail() || '—' }}</span>
+            </div>
+            <span class="verified-badge" [class.unverified]="!emailVerified()">
+              @if (emailVerified()) {
+                ✓ Verified
+              } @else {
+                Unverified
+              }
+            </span>
+          </div>
           <button
             type="button"
             class="settings-item settings-link"
@@ -577,6 +590,23 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
         flex: 0 0 auto;
       }
 
+      .verified-badge {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--primary-solid);
+        background: var(--primary-soft);
+        padding: 0.3rem 0.6rem;
+        border-radius: 0.5rem;
+        flex: 0 0 auto;
+      }
+
+      .verified-badge.unverified {
+        color: var(--on-surface-subtle);
+        background: var(--surface-container-high);
+      }
+
       .settings-link {
         width: 100%;
         border: 0;
@@ -808,6 +838,7 @@ export class SettingsPageComponent {
   protected readonly projectCount = computed(() => this.dataCounts().projects);
   protected readonly labelCount = computed(() => this.dataCounts().labels);
   protected readonly userEmail = computed(() => this.authState.user()?.email ?? '');
+  protected readonly emailVerified = computed(() => this.authState.user()?.emailVerified ?? false);
 
   protected readonly skipCompleteConfirm = this.preferences.skipCompleteConfirm;
   protected readonly actionNotifications = this.preferences.actionNotifications;

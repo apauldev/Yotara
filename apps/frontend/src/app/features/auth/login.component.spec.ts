@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { LoginComponent } from './login.component';
+import { LoginComponent, isLocalhostHostname } from './login.component';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { Router } from '@angular/router';
 
@@ -11,6 +11,9 @@ describe('LoginComponent', () => {
     signIn: jasmine.Spy;
     signUp: jasmine.Spy;
     getPostAuthRedirectUrl: jasmine.Spy;
+    requireEmailVerification: () => boolean;
+    devMode: () => boolean;
+    sendVerificationEmail: jasmine.Spy;
   };
 
   beforeEach(async () => {
@@ -23,6 +26,9 @@ describe('LoginComponent', () => {
       signIn: jasmine.createSpy('signIn').and.resolveTo({ error: null }),
       signUp: jasmine.createSpy('signUp').and.resolveTo({ error: null }),
       getPostAuthRedirectUrl: jasmine.createSpy('getPostAuthRedirectUrl').and.returnValue('/inbox'),
+      requireEmailVerification: () => false,
+      devMode: () => false,
+      sendVerificationEmail: jasmine.createSpy('sendVerificationEmail').and.resolveTo(undefined),
     };
 
     await TestBed.configureTestingModule({
@@ -97,10 +103,137 @@ describe('LoginComponent', () => {
       'alex@example.com',
       'LongEn0ugh!Pass',
       'Alex Rivers',
+      '',
     );
     expect(router.navigate).toHaveBeenCalledWith(['/onboarding'], {
       queryParams: { created: '1' },
     });
+  });
+
+  it('email-first signup shows no password field and a check-email screen', async () => {
+    authState.requireEmailVerification = () => true;
+    fixture.detectChanges();
+    component.toggleMode();
+    fixture.detectChanges();
+
+    // No password field when verification is required.
+    expect(fixture.nativeElement.querySelector('input[name="password"]')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('verification link');
+
+    component.name.set('Alex Rivers');
+    component.email.set('alex@example.com');
+
+    await component.onSubmit();
+    fixture.detectChanges();
+
+    // Signup receives a cryptographically random placeholder and the empty
+    // honeypot website value; no auto-login redirect.
+    expect(authState.signUp).toHaveBeenCalledWith(
+      'alex@example.com',
+      jasmine.stringMatching(/^[0-9a-f]{64}$/),
+      'Alex Rivers',
+      '',
+    );
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('Check your email');
+  });
+
+  it('email-first signup shows the error instead of check-email on failure', async () => {
+    authState.requireEmailVerification = () => true;
+    authState.signUp.and.resolveTo({ error: { message: 'Email already in use' } });
+    fixture.detectChanges();
+    component.toggleMode();
+
+    component.name.set('Alex Rivers');
+    component.email.set('alex@example.com');
+
+    await component.onSubmit();
+    fixture.detectChanges();
+
+    expect(component.error()).toBe('Email already in use');
+    expect(component.emailSubmitted()).toBeFalse();
+    expect(fixture.nativeElement.textContent).toContain('Email already in use');
+    expect(fixture.nativeElement.textContent).not.toContain('Check your email');
+  });
+
+  it('email-first signup sends the honeypot website value when a bot fills it', async () => {
+    authState.requireEmailVerification = () => true;
+    fixture.detectChanges();
+    component.toggleMode();
+
+    component.name.set('Bot');
+    component.email.set('bot@example.com');
+    component.website.set('http://spam.example.com');
+
+    await component.onSubmit();
+
+    expect(authState.signUp).toHaveBeenCalledWith(
+      'bot@example.com',
+      jasmine.stringMatching(/^[0-9a-f]{64}$/),
+      'Bot',
+      'http://spam.example.com',
+    );
+  });
+
+  it('email-first signup clears error and remainingAttempts when toggling mode', () => {
+    fixture.detectChanges();
+    component.error.set('previous error');
+    component.remainingAttempts.set(2);
+
+    component.toggleMode();
+
+    expect(component.error()).toBe('');
+    expect(component.remainingAttempts()).toBeNull();
+  });
+
+  it('email-first signup shows resend error on check-email screen', async () => {
+    authState.requireEmailVerification = () => true;
+    authState.sendVerificationEmail.and.rejectWith(new Error('Rate limited'));
+    fixture.detectChanges();
+    component.toggleMode();
+
+    component.name.set('Alex Rivers');
+    component.email.set('alex@example.com');
+    await component.onSubmit();
+    fixture.detectChanges();
+
+    expect(component.emailSubmitted()).toBeTrue();
+    expect(fixture.nativeElement.textContent).toContain('Check your email');
+
+    // Resend fails; the error must be visible on the check-email screen.
+    const resendBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '.check-email .link-button',
+    );
+    resendBtn.click();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(component.error()).toContain('Rate limited');
+    expect(fixture.nativeElement.querySelector('.error-msg')).not.toBeNull();
+  });
+
+  it('email-first signup shows resend success message on check-email screen', async () => {
+    authState.requireEmailVerification = () => true;
+    fixture.detectChanges();
+    component.toggleMode();
+
+    component.name.set('Alex Rivers');
+    component.email.set('alex@example.com');
+    await component.onSubmit();
+    fixture.detectChanges();
+
+    expect(component.emailSubmitted()).toBeTrue();
+
+    // Resend succeeds; the success message must be visible.
+    const resendBtn: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '.check-email .link-button',
+    );
+    resendBtn.click();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(component.error()).toContain('Verification email resent');
+    expect(fixture.nativeElement.querySelector('.error-msg')).not.toBeNull();
   });
 
   it('shows field error for empty name in sign-up mode', () => {
@@ -271,5 +404,29 @@ describe('LoginComponent', () => {
     forgotBtn.click();
 
     expect(router.navigate).toHaveBeenCalledWith(['/forgot-password']);
+  });
+
+  it('shows the DEV MODE badge on localhost when dev mode is on', () => {
+    authState.devMode = () => true;
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('DEV MODE');
+  });
+
+  it('hides the DEV MODE badge when dev mode is off', () => {
+    authState.devMode = () => false;
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain('DEV MODE');
+  });
+
+  it('hides the DEV MODE badge on non-localhost hosts even when dev mode is on', () => {
+    // The test URL must not advertise dev mode on screen — the hostname gate
+    // is a pure function so it can be tested without touching window.location.
+    expect(isLocalhostHostname('localhost')).toBeTrue();
+    expect(isLocalhostHostname('127.0.0.1')).toBeTrue();
+    expect(isLocalhostHostname('::1')).toBeTrue();
+    expect(isLocalhostHostname('test.yotara.website')).toBeFalse();
+    expect(isLocalhostHostname('yotara.website')).toBeFalse();
   });
 });

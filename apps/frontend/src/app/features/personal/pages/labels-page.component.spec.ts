@@ -1,7 +1,7 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
-import { BehaviorSubject, of } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 import { LabelsPageComponent } from './labels-page.component';
 import { LabelService } from '../../../core/services/label.service';
 import { ProjectService } from '../../../core/services/project.service';

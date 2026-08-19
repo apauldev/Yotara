@@ -70,24 +70,47 @@ docker compose down
 ## Environment Variables
 
 `BETTER_AUTH_SECRET` is **required** — `docker compose config` fails with a clear error if
-it is unset, and the API refuses to boot with the old placeholder value. This secret signs
-session tokens; without a strong secret, an attacker can forge sessions for any account.
+it is unset, and the API refuses to boot with placeholders, plain-text passphrases,
+malformed values, or values representing fewer than 32 bytes. This secret signs session tokens; without a
+strong unique value, an attacker can forge sessions for any account.
 
 Generate it on every deploy and never commit a real value:
 
 ```bash
 export BETTER_AUTH_SECRET=$(openssl rand -base64 32)
+# Or: export BETTER_AUTH_SECRET=$(openssl rand -hex 32)
 docker compose up -d
 ```
 
+Production accepts canonical hex or Base64 representing at least 32 decoded random bytes.
+The validator cannot prove how a value was generated, so use a cryptographically secure
+random generator rather than a hand-written value.
+
 | Variable | Default / Req'd | Purpose |
 |:---|:---:|:---|
-| `BETTER_AUTH_SECRET` | **Required** | Session signing key (min 32 chars, use `openssl rand -base64 32`) |
+| `BETTER_AUTH_SECRET` | **Required** | Session signing key (canonical hex/Base64, at least 32 decoded bytes) |
 | `DATABASE_URL` | `./apps/api/data/yotara.db` | SQLite path (inside container or volume) |
 | `APP_BASE_URL` | `http://localhost:8080/api` | Public URL for Better Auth callbacks |
 | `TRUSTED_ORIGINS` | `http://localhost:8080` | Allowed auth/CORS origins |
+| `TRUST_PROXY` | `172.16.0.0/12` in Compose | Trusted reverse-proxy IPs/CIDRs; unset for direct API access |
 | `PORT` | `3000` | API container port |
 | `CONTENT_SECURITY_POLICY` | *(see below)* | Override the CSP for both nginx and the API |
+
+### Secret validation by environment
+
+- `NODE_ENV=production` (the Compose default): `BETTER_AUTH_SECRET` is mandatory and must
+  satisfy the generated hex/Base64 contract before the API serves traffic.
+- `NODE_ENV=development` or `test`: the API intentionally permits a missing secret for
+  local development and automated tests.
+- `DEV_MODE` is separate from secret validation. In production it requires the explicit
+  `ALLOW_DEV_MODE_IN_PRODUCTION=true` opt-in and disables several auth protections; do not
+  enable it on a public deployment.
+
+To verify the boot guard and valid-secret control:
+
+```bash
+pnpm --filter @yotara/api exec tsx --test src/lib/auth-secret.test.ts src/lib/security-audit.test.ts
+```
 
 ### Content-Security-Policy
 

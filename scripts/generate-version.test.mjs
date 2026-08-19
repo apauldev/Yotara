@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, '..');
@@ -12,7 +12,7 @@ const outputPath = join(rootDir, 'apps/frontend/src/app/core/constants/version.t
 
 test('Version Generator Script (Final Polish)', async (t) => {
   await t.test('should execute without error', () => {
-    const output = execSync(`node ${generatorPath}`).toString();
+    const output = execFileSync(process.execPath, [generatorPath]).toString();
     assert.match(output, /✅ Version generated:/);
   });
 

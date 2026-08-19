@@ -1,4 +1,5 @@
 import { sqlite } from '../db/client.js';
+import { bypassLoginLockout } from './dev-mode.js';
 
 interface LockoutConfig {
   attempts?: number;
@@ -20,6 +21,11 @@ export function getLockoutMinutes(): number {
 }
 
 export function getRemainingLockoutSeconds(ip: string, email: string): number {
+  // Dev mode never locks accounts — failed sign-ins must not impede local work.
+  if (bypassLoginLockout()) {
+    return 0;
+  }
+
   // Clean up any expired lockouts before checking
   cleanExpiredLockouts();
 
@@ -53,6 +59,12 @@ export function recordFailedAttempt(
   remainingLockoutSeconds: number;
   remainingAttempts: number;
 } {
+  // Dev mode: never record attempts or lock — the bridge also returns a
+  // plain 401, so no lockout messaging leaks into the UI.
+  if (bypassLoginLockout()) {
+    return { locked: false, remainingLockoutSeconds: 0, remainingAttempts: 0 };
+  }
+
   // Don't extend an active lockout — return immediately if already locked
   const alreadyLockedSeconds = getRemainingLockoutSeconds(ip, email);
   if (alreadyLockedSeconds > 0) {

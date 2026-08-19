@@ -1,5 +1,8 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
+import { eq } from 'drizzle-orm';
 import { auth } from '../lib/auth.js';
+import { db } from '../db/client.js';
+import { users } from '../db/schema.js';
 import { getCorsOrigins } from '../lib/auth-origins.js';
 import {
   getRemainingLockoutSeconds,
@@ -8,6 +11,8 @@ import {
 } from '../lib/login-lockout.js';
 import { checkRateLimitOrThrow } from '../lib/email.js';
 import { recordEmailSend } from '../lib/email-rate-limit.js';
+import { banIp, isIpBanned } from '../lib/blocked-ips.js';
+import { bypassLoginLockout } from '../lib/dev-mode.js';
 import { scanDueNotifications } from '../services/notification-service.js';
 
 function toHeaders(source: Record<string, string | string[] | undefined>) {
@@ -103,6 +108,18 @@ export default async function authBridgePlugin(app: FastifyInstance) {
       const isSignUp = request.method === 'POST' && url.pathname.startsWith('/auth/sign-up/email');
       const isForgetPassword =
         request.method === 'POST' && url.pathname.startsWith('/auth/request-password-reset');
+      const isSendVerificationEmail =
+        request.method === 'POST' && url.pathname === '/auth/send-verification-email';
+
+      // Client IP is socket-derived unless the connection comes from an
+      // explicitly trusted proxy, preventing spoofed forwarding headers from
+      // selecting lockout or honeypot-ban keys.
+      const clientIp = request.ip ?? 'unknown';
+
+      // Honeypot-triggered IPs are banned from auth endpoints for 24h.
+      if (isIpBanned(clientIp)) {
+        return reply.code(403).send({ message: 'Forbidden' });
+      }
 
       // Parse body once for all branches
       const parsedBody = parseRequestBody(request.body);
@@ -110,17 +127,30 @@ export default async function authBridgePlugin(app: FastifyInstance) {
         return reply.code(400).send({ message: 'Invalid JSON body' });
       }
 
+      // Honeypot: hidden "website" field on the signup form. Bots fill it;
+      // humans never see it. On trigger: ban the IP, return a fake success so
+      // the bot can't tell it was caught, and create no user / send no email.
+      if (isSignUp) {
+        const website = parsedBody?.['website'];
+        if (typeof website === 'string' && website.trim() !== '') {
+          banIp(clientIp);
+          return reply.code(200).send({ user: null, token: null });
+        }
+      }
+
       const loginEmail =
         isSignIn && parsedBody && typeof parsedBody.email === 'string' ? parsedBody.email : null;
       const actionEmail =
-        (isSignUp || isForgetPassword) && parsedBody && typeof parsedBody.email === 'string'
+        (isSignUp || isForgetPassword || isSendVerificationEmail) &&
+        parsedBody &&
+        typeof parsedBody.email === 'string'
           ? parsedBody.email
           : null;
-
-      // Real client IP (resolves via trustProxy: 1 + nginx X-Forwarded-For) used
-      // to scope the lockout tuple so an attacker can't lock a victim's account
-      // from a different IP.
-      const clientIp = request.ip ?? 'unknown';
+      const actionType = isSignUp
+        ? ('signup' as const)
+        : isForgetPassword
+          ? ('reset' as const)
+          : ('verify' as const);
 
       if (isSignIn && loginEmail) {
         const remaining = getRemainingLockoutSeconds(clientIp, loginEmail);
@@ -135,7 +165,6 @@ export default async function authBridgePlugin(app: FastifyInstance) {
       }
 
       if (actionEmail) {
-        const actionType = isSignUp ? ('signup' as const) : ('reset' as const);
         try {
           checkRateLimitOrThrow(actionEmail, actionType, clientIp);
         } catch (err) {
@@ -150,6 +179,21 @@ export default async function authBridgePlugin(app: FastifyInstance) {
         // 3h: Record email send on every attempt (regardless of response status)
         // so the rate limit applies to both new and existing email addresses.
         recordEmailSend(actionEmail, actionType, clientIp);
+      }
+
+      if (isSignIn && loginEmail) {
+        const [user] = await db
+          .select({
+            emailVerified: users.emailVerified,
+            passwordSetupRequired: users.passwordSetupRequired,
+          })
+          .from(users)
+          .where(eq(users.email, loginEmail))
+          .limit(1);
+
+        if (user?.emailVerified && user.passwordSetupRequired) {
+          return reply.code(401).send({ message: 'Invalid email or password.' });
+        }
       }
 
       const headers = toHeaders(request.headers);
@@ -178,6 +222,12 @@ export default async function authBridgePlugin(app: FastifyInstance) {
             }
           }
         } else if (response.status === 401) {
+          if (bypassLoginLockout()) {
+            // Dev mode: plain invalid-credentials response — no attempt
+            // counting, no lockout messaging.
+            return reply.code(401).send({ message: 'Invalid email or password.' });
+          }
+
           const result = recordFailedAttempt(clientIp, loginEmail);
           if (result.locked) {
             reply.header('Retry-After', String(result.remainingLockoutSeconds));
@@ -188,15 +238,20 @@ export default async function authBridgePlugin(app: FastifyInstance) {
             });
           }
 
-          const message =
-            result.remainingAttempts <= 1
-              ? `Invalid email or password. ${result.remainingAttempts} attempt remaining.`
-              : `Invalid email or password. ${result.remainingAttempts} attempts remaining.`;
-
-          return reply.code(401).send({
-            message,
-            remainingAttempts: result.remainingAttempts,
-          });
+          return reply.code(401).send({ message: 'Invalid email or password.' });
+        } else if (response.status === 403) {
+          // Do not reveal whether an account exists but remains unverified.
+          // Normalize Better Auth's response to the generic sign-in failure
+          // without recording a failed password attempt.
+          const respJson = (await response
+            .clone()
+            .json()
+            .catch(() => null)) as { code?: string } | null;
+          if (respJson?.code === 'EMAIL_NOT_VERIFIED') {
+            return reply.code(401).send({ message: 'Invalid email or password.' });
+          }
+          // Any other 403 code — still normalize to avoid leaking info.
+          return reply.code(401).send({ message: 'Invalid email or password.' });
         }
       }
 

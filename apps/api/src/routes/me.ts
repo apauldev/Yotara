@@ -8,7 +8,7 @@ import requireAuthenticatedUser from '../plugins/auth-required.js';
 import { toPublicUser } from '../lib/public-user.js';
 import { seedDefaultLabelsForOwner } from '../services/label-service.js';
 import { seedDefaultProjectsForOwner } from '../services/project-service.js';
-import { deleteAccountForUser } from '../services/user-service.js';
+import { deleteAccountForUser, setPasswordForUser } from '../services/user-service.js';
 
 export default async function meRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', requireAuthenticatedUser);
@@ -158,6 +158,73 @@ export default async function meRoutes(fastify: FastifyInstance) {
       }
 
       return { user: toPublicUser(user) };
+    },
+  );
+
+  fastify.post<{
+    Body: { newPassword: string };
+    Reply: { ok: true } | { message: string };
+  }>(
+    '/me/password/set',
+    {
+      schema: withJsonResponse({
+        tags: ['auth'],
+        summary: 'Set a new password after email verification (no current password required)',
+        security: authCookieSecurity,
+        body: {
+          type: 'object',
+          required: ['newPassword'],
+          properties: {
+            newPassword: {
+              type: 'string',
+              minLength: 8,
+              maxLength: 128,
+              pattern: '^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,128}$',
+            },
+          },
+        },
+        response: {
+          200: {
+            description: 'Password set',
+            type: 'object',
+            required: ['ok'],
+            properties: { ok: { type: 'boolean' } },
+          },
+          401: errorResponseSchema('Authentication required', 'Unauthorized'),
+          403: errorResponseSchema('Email must be verified first', 'Email not verified'),
+        },
+      }),
+    },
+    async (request, reply) => {
+      const userId = request.userId;
+      if (!userId) {
+        return sendUnauthorized(reply);
+      }
+
+      // Only allow the one-time initial password step for verified users marked
+      // by the verification-required email-first signup flow.
+      const [user] = await db
+        .select({
+          emailVerified: users.emailVerified,
+          passwordSetupRequired: users.passwordSetupRequired,
+        })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      if (!user) {
+        return sendUnauthorized(reply);
+      }
+      if (!user.emailVerified || !user.passwordSetupRequired) {
+        return reply
+          .code(403)
+          .send({ message: 'Password setup is only available after email verification.' });
+      }
+
+      const ok = await setPasswordForUser(userId, request.body.newPassword);
+      if (!ok) {
+        return sendUnauthorized(reply);
+      }
+      return { ok: true };
     },
   );
 

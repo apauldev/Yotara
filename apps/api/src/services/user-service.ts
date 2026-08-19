@@ -1,12 +1,56 @@
 import { and, eq, sql } from 'drizzle-orm';
-import { verifyPassword as betterAuthVerifyPassword } from 'better-auth/crypto';
+import {
+  hashPassword as betterAuthHashPassword,
+  verifyPassword as betterAuthVerifyPassword,
+} from 'better-auth/crypto';
 import { db } from '../db/client.js';
+import { AppError } from '../lib/app-error.js';
 import { accounts, labels, projects, sessions, tasks, users, verifications } from '../db/schema.js';
 
 export type DeleteAccountResult =
   | { ok: true }
   | { ok: false; reason: 'invalid_password' }
   | { ok: false; reason: 'user_not_found' };
+
+/**
+ * Set a new password for a user without verifying the current one.
+ *
+ * Used by the email-first signup flow: the account is created with a throwaway
+ * placeholder password that the user never knows, so after email verification
+ * they must be able to set a real password without proving the placeholder.
+ * The caller is responsible for ensuring the user is authenticated, verified,
+ * and marked for initial password setup.
+ */
+export async function setPasswordForUser(
+  userId: string,
+  newPassword: string,
+  hash: (password: string) => Promise<string> = (password) => betterAuthHashPassword(password),
+): Promise<boolean> {
+  const passwordHash = await hash(newPassword);
+  return db.transaction(
+    (tx) => {
+      const flag = tx
+        .update(users)
+        .set({ passwordSetupRequired: false, updatedAt: new Date() })
+        .where(and(eq(users.id, userId), eq(users.passwordSetupRequired, true)))
+        .run();
+      if (flag.changes === 0) {
+        return false;
+      }
+
+      const result = tx
+        .update(accounts)
+        .set({ password: passwordHash, updatedAt: new Date() })
+        .where(and(eq(accounts.userId, userId), eq(accounts.providerId, 'credential')))
+        .run();
+      if (result.changes === 0) {
+        throw new AppError(500, 'Credential account not found while setting password.');
+      }
+      return true;
+    },
+    { behavior: 'immediate' },
+  );
+}
 
 /**
  * Permanently delete a user account and all associated data.

@@ -17,6 +17,7 @@
     "prebuild": "pnpm version:gen",
     "pretest": "pnpm version:gen",
     "dev": "node scripts/dev.mjs",
+    "dev:email": "DEV_MODE=false REQUIRE_EMAIL_VERIFICATION=true node scripts/dev.mjs",
     "build": "pnpm -r build",
     "start": "pnpm -r start",
     "lint": "eslint . && pnpm -r lint",

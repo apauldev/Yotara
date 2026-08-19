@@ -8,7 +8,6 @@ test.describe('Notifications', () => {
     await page.waitForLoadState('networkidle');
     await dismissTip(page);
 
-    const today = new Date().toISOString().slice(0, 10);
     const name = taskName('notif');
 
     // Create a task via the capture bar

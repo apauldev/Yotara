@@ -31,6 +31,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/login.component').then((m) => m.LoginComponent),
   },
   {
+    path: 'verify-email',
+    // No auth guard: the emailed link is clicked before the user has a session.
+    loadComponent: () =>
+      import('./features/auth/verify-email.component').then((m) => m.VerifyEmailComponent),
+  },
+  {
     path: 'forgot-password',
     canActivate: [loginRedirectGuard],
     loadComponent: () =>

@@ -255,6 +255,7 @@ const appUserSchema = {
     'name',
     'image',
     'emailVerified',
+    'passwordSetupRequired',
     'workspaceMode',
     'onboardingCompleted',
     'archiveAutoDelete',
@@ -268,6 +269,7 @@ const appUserSchema = {
     name: { type: 'string' },
     image: { anyOf: [{ type: 'string', format: 'uri' }, { type: 'null' }] },
     emailVerified: { type: 'boolean' },
+    passwordSetupRequired: { type: 'boolean' },
     workspaceMode: {
       anyOf: [{ type: 'string', enum: ['personal', 'team'] }, { type: 'null' }],
     },

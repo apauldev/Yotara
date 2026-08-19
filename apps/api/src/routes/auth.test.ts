@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
+import { mock } from 'node:test';
 import test from 'node:test';
 
 // Ensure the SQLite singleton uses a shared temp DB before any module imports it.
@@ -50,6 +51,402 @@ function readCookie(response: { headers: Record<string, unknown> }) {
   return Array.isArray(cookie) ? cookie[0] : cookie;
 }
 
+test('config endpoint exposes requireEmailVerification from env', async () => {
+  const ctx = await createTestApp();
+
+  try {
+    // createTestApp sets NODE_ENV=test; flag unset → false.
+    const response = await ctx.app.inject({
+      method: 'GET',
+      url: '/config',
+    });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().requireEmailVerification, false);
+
+    // With the override flag, verification is required even in test env.
+    const previousFlag = process.env['REQUIRE_EMAIL_VERIFICATION'];
+    process.env['REQUIRE_EMAIL_VERIFICATION'] = 'true';
+    try {
+      const { buildApp } = await import('../server.js');
+      const overrideApp = await buildApp();
+      const overrideResponse = await overrideApp.inject({
+        method: 'GET',
+        url: '/config',
+      });
+      assert.equal(overrideResponse.statusCode, 200);
+      assert.equal(overrideResponse.json().requireEmailVerification, true);
+      await overrideApp.close();
+    } finally {
+      if (previousFlag === undefined) {
+        delete process.env['REQUIRE_EMAIL_VERIFICATION'];
+      } else {
+        process.env['REQUIRE_EMAIL_VERIFICATION'] = previousFlag;
+      }
+    }
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('verification resend is rate-limited without revealing account existence', async () => {
+  const ctx = await createTestApp();
+  const email = `resend-${randomUUID()}@example.com`;
+
+  try {
+    const firstResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/send-verification-email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email },
+    });
+    assert.equal(firstResponse.statusCode, 200);
+    assert.equal(firstResponse.json().status, true);
+
+    const secondResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/send-verification-email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email },
+    });
+    assert.equal(secondResponse.statusCode, 429);
+    assert.equal(secondResponse.headers['retry-after'] !== undefined, true);
+    assert.equal(secondResponse.json().retryAfterSeconds > 1500, true);
+    assert.match(secondResponse.json().message, /Too many verify requests/);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('honeypot signup triggers IP ban and creates no user', async () => {
+  const ctx = await createTestApp();
+
+  try {
+    const { isIpBanned } = await import('../lib/blocked-ips.js');
+
+    // Bot fills the hidden website field → fake success, no user created.
+    const honeypotResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: {
+        email: `honeypot-${randomUUID()}@example.com`,
+        password: TEST_PASSWORD,
+        name: 'Bot',
+        website: 'http://spam.example.com',
+      },
+    });
+    assert.equal(honeypotResponse.statusCode, 200, 'fake success so bots cannot detect the trap');
+
+    // The IP is now banned → subsequent auth requests from it are 403.
+    const bannedResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: {
+        email: `second-${randomUUID()}@example.com`,
+        password: TEST_PASSWORD,
+        name: 'Bot 2',
+      },
+    });
+    assert.equal(bannedResponse.statusCode, 403);
+    assert.equal(isIpBanned('127.0.0.1'), true);
+  } finally {
+    // Remove the ban so it doesn't leak into other tests sharing the DB.
+    const { sqlite } = await import('../db/client.js');
+    sqlite.prepare(`DELETE FROM blocked_ips WHERE ip = '127.0.0.1'`).run();
+    await ctx.cleanup();
+  }
+});
+
+test('direct clients cannot ban a spoofed forwarded IP', async () => {
+  const ctx = await createTestApp();
+  const spoofedIp = '203.0.113.99';
+
+  try {
+    const response = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      remoteAddress: '198.51.100.10',
+      headers: {
+        origin: TEST_ORIGIN,
+        'x-forwarded-for': spoofedIp,
+      },
+      payload: {
+        email: `spoof-${randomUUID()}@example.com`,
+        password: TEST_PASSWORD,
+        name: 'Spoofed Bot',
+        website: 'http://spam.example.com',
+      },
+    });
+    assert.equal(response.statusCode, 200);
+
+    const { isIpBanned } = await import('../lib/blocked-ips.js');
+    assert.equal(isIpBanned(spoofedIp), false);
+    assert.equal(isIpBanned('198.51.100.10'), true);
+  } finally {
+    const { sqlite } = await import('../db/client.js');
+    sqlite.prepare(`DELETE FROM blocked_ips WHERE ip IN ('198.51.100.10', ?)`).run(spoofedIp);
+    await ctx.cleanup();
+  }
+});
+
+test('dev mode flips the require-email flag and bypasses rate limit, lockout, and IP ban', async () => {
+  const ctx = await createTestApp();
+  const previousDevMode = process.env['DEV_MODE'];
+
+  try {
+    process.env['DEV_MODE'] = 'true';
+
+    // The runtime flag is flipped off even if REQUIRE_EMAIL_VERIFICATION
+    // would otherwise force it on (it is unset here; the unit-level flip is
+    // covered in dev-mode.test.ts).
+    const configResponse = await ctx.app.inject({ method: 'GET', url: '/config' });
+    assert.equal(configResponse.statusCode, 200);
+    assert.equal(configResponse.json().requireEmailVerification, false);
+    assert.equal(configResponse.json().devMode, true);
+
+    // Email rate limit bypassed: two verification resends for the same email
+    // both succeed (normally the second is a 429 from the 30-min cooldown).
+    const resendEmail = `devmode-resend-${randomUUID()}@example.com`;
+    const firstResend = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/send-verification-email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email: resendEmail },
+    });
+    const secondResend = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/send-verification-email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email: resendEmail },
+    });
+    assert.equal(firstResend.statusCode, 200);
+    assert.equal(secondResend.statusCode, 200);
+
+    // Lockout bypassed: repeated wrong passwords never lock (no 429), and the
+    // response is a plain 401 without attempt-counting noise.
+    const lockoutEmail = `devmode-lockout-${randomUUID()}@example.com`;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const signIn = await ctx.app.inject({
+        method: 'POST',
+        url: '/auth/sign-in/email',
+        headers: { origin: TEST_ORIGIN },
+        payload: { email: lockoutEmail, password: 'WrongPassword1!' },
+      });
+      assert.equal(signIn.statusCode, 401, `attempt ${attempt + 1} should stay 401`);
+      assert.equal(signIn.json().message, 'Invalid email or password.');
+    }
+
+    // IP ban bypassed: a banned IP can still reach auth endpoints.
+    const { banIp } = await import('../lib/blocked-ips.js');
+    banIp('127.0.0.1');
+    const { sqlite } = await import('../db/client.js');
+    const banRow = sqlite
+      .prepare(`SELECT blocked_until FROM blocked_ips WHERE ip = '127.0.0.1'`)
+      .get() as { blocked_until: number } | undefined;
+    assert.ok(banRow, 'ban is recorded even in dev mode');
+    const bannedSignUp = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: {
+        email: `devmode-ban-${randomUUID()}@example.com`,
+        password: TEST_PASSWORD,
+        name: 'Dev Mode User',
+      },
+    });
+    assert.equal(bannedSignUp.statusCode, 200, 'banned IP is not blocked in dev mode');
+  } finally {
+    if (previousDevMode === undefined) {
+      delete process.env['DEV_MODE'];
+    } else {
+      process.env['DEV_MODE'] = previousDevMode;
+    }
+    // Remove the ban so it doesn't leak into other tests sharing the DB.
+    const { sqlite } = await import('../db/client.js');
+    sqlite.prepare(`DELETE FROM blocked_ips WHERE ip = '127.0.0.1'`).run();
+    await ctx.cleanup();
+  }
+});
+
+test('verification-required signup marks password setup as required', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const scriptPath = fileURLToPath(new URL('./password-setup-signup.script.ts', import.meta.url));
+  const output = execFileSync(process.execPath, ['--import', 'tsx', scriptPath], {
+    encoding: 'utf8',
+    env: { ...process.env, REQUIRE_EMAIL_VERIFICATION: 'true', NODE_ENV: 'test' },
+  });
+  assert.ok(output.includes('PASSWORD_SETUP_REQUIRED:1'), `expected setup flag, got:\n${output}`);
+});
+
+test('unverified sign-in uses the generic response without burning lockout', async () => {
+  // The verification gating is read at module load (env-at-boot contract), so
+  // this scenario must run in a fresh process with the flag set before import.
+  const { execFileSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const scriptPath = fileURLToPath(new URL('./unverified-signin.script.ts', import.meta.url));
+
+  try {
+    const output = execFileSync(process.execPath, ['--import', 'tsx', scriptPath], {
+      encoding: 'utf8',
+      env: { ...process.env, REQUIRE_EMAIL_VERIFICATION: 'true', NODE_ENV: 'test' },
+    });
+    const lines = output.trim().split('\n');
+    assert.ok(lines.includes('SIGNIN_STATUS:401'), `expected 401, got:\n${output}`);
+    assert.ok(
+      lines.includes('SIGNIN_BODY:{"message":"Invalid email or password."}'),
+      `expected generic body, got:\n${output}`,
+    );
+    assert.ok(lines.includes('LOCKOUT_REMAINING:0'), `expected no lockout burn, got:\n${output}`);
+  } catch (err) {
+    assert.fail(`subprocess failed: ${(err as Error).message}`);
+  }
+});
+
+test('unknown and unverified sign-ins have the same observable failure response', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const scriptPath = fileURLToPath(new URL('./unverified-signin.script.ts', import.meta.url));
+  const output = execFileSync(process.execPath, ['--import', 'tsx', scriptPath], {
+    encoding: 'utf8',
+    env: { ...process.env, REQUIRE_EMAIL_VERIFICATION: 'true', NODE_ENV: 'test' },
+  });
+  const lines = output.trim().split('\n');
+  assert.ok(lines.includes('SIGNIN_STATUS:401'), `expected unverified 401, got:\n${output}`);
+  assert.ok(lines.includes('UNKNOWN_SIGNIN_STATUS:401'), `expected unknown 401, got:\n${output}`);
+  assert.ok(
+    lines.includes('SIGNIN_BODY:{"message":"Invalid email or password."}'),
+    `expected generic unverified body, got:\n${output}`,
+  );
+  assert.ok(
+    lines.includes('UNKNOWN_SIGNIN_BODY:{"message":"Invalid email or password."}'),
+    `expected generic unknown body, got:\n${output}`,
+  );
+});
+
+test('pending password setup accounts cannot sign in with their temporary password', async () => {
+  const ctx = await createTestApp();
+  const email = `pending-password-${randomUUID()}@example.com`;
+
+  try {
+    const registerResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: TEST_PASSWORD, name: 'Pending Password User' },
+    });
+    assert.equal(registerResponse.statusCode, 200);
+
+    const { sqlite } = await import('../db/client.js');
+    sqlite
+      .prepare('UPDATE user SET emailVerified = 1, passwordSetupRequired = 1 WHERE email = ?')
+      .run(email);
+
+    const signIn = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-in/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: TEST_PASSWORD },
+    });
+
+    assert.equal(signIn.statusCode, 401);
+    assert.deepEqual(signIn.json(), { message: 'Invalid email or password.' });
+    const lockout = sqlite
+      .prepare('SELECT attempts FROM login_attempts WHERE email = ?')
+      .get(email) as { attempts: number } | undefined;
+    assert.equal(lockout, undefined);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('set-password endpoint requires verified email and sets the password', async () => {
+  const ctx = await createTestApp();
+  const email = `setpw-${randomUUID()}@example.com`;
+
+  try {
+    // Register + login normally; verified users without the setup flag are denied.
+    const registerResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: TEST_PASSWORD, name: 'Set PW User' },
+    });
+    assert.equal(registerResponse.statusCode, 200);
+    const cookie = readCookie(registerResponse);
+
+    // Unauthenticated → 401.
+    const unauth = await ctx.app.inject({
+      method: 'POST',
+      url: '/me/password/set',
+      payload: { newPassword: 'NewPassword123!' },
+    });
+    assert.equal(unauth.statusCode, 401);
+
+    const normalUserSetPw = await ctx.app.inject({
+      method: 'POST',
+      url: '/me/password/set',
+      headers: { origin: TEST_ORIGIN, cookie },
+      payload: { newPassword: 'NewPassword123!' },
+    });
+    assert.equal(normalUserSetPw.statusCode, 403);
+
+    const { sqlite } = await import('../db/client.js');
+    sqlite
+      .prepare('UPDATE user SET emailVerified = 1, passwordSetupRequired = 1 WHERE email = ?')
+      .run(email);
+
+    const weakPasswords = ['abcdefgh1!', 'ABCDEFGH1!', 'Abcdefgh!', 'Abcdefgh1', 'short1!'];
+    for (const weakPassword of weakPasswords) {
+      const weakSetPw = await ctx.app.inject({
+        method: 'POST',
+        url: '/me/password/set',
+        headers: { origin: TEST_ORIGIN, cookie },
+        payload: { newPassword: weakPassword },
+      });
+      assert.equal(weakSetPw.statusCode, 400, `weak password should be rejected: ${weakPassword}`);
+    }
+
+    const NEW_PW = 'NewPassword123!';
+    const setPw = await ctx.app.inject({
+      method: 'POST',
+      url: '/me/password/set',
+      headers: { origin: TEST_ORIGIN, cookie },
+      payload: { newPassword: NEW_PW },
+    });
+    assert.equal(setPw.statusCode, 200);
+    assert.equal(setPw.json().ok, true);
+
+    const secondSetPw = await ctx.app.inject({
+      method: 'POST',
+      url: '/me/password/set',
+      headers: { origin: TEST_ORIGIN, cookie },
+      payload: { newPassword: 'AnotherPassword123!' },
+    });
+    assert.equal(secondSetPw.statusCode, 403);
+
+    // Old password no longer works; the new one does.
+    const oldSignIn = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-in/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: TEST_PASSWORD },
+    });
+    assert.notEqual(oldSignIn.statusCode, 200);
+
+    const newSignIn = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-in/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: NEW_PW },
+    });
+    assert.equal(newSignIn.statusCode, 200);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
 test('auth routes register and login with email/password', async () => {
   const ctx = await createTestApp();
 
@@ -73,6 +470,7 @@ test('auth routes register and login with email/password', async () => {
     const registerBody = registerResponse.json();
     assert.equal(registerBody.user.email, TEST_EMAIL);
     assert.equal(registerBody.user.name, TEST_NAME);
+    assert.equal(registerBody.user.passwordSetupRequired, false);
     const registerCookie = readCookie(registerResponse);
 
     const meAfterRegister = await ctx.app.inject({
@@ -284,7 +682,7 @@ test('password lockout locks account after repeated failed login attempts', asyn
     });
     assert.equal(registerResponse.statusCode, 200);
 
-    // First wrong password -> remainingAttempts: 1
+    // First wrong password -> generic 401 without account-dependent metadata
     const firstFail = await ctx.app.inject({
       method: 'POST',
       url: '/auth/sign-in/email',
@@ -292,9 +690,7 @@ test('password lockout locks account after repeated failed login attempts', asyn
       payload: { email, password: 'WrongPassword1!' },
     });
     assert.equal(firstFail.statusCode, 401);
-    const firstBody = firstFail.json();
-    assert.equal(firstBody.remainingAttempts, 1);
-    assert.equal(typeof firstBody.message, 'string');
+    assert.deepEqual(firstFail.json(), { message: 'Invalid email or password.' });
 
     // Second wrong password -> lockout, remainingAttempts: 0
     const secondFail = await ctx.app.inject({
@@ -432,7 +828,7 @@ test('locked account can log in after lockout window expires', { timeout: 60_000
     assert.ok(successResponse, 'Login should succeed after lockout expires');
     assert.equal(successResponse!.statusCode, 200);
 
-    // After successful login, a wrong password should start fresh (remainingAttempts: 1)
+    // After successful login, a wrong password should return the generic 401 response.
     const failAfterRecovery = await ctx.app.inject({
       method: 'POST',
       url: '/auth/sign-in/email',
@@ -440,8 +836,7 @@ test('locked account can log in after lockout window expires', { timeout: 60_000
       payload: { email, password: 'WrongAgain1!' },
     });
     assert.equal(failAfterRecovery.statusCode, 401);
-    const afterRecoveryBody = failAfterRecovery.json();
-    assert.equal(afterRecoveryBody.remainingAttempts, 1);
+    assert.deepEqual(failAfterRecovery.json(), { message: 'Invalid email or password.' });
   } finally {
     await ctx.cleanup();
   }
@@ -481,16 +876,40 @@ test('sendResetPassword callback is wired correctly', async () => {
       payload: { email, password: TEST_PASSWORD, name: 'Reset CB User' },
     });
 
-    // Trigger the requestPasswordReset flow — this invokes the sendResetPassword
-    // callback configured in auth.ts, which dynamically imports email.js and
-    // calls sendPasswordResetEmail. Without RESEND_API_KEY, it logs to console.
-    const { auth } = await import('../lib/auth.js');
-    const result = await auth.api.requestPasswordReset({
-      body: { email },
+    // Capture the console-logged email body (test env logs instead of sending).
+    const logs: string[] = [];
+    mock.method(console, 'log', (msg: string) => {
+      if (typeof msg === 'string' && msg.startsWith('[email]')) logs.push(msg);
     });
 
-    // Better Auth returns { status: true } on success
-    assert.equal(result.status, true);
+    try {
+      // Trigger the requestPasswordReset flow — this invokes the sendResetPassword
+      // callback configured in auth.ts, which dynamically imports email.js and
+      // calls sendPasswordResetEmail. Without RESEND_API_KEY, it logs to console.
+      const { auth } = await import('../lib/auth.js');
+      const result = await auth.api.requestPasswordReset({
+        body: { email, redirectTo: 'http://localhost:4200/reset-password' },
+      });
+
+      // Better Auth returns { status: true } on success
+      assert.equal(result.status, true);
+
+      // The emailed link must point straight at the frontend with the token in
+      // the query — never at the API's redirect-based /auth/reset-password/<token>
+      // route (whose empty-callbackURL failure mode dead-ends on
+      // /auth/error?error=INVALID_TOKEN).
+      const body = logs.find((l) => l.includes('reset-password'));
+      assert.ok(body, 'reset email was logged: ' + JSON.stringify(logs));
+      const match = body!.match(/https?:\/\/[^\s]+/);
+      assert.ok(match, 'email body contains a URL');
+      const emailedUrl = new URL(match![0]);
+      assert.equal(emailedUrl.origin, 'http://localhost:4200');
+      assert.equal(emailedUrl.pathname, '/reset-password');
+      assert.ok(emailedUrl.searchParams.get('token'), 'token is in the query');
+      assert.equal(emailedUrl.searchParams.get('callbackURL'), null);
+    } finally {
+      mock.restoreAll();
+    }
   } finally {
     await ctx.cleanup();
   }

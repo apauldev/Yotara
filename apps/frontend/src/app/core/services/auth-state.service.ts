@@ -12,6 +12,8 @@ export class AuthStateService {
   private userState = signal<ProfileUser | null>(null);
   private initializedState = signal(false);
   private loadingState = signal(false);
+  private requireEmailVerificationState = signal(false);
+  private devModeState = signal(false);
   private logService = inject(LogService);
   private initPromise: Promise<SessionResponse> | null = null;
 
@@ -19,6 +21,8 @@ export class AuthStateService {
   readonly user = this.userState.asReadonly();
   readonly initialized = this.initializedState.asReadonly();
   readonly loading = this.loadingState.asReadonly();
+  readonly requireEmailVerification = this.requireEmailVerificationState.asReadonly();
+  readonly devMode = this.devModeState.asReadonly();
   readonly isAuthenticated = computed(() => !!this.sessionState());
   readonly currentUserId = computed(
     () => this.userState()?.id ?? this.sessionState()?.userId ?? null,
@@ -36,7 +40,19 @@ export class AuthStateService {
       return this.initPromise;
     }
 
-    this.initPromise = this.refreshSession().finally(() => {
+    this.initPromise = (async () => {
+      // Best-effort: the runtime flags decide which signup form to render and
+      // whether the dev-mode badge is shown. If this fails, default to the
+      // legacy form; the flags are not fatal.
+      try {
+        const config = await AuthService.getConfig();
+        this.requireEmailVerificationState.set(config.requireEmailVerification);
+        this.devModeState.set(config.devMode);
+      } catch (error) {
+        this.logService.error('Failed to load client config', error, 'AuthStateService');
+      }
+      return await this.refreshSession();
+    })().finally(() => {
       this.initPromise = null;
     });
 
@@ -77,15 +93,47 @@ export class AuthStateService {
     }
   }
 
-  async signUp(email: string, password: string, name: string) {
+  async signUp(email: string, password: string, name: string, website = '') {
     this.loadingState.set(true);
 
     try {
-      const result = await AuthService.signUp(email, password, name);
+      // When email verification is required, the "password" is a cryptographically
+      // random throwaway value — the user sets a real one after clicking the
+      // verification link. Never auto-login for an unverified account.
+      const result = await AuthService.signUp(email, password, name, website);
+      if (!result.error && !this.requireEmailVerificationState()) {
+        await this.refreshSession();
+      }
+      return result;
+    } finally {
+      this.loadingState.set(false);
+    }
+  }
+
+  /** Verify the email token from the emailed link (auto-signs-in if enabled). */
+  async verifyEmail(token: string) {
+    this.loadingState.set(true);
+    try {
+      const result = await AuthService.verifyEmail(token);
       if (!result.error) {
         await this.refreshSession();
       }
       return result;
+    } finally {
+      this.loadingState.set(false);
+    }
+  }
+
+  /** Resend the verification email (rate-limited server-side). */
+  async sendVerificationEmail(email: string) {
+    return await AuthService.sendVerificationEmail(email);
+  }
+
+  /** Set the real password after email verification (no current password needed). */
+  async setPassword(newPassword: string) {
+    this.loadingState.set(true);
+    try {
+      await AuthService.setPassword(newPassword);
     } finally {
       this.loadingState.set(false);
     }

@@ -7,6 +7,7 @@ export type PublicUser = {
   name: string;
   image: string | null;
   emailVerified: boolean;
+  passwordSetupRequired: boolean;
   workspaceMode: 'personal' | 'team' | null;
   onboardingCompleted: boolean;
   archiveAutoDelete: boolean;
@@ -22,6 +23,7 @@ export function toPublicUser(user: typeof users.$inferSelect): PublicUser {
     name: user.name,
     image: user.image,
     emailVerified: user.emailVerified,
+    passwordSetupRequired: user.passwordSetupRequired,
     workspaceMode: user.workspaceMode,
     onboardingCompleted: user.onboardingCompleted,
     archiveAutoDelete: user.archiveAutoDelete,

@@ -3,12 +3,24 @@ services:
     image: apauldev2/yotara-api:latest
     environment:
       DATABASE_URL: /app/apps/api/data/yotara.db
-      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080/api}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:8080}
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost:8080}
+      TRUST_PROXY: ${TRUST_PROXY:-172.16.0.0/12}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET?set a strong BETTER_AUTH_SECRET (openssl rand -base64 32)}
       HOST: 0.0.0.0
       PORT: ${PORT:-3000}
       NODE_ENV: ${NODE_ENV:-production}
+      # Dev mode for a test instance: DEV_MODE=true disables email
+      # verification, logs emails to console, and bypasses anti-abuse. With
+      # NODE_ENV=production it also requires ALLOW_DEV_MODE_IN_PRODUCTION=true
+      # (deliberate double opt-in — dev mode disables auth protections).
+      DEV_MODE: ${DEV_MODE:-}
+      ALLOW_DEV_MODE_IN_PRODUCTION: ${ALLOW_DEV_MODE_IN_PRODUCTION:-}
+      # REQUIRED for production mode: the API refuses to boot without it when
+      # NODE_ENV=production (fail-loud contract). Dev mode ignores it.
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@email.yotara.website}
       CONTENT_SECURITY_POLICY: ${CONTENT_SECURITY_POLICY:-default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'}
     volumes:
       - yotara_api_data:/app/apps/api/data

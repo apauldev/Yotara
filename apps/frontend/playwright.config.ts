@@ -12,7 +12,7 @@ export default defineConfig({
     ? [['html', { outputFolder: './e2e/playwright-report' }], ['github']]
     : 'list',
   use: {
-    baseURL: 'http://localhost:4200',
+    baseURL: process.env['E2E_BASE_URL'] ?? 'http://localhost:4200',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },

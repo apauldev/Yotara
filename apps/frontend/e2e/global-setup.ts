@@ -1,8 +1,9 @@
 import { chromium } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import { getRuntimeConfig } from './fixtures/auth';
 
-const BASE_URL = 'http://localhost:4200';
+const BASE_URL = process.env['E2E_BASE_URL'] ?? 'http://localhost:4200';
 const AUTH_DIR = path.resolve('e2e/.auth');
 const AUTH_FILE = path.join(AUTH_DIR, 'user.json');
 const TEST_EMAIL = `e2e-${Date.now()}@yotara.test`;
@@ -31,20 +32,54 @@ async function waitForServer(url: string, label: string, maxRetries = 30) {
   throw new Error(`${label} at ${url} did not become available`);
 }
 
+/** Read the most recent verification URL from the API log (console fallback). */
+function getVerificationUrl(): string {
+  const logFile = process.env['E2E_API_LOG'] ?? process.env['API_LOG_FILE'];
+  if (!logFile) {
+    throw new Error(
+      'E2E_API_LOG must point at the API log file (it contains the console-printed verification link).',
+    );
+  }
+  const log = fs.readFileSync(logFile, 'utf8');
+  const lines = log.split('\n').reverse();
+  const linkLine = lines.find((l) => l.includes('/verify-email?token='));
+  if (!linkLine) {
+    throw new Error(`No verification link found in ${logFile}`);
+  }
+  const match = linkLine.match(/https?:\/\/[^\s]+\/verify-email\?token=[^&\s]+/);
+  if (!match) {
+    throw new Error(`Could not extract verification URL from: ${linkLine}`);
+  }
+  return match[0];
+}
+
 async function setup() {
   log('Starting setup...');
   await waitForServer(BASE_URL, 'Frontend');
   log('Frontend ready');
-  await waitForServer('http://localhost:3000/health', 'API');
+  const apiUrl = process.env['E2E_API_URL'] ?? 'http://localhost:3000';
+  await waitForServer(`${apiUrl}/health`, 'API');
   log('API ready');
+  const { requireEmailVerification } = await getRuntimeConfig();
+  log(`Runtime config: requireEmailVerification=${requireEmailVerification}`);
 
   if (!fs.existsSync(AUTH_DIR)) {
     fs.mkdirSync(AUTH_DIR, { recursive: true });
+  }
+  const apiLogFile = process.env['E2E_API_LOG'] ?? process.env['API_LOG_FILE'];
+  if (apiLogFile && !fs.existsSync(apiLogFile)) {
+    fs.writeFileSync(apiLogFile, '');
   }
 
   log('Launching browser...');
   const browser = await chromium.launch();
   const context = await browser.newContext();
+  const browserApiUrl = process.env['E2E_API_URL'];
+  if (browserApiUrl) {
+    await context.addInitScript((url) => {
+      (window as Window & { __YOTARA_E2E_API_URL__?: string }).__YOTARA_E2E_API_URL__ = url;
+    }, browserApiUrl);
+  }
   const page = await context.newPage();
 
   try {
@@ -58,10 +93,20 @@ async function setup() {
     log('Filling form...');
     await page.getByLabel('Name').fill(TEST_NAME);
     await page.getByLabel('Email').fill(TEST_EMAIL);
-    await page.getByLabel('Password').fill(TEST_PASSWORD);
 
-    log('Submitting...');
-    await page.getByRole('button', { name: 'Create account' }).click();
+    if (requireEmailVerification) {
+      // Email-first: no password field at signup; use the exact verification
+      // link emitted in the API console fallback.
+      await page.getByRole('button', { name: 'Create account' }).click();
+      await page.getByRole('heading', { name: 'Check your email' }).waitFor();
+      const verificationUrl = getVerificationUrl();
+      await page.goto(verificationUrl);
+      await page.getByLabel('Password').fill(TEST_PASSWORD);
+      await page.getByRole('button', { name: 'Set password and continue' }).click();
+    } else {
+      await page.getByLabel('Password').fill(TEST_PASSWORD);
+      await page.getByRole('button', { name: 'Create account' }).click();
+    }
 
     log('Waiting for onboarding...');
     await page.waitForURL(/\/onboarding/);

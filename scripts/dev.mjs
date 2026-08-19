@@ -27,6 +27,11 @@ function loadEnvFile(filePath) {
 
 loadEnvFile('apps/api/.env');
 
+// Local dev is frictionless by default: dev mode is on unless .env (or the
+// shell) explicitly sets DEV_MODE=false. Flip to the full email-first flow
+// with real Resend emails via `pnpm dev:email`.
+process.env['DEV_MODE'] ??= 'true';
+
 const processes = [
   { name: 'frontend', args: ['--filter', '@yotara/frontend', 'dev'] },
   { name: 'api', args: ['--filter', '@yotara/api', 'dev'] },

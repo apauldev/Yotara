@@ -22,6 +22,9 @@ export const users = sqliteTable('user', {
   name: text('name').notNull(),
   email: text('email').notNull().unique(),
   emailVerified: integer('emailVerified', { mode: 'boolean' }).notNull(),
+  passwordSetupRequired: integer('passwordSetupRequired', { mode: 'boolean' })
+    .notNull()
+    .default(false),
   image: text('image'),
   workspaceMode: text('workspaceMode', { enum: ['personal', 'team'] }),
   onboardingCompleted: integer('onboardingCompleted', { mode: 'boolean' }).notNull().default(false),

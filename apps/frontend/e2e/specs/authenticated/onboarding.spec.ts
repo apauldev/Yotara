@@ -1,6 +1,54 @@
-import { test, expect } from '../../fixtures/auth';
+import { test, expect, getRuntimeConfig } from '../../fixtures/auth';
+import fs from 'node:fs';
 
 test.use({ storageState: { cookies: [], origins: [] } });
+
+/** Read the exact frontend verification URL emitted in the email log. */
+function getVerificationUrl(): string {
+  const logFile = process.env['E2E_API_LOG'] ?? process.env['API_LOG_FILE'];
+  if (!logFile) {
+    throw new Error('E2E_API_LOG must point at the API log file');
+  }
+  const log = fs.readFileSync(logFile, 'utf8');
+  const lines = log.split('\n').reverse();
+  const linkLine = lines.find((l) => l.includes('/verify-email?token='));
+  if (!linkLine) {
+    throw new Error(`No verification link found in ${logFile}`);
+  }
+  const match = linkLine.match(/https?:\/\/[^\s]+\/verify-email\?token=[^&\s]+/);
+  if (!match) {
+    throw new Error(`Could not extract verification URL from: ${linkLine}`);
+  }
+  return match[0];
+}
+
+/** Complete signup in either mode (legacy password form, or email-first). */
+async function signUp(
+  page: import('@playwright/test').Page,
+  name: string,
+  email: string,
+  password: string,
+) {
+  await page.goto('/login');
+  await page.waitForLoadState('networkidle');
+
+  await page.getByRole('button', { name: 'Create an account' }).click();
+  await page.getByLabel('Name').fill(name);
+  await page.getByLabel('Email').fill(email);
+
+  const { requireEmailVerification } = await getRuntimeConfig();
+  if (requireEmailVerification) {
+    await page.getByRole('button', { name: 'Create account' }).click();
+    await page.getByRole('heading', { name: 'Check your email' }).waitFor();
+    const verificationUrl = getVerificationUrl();
+    await page.goto(verificationUrl);
+    await page.getByLabel('Password').fill(password);
+    await page.getByRole('button', { name: 'Set password and continue' }).click();
+  } else {
+    await page.getByLabel('Password').fill(password);
+    await page.getByRole('button', { name: 'Create account' }).click();
+  }
+}
 
 test.describe.configure({ mode: 'serial' });
 
@@ -23,14 +71,7 @@ test.describe('Onboarding', () => {
 
   test('shows workspace selection options after sign-up', async ({ page }) => {
     // Sign up as a new user
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
-
-    await page.getByRole('button', { name: 'Create an account' }).click();
-    await page.getByLabel('Name').fill(TEST_NAME);
-    await page.getByLabel('Email').fill(TEST_EMAIL);
-    await page.getByLabel('Password').fill(TEST_PASSWORD);
-    await page.getByRole('button', { name: 'Create account' }).click();
+    await signUp(page, TEST_NAME, TEST_EMAIL, TEST_PASSWORD);
 
     // Wait for onboarding page
     await page.waitForURL(/\/onboarding/, { timeout: 15_000 });
@@ -43,14 +84,7 @@ test.describe('Onboarding', () => {
     const email = `onboarding-flow-${Date.now()}@yotara.test`;
 
     // Sign up as a new user
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
-
-    await page.getByRole('button', { name: 'Create an account' }).click();
-    await page.getByLabel('Name').fill('Flow Tester');
-    await page.getByLabel('Email').fill(email);
-    await page.getByLabel('Password').fill('FlowTest123!');
-    await page.getByRole('button', { name: 'Create account' }).click();
+    await signUp(page, 'Flow Tester', email, 'FlowTest123!');
 
     // Wait for onboarding page
     await page.waitForURL(/\/onboarding/, { timeout: 15_000 });

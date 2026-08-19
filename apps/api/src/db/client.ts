@@ -14,6 +14,7 @@ const SQLITE_BOOTSTRAP_SQL = `
     name TEXT NOT NULL,
     email TEXT NOT NULL,
     emailVerified INTEGER NOT NULL,
+    passwordSetupRequired INTEGER NOT NULL DEFAULT 0,
     image TEXT,
     workspaceMode TEXT,
     onboardingCompleted INTEGER NOT NULL DEFAULT 0,
@@ -131,13 +132,19 @@ const SQLITE_BOOTSTRAP_SQL = `
   CREATE TABLE IF NOT EXISTS email_sends (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT NOT NULL,
-    type TEXT NOT NULL CHECK(type IN ('signup', 'reset')),
+    type TEXT NOT NULL CHECK(type IN ('signup', 'reset', 'verify')),
     ip TEXT NOT NULL DEFAULT '',
     created_at INTEGER NOT NULL
   );
 
   CREATE INDEX IF NOT EXISTS idx_email_sends_email ON email_sends(email);
   CREATE INDEX IF NOT EXISTS idx_email_sends_created ON email_sends(created_at);
+
+  CREATE TABLE IF NOT EXISTS blocked_ips (
+    ip TEXT PRIMARY KEY NOT NULL,
+    blocked_until INTEGER NOT NULL,
+    created_at INTEGER NOT NULL
+  );
 
   CREATE TABLE IF NOT EXISTS notifications (
     id TEXT PRIMARY KEY NOT NULL,
@@ -431,6 +438,13 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
     )`);
     }
 
+    const userColumns = sqlite.prepare(`PRAGMA table_info('user')`).all() as Array<{
+      name: string;
+    }>;
+    if (!userColumns.some((column) => column.name === 'passwordSetupRequired')) {
+      sqlite.exec(`ALTER TABLE user ADD COLUMN passwordSetupRequired INTEGER NOT NULL DEFAULT 0`);
+    }
+
     // 3g. Add ip column to email_sends for IP-based per-email rate limiting
     const emailSendCols = sqlite.prepare(`PRAGMA table_info('email_sends')`).all() as Array<{
       name: string;
@@ -440,6 +454,41 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
     }
     // Create the index after the column exists (safe for fresh and migrated DBs)
     sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_email_sends_ip ON email_sends(ip)`);
+
+    // The email_sends CHECK only allowed ('signup','reset') before the 'verify'
+    // resend type was added. SQLite can't alter a CHECK, so recreate the table
+    // when the constraint is outdated. The rows are transient rate-limit data,
+    // so dropping and recreating on upgrade is safe (matching the existing
+    // login_attempts migration pattern).
+    const emailSendCreateSql = sqlite
+      .prepare(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'email_sends'`)
+      .get() as { sql: string } | undefined;
+    const hasVerifyType = emailSendCreateSql?.sql?.includes("'verify'") ?? false;
+    if (!hasVerifyType) {
+      sqlite.exec(`
+        ALTER TABLE email_sends RENAME TO email_sends_old;
+        CREATE TABLE email_sends (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          email TEXT NOT NULL,
+          type TEXT NOT NULL CHECK(type IN ('signup', 'reset', 'verify')),
+          ip TEXT NOT NULL DEFAULT '',
+          created_at INTEGER NOT NULL
+        );
+        INSERT INTO email_sends (id, email, type, ip, created_at)
+          SELECT id, email, type, ip, created_at FROM email_sends_old;
+        DROP TABLE email_sends_old;
+        CREATE INDEX IF NOT EXISTS idx_email_sends_email ON email_sends(email);
+        CREATE INDEX IF NOT EXISTS idx_email_sends_created ON email_sends(created_at);
+        CREATE INDEX IF NOT EXISTS idx_email_sends_ip ON email_sends(ip);
+      `);
+    }
+
+    // blocked_ips is created by the bootstrap SQL; ensure it exists on older DBs.
+    sqlite.exec(`CREATE TABLE IF NOT EXISTS blocked_ips (
+      ip TEXT PRIMARY KEY NOT NULL,
+      blocked_until INTEGER NOT NULL,
+      created_at INTEGER NOT NULL
+    )`);
 
     normalizeAppTimestampStorage(sqlite);
     sqlite.exec('COMMIT');

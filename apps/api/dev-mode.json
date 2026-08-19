@@ -1,0 +1,7 @@
+{
+  "enabled": false,
+  "emailToConsole": true,
+  "bypassEmailRateLimits": true,
+  "bypassLoginLockout": true,
+  "bypassIpBan": true
+}

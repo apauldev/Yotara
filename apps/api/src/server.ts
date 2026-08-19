@@ -3,11 +3,15 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import rateLimit from '@fastify/rate-limit';
 import { AppError } from './lib/app-error.js';
+import { assertAuthSecretConfigured } from './lib/auth-secret.js';
 import corsPlugin from './plugins/cors.js';
 import authBridgePlugin, { applyCorsHeaders } from './plugins/auth-bridge.js';
 import { registerOpenApi } from './docs/openapi.js';
+import { startUnverifiedCleanupJob } from './lib/email-cleanup.js';
+import { getTrustedProxy } from './lib/trusted-proxy.js';
 import healthRoutes from './routes/health.js';
 import meRoutes from './routes/me.js';
+import configRoutes from './routes/config.js';
 import labelRoutes from './routes/labels.js';
 import notificationRoutes from './routes/notifications.js';
 import projectRoutes from './routes/projects.js';
@@ -36,31 +40,24 @@ const SECURITY_HEADERS: Record<string, string> = {
 };
 
 export async function buildApp() {
-  // Fail fast if Better Auth has no real secret in production. Session tokens are
-  // HMAC-signed with this secret, so a default/placeholder value lets anyone forge
-  // sessions for any account. Better Auth reads BETTER_AUTH_SECRET from the env by
-  // default; this guard is defense-in-depth in case auth.ts is not imported first.
-  const nodeEnv = process.env['NODE_ENV'] ?? 'development';
-  if (
-    nodeEnv !== 'development' &&
-    nodeEnv !== 'test' &&
-    (!process.env['BETTER_AUTH_SECRET'] ||
-      process.env['BETTER_AUTH_SECRET'] === 'local-dev-secret-change-me')
-  ) {
-    throw new Error('BETTER_AUTH_SECRET must be set to a unique value in production.');
-  }
+  // Fail fast if Better Auth has no strong secret in production. Session
+  // tokens are HMAC-signed with this secret, so a missing/weak value lets
+  // anyone forge sessions for any account. Better Auth reads
+  // BETTER_AUTH_SECRET from the env by default; this guard is defense-in-depth
+  // in case auth.ts is not imported first.
+  assertAuthSecretConfigured();
 
-  // trustProxy: 1 — nginx sits in front and appends the real client IP as the
-  // last entry in X-Forwarded-For ($proxy_add_x_forwarded_for). Fastify reads
-  // the last entry as request.ip, which is the authoritative client address.
-  const app = Fastify({ logger: true, trustProxy: 1 });
+  // Trust forwarded client IPs only from explicitly configured proxy addresses.
+  // Direct API deployments default to no proxy trust, so client-supplied
+  // X-Forwarded-For headers cannot control rate-limit or auth-abuse keys.
+  const app = Fastify({ logger: true, trustProxy: getTrustedProxy() });
 
   await registerOpenApi(app);
   await app.register(corsPlugin);
 
   // Global rate limiting (read at registration time so tests can configure via env).
-  // Relies on trustProxy: 1 (set above) so request.ip is the real client IP
-  // from the last X-Forwarded-For entry, not the client-controlled first entry.
+  // request.ip is derived from the socket address unless it comes through a
+  // configured trusted proxy.
   const rateLimitMax = Number(process.env['RATE_LIMIT_MAX'] ?? 200);
   const rateLimitWindowMs = Number(process.env['RATE_LIMIT_WINDOW_MINUTES'] ?? 1) * 60 * 1000;
   await app.register(rateLimit, {
@@ -103,6 +100,7 @@ export async function buildApp() {
   });
 
   await app.register(healthRoutes);
+  await app.register(configRoutes);
   await app.register(meRoutes);
   await app.register(labelRoutes);
   await app.register(notificationRoutes);
@@ -118,6 +116,9 @@ export async function startServer() {
   const app = await buildApp();
   const port = Number(process.env['PORT'] ?? 3000);
   const host = process.env['HOST'] ?? '0.0.0.0';
+
+  // Delete unverified accounts older than 24h (production or dev override).
+  startUnverifiedCleanupJob();
 
   try {
     await app.listen({ port, host });

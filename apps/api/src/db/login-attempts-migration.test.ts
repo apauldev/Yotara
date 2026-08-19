@@ -62,6 +62,40 @@ test('legacy login_attempts table is migrated to composite (ip, email) key', () 
   }
 });
 
+test('legacy user table gains password setup flag', () => {
+  const dbFile = join(tmpdir(), `yotara-user-migration-${randomUUID()}.db`);
+  const legacy = new Database(dbFile);
+  legacy.exec(`
+    CREATE TABLE user (
+      id TEXT PRIMARY KEY NOT NULL,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      emailVerified INTEGER NOT NULL,
+      image TEXT,
+      workspaceMode TEXT,
+      onboardingCompleted INTEGER NOT NULL DEFAULT 0,
+      archiveAutoDelete INTEGER NOT NULL DEFAULT 1,
+      captureBehavior TEXT NOT NULL DEFAULT 'quick',
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL
+    )
+  `);
+  legacy.close();
+
+  const { sqlite } = createDbClient(dbFile);
+  try {
+    const columns = sqlite.prepare(`PRAGMA table_info('user')`).all() as Array<{
+      name: string;
+      dflt_value: string | null;
+    }>;
+    const passwordSetupColumn = columns.find((column) => column.name === 'passwordSetupRequired');
+    assert.equal(passwordSetupColumn?.dflt_value, '0');
+  } finally {
+    sqlite.close();
+    rmSync(dbFile, { force: true });
+  }
+});
+
 test('fresh database creates login_attempts with composite key', () => {
   const dbFile = join(tmpdir(), `yotara-login-attempts-fresh-${randomUUID()}.db`);
 
@@ -95,6 +129,14 @@ test('schema bootstrap wraps DDL in a transaction (7b)', () => {
     const tableNames = tables.map((t) => t.name);
 
     assert.ok(tableNames.includes('user'));
+    const userColumns = sqlite.prepare(`PRAGMA table_info('user')`).all() as Array<{
+      name: string;
+      dflt_value: string | null;
+    }>;
+    const passwordSetupColumn = userColumns.find(
+      (column) => column.name === 'passwordSetupRequired',
+    );
+    assert.equal(passwordSetupColumn?.dflt_value, '0');
     assert.ok(tableNames.includes('session'));
     assert.ok(tableNames.includes('account'));
     assert.ok(tableNames.includes('tasks'));

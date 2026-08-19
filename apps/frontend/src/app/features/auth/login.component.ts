@@ -1,8 +1,20 @@
-import { Component, OnDestroy, computed, signal, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  OnDestroy,
+  computed,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faEnvelope, faLock } from '@fortawesome/free-solid-svg-icons';
+
+/** Localhost hostnames that may show the dev-mode badge on screen. */
+export function isLocalhostHostname(hostname: string): boolean {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+}
 import { PasswordTrialComponent } from './password-trial.component';
 import { StrengthMeterComponent } from '../../shared/ui/strength-meter/strength-meter.component';
 import { passwordPolicyMessage } from './password-policy';
@@ -30,16 +42,49 @@ export class LoginComponent implements OnDestroy {
   error = signal('');
   remainingAttempts = signal<number | null>(null);
   retryAfterSeconds = signal<number | null>(null);
+  /** Email-first signup state: email submitted → check-your-inbox screen. */
+  emailSubmitted = signal(false);
+  /** Hidden honeypot field — bots fill it, humans never see it. */
+  website = signal('');
+  /** The placeholder password used for the unverified signup, kept so the user
+   *  can set a real password after verification (changePassword needs it). */
+  placeholderPassword = signal('');
   protected locked = computed(() => (this.retryAfterSeconds() ?? 0) > 0);
   private countdownInterval: ReturnType<typeof setInterval> | null = null;
+  private authState = inject(AuthStateService);
+  private router = inject(Router);
 
-  constructor(
-    private router: Router,
-    private authState: AuthStateService,
-  ) {}
+  constructor() {}
+
+  /** Whether the signup form should collect a password (false when email
+   *  verification is required — email-first flow). */
+  protected get emailFirstSignup(): boolean {
+    return !this.isLogin() && this.authState.requireEmailVerification();
+  }
+
+  /**
+   * Dev-mode badge: only when the server reports dev mode AND the app is
+   * served from localhost — a test deployment running dev mode must not
+   * advertise it on screen.
+   */
+  protected readonly showDevBadge = computed(() => {
+    return this.authState.devMode() && isLocalhostHostname(window.location.hostname);
+  });
 
   goToForgotPassword() {
     this.router.navigate(['/forgot-password']);
+  }
+
+  /** Resend the verification email from the check-your-inbox screen. */
+  async resendVerification() {
+    this.error.set('');
+    try {
+      await this.authState.sendVerificationEmail(this.email().trim());
+      this.error.set('Verification email resent. Check your inbox.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Could not resend the email.';
+      this.error.set(message);
+    }
   }
 
   ngOnDestroy() {
@@ -128,6 +173,11 @@ export class LoginComponent implements OnDestroy {
       return null;
     }
 
+    // Email-first signup collects no password.
+    if (this.emailFirstSignup) {
+      return null;
+    }
+
     if (!password) {
       return 'Password is required';
     }
@@ -154,6 +204,13 @@ export class LoginComponent implements OnDestroy {
     );
   }
 
+  /** Generate a cryptographically random throwaway password. */
+  private generatePlaceholderPassword(): string {
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  }
+
   async onSubmit() {
     this.markAllTouched();
     this.error.set('');
@@ -169,8 +226,30 @@ export class LoginComponent implements OnDestroy {
       let res;
       if (this.isLogin()) {
         res = await this.authState.signIn(this.email().trim(), this.password());
+      } else if (this.emailFirstSignup) {
+        const placeholder = this.generatePlaceholderPassword();
+        this.placeholderPassword.set(placeholder);
+        res = await this.authState.signUp(
+          this.email().trim(),
+          placeholder,
+          this.name().trim(),
+          this.website(),
+        );
+        if (res.error) {
+          this.error.set(res.error.message || 'Authentication failed');
+          return;
+        }
+        // Email-first: never auto-login; show the check-your-inbox screen only
+        // on success (including the honeypot fake-success).
+        this.emailSubmitted.set(true);
+        return;
       } else {
-        res = await this.authState.signUp(this.email().trim(), this.password(), this.name().trim());
+        res = await this.authState.signUp(
+          this.email().trim(),
+          this.password(),
+          this.name().trim(),
+          this.website(),
+        );
       }
 
       if (res.error) {
