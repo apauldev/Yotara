@@ -95,6 +95,39 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
           }),
         /Subtasks cannot have subtasks/,
       );
+
+      // Self-parenting on update must be rejected
+      const selfParentTask = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Self-parent task',
+      });
+      assert.ok(selfParentTask);
+      await assert.rejects(
+        () =>
+          ctx.taskService.updateTaskForOwner(ownerId, selfParentTask.id, {
+            parentId: selfParentTask.id,
+          }),
+        /A task cannot be its own parent/,
+      );
+      const selfFetched = await ctx.taskService.getTaskForOwner(selfParentTask.id, ownerId);
+      assert.ok(selfFetched);
+      assert.equal(selfFetched.parentId, null);
+    });
+
+    await t.test('Update self-parenting is rejected and does not persist', async () => {
+      const task = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Self-parent isolated',
+      });
+      assert.ok(task);
+      await assert.rejects(
+        () =>
+          ctx.taskService.updateTaskForOwner(ownerId, task.id, {
+            parentId: task.id,
+          }),
+        /A task cannot be its own parent/,
+      );
+      const fetched = await ctx.taskService.getTaskForOwner(task.id, ownerId);
+      assert.ok(fetched);
+      assert.equal(fetched.parentId, null);
     });
 
     await t.test('List filtering and subtask counts', async () => {

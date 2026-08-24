@@ -1059,3 +1059,39 @@ test('updating task with more than 50 labels returns 400 (4a)', async () => {
     await ctx.cleanup();
   }
 });
+
+test('updating task with self parent returns 400 and does not persist', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`self-parent-${randomUUID()}@example.com`);
+
+    const createRes = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Self parent route' },
+    });
+    assert.equal(createRes.statusCode, 201);
+    const taskId = createRes.json().id as string;
+
+    const patchRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}`,
+      headers: { cookie },
+      payload: { parentId: taskId },
+    });
+    assert.equal(patchRes.statusCode, 400);
+    assert.match(patchRes.json().message, /A task cannot be its own parent/);
+
+    const fetchRes = await ctx.app.inject({
+      method: 'GET',
+      url: `/tasks/${taskId}`,
+      headers: { cookie },
+    });
+    assert.equal(fetchRes.statusCode, 200);
+    assert.equal(fetchRes.json().parentId, undefined);
+  } finally {
+    await ctx.cleanup();
+  }
+});

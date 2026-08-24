@@ -482,6 +482,10 @@ function updateTaskForOwnerSync(
     const nextParentId =
       body.parentId === null ? null : (body.parentId ?? current.parentId ?? undefined);
 
+    if (nextParentId === taskId) {
+      throw new BadRequestError('A task cannot be its own parent');
+    }
+
     // Validate no nested subtasks: if we're setting a parent, that parent must not be a subtask itself
     if (nextParentId && nextParentId !== current.parentId) {
       const newParent = getTaskForOwnerSync(nextParentId, ownerId, client);
