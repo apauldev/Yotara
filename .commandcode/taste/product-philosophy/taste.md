@@ -1,0 +1,12 @@
+# product-philosophy
+- Don't ship or market software before it's feature-complete enough to be genuinely useful — avoid releasing half-working products. Confidence: 0.85
+- Beta test with ~10 trusted users before any public launch (HN, Reddit, Product Hunt, etc). Iterate on their feedback first. Confidence: 0.70
+- Require email verification before granting portal access: the verification link should sign the user in, show a clear "email verified" confirmation, and display the account email with a visible Verified badge inside the portal. Confidence: 0.98
+- Prefers an email-first signup flow: collect the email before asking for a password, let the user set the password only after clicking the verification link, and avoid creating/storing password data for unverified accounts. Confidence: 0.82
+- Use short-lived email-verification links with a 15-minute expiry, allow one resend as a recovery path, and delete accounts that remain unverified after 24 hours so unverified signups do not accumulate. Confidence: 0.98
+- Use a signup honeypot for bot detection; when it is triggered, return a plausible generic success response without creating an account or sending an email, rather than revealing the detection. Confidence: 0.92
+- Security-sensitive auth endpoints (e.g., verification-email resend) must not reveal account existence: return generic success for unknown addresses while still applying the rate limit, and add regression tests proving the endpoint throttles without leaking whether the account exists. Confidence: 0.65
+- Enforce email verification in production, but keep development and test registration email-free and equivalent to the existing local/CI flow by default so testing remains simple; provide an explicit `REQUIRE_EMAIL_VERIFICATION=true` override to exercise the complete email flow locally. Signup-specific verification changes must not alter the existing login flow or behavior. Confidence: 0.99
+- Do not expose a usable "unverified" account state: users should either complete verification and receive access or have the incomplete account removed. Confidence: 0.95
+- When a signup honeypot is triggered, temporarily ban the originating IP for 24 hours as an additional bot deterrent. Confidence: 0.9
+- For email-first signup implementations constrained by a password-required auth API, use a throwaway placeholder password composed of the user's email plus five random letters; it is never shown or intended for use and is discarded/overwritten after verification. Confidence: 0.95
