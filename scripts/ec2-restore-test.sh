@@ -8,7 +8,15 @@ set -euo pipefail
 BACKUP_FILE="${1:-$(readlink -f /opt/backups/yotara-latest.db 2>/dev/null || echo /opt/backups/yotara-latest.db)}"
 RESTORE_VOLUME="${RESTORE_VOLUME:-yotara_api_data_restore}"
 RESTORE_PROJECT="${RESTORE_PROJECT:-yotara-restore}"
-COMPOSE_FILE="${COMPOSE_FILE:-$HOME/docker-compose.hub.yml}"
+COMPOSE_FILE="${COMPOSE_FILE:-}"
+if [ -z "$COMPOSE_FILE" ]; then
+  for _f in "$HOME/docker-compose.hub.yml" ./docker-compose.hub.yml ./docker-compose.yml "$HOME/docker-compose.yml"; do
+    if [ -f "$_f" ]; then COMPOSE_FILE="$_f"; break; fi
+  done
+  COMPOSE_FILE="${COMPOSE_FILE:-$HOME/docker-compose.hub.yml}"
+fi
+
+compose() { docker compose "$@" 2>/dev/null || docker-compose "$@"; }
 
 if [ ! -f "$BACKUP_FILE" ]; then
   echo "[restore-test] backup not found: $BACKUP_FILE" >&2
@@ -25,10 +33,10 @@ cleanup() {
 }
 trap cleanup EXIT
 
-docker run --rm -v "$RESTORE_VOLUME:/data" -v "$(dirname "$BACKUP_FILE"):/backups:ro" alpine sh -c "cp /backups/$(basename "$BACKUP_FILE") /data/yotara.db && chown 1000:1000 /data /data/yotara.db && rm -f /data/yotara.db-shm /data/yotara.db-wal && ls -lh /data/yotara.db && echo '[restore-test] copied to volume (chown 1000)'"
+docker run --rm -v "$RESTORE_VOLUME:/data" -v "$(dirname "$BACKUP_FILE"):/backups:ro" alpine:3.21 sh -c "cp /backups/$(basename "$BACKUP_FILE") /data/yotara.db && chown 1000:1000 /data /data/yotara.db && rm -f /data/yotara.db-shm /data/yotara.db-wal && ls -lh /data/yotara.db && echo '[restore-test] copied to volume (chown 1000)'"
 
 # Verify sqlite integrity and that key tables exist
-docker run --rm -v "$RESTORE_VOLUME:/data" alpine sh -c "apk add --no-cache sqlite >/dev/null && sqlite3 /data/yotara.db 'PRAGMA integrity_check;' | grep -q '^ok$' && echo '[restore-test] integrity ok' && sqlite3 /data/yotara.db 'SELECT count(*) FROM \"user\"; SELECT count(*) FROM tasks;' | head -5"
+docker run --rm -v "$RESTORE_VOLUME:/data" alpine:3.21 sh -c "apk add --no-cache sqlite >/dev/null && sqlite3 /data/yotara.db 'PRAGMA integrity_check;' | grep -q '^ok$' && echo '[restore-test] integrity ok' && sqlite3 /data/yotara.db 'SELECT count(*) FROM \"user\"; SELECT count(*) FROM tasks;' | head -5"
 
 # Optionally start API against restored DB to verify startup (needs secret)
 if [ -n "${BETTER_AUTH_SECRET:-}" ]; then
@@ -44,14 +52,14 @@ services:
       - ${RESTORE_VOLUME}:/app/apps/api/data
 EOF
   BETTER_AUTH_SECRET="$BETTER_AUTH_SECRET" RESEND_API_KEY="${RESEND_API_KEY:-dummy}" DEV_MODE="${DEV_MODE:-true}" ALLOW_DEV_MODE_IN_PRODUCTION="${ALLOW_DEV_MODE_IN_PRODUCTION:-true}" \
-    docker-compose -p "$RESTORE_PROJECT" -f "$COMPOSE_FILE" -f /tmp/restore-override.yml up -d api 2>&1 | tail -10
+    compose -p "$RESTORE_PROJECT" -f "$COMPOSE_FILE" -f /tmp/restore-override.yml up -d api 2>&1 | tail -10
   sleep 5
   docker logs "${RESTORE_PROJECT}_api_1" 2>&1 | tail -20 || docker logs "${RESTORE_PROJECT}-api-1" 2>&1 | tail -20 || true
   if docker ps --format '{{.Names}}' | grep -q "$RESTORE_PROJECT"; then
     echo "[restore-test] checking health via exec"
     docker exec "${RESTORE_PROJECT}_api_1" wget -qO- http://localhost:3000/health 2>&1 | head -5 || docker exec "${RESTORE_PROJECT}-api-1" wget -qO- http://localhost:3000/health 2>&1 | head -5 || true
     echo "[restore-test] stopping disposable stack"
-    docker-compose -p "$RESTORE_PROJECT" -f "$COMPOSE_FILE" -f /tmp/restore-override.yml down -v 2>&1 | tail -5 || true
+    compose -p "$RESTORE_PROJECT" -f "$COMPOSE_FILE" -f /tmp/restore-override.yml down -v 2>&1 | tail -5 || true
   fi
   rm -f /tmp/restore-override.yml
 else

@@ -20,11 +20,11 @@ echo "[backup] $TIMESTAMP volume=$VOLUME -> $BACKUP_FILE"
 docker run --rm \
   -v "${VOLUME}:/data:ro" \
   -v "${BACKUP_DIR}:/backups" \
-  alpine sh -c "apk add --no-cache sqlite >/dev/null && sqlite3 /data/yotara.db \".backup /backups/$(basename "$BACKUP_FILE")\" && echo \"[backup] sqlite3 .backup ok\""
+  alpine:3.21 sh -c "apk add --no-cache sqlite >/dev/null && sqlite3 /data/yotara.db \".backup /backups/$(basename "$BACKUP_FILE")\" && echo \"[backup] sqlite3 .backup ok\""
 
 # Verify integrity and checksum
 echo "[verify] PRAGMA integrity_check"
-docker run --rm -v "${BACKUP_DIR}:/backups" alpine sh -c "apk add --no-cache sqlite >/dev/null && sqlite3 /backups/$(basename "$BACKUP_FILE") 'PRAGMA integrity_check;' | grep -q '^ok$' && echo '[verify] integrity_check ok' || (echo '[verify] integrity_check FAILED' && exit 1)"
+docker run --rm -v "${BACKUP_DIR}:/backups" alpine:3.21 sh -c "apk add --no-cache sqlite >/dev/null && sqlite3 /backups/$(basename "$BACKUP_FILE") 'PRAGMA integrity_check;' | grep -q '^ok$' && echo '[verify] integrity_check ok' || (echo '[verify] integrity_check FAILED' && exit 1)"
 
 sha256sum "$BACKUP_FILE" | tee "$BACKUP_FILE.sha256"
 ln -sf "$(basename "$BACKUP_FILE")" "$LATEST_LINK"
