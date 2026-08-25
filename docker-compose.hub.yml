@@ -24,7 +24,7 @@ services:
       # NODE_ENV=production (fail-loud contract). Dev mode ignores it.
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-noreply@email.yotara.website}
-      CONTENT_SECURITY_POLICY: ${CONTENT_SECURITY_POLICY:-default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'}
+      CONTENT_SECURITY_POLICY: ${CONTENT_SECURITY_POLICY:-default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://cloudflareinsights.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'}
     volumes:
       - yotara_api_data:/app/apps/api/data
     security_opt:
@@ -40,7 +40,7 @@ services:
     depends_on:
       - api
     environment:
-      CONTENT_SECURITY_POLICY: ${CONTENT_SECURITY_POLICY:-default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'}
+      CONTENT_SECURITY_POLICY: ${CONTENT_SECURITY_POLICY:-default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://cloudflareinsights.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'}
     ports:
       - '8080:80'
 

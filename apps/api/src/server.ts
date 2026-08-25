@@ -28,7 +28,8 @@ export const CONTENT_SECURITY_POLICY =
   process.env['CONTENT_SECURITY_POLICY'] ??
   "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; " +
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-    "font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; " +
+    "font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; " +
+    "connect-src 'self' https://cloudflareinsights.com; " +
     "frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
 
 // Defense-in-depth security headers. The CSP is shared with nginx (above); the
