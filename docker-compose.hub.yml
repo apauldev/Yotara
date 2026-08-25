@@ -1,9 +1,9 @@
-# Beta-2 deployment — pinned to immutable tag v0.74.0 (release 266ef12)
-# Do NOT use :latest. Rollback tag: v0.73.0. Next beta with self-parent fix: v0.74.0 (commit 76dd9ea).
+# Beta-2 deployment — pinned to immutable tag v0.74.2 (release 865be5c)
+# Do NOT use :latest. Rollback tag: v0.74.1. Fix: Invalid base URL /api/auth (d855871).
 # Ongoing mechanism: release-specific checked-in compose (update both image lines per release).
 services:
   api:
-    image: apauldev2/yotara-api:v0.74.0
+    image: apauldev2/yotara-api:v0.74.2
     environment:
       DATABASE_URL: /app/apps/api/data/yotara.db
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
@@ -36,7 +36,7 @@ services:
       - /tmp
 
   frontend:
-    image: apauldev2/yotara-frontend:v0.74.0
+    image: apauldev2/yotara-frontend:v0.74.2
     depends_on:
       - api
     environment:
