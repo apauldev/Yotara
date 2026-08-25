@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.74.0](https://github.com/apauldev/Yotara/compare/v0.73.0...v0.74.0) (2026-08-25)
+
+
+### Features
+
+* **backup:** add WAL-safe EC2 backup and restore test ([6d2b7aa](https://github.com/apauldev/Yotara/commit/6d2b7aaf14647ebf9cab9fe85698b4453a276ffa))
+
+
+### Bug Fixes
+
+* **api:** reject self-parenting on task update ([76dd9ea](https://github.com/apauldev/Yotara/commit/76dd9ea33d4f5b8ae92d3fbd353464c129ea2b7b))
+* **backup:** fail restore-test when health check fails ([c1b6d13](https://github.com/apauldev/Yotara/commit/c1b6d13fcdff82558f20e260ac9401dfdd0f55c5))
+* **backup:** pin alpine, fallback compose file, support v2 ([1fd7bcb](https://github.com/apauldev/Yotara/commit/1fd7bcbb3e270982d0fdbf2869b6056ecbacd6bc))
+* **backup:** upload encrypted artifact and fix retention SIGPIPE ([f98322f](https://github.com/apauldev/Yotara/commit/f98322fc4ca073dfce1232d315a8ce2802f15722))
+
+
+### Chores
+
+* **deploy:** pin Hub Compose to immutable tag v0.73.0 ([bb48f28](https://github.com/apauldev/Yotara/commit/bb48f2883bd63612768929b6d7e5a052b5bed073))
+
 ## [0.73.0](https://github.com/apauldev/Yotara/compare/v0.72.3...v0.73.0) (2026-08-19)
 
 
