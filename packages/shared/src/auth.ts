@@ -4,7 +4,11 @@ import type { WorkspaceMode } from './index';
 let apiBaseUrl = '';
 
 export function configureAuthClient(baseURL: string) {
-  apiBaseUrl = baseURL.replace(/\/auth\/?$/, '');
+  const absoluteBase =
+    baseURL.startsWith('/') && typeof window !== 'undefined'
+      ? `${window.location.origin}${baseURL}`
+      : baseURL;
+  apiBaseUrl = absoluteBase.replace(/\/auth\/?$/, '');
 }
 
 function getAuthClient() {
