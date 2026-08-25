@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.74.2](https://github.com/apauldev/Yotara/compare/v0.74.1...v0.74.2) (2026-08-25)
+
+
+### Bug Fixes
+
+* **auth:** resolve Invalid base URL /api/auth for prod ([d855871](https://github.com/apauldev/Yotara/commit/d855871af33a3fcde8d8b857f3a0b92fcb6e9ccd))
+
 ## [0.74.1](https://github.com/apauldev/Yotara/compare/v0.74.0...v0.74.1) (2026-08-25)
 
 
