@@ -57,9 +57,24 @@ EOF
   docker logs "${RESTORE_PROJECT}_api_1" 2>&1 | tail -20 || docker logs "${RESTORE_PROJECT}-api-1" 2>&1 | tail -20 || true
   if docker ps --format '{{.Names}}' | grep -q "$RESTORE_PROJECT"; then
     echo "[restore-test] checking health via exec"
-    docker exec "${RESTORE_PROJECT}_api_1" wget -qO- http://localhost:3000/health 2>&1 | head -5 || docker exec "${RESTORE_PROJECT}-api-1" wget -qO- http://localhost:3000/health 2>&1 | head -5 || true
+    HEALTH_OUTPUT=$(docker exec "${RESTORE_PROJECT}_api_1" wget -qO- http://localhost:3000/health 2>&1 || docker exec "${RESTORE_PROJECT}-api-1" wget -qO- http://localhost:3000/health 2>&1 || true)
+    echo "$HEALTH_OUTPUT" | head -5
+    if echo "$HEALTH_OUTPUT" | grep -q '"status":"ok"'; then
+      echo "[restore-test] health ok"
+    else
+      echo "[restore-test] health check FAILED" >&2
+      echo "[restore-test] stopping disposable stack (after failure)"
+      compose -p "$RESTORE_PROJECT" -f "$COMPOSE_FILE" -f /tmp/restore-override.yml down -v 2>&1 | tail -5 || true
+      rm -f /tmp/restore-override.yml
+      exit 1
+    fi
     echo "[restore-test] stopping disposable stack"
     compose -p "$RESTORE_PROJECT" -f "$COMPOSE_FILE" -f /tmp/restore-override.yml down -v 2>&1 | tail -5 || true
+  else
+    echo "[restore-test] API container not running — health check FAILED" >&2
+    compose -p "$RESTORE_PROJECT" -f "$COMPOSE_FILE" -f /tmp/restore-override.yml down -v 2>&1 | tail -5 || true
+    rm -f /tmp/restore-override.yml
+    exit 1
   fi
   rm -f /tmp/restore-override.yml
 else
