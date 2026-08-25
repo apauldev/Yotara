@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.74.3](https://github.com/apauldev/Yotara/compare/v0.74.2...v0.74.3) (2026-08-25)
+
+
+### Chores
+
+* **deploy:** pin Hub Compose to v0.74.2 ([0692420](https://github.com/apauldev/Yotara/commit/06924203494b5bedc4941904ff4201d7907aa63f))
+
 ## [0.74.2](https://github.com/apauldev/Yotara/compare/v0.74.1...v0.74.2) (2026-08-25)
 
 
