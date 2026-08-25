@@ -1,6 +1,9 @@
+# Beta-2 deployment — pinned to immutable tag v0.73.0 (release d6ac4d3)
+# Do NOT use :latest. Rollback tag: v0.72.3. Next beta with self-parent fix: v0.73.1 (commit 76dd9ea).
+# Ongoing mechanism: release-specific checked-in compose (update both image lines per release).
 services:
   api:
-    image: apauldev2/yotara-api:latest
+    image: apauldev2/yotara-api:v0.73.0
     environment:
       DATABASE_URL: /app/apps/api/data/yotara.db
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
@@ -33,7 +36,7 @@ services:
       - /tmp
 
   frontend:
-    image: apauldev2/yotara-frontend:latest
+    image: apauldev2/yotara-frontend:v0.73.0
     depends_on:
       - api
     environment:
