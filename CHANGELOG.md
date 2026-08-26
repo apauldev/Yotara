@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.74.6](https://github.com/apauldev/Yotara/compare/v0.74.5...v0.74.6) (2026-08-26)
+
+
+### Bug Fixes
+
+* **frontend:** disable inlineCritical to fix CSP violations ([39fa494](https://github.com/apauldev/Yotara/commit/39fa4941575d68b85d94a523aa14d0f6f45da116))
+
 ## [0.74.5](https://github.com/apauldev/Yotara/compare/v0.74.4...v0.74.5) (2026-08-26)
 
 
