@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.74.4](https://github.com/apauldev/Yotara/compare/v0.74.3...v0.74.4) (2026-08-26)
+
+
+### Bug Fixes
+
+* **security:** add cloudflareinsights.com to connect-src ([f02e1b4](https://github.com/apauldev/Yotara/commit/f02e1b4424ccfe927bc0b7fc5051b3a2e412f3bf))
+* **security:** allow fonts and CF beacon in CSP ([1f148c5](https://github.com/apauldev/Yotara/commit/1f148c508c0043de0472ce239b2147bbecffee88))
+
 ## [0.74.3](https://github.com/apauldev/Yotara/compare/v0.74.2...v0.74.3) (2026-08-25)
 
 
