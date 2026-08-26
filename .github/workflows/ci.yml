@@ -266,15 +266,18 @@ jobs:
         include:
           - platform: linux/amd64
             architecture: amd64
+            runner: ubuntu-latest
           - platform: linux/arm64
             architecture: arm64
-    runs-on: ubuntu-latest
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Set up QEMU
+        if: false # native runners — no emulation (amd64 on ubuntu-latest, arm64 on ubuntu-24.04-arm)
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
