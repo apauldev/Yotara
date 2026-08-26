@@ -325,7 +325,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22.22.3
-          cache: pnpm
 
       - name: Run API native and database smoke test
         # No RESEND_API_KEY here: dev mode deliberately ignores it and logs
