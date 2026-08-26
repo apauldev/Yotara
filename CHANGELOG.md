@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.74.7](https://github.com/apauldev/Yotara/compare/v0.74.6...v0.74.7) (2026-08-26)
+
+
+### Bug Fixes
+
+* **frontend:** disable inline critical CSS inlining ([0d39597](https://github.com/apauldev/Yotara/commit/0d3959796a530dc5b9d23a0fe9fb258a68188a36))
+* **frontend:** disable styles optimization to remove inline critical CSS ([f53e95e](https://github.com/apauldev/Yotara/commit/f53e95e78e07b48594ad45a034389207720d055b))
+
 ## [0.74.6](https://github.com/apauldev/Yotara/compare/v0.74.5...v0.74.6) (2026-08-26)
 
 
