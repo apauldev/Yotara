@@ -44,6 +44,10 @@ services:
       CONTENT_SECURITY_POLICY: ${CONTENT_SECURITY_POLICY:-default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://cloudflareinsights.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'}
     ports:
       - '8080:80'
+      - '8443:443'
+    volumes:
+      - /opt/yotara/nginx-ssl.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - /opt/yotara/ssl:/etc/nginx/ssl:ro
 
 volumes:
   yotara_api_data:
