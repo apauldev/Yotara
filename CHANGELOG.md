@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.74.9](https://github.com/apauldev/Yotara/compare/v0.74.8...v0.74.9) (2026-08-26)
+
+
+### Chores
+
+* **deploy:** persist TLS mounts in Hub Compose ([88889aa](https://github.com/apauldev/Yotara/commit/88889aa883e6b304eca8a5c1758132a18479fba9))
+
 ## [0.74.8](https://github.com/apauldev/Yotara/compare/v0.74.7...v0.74.8) (2026-08-26)
 
 
