@@ -31,10 +31,7 @@
             "production": {
               "optimization": {
                 "scripts": true,
-                "styles": {
-                  "minify": true,
-                  "inlineCritical": false
-                },
+                "styles": false,
                 "fonts": true
               },
               "fileReplacements": [
