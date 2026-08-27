@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.75.0](https://github.com/apauldev/Yotara/compare/v0.74.11...v0.75.0) (2026-08-27)
+
+
+### Features
+
+* **ui:** add boot skeleton and origin gzip/cache headers ([54a0f0a](https://github.com/apauldev/Yotara/commit/54a0f0a19c6e04481f57306ab4b81b08c5f1b062))
+
+
+### Bug Fixes
+
+* **security:** add missing security headers to nginx asset locations ([8cc1f9b](https://github.com/apauldev/Yotara/commit/8cc1f9b3212b255af7e339f9f19554efca5d5d14))
+* **ui:** harden boot skeleton vars and test isolation ([6659be7](https://github.com/apauldev/Yotara/commit/6659be7245ac1cc4b026d8572d3dfda2ed27fe56))
+* **ui:** place boot skeleton outside app-root and fix duplicate lifecycle call ([cdc9b42](https://github.com/apauldev/Yotara/commit/cdc9b4268d109a59760acff5d9a8f743ee480db5))
+
+
+### Tests
+
+* **frontend:** cover boot skeleton removal paths ([d61d99e](https://github.com/apauldev/Yotara/commit/d61d99e38ae9e4f795f53199381a09041de5725e))
+* **frontend:** use proper Router event Subject for skeleton test ([45634bc](https://github.com/apauldev/Yotara/commit/45634bc26da3fc24457d6bfab529a4ee4271159e))
+
 ## [0.74.11](https://github.com/apauldev/Yotara/compare/v0.74.10...v0.74.11) (2026-08-27)
 
 
