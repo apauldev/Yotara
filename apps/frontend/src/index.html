@@ -8,6 +8,42 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   </head>
   <body>
-    <app-root></app-root>
+    <!-- Boot skeleton: static LCP shell painted before JS boots.
+         Styles live in styles.css (.boot-skeleton-*); AppComponent removes
+         #boot-skeleton after the router's first NavigationEnd paints. -->
+    <app-root>
+      <div id="boot-skeleton" aria-hidden="true">
+        <div class="boot-skeleton-topbar">
+          <div class="boot-skeleton-logo"></div>
+          <div class="boot-skeleton-line"></div>
+        </div>
+        <div class="boot-skeleton-body">
+          <div class="boot-skeleton-sidebar">
+            <div class="boot-skeleton-chip"></div>
+            <div class="boot-skeleton-chip"></div>
+            <div class="boot-skeleton-chip"></div>
+          </div>
+          <div class="boot-skeleton-main">
+            <div class="boot-skeleton-heading"></div>
+            <div class="boot-skeleton-card"></div>
+            <div class="boot-skeleton-card boot-skeleton-card-slim"></div>
+            <div class="boot-skeleton-card"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Background guard so a delayed stylesheet never flashes a white page;
+           full skeleton styling comes from the bundled stylesheet. -->
+      <style>
+        html {
+          background-color: hsl(42 58% 97%);
+        }
+        @media (prefers-color-scheme: dark) {
+          html {
+            background-color: hsl(220 14% 10%);
+          }
+        }
+      </style>
+    </app-root>
   </body>
 </html>
