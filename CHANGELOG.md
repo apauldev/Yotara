@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.74.11](https://github.com/apauldev/Yotara/compare/v0.74.10...v0.74.11) (2026-08-27)
+
+
+### Chores
+
+* **security:** make pre-commit gitleaks guard explicit ([c8f6184](https://github.com/apauldev/Yotara/commit/c8f6184e0041f4a660e6c16173ea651443451923))
+
 ## [0.74.10](https://github.com/apauldev/Yotara/compare/v0.74.9...v0.74.10) (2026-08-27)
 
 
