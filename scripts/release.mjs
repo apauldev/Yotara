@@ -94,7 +94,7 @@ if (rawCommitsAll.length === 0) {
 // docker-compose.hub.yml. Every real PR (fix/feat/etc.) still bumps.
 const IGNORED_PREFIXES = ['chore(release)', 'chore(deploy)'];
 const ignoredRe = new RegExp(
-  `^(${IGNORED_PREFIXES.map((s) => s.replace(/[()]/g, '\\$&')).join('|')})\\s*:`,
+  `^(${IGNORED_PREFIXES.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\s*:`,
   'i',
 );
 const rawCommits = rawCommitsAll.filter((msg) => !ignoredRe.test(subject(msg)));
