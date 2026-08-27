@@ -23,8 +23,8 @@ jobs:
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' &&
-       !startsWith(github.event.workflow_run.head_commit.message, 'chore(release)') &&
-       !startsWith(github.event.workflow_run.head_commit.message, 'chore(deploy)'))
+       !startsWith(github.event.workflow_run.head_commit.message, 'chore(release):') &&
+       !startsWith(github.event.workflow_run.head_commit.message, 'chore(deploy):'))
     steps:
       - uses: actions/checkout@v4
         with:
@@ -78,8 +78,8 @@ jobs:
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' &&
-       !startsWith(github.event.workflow_run.head_commit.message, 'chore(release)') &&
-       !startsWith(github.event.workflow_run.head_commit.message, 'chore(deploy)'))
+       !startsWith(github.event.workflow_run.head_commit.message, 'chore(release):') &&
+       !startsWith(github.event.workflow_run.head_commit.message, 'chore(deploy):'))
     steps:
       - uses: actions/checkout@v4
         with:
