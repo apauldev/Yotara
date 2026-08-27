@@ -43,18 +43,19 @@ describe('AppComponent', () => {
     }).compileComponents();
 
     const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges();
-    eventsSubject.next(new NavigationEnd(1, '/test', '/test'));
-    expect(document.getElementById('boot-skeleton')).toBeFalsy();
-    fixture.destroy();
-    eventsSubject.complete();
-
-    // Restore default TestBed for remaining tests
-    TestBed.resetTestingModule();
-    await TestBed.configureTestingModule({
-      imports: [AppComponent],
-      providers: [provideRouter([])],
-    }).compileComponents();
+    try {
+      fixture.detectChanges();
+      eventsSubject.next(new NavigationEnd(1, '/test', '/test'));
+      expect(document.getElementById('boot-skeleton')).toBeFalsy();
+    } finally {
+      fixture.destroy();
+      eventsSubject.complete();
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        imports: [AppComponent],
+        providers: [provideRouter([])],
+      }).compileComponents();
+    }
   });
 
   it('should remove boot skeleton after fallback timeout', fakeAsync(() => {
