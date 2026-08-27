@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.74.10](https://github.com/apauldev/Yotara/compare/v0.74.9...v0.74.10) (2026-08-27)
+
+
+### Bug Fixes
+
+* **ci:** address review - use startsWith and fix regex escaping ([583ab41](https://github.com/apauldev/Yotara/commit/583ab418f7685caa29f67c87d189753950b8ea68))
+* **ci:** make workflow skip precise with colon to avoid over-matching ([47336d3](https://github.com/apauldev/Yotara/commit/47336d3cec7b8b156fe083cc740edea0c0a7b43d))
+* **ci:** prevent chore(deploy) pins from triggering releases ([e7180ec](https://github.com/apauldev/Yotara/commit/e7180ec7e85b74cc0c1d87f38d0d97b06c4d346e))
+
 ## [0.74.9](https://github.com/apauldev/Yotara/compare/v0.74.8...v0.74.9) (2026-08-26)
 
 
