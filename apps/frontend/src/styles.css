@@ -7,6 +7,149 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ---------------------------------------------------------------------------
+ * Boot skeleton (pre-Angular LCP shell)
+ *
+ * Rendered by src/index.html inside <app-root> before the app boots; painted
+ * as soon as this stylesheet loads, with zero JavaScript. AppComponent removes
+ * #boot-skeleton once the router has rendered its first page.
+ *
+ * Uses :root variables (not utility classes) because these elements exist in
+ * the DOM before Angular/Tailwind class processing matters — plain CSS keeps
+ * them independent of any build-time purging.
+ * ------------------------------------------------------------------------- */
+#boot-skeleton {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: hsl(var(--background, 42 58% 97%));
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  #boot-skeleton {
+    color-scheme: dark;
+    background-color: hsl(220 14% 10%);
+  }
+}
+
+.boot-skeleton-topbar {
+  height: 56px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  border-bottom: 1px solid hsl(var(--border, 46 18% 80%));
+}
+
+.boot-skeleton-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background-color: hsl(var(--primary, 151 47% 18%));
+  opacity: 0.85;
+}
+
+.boot-skeleton-line {
+  width: 120px;
+  height: 12px;
+  border-radius: 6px;
+}
+
+.boot-skeleton-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.boot-skeleton-sidebar {
+  width: 232px;
+  flex: none;
+  padding: 16px 12px;
+  border-right: 1px solid hsl(var(--border, 46 18% 80%));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.boot-skeleton-chip {
+  height: 32px;
+  border-radius: 8px;
+}
+
+.boot-skeleton-main {
+  flex: 1;
+  padding: 24px 28px;
+  max-width: 720px;
+}
+
+.boot-skeleton-heading {
+  width: 40%;
+  height: 22px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.boot-skeleton-card {
+  height: 64px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+
+.boot-skeleton-card-slim {
+  height: 48px;
+}
+
+/* Shimmer + placeholder fill shared by all skeleton pieces. */
+.boot-skeleton-line,
+.boot-skeleton-chip,
+.boot-skeleton-heading,
+.boot-skeleton-card {
+  background-color: hsl(var(--muted, 45 19% 89%));
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsla(var(--foreground, 75 13% 12%), 0.06) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: boot-shimmer 1.4s ease-in-out infinite;
+}
+
+@media (prefers-color-scheme: dark) {
+  .boot-skeleton-topbar,
+  .boot-skeleton-sidebar {
+    border-color: hsl(220 14% 18%);
+  }
+  .boot-skeleton-line,
+  .boot-skeleton-chip,
+  .boot-skeleton-heading,
+  .boot-skeleton-card {
+    background-color: hsl(220 14% 15%);
+  }
+}
+
+@keyframes boot-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Respect users who opt out of non-essential animation. */
+@media (prefers-reduced-motion: reduce) {
+  .boot-skeleton-line,
+  .boot-skeleton-chip,
+  .boot-skeleton-heading,
+  .boot-skeleton-card {
+    animation: none;
+  }
+}
+
 @theme {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
