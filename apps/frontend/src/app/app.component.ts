@@ -12,7 +12,7 @@ import { filter } from 'rxjs';
   standalone: true,
   imports: [RouterOutlet],
   templateUrl: './app.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.Default,
   styleUrl: './app.component.css',
 })
 export class AppComponent implements AfterViewInit {
