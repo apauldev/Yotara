@@ -2,10 +2,13 @@
 set -e
 pnpm lint-staged
 
-# Quick secret scan on staged files (requires gitleaks CLI; skip if not installed)
+# Secret scan on staged files — blocks accidental key commits.
+# Install locally: brew install gitleaks  (or `go install github.com/gitleaks/gitleaks/v8@latest`)
 if command -v gitleaks >/dev/null 2>&1; then
   gitleaks git --pre-commit --staged 2>/dev/null || {
-    echo "⚠️  Secret scan detected potential secrets. Use 'gitleaks git --pre-commit --staged --verbose' to inspect."
+    echo "⚠️  gitleaks: potential secret in staged files. Run 'gitleaks git --pre-commit --staged --verbose' for details."
     exit 1
   }
+else
+  echo "⚠️  gitleaks not installed — skipping local secret scan. Install with 'brew install gitleaks' for pre-commit protection (CI still scans via secret-scan.yml)."
 fi
