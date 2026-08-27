@@ -79,13 +79,28 @@ const rawLog = run(`git log "${range}" --format="${delimiter}%n%B" --no-merges`,
 });
 
 // Split on delimiter, drop empty entries at the start
-const rawCommits = rawLog
+const rawCommitsAll = rawLog
   .split(delimiter)
   .map((s) => s.trim())
   .filter(Boolean);
 
-if (rawCommits.length === 0) {
+if (rawCommitsAll.length === 0) {
   console.log('ℹ️  No new commits since last release — nothing to bump.');
+  process.exit(0);
+}
+
+// Filter out deploy/release pins that must not trigger a version bump.
+// These commits are intentionally pushed to main after a release to pin
+// docker-compose.hub.yml. Every real PR (fix/feat/etc.) still bumps.
+const IGNORED_PREFIXES = ['chore(release)', 'chore(deploy)'];
+const ignoredRe = new RegExp(
+  `^(${IGNORED_PREFIXES.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\s*:`,
+  'i',
+);
+const rawCommits = rawCommitsAll.filter((msg) => !ignoredRe.test(subject(msg)));
+
+if (rawCommits.length === 0) {
+  console.log('ℹ️  Only chore(release)/chore(deploy) commits since last tag — nothing to bump.');
   process.exit(0);
 }
 
@@ -162,7 +177,12 @@ console.log('  Yotara Release');
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log(`  Current version   ${currentVersion}`);
 console.log(`  Latest tag        ${latestTag || '(none)'}`);
-console.log(`  Commits analysed  ${rawCommits.length}`);
+console.log(`  Commits analysed  ${rawCommits.length} (total ${rawCommitsAll.length})`);
+if (rawCommitsAll.length !== rawCommits.length) {
+  console.log(
+    `  Ignored pins      ${rawCommitsAll.length - rawCommits.length} (chore deploy/release)`,
+  );
+}
 console.log(`  Breaking changes  ${hasBreaking ? '⚠️  YES' : 'no'}`);
 console.log(`  Features          ${hasFeat ? '✨ YES' : 'no'}`);
 console.log(`  Fixes             ${hasFix ? '🔧 YES' : 'no'}`);
