@@ -63,7 +63,6 @@ describe('AppComponent', () => {
     document.body.appendChild(skeleton);
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
-    fixture.componentInstance.ngAfterViewInit();
     tick(4000);
     expect(document.getElementById('boot-skeleton')).toBeFalsy();
     fixture.destroy();
