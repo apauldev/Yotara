@@ -12,6 +12,18 @@ describe('AppComponent', () => {
     }).compileComponents();
   });
 
+  afterEach(async () => {
+    // Ensure TestBed is restored to default even if a test reconfigured it
+    // (e.g., the NavigationEnd test with a mocked Router). Prevents pollution
+    // across tests and implicit order dependency.
+    document.getElementById('boot-skeleton')?.remove();
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [AppComponent],
+      providers: [provideRouter([])],
+    }).compileComponents();
+  });
+
   it('should create the app', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
@@ -50,11 +62,6 @@ describe('AppComponent', () => {
     } finally {
       fixture.destroy();
       eventsSubject.complete();
-      TestBed.resetTestingModule();
-      await TestBed.configureTestingModule({
-        imports: [AppComponent],
-        providers: [provideRouter([])],
-      }).compileComponents();
     }
   });
 
