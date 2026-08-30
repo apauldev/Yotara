@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.75.3](https://github.com/apauldev/Yotara/compare/v0.75.2...v0.75.3) (2026-08-30)
+
+
+### Bug Fixes
+
+* **ui:** prevent black flash by reading theme from localStorage on load ([c25c636](https://github.com/apauldev/Yotara/commit/c25c636e2fc3993bb4375419257921b6d49433d5))
+
+
+### Chores
+
+* **deploy:** pin Hub Compose to v0.75.2 (remove boot skeleton) ([2e54da8](https://github.com/apauldev/Yotara/commit/2e54da8bff109d0ffb20b0ddcf3d88806bdc9b02))
+
 ## [0.75.2](https://github.com/apauldev/Yotara/compare/v0.75.1...v0.75.2) (2026-08-30)
 
 
