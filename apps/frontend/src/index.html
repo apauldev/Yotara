@@ -8,17 +8,22 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   </head>
   <body>
-    <!-- Background guard so a delayed stylesheet never flashes a white page. -->
-    <style>
-      html {
-        background-color: hsl(42 58% 97%);
-      }
-      @media (prefers-color-scheme: dark) {
-        html {
-          background-color: hsl(220 14% 10%);
-        }
-      }
-    </style>
+    <!-- Background guard: reads saved theme from localStorage to match the
+         app's class-based theming and prevent a flash on load. Falls back to
+         prefers-color-scheme, then light-forest. -->
+    <script>
+      (function () {
+        var t = localStorage.getItem('yotara-theme');
+        var dark =
+          t === 'dark-forest' ||
+          t === 'midnight-amethyst' ||
+          t === 'deep-trench' ||
+          (!t && matchMedia('(prefers-color-scheme:dark)').matches);
+        document.documentElement.style.backgroundColor = dark
+          ? 'hsl(220 14% 10%)'
+          : 'hsl(42 58% 97%)';
+      })();
+    </script>
     <app-root></app-root>
   </body>
 </html>
