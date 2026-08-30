@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.75.2](https://github.com/apauldev/Yotara/compare/v0.75.1...v0.75.2) (2026-08-30)
+
+
+### Bug Fixes
+
+* **ui:** remove boot skeleton preloading flash ([def2909](https://github.com/apauldev/Yotara/commit/def2909f2e28d042641515760ac819cee0d7b8e1))
+
+
+### Chores
+
+* **deploy:** pin Hub Compose to v0.75.1 (6e870a1 release) ([13cbfa3](https://github.com/apauldev/Yotara/commit/13cbfa31d2749b71761eaaf2d50eb171f7f48ec5))
+
 ## [0.75.1](https://github.com/apauldev/Yotara/compare/v0.75.0...v0.75.1) (2026-08-27)
 
 
