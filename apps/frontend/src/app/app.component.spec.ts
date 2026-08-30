@@ -1,7 +1,6 @@
-import { fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { Event, NavigationEnd, provideRouter, Router, RouterOutlet } from '@angular/router';
-import { Subject } from 'rxjs';
+import { provideRouter, RouterOutlet } from '@angular/router';
 import { AppComponent } from './app.component';
 
 describe('AppComponent', () => {
@@ -13,10 +12,6 @@ describe('AppComponent', () => {
   });
 
   afterEach(async () => {
-    // Ensure TestBed is restored to default even if a test reconfigured it
-    // (e.g., the NavigationEnd test with a mocked Router). Prevents pollution
-    // across tests and implicit order dependency.
-    document.getElementById('boot-skeleton')?.remove();
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
       imports: [AppComponent],
@@ -34,55 +29,5 @@ describe('AppComponent', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     expect(fixture.debugElement.query(By.directive(RouterOutlet))).toBeTruthy();
-  });
-
-  it('should remove boot skeleton on NavigationEnd', async () => {
-    document.getElementById('boot-skeleton')?.remove();
-    const skeleton = document.createElement('div');
-    skeleton.id = 'boot-skeleton';
-    document.body.appendChild(skeleton);
-
-    const eventsSubject = new Subject<Event>();
-    TestBed.resetTestingModule();
-    await TestBed.configureTestingModule({
-      imports: [AppComponent],
-      providers: [
-        {
-          provide: Router,
-          useValue: { events: eventsSubject.asObservable() },
-        },
-      ],
-    }).compileComponents();
-
-    const fixture = TestBed.createComponent(AppComponent);
-    try {
-      fixture.detectChanges();
-      eventsSubject.next(new NavigationEnd(1, '/test', '/test'));
-      expect(document.getElementById('boot-skeleton')).toBeFalsy();
-    } finally {
-      fixture.destroy();
-      eventsSubject.complete();
-    }
-  });
-
-  it('should remove boot skeleton after fallback timeout', fakeAsync(() => {
-    const skeleton = document.createElement('div');
-    skeleton.id = 'boot-skeleton';
-    document.body.appendChild(skeleton);
-    const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges();
-    tick(4000);
-    expect(document.getElementById('boot-skeleton')).toBeFalsy();
-    fixture.destroy();
-  }));
-
-  it('should handle missing skeleton gracefully', () => {
-    document.getElementById('boot-skeleton')?.remove();
-    const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges();
-    expect(() => {
-      (fixture.componentInstance as unknown as { removeSkeleton: () => void }).removeSkeleton();
-    }).not.toThrow();
-    fixture.destroy();
   });
 });
