@@ -1,10 +1,10 @@
-# Beta-2 deployment — pinned to immutable tag v0.75.1 (release chore(release): 0.75.1)
-# Do NOT use :latest. Rollback tag: v0.75.0.
-# Fix: boot skeleton, nginx gzip/cache, security headers, release-loop guard.
+# Beta-2 deployment — pinned to immutable tag v0.75.2 (release chore(release): 0.75.2)
+# Do NOT use :latest. Rollback tag: v0.75.1.
+# Fix: remove boot skeleton preloading flash.
 # Ongoing mechanism: release-specific checked-in compose (update both image lines per release).
 services:
   api:
-    image: apauldev2/yotara-api:v0.75.1
+    image: apauldev2/yotara-api:v0.75.2
     environment:
       DATABASE_URL: /app/apps/api/data/yotara.db
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
@@ -37,7 +37,7 @@ services:
       - /tmp
 
   frontend:
-    image: apauldev2/yotara-frontend:v0.75.1
+    image: apauldev2/yotara-frontend:v0.75.2
     depends_on:
       - api
     environment:
