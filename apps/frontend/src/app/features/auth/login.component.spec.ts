@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { LoginComponent, isLocalhostHostname } from './login.component';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { Router } from '@angular/router';
@@ -14,6 +15,10 @@ describe('LoginComponent', () => {
     requireEmailVerification: () => boolean;
     devMode: () => boolean;
     sendVerificationEmail: jasmine.Spy;
+    initialized: ReturnType<typeof signal<boolean>>;
+    isAuthenticated: () => boolean;
+    configLoaded: () => boolean;
+    initialize: jasmine.Spy;
   };
 
   beforeEach(async () => {
@@ -29,6 +34,10 @@ describe('LoginComponent', () => {
       requireEmailVerification: () => false,
       devMode: () => false,
       sendVerificationEmail: jasmine.createSpy('sendVerificationEmail').and.resolveTo(undefined),
+      initialized: signal(true),
+      isAuthenticated: () => false,
+      configLoaded: () => true,
+      initialize: jasmine.createSpy('initialize').and.resolveTo(null),
     };
 
     await TestBed.configureTestingModule({
@@ -404,6 +413,43 @@ describe('LoginComponent', () => {
     forgotBtn.click();
 
     expect(router.navigate).toHaveBeenCalledWith(['/forgot-password']);
+  });
+
+  it('redirects an authenticated user once initialization completes', async () => {
+    // `initialized` is false at mount, and `initialize()` resolves after the
+    // session turns out authenticated — the component must then redirect.
+    authState.initialized.set(false);
+    let resolveInit: (value: unknown) => void = () => {};
+    authState.initialize = jasmine
+      .createSpy('initialize')
+      .and.callFake(() => new Promise((resolve) => (resolveInit = resolve)));
+    authState.isAuthenticated = () => false;
+
+    fixture = TestBed.createComponent(LoginComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    authState.isAuthenticated = () => true;
+    resolveInit(null);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/inbox');
+  });
+
+  it('waits for config readiness before submitting', async () => {
+    fixture.detectChanges();
+
+    authState.configLoaded = () => false;
+    authState.initialize.calls.reset();
+
+    component.email.set('alex@example.com');
+    component.password.set('secret-password');
+
+    await component.onSubmit();
+
+    expect(authState.initialize).toHaveBeenCalled();
+    expect(authState.signIn).toHaveBeenCalledWith('alex@example.com', 'secret-password');
   });
 
   it('shows the DEV MODE badge on localhost when dev mode is on', () => {

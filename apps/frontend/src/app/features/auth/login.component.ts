@@ -1,6 +1,7 @@
 import {
   Component,
   OnDestroy,
+  OnInit,
   computed,
   inject,
   signal,
@@ -28,7 +29,7 @@ import { AuthStateService } from '../../core/services/auth-state.service';
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./login.component.scss'],
 })
-export class LoginComponent implements OnDestroy {
+export class LoginComponent implements OnInit, OnDestroy {
   protected readonly faEnvelope = faEnvelope;
   protected readonly faLock = faLock;
   isLogin = signal(true);
@@ -54,7 +55,19 @@ export class LoginComponent implements OnDestroy {
   private authState = inject(AuthStateService);
   private router = inject(Router);
 
-  constructor() {}
+  ngOnInit() {
+    // The login redirect guard no longer waits for session validation, so a
+    // returning authenticated user may land here while `initialize()` is still
+    // in flight. Redirect once the session state is known.
+    if (this.authState.initialized()) {
+      return;
+    }
+    void this.authState.initialize().then(() => {
+      if (this.authState.isAuthenticated()) {
+        void this.router.navigateByUrl(this.authState.getPostAuthRedirectUrl());
+      }
+    });
+  }
 
   /** Whether the signup form should collect a password (false when email
    *  verification is required — email-first flow). */
@@ -212,6 +225,13 @@ export class LoginComponent implements OnDestroy {
   }
 
   async onSubmit() {
+    // The runtime config decides whether signup is email-first. If it has not
+    // landed yet, wait for the in-flight initialization once — the login form
+    // renders before it, but a submission must never use a stale form flow.
+    if (!this.authState.configLoaded()) {
+      await this.authState.initialize();
+    }
+
     this.markAllTouched();
     this.error.set('');
 

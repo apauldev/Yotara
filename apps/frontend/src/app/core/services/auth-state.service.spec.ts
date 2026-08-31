@@ -14,6 +14,10 @@ describe('AuthStateService', () => {
 
   it('falls back to unauthenticated state when initial session refresh fails', async () => {
     spyOn(TestBed.inject(LogService), 'error');
+    spyOn(AuthService, 'getConfig').and.resolveTo({
+      requireEmailVerification: false,
+      devMode: false,
+    });
     spyOn(AuthService, 'getSession').and.rejectWith(new Error('network down'));
     spyOn(AuthService, 'getProfile');
 
@@ -186,6 +190,10 @@ describe('AuthStateService', () => {
   });
 
   it('returns early from initialize when already initialized', async () => {
+    spyOn(AuthService, 'getConfig').and.resolveTo({
+      requireEmailVerification: false,
+      devMode: false,
+    });
     spyOn(AuthService, 'getSession').and.resolveTo({ data: { session: null, user: null } } as any);
     spyOn(AuthService, 'getProfile');
 
@@ -197,6 +205,87 @@ describe('AuthStateService', () => {
     await service.initialize();
 
     expect(AuthService.getSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts config and session requests concurrently without serial waiting', async () => {
+    let resolveConfig: (value: { requireEmailVerification: boolean; devMode: boolean }) => void;
+    let resolveSession: (value: any) => void;
+    spyOn(AuthService, 'getConfig').and.callFake(
+      () => new Promise((resolve) => (resolveConfig = resolve)),
+    );
+    spyOn(AuthService, 'getSession').and.callFake(
+      () => new Promise((resolve) => (resolveSession = resolve)),
+    );
+    spyOn(AuthService, 'getProfile');
+
+    const service = TestBed.inject(AuthStateService);
+    const initPromise = service.initialize();
+
+    // Both requests must have started before either resolves — the old
+    // implementation waited for config before calling getSession.
+    expect(AuthService.getConfig).toHaveBeenCalledTimes(1);
+    expect(AuthService.getSession).toHaveBeenCalledTimes(1);
+
+    resolveSession!({ data: { session: null, user: null } });
+    resolveConfig!({ requireEmailVerification: true, devMode: true });
+    await initPromise;
+
+    expect(service.requireEmailVerification()).toBeTrue();
+    expect(service.initialized()).toBeTrue();
+  });
+
+  it('coalesces concurrent initialize calls into one config and one session request', async () => {
+    let resolveSession: (value: any) => void;
+    spyOn(AuthService, 'getConfig').and.resolveTo({
+      requireEmailVerification: false,
+      devMode: false,
+    });
+    spyOn(AuthService, 'getSession').and.callFake(
+      () => new Promise((resolve) => (resolveSession = resolve)),
+    );
+    spyOn(AuthService, 'getProfile');
+
+    const service = TestBed.inject(AuthStateService);
+    const first = service.initialize();
+    const second = service.initialize();
+
+    resolveSession!({ data: { session: null, user: null } });
+    await Promise.all([first, second]);
+
+    expect(AuthService.getConfig).toHaveBeenCalledTimes(1);
+    expect(AuthService.getSession).toHaveBeenCalledTimes(1);
+    expect(service.initialized()).toBeTrue();
+  });
+
+  it('keeps safe defaults and still initializes the session when config fails', async () => {
+    spyOn(TestBed.inject(LogService), 'error');
+    spyOn(AuthService, 'getConfig').and.rejectWith(new Error('config down'));
+    spyOn(AuthService, 'getSession').and.resolveTo({ data: { session: null, user: null } } as any);
+    spyOn(AuthService, 'getProfile');
+
+    const service = TestBed.inject(AuthStateService);
+    await service.initialize();
+
+    expect(service.requireEmailVerification()).toBeFalse();
+    expect(service.devMode()).toBeFalse();
+    expect(service.configLoaded()).toBeTrue();
+    expect(service.initialized()).toBeTrue();
+    expect(AuthService.getSession).toHaveBeenCalledTimes(1);
+    expect(TestBed.inject(LogService).error).toHaveBeenCalled();
+  });
+
+  it('marks configLoaded after config succeeds', async () => {
+    spyOn(AuthService, 'getConfig').and.resolveTo({
+      requireEmailVerification: true,
+      devMode: true,
+    });
+    spyOn(AuthService, 'getSession').and.resolveTo({ data: { session: null, user: null } } as any);
+    spyOn(AuthService, 'getProfile');
+
+    const service = TestBed.inject(AuthStateService);
+    await service.initialize();
+
+    expect(service.configLoaded()).toBeTrue();
   });
 
   it('exposes the runtime config flags from getConfig', async () => {
@@ -212,6 +301,7 @@ describe('AuthStateService', () => {
 
     expect(service.requireEmailVerification()).toBeTrue();
     expect(service.devMode()).toBeTrue();
+    expect(service.configLoaded()).toBeTrue();
   });
 
   it('delegates signIn to AuthService and refreshes session on success', async () => {

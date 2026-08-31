@@ -9,7 +9,13 @@ export const loginRedirectGuard: CanActivateFn = async () => {
   const logService = inject(LogService);
 
   try {
-    await authState.initialize();
+    // Never block the login screen on session validation. The login component
+    // awaits the in-flight initialization and redirects authenticated users
+    // once the session lands; awaiting here would put the three auth
+    // round-trips on the first-paint critical path.
+    if (!authState.initialized()) {
+      await authState.initialize();
+    }
 
     if (!authState.isAuthenticated()) {
       return true;

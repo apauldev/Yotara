@@ -14,6 +14,7 @@ export class AuthStateService {
   private loadingState = signal(false);
   private requireEmailVerificationState = signal(false);
   private devModeState = signal(false);
+  private configLoadedState = signal(false);
   private logService = inject(LogService);
   private initPromise: Promise<SessionResponse> | null = null;
 
@@ -23,6 +24,8 @@ export class AuthStateService {
   readonly loading = this.loadingState.asReadonly();
   readonly requireEmailVerification = this.requireEmailVerificationState.asReadonly();
   readonly devMode = this.devModeState.asReadonly();
+  /** Whether the runtime config has been applied (success or failure). */
+  readonly configLoaded = this.configLoadedState.asReadonly();
   readonly isAuthenticated = computed(() => !!this.sessionState());
   readonly currentUserId = computed(
     () => this.userState()?.id ?? this.sessionState()?.userId ?? null,
@@ -41,17 +44,13 @@ export class AuthStateService {
     }
 
     this.initPromise = (async () => {
-      // Best-effort: the runtime flags decide which signup form to render and
-      // whether the dev-mode badge is shown. If this fails, default to the
-      // legacy form; the flags are not fatal.
-      try {
-        const config = await AuthService.getConfig();
-        this.requireEmailVerificationState.set(config.requireEmailVerification);
-        this.devModeState.set(config.devMode);
-      } catch (error) {
-        this.logService.error('Failed to load client config', error, 'AuthStateService');
-      }
-      return await this.refreshSession();
+      // Config and session are independent — run them concurrently so one
+      // slow request does not delay the other. Best-effort: the runtime flags
+      // decide which signup form to render and whether the dev-mode badge is
+      // shown. If config fails, default to the legacy form; the flags are not
+      // fatal.
+      const configPromise = this.loadConfig();
+      return await this.refreshSession().finally(() => configPromise);
     })().finally(() => {
       this.initPromise = null;
     });
@@ -76,6 +75,19 @@ export class AuthStateService {
     } finally {
       this.initializedState.set(true);
       this.loadingState.set(false);
+    }
+  }
+
+  /** Load the runtime client config (email-first signup, dev mode). */
+  private async loadConfig(): Promise<void> {
+    try {
+      const config = await AuthService.getConfig();
+      this.requireEmailVerificationState.set(config.requireEmailVerification);
+      this.devModeState.set(config.devMode);
+    } catch (error) {
+      this.logService.error('Failed to load client config', error, 'AuthStateService');
+    } finally {
+      this.configLoadedState.set(true);
     }
   }
 
