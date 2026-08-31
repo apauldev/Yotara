@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.75.4](https://github.com/apauldev/Yotara/compare/v0.75.3...v0.75.4) (2026-08-31)
+
+
+### Bug Fixes
+
+* **ui:** apply theme on login page by injecting ThemeService in AppComponent ([f9c97f3](https://github.com/apauldev/Yotara/commit/f9c97f36073d8af4d687236f289392a62ef18a77))
+
+
+### Chores
+
+* **deploy:** pin Hub Compose to v0.75.3 (fix theme flash) ([1746a31](https://github.com/apauldev/Yotara/commit/1746a3128320f56149e3e4b5bc710fa97d1ad362))
+
 ## [0.75.3](https://github.com/apauldev/Yotara/compare/v0.75.2...v0.75.3) (2026-08-30)
 
 
