@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { ThemeService } from './core/services/theme.service';
 
 @Component({
   selector: 'app-root',
@@ -9,4 +10,9 @@ import { RouterOutlet } from '@angular/router';
   changeDetection: ChangeDetectionStrategy.Default,
   styleUrl: './app.component.css',
 })
-export class AppComponent {}
+export class AppComponent {
+  /** Eagerly instantiate ThemeService so the theme class is applied to
+   *  <html> on every page (including login), not just after navigating
+   *  into the personal shell. */
+  private readonly theme = inject(ThemeService);
+}
