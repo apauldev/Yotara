@@ -2,6 +2,11 @@
 
 FROM node:22.22.3-alpine AS build
 
+ARG GIT_HASH=unknown
+ARG GIT_BRANCH=unknown
+ENV GIT_HASH=${GIT_HASH}
+ENV GIT_BRANCH=${GIT_BRANCH}
+
 WORKDIR /app
 RUN corepack enable
 RUN apk add --no-cache python3 build-base
