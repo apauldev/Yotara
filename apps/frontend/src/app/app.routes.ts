@@ -1,7 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { onboardingGuard } from './core/guards/onboarding.guard';
-import { loginRedirectGuard } from './core/guards/login-redirect.guard';
 import { personalModeMatchGuard, teamModeMatchGuard } from './core/guards/workspace-mode.guard';
 
 export const routes: Routes = [
@@ -27,7 +26,6 @@ export const routes: Routes = [
   },
   {
     path: 'login',
-    canActivate: [loginRedirectGuard],
     loadComponent: () => import('./features/auth/login.component').then((m) => m.LoginComponent),
   },
   {
