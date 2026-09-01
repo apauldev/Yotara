@@ -45,6 +45,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   retryAfterSeconds = signal<number | null>(null);
   /** Email-first signup state: email submitted → check-your-inbox screen. */
   emailSubmitted = signal(false);
+  alreadySignedIn = signal(false);
   /** Hidden honeypot field — bots fill it, humans never see it. */
   website = signal('');
   /** The placeholder password used for the unverified signup, kept so the user
@@ -52,21 +53,29 @@ export class LoginComponent implements OnInit, OnDestroy {
   placeholderPassword = signal('');
   protected locked = computed(() => (this.retryAfterSeconds() ?? 0) > 0);
   private countdownInterval: ReturnType<typeof setInterval> | null = null;
+  private redirectTimeout: ReturnType<typeof setTimeout> | null = null;
+  private destroyed = false;
   private authState = inject(AuthStateService);
   private router = inject(Router);
 
   ngOnInit() {
-    // The login redirect guard no longer waits for session validation, so a
-    // returning authenticated user may land here while `initialize()` is still
-    // in flight. Redirect once the session state is known.
+    const handleAuthState = () => {
+      if (this.destroyed || !this.authState.isAuthenticated()) {
+        return;
+      }
+
+      this.alreadySignedIn.set(true);
+      this.redirectTimeout = setTimeout(() => {
+        void this.router.navigateByUrl(this.authState.getPostAuthRedirectUrl());
+      }, 3000);
+    };
+
     if (this.authState.initialized()) {
+      handleAuthState();
       return;
     }
-    void this.authState.initialize().then(() => {
-      if (this.authState.isAuthenticated()) {
-        void this.router.navigateByUrl(this.authState.getPostAuthRedirectUrl());
-      }
-    });
+
+    void this.authState.initialize().then(handleAuthState);
   }
 
   /** Whether the signup form should collect a password (false when email
@@ -101,7 +110,12 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.destroyed = true;
     this.clearCountdown();
+    if (this.redirectTimeout !== null) {
+      clearTimeout(this.redirectTimeout);
+      this.redirectTimeout = null;
+    }
   }
 
   toggleMode() {
@@ -230,6 +244,10 @@ export class LoginComponent implements OnInit, OnDestroy {
     // renders before it, but a submission must never use a stale form flow.
     if (!this.authState.configLoaded()) {
       await this.authState.initialize();
+    }
+
+    if (this.alreadySignedIn()) {
+      return;
     }
 
     this.markAllTouched();

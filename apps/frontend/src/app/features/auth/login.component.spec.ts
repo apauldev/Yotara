@@ -415,9 +415,8 @@ describe('LoginComponent', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/forgot-password']);
   });
 
-  it('redirects an authenticated user once initialization completes', async () => {
-    // `initialized` is false at mount, and `initialize()` resolves after the
-    // session turns out authenticated — the component must then redirect.
+  it('shows a notification and redirects after three seconds when already authenticated', async () => {
+    jasmine.clock().install();
     authState.initialized.set(false);
     let resolveInit: (value: unknown) => void = () => {};
     authState.initialize = jasmine
@@ -429,12 +428,63 @@ describe('LoginComponent', () => {
     component = fixture.componentInstance;
     fixture.detectChanges();
 
+    expect(fixture.nativeElement.textContent).toContain('Welcome to Yotara');
+
     authState.isAuthenticated = () => true;
     resolveInit(null);
     await Promise.resolve();
     await Promise.resolve();
+    fixture.detectChanges();
 
+    expect(component.alreadySignedIn()).toBeTrue();
+    expect(fixture.nativeElement.textContent).toContain("You're already signed in");
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+
+    jasmine.clock().tick(2999);
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+
+    jasmine.clock().tick(1);
     expect(router.navigateByUrl).toHaveBeenCalledWith('/inbox');
+    jasmine.clock().uninstall();
+  });
+
+  it('does not redirect when authentication resolves after destroy', async () => {
+    jasmine.clock().install();
+    authState.initialized.set(false);
+    let resolveInit: (value: unknown) => void = () => {};
+    authState.initialize = jasmine
+      .createSpy('initialize')
+      .and.callFake(() => new Promise((resolve) => (resolveInit = resolve)));
+    authState.isAuthenticated = () => false;
+
+    fixture = TestBed.createComponent(LoginComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    component.ngOnDestroy();
+
+    authState.isAuthenticated = () => true;
+    resolveInit(null);
+    await Promise.resolve();
+    jasmine.clock().tick(3000);
+
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    jasmine.clock().uninstall();
+  });
+
+  it('cancels the delayed authenticated redirect when destroyed', () => {
+    jasmine.clock().install();
+    authState.initialized.set(true);
+    authState.isAuthenticated = () => true;
+
+    fixture = TestBed.createComponent(LoginComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.ngOnDestroy();
+    jasmine.clock().tick(3000);
+
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    jasmine.clock().uninstall();
   });
 
   it('waits for config readiness before submitting', async () => {

@@ -56,6 +56,7 @@ describe('PersonalShellComponent', () => {
               createdAt: '2026-03-19T00:00:00.000Z',
             }),
             initialized: signal(true),
+            isAuthenticated: jasmine.createSpy('isAuthenticated').and.returnValue(true),
             signOut: jasmine.createSpy('signOut').and.resolveTo(),
           },
         },

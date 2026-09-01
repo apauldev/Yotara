@@ -20,7 +20,12 @@
       {{ isLogin() ? 'A calm space for your tasks' : 'Set up your workspace in under a minute' }}
     </p>
 
-    @if (emailSubmitted()) {
+    @if (alreadySignedIn()) {
+      <div class="already-signed-in" role="status" aria-live="polite">
+        <h2>You're already signed in</h2>
+        <p>We'll take you to your workspace in 3 seconds.</p>
+      </div>
+    } @else if (emailSubmitted()) {
       <div class="check-email">
         <div class="hero-icon" aria-hidden="true">
           <fa-icon [icon]="faEnvelope" size="2x"></fa-icon>
