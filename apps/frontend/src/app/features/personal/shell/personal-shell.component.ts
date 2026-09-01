@@ -179,7 +179,7 @@ export class PersonalShellComponent {
     }
 
     effect(() => {
-      if (this.authState.initialized()) {
+      if (this.authState.initialized() && this.authState.isAuthenticated()) {
         this.notificationService.fetchUnreadCount();
         this.notificationService.fetchNotifications();
       }
