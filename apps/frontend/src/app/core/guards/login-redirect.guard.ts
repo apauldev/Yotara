@@ -1,27 +1,3 @@
-import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
-import { AuthStateService } from '../services/auth-state.service';
-import { LogService } from '../services/log.service';
+import { CanActivateFn } from '@angular/router';
 
-export const loginRedirectGuard: CanActivateFn = async (route) => {
-  if (route.routeConfig?.path === 'login') {
-    return true;
-  }
-
-  const router = inject(Router);
-  const authState = inject(AuthStateService);
-  const logService = inject(LogService);
-
-  try {
-    await authState.initialize();
-
-    if (!authState.isAuthenticated()) {
-      return true;
-    }
-
-    return router.parseUrl(authState.getPostAuthRedirectUrl());
-  } catch (error) {
-    logService.error('Login redirect guard validation error', error, 'LoginRedirectGuard');
-    return true;
-  }
-};
+export const loginRedirectGuard: CanActivateFn = () => true;

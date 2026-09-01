@@ -38,13 +38,11 @@ export const routes: Routes = [
   },
   {
     path: 'forgot-password',
-    canActivate: [loginRedirectGuard],
     loadComponent: () =>
       import('./features/auth/forgot-password.component').then((m) => m.ForgotPasswordComponent),
   },
   {
     path: 'reset-password',
-    canActivate: [loginRedirectGuard],
     loadComponent: () =>
       import('./features/auth/reset-password.component').then((m) => m.ResetPasswordComponent),
   },
