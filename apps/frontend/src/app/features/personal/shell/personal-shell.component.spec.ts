@@ -7,6 +7,7 @@ import { PersonalShellComponent } from './personal-shell.component';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
+import { APP_VERSION } from '../../../core/constants/version';
 
 @Component({
   standalone: true,
@@ -98,6 +99,16 @@ describe('PersonalShellComponent', () => {
     expect(fixture.debugElement.query(By.css('.avatar')).nativeElement.textContent.trim()).toBe(
       'JD',
     );
+  });
+
+  it('shows only the semantic version in the sidebar', () => {
+    const fixture = TestBed.createComponent(PersonalShellComponent);
+    fixture.detectChanges();
+
+    expect(
+      fixture.debugElement.query(By.css('.version-tag')).nativeElement.textContent.trim(),
+    ).toBe(APP_VERSION.version);
+    expect(fixture.debugElement.query(By.css('.version-hash'))).toBeNull();
   });
 
   it('opens and closes the mobile navigation drawer', fakeAsync(() => {

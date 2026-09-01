@@ -11,6 +11,7 @@ import { AuthStateService } from '../../../core/services/auth-state.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { APP_VERSION } from '../../../core/constants/version';
 
 const mockProjects: Project[] = [
   {
@@ -214,6 +215,14 @@ describe('SettingsPageComponent', () => {
 
   afterEach(() => {
     TestBed.resetTestingModule();
+  });
+
+  it('shows the full build identifier in the About section', () => {
+    const aboutSection = fixture.debugElement
+      .queryAll(By.css('.settings-section'))
+      .find((section) => section.nativeElement.textContent.includes('Version'));
+
+    expect(aboutSection?.nativeElement.textContent).toContain(APP_VERSION.full);
   });
 
   describe('export tasks', () => {
