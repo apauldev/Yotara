@@ -1,6 +1,7 @@
 import {
   Component,
   OnDestroy,
+  OnInit,
   computed,
   inject,
   signal,
@@ -28,7 +29,7 @@ import { AuthStateService } from '../../core/services/auth-state.service';
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./login.component.scss'],
 })
-export class LoginComponent implements OnDestroy {
+export class LoginComponent implements OnInit, OnDestroy {
   protected readonly faEnvelope = faEnvelope;
   protected readonly faLock = faLock;
   isLogin = signal(true);
@@ -44,6 +45,7 @@ export class LoginComponent implements OnDestroy {
   retryAfterSeconds = signal<number | null>(null);
   /** Email-first signup state: email submitted → check-your-inbox screen. */
   emailSubmitted = signal(false);
+  alreadySignedIn = signal(false);
   /** Hidden honeypot field — bots fill it, humans never see it. */
   website = signal('');
   /** The placeholder password used for the unverified signup, kept so the user
@@ -51,10 +53,30 @@ export class LoginComponent implements OnDestroy {
   placeholderPassword = signal('');
   protected locked = computed(() => (this.retryAfterSeconds() ?? 0) > 0);
   private countdownInterval: ReturnType<typeof setInterval> | null = null;
+  private redirectTimeout: ReturnType<typeof setTimeout> | null = null;
+  private destroyed = false;
   private authState = inject(AuthStateService);
   private router = inject(Router);
 
-  constructor() {}
+  ngOnInit() {
+    const handleAuthState = () => {
+      if (this.destroyed || !this.authState.isAuthenticated()) {
+        return;
+      }
+
+      this.alreadySignedIn.set(true);
+      this.redirectTimeout = setTimeout(() => {
+        void this.router.navigateByUrl(this.authState.getPostAuthRedirectUrl());
+      }, 3000);
+    };
+
+    if (this.authState.initialized()) {
+      handleAuthState();
+      return;
+    }
+
+    void this.authState.initialize().then(handleAuthState);
+  }
 
   /** Whether the signup form should collect a password (false when email
    *  verification is required — email-first flow). */
@@ -88,7 +110,12 @@ export class LoginComponent implements OnDestroy {
   }
 
   ngOnDestroy() {
+    this.destroyed = true;
     this.clearCountdown();
+    if (this.redirectTimeout !== null) {
+      clearTimeout(this.redirectTimeout);
+      this.redirectTimeout = null;
+    }
   }
 
   toggleMode() {
@@ -212,6 +239,21 @@ export class LoginComponent implements OnDestroy {
   }
 
   async onSubmit() {
+    // The runtime config decides whether signup is email-first. If it has not
+    // landed yet, wait for the in-flight initialization once — the login form
+    // renders before it, but a submission must never use a stale form flow.
+    if (!this.authState.configLoaded()) {
+      await this.authState.initialize();
+    }
+
+    if (!this.authState.configLoaded()) {
+      return;
+    }
+
+    if (this.alreadySignedIn()) {
+      return;
+    }
+
     this.markAllTouched();
     this.error.set('');
 

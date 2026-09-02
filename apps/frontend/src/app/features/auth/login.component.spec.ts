@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { LoginComponent, isLocalhostHostname } from './login.component';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { Router } from '@angular/router';
@@ -14,6 +15,10 @@ describe('LoginComponent', () => {
     requireEmailVerification: () => boolean;
     devMode: () => boolean;
     sendVerificationEmail: jasmine.Spy;
+    initialized: ReturnType<typeof signal<boolean>>;
+    isAuthenticated: () => boolean;
+    configLoaded: () => boolean;
+    initialize: jasmine.Spy;
   };
 
   beforeEach(async () => {
@@ -29,6 +34,10 @@ describe('LoginComponent', () => {
       requireEmailVerification: () => false,
       devMode: () => false,
       sendVerificationEmail: jasmine.createSpy('sendVerificationEmail').and.resolveTo(undefined),
+      initialized: signal(true),
+      isAuthenticated: () => false,
+      configLoaded: () => true,
+      initialize: jasmine.createSpy('initialize').and.resolveTo(null),
     };
 
     await TestBed.configureTestingModule({
@@ -404,6 +413,142 @@ describe('LoginComponent', () => {
     forgotBtn.click();
 
     expect(router.navigate).toHaveBeenCalledWith(['/forgot-password']);
+  });
+
+  it('shows a notification and redirects after three seconds when already authenticated', async () => {
+    jasmine.clock().install();
+    authState.initialized.set(false);
+    let resolveInit: (value: unknown) => void = () => {};
+    authState.initialize = jasmine
+      .createSpy('initialize')
+      .and.callFake(() => new Promise((resolve) => (resolveInit = resolve)));
+    authState.isAuthenticated = () => false;
+
+    fixture = TestBed.createComponent(LoginComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Welcome to Yotara');
+
+    authState.isAuthenticated = () => true;
+    resolveInit(null);
+    await Promise.resolve();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(component.alreadySignedIn()).toBeTrue();
+    expect(fixture.nativeElement.textContent).toContain("You're already signed in");
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+
+    jasmine.clock().tick(2999);
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+
+    jasmine.clock().tick(1);
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/inbox');
+    jasmine.clock().uninstall();
+  });
+
+  it('does not redirect when authentication resolves after destroy', async () => {
+    jasmine.clock().install();
+    authState.initialized.set(false);
+    let resolveInit: (value: unknown) => void = () => {};
+    authState.initialize = jasmine
+      .createSpy('initialize')
+      .and.callFake(() => new Promise((resolve) => (resolveInit = resolve)));
+    authState.isAuthenticated = () => false;
+
+    fixture = TestBed.createComponent(LoginComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    component.ngOnDestroy();
+
+    authState.isAuthenticated = () => true;
+    resolveInit(null);
+    await Promise.resolve();
+    jasmine.clock().tick(3000);
+
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    jasmine.clock().uninstall();
+  });
+
+  it('cancels the delayed authenticated redirect when destroyed', () => {
+    jasmine.clock().install();
+    authState.initialized.set(true);
+    authState.isAuthenticated = () => true;
+
+    fixture = TestBed.createComponent(LoginComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.ngOnDestroy();
+    jasmine.clock().tick(3000);
+
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    jasmine.clock().uninstall();
+  });
+
+  it('waits for config readiness before submitting', async () => {
+    fixture.detectChanges();
+
+    authState.configLoaded = () => false;
+    authState.initialize.and.callFake(async () => {
+      authState.configLoaded = () => true;
+    });
+
+    component.email.set('alex@example.com');
+    component.password.set('secret-password');
+
+    await component.onSubmit();
+
+    expect(authState.initialize).toHaveBeenCalled();
+    expect(authState.signIn).toHaveBeenCalledWith('alex@example.com', 'secret-password');
+  });
+
+  it('signup is blocked while config is still loading', async () => {
+    authState.configLoaded = () => false;
+    authState.requireEmailVerification = () => true;
+    authState.initialize.calls.reset();
+    fixture.detectChanges();
+    component.toggleMode();
+
+    component.name.set('Alex Rivers');
+    component.email.set('alex@example.com');
+
+    await component.onSubmit();
+
+    expect(authState.initialize).toHaveBeenCalled();
+    expect(authState.signUp).not.toHaveBeenCalled();
+  });
+
+  it('config failure selects email-first signup path', async () => {
+    authState.requireEmailVerification = () => true;
+    authState.configLoaded = () => true;
+    fixture.detectChanges();
+    component.toggleMode();
+
+    component.name.set('Alex Rivers');
+    component.email.set('alex@example.com');
+
+    await component.onSubmit();
+
+    expect(authState.signUp).toHaveBeenCalledWith(
+      'alex@example.com',
+      jasmine.stringMatching(/^[0-9a-f]{64}$/),
+      'Alex Rivers',
+      '',
+    );
+  });
+
+  it('normal login is available when config has loaded', async () => {
+    authState.configLoaded = () => true;
+    fixture.detectChanges();
+
+    component.email.set('alex@example.com');
+    component.password.set('secret-password');
+
+    await component.onSubmit();
+
+    expect(authState.signIn).toHaveBeenCalledWith('alex@example.com', 'secret-password');
   });
 
   it('shows the DEV MODE badge on localhost when dev mode is on', () => {

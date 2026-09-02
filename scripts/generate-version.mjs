@@ -40,7 +40,18 @@ try {
       // Not on a tag
     }
   } catch (e) {
-    if (process.env.CI) {
+    // Fallback to environment variables (set by Docker build args or CI)
+    const envHash = process.env.GIT_HASH || process.env.GITHUB_SHA || '';
+    const envBranch = process.env.GIT_BRANCH || process.env.GITHUB_REF_NAME || '';
+
+    if (envHash || envBranch) {
+      hash = envHash.substring(0, 7) || 'unknown';
+      branch = envBranch || 'unknown';
+      if (process.env.GITHUB_REF_TYPE === 'tag') {
+        tag = process.env.GITHUB_REF_NAME;
+      }
+      console.warn('⚠️ Git commands failed; fell back to environment variables for metadata.');
+    } else if (process.env.CI) {
       // Fallback for GitHub Actions or generic CI
       hash = (process.env.GITHUB_SHA || '').substring(0, 7) || 'unknown';
       branch = process.env.GITHUB_REF_NAME || 'unknown';

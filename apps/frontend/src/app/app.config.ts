@@ -1,8 +1,8 @@
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import {
-  APP_INITIALIZER,
   ApplicationConfig,
   inject,
+  provideEnvironmentInitializer,
   provideZoneChangeDetection,
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
@@ -29,18 +29,14 @@ export const appConfig: ApplicationConfig = {
       withFetch(),
       withInterceptors([apiPrefixInterceptor, loadingInterceptor, errorInterceptor]),
     ),
-    {
-      provide: APP_INITIALIZER,
-      multi: true,
-      useFactory: () => {
-        const authState = inject(AuthStateService);
-        return () => {
-          const apiBaseUrl = (window as E2EWindow).__YOTARA_E2E_API_URL__ ?? environment.apiBaseUrl;
-          configureAuthClient(`${apiBaseUrl}/auth`);
-          return authState.initialize();
-        };
-      },
-    },
+    provideEnvironmentInitializer(() => {
+      // Configure the shared auth client's base URL as soon as the environment
+      // is available, without blocking bootstrap. This used to be an
+      // APP_INITIALIZER that awaited auth initialization — auth requests must
+      // no longer gate the first paint of the login screen.
+      const apiBaseUrl = (window as E2EWindow).__YOTARA_E2E_API_URL__ ?? environment.apiBaseUrl;
+      configureAuthClient(`${apiBaseUrl}/auth`);
+    }),
     {
       provide: SANITIZE,
       useValue: (html: string) => DOMPurify.sanitize(html),
