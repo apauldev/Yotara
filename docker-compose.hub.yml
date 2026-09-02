@@ -1,10 +1,10 @@
-# Beta-2 deployment — pinned to immutable tag v0.75.4 (release chore(release): 0.75.4)
-# Do NOT use :latest. Rollback tag: v0.75.3.
-# Fix: apply theme on login page by injecting ThemeService in AppComponent.
+# Beta-2 deployment — pinned to immutable tag v0.75.5 (release chore(release): 0.75.5)
+# Do NOT use :latest. Rollback tag: v0.75.4.
+# Fix: auth initialization race and fail-closed config behavior (PR #367).
 # Ongoing mechanism: release-specific checked-in compose (update both image lines per release).
 services:
   api:
-    image: apauldev2/yotara-api:v0.75.4
+    image: apauldev2/yotara-api:v0.75.5
     environment:
       DATABASE_URL: /app/apps/api/data/yotara.db
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
@@ -37,7 +37,7 @@ services:
       - /tmp
 
   frontend:
-    image: apauldev2/yotara-frontend:v0.75.4
+    image: apauldev2/yotara-frontend:v0.75.5
     depends_on:
       - api
     environment:
