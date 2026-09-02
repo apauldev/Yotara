@@ -1,0 +1,16 @@
+@if (legalContent.configured()) {
+  <p class="terms-notice">
+    This is an experimental beta. Please review the
+    <button type="button" class="terms-link" (click)="openTerms()">Beta Terms of Service</button>
+    before creating an account.
+  </p>
+
+  @if (legalContent.document(); as document) {
+    <app-modal [open]="termsOpen()" [title]="document.title" size="lg" (close)="closeTerms()">
+      <p modal-subtitle>Version {{ document.version }} · Effective {{ document.effectiveDate }}</p>
+      <article class="terms-content">
+        <markdown [data]="document.content" />
+      </article>
+    </app-modal>
+  }
+}

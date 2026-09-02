@@ -1,13 +1,28 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { provideMarkdown } from 'ngx-markdown';
 import { LoginComponent, isLocalhostHostname } from './login.component';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { Router } from '@angular/router';
+import { LegalContentService, type LegalDocument } from '../../core/services/legal-content.service';
+
+const legalDocument: LegalDocument = {
+  type: 'terms-of-service',
+  version: '1.0',
+  effectiveDate: '2026-09-02',
+  title: 'Yotara Beta Terms of Service',
+  content: '# Terms',
+};
 
 describe('LoginComponent', () => {
   let fixture: ComponentFixture<LoginComponent>;
   let component: LoginComponent;
   let router: { navigate: jasmine.Spy; navigateByUrl: jasmine.Spy };
+  let legalContent: {
+    configured: ReturnType<typeof signal<boolean>>;
+    document: ReturnType<typeof signal<LegalDocument | null>>;
+    load: jasmine.Spy;
+  };
   let authState: {
     signIn: jasmine.Spy;
     signUp: jasmine.Spy;
@@ -27,6 +42,12 @@ describe('LoginComponent', () => {
       navigateByUrl: jasmine.createSpy('navigateByUrl').and.resolveTo(true),
     };
 
+    legalContent = {
+      configured: signal(false),
+      document: signal<LegalDocument | null>(null),
+      load: jasmine.createSpy('load').and.resolveTo(),
+    };
+
     authState = {
       signIn: jasmine.createSpy('signIn').and.resolveTo({ error: null }),
       signUp: jasmine.createSpy('signUp').and.resolveTo({ error: null }),
@@ -43,8 +64,10 @@ describe('LoginComponent', () => {
     await TestBed.configureTestingModule({
       imports: [LoginComponent],
       providers: [
+        provideMarkdown(),
         { provide: Router, useValue: router },
         { provide: AuthStateService, useValue: authState },
+        { provide: LegalContentService, useValue: legalContent },
       ],
     }).compileComponents();
 
@@ -69,6 +92,29 @@ describe('LoginComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Create your Yotara account');
     expect(fixture.nativeElement.textContent).toContain('Name');
     expect(fixture.nativeElement.textContent).toContain('Create account');
+  });
+
+  it('shows the beta terms notice only in sign-up mode when configured', () => {
+    legalContent.configured.set(true);
+    legalContent.document.set(legalDocument);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('app-beta-terms-notice')).toBeNull();
+
+    component.toggleMode();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('app-beta-terms-notice')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Beta Terms of Service');
+  });
+
+  it('does not show the beta terms notice when legal content is unavailable', () => {
+    fixture.detectChanges();
+    component.toggleMode();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('app-beta-terms-notice')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Beta Terms of Service');
   });
 
   it('blocks submission when validation fails', async () => {

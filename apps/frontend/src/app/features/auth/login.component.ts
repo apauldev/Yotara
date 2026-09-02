@@ -20,11 +20,19 @@ import { PasswordTrialComponent } from './password-trial.component';
 import { StrengthMeterComponent } from '../../shared/ui/strength-meter/strength-meter.component';
 import { passwordPolicyMessage } from './password-policy';
 import { AuthStateService } from '../../core/services/auth-state.service';
+import { LegalContentService } from '../../core/services/legal-content.service';
+import { BetaTermsNoticeComponent } from './beta-terms-notice.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, FontAwesomeModule, PasswordTrialComponent, StrengthMeterComponent],
+  imports: [
+    FormsModule,
+    FontAwesomeModule,
+    PasswordTrialComponent,
+    StrengthMeterComponent,
+    BetaTermsNoticeComponent,
+  ],
   templateUrl: './login.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./login.component.scss'],
@@ -55,10 +63,13 @@ export class LoginComponent implements OnInit, OnDestroy {
   private countdownInterval: ReturnType<typeof setInterval> | null = null;
   private redirectTimeout: ReturnType<typeof setTimeout> | null = null;
   private destroyed = false;
+  protected readonly legalContent = inject(LegalContentService);
   private authState = inject(AuthStateService);
   private router = inject(Router);
 
   ngOnInit() {
+    void this.legalContent.load();
+
     const handleAuthState = () => {
       if (this.destroyed || !this.authState.isAuthenticated()) {
         return;
