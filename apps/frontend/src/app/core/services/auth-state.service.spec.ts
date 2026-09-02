@@ -257,6 +257,69 @@ describe('AuthStateService', () => {
     expect(service.initialized()).toBeTrue();
   });
 
+  it('does not resolve second caller before config completes', async () => {
+    let resolveSession: (value: any) => void;
+    let resolveConfig: (value: { requireEmailVerification: boolean; devMode: boolean }) => void;
+    spyOn(AuthService, 'getConfig').and.callFake(
+      () => new Promise((resolve) => (resolveConfig = resolve)),
+    );
+    spyOn(AuthService, 'getSession').and.callFake(
+      () => new Promise((resolve) => (resolveSession = resolve)),
+    );
+    spyOn(AuthService, 'getProfile');
+
+    const service = TestBed.inject(AuthStateService);
+    const first = service.initialize();
+
+    // Resolve session before config
+    resolveSession!({ data: { session: null, user: null } });
+
+    // Second caller should not resolve yet — config is still pending
+    const second = service.initialize();
+    let secondResolved = false;
+    second.then(() => (secondResolved = true));
+
+    // Flush microtasks — second should still be pending
+    await Promise.resolve();
+    expect(secondResolved).toBeFalse();
+
+    // Now resolve config
+    resolveConfig!({ requireEmailVerification: true, devMode: false });
+
+    await Promise.all([first, second]);
+
+    expect(service.configLoaded()).toBeTrue();
+    expect(service.requireEmailVerification()).toBeTrue();
+    expect(service.initialized()).toBeTrue();
+  });
+
+  it('sets initialized only after both config and session settle', async () => {
+    let resolveSession: (value: any) => void;
+    let resolveConfig: (value: { requireEmailVerification: boolean; devMode: boolean }) => void;
+    spyOn(AuthService, 'getConfig').and.callFake(
+      () => new Promise((resolve) => (resolveConfig = resolve)),
+    );
+    spyOn(AuthService, 'getSession').and.callFake(
+      () => new Promise((resolve) => (resolveSession = resolve)),
+    );
+    spyOn(AuthService, 'getProfile');
+
+    const service = TestBed.inject(AuthStateService);
+    const initPromise = service.initialize();
+
+    // Resolve session first — initialized should still be false
+    resolveSession!({ data: { session: null, user: null } });
+    await Promise.resolve();
+    expect(service.initialized()).toBeFalse();
+
+    // Resolve config — now initialized should become true
+    resolveConfig!({ requireEmailVerification: false, devMode: false });
+    await initPromise;
+
+    expect(service.initialized()).toBeTrue();
+    expect(service.configLoaded()).toBeTrue();
+  });
+
   it('keeps safe defaults and still initializes the session when config fails', async () => {
     spyOn(TestBed.inject(LogService), 'error');
     spyOn(AuthService, 'getConfig').and.rejectWith(new Error('config down'));
@@ -266,7 +329,7 @@ describe('AuthStateService', () => {
     const service = TestBed.inject(AuthStateService);
     await service.initialize();
 
-    expect(service.requireEmailVerification()).toBeFalse();
+    expect(service.requireEmailVerification()).toBeTrue();
     expect(service.devMode()).toBeFalse();
     expect(service.configLoaded()).toBeTrue();
     expect(service.initialized()).toBeTrue();
