@@ -1,9 +1,10 @@
-import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faEnvelope, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { AuthStateService } from '../../core/services/auth-state.service';
+import { AuthService } from '@yotara/shared';
 
 @Component({
   selector: 'app-forgot-password',
@@ -26,13 +27,24 @@ import { AuthStateService } from '../../core/services/auth-state.service';
         </div>
 
         @if (emailSent()) {
-          <h1>Check your email</h1>
-          <p class="subtitle">
-            If an account exists for <strong>{{ submittedEmail() }}</strong
-            >, we've sent a password reset link. It will expire in 1 hour.
-          </p>
+          @if (devResetUrl()) {
+            <h1>Reset link ready</h1>
+            <p class="subtitle">Dev mode — here's your reset link (expires in 15 minutes):</p>
+            <a class="dev-reset-link" [href]="devResetUrl()">{{ devResetUrl() }}</a>
+            <button type="button" class="submit-button" (click)="goToResetWithLink()">
+              Reset password now
+            </button>
+          } @else {
+            <h1>Check your email</h1>
+            <p class="subtitle">
+              If an account exists for <strong>{{ submittedEmail() }}</strong
+              >, we've sent a password reset link. It will expire in 1 hour.
+            </p>
+          }
 
-          <button type="button" class="submit-button" (click)="backToForm()">Send again</button>
+          <button type="button" class="submit-button secondary" (click)="backToForm()">
+            Send again
+          </button>
         } @else {
           <h1>Reset your password</h1>
           <p class="subtitle">
@@ -87,19 +99,29 @@ export class ForgotPasswordComponent {
   loading = signal(false);
   error = signal('');
   emailSent = signal(false);
+  devResetUrl = signal('');
 
-  constructor(
-    private router: Router,
-    private authState: AuthStateService,
-  ) {}
+  private router = inject(Router);
+  private authState = inject(AuthStateService);
 
   backToForm() {
     this.emailSent.set(false);
+    this.devResetUrl.set('');
     this.error.set('');
   }
 
   goBack() {
     this.router.navigate(['/login']);
+  }
+
+  goToResetWithLink() {
+    const url = this.devResetUrl();
+    if (url) {
+      const token = new URL(url).searchParams.get('token');
+      if (token) {
+        this.router.navigate(['/reset-password'], { queryParams: { token } });
+      }
+    }
   }
 
   async onSubmit() {
@@ -116,9 +138,11 @@ export class ForgotPasswordComponent {
 
     this.loading.set(true);
     this.error.set('');
+    let resetRequested = false;
 
     try {
       await this.authState.forgotPassword(email);
+      resetRequested = true;
       this.submittedEmail.set(email);
       this.emailSent.set(true);
     } catch (_err) {
@@ -127,6 +151,14 @@ export class ForgotPasswordComponent {
       this.emailSent.set(true);
     } finally {
       this.loading.set(false);
+    }
+
+    // In dev mode, fetch the reset link so it can be shown directly on screen.
+    if (resetRequested && this.authState.devMode() && this.emailSent()) {
+      const url = await AuthService.getDevResetLink(email);
+      if (url) {
+        this.devResetUrl.set(url);
+      }
     }
   }
 }

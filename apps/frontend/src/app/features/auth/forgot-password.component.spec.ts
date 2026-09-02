@@ -1,13 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ForgotPasswordComponent } from './forgot-password.component';
 import { AuthStateService } from '../../core/services/auth-state.service';
+import { AuthService } from '@yotara/shared';
 import { Router } from '@angular/router';
 
 describe('ForgotPasswordComponent', () => {
   let fixture: ComponentFixture<ForgotPasswordComponent>;
   let component: ForgotPasswordComponent;
   let router: { navigate: jasmine.Spy };
-  let authState: { forgotPassword: jasmine.Spy };
+  let authState: { forgotPassword: jasmine.Spy; devMode: jasmine.Spy };
 
   beforeEach(async () => {
     router = {
@@ -16,6 +17,7 @@ describe('ForgotPasswordComponent', () => {
 
     authState = {
       forgotPassword: jasmine.createSpy('forgotPassword').and.resolveTo(undefined),
+      devMode: jasmine.createSpy('devMode').and.returnValue(false),
     };
 
     await TestBed.configureTestingModule({
@@ -121,5 +123,39 @@ describe('ForgotPasswordComponent', () => {
     fixture.detectChanges();
 
     expect(authState.forgotPassword).toHaveBeenCalledWith('alex@example.com');
+  });
+
+  it('shows and follows the dev reset link in dev mode after submitting', async () => {
+    authState.devMode.and.returnValue(true);
+    const resetUrl = 'http://localhost:4200/reset-password?token=dev-reset-token';
+    const getDevResetLinkSpy = spyOn(AuthService, 'getDevResetLink').and.resolveTo(resetUrl);
+    fixture.detectChanges();
+    component.email.set('alex@example.com');
+
+    await component.onSubmit();
+    fixture.detectChanges();
+
+    expect(getDevResetLinkSpy).toHaveBeenCalledWith('alex@example.com');
+    expect(component.devResetUrl()).toBe(resetUrl);
+    const link: HTMLAnchorElement = fixture.nativeElement.querySelector('.dev-reset-link');
+    expect(link.href).toBe(resetUrl);
+    expect(fixture.nativeElement.textContent).toContain('Reset password now');
+
+    component.goToResetWithLink();
+    expect(router.navigate).toHaveBeenCalledWith(['/reset-password'], {
+      queryParams: { token: 'dev-reset-token' },
+    });
+  });
+
+  it('does not fetch a dev reset link when the reset request fails', async () => {
+    authState.devMode.and.returnValue(true);
+    const getDevResetLinkSpy = spyOn(AuthService, 'getDevResetLink');
+    authState.forgotPassword.and.rejectWith(new Error('network error'));
+    fixture.detectChanges();
+    component.email.set('alex@example.com');
+
+    await component.onSubmit();
+
+    expect(getDevResetLinkSpy).not.toHaveBeenCalled();
   });
 });

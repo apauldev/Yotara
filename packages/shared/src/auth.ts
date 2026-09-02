@@ -162,4 +162,15 @@ export const AuthService = {
       }),
     });
   },
+  /** Dev-mode only: retrieve the last generated password-reset link for an email. */
+  getDevResetLink: async (email: string): Promise<string | null> => {
+    try {
+      const result = await request<{ url: string }>(
+        `/dev/reset-link?email=${encodeURIComponent(email)}`,
+      );
+      return result.url;
+    } catch {
+      return null;
+    }
+  },
 };

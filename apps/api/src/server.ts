@@ -18,6 +18,8 @@ import projectRoutes from './routes/projects.js';
 import rootRoutes from './routes/root.js';
 import searchRoutes from './routes/search.js';
 import taskRoutes from './routes/tasks.js';
+import devRoutes from './routes/dev.js';
+import { isLocalDevMode } from './lib/dev-mode.js';
 
 // Content-Security-Policy — single source of truth for the API and nginx.
 // nginx reads it via the CONTENT_SECURITY_POLICY env var (injected at container
@@ -110,6 +112,9 @@ export async function buildApp() {
   await app.register(searchRoutes);
   await app.register(taskRoutes);
   await app.register(rootRoutes);
+  if (isLocalDevMode()) {
+    await app.register(devRoutes);
+  }
 
   return app;
 }

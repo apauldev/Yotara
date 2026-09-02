@@ -109,6 +109,10 @@ export function devMode(): boolean {
   return true;
 }
 
+export function isLocalDevMode(): boolean {
+  return process.env['NODE_ENV'] !== 'production' && devMode();
+}
+
 /** Emails must be logged to console (never sent via Resend) in dev mode. */
 export function emailToConsole(): boolean {
   return devMode() && fileConfig().emailToConsole;
