@@ -48,6 +48,7 @@ services:
     volumes:
       - /opt/yotara/nginx-ssl.conf.template:/etc/nginx/templates/default.conf.template:ro
       - /opt/yotara/ssl:/etc/nginx/ssl:ro
+      - /opt/yotara/legal:/usr/share/nginx/html/legal:ro
 
 volumes:
   yotara_api_data:

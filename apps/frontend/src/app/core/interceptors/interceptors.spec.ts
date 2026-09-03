@@ -94,5 +94,16 @@ describe('Interceptors', () => {
 
       expect(statusService.error).not.toHaveBeenCalled();
     });
+
+    it('should skip errors when the request opts out', () => {
+      spyOn(statusService, 'error');
+
+      httpClient
+        .get('/optional', { headers: { 'X-Skip-Error': 'true' } })
+        .subscribe({ error: () => {} });
+      httpMock.expectOne('/optional').flush({}, { status: 404, statusText: 'Not Found' });
+
+      expect(statusService.error).not.toHaveBeenCalled();
+    });
   });
 });

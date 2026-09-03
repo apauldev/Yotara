@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.76.0](https://github.com/apauldev/Yotara/compare/v0.75.5...v0.76.0) (2026-09-03)
+
+
+### Features
+
+* optional hosted beta legal content with signup ToS agreement ([#369](https://github.com/apauldev/Yotara/issues/369)) ([6fbf92f](https://github.com/apauldev/Yotara/commit/6fbf92fb1dbdaa7bfc5e9d1f42db907e22fa555b))
+
+
+### Bug Fixes
+
+* **ci:** use native arm64 runners in release docker builds ([#368](https://github.com/apauldev/Yotara/issues/368)) ([700fa96](https://github.com/apauldev/Yotara/commit/700fa96dba482cec899843a3ca5d0c83c66b2fe1)), closes [#354](https://github.com/apauldev/Yotara/issues/354)
+
+
+### Chores
+
+* **deploy:** pin Hub Compose to v0.75.5 ([273c1e7](https://github.com/apauldev/Yotara/commit/273c1e7fcd8704127485245520b70f89aa5b057f)), closes [#367](https://github.com/apauldev/Yotara/issues/367)
+
 ## [0.75.5](https://github.com/apauldev/Yotara/compare/v0.75.4...v0.75.5) (2026-09-02)
 
 

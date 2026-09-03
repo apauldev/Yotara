@@ -112,6 +112,39 @@ To verify the boot guard and valid-secret control:
 pnpm --filter @yotara/api exec tsx --test src/lib/auth-secret.test.ts src/lib/security-audit.test.ts
 ```
 
+### Optional hosted legal content
+
+The default `docker-compose.yml` does not mount legal documents, so generic self-hosted
+instances do not display Yotara's hosted-beta terms. The Hub deployment can optionally
+mount operator-provided documents at `/opt/yotara/legal`:
+
+```yaml
+services:
+  frontend:
+    volumes:
+      - /opt/yotara/legal:/usr/share/nginx/html/legal:ro
+```
+
+The frontend displays the beta Terms of Service during sign-up only when
+`/legal/terms.json` exists and contains a valid document. The repository's canonical
+beta document is [`legal/beta/terms.json`](./legal/beta/terms.json); copy it to the
+EC2 host before recreating the frontend container:
+
+From the repository checkout, copy the canonical document to the EC2 host and install it
+with restricted ownership and permissions:
+
+```bash
+scp legal/beta/terms.json yotara:/tmp/yotara-terms.json
+ssh yotara 'sudo install -d -o root -g root -m 755 /opt/yotara/legal && sudo install -o root -g root -m 644 /tmp/yotara-terms.json /opt/yotara/legal/terms.json && rm -f /tmp/yotara-terms.json'
+```
+
+Recreate the frontend container after copying the Hub Compose file and legal document.
+
+This mount is an opt-in deployment setting, not part of the frontend image. Self-hosted
+operators may leave it absent or replace the file with their own terms and privacy
+notice. Yotara's hosted-beta terms apply only to the Yotara-operated beta and do not
+impose legal terms on independent installations.
+
 ### Content-Security-Policy
 
 The CSP is a single source of truth set once in `docker-compose.yml` (both `api` and
