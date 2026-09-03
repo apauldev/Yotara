@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.76.1](https://github.com/apauldev/Yotara/compare/v0.76.0...v0.76.1) (2026-09-03)
+
+
+### Bug Fixes
+
+* **auth:** keep dev password reset links local-only ([#370](https://github.com/apauldev/Yotara/issues/370)) ([cee7636](https://github.com/apauldev/Yotara/commit/cee763616e1390458a649933438d2fc87e1f640c))
+
 ## [0.76.0](https://github.com/apauldev/Yotara/compare/v0.75.5...v0.76.0) (2026-09-03)
 
 
