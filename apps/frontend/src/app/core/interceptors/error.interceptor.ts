@@ -14,6 +14,10 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error: unknown) => {
+      if (req.headers.get('X-Skip-Error') === 'true') {
+        return throwError(() => error);
+      }
+
       if (error instanceof HttpErrorResponse) {
         // Skip 401 as it's handled by AuthRedirectGuard or specialized logic
         if (error.status === 401) {

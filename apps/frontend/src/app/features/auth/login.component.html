@@ -155,6 +155,13 @@
         <button type="submit" [disabled]="loading() || locked()" class="submit-button">
           {{ loading() ? 'Loading...' : isLogin() ? 'Sign In' : 'Create account' }}
         </button>
+
+        @if (!isLogin() && legalContent.configured()) {
+          <app-beta-terms-notice [(accepted)]="termsAccepted" />
+          @if (shouldShowFieldError('terms')) {
+            <div class="field-error terms-error">{{ getFieldError('terms') }}</div>
+          }
+        }
       </form>
 
       <div class="divider"></div>
