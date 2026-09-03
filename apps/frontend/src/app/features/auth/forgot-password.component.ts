@@ -148,27 +148,27 @@ export class ForgotPasswordComponent {
 
     this.loading.set(true);
     this.error.set('');
-    let resetRequested = false;
 
     try {
       await this.authState.forgotPassword(email);
-      resetRequested = true;
       this.submittedEmail.set(email);
       this.emailSent.set(true);
+
+      // In dev mode, fetch the reset link so it can be shown directly on
+      // screen. Runs inside the try so the spinner stays active until the
+      // link is ready (getDevResetLink never throws — it returns null).
+      if (this.showDevResetLink() && this.emailSent()) {
+        const url = await AuthService.getDevResetLink(email);
+        if (url) {
+          this.devResetUrl.set(url);
+        }
+      }
     } catch (_err) {
       // Don't reveal whether the email exists — show generic success even on error
       this.submittedEmail.set(email);
       this.emailSent.set(true);
     } finally {
       this.loading.set(false);
-    }
-
-    // In dev mode, fetch the reset link so it can be shown directly on screen.
-    if (resetRequested && this.showDevResetLink() && this.emailSent()) {
-      const url = await AuthService.getDevResetLink(email);
-      if (url) {
-        this.devResetUrl.set(url);
-      }
     }
   }
 }
