@@ -8,8 +8,9 @@ import {
   getFrontendVerificationUrl,
   getTrustedOrigins,
 } from './auth-origins.js';
-import { devMode } from './dev-mode.js';
+import { devMode, isLocalDevMode } from './dev-mode.js';
 import { assertAuthSecretConfigured } from './auth-secret.js';
+import { storeResetLink } from './dev-reset-store.js';
 
 const appBaseUrl = getAppBaseUrl();
 const trustedOrigins = getTrustedOrigins();
@@ -84,11 +85,17 @@ export const auth = betterAuth({
     maxPasswordLength: 128,
     resetPasswordTokenExpiresIn: 3600, // 1 hour (matches email copy)
     sendResetPassword: async ({ user, url }) => {
+      const frontendUrl = getFrontendResetUrl(url);
       const { sendPasswordResetEmail } = await import('./email.js');
       // The email must link straight to the frontend, not the API's
       // redirect-based callback route (whose empty-callbackURL failure mode
       // dead-ends on /auth/error?error=INVALID_TOKEN).
-      await sendPasswordResetEmail(user, getFrontendResetUrl(url));
+      await sendPasswordResetEmail(user, frontendUrl);
+      // In dev mode, stash the URL so the frontend can show it directly
+      // instead of forcing the developer to dig through server logs.
+      if (isLocalDevMode()) {
+        storeResetLink(user.email, frontendUrl);
+      }
     },
   },
   emailVerification: {

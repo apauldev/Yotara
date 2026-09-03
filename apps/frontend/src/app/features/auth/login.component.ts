@@ -12,12 +12,9 @@ import { FormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faEnvelope, faLock } from '@fortawesome/free-solid-svg-icons';
 
-/** Localhost hostnames that may show the dev-mode badge on screen. */
-export function isLocalhostHostname(hostname: string): boolean {
-  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
-}
 import { PasswordTrialComponent } from './password-trial.component';
 import { StrengthMeterComponent } from '../../shared/ui/strength-meter/strength-meter.component';
+import { isLocalhostHostname } from '../../shared/utils/hostname';
 import { passwordPolicyMessage } from './password-policy';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { LegalContentService } from '../../core/services/legal-content.service';

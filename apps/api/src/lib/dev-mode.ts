@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { getAppBaseUrl, getFrontendBaseUrl } from './auth-origins.js';
 
 /**
  * Dev mode — the single switch for frictionless local/test development.
@@ -107,6 +108,29 @@ export function devMode(): boolean {
   }
 
   return true;
+}
+
+export function isLoopbackHostname(hostname: string): boolean {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+}
+
+/**
+ * Dev reset links are only available on loopback deployments — a publicly
+ * reachable test instance running dev mode must not expose them, since the
+ * endpoint is unauthenticated and consumes a user's reset token by email.
+ */
+export function isLocalDevMode(): boolean {
+  if (process.env['NODE_ENV'] === 'production' || !devMode()) {
+    return false;
+  }
+  try {
+    return (
+      isLoopbackHostname(new URL(getAppBaseUrl()).hostname) &&
+      isLoopbackHostname(new URL(getFrontendBaseUrl()).hostname)
+    );
+  } catch {
+    return false;
+  }
 }
 
 /** Emails must be logged to console (never sent via Resend) in dev mode. */
