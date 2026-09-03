@@ -1,9 +1,16 @@
 @if (legalContent.configured()) {
-  <p class="terms-notice">
-    This is an experimental beta. Please review the
-    <button type="button" class="terms-link" (click)="openTerms()">Beta Terms of Service</button>
-    before creating an account.
-  </p>
+  <div class="terms-notice">
+    <p class="terms-intro">This is an experimental beta.</p>
+    <label class="terms-check">
+      <input type="checkbox" name="beta-terms" [checked]="accepted()" (change)="onToggle($event)" />
+      <span>
+        I agree to the
+        <button type="button" class="terms-link" (click)="openTerms($event)">
+          Beta Terms of Service
+        </button>
+      </span>
+    </label>
+  </div>
 
   @if (legalContent.document(); as document) {
     <app-modal [open]="termsOpen()" [title]="document.title" size="lg" (close)="closeTerms()">

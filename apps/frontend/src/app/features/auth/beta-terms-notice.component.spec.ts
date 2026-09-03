@@ -50,6 +50,7 @@ describe('BetaTermsNoticeComponent', () => {
     document.set(legalDocument);
     fixture.detectChanges();
 
+    expect(fixture.nativeElement.textContent).toContain('I agree to the');
     expect(fixture.nativeElement.textContent).toContain('Beta Terms of Service');
 
     fixture.debugElement.query(By.css('.terms-link')).nativeElement.click();
@@ -57,11 +58,35 @@ describe('BetaTermsNoticeComponent', () => {
     await fixture.whenStable();
 
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).not.toBeNull();
+    // Opening the terms from inside the label must not toggle agreement.
+    expect(fixture.componentInstance.accepted()).toBeFalse();
+    expect(
+      (fixture.nativeElement.querySelector('input[name="beta-terms"]') as HTMLInputElement).checked,
+    ).toBeFalse();
     expect(fixture.nativeElement.textContent).toContain('Use the beta responsibly.');
 
     fixture.debugElement.query(By.css('.close-button')).nativeElement.click();
     fixture.detectChanges();
 
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+  });
+
+  it('two-way binds the agreement checkbox without opening the dialog', () => {
+    configured.set(true);
+    document.set(legalDocument);
+    fixture.detectChanges();
+
+    const checkbox = fixture.nativeElement.querySelector(
+      'input[name="beta-terms"]',
+    ) as HTMLInputElement;
+    expect(checkbox).not.toBeNull();
+    expect(checkbox.checked).toBeFalse();
+    expect(fixture.componentInstance.accepted()).toBeFalse();
+
+    checkbox.click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.accepted()).toBeTrue();
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
   });
 });

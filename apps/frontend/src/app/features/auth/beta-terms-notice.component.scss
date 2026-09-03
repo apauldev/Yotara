@@ -10,6 +10,28 @@
   text-align: center;
 }
 
+.terms-intro {
+  margin: 0 0 0.5rem;
+}
+
+.terms-check {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.terms-check input[type='checkbox'] {
+  margin-top: 0.2rem;
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  accent-color: var(--primary-solid);
+  cursor: pointer;
+}
+
 .terms-link {
   border: 0;
   padding: 0;

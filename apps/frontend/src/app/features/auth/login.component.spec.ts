@@ -117,6 +117,59 @@ describe('LoginComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Beta Terms of Service');
   });
 
+  it('blocks signup until the beta terms are accepted when configured', async () => {
+    legalContent.configured.set(true);
+    legalContent.document.set(legalDocument);
+    fixture.detectChanges();
+    component.toggleMode();
+    fixture.detectChanges();
+
+    component.name.set('Alex Rivers');
+    component.email.set('alex@example.com');
+    component.password.set('LongEn0ugh!Pass');
+
+    await component.onSubmit();
+    fixture.detectChanges();
+
+    expect(authState.signUp).not.toHaveBeenCalled();
+    expect(component.getFieldError('terms')).toBe('Please accept the Beta Terms of Service');
+    expect(fixture.nativeElement.textContent).toContain('Please accept the Beta Terms of Service');
+
+    component.termsAccepted.set(true);
+    await component.onSubmit();
+
+    expect(authState.signUp).toHaveBeenCalled();
+  });
+
+  it('blocks email-first signup until the beta terms are accepted when configured', async () => {
+    authState.requireEmailVerification = () => true;
+    legalContent.configured.set(true);
+    legalContent.document.set(legalDocument);
+    fixture.detectChanges();
+    component.toggleMode();
+    fixture.detectChanges();
+
+    component.name.set('Alex Rivers');
+    component.email.set('alex@example.com');
+
+    await component.onSubmit();
+
+    expect(authState.signUp).not.toHaveBeenCalled();
+
+    component.termsAccepted.set(true);
+    await component.onSubmit();
+
+    expect(authState.signUp).toHaveBeenCalled();
+  });
+
+  it('does not require terms acceptance in login mode', () => {
+    legalContent.configured.set(true);
+    legalContent.document.set(legalDocument);
+    fixture.detectChanges();
+
+    expect(component.getFieldError('terms')).toBeNull();
+  });
+
   it('blocks submission when validation fails', async () => {
     fixture.detectChanges();
 

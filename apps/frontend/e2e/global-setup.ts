@@ -94,6 +94,14 @@ async function setup() {
     await page.getByLabel('Name').fill(TEST_NAME);
     await page.getByLabel('Email').fill(TEST_EMAIL);
 
+    // The beta ToS agreement checkbox renders only when legal content is
+    // configured (e.g. a /legal mount exists). Accept it when present so
+    // setup works in both modes.
+    const termsAgreement = page.getByLabel(/I agree to the/);
+    if ((await termsAgreement.count()) > 0) {
+      await termsAgreement.check();
+    }
+
     if (requireEmailVerification) {
       // Email-first: no password field at signup; use the exact verification
       // link emitted in the API console fallback.

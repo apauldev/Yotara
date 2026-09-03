@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, model, signal } from '@angular/core';
 import { MarkdownComponent } from 'ngx-markdown';
 import { LegalContentService } from '../../core/services/legal-content.service';
 import { ModalComponent } from '../../shared/ui/modal/modal.component';
@@ -14,16 +14,25 @@ import { ModalComponent } from '../../shared/ui/modal/modal.component';
 export class BetaTermsNoticeComponent {
   protected readonly legalContent = inject(LegalContentService);
   protected readonly termsOpen = signal(false);
+  /** Two-way bound agreement state owned by the parent signup form. */
+  readonly accepted = model(false);
 
   constructor() {
     void this.legalContent.load();
   }
 
-  protected openTerms() {
+  protected openTerms(event?: Event) {
+    // The link lives inside the checkbox label — don't toggle the box.
+    event?.preventDefault();
+    event?.stopPropagation();
     this.termsOpen.set(true);
   }
 
   protected closeTerms() {
     this.termsOpen.set(false);
+  }
+
+  protected onToggle(event: Event) {
+    this.accepted.set((event.target as HTMLInputElement).checked);
   }
 }

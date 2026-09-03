@@ -157,7 +157,10 @@
         </button>
 
         @if (!isLogin() && legalContent.configured()) {
-          <app-beta-terms-notice />
+          <app-beta-terms-notice [(accepted)]="termsAccepted" />
+          @if (shouldShowFieldError('terms')) {
+            <div class="field-error terms-error">{{ getFieldError('terms') }}</div>
+          }
         }
       </form>
 

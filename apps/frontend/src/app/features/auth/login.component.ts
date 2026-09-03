@@ -54,6 +54,9 @@ export class LoginComponent implements OnInit, OnDestroy {
   /** Email-first signup state: email submitted → check-your-inbox screen. */
   emailSubmitted = signal(false);
   alreadySignedIn = signal(false);
+  /** Beta ToS agreement — required on signup only when legal content is configured. */
+  termsAccepted = signal(false);
+  termsTouched = signal(false);
   /** Hidden honeypot field — bots fill it, humans never see it. */
   website = signal('');
   /** The placeholder password used for the unverified signup, kept so the user
@@ -132,6 +135,8 @@ export class LoginComponent implements OnInit, OnDestroy {
   toggleMode() {
     this.isLogin.set(!this.isLogin());
     this.error.set('');
+    this.termsAccepted.set(false);
+    this.termsTouched.set(false);
     this.resetTrialState();
     this.resetTouched();
   }
@@ -165,13 +170,17 @@ export class LoginComponent implements OnInit, OnDestroy {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 
-  markTouched(field: 'name' | 'email' | 'password') {
+  markTouched(field: 'name' | 'email' | 'password' | 'terms') {
     if (field === 'name') {
       this.nameTouched.set(true);
       return;
     }
     if (field === 'email') {
       this.emailTouched.set(true);
+      return;
+    }
+    if (field === 'terms') {
+      this.termsTouched.set(true);
       return;
     }
     this.passwordTouched.set(true);
@@ -181,18 +190,32 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.nameTouched.set(true);
     this.emailTouched.set(true);
     this.passwordTouched.set(true);
+    this.termsTouched.set(true);
   }
 
   private resetTouched() {
     this.nameTouched.set(false);
     this.emailTouched.set(false);
     this.passwordTouched.set(false);
+    this.termsTouched.set(false);
   }
 
-  getFieldError(field: 'name' | 'email' | 'password'): string | null {
+  /** Whether the signup form must collect Beta ToS agreement. */
+  protected get termsRequired(): boolean {
+    return !this.isLogin() && this.legalContent.configured();
+  }
+
+  getFieldError(field: 'name' | 'email' | 'password' | 'terms'): string | null {
     const email = this.email().trim();
     const password = this.password();
     const name = this.name().trim();
+
+    if (field === 'terms') {
+      if (this.termsRequired && !this.termsAccepted()) {
+        return 'Please accept the Beta Terms of Service';
+      }
+      return null;
+    }
 
     if (field === 'name') {
       if (!this.isLogin() && !name) {
@@ -225,7 +248,10 @@ export class LoginComponent implements OnInit, OnDestroy {
     return null;
   }
 
-  shouldShowFieldError(field: 'name' | 'email' | 'password'): boolean {
+  shouldShowFieldError(field: 'name' | 'email' | 'password' | 'terms'): boolean {
+    if (field === 'terms') {
+      return this.termsTouched() && !!this.getFieldError('terms');
+    }
     const isTouched =
       field === 'name'
         ? this.nameTouched()
@@ -238,7 +264,10 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   private validateForm(): string | null {
     return (
-      this.getFieldError('name') || this.getFieldError('email') || this.getFieldError('password')
+      this.getFieldError('name') ||
+      this.getFieldError('email') ||
+      this.getFieldError('password') ||
+      this.getFieldError('terms')
     );
   }
 
