@@ -170,6 +170,32 @@ describe('LoginComponent', () => {
     expect(component.getFieldError('terms')).toBeNull();
   });
 
+  it('waits for the legal content decision before validating signup', async () => {
+    let resolveLoad!: () => void;
+    legalContent.load.and.callFake(() => new Promise<void>((resolve) => (resolveLoad = resolve)));
+    fixture.detectChanges();
+    component.toggleMode();
+    fixture.detectChanges();
+
+    component.name.set('Alex Rivers');
+    component.email.set('alex@example.com');
+    component.password.set('LongEn0ugh!Pass');
+
+    const submitPromise = component.onSubmit();
+    // Legal decision still pending: validation must not have run yet.
+    expect(authState.signUp).not.toHaveBeenCalled();
+    expect(component.getFieldError('terms')).toBeNull();
+
+    // Legal load resolves with terms configured: agreement is now required.
+    legalContent.configured.set(true);
+    legalContent.document.set(legalDocument);
+    resolveLoad();
+    await submitPromise;
+
+    expect(authState.signUp).not.toHaveBeenCalled();
+    expect(component.getFieldError('terms')).toBe('Please accept the Beta Terms of Service');
+  });
+
   it('blocks submission when validation fails', async () => {
     fixture.detectChanges();
 

@@ -294,6 +294,10 @@ export class LoginComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // The Beta ToS gate depends on a separate async load — wait for its
+    // decision so a fast submit cannot bypass agreement while it is pending.
+    await this.legalContent.load();
+
     this.markAllTouched();
     this.error.set('');
 
