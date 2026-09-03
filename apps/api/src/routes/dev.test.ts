@@ -11,6 +11,7 @@ const previousEnv = {
   ALLOW_DEV_MODE_IN_PRODUCTION: process.env['ALLOW_DEV_MODE_IN_PRODUCTION'],
   BETTER_AUTH_SECRET: process.env['BETTER_AUTH_SECRET'],
   APP_BASE_URL: process.env['APP_BASE_URL'],
+  FRONTEND_BASE_URL: process.env['FRONTEND_BASE_URL'],
 };
 
 function restoreEnv(): void {
@@ -34,6 +35,8 @@ test('local dev reset links are retrievable once', async () => {
   process.env['NODE_ENV'] = 'development';
   process.env['DEV_MODE'] = 'true';
   delete process.env['ALLOW_DEV_MODE_IN_PRODUCTION'];
+  process.env['APP_BASE_URL'] = 'http://localhost:3000';
+  process.env['FRONTEND_BASE_URL'] = 'http://localhost:4200';
 
   const app = await createApp();
   const email = `dev-reset-${randomUUID()}@example.com`;
@@ -54,6 +57,32 @@ test('local dev reset links are retrievable once', async () => {
       url: `/dev/reset-link?email=${encodeURIComponent(email)}`,
     });
     assert.equal(consumed.statusCode, 404);
+  } finally {
+    await app.close();
+    restoreEnv();
+  }
+});
+
+test('remote test deployments never store or expose dev reset links', async () => {
+  process.env['NODE_ENV'] = 'development';
+  process.env['DEV_MODE'] = 'true';
+  delete process.env['ALLOW_DEV_MODE_IN_PRODUCTION'];
+  process.env['APP_BASE_URL'] = 'https://test.example.com/api';
+  process.env['FRONTEND_BASE_URL'] = 'https://test.example.com';
+
+  const email = `remote-reset-${randomUUID()}@example.com`;
+  const url = 'https://test.example.com/reset-password?token=remote-token';
+  storeResetLink(email, url);
+  assert.equal(consumeResetLink(email), null);
+
+  const app = await createApp();
+
+  try {
+    const response = await app.inject({
+      method: 'GET',
+      url: `/dev/reset-link?email=${encodeURIComponent(email)}`,
+    });
+    assert.equal(response.statusCode, 404);
   } finally {
     await app.close();
     restoreEnv();

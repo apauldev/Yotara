@@ -1,9 +1,10 @@
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faEnvelope, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { AuthStateService } from '../../core/services/auth-state.service';
+import { isLocalhostHostname } from '../../shared/utils/hostname';
 import { AuthService } from '@yotara/shared';
 
 @Component({
@@ -27,7 +28,7 @@ import { AuthService } from '@yotara/shared';
         </div>
 
         @if (emailSent()) {
-          @if (devResetUrl()) {
+          @if (showDevResetLink() && devResetUrl()) {
             <h1>Reset link ready</h1>
             <p class="subtitle">Dev mode — here's your reset link (expires in 15 minutes):</p>
             <a class="dev-reset-link" [href]="devResetUrl()">{{ devResetUrl() }}</a>
@@ -104,6 +105,15 @@ export class ForgotPasswordComponent {
   private router = inject(Router);
   private authState = inject(AuthStateService);
 
+  /** Dev reset links show only when the viewer is on localhost — a remote
+   *  test deployment running dev mode must not fetch or display them. */
+  protected readonly showDevResetLink = computed(
+    () =>
+      this.authState.devMode() &&
+      typeof window !== 'undefined' &&
+      isLocalhostHostname(window.location.hostname),
+  );
+
   backToForm() {
     this.emailSent.set(false);
     this.devResetUrl.set('');
@@ -154,7 +164,7 @@ export class ForgotPasswordComponent {
     }
 
     // In dev mode, fetch the reset link so it can be shown directly on screen.
-    if (resetRequested && this.authState.devMode() && this.emailSent()) {
+    if (resetRequested && this.showDevResetLink() && this.emailSent()) {
       const url = await AuthService.getDevResetLink(email);
       if (url) {
         this.devResetUrl.set(url);

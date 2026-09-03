@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { LoginComponent, isLocalhostHostname } from './login.component';
+import { LoginComponent } from './login.component';
+import { isLocalhostHostname } from '../../shared/utils/hostname';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { Router } from '@angular/router';
 

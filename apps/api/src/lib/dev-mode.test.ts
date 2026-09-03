@@ -11,6 +11,7 @@ import {
   bypassLoginLockout,
   devMode,
   emailToConsole,
+  isLocalDevMode,
   parseDevModeConfig,
 } from './dev-mode.js';
 
@@ -145,6 +146,50 @@ test('dev mode forces email verification off even when REQUIRE_EMAIL_VERIFICATIO
     // With dev mode, verification is forced off.
     process.env['DEV_MODE'] = 'true';
     assert.equal(emailVerificationRequired(), false);
+  } finally {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  }
+});
+
+test('isLocalDevMode requires a loopback deployment, not just dev NODE_ENV', () => {
+  const previous = {
+    NODE_ENV: process.env['NODE_ENV'],
+    DEV_MODE: process.env['DEV_MODE'],
+    ALLOW_DEV_MODE_IN_PRODUCTION: process.env['ALLOW_DEV_MODE_IN_PRODUCTION'],
+    APP_BASE_URL: process.env['APP_BASE_URL'],
+    FRONTEND_BASE_URL: process.env['FRONTEND_BASE_URL'],
+  };
+
+  try {
+    process.env['NODE_ENV'] = 'development';
+    process.env['DEV_MODE'] = 'true';
+    delete process.env['ALLOW_DEV_MODE_IN_PRODUCTION'];
+
+    // Loopback deployment → local dev mode.
+    process.env['APP_BASE_URL'] = 'http://localhost:3000';
+    process.env['FRONTEND_BASE_URL'] = 'http://localhost:4200';
+    assert.equal(isLocalDevMode(), true);
+
+    // Publicly reachable test deployment with dev mode on → not local.
+    process.env['APP_BASE_URL'] = 'https://test.example.com/api';
+    process.env['FRONTEND_BASE_URL'] = 'https://test.example.com';
+    assert.equal(isLocalDevMode(), false);
+
+    // Either base URL remote is enough to opt out.
+    process.env['APP_BASE_URL'] = 'http://localhost:3000';
+    assert.equal(isLocalDevMode(), false);
+
+    // Production is never local, even with the opt-in.
+    process.env['NODE_ENV'] = 'production';
+    process.env['ALLOW_DEV_MODE_IN_PRODUCTION'] = 'true';
+    process.env['FRONTEND_BASE_URL'] = 'http://localhost:4200';
+    assert.equal(isLocalDevMode(), false);
   } finally {
     for (const [key, value] of Object.entries(previous)) {
       if (value === undefined) {

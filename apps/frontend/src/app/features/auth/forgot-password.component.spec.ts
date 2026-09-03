@@ -158,4 +158,19 @@ describe('ForgotPasswordComponent', () => {
 
     expect(getDevResetLinkSpy).not.toHaveBeenCalled();
   });
+
+  it('does not fetch a dev reset link when dev mode is off', async () => {
+    authState.devMode.and.returnValue(false);
+    const getDevResetLinkSpy = spyOn(AuthService, 'getDevResetLink');
+    fixture.detectChanges();
+    component.email.set('alex@example.com');
+
+    await component.onSubmit();
+    fixture.detectChanges();
+
+    expect(getDevResetLinkSpy).not.toHaveBeenCalled();
+    expect(component.devResetUrl()).toBe('');
+    expect(fixture.nativeElement.querySelector('.dev-reset-link')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Check your email');
+  });
 });
