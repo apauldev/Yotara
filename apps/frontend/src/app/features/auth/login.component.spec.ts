@@ -491,7 +491,9 @@ describe('LoginComponent', () => {
     fixture.detectChanges();
 
     authState.configLoaded = () => false;
-    authState.initialize.calls.reset();
+    authState.initialize.and.callFake(async () => {
+      authState.configLoaded = () => true;
+    });
 
     component.email.set('alex@example.com');
     component.password.set('secret-password');
@@ -499,6 +501,53 @@ describe('LoginComponent', () => {
     await component.onSubmit();
 
     expect(authState.initialize).toHaveBeenCalled();
+    expect(authState.signIn).toHaveBeenCalledWith('alex@example.com', 'secret-password');
+  });
+
+  it('signup is blocked while config is still loading', async () => {
+    authState.configLoaded = () => false;
+    authState.requireEmailVerification = () => true;
+    authState.initialize.calls.reset();
+    fixture.detectChanges();
+    component.toggleMode();
+
+    component.name.set('Alex Rivers');
+    component.email.set('alex@example.com');
+
+    await component.onSubmit();
+
+    expect(authState.initialize).toHaveBeenCalled();
+    expect(authState.signUp).not.toHaveBeenCalled();
+  });
+
+  it('config failure selects email-first signup path', async () => {
+    authState.requireEmailVerification = () => true;
+    authState.configLoaded = () => true;
+    fixture.detectChanges();
+    component.toggleMode();
+
+    component.name.set('Alex Rivers');
+    component.email.set('alex@example.com');
+
+    await component.onSubmit();
+
+    expect(authState.signUp).toHaveBeenCalledWith(
+      'alex@example.com',
+      jasmine.stringMatching(/^[0-9a-f]{64}$/),
+      'Alex Rivers',
+      '',
+    );
+  });
+
+  it('normal login is available when config has loaded', async () => {
+    authState.configLoaded = () => true;
+    fixture.detectChanges();
+
+    component.email.set('alex@example.com');
+    component.password.set('secret-password');
+
+    await component.onSubmit();
+
     expect(authState.signIn).toHaveBeenCalledWith('alex@example.com', 'secret-password');
   });
 

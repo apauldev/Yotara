@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.75.5](https://github.com/apauldev/Yotara/compare/v0.75.4...v0.75.5) (2026-09-02)
+
+
+### Bug Fixes
+
+* **a11y:** add main landmark to login page ([238f6ff](https://github.com/apauldev/Yotara/commit/238f6ffa31d13a40222151f1d5208c4b30ed95d8))
+* **auth:** fix initialization race and fail-closed config behavior ([3c50f08](https://github.com/apauldev/Yotara/commit/3c50f08cec4c7ddcc753dbf51d427597882715b3))
+* **auth:** prevent notification fetch after logout ([c5bc830](https://github.com/apauldev/Yotara/commit/c5bc830449342132cf919f8ae5b77bb28700832f))
+* **csp:** remove inline theme script to eliminate CSP violations ([7096bab](https://github.com/apauldev/Yotara/commit/7096bab10a62c6bedfc2fb505810f35c06fa34b2))
+* **docker:** pass git metadata to Docker builds for version hash ([d85dbb4](https://github.com/apauldev/Yotara/commit/d85dbb439dc9aa452131517ddec6e7044bdeb797))
+* **frontend:** delay redirect for authenticated login visits ([99d5048](https://github.com/apauldev/Yotara/commit/99d50488eba116612075d5dbd72899ddea930063))
+* **release:** preserve Docker build metadata ([5b6289f](https://github.com/apauldev/Yotara/commit/5b6289fdb3f901d19b6c598468232afa9485f88b))
+* **seo:** add meta description and nginx locations for SEO files ([11cce50](https://github.com/apauldev/Yotara/commit/11cce500259cd65463846a7410a5c04af0e89fbb))
+* **seo:** add robots.txt and sitemap.xml for Lighthouse audit ([27741f3](https://github.com/apauldev/Yotara/commit/27741f3e9018d192af85eb7a3df2306a01dcf339))
+
+
+### Chores
+
+* **deploy:** pin Hub Compose to v0.75.4 (login theme fix) ([7350bea](https://github.com/apauldev/Yotara/commit/7350bea3aa0b117a2f1ba2079ab971387037d5d7))
+* **release:** 0.75.4 ([5b1b113](https://github.com/apauldev/Yotara/commit/5b1b1137e04c2fd045b93faf6805fa2f71d42ce0))
+
+
+### Refactoring
+
+* **frontend:** remove dead login redirect guard ([7f77f0a](https://github.com/apauldev/Yotara/commit/7f77f0a9d0b949e8eae4978a965faa656574801c))
+
+
+### Performance
+
+* **frontend:** render login without waiting on auth initialization ([5a60aa4](https://github.com/apauldev/Yotara/commit/5a60aa48c22bc9b3e3297000740451401179a164))
+* **frontend:** render password recovery routes immediately ([f197487](https://github.com/apauldev/Yotara/commit/f1974877e6f07ebb017e2e898720f4d9718e82f4))
+* **frontend:** self-host Manrope font to eliminate third-party render-blocking request ([78be661](https://github.com/apauldev/Yotara/commit/78be6614a05a06ee35d1abe88677b0fb58679040))
+
 ## [0.75.4](https://github.com/apauldev/Yotara/compare/v0.75.3...v0.75.4) (2026-08-31)
 
 

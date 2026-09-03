@@ -246,6 +246,10 @@ export class LoginComponent implements OnInit, OnDestroy {
       await this.authState.initialize();
     }
 
+    if (!this.authState.configLoaded()) {
+      return;
+    }
+
     if (this.alreadySignedIn()) {
       return;
     }
