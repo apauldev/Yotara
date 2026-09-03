@@ -83,4 +83,15 @@ describe('LegalContentService', () => {
 
     expect(service.configured()).toBeTrue();
   });
+
+  it('returns immediately without refetching once loaded', async () => {
+    const firstLoad = service.load();
+    httpMock.expectOne('/legal/terms.json').flush(validDocument);
+    await firstLoad;
+
+    await service.load();
+
+    httpMock.expectNone('/legal/terms.json');
+    expect(service.configured()).toBeTrue();
+  });
 });

@@ -494,6 +494,22 @@ describe('LoginComponent', () => {
 
     component.markTouched('password');
     expect(component.passwordTouched()).toBeTrue();
+
+    component.markTouched('terms');
+    expect(component.termsTouched()).toBeTrue();
+  });
+
+  it('does not submit when already signed in', async () => {
+    fixture.detectChanges();
+
+    component.email.set('alex@example.com');
+    component.password.set('secret-password');
+    component.alreadySignedIn.set(true);
+
+    await component.onSubmit();
+
+    expect(authState.signIn).not.toHaveBeenCalled();
+    expect(authState.signUp).not.toHaveBeenCalled();
   });
 
   it('disables submit button when loading', () => {
