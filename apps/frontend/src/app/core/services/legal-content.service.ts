@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpErrorResponse, HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
@@ -61,7 +61,10 @@ export class LegalContentService {
       .then((value) => {
         this.documentState.set(isLegalDocument(value) ? value : null);
       })
-      .catch(() => {
+      .catch((error: unknown) => {
+        if (error instanceof HttpErrorResponse && error.status !== 404) {
+          console.error('Failed to load legal content:', error);
+        }
         this.documentState.set(null);
       })
       .finally(() => {
