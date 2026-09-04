@@ -760,4 +760,31 @@ describe('PersonalTaskCardComponent', () => {
       expect(component.select.emit).not.toHaveBeenCalled();
     });
   });
+
+  describe('Narrow-card wrapping', () => {
+    beforeEach(() => {
+      component.task = {
+        ...mockTask,
+        title: 'A very long task title without any spaces whatsoeverjustkeepsgoingandgoing',
+        labels: ['label-1'],
+      };
+      fixture.detectChanges();
+    });
+
+    it('allows long titles to wrap instead of forcing overflow', () => {
+      const title = fixture.debugElement.query(By.css('h3'));
+      const styles = window.getComputedStyle(title.nativeElement);
+      expect(styles.whiteSpace).not.toBe('nowrap');
+    });
+
+    it('wraps badge groups instead of overflowing', () => {
+      const badges = fixture.debugElement.query(By.css('.task-badges'));
+      expect(window.getComputedStyle(badges.nativeElement).flexWrap).toBe('wrap');
+    });
+
+    it('keeps full metadata in the DOM for modal use', () => {
+      expect(fixture.debugElement.query(By.css('.meta-pill-bucket'))).toBeTruthy();
+      expect(fixture.debugElement.query(By.css('.meta-pill-simple'))).toBeTruthy();
+    });
+  });
 });

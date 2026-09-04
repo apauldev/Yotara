@@ -218,6 +218,8 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
           0 2px 8px var(--surface-dim),
           inset 0 0 0 1px var(--outline-variant);
         padding: 0.6rem 0.85rem;
+        min-width: 0;
+        max-width: 100%;
       }
 
       .task-card-overdue {
@@ -229,6 +231,13 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
 
       .task-card-interactive {
         cursor: pointer;
+      }
+
+      .task-card-interactive:focus-visible,
+      .task-check:focus-visible,
+      .restore-pill:focus-visible {
+        outline: 2px solid var(--primary-solid);
+        outline-offset: 2px;
       }
 
       .task-card-complete {
@@ -303,6 +312,7 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
 
       .task-copy {
         min-width: 0;
+        max-width: 100%;
       }
 
       .task-title-row {
@@ -310,6 +320,15 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
         align-items: center;
         gap: 0.75rem;
         flex-wrap: wrap;
+        min-width: 0;
+      }
+
+      .task-badges-labels {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        flex-wrap: wrap;
+        min-width: 0;
       }
 
       .task-badges {
@@ -395,6 +414,7 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
         letter-spacing: -0.015em;
         color: var(--on-surface);
         font-weight: 600;
+        overflow-wrap: anywhere;
       }
 
       .h3-compact {
@@ -510,6 +530,18 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
           gap: 0.6rem;
         }
 
+        /* Keep completion affordances touchable on narrow cards. */
+        .task-check {
+          min-width: 2.75rem;
+          min-height: 2.75rem;
+        }
+
+        .restore-pill {
+          min-height: 2.75rem;
+          padding: 0.35rem 0.85rem;
+          font-size: 0.72rem;
+        }
+
         .task-title-row {
           flex-direction: column;
           align-items: flex-start;
@@ -519,6 +551,13 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
         .task-badges {
           margin-left: 0;
           gap: 0.25rem;
+        }
+
+        /* Reduce low-value metadata pressure on narrow cards; the full
+           detail set remains available in the task modal. */
+        .meta-pill-bucket,
+        .meta-pill-simple {
+          display: none;
         }
 
         .completion-group {

@@ -635,26 +635,83 @@
   .menu-toggle {
     display: grid;
   }
+
+  /* While the mobile drawer is open it must read as a full navigation
+     drawer even when the collapsed-sidebar state is also active. */
+  .sidebar.sidebar-open .brand-content {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+    width: auto;
+  }
+
+  .sidebar.sidebar-open .nav-label {
+    opacity: 1;
+    transform: none;
+    width: auto;
+    pointer-events: auto;
+    position: static;
+  }
+
+  .sidebar.sidebar-open .nav-item {
+    justify-content: flex-start;
+    padding: 0.65rem 0.85rem;
+  }
+
+  .sidebar.sidebar-open .nav-icon {
+    width: 1.15rem;
+  }
+
+  .sidebar.sidebar-open .sidebar-toggle {
+    margin: 0;
+  }
+
+  .sidebar.sidebar-open .sidebar-version-collapsed {
+    justify-content: flex-start;
+    padding: 0.5rem 0.85rem;
+  }
 }
 
 @media (width <= 720px) {
   .topbar {
     min-height: auto;
-    padding: 1rem;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding: calc(0.75rem + env(safe-area-inset-top, 0px))
+      calc(1rem + env(safe-area-inset-right, 0px)) 0.75rem
+      calc(1rem + env(safe-area-inset-left, 0px));
   }
 
+  /* Lift row-one controls out of the wrapper so the topbar is a compact
+     first row (menu, brand, actions) plus a full-width second-row search. */
   .topbar-left {
-    flex-wrap: wrap;
-    gap: 0.75rem;
+    display: contents;
+  }
+
+  .menu-toggle {
+    order: 1;
+    flex: 0 0 auto;
+  }
+
+  .topbar-brand {
+    order: 2;
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 1.35rem;
+  }
+
+  .topbar-actions {
+    order: 3;
+    flex: 0 0 auto;
+    justify-content: flex-end;
   }
 
   .search-shell {
     order: 4;
+    flex: 1 1 100%;
     max-width: none;
-    flex-basis: 100%;
   }
 
   .mode-switcher {
@@ -662,19 +719,19 @@
     margin-inline: 0;
   }
 
-  .topbar-actions {
-    order: 3;
-    justify-content: flex-end;
+  /* Keep menus inside the viewport on narrow screens. */
+  .preferences-menu {
+    right: 0;
+    max-width: calc(100vw - 2rem);
+  }
+
+  .profile-menu-card {
+    max-width: calc(100vw - 2rem);
   }
 
   .notifications-dropdown {
     right: 0;
     max-height: min(24rem, calc(100dvh - 14rem));
-  }
-
-  .topbar-brand {
-    order: 1;
-    font-size: 1.35rem;
   }
 }
 

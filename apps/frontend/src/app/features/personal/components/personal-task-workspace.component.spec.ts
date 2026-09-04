@@ -156,7 +156,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
     expect(modal.initialProjectId).toBe('project-1');
   });
 
-  it('closes the visible edit modal when Escape is pressed', () => {
+  it('closes the visible edit modal when Escape is pressed in the dialog', () => {
     fixture.detectChanges();
 
     const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
@@ -165,7 +165,10 @@ describe('PersonalTaskWorkspaceComponent', () => {
     workspace.editTask(task);
     fixture.detectChanges();
 
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    // Escape handling is local to the shared dialog (Task 2), not document-level.
+    const dialog = fixture.nativeElement.querySelector('.modal-card') as HTMLElement;
+    expect(dialog).toBeTruthy();
+    dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     fixture.detectChanges();
 
     const modal = fixture.debugElement.query(By.directive(PersonalTaskModalComponent))

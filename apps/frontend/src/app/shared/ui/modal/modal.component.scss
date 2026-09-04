@@ -68,13 +68,42 @@ h2 {
   cursor: pointer;
 }
 
+.close-button:focus-visible {
+  outline: 2px solid var(--primary-solid);
+  outline-offset: 2px;
+}
+
 .modal-body {
   margin-top: 1rem;
+}
+
+.modal-card-full-height {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 3rem);
+  overflow: hidden;
+}
+
+.modal-card-full-height .modal-body-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.modal-footer {
+  flex: 0 0 auto;
+  margin-top: 1rem;
+}
+
+.modal-footer:empty {
+  display: none;
 }
 
 @media (max-width: 640px) {
   .modal-shell {
     padding: 0;
+    padding-top: env(safe-area-inset-top, 0px);
     place-items: end center;
   }
 
@@ -83,5 +112,18 @@ h2 {
     border-radius: 1.3rem 1.3rem 0 0;
     max-height: 92dvh;
     overflow: auto;
+    overscroll-behavior: contain;
+    padding-left: calc(1.35rem + env(safe-area-inset-left, 0px));
+    padding-right: calc(1.35rem + env(safe-area-inset-right, 0px));
+    padding-bottom: calc(1.35rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .modal-card-full-height {
+    overflow: hidden;
+    max-height: calc(92dvh - env(safe-area-inset-top, 0px));
+  }
+
+  .modal-card-full-height .modal-footer {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }

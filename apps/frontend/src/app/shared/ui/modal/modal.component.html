@@ -10,6 +10,7 @@
     <section
       #dialog
       class="modal-card modal-card-{{ size }}"
+      [class.modal-card-full-height]="layout === 'full-height'"
       role="dialog"
       aria-modal="true"
       [attr.aria-labelledby]="titleId"
@@ -33,9 +34,13 @@
         </button>
       </header>
 
-      <div class="modal-body">
+      <div class="modal-body" [class.modal-body-scroll]="layout === 'full-height'">
         <ng-content />
       </div>
+
+      <footer class="modal-footer">
+        <ng-content select="[modal-footer]" />
+      </footer>
     </section>
   </div>
 }

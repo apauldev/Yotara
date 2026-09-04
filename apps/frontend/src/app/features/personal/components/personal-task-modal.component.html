@@ -1,402 +1,412 @@
-@if (open) {
-  <div class="modal-shell">
-    <button
-      type="button"
-      class="backdrop"
-      aria-label="Close task modal"
-      (click)="close.emit()"
-    ></button>
+<app-modal
+  [open]="open"
+  [title]="task ? 'Refine task details' : 'Capture a new task'"
+  size="lg"
+  layout="full-height"
+  (close)="close.emit()"
+  (afterOpen)="onModalOpened()"
+>
+  <p modal-subtitle>{{ selectedContextLabel() }}</p>
 
-    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
-      <div class="modal-main">
-        <header class="modal-header">
-          <div class="title-row">
-            <div>
-              <h2 id="task-modal-title">
-                {{ task ? 'Refine task details' : 'Capture a new task' }}
-              </h2>
-              <p>{{ selectedContextLabel() }}</p>
-            </div>
+  <div class="task-layout">
+    <div class="task-main">
+      <label class="field">
+        <span class="field-label">Title</span>
+        <input
+          #titleInput
+          id="task-title-input"
+          type="text"
+          name="taskTitle"
+          [ngModel]="draftTitle()"
+          (ngModelChange)="draftTitle.set($event)"
+          [class.field-error]="titleError()"
+          [attr.aria-invalid]="titleError() ? 'true' : null"
+          [attr.aria-describedby]="titleError() ? 'task-title-error' : null"
+          placeholder="Redesign sanctuary garden layout"
+          autofocus
+        />
+        @if (titleError()) {
+          <p id="task-title-error" class="field-error-message">{{ titleError() }}</p>
+        }
+      </label>
+
+      <label class="field">
+        <span class="field-label">Description</span>
+        <app-markdown-editor
+          [value]="draftDescription()"
+          (valueChange)="draftDescription.set($event)"
+          placeholder="Capture extra context, constraints, or subtasks here."
+          [rows]="7"
+        />
+        @if (descriptionError()) {
+          <p class="field-error-message">{{ descriptionError() }}</p>
+        }
+      </label>
+
+      @if (!task?.parentId) {
+        <section class="subtasks-section">
+          <div class="subtasks-header">
+            <h3>Subtasks</h3>
+            @if (subtaskCount() > 0) {
+              <span
+                class="subtask-count"
+                [class.subtask-count-done]="allSubtasksDone()"
+                [class.subtask-count-partial]="!allSubtasksDone() && doneSubtaskCount() > 0"
+              >
+                {{ doneSubtaskCount() }} / {{ subtaskCount() }}
+              </span>
+            }
           </div>
 
-          <button
-            type="button"
-            class="close-button"
-            aria-label="Close task modal"
-            (click)="close.emit()"
-          >
-            ×
-          </button>
-        </header>
-
-        <label class="field">
-          <span class="field-label">Title</span>
-          <input
-            type="text"
-            name="taskTitle"
-            [ngModel]="draftTitle()"
-            (ngModelChange)="draftTitle.set($event)"
-            [class.field-error]="titleError()"
-            placeholder="Redesign sanctuary garden layout"
-          />
-          @if (titleError()) {
-            <p class="field-error-message">{{ titleError() }}</p>
-          }
-        </label>
-
-        <label class="field">
-          <span class="field-label">Description</span>
-          <app-markdown-editor
-            [value]="draftDescription()"
-            (valueChange)="draftDescription.set($event)"
-            placeholder="Capture extra context, constraints, or subtasks here."
-            [rows]="7"
-          />
-          @if (descriptionError()) {
-            <p class="field-error-message">{{ descriptionError() }}</p>
-          }
-        </label>
-
-        @if (!task?.parentId) {
-          <section class="subtasks-section">
-            <div class="subtasks-header">
-              <h3>Subtasks</h3>
-              @if (subtaskCount() > 0) {
-                <span
-                  class="subtask-count"
-                  [class.subtask-count-done]="allSubtasksDone()"
-                  [class.subtask-count-partial]="!allSubtasksDone() && doneSubtaskCount() > 0"
-                >
-                  {{ doneSubtaskCount() }} / {{ subtaskCount() }}
-                </span>
+          @if (subtaskLoading()) {
+            <p class="subtask-loading">Loading...</p>
+          } @else {
+            <ul class="subtask-list">
+              <!-- Existing subtasks from DB -->
+              @for (subtask of subtasks(); track subtask.id) {
+                <li class="subtask-row">
+                  <span class="checkbox-control">
+                    <input
+                      type="checkbox"
+                      [checked]="subtask.completed"
+                      (change)="toggleSubtask(subtask)"
+                    />
+                    <span class="checkbox-box" aria-hidden="true">
+                      @if (subtask.completed) {
+                        <span class="checkbox-mark"></span>
+                      }
+                    </span>
+                  </span>
+                  <span
+                    class="subtask-title"
+                    [class.subtask-title-done]="subtask.completed"
+                    (click)="$event.stopPropagation()"
+                  >
+                    {{ subtask.title }}
+                  </span>
+                </li>
               }
-            </div>
 
-            @if (subtaskLoading()) {
-              <p class="subtask-loading">Loading...</p>
-            } @else {
-              <ul class="subtask-list">
-                <!-- Existing subtasks from DB -->
-                @for (subtask of subtasks(); track subtask.id) {
-                  <li class="subtask-row">
-                    <span class="checkbox-control">
-                      <input
-                        type="checkbox"
-                        [checked]="subtask.completed"
-                        (change)="toggleSubtask(subtask)"
-                      />
-                      <span class="checkbox-box" aria-hidden="true">
-                        @if (subtask.completed) {
-                          <span class="checkbox-mark"></span>
-                        }
-                      </span>
+              <!-- Draft subtasks not yet saved -->
+              @for (draft of draftSubtasks(); track $index; let i = $index) {
+                <li class="subtask-row draft-subtask">
+                  <span class="checkbox-control">
+                    <input
+                      type="checkbox"
+                      [checked]="draft.completed"
+                      (change)="toggleDraftSubtask(i)"
+                    />
+                    <span class="checkbox-box" aria-hidden="true">
+                      @if (draft.completed) {
+                        <span class="checkbox-mark"></span>
+                      }
                     </span>
-                    <span
-                      class="subtask-title"
-                      [class.subtask-title-done]="subtask.completed"
-                      (click)="$event.stopPropagation()"
-                    >
-                      {{ subtask.title }}
-                    </span>
-                  </li>
-                }
+                  </span>
+                  <span class="subtask-title" [class.subtask-title-done]="draft.completed">
+                    {{ draft.title }}
+                  </span>
+                  <button
+                    type="button"
+                    class="remove-draft-button"
+                    (click)="removeDraftSubtask(i)"
+                    [attr.aria-label]="'Remove draft subtask ' + draft.title"
+                  >
+                    ×
+                  </button>
+                </li>
+              }
+            </ul>
 
-                <!-- Draft subtasks not yet saved -->
-                @for (draft of draftSubtasks(); track $index; let i = $index) {
-                  <li class="subtask-row draft-subtask">
-                    <span class="checkbox-control">
-                      <input
-                        type="checkbox"
-                        [checked]="draft.completed"
-                        (change)="toggleDraftSubtask(i)"
-                      />
-                      <span class="checkbox-box" aria-hidden="true">
-                        @if (draft.completed) {
-                          <span class="checkbox-mark"></span>
-                        }
-                      </span>
-                    </span>
-                    <span class="subtask-title" [class.subtask-title-done]="draft.completed">
-                      {{ draft.title }}
-                    </span>
+            <div class="subtask-actions">
+              @if (!subtaskEntryMode()) {
+                <button
+                  #addSubtaskButton
+                  type="button"
+                  class="add-subtask-button"
+                  (click)="toggleSubtaskEntry()"
+                >
+                  <span class="plus-icon">+</span>
+                  <span>Add subtask</span>
+                </button>
+              } @else {
+                <div class="subtask-entry">
+                  <input
+                    #subtaskInput
+                    type="text"
+                    placeholder="What needs to be done?"
+                    [ngModel]="newSubtaskTitle()"
+                    (ngModelChange)="newSubtaskTitle.set($event)"
+                    (keydown.enter)="quickAddSubtask()"
+                    (keydown.escape)="toggleSubtaskEntry()"
+                    [disabled]="newSubtaskCreating()"
+                  />
+                  <div class="entry-actions">
                     <button
                       type="button"
-                      class="remove-draft-button"
-                      (click)="removeDraftSubtask(i)"
-                      aria-label="Remove draft subtask"
+                      class="entry-save"
+                      (click)="quickAddSubtask()"
+                      [disabled]="!newSubtaskTitle().trim() || newSubtaskCreating()"
                     >
-                      ×
+                      Add
                     </button>
-                  </li>
-                }
-              </ul>
-
-              <div class="subtask-actions">
-                @if (!subtaskEntryMode()) {
-                  <button type="button" class="add-subtask-button" (click)="toggleSubtaskEntry()">
-                    <span class="plus-icon">+</span>
-                    <span>Add subtask</span>
-                  </button>
-                } @else {
-                  <div class="subtask-entry">
-                    <input
-                      #subtaskInput
-                      type="text"
-                      placeholder="What needs to be done?"
-                      [ngModel]="newSubtaskTitle()"
-                      (ngModelChange)="newSubtaskTitle.set($event)"
-                      (keydown.enter)="quickAddSubtask()"
-                      (keydown.escape)="toggleSubtaskEntry()"
-                      [disabled]="newSubtaskCreating()"
-                      autofocus
-                    />
-                    <div class="entry-actions">
-                      <button
-                        type="button"
-                        class="entry-save"
-                        (click)="quickAddSubtask()"
-                        [disabled]="!newSubtaskTitle().trim() || newSubtaskCreating()"
-                      >
-                        Add
-                      </button>
-                      <button type="button" class="entry-cancel" (click)="toggleSubtaskEntry()">
-                        Cancel
-                      </button>
-                    </div>
+                    <button type="button" class="entry-cancel" (click)="toggleSubtaskEntry()">
+                      Cancel
+                    </button>
                   </div>
-                }
-              </div>
+                </div>
+              }
+            </div>
+          }
+        </section>
+      }
+    </div>
+
+    <button
+      type="button"
+      class="details-toggle"
+      [attr.aria-expanded]="showAdvanced()"
+      aria-controls="task-advanced-section"
+      (click)="toggleAdvanced()"
+    >
+      <span>More details</span>
+      @if (advancedSummary()) {
+        <span class="details-summary">{{ advancedSummary() }}</span>
+      }
+      <span class="details-chevron" aria-hidden="true">▾</span>
+    </button>
+
+    <div
+      class="task-details"
+      id="task-advanced-section"
+      [class.details-collapsed]="!showAdvanced()"
+    >
+      <div class="sidebar-section project-section">
+        <div class="project-section-header">
+          <span class="field-label">Project</span>
+          <p>Choose where this task should live.</p>
+        </div>
+
+        <label class="project-picker" for="task-project">
+          <span class="sr-only">Project</span>
+          <span class="project-picker-dot"></span>
+          <select
+            id="task-project"
+            class="status-select project-select"
+            [ngModel]="draftProjectId()"
+            (ngModelChange)="draftProjectId.set($event)"
+          >
+            @for (project of projects; track project.id) {
+              <option [value]="project.id">{{ project.name }}</option>
             }
-          </section>
+          </select>
+        </label>
+
+        <p class="project-helper">{{ selectedContextLabel() }}</p>
+      </div>
+
+      <div class="sidebar-section">
+        <span class="field-label">Simple mode</span>
+        <label class="toggle-row">
+          <span>Keep it lightweight with no date metadata</span>
+          <input
+            type="checkbox"
+            [ngModel]="draftSimpleMode()"
+            (ngModelChange)="onSimpleModeChange($event)"
+          />
+        </label>
+      </div>
+
+      <div class="sidebar-section">
+        <span class="field-label" id="task-labels-label">Labels</span>
+        <div class="label-chip-grid" role="group" aria-labelledby="task-labels-label">
+          @for (label of labels(); track label.id) {
+            <button
+              type="button"
+              class="label-chip"
+              [class.label-chip-active]="labelSelected(label)"
+              [attr.aria-pressed]="labelSelected(label)"
+              (click)="toggleLabel(label)"
+            >
+              <span class="label-chip-dot" [style.background]="label.color"></span>
+              <span>{{ label.name }}</span>
+            </button>
+          }
+        </div>
+
+        <div class="inline-create">
+          <input
+            type="text"
+            placeholder="New label"
+            [ngModel]="newLabelName()"
+            (ngModelChange)="newLabelName.set($event)"
+          />
+          <div class="palette-row" aria-label="Label color presets">
+            @for (color of palette; track color) {
+              <button
+                type="button"
+                class="palette-swatch"
+                [class.palette-swatch-active]="newLabelColor() === color"
+                [style.background]="color"
+                [attr.aria-label]="'Choose color ' + color"
+                (click)="newLabelColor.set(color)"
+              ></button>
+            }
+          </div>
+          <button type="button" class="create-inline-button" (click)="createInlineLabel()">
+            Create label
+          </button>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <span class="field-label">Schedule</span>
+        <app-date-picker
+          class="compact-field schedule-picker"
+          [value]="draftDueDate()"
+          (valueChange)="draftDueDate.set($event)"
+          [disabled]="draftSimpleMode()"
+          label="Due date"
+          [invalid]="!!dueDateError()"
+          [describedBy]="dueDateError() ? 'task-due-date-error' : null"
+        />
+        @if (dueDateError()) {
+          <p id="task-due-date-error" class="field-error-message">{{ dueDateError() }}</p>
         }
       </div>
 
-      <aside class="modal-sidebar">
-        <div class="sidebar-scroll">
-          <div class="sidebar-section project-section">
-            <div class="project-section-header">
-              <span class="field-label">Project</span>
-              <p>Choose where this task should live.</p>
-            </div>
-
-            <label class="project-picker" for="task-project">
-              <span class="sr-only">Project</span>
-              <span class="project-picker-dot"></span>
-              <select
-                id="task-project"
-                class="status-select project-select"
-                [ngModel]="draftProjectId()"
-                (ngModelChange)="draftProjectId.set($event)"
-              >
-                @for (project of projects; track project.id) {
-                  <option [value]="project.id">{{ project.name }}</option>
-                }
-              </select>
-            </label>
-
-            <p class="project-helper">{{ selectedContextLabel() }}</p>
-          </div>
-
-          <div class="sidebar-section">
-            <span class="field-label">Simple mode</span>
-            <label class="toggle-row">
-              <span>Keep it lightweight with no date metadata</span>
-              <input
-                type="checkbox"
-                [ngModel]="draftSimpleMode()"
-                (ngModelChange)="onSimpleModeChange($event)"
-              />
-            </label>
-          </div>
-
-          <div class="sidebar-section">
-            <span class="field-label">Labels</span>
-            <div class="label-chip-grid">
-              @for (label of labels(); track label.id) {
-                <button
-                  type="button"
-                  class="label-chip"
-                  [class.label-chip-active]="labelSelected(label)"
-                  (click)="toggleLabel(label)"
-                >
-                  <span class="label-chip-dot" [style.background]="label.color"></span>
-                  <span>{{ label.name }}</span>
-                </button>
-              }
-            </div>
-
-            <div class="inline-create">
-              <input
-                type="text"
-                placeholder="New label"
-                [ngModel]="newLabelName()"
-                (ngModelChange)="newLabelName.set($event)"
-              />
-              <div class="palette-row" aria-label="Label color presets">
-                @for (color of palette; track color) {
-                  <button
-                    type="button"
-                    class="palette-swatch"
-                    [class.palette-swatch-active]="newLabelColor() === color"
-                    [style.background]="color"
-                    [attr.aria-label]="'Choose color ' + color"
-                    (click)="newLabelColor.set(color)"
-                  ></button>
-                }
-              </div>
-              <button type="button" class="create-inline-button" (click)="createInlineLabel()">
-                Create label
-              </button>
-            </div>
-          </div>
-
-          <div class="sidebar-section">
-            <span class="field-label">Schedule</span>
-            <app-date-picker
-              class="compact-field"
-              [value]="draftDueDate()"
-              (valueChange)="draftDueDate.set($event)"
-              [disabled]="draftSimpleMode()"
-              label="Due date"
+      <div class="sidebar-section">
+        <span class="field-label">Repeat</span>
+        <select
+          class="status-select"
+          [ngModel]="draftRecurrenceFrequency()"
+          (ngModelChange)="draftRecurrenceFrequency.set($event)"
+          [disabled]="isRecurrenceDisabled()"
+        >
+          <option [ngValue]="null">None</option>
+          <option value="daily">Daily</option>
+          <option value="weekdays">Weekdays</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="yearly">Yearly</option>
+        </select>
+        @if (draftRecurrenceFrequency() && draftRecurrenceFrequency() !== 'weekdays') {
+          <label class="recurrence-interval-row">
+            <span>Every</span>
+            <input
+              type="number"
+              class="recurrence-interval-input"
+              [ngModel]="draftRecurrenceInterval()"
+              (ngModelChange)="draftRecurrenceInterval.set($event)"
+              min="1"
+              max="30"
             />
-            @if (dueDateError()) {
-              <p class="field-error-message">{{ dueDateError() }}</p>
+            <span>{{
+              draftRecurrenceFrequency() === 'daily'
+                ? 'day(s)'
+                : draftRecurrenceFrequency() === 'weekly'
+                  ? 'week(s)'
+                  : draftRecurrenceFrequency() === 'monthly'
+                    ? 'month(s)'
+                    : 'year(s)'
+            }}</span>
+          </label>
+          <app-date-picker
+            class="compact-field"
+            [value]="draftRecurrenceEndDate()"
+            (valueChange)="draftRecurrenceEndDate.set($event)"
+            label="End repeat"
+          />
+        }
+
+        @if (draftRecurrenceFrequency() === 'weekly') {
+          <div class="day-picker-row" role="group" aria-label="Repeat on weekdays">
+            @for (name of weekdayNames; track $index) {
+              <button
+                type="button"
+                class="day-chip"
+                [class.day-chip-active]="draftRecurrenceDaysOfWeek().includes($index)"
+                [attr.aria-pressed]="draftRecurrenceDaysOfWeek().includes($index)"
+                (click)="toggleDay($index)"
+              >
+                {{ name }}
+              </button>
             }
           </div>
+        }
 
-          <div class="sidebar-section">
-            <span class="field-label">Repeat</span>
-            <select
-              class="status-select"
-              [ngModel]="draftRecurrenceFrequency()"
-              (ngModelChange)="draftRecurrenceFrequency.set($event)"
-              [disabled]="isRecurrenceDisabled()"
-            >
-              <option [ngValue]="null">None</option>
-              <option value="daily">Daily</option>
-              <option value="weekdays">Weekdays</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="yearly">Yearly</option>
-            </select>
-            @if (draftRecurrenceFrequency() && draftRecurrenceFrequency() !== 'weekdays') {
-              <label class="recurrence-interval-row">
-                <span>Every</span>
-                <input
-                  type="number"
-                  class="recurrence-interval-input"
-                  [ngModel]="draftRecurrenceInterval()"
-                  (ngModelChange)="draftRecurrenceInterval.set($event)"
-                  min="1"
-                  max="30"
-                />
-                <span>{{
-                  draftRecurrenceFrequency() === 'daily'
-                    ? 'day(s)'
-                    : draftRecurrenceFrequency() === 'weekly'
-                      ? 'week(s)'
-                      : draftRecurrenceFrequency() === 'monthly'
-                        ? 'month(s)'
-                        : 'year(s)'
-                }}</span>
-              </label>
-              <app-date-picker
-                class="compact-field"
-                [value]="draftRecurrenceEndDate()"
-                (valueChange)="draftRecurrenceEndDate.set($event)"
-                label="End repeat"
-              />
-            }
-
-            @if (draftRecurrenceFrequency() === 'weekly') {
-              <div class="day-picker-row">
-                @for (name of weekdayNames; track $index) {
-                  <button
-                    type="button"
-                    class="day-chip"
-                    [class.day-chip-active]="draftRecurrenceDaysOfWeek().includes($index)"
-                    (click)="toggleDay($index)"
-                  >
-                    {{ name }}
-                  </button>
-                }
-              </div>
-            }
-
-            @if (draftRecurrenceFrequency() === 'weekdays') {
-              <div class="day-picker-row day-picker-row-preset">
-                <span>Mon–Fri</span>
-              </div>
-            }
+        @if (draftRecurrenceFrequency() === 'weekdays') {
+          <div class="day-picker-row day-picker-row-preset">
+            <span>Mon–Fri</span>
           </div>
+        }
+      </div>
 
-          <div class="sidebar-section">
-            <span class="field-label">Priority</span>
-            <div class="priority-dots">
-              @for (option of priorities; track option) {
-                <button
-                  type="button"
-                  class="priority-dot"
-                  [class.priority-dot-active]="draftPriority() === option"
-                  [class.priority-dot-high]="option === 'high'"
-                  [class.priority-dot-medium]="option === 'medium'"
-                  [class.priority-dot-low]="option === 'low'"
-                  (click)="draftPriority.set(option)"
-                  [attr.aria-label]="option + ' priority'"
-                  [title]="option + ' priority'"
-                ></button>
-              }
-            </div>
-          </div>
-
-          <div class="sidebar-section">
-            <label class="field-label" for="task-status">Status</label>
-            <select
-              id="task-status"
-              class="status-select"
-              [ngModel]="draftStatus()"
-              (ngModelChange)="draftStatus.set($event)"
-            >
-              <option value="inbox">Inbox</option>
-              <option value="today">Today</option>
-              <option value="upcoming">Upcoming</option>
-            </select>
-          </div>
-
-          <div class="sidebar-section">
-            <span class="field-label">Completion</span>
-            <label class="toggle-row">
-              <span>{{ draftCompleted() ? 'Move back to doing' : 'Mark as completed' }}</span>
-              <span class="checkbox-control">
-                <input
-                  type="checkbox"
-                  [ngModel]="draftCompleted()"
-                  (ngModelChange)="draftCompleted.set($event)"
-                  [attr.aria-label]="draftCompleted() ? 'Move back to doing' : 'Mark as completed'"
-                />
-                <span class="checkbox-box" aria-hidden="true">
-                  @if (draftCompleted()) {
-                    <span class="checkbox-mark"></span>
-                  }
-                </span>
-              </span>
-            </label>
-          </div>
-        </div>
-
-        <div class="sidebar-footer">
-          @if (error) {
-            <p class="error-copy">{{ error }}</p>
+      <div class="sidebar-section">
+        <span class="field-label" id="task-priority-label">Priority</span>
+        <div class="priority-dots" role="group" aria-labelledby="task-priority-label">
+          @for (option of priorities; track option) {
+            <button
+              type="button"
+              class="priority-dot"
+              [class.priority-dot-active]="draftPriority() === option"
+              [class.priority-dot-high]="option === 'high'"
+              [class.priority-dot-medium]="option === 'medium'"
+              [class.priority-dot-low]="option === 'low'"
+              [attr.aria-pressed]="draftPriority() === option"
+              (click)="draftPriority.set(option)"
+              [attr.aria-label]="option + ' priority'"
+              [title]="option + ' priority'"
+            ></button>
           }
-
-          <div class="actions">
-            <button type="button" class="secondary-button" (click)="close.emit()">Cancel</button>
-            <button type="button" class="primary-button" (click)="submit()">
-              {{ task ? 'Save Task' : 'Create Task' }}
-            </button>
-          </div>
         </div>
-      </aside>
-    </section>
+      </div>
+
+      <div class="sidebar-section">
+        <label class="field-label" for="task-status">Status</label>
+        <select
+          id="task-status"
+          class="status-select"
+          [ngModel]="draftStatus()"
+          (ngModelChange)="draftStatus.set($event)"
+        >
+          <option value="inbox">Inbox</option>
+          <option value="today">Today</option>
+          <option value="upcoming">Upcoming</option>
+        </select>
+      </div>
+
+      <div class="sidebar-section">
+        <span class="field-label">Completion</span>
+        <label class="toggle-row">
+          <span>{{ draftCompleted() ? 'Move back to doing' : 'Mark as completed' }}</span>
+          <span class="checkbox-control">
+            <input
+              type="checkbox"
+              [ngModel]="draftCompleted()"
+              (ngModelChange)="draftCompleted.set($event)"
+              [attr.aria-label]="draftCompleted() ? 'Move back to doing' : 'Mark as completed'"
+            />
+            <span class="checkbox-box" aria-hidden="true">
+              @if (draftCompleted()) {
+                <span class="checkbox-mark"></span>
+              }
+            </span>
+          </span>
+        </label>
+      </div>
+    </div>
   </div>
-}
+
+  <div modal-footer class="task-footer">
+    @if (error) {
+      <p class="error-copy" role="alert">{{ error }}</p>
+    }
+
+    <div class="actions">
+      <button type="button" class="secondary-button" (click)="close.emit()">Cancel</button>
+      <button type="button" class="primary-button" (click)="submit()">
+        {{ task ? 'Save Task' : 'Create Task' }}
+      </button>
+    </div>
+  </div>
+</app-modal>

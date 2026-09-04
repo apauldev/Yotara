@@ -278,6 +278,7 @@ export interface SyntaxInsert {
 
       @media (max-width: 720px) {
         .format-toolbar {
+          flex-wrap: wrap;
           align-items: stretch;
           gap: 0.25rem;
           padding: 0.28rem;
