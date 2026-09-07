@@ -272,7 +272,7 @@ input::placeholder {
 @media (width <= 640px) {
   .login-screen {
     justify-content: flex-start;
-    padding-top: 1rem;
+    padding-top: calc(1rem + env(safe-area-inset-top, 0px));
   }
 
   .auth-card {

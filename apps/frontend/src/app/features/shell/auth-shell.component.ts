@@ -630,7 +630,7 @@ interface SidebarItem {
           z-index: 5;
           background: color-mix(in srgb, var(--surface-container-low) 88%, transparent);
           backdrop-filter: blur(12px);
-          padding: 1rem 1.6rem;
+          padding: calc(1rem + env(safe-area-inset-top, 0px)) 1.6rem 1rem;
           border-bottom: 1px solid var(--outline-variant);
         }
 

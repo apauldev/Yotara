@@ -38,9 +38,11 @@
         <ng-content />
       </div>
 
-      <footer class="modal-footer">
-        <ng-content select="[modal-footer]" />
-      </footer>
+      @if (showFooter) {
+        <footer class="modal-footer">
+          <ng-content select="[modal-footer]" />
+        </footer>
+      }
     </section>
   </div>
 }

@@ -19,6 +19,21 @@ class AutofocusHostComponent {
 }
 
 @Component({
+  selector: 'app-modal-data-autofocus-host',
+  standalone: true,
+  imports: [ModalComponent],
+  template: `
+    <app-modal [open]="open" title="Data autofocus modal">
+      <button type="button" id="first">First</button>
+      <input id="second" data-autofocus placeholder="second" />
+    </app-modal>
+  `,
+})
+class DataAutofocusHostComponent {
+  open = false;
+}
+
+@Component({
   selector: 'app-modal-trap-host',
   standalone: true,
   imports: [ModalComponent],
@@ -71,6 +86,7 @@ describe('ModalComponent', () => {
       imports: [
         ModalComponent,
         AutofocusHostComponent,
+        DataAutofocusHostComponent,
         TrapHostComponent,
         FooterHostComponent,
         LayoutHostComponent,
@@ -153,6 +169,16 @@ describe('ModalComponent', () => {
     hostFixture.detectChanges();
 
     const second = hostFixture.nativeElement.querySelector('#second') as HTMLElement;
+    expect(document.activeElement).toBe(second);
+  });
+
+  it('honors data-autofocus the same as autofocus (no native behavior)', () => {
+    const hostFixture = TestBed.createComponent(DataAutofocusHostComponent);
+    hostFixture.componentInstance.open = true;
+    hostFixture.detectChanges();
+
+    const second = hostFixture.nativeElement.querySelector('#second') as HTMLElement;
+    expect(second.hasAttribute('autofocus')).toBe(false);
     expect(document.activeElement).toBe(second);
   });
 
@@ -297,7 +323,16 @@ describe('ModalComponent', () => {
     expect(footer.textContent).toContain('Footer actions');
   });
 
-  it('renders an empty footer slot when no [modal-footer] is projected', () => {
+  it('omits the footer when showFooter is false', () => {
+    fixture.componentRef.setInput('open', true);
+    fixture.componentRef.setInput('title', 'No footer');
+    fixture.componentRef.setInput('showFooter', false);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.modal-footer')).toBeNull();
+  });
+
+  it('renders an empty hidden footer slot when showFooter is true with no projection', () => {
     const hostFixture = TestBed.createComponent(LayoutHostComponent);
     hostFixture.componentInstance.layout = 'default';
     hostFixture.detectChanges();

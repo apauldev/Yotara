@@ -382,6 +382,12 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
         background: var(--primary-soft-strong);
       }
 
+      @media (hover: none) {
+        .restore-pill:active {
+          background: var(--primary-soft-strong);
+        }
+      }
+
       .archive-pill {
         background: var(--surface-container-low);
         color: var(--on-surface-muted);
@@ -572,6 +578,17 @@ import { parseCalendarDate } from '../../../shared/utils/timestamps';
 
         h3 {
           font-size: 0.92rem;
+        }
+      }
+
+      @media (pointer: coarse) {
+        .task-check {
+          min-width: 2.75rem;
+          min-height: 2.75rem;
+        }
+
+        .restore-pill {
+          min-height: 2.75rem;
         }
       }
     `,

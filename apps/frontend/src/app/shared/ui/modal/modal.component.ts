@@ -33,6 +33,7 @@ export class ModalComponent implements OnChanges, AfterViewChecked, OnDestroy {
   @Input() title = '';
   @Input() size: ModalSize = 'md';
   @Input() layout: ModalLayout = 'default';
+  @Input() showFooter = true;
   @Input() closeOnBackdrop = true;
   @Input() closeOnEsc = true;
   @Output() readonly close = new EventEmitter<void>();
@@ -149,7 +150,7 @@ export class ModalComponent implements OnChanges, AfterViewChecked, OnDestroy {
       return;
     }
 
-    const autofocusTarget = dialog.querySelector<HTMLElement>('[autofocus]');
+    const autofocusTarget = dialog.querySelector<HTMLElement>('[autofocus],[data-autofocus]');
     if (
       autofocusTarget &&
       !autofocusTarget.hasAttribute('disabled') &&

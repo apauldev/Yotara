@@ -5,7 +5,7 @@
 .modal-shell {
   position: fixed;
   inset: 0;
-  z-index: 70;
+  z-index: var(--z-modal, 70);
   display: grid;
   place-items: center;
   padding: 1.5rem;
@@ -16,13 +16,14 @@
   inset: 0;
   border: 0;
   background: var(--backdrop-overlay);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }
 
 .modal-card {
   position: relative;
   z-index: 1;
-  width: min(100%, 34rem);
+  width: var(--modal-card-max-width, min(100%, 34rem));
   border-radius: 1.6rem;
   background: var(--surface-container-lowest);
   box-shadow:
@@ -33,11 +34,11 @@
 }
 
 .modal-card-sm {
-  width: min(100%, 26rem);
+  width: var(--modal-card-max-width, min(100%, 26rem));
 }
 
 .modal-card-lg {
-  width: min(100%, 44rem);
+  width: var(--modal-card-max-width, min(100%, 44rem));
 }
 
 .modal-header {
@@ -65,6 +66,8 @@ h2 {
   color: var(--on-surface-muted);
   font-size: 2rem;
   line-height: 1;
+  min-width: var(--modal-close-min-size, 0);
+  min-height: var(--modal-close-min-size, 0);
   cursor: pointer;
 }
 
@@ -75,6 +78,9 @@ h2 {
 
 .modal-body {
   margin-top: 1rem;
+  display: var(--modal-body-display, block);
+  flex-direction: var(--modal-body-flex-direction, initial);
+  overflow: var(--modal-body-overflow, visible);
 }
 
 .modal-card-full-height {
@@ -105,6 +111,11 @@ h2 {
     padding: 0;
     padding-top: env(safe-area-inset-top, 0px);
     place-items: end center;
+  }
+
+  .close-button {
+    min-width: var(--modal-close-min-size, 2.75rem);
+    min-height: var(--modal-close-min-size, 2.75rem);
   }
 
   .modal-card {

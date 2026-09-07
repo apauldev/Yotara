@@ -318,12 +318,17 @@ describe('PersonalTaskModalComponent', () => {
       expect(footer.nativeElement.querySelector('.secondary-button')).toBeTruthy();
     });
 
-    it('focuses the title input instead of using native subtask autofocus', () => {
+    it('focuses the title input via data-autofocus without native autofocus', () => {
       component.open = true;
       fixture.detectChanges();
 
       const titleInput = fixture.debugElement.query(By.css('input[name="taskTitle"]'));
-      expect(titleInput.nativeElement.hasAttribute('autofocus')).toBe(true);
+      expect(titleInput.nativeElement.hasAttribute('autofocus')).toBe(false);
+      expect(titleInput.nativeElement.hasAttribute('data-autofocus')).toBe(true);
+
+      // The shared modal honors data-autofocus in one step; onModalOpened is an
+      // idempotent fallback onto the same element.
+      expect(document.activeElement).toBe(titleInput.nativeElement);
 
       component['subtaskEntryMode'].set(true);
       fixture.detectChanges();

@@ -25,6 +25,7 @@ type LabelModalMode = 'create' | 'edit';
       [open]="open"
       [title]="mode === 'create' ? 'Create Label' : 'Edit Label'"
       size="lg"
+      [showFooter]="false"
       (close)="close.emit()"
     >
       <div class="label-modal-shell">

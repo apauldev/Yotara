@@ -97,6 +97,12 @@ import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from 
         border-color: var(--outline-variant);
       }
 
+      @media (hover: none) {
+        .pagination-button:not(:disabled):active {
+          background: var(--surface-container-low);
+        }
+      }
+
       .pagination-pages {
         display: flex;
         gap: 0.25rem;
@@ -123,6 +129,13 @@ import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from 
         color: var(--on-surface);
       }
 
+      @media (hover: none) {
+        .page-number:active {
+          background: var(--surface-container-low);
+          color: var(--on-surface);
+        }
+      }
+
       .page-number.page-active {
         background: var(--surface-container-high);
         color: var(--on-surface);
@@ -137,6 +150,18 @@ import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from 
       @media (max-width: 640px) {
         .pagination-pages {
           display: none;
+        }
+      }
+
+      @media (pointer: coarse) {
+        .pagination-button {
+          width: 2.75rem;
+          height: 2.75rem;
+        }
+
+        .page-number {
+          min-width: 2.75rem;
+          height: 2.75rem;
         }
       }
     `,

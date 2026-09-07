@@ -17,13 +17,13 @@
           id="task-title-input"
           type="text"
           name="taskTitle"
+          data-autofocus
           [ngModel]="draftTitle()"
           (ngModelChange)="draftTitle.set($event)"
           [class.field-error]="titleError()"
           [attr.aria-invalid]="titleError() ? 'true' : null"
           [attr.aria-describedby]="titleError() ? 'task-title-error' : null"
           placeholder="Redesign sanctuary garden layout"
-          autofocus
         />
         @if (titleError()) {
           <p id="task-title-error" class="field-error-message">{{ titleError() }}</p>

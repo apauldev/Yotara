@@ -1,4 +1,4 @@
-<app-modal [open]="open" [title]="title" [size]="size" (close)="close.emit()">
+<app-modal [open]="open" [title]="title" [size]="size" [showFooter]="false" (close)="close.emit()">
   <div class="confirm-dialog" [class.confirm-dialog-danger]="danger">
     <div class="confirm-icon" aria-hidden="true">
       <ng-content select="[confirm-icon]"></ng-content>
