@@ -319,7 +319,7 @@ import { parseCalendarDate } from '../../utils/timestamps';
       }
 
       .date-picker-clear {
-        min-height: 2rem;
+        min-height: 2.75rem;
         border-radius: 0.7rem;
         padding: 0 0.75rem;
         display: inline-flex;

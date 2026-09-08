@@ -5,7 +5,11 @@ const taskName = (label: string) => `${label}-mobile-${Date.now()}`;
 const titlePlaceholder = 'Redesign sanctuary garden layout';
 const detailsButtonName = 'Add task with details';
 
-async function openCreateModal(page: Page) {
+async function openCreateModal(page: Page, viewport?: { width: number; height: number }) {
+  if (viewport) {
+    await page.setViewportSize(viewport);
+  }
+
   await page.goto('/tasks?view=inbox');
   await page.waitForLoadState('networkidle');
   await dismissTip(page);
@@ -15,6 +19,27 @@ async function openCreateModal(page: Page) {
   await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
 }
 
+async function expandDetails(page: Page) {
+  const toggle = page.getByRole('button', { name: /More details/ });
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') {
+    await toggle.click();
+  }
+}
+
+async function measureTouchTargets(page: Page, selectors: string[]) {
+  const targets = [];
+  for (const selector of selectors) {
+    const target = page.locator(selector).first();
+    await expect(target, `${selector} should render`).toBeVisible();
+    const box = await target.boundingBox();
+    targets.push({
+      selector,
+      width: box?.width ?? 0,
+      height: box?.height ?? 0,
+    });
+  }
+  return targets;
+}
 test.describe.configure({ mode: 'serial' });
 
 test.describe('Task modal on mobile', () => {
@@ -173,6 +198,153 @@ test.describe('Task modal on mobile', () => {
       'aria-pressed',
       'true',
     );
+  });
+
+  test('keeps key task controls at least 44px on touch layouts', async ({ page }) => {
+    await openCreateModal(page, { width: 390, height: 844 });
+    await expandDetails(page);
+
+    const targetSelectors = [
+      '.modal-card .close-button',
+      '.details-toggle',
+      '.priority-dot',
+      '.label-chip',
+      '.palette-swatch',
+      '.date-picker-trigger',
+      '.checkbox-control',
+      '.add-subtask-button',
+      '.primary-button',
+      '.secondary-button',
+    ];
+    const targets = await measureTouchTargets(page, targetSelectors);
+    expect(targets).toHaveLength(targetSelectors.length);
+    for (const target of targets) {
+      expect(target.width, `${target.selector} width`).toBeGreaterThanOrEqual(44);
+      expect(target.height, `${target.selector} height`).toBeGreaterThanOrEqual(44);
+    }
+
+    const simpleMode = page.getByRole('checkbox', {
+      name: 'Keep it lightweight with no date metadata',
+    });
+    if (await simpleMode.isChecked()) {
+      await simpleMode.click();
+    }
+    await page.locator('.schedule-picker .date-picker-trigger').click();
+    const calendarTargets = await measureTouchTargets(page, ['.date-picker-nav']);
+    for (const target of calendarTargets) {
+      expect(target.width, `${target.selector} width`).toBeGreaterThanOrEqual(44);
+      expect(target.height, `${target.selector} height`).toBeGreaterThanOrEqual(44);
+    }
+
+    await page.locator('.date-picker-day:not([data-disabled])').first().click();
+    const clearTarget = await measureTouchTargets(page, ['.date-picker-clear']);
+    expect(clearTarget[0].width).toBeGreaterThanOrEqual(44);
+    expect(clearTarget[0].height).toBeGreaterThanOrEqual(44);
+  });
+
+  test('completes the advanced workflow at 320px and persists metadata', async ({ page }) => {
+    const name = taskName('advanced');
+    await openCreateModal(page, { width: 320, height: 568 });
+
+    const title = page.getByPlaceholder(titlePlaceholder);
+    await title.fill(name);
+    await page.getByRole('textbox', { name: 'Description' }).fill('Narrow-screen details');
+    await expandDetails(page);
+
+    const label = page.locator('.label-chip').first();
+    await expect(label).toBeVisible();
+    const labelName = await label.innerText();
+    await label.click();
+    await expect(label).toHaveAttribute('aria-pressed', 'true');
+
+    const repeatSection = page
+      .locator('.task-details .sidebar-section')
+      .filter({ hasText: 'Repeat' });
+    await repeatSection.locator('select.status-select').selectOption('weekly');
+    await page.locator('.day-chip').nth(1).click();
+    await expect(page.locator('.day-chip').nth(1)).toHaveAttribute('aria-pressed', 'true');
+    await page.selectOption('#task-status', 'today');
+
+    const simpleMode = page.getByRole('checkbox', {
+      name: 'Keep it lightweight with no date metadata',
+    });
+    if (await simpleMode.isChecked()) {
+      await simpleMode.click();
+    }
+
+    const schedule = page.locator('.schedule-picker .date-picker-trigger');
+    await schedule.click();
+    const today = new Date().getDate().toString();
+    const date = page
+      .locator('.date-picker-day:not([data-outside]):not([data-disabled])')
+      .filter({ hasText: today })
+      .first();
+    await expect(date).toBeVisible();
+    await date.click();
+    await expect(schedule).not.toContainText('Pick a date');
+
+    const documentWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(documentWidth).toBeLessThanOrEqual(320);
+
+    const createResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' && new URL(response.url()).pathname === '/tasks',
+    );
+    await page.getByRole('button', { name: 'Create Task' }).click();
+    const createResponse = await createResponsePromise;
+    expect(createResponse.status()).toBe(201);
+
+    await page.goto('/tasks?view=today');
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('article.task-card').filter({ hasText: name })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    await page.locator('article.task-card').filter({ hasText: name }).first().click();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    await expandDetails(page);
+    await expect(page.locator('.label-chip').filter({ hasText: labelName })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    const reopenedRepeatSection = page
+      .locator('.task-details .sidebar-section')
+      .filter({ hasText: 'Repeat' });
+    await expect(reopenedRepeatSection.locator('select.status-select')).toHaveValue('weekly');
+    await expect(page.locator('.day-chip').nth(1)).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.schedule-picker .date-picker-trigger')).not.toContainText(
+      'Pick a date',
+    );
+  });
+
+  test('keeps the modal open and preserves drafts after a save error', async ({ page }) => {
+    await page.route('**/*', async (route) => {
+      const request = route.request();
+      if (request.method() === 'POST' && new URL(request.url()).pathname === '/tasks') {
+        await route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({ message: 'Could not save your task right now.' }),
+        });
+        return;
+      }
+      await route.continue();
+    });
+
+    await openCreateModal(page);
+    const title = page.getByPlaceholder(titlePlaceholder);
+    await title.fill('Retry this mobile save');
+    await page.getByRole('button', { name: 'Create Task' }).click();
+
+    await expect(page.getByRole('dialog').getByRole('alert')).toContainText(
+      'Could not save your task right now.',
+    );
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(title).toHaveValue('Retry this mobile save');
+
+    await page.unroute('**/*');
+    await page.getByRole('button', { name: 'Create Task' }).click();
+    await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10_000 });
   });
 
   test('validates with associations and moves focus to the title', async ({ page }) => {

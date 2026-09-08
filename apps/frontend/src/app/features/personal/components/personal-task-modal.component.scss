@@ -12,7 +12,6 @@
   --modal-body-display: flex;
   --modal-body-flex-direction: column;
   --modal-body-overflow: hidden;
-  --modal-close-min-size: 0;
 }
 
 :host ::ng-deep [modal-subtitle] {
@@ -840,7 +839,7 @@ textarea {
 
   .primary-button,
   .secondary-button {
-    min-height: 2.6rem;
+    min-height: 2.75rem;
     font-size: 0.92rem;
   }
 
@@ -871,6 +870,7 @@ textarea {
   }
 
   .label-chip {
+    min-height: 2.75rem;
     padding: 0.38rem 0.58rem;
     font-size: 0.85rem;
   }
@@ -983,7 +983,7 @@ textarea {
 
   .primary-button,
   .secondary-button {
-    min-height: 2.45rem;
+    min-height: 2.75rem;
     font-size: 0.88rem;
   }
 
