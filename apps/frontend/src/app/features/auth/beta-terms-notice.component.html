@@ -13,7 +13,13 @@
   </div>
 
   @if (legalContent.document(); as document) {
-    <app-modal [open]="termsOpen()" [title]="document.title" size="lg" (close)="closeTerms()">
+    <app-modal
+      [open]="termsOpen()"
+      [title]="document.title"
+      size="lg"
+      [showFooter]="false"
+      (close)="closeTerms()"
+    >
       <p modal-subtitle>Version {{ document.version }} · Effective {{ document.effectiveDate }}</p>
       <article class="terms-content">
         <markdown [data]="document.content" />

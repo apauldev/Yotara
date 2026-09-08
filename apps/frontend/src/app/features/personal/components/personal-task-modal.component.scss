@@ -2,114 +2,113 @@
   display: contents;
 }
 
-.modal-shell {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: grid;
-  place-items: center;
-  padding: 1rem;
+// Task modal uses the shared app-modal shell (full-height layout).
+// This component only owns the two-pane composition and its scroll ownership.
+// 74rem fits the desktop two-pane grid (1.6fr main + 16-18rem details + gap)
+// without crowding; smaller viewports fall back to min(100%, ...) and the
+// single-column tablet/mobile layouts below.
+:host {
+  --modal-card-max-width: min(100%, 74rem);
+  --modal-body-display: flex;
+  --modal-body-flex-direction: column;
+  --modal-body-overflow: hidden;
 }
 
-.backdrop {
-  position: absolute;
-  inset: 0;
-  border: 0;
-  background: var(--backdrop-overlay);
-  backdrop-filter: blur(8px);
-}
-
-.modal-card {
-  position: relative;
-  z-index: 1;
-  width: min(100%, 62rem);
-  height: min(90dvh, 44rem);
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(16rem, 18rem);
-  border-radius: 1.6rem;
-  background: var(--surface-container-lowest);
-  box-shadow:
-    0 30px 60px var(--surface-dim-strong),
-    inset 0 0 0 1px var(--outline-variant);
-}
-
-/* Base styles for the grab handle (hidden on desktop) */
-.modal-card::before {
-  content: '';
-  display: none;
-}
-
-.modal-main {
-  min-width: 0;
-  min-height: 0;
-  overflow: auto;
-  padding: 1.55rem 1.55rem 1.4rem;
-}
-
-.modal-sidebar {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  padding: 1.15rem 0 1rem;
-  background: var(--surface-container-low);
-  box-shadow: inset 1px 0 0 0 var(--outline-variant);
-}
-
-.sidebar-scroll {
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 0 1.05rem 0.35rem;
-}
-
-.sidebar-footer {
-  flex: 0 0 auto;
-  padding: 0.8rem 1.05rem 0;
-  margin-top: 0.5rem;
-  border-top: 1px solid var(--outline-variant);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--surface-container-low) 92%, transparent),
-    var(--surface-container-low)
-  );
-  z-index: 10;
-}
-
-.modal-header,
-.title-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.title-row {
-  justify-content: flex-start;
-}
-
-h2 {
-  margin: 0;
-  font-size: 1.85rem;
-  line-height: 1.1;
-  letter-spacing: -0.05em;
-}
-
-.title-row p {
+:host ::ng-deep [modal-subtitle] {
   margin: 0.35rem 0 0;
   color: var(--primary-solid);
   font-size: 0.94rem;
 }
 
-.close-button {
-  border: 0;
-  background: transparent;
-  color: var(--on-surface-muted);
-  font-size: 2rem;
-  line-height: 1;
+.task-layout {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1.6fr) minmax(16rem, 18rem);
+  min-height: 0;
+  gap: 1.25rem;
+}
+
+.task-main,
+.task-details {
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.1rem;
+}
+
+.task-details {
+  padding: 1rem;
+  border-radius: 1rem;
+  background: var(--surface-container-low);
+  box-shadow: inset 0 0 0 1px var(--outline-variant);
+}
+
+.task-footer {
+  width: 100%;
+}
+
+// Progressive disclosure toggle: mobile/tablet only; desktop shows all fields.
+.details-toggle {
+  display: none;
+}
+
+@media (max-width: 960px) {
+  .details-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    margin-top: 0.85rem;
+    border: 0;
+    border-radius: 0.9rem;
+    min-height: 2.75rem;
+    padding: 0.6rem 0.9rem;
+    background: var(--surface-container-low);
+    box-shadow: inset 0 0 0 1px var(--outline-variant);
+    color: var(--on-surface);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .details-toggle .details-summary {
+    overflow: hidden;
+    flex: 1 1 auto;
+    min-width: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+    font-size: 0.84rem;
+    color: var(--on-surface-muted);
+  }
+
+  .details-toggle .details-chevron {
+    margin-left: auto;
+    transition: transform 150ms ease;
+  }
+
+  .details-toggle[aria-expanded='true'] .details-chevron {
+    transform: rotate(180deg);
+  }
+}
+
+// Consistent keyboard focus indication: use box-shadow so the ring doesn't
+// double up with the inset border-shadow used on inputs. Outline is
+// suppressed on inputs (they use box-shadow); buttons/selects/textareas keep
+// the outline ring.
+button:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--primary-solid);
+  outline-offset: 2px;
+}
+
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow:
+    inset 0 0 0 1px var(--primary-solid),
+    0 0 0 4px var(--primary-soft);
 }
 
 .field,
@@ -119,7 +118,8 @@ h2 {
   margin-top: 0.85rem;
 }
 
-.sidebar-scroll .sidebar-section:first-child {
+.task-main > .field:first-child,
+.task-details > .sidebar-section:first-child {
   margin-top: 0;
 }
 
@@ -198,6 +198,7 @@ input,
 textarea,
 select {
   width: 100%;
+  border: 0;
   border-radius: 0.95rem;
   background: var(--surface-container-lowest);
   box-shadow: inset 0 0 0 1px var(--outline-variant);
@@ -476,8 +477,16 @@ textarea {
   transition: opacity 150ms ease;
 }
 
-.subtask-row:hover .remove-draft-button {
+.subtask-row:hover .remove-draft-button,
+.remove-draft-button:focus-visible {
   opacity: 1;
+}
+
+// Touch layouts have no hover: keep removal always visible.
+@media (hover: none) {
+  .remove-draft-button {
+    opacity: 1;
+  }
 }
 
 .remove-draft-button:hover {
@@ -740,53 +749,87 @@ textarea {
   margin: 0 0 0.75rem;
 }
 
+// Tablet: single content column; the shared body region owns scrolling.
+// Collapsed details are display:none, which also removes them from tab order.
 @media (max-width: 960px) {
-  .modal-card {
-    width: min(100%, 48rem);
-    grid-template-columns: 1fr;
+  :host {
+    --modal-body-display: block;
+    --modal-body-overflow: auto;
+  }
+
+  .task-details.details-collapsed {
+    display: none;
+  }
+
+  .task-layout {
+    display: block;
+  }
+
+  .task-main,
+  .task-details {
+    overflow: visible;
+  }
+
+  .task-details {
+    margin-top: 1rem;
   }
 }
 
+// Mobile: one vertical scroll container (shared body) plus a fixed footer.
+// Note: the 44px close target on mobile comes from the shared modal default.
 @media (max-width: 720px) {
-  .modal-shell {
-    padding: 0.375rem;
-    place-items: end center;
+  .task-layout,
+  .task-main,
+  .task-details {
+    max-width: 100%;
   }
 
-  .modal-main {
-    padding: 0.9rem 0.9rem 0.75rem;
-  }
-
-  .modal-sidebar {
-    padding: 0.65rem 0 0;
-    background: var(--surface-container-lowest);
-    box-shadow: inset 0 1px 0 0 var(--outline-variant);
-  }
-
-  .modal-card {
-    width: min(calc(100vw - 0.75rem), 38rem);
-    height: min(calc(100dvh - 0.75rem), 46rem);
-    max-height: calc(100dvh - 0.75rem);
-    border-radius: 1.1rem;
-    overflow: auto;
-    display: flex;
-    flex-direction: column;
-    box-shadow:
-      0 18px 40px var(--surface-dim-strong),
-      inset 0 0 0 1px var(--outline-variant);
-  }
-
-  .sidebar-scroll {
+  .task-main,
+  .task-details {
     overflow: visible;
-    padding: 0 0.9rem 0.65rem;
   }
 
-  .sidebar-footer {
-    position: sticky;
-    bottom: 0;
-    margin-top: 0;
-    padding: 0.7rem 0.9rem calc(0.75rem + env(safe-area-inset-bottom));
-    z-index: 10;
+  // At least 44px hit areas for touch controls.
+  .priority-dot {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .palette-swatch {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .day-chip {
+    min-height: 2.75rem;
+  }
+
+  .checkbox-control {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+
+  .add-subtask-button,
+  .entry-save,
+  .entry-cancel {
+    min-height: 2.75rem;
+  }
+
+  .remove-draft-button {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+
+  .task-details {
+    margin-top: 0.7rem;
+    padding: 0.7rem;
+    border-radius: 0.95rem;
+  }
+
+  // Avoid nested scroll containers inside the single mobile scroll region.
+  .subtask-list {
+    max-height: none;
+    overflow: visible;
   }
 
   .actions {
@@ -796,7 +839,7 @@ textarea {
 
   .primary-button,
   .secondary-button {
-    min-height: 2.6rem;
+    min-height: 2.75rem;
     font-size: 0.92rem;
   }
 
@@ -813,11 +856,7 @@ textarea {
 
   .priority-dots {
     flex-wrap: wrap;
-  }
-
-  .priority-dot {
-    width: 1rem;
-    height: 1rem;
+    gap: 0.4rem;
   }
 
   .toggle-row {
@@ -831,6 +870,7 @@ textarea {
   }
 
   .label-chip {
+    min-height: 2.75rem;
     padding: 0.38rem 0.58rem;
     font-size: 0.85rem;
   }
@@ -864,7 +904,6 @@ textarea {
 
   .project-section-header p,
   .project-helper,
-  .title-row p,
   .field-error-message,
   .subtask-loading,
   .subtask-title,
@@ -873,24 +912,17 @@ textarea {
     font-size: 0.88rem;
   }
 
-  .modal-header {
-    gap: 0.65rem;
-  }
-
-  h2 {
-    font-size: 1.35rem;
-  }
-
-  .close-button {
-    font-size: 1.7rem;
-  }
-
+  // Keep form text at 1rem or larger on mobile to avoid iOS input zoom.
   input,
   textarea,
   select {
     padding: 0.72rem 0.8rem;
     border-radius: 0.8rem;
-    font-size: 0.95rem;
+    font-size: 1rem;
+  }
+
+  .subtask-entry input {
+    font-size: 1rem;
   }
 
   textarea {
@@ -898,24 +930,16 @@ textarea {
     line-height: 1.45;
   }
 
-  .markdown-editor-preview .markdown-preview {
-    min-height: 6.75rem;
-    padding: 0.72rem 0.8rem;
-    font-size: 0.92rem;
-  }
-
+  // Note: markdown editor/textarea sizing lives in the editor component so it
+  // applies everywhere; the task form keeps inputs at 1rem for iOS zoom.
   .create-inline-button {
-    min-height: 2.35rem;
+    min-height: 2.75rem;
     font-size: 0.9rem;
   }
 
   .subtasks-section {
     margin-top: 1rem;
     padding-top: 0.85rem;
-  }
-
-  .subtask-list {
-    max-height: 9.5rem;
   }
 
   .subtask-row {
@@ -943,55 +967,12 @@ textarea {
     font-size: 0.8rem;
   }
 
-  .priority-dots {
-    gap: 0.4rem;
-  }
-
   .toggle-row {
     padding: 0.62rem 0.72rem;
   }
 }
 
 @media (max-width: 560px) {
-  .modal-shell {
-    padding: 0.25rem;
-  }
-
-  .modal-card {
-    width: calc(100vw - 0.5rem);
-    height: calc(100dvh - 0.5rem);
-    max-height: calc(100dvh - 0.5rem);
-    border-radius: 0.95rem;
-  }
-
-  .modal-main {
-    padding: 0.8rem 0.8rem 0.65rem;
-  }
-
-  .sidebar-scroll {
-    padding: 0 0.8rem 0.55rem;
-  }
-
-  .sidebar-footer {
-    padding: 0.65rem 0.8rem calc(0.7rem + env(safe-area-inset-bottom));
-    z-index: 10;
-  }
-
-  h2 {
-    font-size: 1.2rem;
-  }
-
-  .project-section-header p,
-  .project-helper,
-  .title-row p,
-  .field-error-message,
-  .subtask-loading,
-  .subtask-title,
-  .toggle-row,
-  .recurrence-interval-row {
-    font-size: 0.84rem;
-  }
-
   .label-chip {
     font-size: 0.78rem;
   }
@@ -1000,14 +981,9 @@ textarea {
     flex: 1 1 calc(50% - 0.3rem);
   }
 
-  .priority-dot {
-    width: 0.92rem;
-    height: 0.92rem;
-  }
-
   .primary-button,
   .secondary-button {
-    min-height: 2.45rem;
+    min-height: 2.75rem;
     font-size: 0.88rem;
   }
 

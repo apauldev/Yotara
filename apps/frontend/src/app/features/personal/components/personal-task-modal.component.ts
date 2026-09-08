@@ -1,15 +1,16 @@
-import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import {
+  ChangeDetectorRef,
   Component,
+  ElementRef,
   EventEmitter,
-  HostListener,
   Input,
-  OnDestroy,
   Output,
-  PLATFORM_ID,
+  SimpleChanges,
   inject,
   signal,
   computed,
+  viewChild,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -27,6 +28,7 @@ import { LabelService } from '../../../core/services/label.service';
 import { TaskService } from '../../../core/services/task.service';
 import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
 import { MarkdownEditorComponent } from '../../../shared/ui/markdown-editor/markdown-editor.component';
+import { ModalComponent } from '../../../shared/ui/modal/modal.component';
 import { parseCalendarDate } from '../../../shared/utils/timestamps';
 import { parseTaskCommand } from '../utils/task-command-parser';
 
@@ -37,19 +39,25 @@ type SavePayload =
 @Component({
   selector: 'app-personal-task-modal',
   standalone: true,
-  imports: [CommonModule, DatePickerComponent, FormsModule, MarkdownEditorComponent],
+  imports: [
+    CommonModule,
+    DatePickerComponent,
+    FormsModule,
+    MarkdownEditorComponent,
+    ModalComponent,
+  ],
   templateUrl: './personal-task-modal.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './personal-task-modal.component.scss',
 })
-export class PersonalTaskModalComponent implements OnDestroy {
+export class PersonalTaskModalComponent {
   private readonly labelService = inject(LabelService);
   private readonly taskService = inject(TaskService);
-  private readonly platformId = inject(PLATFORM_ID);
-  private bodyScrollLocked = false;
-  private previousBodyOverflow = '';
-  private previousHtmlOverflow = '';
-  private previousBodyTouchAction = '';
+  private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly titleInput = viewChild<ElementRef<HTMLInputElement>>('titleInput');
+  private readonly subtaskInput = viewChild<ElementRef<HTMLInputElement>>('subtaskInput');
+  private readonly addSubtaskButton = viewChild<ElementRef<HTMLButtonElement>>('addSubtaskButton');
   @Input() open = false;
   @Input() task: Task | null = null;
   @Input() initialTitle = '';
@@ -111,23 +119,21 @@ export class PersonalTaskModalComponent implements OnDestroy {
   protected readonly dueDateError = signal<string | null>(null);
   protected readonly descriptionError = signal<string | null>(null);
 
-  ngOnChanges() {
-    this.syncBodyScrollLock();
-    this.hydrateDraft();
-  }
+  // Progressive disclosure: advanced metadata is collapsed for quick capture
+  // on mobile and auto-expanded when editing a task with meaningful metadata.
+  // Drafts live in signals, so collapsing never discards values.
+  protected readonly showAdvanced = signal(false);
 
-  ngOnDestroy() {
-    this.releaseBodyScrollLock();
-  }
-
-  @HostListener('document:keydown', ['$event'])
-  protected onDocumentKeydown(event: KeyboardEvent) {
-    if (!this.open || event.key !== 'Escape') {
-      return;
+  ngOnChanges(changes: SimpleChanges) {
+    // Hydrate only when a new editing session starts: the modal opening or a
+    // different task being supplied. Late-arriving inputs (projects loading,
+    // error updates) must not wipe in-progress drafts.
+    const opened = changes['open']?.currentValue === true && !changes['open']?.previousValue;
+    const taskChanged =
+      'task' in changes && changes['task']?.currentValue !== changes['task']?.previousValue;
+    if (opened || taskChanged) {
+      this.hydrateDraft();
     }
-
-    event.preventDefault();
-    this.close.emit();
   }
 
   protected selectedContextLabel() {
@@ -139,6 +145,39 @@ export class PersonalTaskModalComponent implements OnDestroy {
     this.draftRecurrenceDaysOfWeek.update((days) =>
       days.includes(day) ? days.filter((d) => d !== day) : [...days, day].sort(),
     );
+  }
+
+  protected toggleAdvanced() {
+    this.showAdvanced.update((v) => !v);
+  }
+
+  protected hasMeaningfulMetadata() {
+    return (
+      this.draftDueDate().trim() !== '' ||
+      this.draftRecurrenceFrequency() !== null ||
+      this.draftLabels().length > 0 ||
+      this.draftStatus() !== 'inbox' ||
+      this.draftPriority() !== 'medium' ||
+      this.draftCompleted() ||
+      // A project assignment only counts as meaningful when editing: new
+      // tasks default into the first project, which should not force expansion.
+      (this.task !== null && this.draftProjectId() !== '')
+    );
+  }
+
+  protected advancedSummary() {
+    const parts: string[] = [];
+    const projectName = this.projects.find((project) => project.id === this.draftProjectId())?.name;
+    if (projectName) {
+      parts.push(projectName);
+    }
+    if (this.draftPriority() !== 'medium') {
+      parts.push(`${this.draftPriority()} priority`);
+    }
+    if (this.draftDueDate().trim() !== '') {
+      parts.push(this.draftDueDate().trim());
+    }
+    return parts.join(' · ');
   }
 
   protected recurrenceFrequencyLabel() {
@@ -195,9 +234,19 @@ export class PersonalTaskModalComponent implements OnDestroy {
   }
 
   protected toggleSubtaskEntry() {
+    const opening = !this.subtaskEntryMode();
     this.subtaskEntryMode.update((m) => !m);
     if (!this.subtaskEntryMode()) {
       this.newSubtaskTitle.set('');
+      // Return focus to Add subtask after cancellation.
+      this.cdr.detectChanges();
+      this.addSubtaskButton()?.nativeElement.focus();
+      return;
+    }
+    // Focus the newly shown subtask input for immediate typing.
+    if (opening) {
+      this.cdr.detectChanges();
+      this.subtaskInput()?.nativeElement.focus();
     }
   }
 
@@ -205,11 +254,15 @@ export class PersonalTaskModalComponent implements OnDestroy {
     const title = this.newSubtaskTitle().trim();
     if (!title) {
       this.subtaskEntryMode.set(false);
+      this.cdr.detectChanges();
+      this.addSubtaskButton()?.nativeElement.focus();
       return;
     }
 
     this.draftSubtasks.update((subs) => [...subs, { title, completed: false }]);
     this.newSubtaskTitle.set('');
+    this.cdr.detectChanges();
+    this.subtaskInput()?.nativeElement.focus();
   }
 
   protected removeDraftSubtask(index: number) {
@@ -280,6 +333,7 @@ export class PersonalTaskModalComponent implements OnDestroy {
 
   protected submit() {
     if (!this.validateForm()) {
+      this.focusFirstInvalid();
       return;
     }
 
@@ -361,6 +415,38 @@ export class PersonalTaskModalComponent implements OnDestroy {
     this.newLabelColor.set(this.palette[0]);
   }
 
+  protected onModalOpened() {
+    this.titleInput()?.nativeElement.focus();
+  }
+
+  private focusFirstInvalid() {
+    // The due-date control lives in the collapsible advanced section;
+    // expand it before focusing so the target is visible and tabbable.
+    if (this.dueDateError() && !this.titleError()) {
+      this.showAdvanced.set(true);
+    }
+    this.cdr.detectChanges();
+
+    const titleEl = this.titleInput()?.nativeElement;
+    if (this.titleError() && titleEl) {
+      titleEl.focus();
+      titleEl.scrollIntoView({ block: 'nearest' });
+      return;
+    }
+
+    if (this.dueDateError()) {
+      // The schedule trigger lives inside app-date-picker; scope the query
+      // to the Schedule control (the popover directive owns the trigger id).
+      const trigger = this.host.nativeElement.querySelector(
+        '.schedule-picker .date-picker-trigger',
+      );
+      if (trigger instanceof HTMLElement) {
+        trigger.focus();
+        trigger.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }
+
   private hydrateDraft() {
     const rawTitle = this.task?.title ?? this.initialTitle;
     const { title, priority, labelNames } = parseTaskCommand(rawTitle);
@@ -378,9 +464,7 @@ export class PersonalTaskModalComponent implements OnDestroy {
         .filter((l) => labelNames.some((name) => name.toLowerCase() === l.name.toLowerCase()))
         .map((l) => l.id);
 
-      if (parsedLabelIds.length > 0) {
-        this.draftLabels.set(parsedLabelIds);
-      }
+      this.draftLabels.set(parsedLabelIds);
     } else {
       this.draftPriority.set(this.task?.priority ?? 'medium');
       this.draftLabels.set(this.task?.labels ?? []);
@@ -402,6 +486,9 @@ export class PersonalTaskModalComponent implements OnDestroy {
     this.draftSubtasks.set([]);
     // Clear validation errors when modal opens
     this.clearValidationErrors();
+    // Collapse advanced metadata for quick capture; auto-expand when the
+    // edited task already carries meaningful metadata.
+    this.showAdvanced.set(this.hasMeaningfulMetadata());
 
     // Load subtasks when editing an existing task
     if (this.task) {
@@ -415,40 +502,6 @@ export class PersonalTaskModalComponent implements OnDestroy {
     this.titleError.set(null);
     this.dueDateError.set(null);
     this.descriptionError.set(null);
-  }
-
-  private syncBodyScrollLock() {
-    if (!isPlatformBrowser(this.platformId)) {
-      return;
-    }
-
-    if (this.open) {
-      if (this.bodyScrollLocked) {
-        return;
-      }
-
-      this.previousBodyOverflow = document.body.style.overflow;
-      this.previousHtmlOverflow = document.documentElement.style.overflow;
-      this.previousBodyTouchAction = document.body.style.touchAction;
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
-      document.body.style.touchAction = 'none';
-      this.bodyScrollLocked = true;
-      return;
-    }
-
-    this.releaseBodyScrollLock();
-  }
-
-  private releaseBodyScrollLock() {
-    if (!isPlatformBrowser(this.platformId) || !this.bodyScrollLocked) {
-      return;
-    }
-
-    document.body.style.overflow = this.previousBodyOverflow;
-    document.documentElement.style.overflow = this.previousHtmlOverflow;
-    document.body.style.touchAction = this.previousBodyTouchAction;
-    this.bodyScrollLocked = false;
   }
 }
 

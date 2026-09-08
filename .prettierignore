@@ -13,3 +13,4 @@ apps/frontend/dist
 .git
 apps/frontend/e2e/.auth
 apps/frontend/e2e/test-results
+apps/frontend/e2e/playwright-report

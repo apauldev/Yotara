@@ -248,7 +248,8 @@ export interface SyntaxInsert {
         background: var(--surface-container-highest);
       }
 
-      .tb:hover::after {
+      .tb:hover::after,
+      .tb:active::after {
         content: attr(data-label) ' — ' attr(data-syntax);
         position: absolute;
         top: calc(100% + 0.3rem);
@@ -262,7 +263,7 @@ export interface SyntaxInsert {
         font-weight: 600;
         white-space: nowrap;
         pointer-events: none;
-        z-index: 60;
+        z-index: var(--z-overlay, 100);
         box-shadow: 0 2px 6px var(--surface-dim);
       }
 
@@ -278,6 +279,7 @@ export interface SyntaxInsert {
 
       @media (max-width: 720px) {
         .format-toolbar {
+          flex-wrap: wrap;
           align-items: stretch;
           gap: 0.25rem;
           padding: 0.28rem;
@@ -302,13 +304,20 @@ export interface SyntaxInsert {
         }
 
         .tb {
-          width: 1.95rem;
-          height: 1.95rem;
+          width: 2.75rem;
+          height: 2.75rem;
           border-radius: 0.35rem;
         }
 
         .tb-sep {
           display: none;
+        }
+      }
+
+      @media (pointer: coarse) {
+        .tb {
+          width: 2.75rem;
+          height: 2.75rem;
         }
       }
     `,

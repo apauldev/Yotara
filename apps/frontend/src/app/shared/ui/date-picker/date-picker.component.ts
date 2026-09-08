@@ -48,6 +48,8 @@ import { parseCalendarDate } from '../../utils/timestamps';
         type="button"
         class="date-picker-trigger"
         [disabled]="disabled"
+        [attr.aria-invalid]="invalid ? 'true' : null"
+        [attr.aria-describedby]="describedBy || null"
         brnPopoverTrigger
         [brnPopoverTriggerFor]="popover"
       >
@@ -225,6 +227,26 @@ import { parseCalendarDate } from '../../utils/timestamps';
         place-items: center;
       }
 
+      .date-picker-trigger:focus-visible,
+      .date-picker-nav:focus-visible,
+      .date-picker-clear:focus-visible,
+      .date-picker-day:focus-visible {
+        outline: 2px solid var(--primary-solid);
+        outline-offset: 2px;
+      }
+
+      @media (width <= 720px) {
+        .date-picker-nav {
+          width: 2.75rem;
+          height: 2.75rem;
+        }
+
+        .date-picker-clear {
+          min-height: 2.75rem;
+          padding: 0 1rem;
+        }
+      }
+
       .date-picker-weekdays,
       .date-picker-grid {
         display: grid;
@@ -297,7 +319,7 @@ import { parseCalendarDate } from '../../utils/timestamps';
       }
 
       .date-picker-clear {
-        min-height: 2rem;
+        min-height: 2.75rem;
         border-radius: 0.7rem;
         padding: 0 0.75rem;
         display: inline-flex;
@@ -315,6 +337,8 @@ export class DatePickerComponent implements OnChanges {
   @Input() label = 'Due date';
   @Input() min: string | null = null;
   @Input() max: string | null = null;
+  @Input() invalid = false;
+  @Input() describedBy: string | null = null;
   @Output() readonly valueChange = new EventEmitter<string>();
 
   protected readonly weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];

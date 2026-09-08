@@ -5,7 +5,7 @@
 .modal-shell {
   position: fixed;
   inset: 0;
-  z-index: 70;
+  z-index: var(--z-modal, 70);
   display: grid;
   place-items: center;
   padding: 1.5rem;
@@ -16,13 +16,14 @@
   inset: 0;
   border: 0;
   background: var(--backdrop-overlay);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }
 
 .modal-card {
   position: relative;
   z-index: 1;
-  width: min(100%, 34rem);
+  width: var(--modal-card-max-width, min(100%, 34rem));
   border-radius: 1.6rem;
   background: var(--surface-container-lowest);
   box-shadow:
@@ -33,11 +34,11 @@
 }
 
 .modal-card-sm {
-  width: min(100%, 26rem);
+  width: var(--modal-card-max-width, min(100%, 26rem));
 }
 
 .modal-card-lg {
-  width: min(100%, 44rem);
+  width: var(--modal-card-max-width, min(100%, 44rem));
 }
 
 .modal-header {
@@ -65,17 +66,56 @@ h2 {
   color: var(--on-surface-muted);
   font-size: 2rem;
   line-height: 1;
+  min-width: var(--modal-close-min-size, 0);
+  min-height: var(--modal-close-min-size, 0);
   cursor: pointer;
+}
+
+.close-button:focus-visible {
+  outline: 2px solid var(--primary-solid);
+  outline-offset: 2px;
 }
 
 .modal-body {
   margin-top: 1rem;
+  display: var(--modal-body-display, block);
+  flex-direction: var(--modal-body-flex-direction, initial);
+  overflow: var(--modal-body-overflow, visible);
+}
+
+.modal-card-full-height {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 3rem);
+  overflow: hidden;
+}
+
+.modal-card-full-height .modal-body-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.modal-footer {
+  flex: 0 0 auto;
+  margin-top: 1rem;
+}
+
+.modal-footer:empty {
+  display: none;
 }
 
 @media (max-width: 640px) {
   .modal-shell {
     padding: 0;
+    padding-top: env(safe-area-inset-top, 0px);
     place-items: end center;
+  }
+
+  .close-button {
+    min-width: var(--modal-close-min-size, 2.75rem);
+    min-height: var(--modal-close-min-size, 2.75rem);
   }
 
   .modal-card {
@@ -83,5 +123,18 @@ h2 {
     border-radius: 1.3rem 1.3rem 0 0;
     max-height: 92dvh;
     overflow: auto;
+    overscroll-behavior: contain;
+    padding-left: calc(1.35rem + env(safe-area-inset-left, 0px));
+    padding-right: calc(1.35rem + env(safe-area-inset-right, 0px));
+    padding-bottom: calc(1.35rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .modal-card-full-height {
+    overflow: hidden;
+    max-height: calc(92dvh - env(safe-area-inset-top, 0px));
+  }
+
+  .modal-card-full-height .modal-footer {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }

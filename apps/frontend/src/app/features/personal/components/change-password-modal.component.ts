@@ -21,7 +21,13 @@ import { checkPasswordPolicy } from '../../auth/password-policy';
   standalone: true,
   imports: [CommonModule, FormsModule, ModalComponent, StrengthMeterComponent],
   template: `
-    <app-modal [open]="open" title="Change Password" size="md" (close)="onClose()">
+    <app-modal
+      [open]="open"
+      title="Change Password"
+      size="md"
+      [showFooter]="false"
+      (close)="onClose()"
+    >
       <form class="password-form" (submit)="onSubmit($event)">
         <p class="form-description">Update your account password to keep your sanctuary secure.</p>
 

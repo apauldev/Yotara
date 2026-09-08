@@ -16,6 +16,8 @@ import {
 
 type ModalSize = 'sm' | 'md' | 'lg';
 
+export type ModalLayout = 'default' | 'full-height';
+
 @Component({
   selector: 'app-modal',
   standalone: true,
@@ -30,6 +32,8 @@ export class ModalComponent implements OnChanges, AfterViewChecked, OnDestroy {
   @Input() open = false;
   @Input() title = '';
   @Input() size: ModalSize = 'md';
+  @Input() layout: ModalLayout = 'default';
+  @Input() showFooter = true;
   @Input() closeOnBackdrop = true;
   @Input() closeOnEsc = true;
   @Output() readonly close = new EventEmitter<void>();
@@ -39,6 +43,7 @@ export class ModalComponent implements OnChanges, AfterViewChecked, OnDestroy {
 
   private previousFocus: HTMLElement | null = null;
   private previousBodyOverflow = '';
+  private bodyLocked = false;
   private pendingAfterOpen = false;
   private isOpen = false;
 
@@ -115,22 +120,45 @@ export class ModalComponent implements OnChanges, AfterViewChecked, OnDestroy {
   }
 
   private lockBodyScroll() {
+    if (this.bodyLocked) {
+      return;
+    }
     this.previousBodyOverflow = this.document.body.style.overflow;
     this.document.body.style.overflow = 'hidden';
+    this.bodyLocked = true;
   }
 
   private unlockBodyScroll() {
+    if (!this.bodyLocked) {
+      return;
+    }
     this.document.body.style.overflow = this.previousBodyOverflow;
+    this.bodyLocked = false;
   }
 
   private restoreFocus() {
-    this.previousFocus?.focus();
+    const target = this.previousFocus;
     this.previousFocus = null;
+    if (target && target.isConnected) {
+      target.focus();
+    }
   }
 
   private focusFirstElement() {
     const dialog = this.dialog?.nativeElement;
     if (!dialog) {
+      return;
+    }
+
+    const autofocusTarget = Array.from(
+      dialog.querySelectorAll<HTMLElement>('[autofocus],[data-autofocus]'),
+    ).find((element) => element.checkVisibility());
+    if (
+      autofocusTarget &&
+      !autofocusTarget.hasAttribute('disabled') &&
+      !autofocusTarget.hasAttribute('aria-hidden')
+    ) {
+      autofocusTarget.focus();
       return;
     }
 
@@ -182,7 +210,13 @@ export class ModalComponent implements OnChanges, AfterViewChecked, OnDestroy {
         ].join(','),
       ),
     ).filter(
-      (element) => !element.hasAttribute('disabled') && !element.hasAttribute('aria-hidden'),
+      (element) =>
+        !element.hasAttribute('disabled') &&
+        !element.hasAttribute('aria-hidden') &&
+        // Collapsed regions (e.g. display:none) stay in the DOM but must not
+        // participate in the trap: focusing them is a no-op that leaves
+        // keyboard users stuck after preventDefault().
+        element.checkVisibility(),
     );
   }
 }

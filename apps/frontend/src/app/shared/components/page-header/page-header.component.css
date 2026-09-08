@@ -56,6 +56,13 @@
   animation: header-reveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.05s forwards;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .page-header-copy,
+  .page-header-actions {
+    animation: none;
+  }
+}
+
 @keyframes header-reveal {
   from {
     opacity: 0;
@@ -86,6 +93,20 @@
 .back-button:hover {
   background: var(--surface-container);
   color: var(--on-surface);
+}
+
+@media (hover: none) {
+  .back-button:active {
+    background: var(--surface-container);
+    color: var(--on-surface);
+  }
+}
+
+@media (pointer: coarse) {
+  .back-button {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
 }
 
 .back-button fa-icon {

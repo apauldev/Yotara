@@ -119,7 +119,7 @@ import { PROJECT_PALETTE } from '../project-presentation';
       .modal-shell {
         position: fixed;
         inset: 0;
-        z-index: 60;
+        z-index: var(--z-modal);
         display: grid;
         place-items: center;
         padding: 1.5rem;
@@ -169,6 +169,15 @@ import { PROJECT_PALETTE } from '../project-presentation';
         color: var(--on-surface-muted);
         font-size: 2rem;
         line-height: 1;
+        display: inline-grid;
+        place-items: center;
+      }
+
+      @media (pointer: coarse) {
+        .close-button {
+          min-width: 2.75rem;
+          min-height: 2.75rem;
+        }
       }
 
       .field {
@@ -267,6 +276,7 @@ import { PROJECT_PALETTE } from '../project-presentation';
       @media (max-width: 640px) {
         .modal-shell {
           padding: 0;
+          padding-top: env(safe-area-inset-top, 0px);
           place-items: end center;
         }
 
@@ -275,6 +285,9 @@ import { PROJECT_PALETTE } from '../project-presentation';
           max-height: 92dvh;
           border-radius: 1.4rem 1.4rem 0 0;
           padding: 1.25rem;
+          padding-left: calc(1.25rem + env(safe-area-inset-left, 0px));
+          padding-right: calc(1.25rem + env(safe-area-inset-right, 0px));
+          padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
           overflow: auto;
         }
 

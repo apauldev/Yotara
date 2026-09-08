@@ -1,4 +1,4 @@
-import { chromium } from '@playwright/test';
+import { chromium, request } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import { getRuntimeConfig } from './fixtures/auth';
@@ -6,6 +6,7 @@ import { getRuntimeConfig } from './fixtures/auth';
 const BASE_URL = process.env['E2E_BASE_URL'] ?? 'http://localhost:4200';
 const AUTH_DIR = path.resolve('e2e/.auth');
 const AUTH_FILE = path.join(AUTH_DIR, 'user.json');
+const CREDENTIALS_FILE = path.join(AUTH_DIR, 'credentials.json');
 const TEST_EMAIL = `e2e-${Date.now()}@yotara.test`;
 const TEST_PASSWORD = 'E2eTestPass123!';
 const TEST_NAME = 'E2E Tester';
@@ -65,6 +66,11 @@ async function setup() {
 
   if (!fs.existsSync(AUTH_DIR)) {
     fs.mkdirSync(AUTH_DIR, { recursive: true });
+  }
+  for (const staleFile of [AUTH_FILE, CREDENTIALS_FILE]) {
+    if (fs.existsSync(staleFile)) {
+      fs.unlinkSync(staleFile);
+    }
   }
   const apiLogFile = process.env['E2E_API_LOG'] ?? process.env['API_LOG_FILE'];
   if (apiLogFile && !fs.existsSync(apiLogFile)) {
@@ -130,7 +136,27 @@ async function setup() {
 
     log('Saving storage state...');
     await context.storageState({ path: AUTH_FILE });
-    process.env['E2E_TEST_EMAIL'] = TEST_EMAIL;
+
+    const apiContext = await request.newContext({
+      baseURL: apiUrl,
+      storageState: AUTH_FILE,
+    });
+    try {
+      const profileResponse = await apiContext.get('/me');
+      if (!profileResponse.ok()) {
+        throw new Error(
+          `Saved authenticated state was rejected by ${apiUrl}/me with status ${profileResponse.status()}`,
+        );
+      }
+    } finally {
+      await apiContext.dispose();
+    }
+
+    fs.writeFileSync(
+      CREDENTIALS_FILE,
+      JSON.stringify({ email: TEST_EMAIL, password: TEST_PASSWORD }, null, 2),
+    );
+    log('Verified saved storage state against the API and wrote isolated logout credentials.');
     log('Setup complete!');
   } catch (err) {
     log(`ERROR: ${err instanceof Error ? err.message : String(err)}`);

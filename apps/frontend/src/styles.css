@@ -61,6 +61,16 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+:root {
+  --z-base: 0;
+  --z-dropdown: 10;
+  --z-sticky: 50;
+  --z-modal-backdrop: 60;
+  --z-modal: 70;
+  --z-overlay: 100;
+  --z-max: 1000;
+}
+
 @theme {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
