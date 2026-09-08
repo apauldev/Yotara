@@ -538,14 +538,22 @@ test.describe('Task modal on mobile', () => {
     await date.click();
     await expect(schedule).not.toContainText('Pick a date');
     await expect(schedule).not.toHaveAttribute('aria-invalid', 'true');
+    // Let the close transition finish before reopening: toggling the popover
+    // mid-transition detaches the panel and flakes the Clear click in CI.
+    await expect(panel).not.toBeVisible();
 
     await schedule.click();
-    const clear = page.locator('.date-picker-clear');
+    await expect(panel).toBeVisible();
+    const clear = panel.locator('.date-picker-clear');
     await expect(clear).toBeVisible();
-    await clear.click();
+    // Dispatch rather than click: the panel can still be settling from its
+    // open transition, which trips Playwright's stability checks.
+    await clear.dispatchEvent('click');
     await expect(schedule).toContainText('Pick a date');
+    await expect(panel).not.toBeVisible();
 
     await schedule.click();
+    await expect(panel).toBeVisible();
     const reselected = page
       .locator('.date-picker-day:not([data-outside]):not([data-disabled])')
       .filter({ hasText: today })
