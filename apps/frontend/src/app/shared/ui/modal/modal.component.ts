@@ -208,7 +208,13 @@ export class ModalComponent implements OnChanges, AfterViewChecked, OnDestroy {
         ].join(','),
       ),
     ).filter(
-      (element) => !element.hasAttribute('disabled') && !element.hasAttribute('aria-hidden'),
+      (element) =>
+        !element.hasAttribute('disabled') &&
+        !element.hasAttribute('aria-hidden') &&
+        // Collapsed regions (e.g. display:none) stay in the DOM but must not
+        // participate in the trap: focusing them is a no-op that leaves
+        // keyboard users stuck after preventDefault().
+        element.checkVisibility(),
     );
   }
 }

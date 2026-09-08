@@ -49,6 +49,24 @@ class TrapHostComponent {
 }
 
 @Component({
+  selector: 'app-modal-hidden-trap-host',
+  standalone: true,
+  imports: [ModalComponent],
+  template: `
+    <app-modal [open]="open" title="Hidden trap modal">
+      <button type="button" id="one">One</button>
+      <div style="display: none">
+        <button type="button" id="hidden">Hidden</button>
+      </div>
+      <button type="button" id="two">Two</button>
+    </app-modal>
+  `,
+})
+class HiddenTrapHostComponent {
+  open = false;
+}
+
+@Component({
   selector: 'app-modal-footer-host',
   standalone: true,
   imports: [ModalComponent],
@@ -88,6 +106,7 @@ describe('ModalComponent', () => {
         AutofocusHostComponent,
         DataAutofocusHostComponent,
         TrapHostComponent,
+        HiddenTrapHostComponent,
         FooterHostComponent,
         LayoutHostComponent,
       ],
@@ -200,6 +219,22 @@ describe('ModalComponent', () => {
     dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
 
     expect(document.activeElement).toBe(first);
+  });
+
+  it('skips non-rendered elements when trapping focus', () => {
+    const hostFixture = TestBed.createComponent(HiddenTrapHostComponent);
+    hostFixture.componentInstance.open = true;
+    hostFixture.detectChanges();
+
+    const dialog = hostFixture.nativeElement.querySelector('.modal-card') as HTMLElement;
+    const one = hostFixture.nativeElement.querySelector('#one') as HTMLElement;
+    const two = hostFixture.nativeElement.querySelector('#two') as HTMLElement;
+    one.focus();
+
+    dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+
+    // The display:none control between them must not swallow the Tab stop.
+    expect(document.activeElement).toBe(two);
   });
 
   it('wraps Shift+Tab from the first focusable element to the last', () => {

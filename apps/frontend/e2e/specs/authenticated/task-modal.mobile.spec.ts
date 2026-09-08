@@ -119,19 +119,40 @@ test.describe('Task modal on mobile', () => {
   test('traps Tab focus inside the dialog', async ({ page }) => {
     await openCreateModal(page);
 
+    // The advanced section starts collapsed (display:none) for a new task:
+    // every Tab stop must land on a rendered control, never get swallowed by
+    // a hidden one.
+    let previousSeq: string | null = null;
     for (let i = 0; i < 15; i++) {
       await page.keyboard.press('Tab');
-      const inside = await page.evaluate(() => {
+      const state = await page.evaluate(() => {
+        const windowWithSeq = window as Window & { __focusSeq?: number };
+        const active = document.activeElement as HTMLElement | null;
         const dialog = document.querySelector('[role="dialog"]');
-        return !!dialog?.contains(document.activeElement);
+        if (active instanceof HTMLElement && active.dataset['focusSeq'] === undefined) {
+          windowWithSeq.__focusSeq = (windowWithSeq.__focusSeq ?? 0) + 1;
+          active.dataset['focusSeq'] = String(windowWithSeq.__focusSeq);
+        }
+        return {
+          inside: !!dialog?.contains(document.activeElement),
+          visible: active instanceof HTMLElement ? active.checkVisibility() : false,
+          seq: active instanceof HTMLElement ? (active.dataset['focusSeq'] ?? null) : null,
+        };
       });
-      expect(inside).toBe(true);
+      expect(state.inside).toBe(true);
+      expect(state.visible, 'each Tab stop should be rendered').toBe(true);
+      expect(state.seq, 'focus should advance on Tab').not.toBe(previousSeq);
+      previousSeq = state.seq;
     }
 
     await page.keyboard.press('Shift+Tab');
     const inside = await page.evaluate(() => {
       const dialog = document.querySelector('[role="dialog"]');
-      return !!dialog?.contains(document.activeElement);
+      const active = document.activeElement as HTMLElement | null;
+      return (
+        !!dialog?.contains(document.activeElement) &&
+        (active instanceof HTMLElement ? active.checkVisibility() : false)
+      );
     });
     expect(inside).toBe(true);
   });
