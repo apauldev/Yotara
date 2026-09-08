@@ -1,10 +1,10 @@
-# Beta-2 deployment — pinned to immutable tag v0.76.1 (release chore(release): 0.76.1)
-# Do NOT use :latest. Rollback tag: v0.76.0.
-# Fix: keep dev password reset links local-only (PR #370).
+# Beta-2 deployment — pinned to immutable tag v0.77.0 (release chore(release): 0.77.0)
+# Do NOT use :latest. Rollback tag: v0.76.1.
+# Fix: mobile task workflow with shared modal shell (PR #372).
 # Ongoing mechanism: release-specific checked-in compose (update both image lines per release).
 services:
   api:
-    image: apauldev2/yotara-api:v0.76.1
+    image: apauldev2/yotara-api:v0.77.0
     environment:
       DATABASE_URL: /app/apps/api/data/yotara.db
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
@@ -37,7 +37,7 @@ services:
       - /tmp
 
   frontend:
-    image: apauldev2/yotara-frontend:v0.76.1
+    image: apauldev2/yotara-frontend:v0.77.0
     depends_on:
       - api
     environment:
