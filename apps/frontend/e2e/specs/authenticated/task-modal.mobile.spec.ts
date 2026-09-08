@@ -34,22 +34,39 @@ test.describe('Task modal on mobile', () => {
     await expect(page.getByRole('button', { name: 'Create Task' })).toBeVisible();
   });
 
-  test('keeps exactly one effective scroll container with the footer visible', async ({ page }) => {
+  test('keeps the shared modal body as the only effective mobile scroll container', async ({
+    page,
+  }) => {
     await openCreateModal(page);
 
-    const scrollables = await page.evaluate(() => {
-      const dialog = document.querySelector('[role="dialog"]');
-      if (!dialog) return [];
-      return Array.from(dialog.querySelectorAll('*'))
-        .filter((el) => el.scrollHeight - el.clientHeight > 4)
-        .map((el) => el.className?.toString().slice(0, 80) ?? 'unknown');
+    const scrollOwner = await page.locator('.modal-body-scroll').evaluate((element) => {
+      const styles = getComputedStyle(element);
+      return {
+        overflowY: styles.overflowY,
+        scrollHeight: element.scrollHeight,
+        clientHeight: element.clientHeight,
+      };
     });
-    expect(scrollables).toHaveLength(1);
+    expect(['auto', 'scroll']).toContain(scrollOwner.overflowY);
+    expect(scrollOwner.scrollHeight).toBeGreaterThan(scrollOwner.clientHeight);
 
-    // Scroll the content to the end; the footer must remain on screen.
-    await page.evaluate(() => {
-      document.querySelector('.modal-body-scroll')?.scrollTo(0, 999_999);
-    });
+    const nestedScrollables = await page
+      .locator('.task-main, .task-details, .subtask-list')
+      .evaluateAll((elements) =>
+        elements
+          .filter((element) => {
+            const styles = getComputedStyle(element);
+            return (
+              styles.display !== 'none' &&
+              ['auto', 'scroll'].includes(styles.overflowY) &&
+              element.scrollHeight - element.clientHeight > 4
+            );
+          })
+          .map((element) => element.className.toString()),
+      );
+    expect(nestedScrollables).toEqual([]);
+
+    await page.locator('.modal-body-scroll').evaluate((element) => element.scrollTo(0, 999_999));
     await expect(page.getByRole('button', { name: 'Create Task' })).toBeVisible();
     const footerBox = await page.getByRole('button', { name: 'Create Task' }).boundingBox();
     const viewport = page.viewportSize()!;
