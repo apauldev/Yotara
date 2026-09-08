@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.77.0](https://github.com/apauldev/Yotara/compare/v0.76.1...v0.77.0) (2026-09-08)
+
+
+### Features
+
+* **frontend:** mobile task workflow with shared modal shell ([#372](https://github.com/apauldev/Yotara/issues/372)) ([247f999](https://github.com/apauldev/Yotara/commit/247f999f91abfc5342b88f72c2feb5015de2eb14))
+
+
+### Chores
+
+* **deploy:** pin Hub Compose to v0.76.1 ([031b7c7](https://github.com/apauldev/Yotara/commit/031b7c7d315c7809970b6cc1bfc70a3545b3ad79))
+
 ## [0.76.1](https://github.com/apauldev/Yotara/compare/v0.76.0...v0.76.1) (2026-09-03)
 
 
