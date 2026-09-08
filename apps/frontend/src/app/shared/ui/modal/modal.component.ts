@@ -150,7 +150,9 @@ export class ModalComponent implements OnChanges, AfterViewChecked, OnDestroy {
       return;
     }
 
-    const autofocusTarget = dialog.querySelector<HTMLElement>('[autofocus],[data-autofocus]');
+    const autofocusTarget = Array.from(
+      dialog.querySelectorAll<HTMLElement>('[autofocus],[data-autofocus]'),
+    ).find((element) => element.checkVisibility());
     if (
       autofocusTarget &&
       !autofocusTarget.hasAttribute('disabled') &&

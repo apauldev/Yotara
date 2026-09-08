@@ -34,6 +34,21 @@ class DataAutofocusHostComponent {
 }
 
 @Component({
+  selector: 'app-modal-hidden-autofocus-host',
+  standalone: true,
+  imports: [ModalComponent],
+  template: `
+    <app-modal [open]="open" title="Hidden autofocus modal">
+      <input id="hidden" data-autofocus placeholder="hidden" style="display: none" />
+      <input id="second" data-autofocus placeholder="second" />
+    </app-modal>
+  `,
+})
+class HiddenAutofocusHostComponent {
+  open = false;
+}
+
+@Component({
   selector: 'app-modal-trap-host',
   standalone: true,
   imports: [ModalComponent],
@@ -106,6 +121,7 @@ describe('ModalComponent', () => {
         AutofocusHostComponent,
         DataAutofocusHostComponent,
         TrapHostComponent,
+        HiddenAutofocusHostComponent,
         HiddenTrapHostComponent,
         FooterHostComponent,
         LayoutHostComponent,
@@ -198,6 +214,15 @@ describe('ModalComponent', () => {
 
     const second = hostFixture.nativeElement.querySelector('#second') as HTMLElement;
     expect(second.hasAttribute('autofocus')).toBe(false);
+    expect(document.activeElement).toBe(second);
+  });
+
+  it('skips a hidden autofocus target in favor of a rendered one', () => {
+    const hostFixture = TestBed.createComponent(HiddenAutofocusHostComponent);
+    hostFixture.componentInstance.open = true;
+    hostFixture.detectChanges();
+
+    const second = hostFixture.nativeElement.querySelector('#second') as HTMLElement;
     expect(document.activeElement).toBe(second);
   });
 
