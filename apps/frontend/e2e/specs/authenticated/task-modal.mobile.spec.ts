@@ -242,6 +242,45 @@ test.describe('Task modal on mobile', () => {
     expect(clearTarget[0].height).toBeGreaterThanOrEqual(44);
   });
 
+  test('keeps weekday, subtask, and inline-create controls at least 44px', async ({ page }) => {
+    await openCreateModal(page, { width: 390, height: 844 });
+    await expandDetails(page);
+
+    const repeatSection = page
+      .locator('.task-details .sidebar-section')
+      .filter({ hasText: 'Repeat' });
+    await repeatSection.locator('select.status-select').selectOption('weekly');
+    const dayChips = page.locator('.day-chip');
+    await expect(dayChips.first()).toBeVisible();
+    expect(await dayChips.count()).toBeGreaterThanOrEqual(7);
+    for (let i = 0; i < 7; i++) {
+      const box = await dayChips.nth(i).boundingBox();
+      expect(box?.width ?? 0, `day-chip ${i} width`).toBeGreaterThanOrEqual(44);
+      expect(box?.height ?? 0, `day-chip ${i} height`).toBeGreaterThanOrEqual(44);
+    }
+
+    await page.getByRole('button', { name: 'Add subtask' }).click();
+    const entryTargets = await measureTouchTargets(page, ['.entry-save', '.entry-cancel']);
+    expect(entryTargets).toHaveLength(2);
+    for (const target of entryTargets) {
+      expect(target.width, `${target.selector} width`).toBeGreaterThanOrEqual(44);
+      expect(target.height, `${target.selector} height`).toBeGreaterThanOrEqual(44);
+    }
+    await page.getByPlaceholder('What needs to be done?').fill('Touch removal target');
+    await page.getByPlaceholder('What needs to be done?').press('Enter');
+    const removeButton = page.getByRole('button', {
+      name: 'Remove draft subtask Touch removal target',
+    });
+    await expect(removeButton).toBeVisible();
+    const removeBox = await removeButton.boundingBox();
+    expect(removeBox?.width ?? 0).toBeGreaterThanOrEqual(44);
+    expect(removeBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+
+    const inlineTargets = await measureTouchTargets(page, ['.create-inline-button']);
+    expect(inlineTargets[0].width).toBeGreaterThanOrEqual(44);
+    expect(inlineTargets[0].height).toBeGreaterThanOrEqual(44);
+  });
+
   test('completes the advanced workflow at 320px and persists metadata', async ({ page }) => {
     const name = taskName('advanced');
     await openCreateModal(page, { width: 320, height: 568 });
@@ -315,6 +354,234 @@ test.describe('Task modal on mobile', () => {
     await expect(page.locator('.schedule-picker .date-picker-trigger')).not.toContainText(
       'Pick a date',
     );
+  });
+
+  test('validates empty title and restores FAB focus at 320px', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.goto('/tasks?view=inbox');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    const fab = page.getByRole('button', { name: 'Quick add task' });
+    await fab.focus();
+    await fab.click();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByPlaceholder(titlePlaceholder)).toBeFocused();
+
+    await page.getByPlaceholder(titlePlaceholder).clear();
+    await page.getByRole('button', { name: 'Create Task' }).click();
+
+    await expect(page.getByText('Title is required')).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByPlaceholder(titlePlaceholder)).toHaveAttribute('aria-invalid', 'true');
+    await expect(page.getByPlaceholder(titlePlaceholder)).toHaveAttribute(
+      'aria-describedby',
+      'task-title-error',
+    );
+    await expect(page.getByPlaceholder(titlePlaceholder)).toBeFocused();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      320,
+    );
+
+    await page.locator('footer').getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.getByRole('dialog')).not.toBeVisible();
+    await expect(fab).toBeFocused();
+  });
+
+  test('persists recurrence interval, weekdays, and end date', async ({ page }) => {
+    const name = taskName('recurrence');
+    await openCreateModal(page);
+    await page.getByPlaceholder(titlePlaceholder).fill(name);
+    await expandDetails(page);
+
+    const simpleMode = page.getByRole('checkbox', {
+      name: 'Keep it lightweight with no date metadata',
+    });
+    await expect(simpleMode).toBeVisible();
+    if (await simpleMode.isChecked()) {
+      await expect(page.locator('.schedule-picker .date-picker-trigger')).toBeDisabled();
+      await simpleMode.click();
+    }
+    await expect(page.locator('.schedule-picker .date-picker-trigger')).toBeEnabled();
+
+    const repeatSection = page
+      .locator('.task-details .sidebar-section')
+      .filter({ hasText: 'Repeat' });
+    await repeatSection.locator('select.status-select').selectOption('weekly');
+    await repeatSection.locator('.recurrence-interval-input').fill('2');
+    await page.locator('.day-chip').nth(1).click();
+    await page.locator('.day-chip').nth(3).click();
+    await expect(page.locator('.day-chip').nth(1)).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.day-chip').nth(3)).toHaveAttribute('aria-pressed', 'true');
+
+    const endTrigger = repeatSection.locator('.date-picker-trigger');
+    await endTrigger.click();
+    const today = new Date().getDate().toString();
+    const endDate = page
+      .locator('.date-picker-day:not([data-outside]):not([data-disabled])')
+      .filter({ hasText: today })
+      .first();
+    await expect(endDate).toBeVisible();
+    await endDate.click();
+    await expect(endTrigger).not.toContainText('Pick a date');
+
+    await page.getByRole('button', { name: 'Create Task' }).click();
+    await expect(page.locator('article.task-card').filter({ hasText: name }).first()).toBeVisible({
+      timeout: 10_000,
+    });
+
+    await page.locator('article.task-card').filter({ hasText: name }).first().click();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    await expandDetails(page);
+    const reopenedRepeat = page
+      .locator('.task-details .sidebar-section')
+      .filter({ hasText: 'Repeat' });
+    await expect(reopenedRepeat.locator('select.status-select')).toHaveValue('weekly');
+    await expect(reopenedRepeat.locator('.recurrence-interval-input')).toHaveValue('2');
+    await expect(page.locator('.day-chip').nth(1)).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.day-chip').nth(3)).toHaveAttribute('aria-pressed', 'true');
+    await expect(reopenedRepeat.locator('.date-picker-trigger')).not.toContainText('Pick a date');
+    await page.locator('footer').getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.getByRole('dialog')).not.toBeVisible();
+  });
+
+  test('creates an inline label and persists selection', async ({ page }) => {
+    const name = taskName('inlinelabel');
+    const labelName = `Mobile Label ${Date.now()}`;
+    await openCreateModal(page, { width: 320, height: 568 });
+    await page.getByPlaceholder(titlePlaceholder).fill(name);
+    await expandDetails(page);
+
+    await page.getByPlaceholder('New label').fill(labelName);
+    await page.locator('.palette-swatch').first().click();
+    await page.getByRole('button', { name: 'Create label' }).click();
+    const newChip = page.locator('.label-chip').filter({ hasText: labelName });
+    await expect(newChip).toBeVisible({ timeout: 5_000 });
+    await expect(newChip).toHaveAttribute('aria-pressed', 'true');
+
+    const gridOverflow = await page.locator('.label-chip-grid').evaluate((element) => ({
+      scrollWidth: element.scrollWidth,
+      clientWidth: element.clientWidth,
+    }));
+    expect(gridOverflow.scrollWidth).toBeLessThanOrEqual(gridOverflow.clientWidth + 1);
+
+    await page.getByRole('button', { name: 'Create Task' }).click();
+    await expect(page.locator('article.task-card').filter({ hasText: name }).first()).toBeVisible({
+      timeout: 10_000,
+    });
+
+    await page.locator('article.task-card').filter({ hasText: name }).first().click();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    await expandDetails(page);
+    await expect(page.locator('.label-chip').filter({ hasText: labelName })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await page.locator('footer').getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.getByRole('dialog')).not.toBeVisible();
+  });
+
+  test('navigates, clears, and persists the date picker', async ({ page }) => {
+    const name = taskName('datepicker');
+    await openCreateModal(page);
+    await page.getByPlaceholder(titlePlaceholder).fill(name);
+    await expandDetails(page);
+
+    const simpleMode = page.getByRole('checkbox', {
+      name: 'Keep it lightweight with no date metadata',
+    });
+    if (await simpleMode.isChecked()) {
+      await simpleMode.click();
+    }
+
+    const schedule = page.locator('.schedule-picker .date-picker-trigger');
+    await schedule.click();
+    const panel = page.locator('.date-picker-panel');
+    await expect(panel).toBeVisible();
+    const month = panel.locator('.date-picker-month');
+    await expect(month).toBeVisible();
+    const before = await month.innerText();
+    const nav = panel.locator('.date-picker-nav');
+    await expect(nav).toHaveCount(2);
+    await nav.nth(1).click();
+    await expect(month).not.toHaveText(before);
+    const afterNext = await month.innerText();
+    await nav.nth(0).click();
+    await expect(month).not.toHaveText(afterNext);
+
+    const today = new Date().getDate().toString();
+    const date = page
+      .locator('.date-picker-day:not([data-outside]):not([data-disabled])')
+      .filter({ hasText: today })
+      .first();
+    await expect(date).toBeVisible();
+    await date.click();
+    await expect(schedule).not.toContainText('Pick a date');
+    await expect(schedule).not.toHaveAttribute('aria-invalid', 'true');
+
+    await schedule.click();
+    const clear = page.locator('.date-picker-clear');
+    await expect(clear).toBeVisible();
+    await clear.click();
+    await expect(schedule).toContainText('Pick a date');
+
+    await schedule.click();
+    const reselected = page
+      .locator('.date-picker-day:not([data-outside]):not([data-disabled])')
+      .filter({ hasText: today })
+      .first();
+    await expect(reselected).toBeVisible();
+    await reselected.click();
+    await expect(schedule).not.toContainText('Pick a date');
+
+    await page.getByRole('button', { name: 'Create Task' }).click();
+    await page.goto('/tasks?view=today');
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('article.task-card').filter({ hasText: name }).first()).toBeVisible({
+      timeout: 10_000,
+    });
+
+    await page.locator('article.task-card').filter({ hasText: name }).first().click();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    await expandDetails(page);
+    await expect(page.locator('.schedule-picker .date-picker-trigger')).not.toContainText(
+      'Pick a date',
+    );
+    await page.locator('footer').getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.getByRole('dialog')).not.toBeVisible();
+  });
+
+  test('keeps the modal usable across the responsive matrix', async ({ page }) => {
+    const viewports = [
+      { width: 320, height: 568 },
+      { width: 390, height: 844 },
+      { width: 768, height: 800 },
+      { width: 1280, height: 800 },
+      { width: 390, height: 500 },
+    ];
+    for (const viewport of viewports) {
+      await openCreateModal(page, viewport);
+      await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+        `horizontal overflow at ${viewport.width}x${viewport.height}`,
+      ).toBeLessThanOrEqual(viewport.width + 1);
+
+      const toggle = page.getByRole('button', { name: /More details/ });
+      if (viewport.width > 960) {
+        await expect(toggle, `details toggle hidden at ${viewport.width}px`).not.toBeVisible();
+      } else {
+        await expect(toggle, `details toggle visible at ${viewport.width}px`).toBeVisible();
+      }
+
+      await page.locator('.modal-body-scroll').evaluate((element) => element.scrollTo(0, 999_999));
+      await expect(page.getByRole('button', { name: 'Create Task' })).toBeVisible();
+      const footerBox = await page.getByRole('button', { name: 'Create Task' }).boundingBox();
+      expect(footerBox!.y + footerBox!.height).toBeLessThanOrEqual(viewport.height + 2);
+
+      await page.locator('footer').getByRole('button', { name: 'Cancel' }).click();
+      await expect(page.getByRole('dialog')).not.toBeVisible();
+    }
   });
 
   test('keeps the modal open and preserves drafts after a save error', async ({ page }) => {
