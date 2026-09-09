@@ -94,6 +94,7 @@ for (const processConfig of processes) {
     cwd: process.cwd(),
     env: process.env,
     stdio: ['inherit', 'pipe', 'pipe'],
+    shell: process.platform === 'win32',
   });
 
   children.push(child);
