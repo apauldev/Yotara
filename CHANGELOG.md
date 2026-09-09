@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.77.1](https://github.com/apauldev/Yotara/compare/v0.77.0...v0.77.1) (2026-09-09)
+
+
+### Bug Fixes
+
+* add shell option for Windows compatibility in dev script ([#373](https://github.com/apauldev/Yotara/issues/373)) ([241c0f9](https://github.com/apauldev/Yotara/commit/241c0f9f1225841194cc9cb20faf6de440a36d67))
+
+
+### Chores
+
+* **deploy:** pin Hub Compose to v0.77.0 ([d5784d8](https://github.com/apauldev/Yotara/commit/d5784d894f48be8a94046d0eac4018f87b2fbcfe))
+
 ## [0.77.0](https://github.com/apauldev/Yotara/compare/v0.76.1...v0.77.0) (2026-09-08)
 
 
