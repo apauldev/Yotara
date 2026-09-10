@@ -1,0 +1,257 @@
+# Frontend Refactor TODO
+
+> **Archived 2026-09-10 — historical snapshot.** Not maintained. Kept for context
+> only; current status lives on the
+> [Yotara Roadmap](https://github.com/users/apauldev/projects/1) board and in
+> GitHub Issues. See [docs/archive/README.md](./README.md) for the policy.
+
+## Pre-Launch: Push filtering to the API (remove computed signals)
+
+The frontend currently fetches all active tasks into memory and uses computed signals to filter views (today, overdue, inbox, upcoming). The backend already supports `status`, `completed`, and `overdue` query params. We need to use them.
+
+- [ ] **Today view** — `GET /tasks?status=today` instead of filtering all tasks client-side
+- [ ] **Overdue view** — `GET /tasks?overdue=true` (already works, just not called)
+- [ ] **Inbox view** — `GET /tasks?status=inbox&hasDueDate=false`
+- [ ] **Upcoming view** — `GET /tasks?status=upcoming`
+- [ ] **Today's completions** — `GET /tasks?completedSince=<today>` instead of filtering all completed tasks
+- [ ] **Remove stale signals** — after each view is migrated, delete the corresponding `computed()` from TaskService
+- [ ] **Remove active-task expand loop** — once all views use their own API calls, the full `tasks` signal and its expand loop can be removed entirely
+- [ ] **Consolidate refresh pattern** — extract the repeated auth-gate + refreshState boilerplate into a shared helper so new endpoints don't copy-paste
+
+## Recently Completed (v0.51–v0.54)
+
+- [x] **Search as standalone component** — tabbed filtering (all/tasks/projects/labels), pagination, date/alpha sort
+- [x] **Markdown editor** — format toolbar, preview toggle, DOMPurify sanitization, mobile-strong modal
+- [x] **Data export** — JSON and CSV export from Settings with granular toggles (subtasks, descriptions, archived items)
+- [x] **Insights panel** — daily productivity insights with Font Awesome icons, localStorage persistence, settings toggle to re-enable
+- [x] **Task list refactor** — page decomposed into components, smooth list animations, proper pagination, page reset on task total changes
+- [x] **"Don't show again" on complete confirmation** — persistence for task completion dialog dismissal
+- [x] **Archive migrated to shared EmptyStateComponent**
+- [x] **LogService sanitization** — circular reference safety, mock console in tests
+- [x] **CI fixes** — circular data logging error resolved, test isolation improved
+
+## Future: Server-side Archive Search
+
+- [ ] **Server does the searching (instead of client-side filtering)** — Currently the archive search fetches the 100 most recently completed tasks and filters them on your device. This works for casual use but won't find older matches. The proper fix is a server search endpoint: you type a query, the server finds matching tasks in its database, and returns only those results. Scales to any number of tasks, no data limits.
+
+## Fixed in this branch
+
+- [x] **Archive page clamp on empty page** — When deleting the last task on a page, the refresh could return `data: []` with `meta.total > 0`, leaving the user stranded. Fixed with a `tap` that clamps `currentPage` to the last valid page and defense-in-depth template showing pagination even when data is empty.
+
+## Noted from review (not addressed here)
+
+- [ ] **Overdue filter timezone mismatch** — Backend uses SQLite `date('now')` (UTC), frontend uses Luxon `startOfToday()` (local time). A task due today in the user's timezone can be overdue or not depending on UTC offset. Fix: align both sides to the same timezone (e.g. store/store dates as UTC midnight, or pass the user's timezone to the API).
+- [ ] **Archive promo disappears after tab switch on search page** — The "Search Archive" promo is gated by `!archiveSearched()`. If a user clicks it on the 'all' tab then switches to 'tasks', both the promo and the archive results vanish with no way to bring them back. Fix: persist archive results across tab switches, or reset `archiveSearched` on tab change.
+
+## Shared UI and Generic Components
+
+- [x] Build a generic modal primitive in `shared/ui/modal` with:
+  - [x] Inputs: `open`, `title`, `size`, `closeOnBackdrop`, `closeOnEsc`
+  - [x] Outputs: `close`, `afterOpen`
+  - [x] Content projection support for custom form/content sections
+  - [x] Accessibility baseline: `role="dialog"`, `aria-modal`, labelled title
+  - [x] Focus management and return focus to trigger
+  - [x] Body scroll lock while modal is open
+  - [x] Keyboard support (Esc + tab cycle)
+
+- [x] Build a reusable `ConfirmDialog` on top of the generic modal:
+  - [x] Inputs: `title`, `description`, `confirmLabel`, `cancelLabel`, `loading`, `danger`
+  - [x] Outputs: `confirm`, `cancel`, `close`
+  - [x] Migrate `logout-confirm-modal` to use the shared primitive
+
+- [x] Upgrade and standardize `PageHeader`:
+  - [x] Support subtitle and optional action slot/button area
+  - [ ] Replace repeated `page-header` markup in personal pages
+
+- [x] Create a generic `SectionHeader` component:
+  - [x] Inputs: `title`, `count`, `accent/tone`
+  - [x] Replace repeated `section-heading` markup
+
+- [x] Create a generic `EmptyState` component:
+  - [x] Inputs: `title`, `description`, optional icon/illustration
+  - [x] Optional CTA slot/button
+  - [x] Used in task-list-page (Inbox/Today/Upcoming/Search), projects-page, project-detail-page, and labels-page
+  - [x] Migrate archive page from inline empty state to shared `EmptyStateComponent`
+
+- [ ] Create a generic async state helper (`StatusMessage` or `AsyncState`):
+  - [ ] Handle loading / error / empty / content states
+  - [ ] Reduce repeated conditional templates and `status-copy` blocks
+
+- [ ] Standardize button variants using shared UI button layer:
+  - [ ] Primary / secondary / danger / ghost variants
+  - [ ] Loading + disabled behavior consistency
+  - [ ] Replace ad-hoc button classes in feature components
+
+- [ ] Create card primitives/tokens:
+  - [ ] Shared card shell for modal/list/promo use cases
+  - [ ] Consistent border radius, shadows, spacing, and background tokens
+
+- [ ] Add personal-mode product design polish tasks:
+  - [ ] Make Inbox quick capture the primary hero interaction
+  - [ ] Use progressive disclosure in the task modal so simple tasks stay lightweight
+  - [ ] Add smarter capture defaults: suggest project, labels, and priority from the current context
+  - [ ] Add lightweight “what next?” guidance after capture so users can triage a task in one pass
+  - [ ] Keep advanced metadata tucked behind secondary actions on mobile so the main flow stays thumb-friendly
+  - [ ] Clarify the mental model for done vs archived vs simple mode vs bucket
+  - [ ] Strengthen empty states for Inbox, Today, Upcoming, Projects, Labels, Search, and Archive
+  - [ ] Reduce visual weight of secondary shell controls so capture and navigation stay dominant
+  - [ ] Make the personal/team mode switch communicate intent more clearly
+  - [ ] Improve search-result confidence with better surfaced match context
+  - [ ] Tighten spacing, elevation, and visual hierarchy so the shell feels calmer and less dashboard-like
+  - [ ] Add keyboard-first shortcuts for quick add, modal actions, and search to match power-user expectations
+  - [ ] Treat mobile density, touch targets, and form sizing as first-class design constraints
+  - [x] Keep preferences minimal and useful: theme, density, and quick-add behavior
+  - [ ] Treat keyboard support, focus states, contrast, and touch targets as part of the final product finish
+  - [ ] Add mobile regression QA pass: verify modal scroll, keyboard, bottom-sheet, and form input behavior across breakpoints
+
+- [ ] Keep the frontend team-mode assumptions aligned with the future Postgres-backed tenant model:
+  - [ ] Prefer workspace-scoped routes, state, and labels over user-only thinking once team mode expands
+  - [ ] Make sure workspace switching, invites, assignment, comments, and board views can all survive concurrent multi-user usage
+  - [ ] Avoid baking in any UI copy or flow that assumes team mode is just a visual toggle
+
+## Natural Language Processing (NLP) Task Entry
+
+- [ ] Add `chrono-node` to frontend dependencies for date parsing
+- [ ] Refactor `parseTaskCommand` utility:
+  - [ ] Integrate `chrono-node` for natural language date extraction
+  - [ ] Align syntax with common conventions: `#` for projects, `@` for labels, `!` for priorities
+  - [ ] Support project lookup by name during parsing
+- [ ] Enhance `TaskDetailModal` with NLP features:
+  - [ ] Real-time parsing feedback (inline highlighting or preview chips)
+  - [ ] Auto-switch "Simple Mode" off when a date is detected
+  - [ ] Pre-populate project and labels from parsed title
+- [ ] Add unit tests for complex mixed NLP commands
+
+## Service and Component Refactors
+
+- [ ] Modernize Angular component APIs to match the project guidance:
+  - [ ] Replace decorator-based `@Input()` / `@Output()` usage with `input()` / `output()` where practical
+  - [ ] Add `ChangeDetectionStrategy.OnPush` to components that still use default change detection
+  - [ ] Remove redundant explicit `standalone: true` declarations as components are updated
+  - [ ] Prioritize leaf UI components like `page-header`, `task-list`, `modal`, `confirm-dialog`, `logout-confirm-modal`, and `personal-task-card`
+
+- [ ] Split `TaskService` responsibilities into smaller units:
+  - [ ] API client layer (`task-api.client.ts`)
+  - [ ] View-model selectors/computed logic (`task-selectors.ts`)
+  - [ ] Date utilities (`task-date.utils.ts`)
+
+- [ ] Split `ProjectService` similarly where useful:
+  - [ ] API-only calls separated from view state
+
+- [ ] Extract shared shell chrome between `auth-shell` and `personal-shell`:
+  - [ ] Reuse the mobile menu, profile menu, and logout/logout-confirm flows
+  - [ ] Move shared account actions into a focused component
+
+- [ ] Migrate `personal-project-modal` to the shared modal primitive so modal behavior stays consistent across the app.
+
+- [ ] Replace browser-only `localStorage` and `window.open` usage in onboarding with an injected, platform-safe helper.
+
+- [ ] Centralize task date parsing and formatting in shared utilities and reuse them from cards and pages instead of ad hoc `new Date(...)` calls.
+
+- [ ] Remove remaining `any` escapes from auth/login error handling by switching to `unknown` plus type guards.
+
+- [x] Reduce large inline templates/styles:
+  - [x] Move large inline template/CSS from page components to separate `.html` + `.css` files
+  - [x] Inline template/style components to split:
+    - [x] `apps/frontend/src/app/features/auth/login.component.ts`
+    - [ ] `apps/frontend/src/app/features/personal/components/personal-project-modal.component.ts` (still inline)
+    - [ ] `apps/frontend/src/app/features/personal/components/personal-task-card.component.ts` (still inline)
+    - [x] `apps/frontend/src/app/features/personal/components/personal-task-modal.component.ts`
+    - [ ] `apps/frontend/src/app/features/personal/components/personal-task-workspace.component.ts` (still inline)
+    - [x] `apps/frontend/src/app/features/personal/pages/inbox-page.component.ts` (merged into task-list-page)
+    - [x] `apps/frontend/src/app/features/personal/pages/labels-page.component.ts`
+    - [x] `apps/frontend/src/app/features/personal/pages/project-detail-page.component.ts`
+    - [x] `apps/frontend/src/app/features/personal/pages/projects-page.component.ts`
+    - [x] `apps/frontend/src/app/features/personal/pages/today-page.component.ts` (merged into task-list-page)
+    - [x] `apps/frontend/src/app/features/personal/pages/upcoming-page.component.ts` (merged into task-list-page)
+    - [ ] `apps/frontend/src/app/features/personal/shell/personal-shell.component.ts` (still inline)
+    - [ ] `apps/frontend/src/app/features/shell/auth-shell.component.ts` (still inline)
+    - [x] `apps/frontend/src/app/shared/components/page-header/page-header.component.ts`
+    - [ ] `apps/frontend/src/app/shared/ui/logout-confirm-modal/logout-confirm-modal.component.ts` (still inline)
+
+## Recurring & Subtask Nice-to-Haves (From Market Comparison)
+
+Gaps vs comparable task managers — deliberate MVP limits or future enhancements:
+
+- [x] **Natural language recurring setup** (`every day`, `every weekday`, `every Mon,Wed,Fri`) — basic frequency dropdown always existed; weekdays + custom day-of-week toggles now added
+- [ ] **Natural language in title bar** — parse `"Buy groceries every Friday until June 1st"` from the title input
+- [ ] **Drag-and-drop reorder** for subtasks (inline in list view)
+- [ ] **"Repeat on due date" vs "repeat on completion" toggle** — currently always materializes on completion
+- [ ] **Recurring subtasks** — subtasks currently cannot have their own recurrence rule (field is disabled)
+- [ ] **Skip / snooze single occurrence** — "Don't do this one, move to next"
+- [ ] **Activity log for past completions** — show history of completed instances
+- [ ] **Recurring template in a separate view** — don't show the template mixed into normal task lists
+- [ ] **Multi-level subtask nesting** (currently 1 level only)
+- [ ] **Expand/collapse toggle** on parent task card to show/hide subtasks inline
+- [ ] **Quick-add recurring from title** — set frequency via a smart action chip or inline command
+
+## Backend and Cross-Cutting Improvements
+
+- [ ] Centralize backend auth user extraction:
+  - [ ] Move duplicated `requireUserId` into shared request utility/plugin
+  - [ ] Reuse in `tasks` and `projects` routes
+
+- [x] Improve frontend error handling strategy:
+  - [x] Replace scattered `console.error` with a shared logging/error service
+  - [x] Map known API errors to consistent user-facing messages
+  - [x] Add global status/loading bar and toast notifications
+
+- [ ] **P2 — Add structured field-level validation error handling from backend**
+  - `HttpErrorResponse` is caught generically with a toast — no per-field error binding for forms
+  - If API returns `{ message: 'Project name is required' }`, it can't surface next to the input field
+
+- [ ] **P2 — Remove or integrate `fetchSubtasks` redundancy**
+  - `fetchSubtasks(parentId)` is a one-off Promise that doesn't update any signal
+  - The main `tasks` signal already fetches with `includeSubtasks=true`
+
+- [ ] **P2 — Debounce search input**
+  - `SearchService` runs synchronous tokenization/scoring on every keystroke
+  - Fine for ~100 tasks, but should be debounced for larger datasets
+
+- [ ] **PRIORITY: Fix task list scalability — 100-task hard limit is a blocking red flag**
+  - [ ] Replace single `pageSize=100&includeSubtasks=true` fetch in `task.service.ts` with server-driven per-page requests
+  - [ ] Wire `currentPage` / `pageSize` signals in `task-list-page.component.ts` to actual API pagination params
+  - [ ] Audit all `computed()` filters (inboxTasks, todayTasks, overdueTasks, etc.) — they assume full dataset in memory
+  - [ ] Update mutation methods (create, update, delete) to work with partial/paginated dataset instead of full re-fetch
+
+- [x] Add archive flow for completed tasks:
+  - [x] `done` as completion state with `archived` as final inactive state
+  - [x] Archive page at `/archive` shows archived tasks with restore and permanent delete
+  - [x] Permanent archive toggle prevents auto-deletion
+  - [x] Auto-delete preference in settings (`archiveAutoDelete`)
+  - [x] Completed tasks with `permanentArchive` stay indefinitely
+  - [x] `archivedAt` timestamp tracked in DB schema
+
+- [ ] Add shell and navigation polish:
+  - [ ] Rebalance sidebar and topbar hierarchy so core actions stay primary
+  - [ ] Keep utility actions visually quieter than Inbox, Today, Upcoming, and Quick Add
+  - [ ] Standardize empty/loading/error states across all personal-mode pages
+  - [ ] Make modal, menu, and confirmation patterns feel visually and behaviorally consistent
+  - [ ] Review mobile drawer, search, and preferences behavior for the personal-mode finish pass
+
+## OSS and Delivery Hardening
+
+- [ ] Add GitHub Actions workflows in `.github/workflows`:
+  - [ ] PR checks: install, lint, typecheck, test
+  - [ ] Optional docs check (`docs:check`)
+  - [ ] Optional matrix by package where useful
+
+- [ ] Add coverage reporting and minimum threshold gates
+- [ ] Add Dependabot for automated dependency updates
+- [ ] Add security scanning (CodeQL + Snyk) to CI
+
+- [ ] Add production hardening for API deployment:
+  - [ ] Rate limiting
+  - [ ] Security headers
+  - [ ] Review and tighten CORS defaults for auth routes
+
+## Suggested Rollout Order
+
+- [x] Phase 1: `Modal` + `ConfirmDialog`
+- [x] Phase 2: shared `Button` variants (deferred — ad-hoc buttons not blocking)
+- [x] Phase 3: `PageHeader` + `SectionHeader`
+- [x] Phase 4: `EmptyState` + `AsyncState` (EmptyState done, AsyncState pending)
+- [ ] Phase 5: Card primitives
+- [ ] Phase 6: service/component decomposition and backend/auth cleanup
+- [ ] Phase 7: Postgres-ready workspace/team UX assumptions
+- [ ] Phase 8: CI, coverage gates, production hardening

@@ -24,8 +24,8 @@ assignees: ''
 
 ## Roadmap Alignment
 
-<!-- Does this relate to an existing roadmap item? -->
-<!-- See ROADMAP.md for planned features and priorities -->
+<!-- Does this relate to an existing board item? -->
+<!-- Check the Yotara Roadmap project board for planned work and priorities -->
 
 - [ ] Relates to planned MVP feature
 - [ ] Would enhance an existing feature

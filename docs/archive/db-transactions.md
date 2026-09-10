@@ -1,5 +1,11 @@
 # Plan: Wrap Multi-Table Writes in Database Transactions
 
+> **Archived 2026-09-10 — historical snapshot.** Not maintained. Kept for context
+> only; current status lives on the
+> [Yotara Roadmap](https://github.com/users/apauldev/projects/1) board and in
+> GitHub Issues. See [docs/archive/README.md](./README.md) for the policy.
+
+
 ## Goal
 
 Eliminate partial-data corruption risk by wrapping every multi-table write in a SQLite transaction. If any step in a create/update/delete chain fails (e.g., task inserts but label sync fails), all writes are rolled back atomically.

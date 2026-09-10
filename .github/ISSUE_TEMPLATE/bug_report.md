@@ -32,8 +32,8 @@ assignees: ''
 
 - **OS**: [e.g., macOS 14, Ubuntu 22.04, Windows 11]
 - **Browser**: [e.g., Chrome 120, Firefox 121]
-- **Node.js Version**: [e.g., 20.10.0]
-- **pnpm Version**: [e.g., 9.1.0]
+- **Node.js Version**: [e.g., 22.22.3]
+- **pnpm Version**: [e.g., 10.30.3]
 
 ## Screenshots or Logs
 
@@ -51,4 +51,4 @@ Paste any error messages or logs here
 
 <!-- Links to relevant files or code sections -->
 
-<!-- See ROADMAP.md for feature context if applicable -->
+<!-- Link the board item if this relates to tracked work -->
