@@ -1,171 +1,140 @@
 # Releasing Yotara
 
-This document describes how to create a new release of Yotara.
+How releases work, and what to do when one goes wrong.
 
 ## Overview
 
-Yotara uses [Semantic Versioning](https://semver.org/) with [Conventional Commits](https://www.conventionalcommits.org/). The release process is automated via:
+Releases are **automated**. Nobody runs release commands by hand for a normal
+release: merging to `main` is the trigger.
 
-- **Commitlint**: enforces conventional commit messages
-- **Custom release script** (`scripts/release.mjs`): analyzes commits and determines bump type
-- **commit-and-tag-version**: generates changelog, creates version commit and tag
-- **GitHub Actions**: publishes GitHub releases on tag push
+Yotara uses [Semantic Versioning](https://semver.org/) driven by
+[Conventional Commits](https://www.conventionalcommits.org/). The moving parts:
 
-## Version Bumping Rules
+- **commitlint** — enforces conventional commit messages on commit
+- **[`scripts/release.mjs`](../scripts/release.mjs)** — analyzes commits since the
+  last tag and decides the bump type
+- **commit-and-tag-version** — generates the changelog, bumps `package.json`,
+  commits, and tags
+- **[`.github/workflows/release.yml`](../.github/workflows/release.yml)** — runs
+  the release and publishes images
+
+## Version bumping rules
 
 | Commit Type | Bump | Example |
 |:---|:---|:---|
-| `fix:` | Patch | `0.58.4` → `0.58.5` |
+| `fix:`, `docs:`, `refactor:`, `test:`, `perf:`, `build:`, `ci:`, `style:`, `chore:` | Patch | `0.58.4` → `0.58.5` |
 | `feat:` | Minor | `0.58.4` → `0.59.0` |
-| `feat!:` or `fix!:` | Major | `0.58.4` → `1.0.0` |
-| `docs:`, `chore:`, `refactor:`, `test:` | Patch | `0.58.4` → `0.58.5` |
+| `feat!:` or `fix!:` (or a `BREAKING CHANGE:` footer) | Major | `0.58.4` → `1.0.0` |
 
-Note: The custom script disables the `preMajor` downgrade that `conventional-changelog` applies when version < 1.0.0, so `feat:` correctly produces a minor bump even during pre-1.0 development.
+The custom script disables the `preMajor` downgrade that
+`conventional-changelog` normally applies below 1.0.0, so `feat:` correctly
+produces a minor bump during pre-1.0 development.
 
-## Release Commands
+**Only two commit prefixes are ignored:** `chore(release):` and `chore(deploy):`.
+Every other `chore:` commit produces a patch release. Those two prefixes exist so
+the release and deploy commits do not themselves trigger another release.
 
-### Dry run (preview)
+## What happens on merge to `main`
 
-```bash
-pnpm release -- --dry-run
-```
+`release.yml` is triggered by `workflow_run` — it starts only after **CI
+completes successfully on `main`**. It does not trigger on a tag push, and no tag
+push is needed.
 
-This shows what would happen without changing any files.
+It skips entirely when the commit that triggered CI starts with
+`chore(release):` or `chore(deploy):`, which is what prevents a release loop.
 
-### Standard release
+### Job: `release`
 
-```bash
-pnpm release
-```
+1. Installs dependencies
+2. Runs `pnpm release`, which analyzes commits, generates `CHANGELOG.md`, bumps
+   the version, creates a `chore(release): vX.Y.Z` commit, and creates the tag
+3. Reads the new version and the release SHA
+4. Pushes directly to `main` with `git push --follow-tags origin HEAD:main` —
+   **there is no pull request and no auto-merge step**
+5. Creates the GitHub Release at tag `vX.Y.Z`, using the **full `CHANGELOG.md`**
+   as the release body via `body_path`. No build artifacts are attached.
 
-This will:
-1. Analyze all commits since the last tag
-2. Determine the bump type (major/minor/patch)
-3. Generate `CHANGELOG.md`
-4. Bump version in `package.json`
-5. Create a version commit: `chore(release): vX.Y.Z`
-6. Create a git tag `vX.Y.Z`
+### Jobs: `docker-build` and `docker-manifest`
 
-### Manual overrides
+`docker-build` builds the API and frontend images for `linux/amd64` and
+`linux/arm64` on native runners and pushes per-architecture tags.
+`docker-manifest` then combines them into multi-platform manifests:
 
-```bash
-pnpm release:major   # Force major bump
-pnpm release:minor   # Force minor bump
-pnpm release:patch   # Force patch bump
-```
+- `apauldev2/yotara-api` and `apauldev2/yotara-frontend`
+- Tagged `X.Y.Z`, `vX.Y.Z`, and `latest`
 
-These use `commit-and-tag-version` directly (without the custom analysis).
+Publishing requires the `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` repository
+secrets.
 
-## What Happens After a Release
+## Running a release manually
 
-1. **Tag push**: When you push the tag to GitHub, the CI/CD pipeline:
-   - Creates a GitHub Release with the generated changelog
-   - Attaches build artifacts
-   - Publishes the release
+Use `workflow_dispatch` on `release.yml` when you need to release without a
+fresh merge — for example after fixing a broken release step.
 
-2. **Auto-merge**: The release workflow creates a PR back to `main` with version bumps.
+**Do not** run `pnpm release` locally and push the result unless you are
+deliberately bypassing the pipeline. Doing so races the automation.
 
-## Step-by-Step Release Process
+### Previewing locally
 
-### 1. Ensure main is clean
+`pnpm release -- --dry-run` prints the analysis and the version it would produce
+without changing anything. This is safe and useful for checking that your commit
+messages will produce the bump you expect.
 
-```bash
-git checkout main
-git pull origin main
-```
+### Forcing a bump type
 
-### 2. Run verification
-
-```bash
-pnpm lint
-pnpm format:check
-pnpm typecheck
-pnpm test
-```
-
-All checks must pass before releasing.
-
-### 3. Preview the release
+These call `commit-and-tag-version` directly, bypassing the commit analysis:
 
 ```bash
-pnpm release -- --dry-run
+pnpm release:major
+pnpm release:minor
+pnpm release:patch
 ```
-
-Review the output:
-- Verify the bump type is correct
-- Check the changelog entries make sense
-- Confirm the new version number
-
-### 4. Create the release
-
-```bash
-pnpm release
-```
-
-### 5. Push to GitHub
-
-```bash
-git push origin main --follow-tags
-```
-
-The `--follow-tags` flag pushes both the commit and the tag.
-
-### 6. Verify the release
-
-- Check the GitHub Actions workflow completed successfully
-- Verify the GitHub Release was created at https://github.com/apauldev/Yotara/releases
 
 ## Troubleshooting
 
 ### "Tag already exists on remote"
 
-If the release script reports that the tag already exists on the remote, the release was already completed. The script will exit cleanly.
+The release was already completed. The script exits cleanly; nothing to do.
 
 ### "No new commits since last release"
 
-There are no qualifying commits (feat, fix, etc.) since the last tag. Either:
-- Wait for more changes to land
-- Use `pnpm release:patch` to force a bump
+There are no qualifying commits since the last tag. Either wait for more changes
+or use `pnpm release:patch` to force a bump.
 
-### Failed release (partial)
+### The release job fails after the version commit landed
 
-If the release fails partway through:
-1. Check what was created: `git tag -l "v*"`
-2. If the tag exists locally but wasn't pushed, delete it: `git tag -d vX.Y.Z`
-3. If the tag was pushed, the release is complete — don't delete remote tags
+The version-bump commit and tag may already be on `main`.
 
-### CI workflow failed after push
+1. Check the workflow logs.
+2. **Re-run the failed job.** GitHub Actions re-runs retry the failed step
+   without producing a new version bump.
+3. If re-running is not possible, re-run the whole workflow with
+   `workflow_dispatch`.
 
-If the GitHub Actions workflow fails after you pushed the tag — for example the
-"Create GitHub Release" step fails — the version-bump commit and tag are already
-on `main`. **Do not re-run `pnpm release`** — it would analyze commits since the
-deleted tag and create another version bump.
+Do **not** run `pnpm release` again on your machine — it would analyze commits
+since the new tag and produce a second bump.
 
-Instead:
+### The release is wrong and must be redone
 
-1. Check the workflow logs
-2. Fix the issue
-3. **Re-run the failed CI job** — GitHub Actions lets you re-run failed
-   workflows. This retries the GitHub Release creation without a new version bump.
-4. If re-running the CI job isn't an option (e.g. the workflow needs a tag push
-   to trigger), re-push the existing tag:
-   ```bash
-   git push origin vX.Y.Z
-   ```
-   This triggers the CI workflow again without creating a new commit or tag.
+Only do this when the tag points at the wrong commit:
 
-Only delete and re-create the release if you need to change the tag target
-commit (e.g. the wrong commit was tagged). In that case:
-1. Delete the remote tag: `git push origin :refs/tags/vX.Y.Z`
-2. Delete the local tag: `git tag -d vX.Y.Z`
-3. If the version-bump commit is on `main`, revert it:
-   ```bash
-   git revert HEAD --no-edit
-   git push origin main
-   ```
-4. Re-run `pnpm release` and push again.
+```bash
+git push origin :refs/tags/vX.Y.Z   # delete the remote tag
+git tag -d vX.Y.Z                   # delete the local tag
+git revert HEAD --no-edit           # revert the version-bump commit
+git push origin main
+```
 
-## Commit Message Examples
+Then trigger the workflow again.
+
+### Docker publishing fails
+
+The version bump and GitHub Release are already done, so the release exists —
+only the images are missing. Fix the cause (usually a missing or expired
+`DOCKERHUB_TOKEN`), then re-run the `docker-build` and `docker-manifest` jobs
+from the failed run.
+
+## Commit message examples
 
 ```bash
 # Feature (minor bump)
@@ -182,4 +151,6 @@ BREAKING CHANGE: Task status values have been renamed."
 
 ## Changelog
 
-The changelog is automatically generated from commit messages and stored in `CHANGELOG.md`. It follows the [Keep a Changelog](https://keepachangelog.com/) format.
+`CHANGELOG.md` is generated from commit messages by commit-and-tag-version and
+follows the [Keep a Changelog](https://keepachangelog.com/) format. Do not edit it
+by hand — your changes will be overwritten at the next release.

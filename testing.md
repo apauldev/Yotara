@@ -8,7 +8,8 @@ This document covers the testing strategies, patterns, and commands used across 
 |:---|:---|
 | `pnpm test` | Run all test suites |
 | `pnpm --filter @yotara/api test` | API tests only |
-| `pnpm --filter @yotara/frontend test` | Frontend tests only |
+| `pnpm --filter @yotara/frontend test` | Frontend unit tests only |
+| `pnpm --filter @yotara/frontend e2e` | Playwright E2E tests (servers must be running) |
 
 ## 1. Backend Testing (`apps/api`)
 
@@ -231,25 +232,88 @@ The shared package contains domain types and DTOs. Currently minimal testing is 
 
 **Recommendation:** Add `vitest` or `node:test` if complex logic is added to the shared package.
 
-## 4. E2E Testing (Recommended)
+## 4. End-to-End Testing (`apps/frontend/e2e`)
 
-Not yet implemented. **Playwright** is recommended for cross-service verification.
+Cross-service browser tests use **Playwright**. They exercise a real frontend
+against a real API, so they catch the session-cookie, redirect, and
+request/response problems that unit tests structurally cannot.
 
-**Focus areas:**
-- User flows: Sign up → Add Task → Mark Complete → Sign Out
-- Cross-browser testing
-- Visual regression
+### Running E2E tests
 
-**Setup:** Should run against a dev-like environment with a known seed database.
+```bash
+pnpm --filter @yotara/frontend e2e          # Run the full suite
+pnpm --filter @yotara/frontend e2e:ui       # Interactive UI mode
+pnpm --filter @yotara/frontend e2e:debug    # Playwright inspector
+pnpm --filter @yotara/frontend e2e:codegen  # Record a new spec
+```
+
+The frontend (`:4200`) and API (`:3000`) must already be running. Override the
+targets with `E2E_BASE_URL` and `E2E_API_URL`.
+
+### Projects
+
+`playwright.config.ts` defines five projects, each with its own storage state so
+authenticated and signed-out journeys cannot contaminate each other:
+
+| Project | Specs | Session |
+|:---|:---|:---|
+| `login` | `e2e/specs/login/**` | signed out |
+| `e2e` | `e2e/specs/authenticated/**` except the two matched below | shared signed-in state |
+| `onboarding` | `onboarding.spec.ts` | signed out |
+| `mobile` | `task-modal.mobile.spec.ts` | signed in, Pixel 7 device profile |
+| `logout` | `zzz-logout.spec.ts` | signed out; runs last because it ends the session |
+
+### How setup works
+
+`e2e/global-setup.ts` runs once before the suite. It waits for both servers,
+creates a fresh account, walks the sign-up and onboarding flow, saves the
+session to `e2e/.auth/user.json`, and verifies that state against `GET /me`.
+Credentials are written to `e2e/.auth/credentials.json` for specs that need to
+sign in themselves.
+
+When email verification is enabled, setup reads the verification link from the
+API log, so `E2E_API_LOG` must point at that file.
+
+`e2e/fixtures/auth.ts` exports the shared `test`/`expect` pair plus helpers:
+`dismissTip`, `getE2ECredentials`, `getRuntimeConfig`, and
+`assertAuthenticatedPage` (which fails loudly if a spec is unexpectedly
+redirected to `/login`).
+
+### Conventions
+
+- Keep specs order-independent. The `logout` project exists precisely because it
+  cannot be.
+- Assert on user-visible behaviour, not component internals.
+- Add narrow-viewport cases to the `mobile` project rather than to the desktop
+  project, so responsive regressions stay visible.
 
 ## 5. CI/CD Integration
 
-Every Pull Request triggers:
+`.github/workflows/ci.yml` fans out into seven jobs:
 
-1. `pnpm lint` — ESLint across workspace
-2. `pnpm format:check` — Prettier validation
-3. `pnpm typecheck` — TypeScript validation
-4. `pnpm test` — All test suites
+| Job | What it runs |
+|:---|:---|
+| `static-analysis` | `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, and `pnpm audit --audit-level=high` |
+| `test` | `pnpm test` — the API and frontend suites |
+| `coverage` | `pnpm test:coverage`, uploaded to Codecov |
+| `build` | `pnpm build` across the workspace |
+| `e2e` | The Playwright suite against a live API and frontend |
+| `docker-and-smoke` | Builds both images, then `pnpm smoke:docker` against the Compose stack |
+| `docker-api-native` | Builds the API image natively for amd64 and arm64, then `pnpm smoke:docker:api` |
+
+Two checks are advisory and will not fail a build: the `coverage` job
+(`continue-on-error: true`, `fail_ci_if_error: false`) and the `pnpm audit` step
+inside `static-analysis` (`continue-on-error: true`).
+
+**Note the `paths-ignore` list.** Changes limited to `**.md`, `docs/**`, or
+`screenshots/**` skip `ci.yml` entirely, so a docs-only pull request runs none of
+the jobs above. One separate workflow covers that gap: `docs-consistency.yml`
+checks that every variable in `apps/api/.env.example` appears in
+[docs/CONFIGURATION.md](./docs/CONFIGURATION.md). Run it locally with
+`pnpm docs:check:env`.
+
+Other workflows: `release.yml` (see [docs/RELEASING.md](./docs/RELEASING.md)),
+`codeql.yml`, `secret-scan.yml`, and `pr-agent.yml`.
 
 ## 6. Writing Good Tests
 

@@ -1,314 +1,115 @@
-# Yotara Project Guide
+# Yotara Technical Reference
 
-This document is the technical companion to the main repository page.
+The technical companion to the main repository page. For the product overview, start with [`README.md`](./README.md).
 
-For the product overview and project positioning, start with [`README.md`](./README.md). For architecture decisions, constraints, and engineering principles, see [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
+This document covers the shape of the codebase and how to work in it. Setup lives in [docs/INSTALL.md](./docs/INSTALL.md), configuration in [docs/CONFIGURATION.md](./docs/CONFIGURATION.md), and architectural decisions in [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 ## Overview
 
-Yotara is a TypeScript monorepo with:
+Yotara is a TypeScript pnpm monorepo with four workspaces:
 
-- `apps/frontend`: Angular 22 application (standalone components, signals, lazy routes)
-- `apps/api`: Fastify API with Better Auth and SQLite, with Postgres planned for team-mode SaaS
-- `packages/shared`: shared domain types, DTOs, and auth client
-- `scripts/dev.mjs`: local dev runner for the frontend, API, and Drizzle Studio
+- `apps/frontend` — Angular 22 application (standalone components, signals, lazy routes)
+- `apps/api` — Fastify API with Better Auth and SQLite
+- `apps/yotara-website` — static marketing site, deployed to yotara.website
+- `packages/shared` — shared domain types, DTOs, and the auth client
 
-## What Exists Today
+## Where to look
 
-### Frontend
+| Question | Document |
+|:---|:---|
+| How do I run this locally? | [docs/INSTALL.md](./docs/INSTALL.md) |
+| What does this environment variable do? | [docs/CONFIGURATION.md](./docs/CONFIGURATION.md) |
+| Why is it built this way? | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) |
+| How do I test it? | [testing.md](./testing.md) |
+| How do I deploy it? | [DOCKER.md](./DOCKER.md) |
+| How do releases work? | [docs/RELEASING.md](./docs/RELEASING.md) |
 
-The Angular app contains:
+## Frontend
 
-- Login and sign-up flow
-- Auth guard for protected routes
-- Onboarding mode picker (personal and team)
-- Personal shell with task list, projects, labels, archive, search, and settings
-- Team shell with dashboard
-- Task detail modal for create and edit flows
-- Subtask management with one-level nesting
-- Recurring task configuration (daily, weekly, monthly, yearly)
+The Angular application contains:
+
+- Login, sign-up, email verification, and password reset flows
+- Auth and onboarding guards, with workspace-mode routing
+- Personal shell with task list, projects, labels, archive, search, notifications, and settings
+- Team shell with a dashboard
+- Task detail modal for create and edit, including subtasks and recurrence
+- Recurring tasks (daily, weekly, monthly, yearly) with month-end and leap-year handling
 - Multi-label assignment per task
 - 7 color themes with dark mode
-- Login tip popup with 30 productivity tips
-- Real-time loading indicators and notification toasts
+- Markdown descriptions with a format toolbar and sanitized preview
 - Full-text search across tasks, projects, and labels
 - Keyboard shortcuts for navigation
+- Data export (JSON and CSV) from settings
 
-### Current Route Map
+### Routes
 
-| Route | Component | Description |
+`apps/frontend/src/app/app.routes.ts` is authoritative. Broadly, the shape is:
+
+| Area | Routes | Notes |
 |:---|:---|:---|
-| `/login` | LoginComponent | Email/password sign-in |
-| `/onboarding` | StartScreenComponent | Workspace mode selection |
-| `/preview/picker` | StartScreenComponent | Mode preview |
-| `/tasks` | TaskListPageComponent | Unified task list with sidebar filters |
-| `/tasks?filter=today` | TaskListPageComponent | Tasks due today |
-| `/tasks?filter=upcoming` | TaskListPageComponent | Upcoming tasks by date |
-| `/projects` | ProjectsPageComponent | Project grid |
-| `/projects/:id` | ProjectDetailPageComponent | Single project with task list |
-| `/labels` | LabelsPageComponent | Label management |
-| `/archive` | ArchivePageComponent | Completed and archived tasks |
-| `/settings` | SettingsPageComponent | Account and behavior settings |
-| `/search` | SearchPageComponent | Full-text search |
-| `/dashboard` | TasksPageComponent | Team dashboard (team mode) |
+| Auth | `/login`, `/verify-email`, `/forgot-password`, `/reset-password` | `/verify-email` has no auth guard, because the emailed link is opened before a session exists |
+| Onboarding | `/onboarding`, `/preview/picker` | Guarded by `authGuard` and `onboardingGuard` |
+| Personal shell | `/tasks`, `/projects`, `/projects/:id`, `/labels`, `/archive`, `/settings`, `/notifications`, `/search` | Selected by `personalModeMatchGuard` |
+| Team shell | `/dashboard` | Selected by `teamModeMatchGuard`; team mode is not yet a complete feature |
+| Fallback | `**` | Animated 404 page |
 
-Legacy routes (`/inbox`, `/today`, `/upcoming`) redirect to `/tasks`.
+`/inbox`, `/today`, and `/upcoming` are legacy paths that redirect into `/tasks` with a `view` query parameter.
 
-### Backend
+## Backend
 
-The Fastify API exposes:
+The Fastify API has a route → service → database shape. Route handlers validate input and delegate; services own queries, transactions, recurrence, and notifications.
 
-- `GET /` — API metadata
-- `GET /health` — Health check
-- `POST /auth/sign-up/email` — Create account
-- `POST /auth/sign-in/email` — Sign in
-- `POST /auth/sign-out` — Sign out
-- `GET /auth/session` — Current session
-- `POST /auth/send-verification-email` — Resend verification email
-- `GET /config` — Runtime auth configuration
-- `GET /me` — Authenticated user profile
-- `PATCH /me` — Update user (display_name, timezone)
-- `PATCH /me/password` — Change password
-- `POST /me/password/set` — Set the initial password after verification
-- `GET /tasks` — List tasks (paginated, filterable by status, completion, overdue)
-- `GET /tasks/:id` — Get task
-- `POST /tasks` — Create task
-- `PATCH /tasks/:id` — Update task
-- `DELETE /tasks/:id` — Permanent delete
-- `POST /tasks/:id/labels/:labelId` — Assign label
-- `DELETE /tasks/:id/labels/:labelId` — Unassign label
-- `GET /projects` — List projects
-- `GET /projects/:id` — Get project
-- `POST /projects` — Create project
-- `PATCH /projects/:id` — Update project
-- `DELETE /projects/:id` — Soft delete project
-- `POST /projects/:id/restore` — Restore soft-deleted project
-- `GET /labels` — List labels
-- `GET /labels/:id` — Get label
-- `POST /labels` — Create label
-- `PATCH /labels/:id` — Update label
-- `DELETE /labels/:id` — Delete label
-- `GET /docs` — Swagger UI
-- `GET /docs/openapi.json` — Raw OpenAPI spec
+### API reference
 
-### Task Fields
+The endpoint reference is **generated from the route schemas** — read it from a running instance rather than from a hand-maintained list:
 
-| Field | Type | Description |
-|:---|:---|:---|
-| `id` | UUID | Primary key |
-| `title` | string | Task title |
-| `description` | string | Markdown description |
-| `status` | enum | `inbox \| today \| upcoming \| done \| archived` |
-| `priority` | enum | `low \| medium \| high` |
-| `bucket` | enum | `personal-sanctuary \| deep-work \| home \| health` |
-| `completed` | boolean | Completion state |
-| `simpleMode` | boolean | Simplified task view |
-| `dueDate` | date | Due date with recurrence generation |
-| `sortOrder` | integer | Position within filter |
-| `recurrence` | enum | `none \| daily \| weekly \| monthly \| yearly` |
-| `nextDueDate` | date | Next occurrence for recurring tasks |
-| `projectId` | UUID | Parent project (optional) |
-| `labels` | relation | Many-to-many with labels table |
-| `deletedAt` | timestamp | Soft delete |
-| `createdAt` | timestamp | Creation time |
-| `updatedAt` | timestamp | Last modification time |
-
-### Project Fields
-
-| Field | Type | Description |
-|:---|:---|:---|
-| `id` | UUID | Primary key |
-| `name` | string | Project name |
-| `description` | string | Project description |
-| `color` | enum | `sage \| teal \| olive \| clay \| forest \| deep-ocean` |
-| `ownerId` | UUID | Owning user |
-| `taskCount` | integer | Derived: total tasks |
-| `completedCount` | integer | Derived: completed tasks |
-| `openCount` | integer | Derived: open tasks |
-| `deletedAt` | timestamp | Soft delete |
-
-### Label Fields
-
-| Field | Type | Description |
-|:---|:---|:---|
-| `id` | UUID | Primary key |
-| `name` | string | Label name (unique per user) |
-| `color` | string | Hex color |
-| `ownerId` | UUID | Owning user |
-
-### Storage
-
-The API uses SQLite through Drizzle and bootstraps the required tables automatically on startup.
-
-**Tables:**
-- Better Auth: `user`, `session`, `account`, `verification`
-- App: `projects`, `tasks`, `labels`, `task_labels`, `email_sends`, `blocked_ips`
-
-Default local database path:
-
-```text
-./data/yotara.db
-```
-
-## Requirements
-
-- Node.js 22.22.1 or newer
-- pnpm 10.30.3 or newer
-
-## Installation
+- Swagger UI: `http://localhost:3000/docs`
+- Raw spec: `http://localhost:3000/docs/openapi.json`
 
 ```bash
-git clone https://github.com/apauldev/Yotara.git
-cd Yotara
-pnpm install
+pnpm docs:check    # Validate the spec against the routes
+pnpm docs:export   # Export the spec to a file
 ```
 
-The root `prepare` script installs Husky Git hooks automatically during install.
+Authentication is session-cookie based via Better Auth. Every application route except `/`, `/health`, and `/config` requires a session.
 
-Environment variables (`BETTER_AUTH_SECRET`, `DATABASE_URL`, etc.) can be
-set in your shell or sourced from [`apps/api/.env.example`](./apps/api/.env.example).
+### Development conventions
 
-## Running Locally
+- Add JSON Schemas with the `withJsonResponse()` helper so the OpenAPI spec stays accurate
+- Keep handlers thin; put logic in `apps/api/src/services/`
+- Add route tests **colocated** with the route (`src/routes/<resource>.test.ts`)
+- Use typed `AppError` subclasses; never `throw new Error('...')`
 
-### Recommended flow
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full feature recipe and engineering principles.
 
-```bash
-pnpm dev
-```
+## Data model
 
-This starts:
-- Frontend: `http://localhost:4200`
-- API: `http://localhost:3000`
-- Drizzle Studio: `https://local.drizzle.studio`
+The schema is defined in [`apps/api/src/db/schema.ts`](./apps/api/src/db/schema.ts), which is authoritative for field names, types, and nullability.
 
-### Individual services
-
-```bash
-pnpm dev:frontend
-pnpm dev:api
-pnpm db:studio
-```
-
-### Docker Compose deployment
-
-```bash
-pnpm docker:up    # Build and start
-pnpm docker:down  # Stop
-```
-
-See [DOCKER.md](./DOCKER.md) for details.
-
-## Workspace Commands
-
-### From the repo root
-
-| Command | Description |
+| Group | Tables |
 |:---|:---|
-| `pnpm dev` | Start all services |
-| `pnpm build` | Build all packages |
-| `pnpm start` | Start production builds |
-| `pnpm lint` | Run ESLint across workspace |
-| `pnpm lint:fix` | Auto-fix lint issues |
-| `pnpm format` | Format with Prettier |
-| `pnpm format:check` | Check formatting without changes |
-| `pnpm typecheck` | TypeScript validation |
-| `pnpm test` | Run all test suites |
-| `pnpm prepare` | Install Husky Git hooks |
+| Better Auth | `user`, `session`, `account`, `verification` |
+| Application | `projects`, `tasks`, `labels`, `task_labels` |
+| Operational | `email_sends`, `blocked_ips`, `notifications`, `login_attempts` |
 
-### Pre-PR verification
+Tasks support soft delete (`deletedAt`) and an `archived` status distinct from `done`. Projects are soft-deleted and restorable.
 
-```bash
-pnpm format
-pnpm lint:fix
-pnpm format:check
-pnpm typecheck
-pnpm test
-```
+The API bootstraps the SQLite schema on startup and enables WAL mode, so a fresh clone needs no migration step. The database defaults to `./data/yotara.db` locally.
 
-### API commands (from `apps/api`)
+Drizzle artifacts:
+
+- [`apps/api/drizzle`](./apps/api/drizzle) — generated migrations
+- [`apps/api/drizzle.config.ts`](./apps/api/drizzle.config.ts) — Drizzle config
 
 ```bash
-pnpm dev              # Start API server
-pnpm build            # Compile TypeScript
-pnpm test             # Run API tests
-pnpm docs:check       # Validate OpenAPI spec
-pnpm db:generate      # Generate Drizzle migration
-pnpm db:push          # Push schema to database
-pnpm db:studio        # Open Drizzle Studio
+pnpm --filter @yotara/api db:generate   # Generate a migration
+pnpm --filter @yotara/api db:push       # Push the schema
+pnpm --filter @yotara/api db:studio     # Inspect the data
 ```
 
-### Frontend commands (from `apps/frontend`)
+## API examples
 
-```bash
-pnpm dev              # Start dev server
-pnpm build            # Production build
-pnpm test             # Run Karma tests (ChromeHeadless)
-pnpm lint             # TypeScript compile check
-```
-
-## Environment Variables
-
-### API environment
-
-| Variable | Default | Purpose |
-|:---|:---|:---|
-| `DATABASE_URL` | `./data/yotara.db` | SQLite file path |
-| `APP_BASE_URL` | `http://localhost:3000` | Base URL for Better Auth |
-| `TRUSTED_ORIGINS` | `http://localhost:4200,...` | Allowed auth origins |
-| `CORS_ORIGIN` | inherits trusted origins | Extra CORS origins |
-| `PORT` | `3000` | API port |
-| `HOST` | `0.0.0.0` | API bind host |
-| `NODE_ENV` | unset (`production` in Compose) | Enables secure cookies and secret validation in production |
-| `BETTER_AUTH_SECRET` | required in production | Canonical hex or Base64 session key representing at least 32 decoded bytes |
-
-Notes:
-- Better Auth secure cookies are enabled when `NODE_ENV=production` or `APP_BASE_URL` starts with `https://`.
-- In production, the API rejects missing, placeholder, plain-text passphrase, malformed, or undersized secrets before serving traffic.
-- Development and test environments intentionally allow a missing secret for local and CI flows; see [DOCKER.md](./DOCKER.md) for deployment requirements.
-- The API bootstraps the SQLite schema on startup.
-- If frontend and API run on different origins, update `APP_BASE_URL`, `TRUSTED_ORIGINS`, and `CORS_ORIGIN` together.
-
-### Frontend environment
-
-| Environment | API Base URL | File |
-|:---|:---|:---|
-| Development | `http://localhost:3000` | `apps/frontend/src/environments/environment.ts` |
-| Production | `/api` | `apps/frontend/src/environments/environment.prod.ts` |
-
-The production setting assumes the frontend and API are served behind the same origin with `/api` routed to the backend.
-
-## Project Structure
-
-```text
-.
-├── apps/
-│   ├── api/                    Fastify + Drizzle backend
-│   │   ├── src/
-│   │   │   ├── db/             Database client and schema
-│   │   │   ├── docs/           OpenAPI spec and validation
-│   │   │   ├── lib/            Auth origins, CORS utilities
-│   │   │   ├── plugins/        Fastify plugins (CORS, auth)
-│   │   │   ├── routes/         API routes (tasks, labels, user, etc.)
-│   │   │   ├── services/       Business logic (tasks, labels, projects)
-│   │   │   └── server.ts       Entry point
-│   │   ├── drizzle/            Generated migrations
-│   │   └── drizzle.config.ts
-│   └── frontend/               Angular 22 application
-│       └── src/app/
-│           ├── core/           Guards, interceptors, services
-│           ├── features/       Feature modules (auth, error, onboarding, personal, shell, tasks)
-│           └── shared/         Shared components and pipes
-├── packages/
-│   └── shared/                 Domain types, DTOs, auth client
-├── docs/
-│   └── ARCHITECTURE.md         Architecture decisions, constraints, known risks
-├── scripts/                    Release automation
-└── testing.md                  Testing guide
-```
-
-## API Examples
-
-All task endpoints require authentication via session cookie.
+All task endpoints require a session cookie. The cookie name depends on your Better Auth setup; the examples below use the default.
 
 ### Create a task
 
@@ -340,20 +141,6 @@ curl -X PATCH http://localhost:3000/tasks/TASK_ID \
   -d '{ "completed": true, "priority": "low" }'
 ```
 
-### Delete a task
-
-```bash
-curl -X DELETE http://localhost:3000/tasks/TASK_ID \
-  -b "better-auth.session_token=YOUR_TOKEN"
-```
-
-### Assign a label to a task
-
-```bash
-curl -X POST http://localhost:3000/tasks/TASK_ID/labels/LABEL_ID \
-  -b "better-auth.session_token=YOUR_TOKEN"
-```
-
 ### Create a project
 
 ```bash
@@ -372,57 +159,26 @@ curl -X POST http://localhost:3000/labels \
   -d '{ "name": "urgent", "color": "#e74c3c" }'
 ```
 
-## Database and Drizzle
-
-The database client lives in [`apps/api/src/db/client.ts`](./apps/api/src/db/client.ts).
-
-Behavior:
-- Creates the SQLite directory if it does not exist
-- Bootstraps required tables if the database is new
-- Enables SQLite WAL mode
-
-Drizzle artifacts:
-- [`apps/api/drizzle`](./apps/api/drizzle) — generated migrations
-- [`apps/api/drizzle.config.ts`](./apps/api/drizzle.config.ts) — Drizzle config
-
-Useful commands:
-
-```bash
-pnpm --filter @yotara/api db:generate
-pnpm --filter @yotara/api db:push
-pnpm --filter @yotara/api db:studio
-```
-
-## Testing
-
-See [`testing.md`](./testing.md) for the full guide.
-
-| Suite | Framework | Location |
-|:---|:---|:---|
-| API | Node test runner + tsx | `apps/api/src/**/*.test.ts` |
-| Frontend | Karma + Jasmine | `apps/frontend/src/app/**/*.spec.ts` |
-
-Quick verification:
-
-```bash
-pnpm lint
-pnpm format:check
-pnpm typecheck
-pnpm test
-```
-
-## Code Quality
+## Code quality
 
 - ESLint flat config: [`eslint.config.mjs`](./eslint.config.mjs)
 - Prettier: [`.prettierrc.json`](./.prettierrc.json)
-- Husky pre-commit: runs lint-staged (eslint --fix + prettier --write)
-- Root lint budget: `--max-warnings 10`
+- Husky pre-commit runs lint-staged (eslint --fix + prettier --write)
+- Husky commit-msg runs commitlint
+- Frontend lint additionally runs stylelint over CSS and SCSS
 
-## Local Development Notes
+```bash
+pnpm format:check
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+```
 
-- Frontend binds to `0.0.0.0:4200`
-- API binds to `0.0.0.0:3000`
+## Local development notes
+
+- The frontend binds to `0.0.0.0:4200` and the API to `0.0.0.0:3000`
 - Auth uses session cookies and browser-based flows
-- Onboarding stores workspace type in localStorage
+- Onboarding stores the workspace mode in `localStorage` through `PreferencesStore`
 - Drizzle Studio is for local inspection only
-- If frontend and API run on different origins, align environment values and trusted origins
+- If the frontend and API run on different origins, update `APP_BASE_URL`, `TRUSTED_ORIGINS`, and `CORS_ORIGIN` together — see [docs/CONFIGURATION.md](./docs/CONFIGURATION.md)
