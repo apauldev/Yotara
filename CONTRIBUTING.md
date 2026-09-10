@@ -249,7 +249,9 @@ Yotara asks contributors to do two complementary things. They serve different pu
 
 ### 1. Agree to the Contributor License Agreement
 
-Before your first PR is merged, you need to agree to the [Yotara CLA](./CLA.md). It grants the project the rights to distribute your contributions under any license (MIT or future alternatives). You will be prompted for this on your first pull request.
+Before your first PR is merged, you need to agree to the [Yotara CLA](./CLA.md). It grants the project the rights to distribute your contributions under any license (MIT or future alternatives).
+
+[CLAassistant](https://cla-assistant.io/) prompts you automatically on your first pull request, and the `license/cla` check stays red until you sign. There is no repository configuration for it — it is a GitHub App, configured outside the repo.
 
 ### 2. Certify the Developer Certificate of Origin
 
