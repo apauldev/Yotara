@@ -1,9 +1,14 @@
 # Documentation Overhaul Plan
 
-> **Status:** Proposed — not started.
-> **Date:** 2026-09-10
+> **Archived 2026-09-10 — implemented.** The audit below records the documentation
+> set as it was *before* the overhaul. Line numbers and "WRONG" verdicts describe
+> that original state and no longer match the current files; several are fixed.
+> Kept as the rationale for the changes, not as a description of today.
+>
+> See [docs/README.md](../README.md) for current documentation and
+> [docs/archive/README.md](./README.md) for the archiving policy.
 > **Scope:** every human-facing Markdown file in the repository (24 files, ~9,040 lines).
-> **Audience:** maintainers executing this plan.
+> **Author's note (original):** maintainers executing this plan.
 
 ## 1. Summary
 

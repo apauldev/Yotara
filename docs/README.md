@@ -26,7 +26,6 @@ not sure where something belongs, this table is the answer.
 | [CONFIGURATION.md](./CONFIGURATION.md) | Every environment variable, its default, and its purpose | Operators | Current |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Durable architectural decisions, constraints, known risks, engineering principles | Contributors, architects | Current |
 | [RELEASING.md](./RELEASING.md) | Release pipeline, versioning rules, Docker Hub publishing | Maintainers | Current |
-| [plans/](./plans) | Active implementation plans (promoted to Issues once agreed) | Contributors | Working area |
 | [archive/](./archive/README.md) | Superseded plans and historical snapshots, kept for context | Anyone asking "why?" | **Historical — never current** |
 | [assets/](./assets) | Logo, banner, and documentation images | — | Assets |
 
@@ -75,7 +74,7 @@ behaviour a document describes, that document is part of the pull request.
 ## Adding a document
 
 1. Decide whether it is durable reference, an active plan, or a historical record.
-2. Put it in `docs/` (durable), `docs/plans/` (active), or `docs/archive/` (historical).
+2. Put it in `docs/` (durable), `docs/plans/` (active work, created on demand), or `docs/archive/` (historical).
 3. Add a row to the matching table above.
 4. Link it from wherever a reader would look for it — not just from this index.
 

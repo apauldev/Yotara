@@ -44,6 +44,7 @@ archived plan and the code disagree, the code wins.
 | [api-todo.md](./api-todo.md) | The API package TODO list | Retired when planning moved to GitHub Issues. Surviving items were migrated with the `harvested-from-docs` label. |
 | [frontend-todo.md](./frontend-todo.md) | The frontend package TODO list | Same as above. |
 | [security-hardening-plan.md](./security-hardening-plan.md) | The security hardening plan covering CSP, security headers, password policy, and secret validation | Shipped. The durable policy now lives in [DOCKER.md](../../DOCKER.md) and [docs/ARCHITECTURE.md](../ARCHITECTURE.md). Its §3 environment-configuration analysis is superseded: `angular.json` does use `fileReplacements`, and email verification is now environment-driven. |
+| [documentation-overhaul.md](./documentation-overhaul.md) | The audit and remediation plan for this documentation set | Implemented. Records the documentation as it was before the overhaul, including the verified errors that were corrected. |
 | [precheck-beta-release.md](./precheck-beta-release.md) | A pre-flight checklist for the first beta Docker deploy | The beta shipped. Its §2.4 E2E-diagnostics finding is resolved: CI now uploads `playwright-report/`, `test-results/`, and both service logs with `if: always()`, and terminates the background processes in an `always()` step. |
 
 ## Adding to this archive
