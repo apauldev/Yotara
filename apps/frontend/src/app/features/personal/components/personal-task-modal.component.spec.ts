@@ -265,6 +265,34 @@ describe('PersonalTaskModalComponent', () => {
     });
   });
 
+  describe('hydrateDraft label handling', () => {
+    it('does not wipe draftLabels when initialTitle contains no label commands', () => {
+      fixture.componentRef.setInput('initialTitle', 'A plain title');
+      fixture.componentRef.setInput('open', true);
+      fixture.detectChanges();
+
+      // Seed a label from a previous interaction before rehydration runs.
+      component['draftLabels'].set(['label-1']);
+
+      // Trigger rehydration by toggling open.
+      component.open = false;
+      fixture.detectChanges();
+      component.open = true;
+      fixture.detectChanges();
+
+      expect(component['draftLabels']()).toEqual(['label-1']);
+    });
+
+    it('sets parsed labels when initialTitle contains a matching #tag', () => {
+      fixture.componentRef.setInput('initialTitle', 'Fix the leak #urgent');
+      fixture.componentRef.setInput('open', true);
+      fixture.detectChanges();
+
+      expect(component['draftLabels']()).toEqual(['label-1']);
+      expect(component['draftTitle']()).toBe('Fix the leak');
+    });
+  });
+
   describe('Completion Toggle', () => {
     it('should render a Font Awesome icon for the completion toggle', () => {
       component.open = true;

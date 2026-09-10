@@ -464,7 +464,11 @@ export class PersonalTaskModalComponent {
         .filter((l) => labelNames.some((name) => name.toLowerCase() === l.name.toLowerCase()))
         .map((l) => l.id);
 
-      this.draftLabels.set(parsedLabelIds);
+      // Only overwrite when the title actually contained label commands;
+      // an empty array would silently clear any prior selection.
+      if (parsedLabelIds.length > 0) {
+        this.draftLabels.set(parsedLabelIds);
+      }
     } else {
       this.draftPriority.set(this.task?.priority ?? 'medium');
       this.draftLabels.set(this.task?.labels ?? []);
