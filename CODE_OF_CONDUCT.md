@@ -34,7 +34,11 @@ Community leaders have the right and responsibility to remove, edit, or reject c
 
 ## Reporting
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the project maintainers. All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported privately to the project maintainer, [@apauldev](https://github.com/apauldev), by direct message on GitHub.
+
+If you would prefer not to contact the maintainer directly, you can instead use the repository's [private reporting channel](https://github.com/apauldev/Yotara/security/advisories), which is visible only to maintainers.
+
+All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the reporter of any incident.
 

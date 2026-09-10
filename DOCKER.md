@@ -90,11 +90,17 @@ random generator rather than a hand-written value.
 |:---|:---:|:---|
 | `BETTER_AUTH_SECRET` | **Required** | Session signing key (canonical hex/Base64, at least 32 decoded bytes) |
 | `DATABASE_URL` | `./apps/api/data/yotara.db` | SQLite path (inside container or volume) |
-| `APP_BASE_URL` | `http://localhost:8080/api` | Public URL for Better Auth callbacks |
+| `APP_BASE_URL` | `http://localhost:8080` | Public URL for Better Auth callbacks. Do **not** append `/api` — nginx strips that prefix before proxying |
 | `TRUSTED_ORIGINS` | `http://localhost:8080` | Allowed auth/CORS origins |
 | `TRUST_PROXY` | `172.16.0.0/12` in Compose | Trusted reverse-proxy IPs/CIDRs; unset for direct API access |
 | `PORT` | `3000` | API container port |
 | `CONTENT_SECURITY_POLICY` | *(see below)* | Override the CSP for both nginx and the API |
+
+This table covers the variables that matter for the Docker deployment. For the complete
+reference — including `FRONTEND_BASE_URL`, `HOST`, `RESEND_API_KEY`, `EMAIL_FROM`,
+`DEV_MODE`, and the rate-limit and lockout tuning knobs — see
+[docs/CONFIGURATION.md](./docs/CONFIGURATION.md). It is the single source of truth, and CI
+verifies it stays in sync with `apps/api/.env.example`.
 
 ### Secret validation by environment
 
@@ -169,15 +175,20 @@ The Docker stack is hardened out of the box:
 | **Swagger UI gated** | `/docs` restricted to localhost + private LAN (10/8, 172.16/12, 192.168/16) at the nginx level |
 | **Account lockout scoped by IP** | Lockout keyed by (client IP, email) — an attacker can't lock a victim from a different IP |
 | **Per-email rate limiting** | Max 3 signup/reset emails per hour per email address |
-| **Global rate limiting** | 1000 requests/min per IP (configurable via `RATE_LIMIT_MAX` / `RATE_LIMIT_WINDOW_MINUTES`) |
+| **Global rate limiting** | 200 requests/min per IP by default (`apps/api/src/server.ts`), configurable via `RATE_LIMIT_MAX` / `RATE_LIMIT_WINDOW_MINUTES` |
 
 ### Deployment constraints
 
-The API runs with `trustProxy: 1` and keys rate-limiting + lockout off `request.ip`,
-which it derives from `X-Forwarded-For`. **Never expose the API container directly to the
-internet** — the bundled nginx proxy (`docker-compose.yml`) must sit in front to overwrite
-`X-Forwarded-For` with the real client IP. Running the API bare makes `request.ip`
-attacker-controllable, defeating per-IP lockout and rate limiting.
+The API keys rate-limiting and lockout off `request.ip`, which it derives from
+`X-Forwarded-For`. Proxy trust is opt-in: `apps/api/src/lib/trusted-proxy.ts` reads
+`TRUST_PROXY` as a comma-separated list of addresses or CIDRs and trusts nothing when it
+is unset. The bundled Compose stack scopes it to the private nginx network.
+
+**Never expose the API container directly to the internet.** The bundled nginx proxy
+(`docker/nginx.conf`) must sit in front, because it overwrites `X-Forwarded-For` with the
+real client address (`$remote_addr`). Running the API bare — or trusting a wide proxy
+range — makes `request.ip` attacker-controllable, defeating per-IP lockout and rate
+limiting.
 
 ## Override Without Editing the Compose File
 
