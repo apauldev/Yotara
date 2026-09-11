@@ -1,12 +1,9 @@
 # Yotara Project Plan
 
-> **⚠️ OUT OF USE — Historical snapshot only.**
->
-> Planning is now tracked on the **[Yotara Roadmap](https://github.com/users/apauldev/projects/1)** GitHub Project board.
->
-> Architectural decisions live in [`docs/ARCHITECTURE.md`](./ARCHITECTURE.md). New work goes to GitHub Issues, not this file.
->
-> Last meaningful update: 2026-06-01. **Known drift:** the P1 table shows Markdown preview (#10) and Data export (#12) as ⬜ Not started, but both shipped in 0.51.0 and 0.52.0.
+> **Archived 2026-09-10 — historical snapshot.** Not maintained. Kept for context
+> only; current status lives on the
+> [Yotara Roadmap](https://github.com/users/apauldev/projects/1) board and in
+> GitHub Issues. See [docs/archive/README.md](./README.md) for the policy.
 
 This plan translates the implementation-aware roadmap into a project manager's action plan. It assumes a current pace of 1-2 hours per day and treats the personal-mode MVP as functionally complete, with remaining work focused on public-demo polish, high-value personal features, team mode, and distribution.
 

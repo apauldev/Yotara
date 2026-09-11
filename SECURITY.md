@@ -8,8 +8,13 @@ We take the security of Yotara seriously. If you discover a security vulnerabili
 
 ### How to Report
 
-1. **GitHub Security Advisories (preferred):** Go to [github.com/apauldev/Yotara/security/advisories](https://github.com/apauldev/Yotara/security/advisories) and submit a draft advisory.
-2. **Email:** Send details to the repository owner via GitHub's contact form.
+Use [GitHub Security Advisories](https://github.com/apauldev/Yotara/security/advisories)
+and click **Report a vulnerability**. That opens a private draft advisory only
+the maintainers can see, and gives us a shared space to discuss and fix the
+issue before it is disclosed.
+
+Please do not open a public issue for a security report, and do not include
+exploit details in a public discussion.
 
 Please include:
 - A description of the vulnerability
@@ -25,9 +30,13 @@ Please include:
 
 ## Supported Versions
 
-We recommend always using the latest release. Security fixes are backported only to the most recent major version.
+Yotara is pre-1.0 and releases frequently, so only the most recent release is
+supported. There is no long-term support branch yet.
 
 | Version | Supported |
 |:--------|:----------|
-| Latest  | ✅ Yes    |
-| Older   | ❌ No     |
+| Latest release | ✅ Yes |
+| Any earlier release | ❌ No |
+
+If you are running an older release, please upgrade to the latest before
+reporting — the issue may already be fixed.

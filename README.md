@@ -95,12 +95,13 @@ Not another todo app. Not another project management suite. Something in between
 
 ## Quick Start
 
-Get Yotara running locally in under a minute. Requires Node `22.22.1+` and `pnpm` `10.30.3+`.
+Get Yotara running locally in under a minute. Requires Node `22.22.3+` and `pnpm` `10.30.3+`.
 
 ```bash
 git clone https://github.com/apauldev/Yotara.git
 cd Yotara
 pnpm install
+cp apps/api/.env.example apps/api/.env
 pnpm dev
 ```
 
@@ -139,13 +140,7 @@ The stack includes security hardening by default:
 
 See [DOCKER.md](./DOCKER.md) for full deployment details, environment variables, and troubleshooting.
 
-### Dev environment (without Docker)
-
-```bash
-cp apps/api/.env.example apps/api/.env
-# Edit apps/api/.env to configure
-pnpm dev
-```
+For the full setup guide, environment files, workspace commands, and troubleshooting, see [docs/INSTALL.md](./docs/INSTALL.md).
 
 ---
 
@@ -188,9 +183,9 @@ pnpm dev
 
 Yotara makes opinionated bets about its stack and deployment model. If you're curious about the reasoning:
 
-- [Why SQLite?](https://yotara.website/blog) — zero-infrastructure, trivially backup-able, fast enough for one user.
-- [Why self-host?](https://yotara.website/blog) — your data stays on your server, no telemetry, no lock-in.
-- [Designing for Focus](https://yotara.website/blog) — how the interface stays out of your way.
+- [Why SQLite?](https://yotara.website/blog#why-sqlite) — zero-infrastructure, trivially backup-able, fast enough for one user.
+- [Why self-host?](https://yotara.website/blog#why-self-host) — your data stays on your server, no telemetry, no lock-in.
+- [Designing for Focus](https://yotara.website/blog#designing-for-focus) — how the interface stays out of your way.
 
 ---
 
@@ -228,28 +223,6 @@ Yotara is built as a modern pnpm monorepo with shared packages, automated code q
 
 ---
 
-## Recent updates
-
-A few fresh leaves on the branch. Yotara is actively developed and improving every sprint.
-
-**Product**
-
-- Recurring tasks with month-end and leap-year edge-case handling
-- Archive, restore, and permanent delete with `archived_at` timestamps
-- Server-side task pagination for thousands of tasks
-- 7 themes with dark mode and custom CSS properties
-- Full-text search across tasks, projects, and labels
-
-**Engineering**
-
-- Typed error hierarchy replacing bare `throw new Error` across the API
-- Preferences Store centralizing all `localStorage` access into one injectable service
-- Signal-driven UI replacing `setTimeout` hacks for loading bars and state
-- Docker CI smoke tests building images and running a full-stack check before merge
-- OpenAPI docs — auto-generated Swagger UI at `/docs` with full request/response schemas
-
----
-
 <details>
 <summary><b>Project structure</b></summary>
 
@@ -267,10 +240,12 @@ Yotara/
       src/app/
         core/           Auth guards, services, interceptors
         features/       Feature modules (personal, team, onboarding)
-        shared/         Reusable UI primitives, pipes, directives
+        shared/         Reusable UI primitives, pipes, utils
+      e2e/              Playwright specs and fixtures
+    yotara-website/     Static marketing site (yotara.website)
   packages/
     shared/             Domain types, DTOs, auth client
-  docs/                 Architecture guide, roadmap, assets
+  docs/                 Architecture, install, configuration, archive
   scripts/              Dev runner, release automation, versioning
 ```
 
@@ -279,16 +254,16 @@ Yotara/
 <details>
 <summary><b>Versioning</b></summary>
 
-Yotara follows Semantic Versioning powered by Conventional Commits and automated release workflows.
+Yotara follows Semantic Versioning, driven by Conventional Commits.
 
 | Commit Type | Bump | Example |
 |:---|:---:|:---|
 | `feat:` | Minor | `feat: add recurring task support` |
 | `fix:` | Patch | `fix: correct date overflow in February` |
 | `feat!:` or `fix!:` | Major | `feat!: redesign task data model` |
-| `docs:`, `refactor:`, `test:` | Patch | `refactor: extract PreferencesStore` |
+| `docs:`, `refactor:`, `test:`, `chore:` | Patch | `refactor: extract PreferencesStore` |
 
-Automated releases run via GitHub Actions when code is merged to `main`. Docs-only and screenshot-only changes are skipped. The release workflow: version bump, changelog, tag, and GitHub Release. All hands-off.
+Releases run automatically once CI passes on `main`: version bump, changelog, tag, GitHub Release, and multi-platform Docker images. See [docs/RELEASING.md](./docs/RELEASING.md) for the pipeline and troubleshooting.
 
 </details>
 

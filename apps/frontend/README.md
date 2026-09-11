@@ -1,80 +1,65 @@
-# Frontend
+# Frontend (`@yotara/frontend`)
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.1.2.
+The Angular 22 application. Standalone components, signals, and lazy routes.
 
-## Development server
+For setup, use [docs/INSTALL.md](../../docs/INSTALL.md) from the repository root — this app expects the API to be running alongside it.
 
-To start a local development server, run:
+## Layout
 
-```bash
-ng serve
+```text
+src/
+  app/
+    core/         Cross-cutting: guards, interceptors, services, auth state
+    features/     Feature areas
+      auth/         Login, verification, password reset
+      error/        404 page
+      onboarding/   Workspace mode picker
+      personal/     Personal shell, pages, task components
+      shell/        Team-mode shell
+      tasks/        Team dashboard
+    shared/       Reusable building blocks
+      components/   Composed UI (task card, empty state, page header, ...)
+      ui/           Primitives (modal, date picker, markdown editor, ...)
+      pipes/
+      utils/
+  environments/   Compile-time API base URL per configuration
+  styles.css      Theme tokens and global styles
+e2e/              Playwright specs, fixtures, and global setup
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Routes are defined in [`src/app/app.routes.ts`](src/app/app.routes.ts). It is the authoritative route list; [PROJECT_README.md](../../PROJECT_README.md#routes) only summarises the shape.
 
-## Code scaffolding
+## Commands
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Run these from this directory, or prefix them with `pnpm --filter @yotara/frontend` from the root.
 
 ```bash
-ng generate --help
+pnpm dev        # Dev server on http://localhost:4200
+pnpm build      # Production build
+pnpm test       # Karma unit tests in ChromeHeadless, single run
+pnpm e2e        # Playwright E2E (frontend and API must be running)
+pnpm lint       # Typecheck + stylelint
 ```
 
-## Building
+Playwright also exposes `e2e:ui`, `e2e:debug`, and `e2e:codegen`.
 
-To build the project run:
+## Conventions
 
-```bash
-ng build
-```
+- Use signals for state, `computed()` for derived state, `effect()` for side effects.
+- **Do not filter in a `computed()` signal** if the server could filter instead. Add a query param and delete the signal.
+- API calls go through a service using `HttpClient` — not raw `fetch`.
+- Log errors through `LogService`, not `console.error`.
+- Reuse the existing `shared/` primitives rather than building new ones.
+- Component tests assert on rendered behaviour and the public API. Avoid `as any` casts on the component instance.
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+See [CONTRIBUTING.md](../../CONTRIBUTING.md) for the full engineering principles and [testing.md](../../testing.md) for testing patterns.
 
 ## Spartan UI
 
-This project uses [spartan-ng](https://www.spartan.ng/) for UI components. Components are located in `src/app/shared/ui` and are added on-demand using the Spartan CLI.
+UI primitives under `src/app/shared/ui` use [spartan-ng](https://www.spartan.ng/). Add new components with the Spartan CLI:
 
-### Adding Components
-
-To add a new Spartan component, run:
-
-```bash
-pnpm exec ng g @spartan-ng/cli:ui component-name
-```
-
-Example:
 ```bash
 pnpm exec ng g @spartan-ng/cli:ui accordion
 ```
 
-### Theming
-
-The theme is configured using Tailwind CSS variables in `src/styles.css`. This project uses **Tailwind CSS v4** and the **Neutral** theme.
+Theming uses Tailwind CSS v4 variables defined in `src/styles.css`.

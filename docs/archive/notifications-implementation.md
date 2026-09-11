@@ -1,5 +1,11 @@
 # Notifications Implementation Plan
 
+> **Archived 2026-09-10 — historical snapshot.** Not maintained. Kept for context
+> only; current status lives on the
+> [Yotara Roadmap](https://github.com/users/apauldev/projects/1) board and in
+> GitHub Issues. See [docs/archive/README.md](./README.md) for the policy.
+
+
 In-app notifications with persistence (backend `notifications` table), a bell
 icon + dropdown, a `/notifications` page, and optional browser notifications
 that fire while the tab is open. This doc is self-contained — it does not

@@ -1,5 +1,11 @@
 # Email verification implementation log
 
+> **Archived 2026-09-10 — historical snapshot.** Not maintained. Kept for context
+> only; current status lives on the
+> [Yotara Roadmap](https://github.com/users/apauldev/projects/1) board and in
+> GitHub Issues. See [docs/archive/README.md](./README.md) for the policy.
+
+
 Status: **Complete** — all checklist items from `docs/email-verification-design.md` implemented on `beta-release`, tests green.
 
 ## Summary

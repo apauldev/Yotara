@@ -1,0 +1,40 @@
+name: Docs Consistency
+
+# `ci.yml` ignores changes limited to `**.md` and `docs/**`, which means a
+# docs-only pull request would never run a documentation check. This workflow
+# exists to cover exactly that gap, so it deliberately has no paths-ignore.
+#
+# It needs no dependencies: the check uses Node builtins only.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - '**.md'
+      - 'apps/api/.env.example'
+      - 'scripts/check-env-docs.mjs'
+      - '.github/workflows/docs-consistency.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - '**.md'
+      - 'apps/api/.env.example'
+      - 'scripts/check-env-docs.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  env-docs:
+    name: Environment variables are documented
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.3
+      - name: Check docs/CONFIGURATION.md covers apps/api/.env.example
+        run: node scripts/check-env-docs.mjs

@@ -1,5 +1,11 @@
 # Precheck: beta release
 
+> **Archived 2026-09-10 — historical snapshot.** Not maintained. Kept for context
+> only; current status lives on the
+> [Yotara Roadmap](https://github.com/users/apauldev/projects/1) board and in
+> GitHub Issues. See [docs/archive/README.md](./README.md) for the policy.
+
+
 This document is the checklist to work through **before** building and pushing the Docker images that will run on the beta EC2 instance. It is derived from `docs/anti-patterns-audit.md` (findings were verified against the current source on 2026-08-12), plus deployment-specific items for a small single-node EC2 deployment.
 
 The bar for the beta is lower than for a public launch, but the items below are cheap to fix now and expensive to discover on a running instance. Items are grouped by **must fix before upload**, **strongly recommended before upload**, and **decide now** (product/ops policy choices that should not be made implicitly).

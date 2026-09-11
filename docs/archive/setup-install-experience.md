@@ -1,9 +1,9 @@
 # Setup & Install Experience — Implementation Plan
 
-> **Status:** Proposed draft. Not yet started.
-> **Owner:** @apauldev
-> **Estimated total effort:** 12–16 engineering days
-> **Supersedes:** ROADMAP §P2a, ARCHITECTURE.md §Backlog (setup/admin items)
+> **Archived 2026-09-10 — historical snapshot.** Not maintained. Kept for context
+> only; current status lives on the
+> [Yotara Roadmap](https://github.com/users/apauldev/projects/1) board and in
+> GitHub Issues. See [docs/archive/README.md](./README.md) for the policy.
 
 ---
 

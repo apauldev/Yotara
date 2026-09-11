@@ -1,12 +1,9 @@
 # Frontend Refactor TODO
 
-> **⚠️ OUT OF USE — Historical snapshot only.**
->
-> Planning is now tracked on the **[Yotara Roadmap](https://github.com/users/apauldev/projects/1)** GitHub Project board.
->
-> Surviving items from this file have been migrated to GitHub Issues with the `harvested-from-docs` label. Architectural decisions live in [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).
->
-> Last meaningful update: 2026-06-01.
+> **Archived 2026-09-10 — historical snapshot.** Not maintained. Kept for context
+> only; current status lives on the
+> [Yotara Roadmap](https://github.com/users/apauldev/projects/1) board and in
+> GitHub Issues. See [docs/archive/README.md](./README.md) for the policy.
 
 ## Pre-Launch: Push filtering to the API (remove computed signals)
 

@@ -1,5 +1,11 @@
 # Plan: Security Hardening — Obvious Gaps
 
+> **Archived 2026-09-10 — historical snapshot.** Not maintained. Kept for context
+> only; current status lives on the
+> [Yotara Roadmap](https://github.com/users/apauldev/projects/1) board and in
+> GitHub Issues. See [docs/archive/README.md](./README.md) for the policy.
+
+
 Scope: the clearly-real gaps from the second audit pass. Deliberately **excludes** the
 nitpicks: `SameSite: lax` is correct for an SPA login flow (switching to `strict` would
 break it), the "error messages leak internals" claim is mostly false (the 500 handler

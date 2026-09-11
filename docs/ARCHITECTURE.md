@@ -20,17 +20,18 @@ pnpm monorepo. The current product is substantially beyond the original MVP:
   bootstrap, timestamp normalization, and database permission hardening.
 - Better Auth session-cookie authentication, password reset email flow,
   account deletion, rate limiting, login lockout, and security headers.
-- Email verification is wired but dormant: the verification callback exists in
-  the API, but `requireEmailVerification` is `false`, so the flow is inactive
-  until that flag is flipped (tracked as future work in
-  [docs/admin-notifications.md](./admin-notifications.md)).
+- Email verification is enforced in production: `emailVerificationRequired()`
+  in `apps/api/src/lib/auth.ts` turns it on when `NODE_ENV=production` or
+  `REQUIRE_EMAIL_VERIFICATION=true`, and `DEV_MODE` overrides it off for
+  frictionless local work. Unverified accounts are removed on a timer by
+  `apps/api/src/lib/email-cleanup.ts`.
 - Personal task views, projects, labels, archive, search, subtasks, recurring
   tasks, themes, keyboard shortcuts, and in-app notifications.
 - Docker deployment behind nginx, published container images, OpenAPI docs,
   CI checks, CodeQL, gitleaks, Dependabot, and release automation.
 
-The repository typechecks cleanly. At the last review, the test suites passed
-212 API tests and 636 frontend tests.
+The repository typechecks cleanly. For current suite counts, read CI or
+Codecov rather than a number written down here -- prose counts go stale.
 
 ## System shape
 
@@ -113,16 +114,25 @@ date parsing or raw UTC assumptions.
 
 ### Security at deployment boundaries
 
-The supported deployment is nginx in front of the API. The API runs with
-`trustProxy: 1` and derives `request.ip` from `X-Forwarded-For`; both the
-global IP rate limiter and the per-IP login lockout depend on that IP being
-the real client address. That is only true when the proxy overwrites
-`X-Forwarded-For` with the real client IP — which the bundled
-`docker/nginx.conf` does (`$proxy_add_x_forwarded_for`). Never expose the API
-directly with an unrestricted `trustProxy` setting: a client could then forge
-`X-Forwarded-For`, making `request.ip` attacker-controllable and defeating
-rate limiting and login-lockout scoping. If you must run without nginx, scope
-`trustProxy` to the proxy's subnet (CIDR or function) instead of `1`.
+The supported deployment is nginx in front of the API. The API derives
+`request.ip` from `X-Forwarded-For`, and both the global IP rate limiter and
+the per-IP login lockout depend on that IP being the real client address.
+
+Proxy trust is opt-in and scoped: `apps/api/src/lib/trusted-proxy.ts` reads
+`TRUST_PROXY` as a comma-separated list of addresses or CIDRs, and defaults to
+`false` (no proxy trust) when unset. The bundled Compose stack sets it to the
+private nginx network.
+
+That is only safe when the proxy *overwrites* `X-Forwarded-For` with the real
+client address, which the bundled `docker/nginx.conf` does
+(`proxy_set_header X-Forwarded-For $remote_addr`). Note the choice of
+`$remote_addr` over `$proxy_add_x_forwarded_for`: the latter appends whatever
+the client sent, so a client-supplied value would survive into `request.ip`.
+
+Never expose the API directly with an unscoped `trustProxy`: a client could
+then forge `X-Forwarded-For`, making `request.ip` attacker-controllable and
+defeating rate limiting and login-lockout scoping. If you must run without
+nginx, keep `trustProxy` scoped to the proxy's subnet.
 
 Security-sensitive behavior belongs at the boundary where it can be enforced:
 
@@ -147,16 +157,6 @@ Security-sensitive behavior belongs at the boundary where it can be enforced:
 - The project has a credible contributor path through setup documentation,
   issue templates, OpenAPI, and automated checks.
 
-The closed Issue history corroborates several of these migrations: timezone
-handling ([#170](https://github.com/apauldev/Yotara/issues/170)), planning
-harvest ([#171](https://github.com/apauldev/Yotara/issues/171)), server-side
-search ([#176](https://github.com/apauldev/Yotara/issues/176)), keyboard
-shortcut reference UX ([#221](https://github.com/apauldev/Yotara/issues/221)),
-browser reminders ([#218](https://github.com/apauldev/Yotara/issues/218)), and
-route coverage for `/me`, `/health`, and `/`
-([#286](https://github.com/apauldev/Yotara/issues/286)). These are completed
-capabilities, not active roadmap items.
-
 ## Known risks and technical debt
 
 These are architectural observations, not a second roadmap. Create or update
@@ -170,9 +170,8 @@ and date restoration. It is coherent, but it is the first place likely to
 become difficult to change. Future extraction should follow domain seams
 (recurrence, task queries, or notification side effects) and preserve service
 transaction boundaries. This is represented by Issues [#57](https://github.com/apauldev/Yotara/issues/57)
-and [#175](https://github.com/apauldev/Yotara/issues/175). Issue #175 is
-currently In Progress on the Roadmap Project and captures the remaining
-frontend/service decomposition work.
+and [#175](https://github.com/apauldev/Yotara/issues/175), which capture the
+remaining frontend/service decomposition work.
 
 ### 2. A few UI timers are deliberate but deserve scrutiny
 
@@ -205,55 +204,25 @@ The project still has a high single-maintainer concentration. This is less a
 code smell than a continuity risk. Documentation, small well-scoped Issues,
 and reviewable changes are the best current mitigation.
 
-## Issue-backed architecture map
+## Architectural themes
 
-The following are the current architectural themes represented in GitHub
-Issues. The numbers are pointers, not a duplicate backlog; GitHub owns their
-priority and status.
+The architectural implications behind current work. Issue numbers deliberately
+live on the [roadmap board](https://github.com/users/apauldev/projects/1) and in
+Issues rather than here, so this document cannot drift out of sync with them.
 
-| Theme | Representative Issues | Architectural implication |
-|---|---|---|
-| Frontend decomposition | [#57](https://github.com/apauldev/Yotara/issues/57), [#58](https://github.com/apauldev/Yotara/issues/58), [#254](https://github.com/apauldev/Yotara/issues/254), [#255](https://github.com/apauldev/Yotara/issues/255), [#268](https://github.com/apauldev/Yotara/issues/268) | Keep API clients, view state, shell chrome, templates, and date utilities separable without reintroducing duplicated filtering logic. |
-| API boundary quality | [#266](https://github.com/apauldev/Yotara/issues/266), [#267](https://github.com/apauldev/Yotara/issues/267), [#269](https://github.com/apauldev/Yotara/issues/269), [#271](https://github.com/apauldev/Yotara/issues/271), [#276](https://github.com/apauldev/Yotara/issues/276) | Keep auth bridging, CORS, validation, and structured errors centralized and tested at the boundary. |
-| Query and data scalability | [#61](https://github.com/apauldev/Yotara/issues/61), [#228](https://github.com/apauldev/Yotara/issues/228), [#231](https://github.com/apauldev/Yotara/issues/231), [#232](https://github.com/apauldev/Yotara/issues/232), [#257](https://github.com/apauldev/Yotara/issues/257) | Prefer SQL filtering, sorting, batching, and bounded pagination; protect the request/response contract with per-view integration tests. |
-| Deployment and observability | [#64](https://github.com/apauldev/Yotara/issues/64), [#172](https://github.com/apauldev/Yotara/issues/172), [#236](https://github.com/apauldev/Yotara/issues/236), [#237](https://github.com/apauldev/Yotara/issues/237), [#252](https://github.com/apauldev/Yotara/issues/252), [#277](https://github.com/apauldev/Yotara/issues/277) | Keep releases reproducible and make coverage, image risk, bundle growth, and production request context visible. |
-| Product model and UX | [#258](https://github.com/apauldev/Yotara/issues/258), [#259](https://github.com/apauldev/Yotara/issues/259), [#260](https://github.com/apauldev/Yotara/issues/260), [#281](https://github.com/apauldev/Yotara/issues/281) | Document the meaning of `done`, `archived`, `simpleMode`, buckets, and search results before adding more workflow concepts. |
-| Team-mode boundary | [#238](https://github.com/apauldev/Yotara/issues/238), [#239](https://github.com/apauldev/Yotara/issues/239), [#240](https://github.com/apauldev/Yotara/issues/240), [#241](https://github.com/apauldev/Yotara/issues/241), [#278](https://github.com/apauldev/Yotara/issues/278) | Preserve workspace-scoped seams in new code, while keeping personal mode the supported center of gravity. |
+| Theme | Architectural implication |
+|---|---|
+| Frontend decomposition | Keep API clients, view state, shell chrome, templates, and date utilities separable without reintroducing duplicated filtering logic. |
+| API boundary quality | Keep auth bridging, CORS, validation, and structured errors centralized and tested at the boundary. |
+| Query and data scalability | Prefer SQL filtering, sorting, batching, and bounded pagination; protect the request/response contract with per-view integration tests. |
+| Deployment and observability | Keep releases reproducible and make coverage, image risk, bundle growth, and production request context visible. |
+| Product model and UX | Document the meaning of `done`, `archived`, `simpleMode`, buckets, and search results before adding more workflow concepts. |
+| Team-mode boundary | Preserve workspace-scoped seams in new code, while keeping personal mode the supported center of gravity. |
 
 Future features such as calendar, import/export, task duplication, bulk
 actions, undo, natural-language capture, and PWA support are product Issues,
 not architectural commitments. They should not change the core system shape
 without an explicit design decision.
-
-## Roadmap Project snapshot
-
-The [Yotara Roadmap Project](https://github.com/users/apauldev/projects/1) is
-the operational source of truth. Snapshot reviewed 2026-08-01:
-
-- 118 items total: 15 Done, 14 In Progress, and 89 Todo.
-- Priority distribution: 1 Urgent, 18 High, 90 Medium, and 9 Low.
-- Done items include timezone handling (#170), planning harvest (#171),
-  server-side search (#176), browser reminders (#218), database transactions
-  (#227), N+1 batch label fetching (#228), and API security headers (#251).
-- In-progress architecture work includes TaskService cleanup (#175), backend
-  test coverage (#178), loadProjectById consolidation (#229), duplicate label
-  name checks (#230), SQL-side sorting (#231), shared test helpers (#232),
-  structured logging (#252), per-view task-filter tests (#257), search
-  debouncing (#261), auth-bridge and CORS consolidation (#266–#267), structured
-  validation errors (#271), and tighter auth-route CORS (#276).
-- High-priority Todo work currently includes production API hardening (#65).
-- Admin & Notifications work (issues #245–#250) follows the implementation
-  plan in [docs/admin-notifications.md](./admin-notifications.md).
-
-The statuses above are the board's as of the snapshot date; where work has
-since shipped, the board and this section should be updated together. Closed
-Issues and shipped commits are evidence of completed work, but the board's
-Project status is authoritative for what is currently being worked on.
-
-Several older sprint Issues remain deliberately represented on the board—for
-example #173 and #179 are Todo while #174 is Done and #178 is In Progress.
-Their titles
-describe the original work packages; their Project status is authoritative.
 
 ## Testing and verification policy
 
@@ -277,27 +246,19 @@ pnpm lint
 
 ## Planning and documentation policy
 
-The backlog migration to GitHub Issues is substantially complete. Do not add a
-new sprint plan, backlog table, or “recently completed” checklist here.
+Do not add a sprint plan, backlog table, or "recently completed" checklist
+here.
 
 - GitHub Issues and the [Yotara Roadmap Project](https://github.com/users/apauldev/projects/1)
   own priority, status, and sequencing.
-- `docs/ARCHITECTURE.md` owns durable architecture, constraints, and risks.
 - `CHANGELOG.md` owns release-level completed work.
-- `docs/CONTRIBUTING.md`, `docs/RELEASING.md`, and `DOCKER.md` own operational
-  procedures.
-- `ROADMAP.md`, `docs/project-plan.md`, and the package TODO files are legacy
-  historical material. They should not be treated as current status or a
-  second source of truth. The migration/harvest work is recorded as completed
-  in [#171](https://github.com/apauldev/Yotara/issues/171); the files remain in
-  the repository as historical context.
-
-Some historical sprint Issues remain open because the Roadmap Project still
-uses them as work packages. Their board status, not their age or title, is the
-status to follow. Issue [#286](https://github.com/apauldev/Yotara/issues/286)
-is closed and is listed above as completed evidence, even though it is not a
-current Project item. The same applies to other closed Issues whose work is
-complete but whose items were not retained on the board.
+- `docs/ARCHITECTURE.md` (this document) owns durable architecture,
+  constraints, and risks.
+- `CONTRIBUTING.md`, `testing.md`, and `docs/RELEASING.md` own contributor and
+  release procedures.
+- `DOCKER.md` and `docs/CONFIGURATION.md` own deployment and configuration.
+- `docs/archive/` holds superseded plans and historical snapshots. They are kept
+  for context only and must never be treated as current status.
 
 When a GitHub Issue changes an architectural decision, update this document in
 the same change. When an Issue only tracks implementation work, leave this

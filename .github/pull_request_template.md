@@ -24,8 +24,8 @@ Closes: #
 
 ## Roadmap Reference
 
-<!-- If this PR relates to the MVP roadmap, reference the item -->
-<!-- Example: Implements Task Detail Modal (Phase 2, item 6) from ROADMAP.md -->
+<!-- If this PR relates to tracked work, reference the issue or board item -->
+<!-- Example: Closes #123, or link the Yotara Roadmap project board item -->
 
 ## Changes Made
 
@@ -56,12 +56,12 @@ Closes: #
 <!-- For UI changes, include relevant screenshots or GIFs -->
 <!-- You can drag and drop images here -->
 
-## Contributor License Agreement
+## Contributor Agreement
 
-By submitting this PR, you agree to the [Yotara CLA](https://github.com/apauldev/Yotara/blob/main/CLA.md).
+Both parts apply: the CLA is the legal grant, the sign-off is your per-commit certification. See [CONTRIBUTING.md](../CONTRIBUTING.md#contributor-agreement) for details.
 
-- [ ] I have read and agree to the Yotara Contributor License Agreement
-- [ ] I have signed-off my commits (`git commit -s`) to certify the [Developer Certificate of Origin](https://developercertificate.org/)
+- [ ] I have read and agree to the [Yotara CLA](../CLA.md)
+- [ ] My commits are signed off (`git commit -s`) to certify the [Developer Certificate of Origin](https://developercertificate.org/)
 
 ## Checklist
 

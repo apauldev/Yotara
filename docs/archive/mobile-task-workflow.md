@@ -1,5 +1,11 @@
 # Mobile task workflow — complete (Tasks 1–4 implemented and gated)
 
+> **Archived 2026-09-10 — historical snapshot.** Not maintained. Kept for context
+> only; current status lives on the
+> [Yotara Roadmap](https://github.com/users/apauldev/projects/1) board and in
+> GitHub Issues. See [docs/archive/README.md](./README.md) for the policy.
+
+
 > All exit criteria met: unit 738 + API 258 green; desktop E2E 53/53, mobile E2E 13/13, login/onboarding 26/26; format/lint/typecheck/build green.
 
 ## Task 1: Extend shared modal shell — done

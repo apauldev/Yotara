@@ -1,14 +1,9 @@
 # Admin & Notifications — Implementation Plan
 
-> **Status:** Proposed draft. Not yet started.
-> **Owner:** @apauldev
-> **Estimated total effort:** 18–23 engineering days (3–4 weeks at 0.7 focus factor)
-> **Supersedes:** ROADMAP §Notifications, ARCHITECTURE.md §Notifications backlog, ROADMAP P4 #34 (PWA), ROADMAP P1 #11 (browser notifications)
->
-> **Doc map:** This doc covers **account limits, admin API, email verification + grace period, self-hosted bypass mode, and Web Push notifications** as a single coordinated feature set. Each phase is independently ship-able — you can stop after any phase and have a working product.
->
-> **Change history:**
-> - v2 — Reordered: Bypass Mode moved to Phase 2 (self-hosted users can use the product immediately). Added rate-limit notes, SW cache headers, reminder cancellation, bypass→email transition, session invalidation on grace expiry.
+> **Archived 2026-09-10 — historical snapshot.** Not maintained. Kept for context
+> only; current status lives on the
+> [Yotara Roadmap](https://github.com/users/apauldev/projects/1) board and in
+> GitHub Issues. See [docs/archive/README.md](./README.md) for the policy.
 
 ---
 
