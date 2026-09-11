@@ -8,6 +8,7 @@ name: Docs Consistency
 
 on:
   pull_request:
+    branches: [main]
     paths:
       - 'docs/**'
       - '**.md'
