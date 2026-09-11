@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.77.2](https://github.com/apauldev/Yotara/compare/v0.77.1...v0.77.2) (2026-09-11)
+
+
+### Documentation
+
+* overhaul documentation set, correct stale claims, and add a drift guard ([#374](https://github.com/apauldev/Yotara/issues/374)) ([b21b3c7](https://github.com/apauldev/Yotara/commit/b21b3c706413d1ac8ea543b8f173363bc0258e15))
+
 ## [0.77.1](https://github.com/apauldev/Yotara/compare/v0.77.0...v0.77.1) (2026-09-09)
 
 
