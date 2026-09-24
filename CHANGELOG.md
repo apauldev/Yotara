@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.77.3](https://github.com/apauldev/Yotara/compare/v0.77.2...v0.77.3) (2026-09-24)
+
+
+### Chores
+
+* **deps:** update minor package dependencies ([#382](https://github.com/apauldev/Yotara/issues/382)) ([f449b56](https://github.com/apauldev/Yotara/commit/f449b566b6a21a50b1605b74bd1f56308b11e005))
+
 ## [0.77.2](https://github.com/apauldev/Yotara/compare/v0.77.1...v0.77.2) (2026-09-11)
 
 
