@@ -1,5 +1,5 @@
 import { test, expect, dismissTip } from '../../fixtures/auth';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 const taskName = (label: string) => `${label}-mobile-${Date.now()}`;
 const titlePlaceholder = 'Redesign sanctuary garden layout';
@@ -40,6 +40,35 @@ async function measureTouchTargets(page: Page, selectors: string[]) {
   }
   return targets;
 }
+
+async function selectFutureDate(page: Page, root: Locator) {
+  const target = await page.evaluate(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + 7);
+    return {
+      label: new Intl.DateTimeFormat('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      }).format(date),
+    };
+  });
+  const panel = root.locator('.date-picker-panel').last();
+  await expect(panel).toBeVisible();
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const day = panel.locator(`.date-picker-day[aria-label="${target.label}"]`);
+    if (await day.isVisible().catch(() => false)) {
+      await day.evaluate((element: HTMLElement) => element.click());
+      return;
+    }
+    await root.locator('.date-picker-nav:visible').last().click({ force: true });
+  }
+
+  throw new Error('Could not select a future date in the mobile picker');
+}
+
 test.describe.configure({ mode: 'serial' });
 
 test.describe('Task modal on mobile', () => {
@@ -205,6 +234,52 @@ test.describe('Task modal on mobile', () => {
 
     await page.getByRole('button', { name: 'Cancel' }).click();
     await expect(page.getByRole('dialog')).not.toBeVisible();
+  });
+
+  test('keeps the NLP date preview usable when details are collapsed', async ({ page }) => {
+    const name = taskName('date-preview');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/tasks?view=inbox');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    await page.getByPlaceholder("What's on your mind today?").fill(`${name} today`);
+    await page.getByRole('button', { name: 'Add task with details' }).click();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    const preview = page.locator('#task-date-preview');
+    await expect(preview).toBeVisible();
+    await expect(preview).toHaveAttribute('aria-live', 'polite');
+    await expect(preview).toContainText('today resolves to');
+
+    const detailsToggle = page.getByRole('button', { name: /More details/ });
+    await expect(detailsToggle).toHaveAttribute('aria-expanded', 'true');
+    await detailsToggle.click();
+    await expect(detailsToggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(preview).toBeVisible();
+
+    const dialog = page.getByRole('dialog');
+    const previewActions = dialog.locator('.date-preview-action');
+    await expect(previewActions).toHaveCount(2);
+    for (let index = 0; index < 2; index += 1) {
+      const box = await previewActions.nth(index).boundingBox();
+      expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
+      expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+    }
+
+    await dialog.getByRole('button', { name: 'Change due date' }).click();
+    await expect(detailsToggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('.date-picker-panel')).toBeVisible();
+    expect(
+      await page.evaluate(() => document.activeElement?.classList.contains('date-picker-nav')),
+    ).toBe(true);
+    await selectFutureDate(page, dialog);
+    await expect(page.locator('#task-date-preview')).not.toContainText('today resolves to');
+
+    await dialog.getByRole('button', { name: 'Clear due date' }).click();
+    await expect(preview).toContainText('Due date cleared');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      390,
+    );
   });
 
   test('keeps advanced fields usable after expansion', async ({ page }) => {
@@ -697,6 +772,8 @@ test.describe('Task modal on mobile', () => {
     await page.getByPlaceholder(titlePlaceholder).fill(name);
 
     await page.getByRole('button', { name: 'Create Task' }).click();
+    // Manual creation without an NLP phrase still confirms the destination view.
+    await expect(page.getByText('Task added to Inbox.').first()).toBeVisible();
     await page.waitForTimeout(1000);
     await page.waitForLoadState('networkidle');
 

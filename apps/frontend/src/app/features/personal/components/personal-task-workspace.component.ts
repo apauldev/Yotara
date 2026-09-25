@@ -15,6 +15,8 @@ import { TaskService } from '../../../core/services/task.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PersonalTaskModalComponent } from './personal-task-modal.component';
+import type { DueDateDraft } from '../utils/due-date-draft';
+import { taskCreationNotification } from '../utils/task-creation-notification';
 
 type SavePayload =
   | { mode: 'create'; payload: CreateTaskDto }
@@ -36,7 +38,8 @@ type SavePayload =
         draftProjectId() || initialProjectId || projectService.projects()[0]?.id || null
       "
       [initialTitle]="initialTitle"
-      [error]="taskService.error()"
+      [initialDueDateDraft]="draftDueDateDraft()"
+      [error]="modalError()"
       (close)="closeTaskModal()"
       (save)="saveTask($event)"
     />
@@ -45,6 +48,7 @@ type SavePayload =
 export class PersonalTaskWorkspaceComponent {
   @Input() initialProjectId: string | null = null;
   @Input() initialTitle = '';
+  @Input() initialDueDateDraft: DueDateDraft | null = null;
   @Output() readonly taskSaved = new EventEmitter<'create' | 'update'>();
   @Output() readonly taskSaveFailed = new EventEmitter<string>();
 
@@ -56,23 +60,34 @@ export class PersonalTaskWorkspaceComponent {
   protected readonly modalOpen = signal(false);
   protected readonly selectedTask = signal<Task | null>(null);
   protected readonly draftProjectId = signal<string | null>(null);
+  protected readonly draftDueDateDraft = signal<DueDateDraft | null>(null);
+  protected readonly modalError = signal<string | null>(null);
 
-  openCreateTaskModal(projectId?: string | null) {
+  openCreateTaskModal(
+    projectId?: string | null,
+    dueDateDraft: DueDateDraft | null = this.initialDueDateDraft,
+  ) {
+    this.modalError.set(null);
     this.selectedTask.set(null);
     this.draftProjectId.set(
       projectId ?? this.initialProjectId ?? this.projectService.projects()[0]?.id ?? null,
     );
+    this.draftDueDateDraft.set(dueDateDraft);
     this.modalOpen.set(true);
   }
 
   editTask(task: Task) {
+    this.modalError.set(null);
     this.selectedTask.set(task);
+    this.draftDueDateDraft.set(null);
     this.modalOpen.set(true);
   }
 
   closeTaskModal() {
+    this.modalError.set(null);
     this.selectedTask.set(null);
     this.draftProjectId.set(null);
+    this.draftDueDateDraft.set(null);
     this.modalOpen.set(false);
   }
 
@@ -90,6 +105,12 @@ export class PersonalTaskWorkspaceComponent {
         await this.taskService.updateTask(event.taskId, event.payload);
       }
 
+      if (event.mode === 'create') {
+        this.statusService.success(
+          taskCreationNotification(event.payload.dueDate, event.payload.status ?? 'inbox'),
+        );
+      }
+
       if (event.mode === 'update' && event.payload.completed === true && !wasCompleted) {
         if (this.preferences.actionNotifications()) {
           this.statusService.success('Task completed');
@@ -104,12 +125,13 @@ export class PersonalTaskWorkspaceComponent {
       this.taskSaved.emit(event.mode);
       this.closeTaskModal();
     } catch {
-      this.taskSaveFailed.emit(
+      const message =
         this.taskService.error() ??
-          (event.mode === 'create'
-            ? 'Could not save your task right now.'
-            : 'Could not update your task right now.'),
-      );
+        (event.mode === 'create'
+          ? 'Could not save your task right now.'
+          : 'Could not update your task right now.');
+      this.modalError.set(message);
+      this.taskSaveFailed.emit(message);
     }
   }
 }

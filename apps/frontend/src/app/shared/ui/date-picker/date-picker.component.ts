@@ -1,15 +1,21 @@
 import { CommonModule } from '@angular/common';
 import {
   Component,
+  ElementRef,
   EventEmitter,
   Input,
+  inject,
   OnChanges,
+  OnDestroy,
+  OnInit,
   Output,
   SimpleChanges,
   computed,
   signal,
   viewChild,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  NgZone,
 } from '@angular/core';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {
@@ -67,7 +73,7 @@ import { parseCalendarDate } from '../../utils/timestamps';
             class="date-picker-panel"
             brnCalendar
             [date]="selectedDate() ?? undefined"
-            [defaultFocusedDate]="selectedDate() ?? today"
+            [defaultFocusedDate]="selectedDate() ?? today()"
             [disabled]="disabled"
             [min]="minDate() ?? undefined"
             [max]="maxDate() ?? undefined"
@@ -75,6 +81,7 @@ import { parseCalendarDate } from '../../utils/timestamps';
           >
             <div class="date-picker-header" brnCalendarHeader>
               <button
+                #previousMonthButton
                 type="button"
                 class="date-picker-nav"
                 brnCalendarPreviousButton
@@ -108,7 +115,7 @@ import { parseCalendarDate } from '../../utils/timestamps';
                   class="date-picker-day"
                   brnCalendarCellButton
                   [date]="day"
-                  (click)="handleSelection(day)"
+                  [attr.aria-label]="formatCalendarDayLabel(day)"
                 >
                   {{ day.getDate() }}
                 </button>
@@ -331,7 +338,10 @@ import { parseCalendarDate } from '../../utils/timestamps';
     `,
   ],
 })
-export class DatePickerComponent implements OnChanges {
+export class DatePickerComponent implements OnChanges, OnDestroy, OnInit {
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly ngZone = inject(NgZone);
+
   @Input() value = '';
   @Input() disabled = false;
   @Input() label = 'Due date';
@@ -341,6 +351,15 @@ export class DatePickerComponent implements OnChanges {
   @Input() describedBy: string | null = null;
   @Output() readonly valueChange = new EventEmitter<string>();
 
+  protected formatCalendarDayLabel(date: Date) {
+    return new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(date);
+  }
+
   protected readonly weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
   protected readonly faCalendarDays = faCalendarDays;
   protected readonly faChevronLeft = faChevronLeft;
@@ -348,16 +367,19 @@ export class DatePickerComponent implements OnChanges {
   protected readonly faXmark = faXmark;
 
   private readonly popover = viewChild(BrnPopover);
+  private readonly previousMonthButton =
+    viewChild<ElementRef<HTMLButtonElement>>('previousMonthButton');
   private readonly calendar = viewChild(BrnCalendar<Date>);
   protected readonly selectedDate = signal<Date | null>(null);
-  protected readonly today = startOfDay(new Date());
+  protected readonly today = signal(startOfDay(new Date()));
+  private todayTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly previousMonthLabel = 'Go to previous month';
   readonly nextMonthLabel = 'Go to next month';
 
   protected readonly days = computed(() => this.calendar()?.days() ?? []);
   protected readonly monthLabel = computed(() => {
-    const focused = this.calendar()?.focusedDate() ?? this.selectedDate() ?? this.today;
+    const focused = this.calendar()?.focusedDate() ?? this.selectedDate() ?? this.today();
     return new Intl.DateTimeFormat('en-US', {
       month: 'long',
       year: 'numeric',
@@ -377,6 +399,17 @@ export class DatePickerComponent implements OnChanges {
     () => parseCalendarDate(this.maxSignal())?.toJSDate() ?? null,
   );
 
+  ngOnInit() {
+    this.scheduleTodayRefresh();
+  }
+
+  ngOnDestroy() {
+    if (this.todayTimer !== null) {
+      clearTimeout(this.todayTimer);
+      this.todayTimer = null;
+    }
+  }
+
   ngOnChanges(changes: SimpleChanges) {
     if (changes['value']) {
       this.selectedDate.set(parseCalendarDate(this.value)?.toJSDate() ?? null);
@@ -387,6 +420,32 @@ export class DatePickerComponent implements OnChanges {
     if (changes['max']) {
       this.maxSignal.set(this.max);
     }
+  }
+
+  private scheduleTodayRefresh() {
+    if (this.todayTimer !== null) {
+      clearTimeout(this.todayTimer);
+    }
+
+    const now = new Date();
+    const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const delay = Math.max(1_000, nextMidnight.getTime() - now.getTime());
+    this.ngZone.runOutsideAngular(() => {
+      this.todayTimer = setTimeout(() => {
+        this.todayTimer = null;
+        this.ngZone.run(() => {
+          this.today.set(startOfDay(new Date()));
+          this.cdr.detectChanges();
+        });
+        this.scheduleTodayRefresh();
+      }, delay);
+    });
+  }
+
+  /** Opens the calendar popover for external Change buttons. */
+  open(): void {
+    this.popover()?.open();
+    queueMicrotask(() => this.previousMonthButton()?.nativeElement.focus());
   }
 
   protected displayValue() {

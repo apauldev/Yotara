@@ -19,16 +19,51 @@
           name="taskTitle"
           data-autofocus
           [ngModel]="draftTitle()"
-          (ngModelChange)="draftTitle.set($event)"
+          (ngModelChange)="onTitleInput($event)"
           [class.field-error]="titleError()"
           [attr.aria-invalid]="titleError() ? 'true' : null"
-          [attr.aria-describedby]="titleError() ? 'task-title-error' : null"
+          [attr.aria-describedby]="titleDescribedBy()"
           placeholder="Redesign sanctuary garden layout"
         />
         @if (titleError()) {
           <p id="task-title-error" class="field-error-message">{{ titleError() }}</p>
         }
       </label>
+
+      @if (!task && dateDraftSource() !== 'none') {
+        <div
+          id="task-date-preview"
+          class="date-preview"
+          role="group"
+          aria-live="polite"
+          aria-labelledby="task-date-preview-label"
+        >
+          <div class="date-preview-copy">
+            <span id="task-date-preview-label" class="field-label">Due date</span>
+            <span class="date-preview-value">{{ dueDatePreviewLabel() }}</span>
+          </div>
+          <div class="date-preview-actions">
+            <button
+              type="button"
+              class="date-preview-action"
+              aria-label="Change due date"
+              (click)="openDueDatePicker()"
+            >
+              Change
+            </button>
+            @if (dateDraftSource() !== 'cleared') {
+              <button
+                type="button"
+                class="date-preview-action"
+                aria-label="Clear due date"
+                (click)="clearDraftDueDate()"
+              >
+                Clear
+              </button>
+            }
+          </div>
+        </div>
+      }
 
       <label class="field">
         <span class="field-label">Description</span>
@@ -261,9 +296,10 @@
       <div class="sidebar-section">
         <span class="field-label">Schedule</span>
         <app-date-picker
+          #scheduleDatePicker
           class="compact-field schedule-picker"
           [value]="draftDueDate()"
-          (valueChange)="draftDueDate.set($event)"
+          (valueChange)="onDraftDueDateChange($event)"
           [disabled]="draftSimpleMode()"
           label="Due date"
           [invalid]="!!dueDateError()"

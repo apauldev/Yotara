@@ -10,6 +10,7 @@ import { ProjectService } from '../../../core/services/project.service';
 import { StatusService } from '../../../core/services/status.service';
 import { TaskService } from '../../../core/services/task.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
+import type { DueDateDraft } from '../utils/due-date-draft';
 
 @Component({
   standalone: true,
@@ -139,6 +140,64 @@ describe('PersonalTaskWorkspaceComponent', () => {
     expect(modal.initialTitle).toBe('Captured from inbox');
   });
 
+  it('does not show a stale service error in a new modal session', () => {
+    fixture.detectChanges();
+    const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
+      .componentInstance as PersonalTaskWorkspaceComponent;
+
+    taskService.error.set('Could not load tasks right now.');
+    workspace.openCreateTaskModal();
+    fixture.detectChanges();
+
+    const modal = fixture.debugElement.query(By.directive(PersonalTaskModalComponent))
+      .componentInstance as PersonalTaskModalComponent;
+    expect(taskService.error()).toBe('Could not load tasks right now.');
+    expect(modal.error).toBeNull();
+  });
+
+  it('passes a structured new-task date draft into the modal', () => {
+    fixture.detectChanges();
+
+    const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
+      .componentInstance as PersonalTaskWorkspaceComponent;
+    const dueDateDraft: DueDateDraft = {
+      value: '2026-10-02',
+      source: 'inferred',
+      matchedText: 'Friday',
+      matchStart: 9,
+      matchEnd: 15,
+    };
+
+    workspace.openCreateTaskModal('project-1', dueDateDraft);
+    fixture.detectChanges();
+
+    const modal = fixture.debugElement.query(By.directive(PersonalTaskModalComponent))
+      .componentInstance as PersonalTaskModalComponent;
+    expect(modal.initialDueDateDraft).toEqual(dueDateDraft);
+    expect(modal['draftDueDate']()).toBe('2026-10-02');
+    expect(modal['draftSimpleMode']()).toBeFalse();
+  });
+
+  it('does not hydrate a cleared date draft as a due date', () => {
+    fixture.detectChanges();
+
+    const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
+      .componentInstance as PersonalTaskWorkspaceComponent;
+    workspace.openCreateTaskModal('project-1', {
+      value: '',
+      source: 'cleared',
+      matchedText: 'Friday',
+      matchStart: 9,
+      matchEnd: 15,
+    });
+    fixture.detectChanges();
+
+    const modal = fixture.debugElement.query(By.directive(PersonalTaskModalComponent))
+      .componentInstance as PersonalTaskModalComponent;
+    expect(modal['draftDueDate']()).toBe('');
+    expect(modal['draftSimpleMode']()).toBeTrue();
+  });
+
   it('opens the edit modal for a selected task', () => {
     fixture.detectChanges();
 
@@ -205,9 +264,57 @@ describe('PersonalTaskWorkspaceComponent', () => {
       }),
     );
     expect(projectService.refresh).toHaveBeenCalled();
+    expect(statusServiceSpy.success).toHaveBeenCalledWith('Task added to Inbox.');
     expect(savedSpy).toHaveBeenCalledWith('create');
     expect(workspace['modalOpen']()).toBeFalse();
     expect(workspace['selectedTask']()).toBeNull();
+  });
+
+  it('confirms the destination view for a manually created task with a status', async () => {
+    fixture.detectChanges();
+
+    const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
+      .componentInstance as PersonalTaskWorkspaceComponent;
+
+    await workspace['saveTask']({
+      mode: 'create',
+      payload: {
+        title: 'Plan the week',
+        description: '',
+        status: 'today',
+        priority: 'medium',
+        dueDate: undefined,
+        simpleMode: true,
+        bucket: 'personal-sanctuary',
+        projectId: 'project-1',
+      },
+    });
+
+    expect(statusServiceSpy.success).toHaveBeenCalledWith('Task added to Today.');
+  });
+
+  it('does not announce a destination when updating an existing task', async () => {
+    fixture.detectChanges();
+
+    const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
+      .componentInstance as PersonalTaskWorkspaceComponent;
+
+    await workspace['saveTask']({
+      mode: 'update',
+      taskId: task.id,
+      payload: {
+        title: 'Draft release notes',
+        description: '',
+        status: 'today',
+        priority: 'high',
+        dueDate: '2026-10-02',
+        simpleMode: true,
+        bucket: 'deep-work',
+        projectId: 'project-1',
+      } as UpdateTaskDto,
+    });
+
+    expect(statusServiceSpy.success).not.toHaveBeenCalled();
   });
 
   it('updates a task and emits the update event', async () => {

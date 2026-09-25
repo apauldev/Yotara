@@ -32,6 +32,7 @@ import { TaskStackComponent } from '../../../../shared/components/task-stack/tas
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faPlus, faSun, faCalendarDay, faCloud } from '@fortawesome/free-solid-svg-icons';
 import { parseTaskCommand } from '../../utils/task-command-parser';
+import { taskCreationNotification } from '../../utils/task-creation-notification';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 import { sortAndPaginate, sortTasks, TaskSortOption } from '../../../../shared/utils/task-sort';
 import { TaskListViewMode, InsightType } from './types';
@@ -238,6 +239,7 @@ export class TaskListPageComponent implements OnInit {
       }
 
       const { title, priority, labelNames } = parseTaskCommand(rawValue);
+      const dueDateDraft = bar.getDueDateDraft();
 
       const resolvedLabels = this.labelService
         .labels()
@@ -253,24 +255,28 @@ export class TaskListPageComponent implements OnInit {
 
       if (behavior === 'quick') {
         try {
+          const dueDate = dueDateDraft.source === 'cleared' ? '' : dueDateDraft.value;
           await this.taskService.createTask({
             title,
             priority: priority || 'medium',
             labels: resolvedLabels,
             projectId: bar.getProjectId() || this.defaultCaptureProjectId() || undefined,
             status: 'inbox',
+            ...(dueDate ? { dueDate } : {}),
+            simpleMode: false,
           });
-          bar.clearTitle();
+          this.statusService.success(taskCreationNotification(dueDate, 'inbox'));
+          bar.resetCapture();
         } catch (_) {
           bar.setError('Failed to quick capture task.');
         }
       } else {
         this.workspace()?.openCreateTaskModal(
           bar.getProjectId() || this.defaultCaptureProjectId() || null,
+          dueDateDraft,
         );
+        bar.resetSubmissionType();
       }
-
-      bar.resetSubmissionType();
     } finally {
       this.capturing = false;
     }
@@ -278,7 +284,7 @@ export class TaskListPageComponent implements OnInit {
 
   protected handleTaskSaved(mode: 'create' | 'update') {
     if (mode === 'create') {
-      this.captureBar()?.clearTitle();
+      this.captureBar()?.resetCapture();
     }
 
     this.dailyClarityPrompt.set(pickRandomPrompt(DAILY_CLARITY_PROMPTS));

@@ -31,6 +31,7 @@ import { MarkdownEditorComponent } from '../../../shared/ui/markdown-editor/mark
 import { ModalComponent } from '../../../shared/ui/modal/modal.component';
 import { parseCalendarDate } from '../../../shared/utils/timestamps';
 import { parseTaskCommand } from '../utils/task-command-parser';
+import type { DueDateDraft, DueDateDraftSource } from '../utils/due-date-draft';
 
 type SavePayload =
   | { mode: 'create'; payload: CreateTaskDto }
@@ -58,9 +59,11 @@ export class PersonalTaskModalComponent {
   private readonly titleInput = viewChild<ElementRef<HTMLInputElement>>('titleInput');
   private readonly subtaskInput = viewChild<ElementRef<HTMLInputElement>>('subtaskInput');
   private readonly addSubtaskButton = viewChild<ElementRef<HTMLButtonElement>>('addSubtaskButton');
+  private readonly scheduleDatePicker = viewChild<DatePickerComponent>('scheduleDatePicker');
   @Input() open = false;
   @Input() task: Task | null = null;
   @Input() initialTitle = '';
+  @Input() initialDueDateDraft: DueDateDraft | null = null;
   @Input() initialProjectId: string | null = null;
   @Input() projects: Project[] = [];
   @Input() error: string | null = null;
@@ -73,6 +76,11 @@ export class PersonalTaskModalComponent {
   protected readonly draftStatus = signal<TaskStatus>('inbox');
   protected readonly draftPriority = signal<Priority>('medium');
   protected readonly draftDueDate = signal('');
+  protected readonly dateDraftSource = signal<DueDateDraftSource>('none');
+  protected readonly dateDraftMatchedText = signal<string | null>(null);
+  protected readonly dateDraftMatchStart = signal<number | null>(null);
+  protected readonly dateDraftMatchEnd = signal<number | null>(null);
+  protected readonly dateDraftSuppressed = signal(false);
   protected readonly draftSimpleMode = signal(true);
   protected readonly draftProjectId = signal('');
   protected readonly draftCompleted = signal(false);
@@ -124,6 +132,28 @@ export class PersonalTaskModalComponent {
   // Drafts live in signals, so collapsing never discards values.
   protected readonly showAdvanced = signal(false);
 
+  protected readonly dueDatePreviewLabel = computed(() => {
+    const source = this.dateDraftSource();
+    if (source === 'cleared') return 'Due date cleared';
+
+    const value = this.draftDueDate();
+    if (!value) return '';
+
+    const date = parseCalendarDate(value);
+    if (!date) return '';
+
+    const formattedDate = new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(date.toJSDate());
+
+    return source === 'inferred' && this.dateDraftMatchedText()
+      ? `${this.dateDraftMatchedText()} resolves to ${formattedDate}`
+      : `Due ${formattedDate}`;
+  });
+
   ngOnChanges(changes: SimpleChanges) {
     // Hydrate only when a new editing session starts: the modal opening or a
     // different task being supplied. Late-arriving inputs (projects loading,
@@ -141,6 +171,13 @@ export class PersonalTaskModalComponent {
     return projectName ?? 'Select a project';
   }
 
+  protected titleDescribedBy(): string | null {
+    const ids: string[] = [];
+    if (this.titleError()) ids.push('task-title-error');
+    if (!this.task && this.dateDraftSource() !== 'none') ids.push('task-date-preview');
+    return ids.length > 0 ? ids.join(' ') : null;
+  }
+
   protected toggleDay(day: number) {
     this.draftRecurrenceDaysOfWeek.update((days) =>
       days.includes(day) ? days.filter((d) => d !== day) : [...days, day].sort(),
@@ -149,6 +186,131 @@ export class PersonalTaskModalComponent {
 
   protected toggleAdvanced() {
     this.showAdvanced.update((v) => !v);
+  }
+
+  protected onTitleInput(value: string) {
+    this.draftTitle.set(value);
+
+    if (this.task || this.dateDraftSource() === 'manual') {
+      return;
+    }
+
+    if (this.dateDraftSource() === 'inferred') {
+      const match = this.findInferredDatePhrase(value);
+      if (!match) {
+        this.clearDraftDueDate();
+        return;
+      }
+
+      this.dateDraftMatchStart.set(match.start);
+      this.dateDraftMatchEnd.set(match.end);
+      return;
+    }
+
+    if (this.dateDraftSuppressed() && this.dateDraftSource() !== 'none') {
+      this.draftDueDate.set('');
+      this.dateDraftSource.set('cleared');
+      this.dateDraftMatchStart.set(null);
+      this.dateDraftMatchEnd.set(null);
+    }
+  }
+
+  private findInferredDatePhrase(value: string): { start: number; end: number } | null {
+    const phrase = this.dateDraftMatchedText();
+    if (!phrase) return null;
+
+    const normalizedValue = value.toLowerCase();
+    const normalizedPhrase = phrase.toLowerCase();
+    const matches: Array<{ start: number; end: number }> = [];
+    let searchStart = 0;
+
+    while (searchStart < value.length) {
+      const start = normalizedValue.indexOf(normalizedPhrase, searchStart);
+      if (start < 0) break;
+      const end = start + phrase.length;
+      if (this.isStandaloneDatePhrase(value, start, end)) {
+        matches.push({ start, end });
+      }
+      searchStart = end;
+    }
+
+    return matches.length === 1 ? matches[0] : null;
+  }
+
+  private isStandaloneDatePhrase(value: string, start: number, end: number): boolean {
+    const before = value.slice(0, start);
+    const after = value.slice(end);
+    const previousCharacter = before.slice(-1);
+    const nextCharacter = after[0] ?? '';
+
+    if (/[A-Za-z0-9]/.test(previousCharacter) || /[A-Za-z0-9]/.test(nextCharacter)) {
+      return false;
+    }
+    if (previousCharacter && '#@/\\-–—?&=:;'.includes(previousCharacter)) {
+      return false;
+    }
+    if (/['’@]/.test(nextCharacter) || /[A-Za-z0-9]['’]\s*$/.test(before)) {
+      return false;
+    }
+    if (/(?:https?:\/\/|www\.)\S*$/i.test(before.slice(-100))) {
+      return false;
+    }
+
+    const previousWord = before.trimEnd().split(/\s+/).pop()?.toLowerCase();
+    if (previousWord && ['on', 'next', 'in', 'last', 'this'].includes(previousWord)) {
+      return false;
+    }
+
+    const nextWord = after.trimStart().split(/\s+/)[0]?.toLowerCase();
+    return (
+      !nextWord || !['at', 'morning', 'afternoon', 'evening', 'tonight', 'utc'].includes(nextWord)
+    );
+  }
+
+  protected openDueDatePicker() {
+    if (!this.task && this.draftSimpleMode()) {
+      this.draftSimpleMode.set(false);
+    }
+
+    const detailsToggle = this.host.nativeElement.querySelector('.details-toggle');
+    if (detailsToggle instanceof HTMLButtonElement) {
+      detailsToggle.focus();
+    }
+    this.showAdvanced.set(true);
+    this.cdr.detectChanges();
+    this.scheduleDatePicker()?.open();
+  }
+
+  protected onDraftDueDateChange(value: string) {
+    if (this.task) {
+      this.draftDueDate.set(value);
+      return;
+    }
+
+    if (!value) {
+      this.clearDraftDueDate();
+      return;
+    }
+
+    this.draftDueDate.set(value);
+    this.draftSimpleMode.set(false);
+    this.dateDraftSource.set('manual');
+    this.dateDraftMatchedText.set(null);
+    this.dateDraftMatchStart.set(null);
+    this.dateDraftMatchEnd.set(null);
+    this.dateDraftSuppressed.set(false);
+  }
+
+  protected clearDraftDueDate() {
+    this.draftDueDate.set('');
+
+    if (!this.task) {
+      this.dateDraftSource.set('cleared');
+      this.dateDraftMatchedText.set(null);
+      this.dateDraftMatchStart.set(null);
+      this.dateDraftMatchEnd.set(null);
+      this.dateDraftSuppressed.set(true);
+    }
   }
 
   protected hasMeaningfulMetadata() {
@@ -274,6 +436,15 @@ export class PersonalTaskModalComponent {
 
     if (value) {
       this.draftDueDate.set('');
+      if (!this.task) {
+        if (this.dateDraftSource() !== 'none') {
+          this.dateDraftSource.set('cleared');
+          this.dateDraftMatchedText.set(null);
+          this.dateDraftMatchStart.set(null);
+          this.dateDraftMatchEnd.set(null);
+        }
+        this.dateDraftSuppressed.set(true);
+      }
     }
   }
 
@@ -355,12 +526,15 @@ export class PersonalTaskModalComponent {
           }
         : null;
 
+    const dueDate = this.draftSimpleMode()
+      ? undefined
+      : normalizeDateInputValue(this.draftDueDate());
     const payload: CreateTaskDto = {
       title: this.draftTitle(),
       description: this.draftDescription().trim() || undefined,
       status: this.draftStatus(),
       priority: this.draftPriority(),
-      dueDate: this.draftSimpleMode() ? undefined : normalizeDateInputValue(this.draftDueDate()),
+      ...(dueDate ? { dueDate } : {}),
       simpleMode: this.draftSimpleMode(),
       projectId: this.draftProjectId() || undefined,
       labels: this.draftLabels(),
@@ -470,8 +644,29 @@ export class PersonalTaskModalComponent {
       this.draftLabels.set(this.task?.labels ?? []);
     }
 
-    this.draftDueDate.set(toDateInputValue(this.task?.dueDate));
-    this.draftSimpleMode.set(this.task?.simpleMode ?? !this.task?.dueDate);
+    const initialDraft = this.task ? null : this.initialDueDateDraft;
+    const initialDueDate = this.task
+      ? this.task.dueDate
+      : initialDraft?.source === 'cleared'
+        ? undefined
+        : initialDraft?.value;
+    const initialDateSource =
+      initialDraft?.source === 'cleared' || initialDraft?.value
+        ? (initialDraft.source ?? 'none')
+        : 'none';
+    this.draftDueDate.set(toDateInputValue(initialDueDate));
+    this.draftSimpleMode.set(this.task?.simpleMode ?? !initialDueDate);
+    this.dateDraftSource.set(initialDateSource);
+    this.dateDraftMatchedText.set(
+      initialDateSource === 'inferred' ? (initialDraft?.matchedText ?? null) : null,
+    );
+    this.dateDraftMatchStart.set(
+      initialDateSource === 'inferred' ? (initialDraft?.matchStart ?? null) : null,
+    );
+    this.dateDraftMatchEnd.set(
+      initialDateSource === 'inferred' ? (initialDraft?.matchEnd ?? null) : null,
+    );
+    this.dateDraftSuppressed.set(initialDateSource === 'cleared');
     this.draftProjectId.set(
       this.task?.projectId ?? this.initialProjectId ?? this.projects[0]?.id ?? '',
     );
