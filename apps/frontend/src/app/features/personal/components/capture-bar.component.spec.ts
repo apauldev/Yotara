@@ -1,13 +1,17 @@
 import { signal } from '@angular/core';
+import { DateTime } from 'luxon';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { CaptureBarComponent } from './capture-bar.component';
 import { LabelService } from '../../../core/services/label.service';
+import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
 import { Label } from '@yotara/shared';
 
 describe('CaptureBarComponent', () => {
   let mockLabelService: any;
+
+  const referenceDate = DateTime.fromObject({ year: 2026, month: 9, day: 28 }, { zone: 'UTC' });
 
   const mockLabels: Label[] = [
     { id: '1', name: 'work', color: '#ff0000', userId: 'user-1' },
@@ -36,6 +40,7 @@ describe('CaptureBarComponent', () => {
     ]);
     fixture.componentRef.setInput('creating', false);
     fixture.componentRef.setInput('defaultProjectId', 'p1');
+    fixture.componentRef.setInput('referenceDate', referenceDate);
     fixture.detectChanges();
     return fixture;
   }
@@ -185,6 +190,278 @@ describe('CaptureBarComponent', () => {
       fixture.detectChanges();
 
       expect(fixture.componentInstance.getTitle()).toBe('call doctor #health ');
+    });
+  });
+
+  describe('Natural-language due date draft', () => {
+    it('shows the matched phrase and resolved local date', () => {
+      const fixture = createFixture();
+
+      fixture.componentInstance.setTitle('Call Sam Friday');
+      fixture.detectChanges();
+
+      const preview = fixture.debugElement.query(By.css('.capture-date-preview'));
+      expect(preview).toBeTruthy();
+      expect(preview.nativeElement.textContent).toContain('Friday resolves to');
+      expect(preview.nativeElement.textContent).toContain('Friday, Oct 2, 2026');
+      expect(fixture.componentInstance.getDueDateDraft()).toEqual(
+        jasmine.objectContaining({
+          value: '2026-10-02',
+          source: 'inferred',
+          matchedText: 'Friday',
+        }),
+      );
+    });
+
+    it('does not fail open when the supplied local reference is invalid', () => {
+      const fixture = createFixture();
+      fixture.componentRef.setInput('referenceDate', DateTime.invalid('bad reference'));
+      fixture.detectChanges();
+      fixture.componentInstance.setTitle('Call Sam today');
+
+      expect(fixture.componentInstance.getDueDateDraft().source).toBe('none');
+      expect(fixture.componentInstance.getParserResult()?.status).toBe('unsupported');
+    });
+
+    it('does not show a preview for rejected input', () => {
+      const fixture = createFixture();
+
+      fixture.componentInstance.setTitle('Call Sam Friday at 3pm');
+      fixture.detectChanges();
+
+      expect(fixture.debugElement.query(By.css('.capture-date-preview'))).toBeNull();
+      expect(fixture.componentInstance.getParserResult()?.status).toBe('time');
+      expect(fixture.componentInstance.getDueDateDraft().source).toBe('none');
+    });
+
+    it('explains that a time is kept as text rather than showing nothing', () => {
+      const fixture = createFixture();
+
+      fixture.componentInstance.setTitle('Call Sam Friday at 3pm');
+      fixture.detectChanges();
+
+      const note = fixture.debugElement.query(By.css('.capture-date-note'));
+      expect(note).toBeTruthy();
+      expect(note.nativeElement.getAttribute('role')).toBe('status');
+      expect(note.nativeElement.textContent).toContain("Times aren't supported yet");
+
+      const input = fixture.debugElement.query(By.css('input'));
+      expect(input.nativeElement.getAttribute('aria-describedby')).toContain('capture-date-note');
+    });
+
+    it('explains that repeating is not set from the title', () => {
+      const fixture = createFixture();
+
+      fixture.componentInstance.setTitle('Pay rent every friday');
+      fixture.detectChanges();
+
+      const note = fixture.debugElement.query(By.css('.capture-date-note'));
+      expect(note).toBeTruthy();
+      expect(note.nativeElement.textContent).toContain("Repeating isn't set from the title");
+    });
+
+    it('removes the notice once a supported phrase is used', () => {
+      const fixture = createFixture();
+
+      fixture.componentInstance.setTitle('Call Sam Friday at 3pm');
+      fixture.detectChanges();
+      expect(fixture.debugElement.query(By.css('.capture-date-note'))).toBeTruthy();
+
+      fixture.componentInstance.setTitle('Call Sam Friday');
+      fixture.detectChanges();
+      expect(fixture.debugElement.query(By.css('.capture-date-note'))).toBeNull();
+    });
+
+    it('shows no notice for ordinary task text', () => {
+      const fixture = createFixture();
+
+      fixture.componentInstance.setTitle('Call Sam about the project');
+      fixture.detectChanges();
+
+      expect(fixture.debugElement.query(By.css('.capture-date-note'))).toBeNull();
+    });
+
+    it('re-evaluates an inferred date when the local reference changes', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('Call Sam Friday');
+      expect(fixture.componentInstance.getDueDateDraft().value).toBe('2026-10-02');
+
+      fixture.componentRef.setInput(
+        'referenceDate',
+        DateTime.fromObject({ year: 2026, month: 9, day: 25 }, { zone: 'UTC' }),
+      );
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.getDueDateDraft().value).toBe('2026-09-25');
+      expect(fixture.componentInstance.getDueDateDraft().source).toBe('inferred');
+    });
+
+    it('re-evaluates the draft when the title changes', () => {
+      const fixture = createFixture();
+
+      fixture.componentInstance.setTitle('Call Sam Friday');
+      expect(fixture.componentInstance.getDueDateDraft().value).toBe('2026-10-02');
+
+      fixture.componentInstance.setTitle('Call Sam tomorrow');
+      expect(fixture.componentInstance.getDueDateDraft().value).toBe('2026-09-29');
+
+      fixture.componentInstance.setTitle('Call Sam without a date');
+      expect(fixture.componentInstance.getDueDateDraft().source).toBe('none');
+    });
+
+    it('clears the date without submitting and keeps it cleared until the phrase changes', () => {
+      const fixture = createFixture();
+      const submitSpy = spyOn(fixture.componentInstance.submit, 'emit');
+
+      fixture.componentInstance.setTitle('Call Sam Friday');
+      fixture.detectChanges();
+
+      const clearButton = fixture.debugElement.query(By.css('button[aria-label="Clear due date"]'));
+      expect(clearButton.nativeElement.type).toBe('button');
+      clearButton.nativeElement.click();
+      fixture.detectChanges();
+
+      expect(submitSpy).not.toHaveBeenCalled();
+      expect(fixture.componentInstance.getDueDateDraft().source).toBe('cleared');
+      expect(fixture.componentInstance.getDueDateDraft().value).toBe('');
+      expect(fixture.nativeElement.textContent).toContain('Due date cleared');
+
+      fixture.componentInstance.setTitle('Call Sam tomorrow');
+      expect(fixture.componentInstance.getDueDateDraft().source).toBe('inferred');
+      expect(fixture.componentInstance.getDueDateDraft().value).toBe('2026-09-29');
+    });
+
+    it('opens the date picker through the Change action', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('Call Sam Friday');
+      fixture.detectChanges();
+
+      const picker = fixture.debugElement.query(By.directive(DatePickerComponent))
+        .componentInstance as DatePickerComponent;
+      const openSpy = spyOn(picker, 'open').and.callThrough();
+      const changeButton = fixture.debugElement.query(
+        By.css('button[aria-label="Change due date"]'),
+      );
+
+      expect(changeButton.nativeElement.type).toBe('button');
+      changeButton.nativeElement.click();
+
+      expect(openSpy).toHaveBeenCalled();
+    });
+
+    it('makes a manual date authoritative across later title edits', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('Call Sam Friday');
+      fixture.detectChanges();
+
+      const picker = fixture.debugElement.query(By.directive(DatePickerComponent))
+        .componentInstance as DatePickerComponent;
+      picker.valueChange.emit('2026-10-05');
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.getDueDateDraft()).toEqual(
+        jasmine.objectContaining({ value: '2026-10-05', source: 'manual' }),
+      );
+
+      fixture.componentInstance.setTitle('Call Sam Friday and follow up');
+      expect(fixture.componentInstance.getDueDateDraft().value).toBe('2026-10-05');
+    });
+
+    it('clears a manual date when the capture title is emptied', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('Call Sam Friday');
+      fixture.detectChanges();
+
+      const picker = fixture.debugElement.query(By.directive(DatePickerComponent))
+        .componentInstance as DatePickerComponent;
+      picker.valueChange.emit('2026-10-05');
+      fixture.componentInstance.setTitle('');
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.getDueDateDraft().source).toBe('none');
+      expect(fixture.componentInstance.getDueDateDraft().value).toBe('');
+      expect(fixture.componentInstance.getParserResult()).toBeNull();
+    });
+
+    it('does not preserve a cleared phrase when its date modifier changes', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('Call Sam Friday');
+      fixture.componentInstance['clearDueDate']();
+      fixture.componentInstance.setTitle('Call Sam next Friday');
+
+      expect(fixture.componentInstance.getDueDateDraft().source).toBe('inferred');
+      expect(fixture.componentInstance.getDueDateDraft().matchedText).toBe('next Friday');
+    });
+
+    it('does not preserve a cleared phrase inside a command token', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('Call Sam Friday');
+      fixture.componentInstance['clearDueDate']();
+      fixture.componentInstance.setTitle('Call Sam #friday');
+
+      expect(fixture.componentInstance.getDueDateDraft().source).toBe('none');
+    });
+
+    it('preserves priority and label command tokens while inferring a date', () => {
+      const fixture = createFixture();
+      const title = 'Call Sam Friday !high #work';
+
+      fixture.componentInstance.setTitle(title);
+
+      expect(fixture.componentInstance.getTitle()).toBe(title);
+      expect(fixture.componentInstance.getDueDateDraft().value).toBe('2026-10-02');
+      expect(fixture.componentInstance.getDueDateDraft().source).toBe('inferred');
+    });
+
+    it('keeps a manually changed date clearable without reapplying the old phrase', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('Call Sam Friday');
+      fixture.detectChanges();
+
+      const picker = fixture.debugElement.query(By.directive(DatePickerComponent))
+        .componentInstance as DatePickerComponent;
+      picker.valueChange.emit('2026-10-05');
+      fixture.componentInstance['clearDueDate']();
+      fixture.componentInstance.setTitle('Call Sam Friday notes');
+
+      expect(fixture.componentInstance.getDueDateDraft().source).toBe('cleared');
+      expect(fixture.componentInstance.getDueDateDraft().value).toBe('');
+    });
+
+    it('does not infer dates from date-like command tokens', () => {
+      const fixture = createFixture();
+
+      fixture.componentInstance.setTitle('Call Sam Friday #friday');
+      expect(fixture.componentInstance.getDueDateDraft().source).toBe('inferred');
+
+      fixture.componentInstance.setTitle('Call Sam #friday');
+      expect(fixture.componentInstance.getDueDateDraft().source).toBe('none');
+    });
+
+    it('resets title, parser state, date draft, error, and submission mode', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('Call Sam Friday');
+      fixture.componentInstance.setError('Failed');
+      fixture.componentInstance.setSubmissionType('quick');
+
+      fixture.componentInstance.resetCapture();
+
+      expect(fixture.componentInstance.getTitle()).toBe('');
+      expect(fixture.componentInstance.getDueDateDraft().source).toBe('none');
+      expect(fixture.componentInstance.getParserResult()).toBeNull();
+      expect(fixture.componentInstance.getError()).toBe('');
+      expect(fixture.componentInstance.getLastSubmissionType()).toBe('default');
+    });
+
+    it('connects the preview to the capture input accessible description', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('Call Sam Friday');
+      fixture.detectChanges();
+
+      const input = fixture.debugElement.query(By.css('input[name="captureTitle"]'));
+      expect(input.nativeElement.getAttribute('aria-describedby')).toContain(
+        'capture-date-preview',
+      );
     });
   });
 

@@ -1,5 +1,5 @@
 import { test, expect, dismissTip } from '../../fixtures/auth';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 const taskName = (label: string) => `${label}-mobile-${Date.now()}`;
 const titlePlaceholder = 'Redesign sanctuary garden layout';
@@ -40,6 +40,37 @@ async function measureTouchTargets(page: Page, selectors: string[]) {
   }
   return targets;
 }
+
+/** Scopes the picker lookups; the popover renders in a portal, so callers pass
+ * the page when the picker is not a descendant of the element under test. */
+async function selectFutureDate(page: Page, root: Page | Locator) {
+  const target = await page.evaluate(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + 7);
+    return {
+      label: new Intl.DateTimeFormat('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      }).format(date),
+    };
+  });
+  const panel = root.locator('.date-picker-panel').last();
+  await expect(panel).toBeVisible();
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const day = panel.locator(`.date-picker-day[aria-label="${target.label}"]`);
+    if (await day.isVisible().catch(() => false)) {
+      await day.evaluate((element: HTMLElement) => element.click());
+      return;
+    }
+    await root.locator('.date-picker-nav:visible').last().click({ force: true });
+  }
+
+  throw new Error('Could not select a future date in the mobile picker');
+}
+
 test.describe.configure({ mode: 'serial' });
 
 test.describe('Task modal on mobile', () => {
@@ -205,6 +236,52 @@ test.describe('Task modal on mobile', () => {
 
     await page.getByRole('button', { name: 'Cancel' }).click();
     await expect(page.getByRole('dialog')).not.toBeVisible();
+  });
+
+  test('keeps the NLP date preview usable when details are collapsed', async ({ page }) => {
+    const name = taskName('date-preview');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/tasks?view=inbox');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    await page.getByPlaceholder("What's on your mind today?").fill(`${name} today`);
+    await page.getByRole('button', { name: 'Add task with details' }).click();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    const preview = page.locator('#task-date-preview');
+    await expect(preview).toBeVisible();
+    await expect(preview).toHaveAttribute('aria-live', 'polite');
+    await expect(preview).toContainText('today resolves to');
+
+    const detailsToggle = page.getByRole('button', { name: /More details/ });
+    await expect(detailsToggle).toHaveAttribute('aria-expanded', 'true');
+    await detailsToggle.click();
+    await expect(detailsToggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(preview).toBeVisible();
+
+    const dialog = page.getByRole('dialog');
+    const previewActions = dialog.locator('.date-preview-action');
+    await expect(previewActions).toHaveCount(2);
+    for (let index = 0; index < 2; index += 1) {
+      const box = await previewActions.nth(index).boundingBox();
+      expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
+      expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+    }
+
+    await dialog.getByRole('button', { name: 'Change due date' }).click();
+    await expect(detailsToggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('.date-picker-panel')).toBeVisible();
+    expect(
+      await page.evaluate(() => document.activeElement?.classList.contains('date-picker-nav')),
+    ).toBe(true);
+    await selectFutureDate(page, dialog);
+    await expect(page.locator('#task-date-preview')).not.toContainText('today resolves to');
+
+    await dialog.getByRole('button', { name: 'Clear due date' }).click();
+    await expect(preview).toContainText('Due date cleared');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      390,
+    );
   });
 
   test('keeps advanced fields usable after expansion', async ({ page }) => {
@@ -697,6 +774,8 @@ test.describe('Task modal on mobile', () => {
     await page.getByPlaceholder(titlePlaceholder).fill(name);
 
     await page.getByRole('button', { name: 'Create Task' }).click();
+    // Manual creation without an NLP phrase still confirms the destination view.
+    await expect(page.getByText(/" added to Inbox/).first()).toBeVisible();
     await page.waitForTimeout(1000);
     await page.waitForLoadState('networkidle');
 
@@ -768,5 +847,171 @@ test.describe('Task modal on mobile', () => {
 
     await page.getByRole('button', { name: 'Cancel' }).click();
     await expect(page.getByRole('dialog')).not.toBeVisible();
+  });
+});
+
+// The capture bar has its own picker instance, preview, and actions, none of
+// which the modal journeys above exercise. These cover that surface on touch
+// layouts, where it is the primary way a task is created.
+test.describe('Capture bar on mobile', () => {
+  const captureInput = (page: Page) => page.getByPlaceholder("What's on your mind today?");
+  const datePreview = (page: Page) => page.locator('#capture-date-preview');
+  // The picker popover renders into a portal on the document, so the panel is
+  // not a descendant of the capture bar.
+  const pickerPanel = (page: Page) => page.locator('.date-picker-panel').last();
+
+  async function openInbox(page: Page, viewport?: { width: number; height: number }) {
+    if (viewport) {
+      await page.setViewportSize(viewport);
+    }
+
+    await page.goto('/tasks?view=inbox');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+  }
+
+  test('previews the inferred due date with accessible context', async ({ page }) => {
+    await openInbox(page, { width: 390, height: 844 });
+    const input = captureInput(page);
+    await input.fill(`${taskName('capture-preview')} today`);
+
+    const preview = datePreview(page);
+    await expect(preview).toBeVisible();
+    await expect(preview).toHaveAttribute('aria-live', 'polite');
+    await expect(preview).toContainText('today resolves to');
+    await expect(input).toHaveAttribute('aria-describedby', /capture-date-preview/);
+
+    // The actions are real buttons, not clickable spans, so they stay reachable
+    // by keyboard and assistive tech.
+    await expect(page.getByRole('button', { name: 'Change due date' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Clear due date' })).toBeVisible();
+  });
+
+  test('explains that a time is kept as text on mobile', async ({ page }) => {
+    await openInbox(page, { width: 390, height: 844 });
+    await captureInput(page).fill(`${taskName('capture-time')} friday at 3pm`);
+
+    const note = page.locator('#capture-date-note');
+    await expect(note).toBeVisible();
+    await expect(note).toHaveText(/Times aren't supported yet/);
+    await expect(note).toHaveAttribute('role', 'status');
+    // Nothing was inferred, so there is no date preview to contradict the note.
+    await expect(page.locator('#capture-date-preview')).toHaveCount(0);
+  });
+
+  test('changes the inferred date from the capture-bar picker', async ({ page }) => {
+    await openInbox(page, { width: 390, height: 844 });
+    await captureInput(page).fill(`${taskName('capture-change')} today`);
+
+    await expect(page.locator('.date-picker-panel')).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Change due date' }).click();
+    const panel = pickerPanel(page);
+    await expect(panel).toBeVisible();
+    expect(
+      await page.evaluate(() => document.activeElement?.classList.contains('date-picker-nav')),
+    ).toBe(true);
+
+    await selectFutureDate(page, page);
+    await expect(datePreview(page)).not.toContainText('today resolves to');
+    await expect(datePreview(page)).toContainText('Due ');
+  });
+
+  test('clears the date and keeps it cleared until the phrase changes', async ({ page }) => {
+    await openInbox(page, { width: 390, height: 844 });
+    const input = captureInput(page);
+    const name = taskName('capture-clear');
+    await input.fill(`${name} today`);
+
+    await page.getByRole('button', { name: 'Clear due date' }).click();
+    const preview = datePreview(page);
+    await expect(preview).toContainText('Due date cleared');
+    // Nothing left to clear, and Change stays available to pick another date.
+    await expect(page.getByRole('button', { name: 'Clear due date' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Change due date' })).toBeVisible();
+
+    // Unrelated edits must not resurrect the suppressed phrase.
+    await input.fill(`${name} today and then call the bank`);
+    await expect(preview).toContainText('Due date cleared');
+
+    // Replacing the phrase re-infers.
+    await input.fill(`${name} in 3 days`);
+    await expect(preview).toContainText('in 3 days resolves to');
+  });
+
+  test('keeps the capture controls usable at 320px', async ({ page }) => {
+    await openInbox(page, { width: 320, height: 568 });
+    await captureInput(page).fill(`${taskName('capture-touch')} today`);
+    await expect(datePreview(page)).toContainText('today resolves to');
+
+    for (const name of ['Change due date', 'Clear due date']) {
+      const box = await page.getByRole('button', { name }).boundingBox();
+      expect(box?.width ?? 0, `${name} width`).toBeGreaterThanOrEqual(44);
+      expect(box?.height ?? 0, `${name} height`).toBeGreaterThanOrEqual(44);
+    }
+
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      320,
+    );
+
+    await page.getByRole('button', { name: 'Change due date' }).click();
+    const panel = pickerPanel(page);
+    await expect(panel).toBeVisible();
+    // The overlay must not introduce a horizontal scrollbar at the narrowest width.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      320,
+    );
+
+    const navBox = await panel.locator('.date-picker-nav').first().boundingBox();
+    expect(navBox?.width ?? 0).toBeGreaterThanOrEqual(44);
+    expect(navBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+
+    // Day cells are sized by the 7-column grid rather than a fixed target, so
+    // they only get a floor here; the nav buttons carry the 44px guarantee.
+    const dayBox = await panel.locator('.date-picker-day').first().boundingBox();
+    expect(dayBox?.width ?? 0).toBeGreaterThanOrEqual(32);
+    expect(dayBox?.height ?? 0).toBeGreaterThanOrEqual(32);
+
+    // The trigger toggles the overlay closed again.
+    await panel.locator('.date-picker-trigger, .date-picker-nav').first().waitFor();
+    await page.locator('.capture-date-picker .date-picker-trigger').click();
+    await expect(page.locator('.date-picker-panel')).toHaveCount(0);
+  });
+
+  test('submits the inferred date during mobile quick capture', async ({ page }) => {
+    await openInbox(page, { width: 390, height: 844 });
+    const name = taskName('capture-submit');
+    await captureInput(page).fill(`${name} in 3 days`);
+    await expect(datePreview(page)).toContainText('in 3 days resolves to');
+
+    const dueDate = await page.evaluate(() => {
+      const target = new Date();
+      target.setDate(target.getDate() + 3);
+      const month = String(target.getMonth() + 1).padStart(2, '0');
+      const day = String(target.getDate()).padStart(2, '0');
+      return `${target.getFullYear()}-${month}-${day}`;
+    });
+
+    const createResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' && new URL(response.url()).pathname === '/tasks',
+    );
+    await page.getByRole('button', { name: 'Add Task', exact: true }).click();
+    const createResponse = await createResponsePromise;
+    expect(createResponse.status()).toBe(201);
+
+    const payload = createResponse.request().postDataJSON() as {
+      title?: string;
+      dueDate?: string;
+      simpleMode?: boolean;
+    };
+    expect(payload.title).toContain(name);
+    expect(payload.dueDate).toBe(dueDate);
+    expect(payload.simpleMode).toBe(false);
+
+    const created = (await createResponse.json()) as { dueDate?: string };
+    expect(created.dueDate).toBe(dueDate);
+
+    await expect(page.getByText(/" added to Upcoming/).first()).toBeVisible();
   });
 });

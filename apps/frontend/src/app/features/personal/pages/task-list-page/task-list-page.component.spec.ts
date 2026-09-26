@@ -1,4 +1,5 @@
 import { signal } from '@angular/core';
+import { DateTime } from 'luxon';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -13,6 +14,7 @@ import { AuthStateService } from '../../../../core/services/auth-state.service';
 import { PersonalTaskWorkspaceComponent } from '../../components/personal-task-workspace.component';
 import { CaptureBarComponent } from '../../components/capture-bar.component';
 import { Task } from '@yotara/shared';
+import { StatusService } from '../../../../core/services/status.service';
 
 describe('TaskListPageComponent', () => {
   let mockTaskService: any;
@@ -21,6 +23,7 @@ describe('TaskListPageComponent', () => {
   let mockAuthStateService: any;
   let mockActivatedRoute: any;
   let mockRouter: any;
+  let mockStatusService: any;
 
   beforeEach(async () => {
     localStorage.clear();
@@ -63,6 +66,11 @@ describe('TaskListPageComponent', () => {
       navigate: jasmine.createSpy(),
     };
 
+    mockStatusService = {
+      success: jasmine.createSpy('success'),
+      show: jasmine.createSpy('show'),
+    };
+
     await TestBed.configureTestingModule({
       imports: [TaskListPageComponent],
       providers: [
@@ -74,6 +82,7 @@ describe('TaskListPageComponent', () => {
         { provide: AuthStateService, useValue: mockAuthStateService },
         { provide: ActivatedRoute, useValue: mockActivatedRoute },
         { provide: Router, useValue: mockRouter },
+        { provide: StatusService, useValue: mockStatusService },
       ],
     }).compileComponents();
   });
@@ -162,6 +171,108 @@ describe('TaskListPageComponent', () => {
       expect(mockTaskService.createTask).toHaveBeenCalled();
       const args = mockTaskService.createTask.calls.mostRecent().args[0];
       expect(args.title).toBe('Quick task');
+      expect(mockStatusService.success).toHaveBeenCalledWith('"Quick task" added to Inbox');
+    });
+
+    it('includes an inferred due date in the quick-create payload', async () => {
+      mockAuthStateService.user.set({ id: 'user-1', captureBehavior: 'quick' });
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      const captureBar = fixture.debugElement.query(By.directive(CaptureBarComponent))
+        .componentInstance as CaptureBarComponent;
+      captureBar.referenceDate = DateTime.fromObject(
+        { year: 2026, month: 9, day: 28 },
+        { zone: 'UTC' },
+      );
+      captureBar.setTitle('Quick task Friday');
+      await (fixture.componentInstance as any).handleCapture();
+
+      const payload = mockTaskService.createTask.calls.mostRecent().args[0];
+      expect(payload.dueDate).toBe('2026-10-02');
+      expect(payload.simpleMode).toBeFalse();
+      expect(mockStatusService.success).toHaveBeenCalledWith(
+        jasmine.stringMatching(
+          /^"Quick task Friday" added to (Today|Upcoming|Overdue)( \(.+?\))? · due /,
+        ),
+      );
+    });
+
+    it('retains the title and date draft when quick capture fails', async () => {
+      mockAuthStateService.user.set({ id: 'user-1', captureBehavior: 'quick' });
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
+      mockTaskService.createTask.and.rejectWith(new Error('offline'));
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      const captureBar = fixture.debugElement.query(By.directive(CaptureBarComponent))
+        .componentInstance as CaptureBarComponent;
+      captureBar.referenceDate = DateTime.fromObject(
+        { year: 2026, month: 9, day: 28 },
+        { zone: 'UTC' },
+      );
+      captureBar.setTitle('Quick task Friday');
+      captureBar.setSubmissionType('quick');
+      await (fixture.componentInstance as any).handleCapture();
+
+      expect(captureBar.getTitle()).toBe('Quick task Friday');
+      expect(captureBar.getDueDateDraft().value).toBe('2026-10-02');
+      expect(captureBar.getError()).toBe('Failed to quick capture task.');
+      expect(captureBar.getLastSubmissionType()).toBe('quick');
+    });
+
+    it('does not include a due date after the user clears the draft', async () => {
+      mockAuthStateService.user.set({ id: 'user-1', captureBehavior: 'quick' });
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      const captureBar = fixture.debugElement.query(By.directive(CaptureBarComponent))
+        .componentInstance as CaptureBarComponent;
+      captureBar.referenceDate = DateTime.fromObject(
+        { year: 2026, month: 9, day: 28 },
+        { zone: 'UTC' },
+      );
+      captureBar.setTitle('Quick task Friday');
+      captureBar['clearDueDate']();
+      await (fixture.componentInstance as any).handleCapture();
+
+      const payload = mockTaskService.createTask.calls.mostRecent().args[0];
+      expect(payload.dueDate).toBeUndefined();
+      expect('dueDate' in payload).toBeFalse();
+      expect(payload.simpleMode).toBeFalse();
+    });
+
+    it('passes the structured date draft to the details workspace', async () => {
+      mockAuthStateService.user.set({ id: 'user-1', captureBehavior: 'quick' });
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
+        .componentInstance as PersonalTaskWorkspaceComponent;
+      const openSpy = spyOn(workspace, 'openCreateTaskModal');
+      const captureBar = fixture.debugElement.query(By.directive(CaptureBarComponent))
+        .componentInstance as CaptureBarComponent;
+      captureBar.referenceDate = DateTime.fromObject(
+        { year: 2026, month: 9, day: 28 },
+        { zone: 'UTC' },
+      );
+      captureBar.setTitle('Capture task Friday');
+      captureBar.setSubmissionType('capture');
+
+      await (fixture.componentInstance as any).handleCapture();
+
+      expect(openSpy).toHaveBeenCalledWith(
+        '1',
+        jasmine.objectContaining({
+          value: '2026-10-02',
+          source: 'inferred',
+          matchedText: 'Friday',
+        }),
+      );
+      expect(captureBar.getTitle()).toBe('Capture task Friday');
     });
 
     it('opens task workspace modal when behavior is capture', () => {
@@ -221,6 +332,24 @@ describe('TaskListPageComponent', () => {
       fixture.detectChanges();
 
       expect(captureBar.getError()).toBe('Add a task title to capture it.');
+    });
+
+    it('clears the due-date draft after a successful details save', () => {
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      const captureBar = fixture.debugElement.query(By.directive(CaptureBarComponent))
+        .componentInstance as CaptureBarComponent;
+      captureBar.referenceDate = DateTime.fromObject(
+        { year: 2026, month: 9, day: 28 },
+        { zone: 'UTC' },
+      );
+      captureBar.setTitle('Details task Friday');
+      fixture.componentInstance['handleTaskSaved']('create');
+
+      expect(captureBar.getTitle()).toBe('');
+      expect(captureBar.getDueDateDraft().source).toBe('none');
+      expect(captureBar.getParserResult()).toBeNull();
     });
 
     it('clears capture form after successful save', () => {

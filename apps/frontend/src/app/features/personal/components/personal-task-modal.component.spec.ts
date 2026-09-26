@@ -2,8 +2,11 @@ import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideMarkdown } from 'ngx-markdown';
+import { DateTime } from 'luxon';
 import { Label, Project, Task } from '@yotara/shared';
 import { LabelService } from '../../../core/services/label.service';
+import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
+import type { DueDateDraft } from '../utils/due-date-draft';
 import { PersonalTaskModalComponent } from './personal-task-modal.component';
 
 const testLabel: Label = {
@@ -11,6 +14,14 @@ const testLabel: Label = {
   name: 'Urgent',
   color: '#d44d3c',
   userId: 'user-1',
+};
+
+const inferredDateDraft: DueDateDraft = {
+  value: '2026-10-02',
+  source: 'inferred',
+  matchedText: 'Friday',
+  matchStart: 9,
+  matchEnd: 15,
 };
 
 describe('PersonalTaskModalComponent', () => {
@@ -377,6 +388,236 @@ describe('PersonalTaskModalComponent', () => {
 
       const completionToggle = fixture.debugElement.query(By.css('.toggle-row'));
       expect(completionToggle.nativeElement.querySelectorAll('label').length).toBe(0);
+    });
+  });
+
+  describe('NLP date draft handoff', () => {
+    function openNewTaskWithDateDraft(draft: DueDateDraft = inferredDateDraft, title?: string) {
+      fixture.componentRef.setInput('initialTitle', title ?? 'Call Sam Friday');
+      fixture.componentRef.setInput('initialDueDateDraft', draft);
+      fixture.componentRef.setInput('open', true);
+      fixture.detectChanges();
+    }
+
+    it('hydrates a date-bearing create draft and shows its preview', () => {
+      openNewTaskWithDateDraft();
+
+      expect(component['draftDueDate']()).toBe('2026-10-02');
+      expect(component['draftSimpleMode']()).toBeFalse();
+      expect(component['dateDraftSource']()).toBe('inferred');
+      expect(component['showAdvanced']()).toBeTrue();
+
+      const preview = fixture.debugElement.query(By.css('.date-preview'));
+      expect(preview).toBeTruthy();
+      expect(preview.nativeElement.textContent).toContain('Friday resolves to');
+      expect(preview.nativeElement.textContent).toContain('Friday, Oct 2, 2026');
+      const titleInput = fixture.debugElement.query(By.css('#task-title-input'));
+      expect(titleInput.nativeElement.getAttribute('aria-describedby')).toContain(
+        'task-date-preview',
+      );
+    });
+
+    it('clears an inferred date when the title removes or replaces its phrase', () => {
+      openNewTaskWithDateDraft();
+      component['onTitleInput']('Call Sam Friday notes');
+      expect(component['draftDueDate']()).toBe('2026-10-02');
+      component['onTitleInput']('Call Sam');
+      fixture.detectChanges();
+
+      expect(component['draftDueDate']()).toBe('');
+      expect(component['dateDraftSource']()).toBe('cleared');
+      expect(component['draftSimpleMode']()).toBeFalse();
+
+      component['onTitleInput']('Call Sam next Friday');
+      expect(component['draftDueDate']()).toBe('');
+      expect(component['dateDraftSource']()).toBe('cleared');
+    });
+
+    it('re-resolves an inferred phrase against the current day after midnight rolls over', () => {
+      const staleDraft: DueDateDraft = {
+        value: '2020-01-01',
+        source: 'inferred',
+        matchedText: 'today',
+        matchStart: 9,
+        matchEnd: 14,
+      };
+      openNewTaskWithDateDraft(staleDraft, 'Call Sam today');
+      expect(component['draftDueDate']()).toBe('2020-01-01');
+
+      component['refreshInferredDueDate']();
+
+      expect(component['draftDueDate']()).toBe(DateTime.local().toISODate());
+      expect(component['dateDraftSource']()).toBe('inferred');
+      expect(component['dateDraftMatchedText']()).toBe('today');
+    });
+
+    it('leaves a manual selection alone when the day rolls over', () => {
+      const manualDraft: DueDateDraft = {
+        value: '2026-11-11',
+        source: 'manual',
+        matchedText: null,
+        matchStart: null,
+        matchEnd: null,
+      };
+      openNewTaskWithDateDraft(manualDraft, 'Call Sam today');
+
+      component['refreshInferredDueDate']();
+
+      expect(component['draftDueDate']()).toBe('2026-11-11');
+      expect(component['dateDraftSource']()).toBe('manual');
+    });
+
+    it('never re-resolves a persisted date while editing an existing task', () => {
+      const existingTask: Task = {
+        id: 'existing-rollover',
+        title: 'Ship the report today',
+        description: '',
+        status: 'inbox',
+        priority: 'medium',
+        completed: false,
+        simpleMode: false,
+        bucket: 'personal-sanctuary',
+        dueDate: '2020-01-01',
+        order: 0,
+        createdAt: '2026-04-18T08:00:00.000Z',
+        updatedAt: '2026-04-18T08:00:00.000Z',
+      };
+      fixture.componentRef.setInput('task', existingTask);
+      fixture.componentRef.setInput('open', true);
+      fixture.detectChanges();
+      expect(component['draftDueDate']()).toBe('2020-01-01');
+
+      component['refreshInferredDueDate']();
+
+      expect(component['draftDueDate']()).toBe('2020-01-01');
+      expect(component['dateDraftSource']()).toBe('none');
+    });
+
+    it('does not create a cleared preview when Simple Mode is enabled without a date', () => {
+      component.open = true;
+      fixture.detectChanges();
+
+      component['onSimpleModeChange'](true);
+      component['onTitleInput']('A task without a date');
+      fixture.detectChanges();
+
+      expect(component['dateDraftSource']()).toBe('none');
+      expect(fixture.debugElement.query(By.css('.date-preview'))).toBeNull();
+    });
+
+    it('clears the date when Simple Mode is enabled and does not reapply it', () => {
+      openNewTaskWithDateDraft();
+
+      component['onSimpleModeChange'](true);
+      component['onSimpleModeChange'](false);
+      component['onTitleInput']('Call Sam Friday after editing the title');
+      fixture.detectChanges();
+
+      expect(component['draftSimpleMode']()).toBeFalse();
+      expect(component['draftDueDate']()).toBe('');
+      expect(component['dateDraftSource']()).toBe('cleared');
+      expect(component['dateDraftSuppressed']()).toBeTrue();
+    });
+
+    it('keeps a manual picker choice authoritative across title edits', () => {
+      openNewTaskWithDateDraft();
+
+      const picker = fixture.debugElement.query(By.css('app-date-picker.schedule-picker'))
+        .componentInstance as DatePickerComponent;
+      picker.valueChange.emit('2026-10-05');
+      component['onTitleInput']('Call Sam Friday and follow up');
+      fixture.detectChanges();
+
+      expect(component['draftDueDate']()).toBe('2026-10-05');
+      expect(component['draftSimpleMode']()).toBeFalse();
+      expect(component['dateDraftSource']()).toBe('manual');
+      expect(component['dateDraftSuppressed']()).toBeFalse();
+    });
+
+    it('clears an unsaved create date without enabling Simple Mode', () => {
+      openNewTaskWithDateDraft();
+      const saveSpy = spyOn(component['save'], 'emit');
+
+      fixture.debugElement
+        .query(By.css('button[aria-label="Clear due date"]'))
+        .nativeElement.click();
+      fixture.detectChanges();
+      component['submit']();
+
+      expect(component['draftDueDate']()).toBe('');
+      expect(component['draftSimpleMode']()).toBeFalse();
+      expect(component['dateDraftSource']()).toBe('cleared');
+      expect(saveSpy).toHaveBeenCalledWith(
+        jasmine.objectContaining({
+          mode: 'create',
+          payload: jasmine.objectContaining({
+            simpleMode: false,
+          }),
+        }),
+      );
+      const savedEvent = saveSpy.calls.mostRecent().args[0];
+      expect(savedEvent).toBeDefined();
+      expect(savedEvent?.payload.dueDate).toBeUndefined();
+    });
+
+    it('expands the disclosure before opening the existing date picker', () => {
+      openNewTaskWithDateDraft();
+      component['showAdvanced'].set(false);
+      fixture.detectChanges();
+
+      const picker = fixture.debugElement.query(By.css('app-date-picker.schedule-picker'))
+        .componentInstance as DatePickerComponent;
+      const openSpy = spyOn(picker, 'open').and.callThrough();
+      fixture.debugElement
+        .query(By.css('button[aria-label="Change due date"]'))
+        .nativeElement.click();
+      fixture.detectChanges();
+
+      expect(component['showAdvanced']()).toBeTrue();
+      expect(openSpy).toHaveBeenCalled();
+    });
+
+    it('does not infer or overwrite an existing task from a date-like title', () => {
+      const existingTask: Task = {
+        id: 'existing-1',
+        title: 'Call Sam Friday',
+        description: '',
+        status: 'inbox',
+        priority: 'medium',
+        completed: false,
+        simpleMode: true,
+        bucket: 'personal-sanctuary',
+        order: 0,
+        createdAt: '2026-04-18T08:00:00.000Z',
+        updatedAt: '2026-04-18T08:00:00.000Z',
+      };
+      fixture.componentRef.setInput('task', existingTask);
+      fixture.componentRef.setInput('initialDueDateDraft', inferredDateDraft);
+      fixture.componentRef.setInput('open', true);
+      fixture.detectChanges();
+
+      expect(component['draftTitle']()).toBe('Call Sam Friday');
+      expect(component['draftDueDate']()).toBe('');
+      expect(component['dateDraftSource']()).toBe('none');
+      expect(component['draftSimpleMode']()).toBeTrue();
+      expect(fixture.debugElement.query(By.css('.date-preview'))).toBeNull();
+    });
+
+    it('emits the same date in the create payload', () => {
+      openNewTaskWithDateDraft();
+      const saveSpy = spyOn(component['save'], 'emit');
+
+      component['submit']();
+
+      expect(saveSpy).toHaveBeenCalledWith(
+        jasmine.objectContaining({
+          mode: 'create',
+          payload: jasmine.objectContaining({
+            dueDate: '2026-10-02',
+            simpleMode: false,
+          }),
+        }),
+      );
     });
   });
 
