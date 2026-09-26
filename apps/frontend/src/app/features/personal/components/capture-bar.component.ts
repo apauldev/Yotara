@@ -164,6 +164,10 @@ import { parseTaskDueDate, type TaskDueDateParseResult } from '../utils/task-due
     @if (error()) {
       <p id="capture-error" class="capture-error" role="alert">{{ error() }}</p>
     }
+
+    @if (dueDateNotice(); as notice) {
+      <p id="capture-date-note" class="capture-date-note" role="status">{{ notice }}</p>
+    }
   `,
   changeDetection: ChangeDetectionStrategy.Eager,
   styles: `
@@ -464,6 +468,13 @@ import { parseTaskDueDate, type TaskDueDateParseResult } from '../utils/task-due
       color: var(--status-overdue);
     }
 
+    .capture-date-note {
+      margin: 0.55rem 0 0;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--on-surface-muted);
+    }
+
     @media (max-width: 720px) {
       .capture-bar {
         grid-template-columns: 1fr;
@@ -557,7 +568,27 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
     const ids: string[] = [];
     if (this.error()) ids.push('capture-error');
     if (this.dueDateDraft().source !== 'none') ids.push('capture-date-preview');
+    if (this.dueDateNotice()) ids.push('capture-date-note');
     return ids.length > 0 ? ids.join(' ') : null;
+  });
+
+  /**
+   * Explains a phrase the parser deliberately left as text. Without this, input
+   * like "Friday at 3pm" simply shows no preview, which reads as a broken
+   * parser rather than a date-only feature.
+   */
+  protected readonly dueDateNotice = computed(() => {
+    const result = this.parserResult();
+    if (!result) return null;
+
+    switch (result.status) {
+      case 'time':
+        return "Times aren't supported yet — kept as text";
+      case 'recurring':
+        return "Repeating isn't set from the title — set it in the task details";
+      default:
+        return null;
+    }
   });
 
   protected readonly dueDatePreviewLabel = computed(() => {

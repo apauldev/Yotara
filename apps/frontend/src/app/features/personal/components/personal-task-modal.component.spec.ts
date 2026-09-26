@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideMarkdown } from 'ngx-markdown';
+import { DateTime } from 'luxon';
 import { Label, Project, Task } from '@yotara/shared';
 import { LabelService } from '../../../core/services/label.service';
 import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
@@ -391,8 +392,8 @@ describe('PersonalTaskModalComponent', () => {
   });
 
   describe('NLP date draft handoff', () => {
-    function openNewTaskWithDateDraft(draft: DueDateDraft = inferredDateDraft) {
-      fixture.componentRef.setInput('initialTitle', 'Call Sam Friday');
+    function openNewTaskWithDateDraft(draft: DueDateDraft = inferredDateDraft, title?: string) {
+      fixture.componentRef.setInput('initialTitle', title ?? 'Call Sam Friday');
       fixture.componentRef.setInput('initialDueDateDraft', draft);
       fixture.componentRef.setInput('open', true);
       fixture.detectChanges();
@@ -430,6 +431,66 @@ describe('PersonalTaskModalComponent', () => {
       component['onTitleInput']('Call Sam next Friday');
       expect(component['draftDueDate']()).toBe('');
       expect(component['dateDraftSource']()).toBe('cleared');
+    });
+
+    it('re-resolves an inferred phrase against the current day after midnight rolls over', () => {
+      const staleDraft: DueDateDraft = {
+        value: '2020-01-01',
+        source: 'inferred',
+        matchedText: 'today',
+        matchStart: 9,
+        matchEnd: 14,
+      };
+      openNewTaskWithDateDraft(staleDraft, 'Call Sam today');
+      expect(component['draftDueDate']()).toBe('2020-01-01');
+
+      component['refreshInferredDueDate']();
+
+      expect(component['draftDueDate']()).toBe(DateTime.local().toISODate());
+      expect(component['dateDraftSource']()).toBe('inferred');
+      expect(component['dateDraftMatchedText']()).toBe('today');
+    });
+
+    it('leaves a manual selection alone when the day rolls over', () => {
+      const manualDraft: DueDateDraft = {
+        value: '2026-11-11',
+        source: 'manual',
+        matchedText: null,
+        matchStart: null,
+        matchEnd: null,
+      };
+      openNewTaskWithDateDraft(manualDraft, 'Call Sam today');
+
+      component['refreshInferredDueDate']();
+
+      expect(component['draftDueDate']()).toBe('2026-11-11');
+      expect(component['dateDraftSource']()).toBe('manual');
+    });
+
+    it('never re-resolves a persisted date while editing an existing task', () => {
+      const existingTask: Task = {
+        id: 'existing-rollover',
+        title: 'Ship the report today',
+        description: '',
+        status: 'inbox',
+        priority: 'medium',
+        completed: false,
+        simpleMode: false,
+        bucket: 'personal-sanctuary',
+        dueDate: '2020-01-01',
+        order: 0,
+        createdAt: '2026-04-18T08:00:00.000Z',
+        updatedAt: '2026-04-18T08:00:00.000Z',
+      };
+      fixture.componentRef.setInput('task', existingTask);
+      fixture.componentRef.setInput('open', true);
+      fixture.detectChanges();
+      expect(component['draftDueDate']()).toBe('2020-01-01');
+
+      component['refreshInferredDueDate']();
+
+      expect(component['draftDueDate']()).toBe('2020-01-01');
+      expect(component['dateDraftSource']()).toBe('none');
     });
 
     it('does not create a cleared preview when Simple Mode is enabled without a date', () => {

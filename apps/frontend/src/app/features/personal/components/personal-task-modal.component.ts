@@ -5,6 +5,9 @@ import {
   ElementRef,
   EventEmitter,
   Input,
+  NgZone,
+  OnDestroy,
+  OnInit,
   Output,
   SimpleChanges,
   inject,
@@ -14,6 +17,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { DateTime } from 'luxon';
 import {
   CreateTaskDto,
   Label,
@@ -29,8 +33,9 @@ import { TaskService } from '../../../core/services/task.service';
 import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
 import { MarkdownEditorComponent } from '../../../shared/ui/markdown-editor/markdown-editor.component';
 import { ModalComponent } from '../../../shared/ui/modal/modal.component';
-import { parseCalendarDate } from '../../../shared/utils/timestamps';
+import { parseCalendarDate, startOfToday } from '../../../shared/utils/timestamps';
 import { parseTaskCommand } from '../utils/task-command-parser';
+import { parseTaskDueDate } from '../utils/task-due-date-parser';
 import type { DueDateDraft, DueDateDraftSource } from '../utils/due-date-draft';
 
 type SavePayload =
@@ -51,15 +56,17 @@ type SavePayload =
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './personal-task-modal.component.scss',
 })
-export class PersonalTaskModalComponent {
+export class PersonalTaskModalComponent implements OnInit, OnDestroy {
   private readonly labelService = inject(LabelService);
   private readonly taskService = inject(TaskService);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly ngZone = inject(NgZone);
   private readonly titleInput = viewChild<ElementRef<HTMLInputElement>>('titleInput');
   private readonly subtaskInput = viewChild<ElementRef<HTMLInputElement>>('subtaskInput');
   private readonly addSubtaskButton = viewChild<ElementRef<HTMLButtonElement>>('addSubtaskButton');
   private readonly scheduleDatePicker = viewChild<DatePickerComponent>('scheduleDatePicker');
+  private referenceDateTimer: ReturnType<typeof setTimeout> | null = null;
   @Input() open = false;
   @Input() task: Task | null = null;
   @Input() initialTitle = '';
@@ -164,6 +171,71 @@ export class PersonalTaskModalComponent {
     if (opened || taskChanged) {
       this.hydrateDraft();
     }
+  }
+
+  ngOnInit() {
+    this.scheduleReferenceDateRefresh();
+  }
+
+  ngOnDestroy() {
+    if (this.referenceDateTimer !== null) {
+      clearTimeout(this.referenceDateTimer);
+      this.referenceDateTimer = null;
+    }
+  }
+
+  /**
+   * An inferred phrase resolves against the day it was read, so a draft that
+   * says "today" would still point at yesterday if the modal is left open past
+   * midnight. The capture bar already rolls over; do the same here, and only
+   * for an inferred draft on a new task. A manual selection stays authoritative
+   * and an existing task's persisted date is never touched.
+   */
+  private scheduleReferenceDateRefresh() {
+    if (this.referenceDateTimer !== null) {
+      clearTimeout(this.referenceDateTimer);
+    }
+
+    const now = DateTime.now();
+    const delay = Math.max(
+      1_000,
+      Math.ceil(now.plus({ days: 1 }).startOf('day').diff(now, 'milliseconds').milliseconds),
+    );
+
+    // Outside the zone on purpose: the timer reschedules itself for the rest of
+    // the component's life, and a repeating in-zone timer would keep the zone
+    // unstable, which stalls anything awaiting stability (tests, SSR, hydration).
+    this.ngZone.runOutsideAngular(() => {
+      this.referenceDateTimer = setTimeout(() => {
+        this.referenceDateTimer = null;
+        this.ngZone.run(() => {
+          this.refreshInferredDueDate();
+          this.cdr.detectChanges();
+        });
+        this.scheduleReferenceDateRefresh();
+      }, delay);
+    });
+  }
+
+  private refreshInferredDueDate() {
+    if (!this.open || this.task || this.dateDraftSource() !== 'inferred') {
+      return;
+    }
+
+    const result = parseTaskDueDate(this.draftTitle(), startOfToday());
+    if (result.status !== 'date' || !result.dueDate) {
+      this.clearDraftDueDate();
+      return;
+    }
+
+    if (result.dueDate === this.draftDueDate()) {
+      return;
+    }
+
+    this.draftDueDate.set(toDateInputValue(result.dueDate));
+    this.dateDraftMatchedText.set(result.matchedText);
+    this.dateDraftMatchStart.set(result.matchStart);
+    this.dateDraftMatchEnd.set(result.matchEnd);
   }
 
   protected selectedContextLabel() {

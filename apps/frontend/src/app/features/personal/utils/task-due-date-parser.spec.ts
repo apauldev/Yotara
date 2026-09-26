@@ -222,6 +222,29 @@ describe('parseTaskDueDate', () => {
       expectDate('Call Sam tomorrow', '2026-09-29', losAngeles);
     });
 
+    it('resolves against the local day in a positive-offset zone', () => {
+      // Half-hour offset and a southern-hemisphere DST zone, so neither the
+      // offset magnitude nor the zone's DST rules can shift the calendar day.
+      const kolkata = DateTime.fromObject(
+        { year: 2026, month: 9, day: 28 },
+        { zone: 'Asia/Kolkata' },
+      );
+      expectDate('Call Sam today', '2026-09-28', kolkata);
+      expectDate('Call Sam tomorrow', '2026-09-29', kolkata);
+      expectDate('Call Sam in 3 days', '2026-10-01', kolkata);
+      expectDate('Call Sam Friday', '2026-10-02', kolkata);
+      expectDate('Call Sam Oct 12', '2026-10-12', kolkata);
+
+      const auckland = DateTime.fromObject(
+        { year: 2026, month: 9, day: 28 },
+        { zone: 'Pacific/Auckland' },
+      );
+      expectDate('Call Sam today', '2026-09-28', auckland);
+      expectDate('Call Sam tomorrow', '2026-09-29', auckland);
+      expectDate('Call Sam Friday', '2026-10-02', auckland);
+      expectDate('Call Sam Oct 12', '2026-10-12', auckland);
+    });
+
     it('fails closed for an invalid reference date', () => {
       const result = parseTaskDueDate('Call Sam Friday', DateTime.invalid('bad reference'));
       expect(result.status).toBe('unsupported');

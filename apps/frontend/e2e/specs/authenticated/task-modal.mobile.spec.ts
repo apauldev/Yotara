@@ -887,6 +887,18 @@ test.describe('Capture bar on mobile', () => {
     await expect(page.getByRole('button', { name: 'Clear due date' })).toBeVisible();
   });
 
+  test('explains that a time is kept as text on mobile', async ({ page }) => {
+    await openInbox(page, { width: 390, height: 844 });
+    await captureInput(page).fill(`${taskName('capture-time')} friday at 3pm`);
+
+    const note = page.locator('#capture-date-note');
+    await expect(note).toBeVisible();
+    await expect(note).toHaveText(/Times aren't supported yet/);
+    await expect(note).toHaveAttribute('role', 'status');
+    // Nothing was inferred, so there is no date preview to contradict the note.
+    await expect(page.locator('#capture-date-preview')).toHaveCount(0);
+  });
+
   test('changes the inferred date from the capture-bar picker', async ({ page }) => {
     await openInbox(page, { width: 390, height: 844 });
     await captureInput(page).fill(`${taskName('capture-change')} today`);

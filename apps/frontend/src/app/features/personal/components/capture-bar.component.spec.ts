@@ -234,6 +234,53 @@ describe('CaptureBarComponent', () => {
       expect(fixture.componentInstance.getDueDateDraft().source).toBe('none');
     });
 
+    it('explains that a time is kept as text rather than showing nothing', () => {
+      const fixture = createFixture();
+
+      fixture.componentInstance.setTitle('Call Sam Friday at 3pm');
+      fixture.detectChanges();
+
+      const note = fixture.debugElement.query(By.css('.capture-date-note'));
+      expect(note).toBeTruthy();
+      expect(note.nativeElement.getAttribute('role')).toBe('status');
+      expect(note.nativeElement.textContent).toContain("Times aren't supported yet");
+
+      const input = fixture.debugElement.query(By.css('input'));
+      expect(input.nativeElement.getAttribute('aria-describedby')).toContain('capture-date-note');
+    });
+
+    it('explains that repeating is not set from the title', () => {
+      const fixture = createFixture();
+
+      fixture.componentInstance.setTitle('Pay rent every friday');
+      fixture.detectChanges();
+
+      const note = fixture.debugElement.query(By.css('.capture-date-note'));
+      expect(note).toBeTruthy();
+      expect(note.nativeElement.textContent).toContain("Repeating isn't set from the title");
+    });
+
+    it('removes the notice once a supported phrase is used', () => {
+      const fixture = createFixture();
+
+      fixture.componentInstance.setTitle('Call Sam Friday at 3pm');
+      fixture.detectChanges();
+      expect(fixture.debugElement.query(By.css('.capture-date-note'))).toBeTruthy();
+
+      fixture.componentInstance.setTitle('Call Sam Friday');
+      fixture.detectChanges();
+      expect(fixture.debugElement.query(By.css('.capture-date-note'))).toBeNull();
+    });
+
+    it('shows no notice for ordinary task text', () => {
+      const fixture = createFixture();
+
+      fixture.componentInstance.setTitle('Call Sam about the project');
+      fixture.detectChanges();
+
+      expect(fixture.debugElement.query(By.css('.capture-date-note'))).toBeNull();
+    });
+
     it('re-evaluates an inferred date when the local reference changes', () => {
       const fixture = createFixture();
       fixture.componentInstance.setTitle('Call Sam Friday');
