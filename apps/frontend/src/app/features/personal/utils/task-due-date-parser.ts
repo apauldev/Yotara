@@ -21,7 +21,13 @@ export interface TaskDueDateParseResult {
   referenceDate: string | null;
 }
 
-type CandidateKind = 'today' | 'tomorrow' | 'relativeDays' | 'weekday' | 'monthDate';
+type CandidateKind =
+  | 'today'
+  | 'tomorrow'
+  | 'relativeDays'
+  | 'weekday'
+  | 'monthDate'
+  | 'unsupportedIso';
 
 type RejectionStatus = 'time' | 'recurring' | 'range' | 'unsupported' | 'invalid';
 
@@ -183,6 +189,15 @@ export function parseTaskDueDate(input: string, reference: DateTime): TaskDueDat
   }
 
   const maskedInput = maskCommandTokens(input);
+
+  // A malformed date is rejected on its own terms, before any candidate is
+  // considered. Checking this only when nothing else matched let a valid
+  // weekday elsewhere in the title hide it, so "2026-02-30 due Friday" used to
+  // resolve to Friday and quietly discard the date the user actually wrote.
+  if (hasInvalidIsoDate(maskedInput)) {
+    return createResult('invalid', referenceDate);
+  }
+
   const candidates = findCandidates(maskedInput);
 
   if (candidates.length > 1) {
@@ -263,6 +278,21 @@ function findCandidates(input: string): DateCandidate[] {
 
   for (const match of input.matchAll(DAY_FIRST_DATE_CANDIDATE_PATTERN)) {
     addMonthDateCandidate(candidates, match, match[3], match[2], match[4]);
+  }
+
+  // An ISO date is outside the supported grammar, but it still counts as a
+  // candidate so it can never be silently dropped in favour of another date
+  // phrase. It always resolves to 'unsupported', which keeps a lone ISO date
+  // behaving exactly as before while making "2026-10-12 Friday" ambiguous
+  // rather than resolving to Friday.
+  for (const match of input.matchAll(ISO_DATE_PATTERN)) {
+    const start = match.index ?? 0;
+    candidates.push({
+      kind: 'unsupportedIso',
+      text: match[0],
+      start,
+      end: start + match[0].length,
+    });
   }
 
   candidates.sort((left, right) => {
@@ -392,6 +422,8 @@ function resolveCandidate(candidate: DateCandidate, reference: DateTime): DateRe
       return resolveWeekday(candidate, reference);
     case 'monthDate':
       return resolveMonthDate(candidate, reference);
+    case 'unsupportedIso':
+      return { status: 'unsupported' };
   }
 }
 
@@ -470,10 +502,6 @@ function classifyWithoutCandidate(
   reference: DateTime,
   referenceDate: string | null,
 ): TaskDueDateParseResult {
-  if (hasInvalidIsoDate(input)) {
-    return createResult('invalid', referenceDate);
-  }
-
   if (UNSUPPORTED_RELATIVE_PATTERN.test(input)) {
     return createResult('unsupported', referenceDate);
   }

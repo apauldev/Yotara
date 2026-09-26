@@ -163,6 +163,46 @@ describe('parseTaskDueDate', () => {
     });
   });
 
+  describe('ISO dates never lose to another date phrase', () => {
+    it('rejects a lone ISO date as unsupported', () => {
+      expect(parseTaskDueDate('Call Sam 2026-10-12', monday).status).toBe('unsupported');
+      expectNoDate('Call Sam 2026-10-12');
+      expectNoDate('Call Sam https://example.com/2026-10-12');
+    });
+
+    it('rejects a title that pairs an ISO date with a supported phrase', () => {
+      expect(parseTaskDueDate('Call Sam 2026-10-12 Friday', monday).status).toBe('multiple');
+      expect(parseTaskDueDate('Call Sam 2026-10-12 for Friday', monday).status).toBe('multiple');
+      expect(parseTaskDueDate('Ship 2026-10-12 then call Friday', monday).status).toBe('multiple');
+      expect(parseTaskDueDate('Call Sam 2026-10-12 Oct 20', monday).status).toBe('multiple');
+    });
+
+    it('never resolves a different date than the ISO one the user wrote', () => {
+      const result = parseTaskDueDate('Call Sam 2026-10-12 for Friday', monday);
+
+      expect(result.dueDate).toBeNull();
+      expect(result.status).not.toBe('date');
+    });
+
+    it('rejects a malformed ISO date even when a supported phrase is present', () => {
+      expect(parseTaskDueDate('Call Sam 2026-02-30 due Friday', monday).status).toBe('invalid');
+      expect(parseTaskDueDate('Call Sam 2026-13-01 notes Friday', monday).status).toBe('invalid');
+      expect(parseTaskDueDate('Call Sam 2026-02-30', monday).status).toBe('invalid');
+      expectNoDate('Call Sam 2026-02-30 due Friday');
+    });
+
+    it('leaves the supported grammar unaffected', () => {
+      expectDate('Call Sam Friday', '2026-10-02');
+      expectDate('Call Sam on Friday', '2026-10-02');
+      expectDate('Call Sam next Friday', '2026-10-02');
+      expectDate('Call Sam today', '2026-09-28');
+      expectDate('Call Sam tomorrow', '2026-09-29');
+      expectDate('Call Sam in 3 days', '2026-10-01');
+      expectDate('Call Sam Oct 12', '2026-10-12');
+      expectDate('Call Sam 12 Oct 2026', '2026-10-12');
+    });
+  });
+
   describe('reference and safety guarantees', () => {
     it('does not change its result based on the reference time of day', () => {
       const early = DateTime.fromISO('2026-09-28T00:01:00', { zone: 'UTC' });
