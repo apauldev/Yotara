@@ -84,7 +84,7 @@ jobs:
       - name: Collect coverage
         run: pnpm test:coverage
       - name: Upload to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           directory: .
           fail_ci_if_error: false
