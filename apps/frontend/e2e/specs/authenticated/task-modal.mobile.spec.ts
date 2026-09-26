@@ -41,7 +41,9 @@ async function measureTouchTargets(page: Page, selectors: string[]) {
   return targets;
 }
 
-async function selectFutureDate(page: Page, root: Locator) {
+/** Scopes the picker lookups; the popover renders in a portal, so callers pass
+ * the page when the picker is not a descendant of the element under test. */
+async function selectFutureDate(page: Page, root: Page | Locator) {
   const target = await page.evaluate(() => {
     const date = new Date();
     date.setDate(date.getDate() + 7);
@@ -845,5 +847,159 @@ test.describe('Task modal on mobile', () => {
 
     await page.getByRole('button', { name: 'Cancel' }).click();
     await expect(page.getByRole('dialog')).not.toBeVisible();
+  });
+});
+
+// The capture bar has its own picker instance, preview, and actions, none of
+// which the modal journeys above exercise. These cover that surface on touch
+// layouts, where it is the primary way a task is created.
+test.describe('Capture bar on mobile', () => {
+  const captureInput = (page: Page) => page.getByPlaceholder("What's on your mind today?");
+  const datePreview = (page: Page) => page.locator('#capture-date-preview');
+  // The picker popover renders into a portal on the document, so the panel is
+  // not a descendant of the capture bar.
+  const pickerPanel = (page: Page) => page.locator('.date-picker-panel').last();
+
+  async function openInbox(page: Page, viewport?: { width: number; height: number }) {
+    if (viewport) {
+      await page.setViewportSize(viewport);
+    }
+
+    await page.goto('/tasks?view=inbox');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+  }
+
+  test('previews the inferred due date with accessible context', async ({ page }) => {
+    await openInbox(page, { width: 390, height: 844 });
+    const input = captureInput(page);
+    await input.fill(`${taskName('capture-preview')} today`);
+
+    const preview = datePreview(page);
+    await expect(preview).toBeVisible();
+    await expect(preview).toHaveAttribute('aria-live', 'polite');
+    await expect(preview).toContainText('today resolves to');
+    await expect(input).toHaveAttribute('aria-describedby', /capture-date-preview/);
+
+    // The actions are real buttons, not clickable spans, so they stay reachable
+    // by keyboard and assistive tech.
+    await expect(page.getByRole('button', { name: 'Change due date' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Clear due date' })).toBeVisible();
+  });
+
+  test('changes the inferred date from the capture-bar picker', async ({ page }) => {
+    await openInbox(page, { width: 390, height: 844 });
+    await captureInput(page).fill(`${taskName('capture-change')} today`);
+
+    await expect(page.locator('.date-picker-panel')).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Change due date' }).click();
+    const panel = pickerPanel(page);
+    await expect(panel).toBeVisible();
+    expect(
+      await page.evaluate(() => document.activeElement?.classList.contains('date-picker-nav')),
+    ).toBe(true);
+
+    await selectFutureDate(page, page);
+    await expect(datePreview(page)).not.toContainText('today resolves to');
+    await expect(datePreview(page)).toContainText('Due ');
+  });
+
+  test('clears the date and keeps it cleared until the phrase changes', async ({ page }) => {
+    await openInbox(page, { width: 390, height: 844 });
+    const input = captureInput(page);
+    const name = taskName('capture-clear');
+    await input.fill(`${name} today`);
+
+    await page.getByRole('button', { name: 'Clear due date' }).click();
+    const preview = datePreview(page);
+    await expect(preview).toContainText('Due date cleared');
+    // Nothing left to clear, and Change stays available to pick another date.
+    await expect(page.getByRole('button', { name: 'Clear due date' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Change due date' })).toBeVisible();
+
+    // Unrelated edits must not resurrect the suppressed phrase.
+    await input.fill(`${name} today and then call the bank`);
+    await expect(preview).toContainText('Due date cleared');
+
+    // Replacing the phrase re-infers.
+    await input.fill(`${name} in 3 days`);
+    await expect(preview).toContainText('in 3 days resolves to');
+  });
+
+  test('keeps the capture controls usable at 320px', async ({ page }) => {
+    await openInbox(page, { width: 320, height: 568 });
+    await captureInput(page).fill(`${taskName('capture-touch')} today`);
+    await expect(datePreview(page)).toContainText('today resolves to');
+
+    for (const name of ['Change due date', 'Clear due date']) {
+      const box = await page.getByRole('button', { name }).boundingBox();
+      expect(box?.width ?? 0, `${name} width`).toBeGreaterThanOrEqual(44);
+      expect(box?.height ?? 0, `${name} height`).toBeGreaterThanOrEqual(44);
+    }
+
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      320,
+    );
+
+    await page.getByRole('button', { name: 'Change due date' }).click();
+    const panel = pickerPanel(page);
+    await expect(panel).toBeVisible();
+    // The overlay must not introduce a horizontal scrollbar at the narrowest width.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      320,
+    );
+
+    const navBox = await panel.locator('.date-picker-nav').first().boundingBox();
+    expect(navBox?.width ?? 0).toBeGreaterThanOrEqual(44);
+    expect(navBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+
+    // Day cells are sized by the 7-column grid rather than a fixed target, so
+    // they only get a floor here; the nav buttons carry the 44px guarantee.
+    const dayBox = await panel.locator('.date-picker-day').first().boundingBox();
+    expect(dayBox?.width ?? 0).toBeGreaterThanOrEqual(32);
+    expect(dayBox?.height ?? 0).toBeGreaterThanOrEqual(32);
+
+    // The trigger toggles the overlay closed again.
+    await panel.locator('.date-picker-trigger, .date-picker-nav').first().waitFor();
+    await page.locator('.capture-date-picker .date-picker-trigger').click();
+    await expect(page.locator('.date-picker-panel')).toHaveCount(0);
+  });
+
+  test('submits the inferred date during mobile quick capture', async ({ page }) => {
+    await openInbox(page, { width: 390, height: 844 });
+    const name = taskName('capture-submit');
+    await captureInput(page).fill(`${name} in 3 days`);
+    await expect(datePreview(page)).toContainText('in 3 days resolves to');
+
+    const dueDate = await page.evaluate(() => {
+      const target = new Date();
+      target.setDate(target.getDate() + 3);
+      const month = String(target.getMonth() + 1).padStart(2, '0');
+      const day = String(target.getDate()).padStart(2, '0');
+      return `${target.getFullYear()}-${month}-${day}`;
+    });
+
+    const createResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' && new URL(response.url()).pathname === '/tasks',
+    );
+    await page.getByRole('button', { name: 'Add Task', exact: true }).click();
+    const createResponse = await createResponsePromise;
+    expect(createResponse.status()).toBe(201);
+
+    const payload = createResponse.request().postDataJSON() as {
+      title?: string;
+      dueDate?: string;
+      simpleMode?: boolean;
+    };
+    expect(payload.title).toContain(name);
+    expect(payload.dueDate).toBe(dueDate);
+    expect(payload.simpleMode).toBe(false);
+
+    const created = (await createResponse.json()) as { dueDate?: string };
+    expect(created.dueDate).toBe(dueDate);
+
+    await expect(page.getByText(/" added to Upcoming/).first()).toBeVisible();
   });
 });
