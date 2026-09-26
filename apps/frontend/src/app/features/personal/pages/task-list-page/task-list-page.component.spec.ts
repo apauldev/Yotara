@@ -171,7 +171,7 @@ describe('TaskListPageComponent', () => {
       expect(mockTaskService.createTask).toHaveBeenCalled();
       const args = mockTaskService.createTask.calls.mostRecent().args[0];
       expect(args.title).toBe('Quick task');
-      expect(mockStatusService.success).toHaveBeenCalledWith('Task added to Inbox.');
+      expect(mockStatusService.success).toHaveBeenCalledWith('"Quick task" added to Inbox');
     });
 
     it('includes an inferred due date in the quick-create payload', async () => {
@@ -193,7 +193,9 @@ describe('TaskListPageComponent', () => {
       expect(payload.dueDate).toBe('2026-10-02');
       expect(payload.simpleMode).toBeFalse();
       expect(mockStatusService.success).toHaveBeenCalledWith(
-        jasmine.stringMatching(/Task added to (Today|Upcoming|Overdue) · due /),
+        jasmine.stringMatching(
+          /^"Quick task Friday" added to (Today|Upcoming|Overdue)( \(.+?\))? · due /,
+        ),
       );
     });
 

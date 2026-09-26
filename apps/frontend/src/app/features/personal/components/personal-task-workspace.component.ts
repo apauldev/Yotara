@@ -94,12 +94,16 @@ export class PersonalTaskWorkspaceComponent {
   protected async saveTask(event: SavePayload) {
     const wasCompleted =
       event.mode === 'update' ? (this.selectedTask()?.completed ?? false) : false;
+    const createdProjectId =
+      event.mode === 'create'
+        ? (event.payload.projectId ?? this.initialProjectId ?? undefined)
+        : undefined;
 
     try {
       if (event.mode === 'create') {
         await this.taskService.createTask({
           ...event.payload,
-          projectId: event.payload.projectId ?? this.initialProjectId ?? undefined,
+          projectId: createdProjectId,
         });
       } else {
         await this.taskService.updateTask(event.taskId, event.payload);
@@ -107,7 +111,13 @@ export class PersonalTaskWorkspaceComponent {
 
       if (event.mode === 'create') {
         this.statusService.success(
-          taskCreationNotification(event.payload.dueDate, event.payload.status ?? 'inbox'),
+          taskCreationNotification({
+            title: event.payload.title,
+            dueDate: event.payload.dueDate,
+            status: event.payload.status ?? 'inbox',
+            projects: this.projectService.projects(),
+            projectId: createdProjectId,
+          }),
         );
       }
 

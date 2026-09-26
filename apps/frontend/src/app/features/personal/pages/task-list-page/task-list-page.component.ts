@@ -256,16 +256,25 @@ export class TaskListPageComponent implements OnInit {
       if (behavior === 'quick') {
         try {
           const dueDate = dueDateDraft.source === 'cleared' ? '' : dueDateDraft.value;
+          const projectId = bar.getProjectId() || this.defaultCaptureProjectId() || undefined;
           await this.taskService.createTask({
             title,
             priority: priority || 'medium',
             labels: resolvedLabels,
-            projectId: bar.getProjectId() || this.defaultCaptureProjectId() || undefined,
+            projectId,
             status: 'inbox',
             ...(dueDate ? { dueDate } : {}),
             simpleMode: false,
           });
-          this.statusService.success(taskCreationNotification(dueDate, 'inbox'));
+          this.statusService.success(
+            taskCreationNotification({
+              title,
+              dueDate,
+              status: 'inbox',
+              projects: this.projectService.projects(),
+              projectId,
+            }),
+          );
           bar.resetCapture();
         } catch (_) {
           bar.setError('Failed to quick capture task.');

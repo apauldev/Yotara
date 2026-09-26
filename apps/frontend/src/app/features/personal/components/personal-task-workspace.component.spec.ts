@@ -264,7 +264,9 @@ describe('PersonalTaskWorkspaceComponent', () => {
       }),
     );
     expect(projectService.refresh).toHaveBeenCalled();
-    expect(statusServiceSpy.success).toHaveBeenCalledWith('Task added to Inbox.');
+    expect(statusServiceSpy.success).toHaveBeenCalledWith(
+      '"New task" added to Inbox (Launch Plan)',
+    );
     expect(savedSpy).toHaveBeenCalledWith('create');
     expect(workspace['modalOpen']()).toBeFalse();
     expect(workspace['selectedTask']()).toBeNull();
@@ -290,7 +292,9 @@ describe('PersonalTaskWorkspaceComponent', () => {
       },
     });
 
-    expect(statusServiceSpy.success).toHaveBeenCalledWith('Task added to Today.');
+    expect(statusServiceSpy.success).toHaveBeenCalledWith(
+      '"Plan the week" added to Today (Launch Plan)',
+    );
   });
 
   it('does not announce a destination when updating an existing task', async () => {

@@ -773,7 +773,7 @@ test.describe('Task modal on mobile', () => {
 
     await page.getByRole('button', { name: 'Create Task' }).click();
     // Manual creation without an NLP phrase still confirms the destination view.
-    await expect(page.getByText('Task added to Inbox.').first()).toBeVisible();
+    await expect(page.getByText(/" added to Inbox/).first()).toBeVisible();
     await page.waitForTimeout(1000);
     await page.waitForLoadState('networkidle');
 

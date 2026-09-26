@@ -114,7 +114,7 @@ test.describe('Task Modal CRUD', () => {
     expect(createResponse.status()).toBe(201);
     const payload = createResponse.request().postDataJSON() as { dueDate?: string };
     expect(payload.dueDate).toBeUndefined();
-    await expect(page.getByText('Task added to Inbox.').first()).toBeVisible();
+    await expect(page.getByText(/" added to Inbox/).first()).toBeVisible();
 
     await page.goto('/tasks?view=inbox');
     await page.waitForLoadState('networkidle');
@@ -157,7 +157,7 @@ test.describe('Task Modal CRUD', () => {
     const createdTask = (await createResponse.json()) as { dueDate?: string; title?: string };
     expect(createdTask.dueDate).toBe(manualDate.iso);
     expect(createdTask.title).toContain(name);
-    await expect(page.getByText(/Task added to Upcoming · due /).first()).toBeVisible();
+    await expect(page.getByText(/" added to Upcoming( \(.+?\))? · due /).first()).toBeVisible();
 
     const card = await findTaskCard(page, name);
     await card.click();
@@ -201,7 +201,7 @@ test.describe('Task Modal CRUD', () => {
     const createdTask = (await createResponse.json()) as { dueDate?: string; title?: string };
     expect(createdTask.dueDate).toBe(manualDate.iso);
     expect(createdTask.title).toContain(name);
-    await expect(page.getByText(/Task added to Upcoming · due /).first()).toBeVisible();
+    await expect(page.getByText(/" added to Upcoming( \(.+?\))? · due /).first()).toBeVisible();
 
     const card = await findTaskCard(page, name);
     await expect(card).toBeVisible({ timeout: 10_000 });
@@ -250,7 +250,7 @@ test.describe('Task Modal CRUD', () => {
     // Create task
     await page.getByRole('button', { name: 'Create Task' }).click();
     // A manually created task with no NLP phrase still confirms its destination.
-    await expect(page.getByText('Task added to Today.').first()).toBeVisible();
+    await expect(page.getByText(/" added to Today/).first()).toBeVisible();
     await page.waitForTimeout(1000);
     await page.waitForLoadState('networkidle');
 
