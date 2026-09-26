@@ -7,7 +7,10 @@ on:
     types: [created]
 
 jobs:
-  pr_agent_job:
+  # Primary reviewer: NVIDIA NIM, which speaks the OpenAI chat-completions API.
+  # pr-agent reaches it through its LiteLLM handler, where the openai/ prefix
+  # selects the OpenAI provider and OPENAI.API_BASE redirects it to NVIDIA.
+  review_primary:
     if: ${{ github.event.sender.type != 'Bot' }}
     runs-on: ubuntu-latest
     permissions:
@@ -19,9 +22,51 @@ jobs:
         uses: the-pr-agent/pr-agent@v0.41.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          config.model: 'openrouter/dots-studio/dots-3-note-preview:free'
-          config.fallback_models: '["openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"]'
-          config.custom_model_max_tokens: '524288'
+          OPENAI.KEY: ${{ secrets.NVIDIA_API_KEY }}
+          OPENAI.API_BASE: 'https://integrate.api.nvidia.com/v1'
+          config.model: 'openai/z-ai/glm-5.3-flash'
+          # Required, not optional. get_max_tokens() raises unless the model is
+          # in pr_agent/algo/__init__.py's MAX_TOKENS table or this is positive,
+          # and max_model_tokens caps whatever this resolves to. The published
+          # context for this model is 1M, so both are set to match; lower
+          # max_model_tokens to force smaller review prompts.
+          config.custom_model_max_tokens: '1000000'
+          config.max_model_tokens: '1000000'
+          github_action_config.auto_review: 'true'
+          github_action_config.auto_describe: 'true'
+          github_action_config.auto_improve: 'true'
+          github_action_config.pr_actions: '["opened", "reopened", "synchronize", "ready_for_review", "review_requested"]'
+
+  # Backup reviewer, only when the primary job fails.
+  #
+  # This is a separate job rather than config.fallback_models on purpose. The
+  # handler keeps a single api_base for every request, and its OpenRouter block
+  # overwrites the one set by OPENAI.API_BASE, so configuring both providers in
+  # one job would send the primary model to OpenRouter as well and break it.
+  # A fallback model can therefore only be one the same endpoint serves.
+  #
+  # Trade-off: if the primary fails after posting a partial review, both a
+  # partial and a full review end up on the PR.
+  review_backup:
+    needs: review_primary
+    if: ${{ failure() && github.event.sender.type != 'Bot' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: PR Agent action step
+        uses: the-pr-agent/pr-agent@v0.41.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          config.model: 'openrouter/stealth/space-bunny-alpha'
+          # Same reason as the primary job: without a positive value the action
+          # throws before it reviews anything. This model also publishes a 1M
+          # context, and max_model_tokens caps whatever custom resolves to, so
+          # both are set to match.
+          config.custom_model_max_tokens: '1000000'
+          config.max_model_tokens: '1000000'
           openrouter__key: ${{ secrets.OPENROUTER_REVIEW_KEY }}
           github_action_config.auto_review: 'true'
           github_action_config.auto_describe: 'true'
