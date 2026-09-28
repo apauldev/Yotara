@@ -433,6 +433,19 @@ describe('PersonalTaskModalComponent', () => {
       expect(component['dateDraftSource']()).toBe('cleared');
     });
 
+    it('clears an inferred date when title edits add a time or another date', () => {
+      openNewTaskWithDateDraft();
+
+      component['onTitleInput']('Call Sam Friday 3pm');
+      expect(component['dateDraftSource']()).toBe('cleared');
+      expect(component['draftDueDate']()).toBe('');
+
+      openNewTaskWithDateDraft();
+      component['onTitleInput']('Call Sam Friday and Monday');
+      expect(component['dateDraftSource']()).toBe('cleared');
+      expect(component['draftDueDate']()).toBe('');
+    });
+
     it('re-resolves an inferred phrase against the current day after midnight rolls over', () => {
       const staleDraft: DueDateDraft = {
         value: '2020-01-01',

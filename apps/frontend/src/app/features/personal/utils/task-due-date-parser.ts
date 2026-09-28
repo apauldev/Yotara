@@ -106,7 +106,7 @@ const RECURRING_TOKEN_PATTERN = /\b(?:every|each)\b/i;
 const RECURRING_BEFORE_PATTERN = /\b(?:every|each)\s+other\s*$/i;
 const VAGUE_TIME_TOKEN_PATTERN =
   /\b(?:morning|afternoon|evening|tonight|midnight|noon|eod|cob|close of business)\b/i;
-const UNSUPPORTED_RELATIVE_PATTERN = /\bin\s+[+-]?(?:\d+(?:\.\d+)?|\.\d+)\s+days?\b/i;
+const UNSUPPORTED_RELATIVE_PATTERN = /\bin\s+(?:[+-]?0+(?:\.\d+)?|[+-]?\d+\.\d+|\.\d+)\s+days?\b/i;
 const BARE_MONTH_PATTERN = new RegExp(`\\b(?:${MONTH_PATTERN})\\b`, 'i');
 const INVALID_RELATIVE_AFTER_PATTERN = /^[-–—/]/;
 const PUNCTUATION_ONLY_PATTERN = /^[.,;:!?)\]}]+$/;
@@ -196,6 +196,10 @@ export function parseTaskDueDate(input: string, reference: DateTime): TaskDueDat
   // resolve to Friday and quietly discard the date the user actually wrote.
   if (hasInvalidIsoDate(maskedInput)) {
     return createResult('invalid', referenceDate);
+  }
+
+  if (UNSUPPORTED_RELATIVE_PATTERN.test(maskedInput)) {
+    return createResult('unsupported', referenceDate);
   }
 
   const candidates = findCandidates(maskedInput);

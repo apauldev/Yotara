@@ -160,6 +160,8 @@ describe('parseTaskDueDate', () => {
       expectNoDate('Call Sam in -3 days');
       expectNoDate('Call Sam in 3.5 days');
       expectNoDate('Call Sam in 999999 days');
+      expect(parseTaskDueDate('Call Sam in 0 days Friday', monday).status).toBe('unsupported');
+      expect(parseTaskDueDate('Call Sam in 3.5 days tomorrow', monday).status).toBe('unsupported');
     });
   });
 

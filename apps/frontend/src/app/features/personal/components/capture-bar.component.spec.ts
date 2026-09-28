@@ -223,6 +223,17 @@ describe('CaptureBarComponent', () => {
       expect(fixture.componentInstance.getParserResult()?.status).toBe('unsupported');
     });
 
+    it('does not infer a valid date while an invalid relative expression remains', () => {
+      const fixture = createFixture();
+
+      fixture.componentInstance.setTitle('Call Sam in 0 days Friday');
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.getDueDateDraft().source).toBe('none');
+      expect(fixture.componentInstance.getParserResult()?.status).toBe('unsupported');
+      expect(fixture.debugElement.query(By.css('.capture-date-preview'))).toBeNull();
+    });
+
     it('does not show a preview for rejected input', () => {
       const fixture = createFixture();
 

@@ -268,8 +268,13 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
     }
 
     if (this.dateDraftSource() === 'inferred') {
+      const result = parseTaskDueDate(value, startOfToday());
       const match = this.findInferredDatePhrase(value);
-      if (!match) {
+      const samePhrase =
+        result.matchedText?.toLowerCase() === this.dateDraftMatchedText()?.toLowerCase();
+      const stillValid =
+        result.status === 'date' || (result.status === 'unsupported' && samePhrase);
+      if (!match || !stillValid) {
         this.clearDraftDueDate();
         return;
       }
