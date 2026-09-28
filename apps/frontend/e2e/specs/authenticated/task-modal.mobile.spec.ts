@@ -1,5 +1,5 @@
 import { test, expect, dismissTip } from '../../fixtures/auth';
-import type { Locator, Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 const taskName = (label: string) => `${label}-mobile-${Date.now()}`;
 const titlePlaceholder = 'Redesign sanctuary garden layout';
@@ -41,9 +41,9 @@ async function measureTouchTargets(page: Page, selectors: string[]) {
   return targets;
 }
 
-/** Scopes the picker lookups; the popover renders in a portal, so callers pass
- * the page when the picker is not a descendant of the element under test. */
-async function selectFutureDate(page: Page, root: Page | Locator, days = 7) {
+/** The picker popover renders into a document-level portal, so lookups always
+ * run against the page even when the picker was opened from nested UI. */
+async function selectFutureDate(page: Page, days = 7) {
   const target = await page.evaluate((offset) => {
     const date = new Date();
     date.setDate(date.getDate() + offset);
@@ -54,21 +54,35 @@ async function selectFutureDate(page: Page, root: Page | Locator, days = 7) {
         day: 'numeric',
         year: 'numeric',
       }).format(date),
+      monthLabel: new Intl.DateTimeFormat('en-US', {
+        month: 'long',
+        year: 'numeric',
+      }).format(date),
     };
   }, days);
-  const panel = root.locator('.date-picker-panel').last();
+  const panel = page.locator('.date-picker-panel').last();
   await expect(panel).toBeVisible();
+  const monthLabel = panel.locator('.date-picker-month');
 
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const day = panel.locator(`.date-picker-day[aria-label="${target.label}"]`);
-    if (await day.isVisible().catch(() => false)) {
-      await day.evaluate((element: HTMLElement) => element.click());
-      return;
-    }
-    await root.locator('.date-picker-nav:visible').last().click({ force: true });
+  // The calendar re-renders asynchronously after each navigation click, so wait
+  // for the target month to actually display instead of assuming one click is
+  // enough. Clicking blindly overshoots and the detached click then silently
+  // no-ops, surfacing pages later as a stale preview.
+  for (
+    let attempt = 0;
+    attempt < 6 && (await monthLabel.textContent()) !== target.monthLabel;
+    attempt += 1
+  ) {
+    await page.locator('.date-picker-nav:visible').last().click({ force: true });
+    await expect(monthLabel).toHaveText(target.monthLabel, { timeout: 5_000 });
   }
+  await expect(monthLabel).toHaveText(target.monthLabel);
 
-  throw new Error('Could not select a future date in the mobile picker');
+  const day = panel.locator(`.date-picker-day[aria-label="${target.label}"]`);
+  await day.click();
+  // Selecting a date closes the popover; failing here means the click missed
+  // rather than surfacing pages later as a stale preview.
+  await expect(panel).toHaveCount(0);
 }
 
 test.describe.configure({ mode: 'serial' });
@@ -269,12 +283,15 @@ test.describe('Task modal on mobile', () => {
     }
 
     await dialog.getByRole('button', { name: 'Change due date' }).click();
-    await expect(detailsToggle).toHaveAttribute('aria-expanded', 'true');
     await expect(page.locator('.date-picker-panel')).toBeVisible();
     expect(
       await page.evaluate(() => document.activeElement?.classList.contains('date-picker-nav')),
     ).toBe(true);
-    await selectFutureDate(page, page, 2);
+    await selectFutureDate(page, 2);
+    // Change expands the collapsed details, but the toggle lives in the task
+    // modal behind the picker popover, so it is only resolvable once the
+    // popover closes after the date is picked.
+    await expect(detailsToggle).toHaveAttribute('aria-expanded', 'true');
     await expect(page.locator('#task-date-preview')).not.toContainText('today resolves to');
 
     await dialog.getByRole('button', { name: 'Clear due date' }).click();
@@ -912,7 +929,7 @@ test.describe('Capture bar on mobile', () => {
       await page.evaluate(() => document.activeElement?.classList.contains('date-picker-nav')),
     ).toBe(true);
 
-    await selectFutureDate(page, page);
+    await selectFutureDate(page);
     await expect(datePreview(page)).not.toContainText('today resolves to');
     await expect(datePreview(page)).toContainText('Due ');
   });

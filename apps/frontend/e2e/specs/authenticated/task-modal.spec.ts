@@ -1,5 +1,5 @@
 import { test, expect, dismissTip } from '../../fixtures/auth';
-import type { Locator, Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 const taskName = (label: string) => `${label}-modal-${Date.now()}`;
 
@@ -19,6 +19,7 @@ interface CalendarDate {
   iso: string;
   accessibleLabel: string;
   displayLabel: string;
+  monthLabel: string;
 }
 
 async function calendarDateAfter(page: Page, days: number): Promise<CalendarDate> {
@@ -41,24 +42,40 @@ async function calendarDateAfter(page: Page, days: number): Promise<CalendarDate
         day: 'numeric',
         year: 'numeric',
       }).format(date),
+      monthLabel: new Intl.DateTimeFormat('en-US', {
+        month: 'long',
+        year: 'numeric',
+      }).format(date),
     };
   }, days);
 }
 
-async function selectCalendarDate(page: Page, target: CalendarDate, root: Locator) {
-  const panel = root.locator('.date-picker-panel').last();
+async function selectCalendarDate(page: Page, target: CalendarDate) {
+  // The picker popover renders into a document-level portal, so always query
+  // from the page: scoping to a component locator misses the panel entirely.
+  const panel = page.locator('.date-picker-panel').last();
   await expect(panel).toBeVisible();
+  const monthLabel = panel.locator('.date-picker-month');
 
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const day = panel.locator(`.date-picker-day[aria-label="${target.accessibleLabel}"]`);
-    if (await day.isVisible().catch(() => false)) {
-      await day.evaluate((element: HTMLElement) => element.click());
-      return;
-    }
-    await root.locator('.date-picker-nav:visible').last().click({ force: true });
+  // The calendar re-renders asynchronously after each navigation click, so wait
+  // for the target month to actually display instead of assuming one click is
+  // enough. Clicking blindly overshoots (e.g. landing on November for an
+  // October target) and the detached click then silently no-ops.
+  for (
+    let attempt = 0;
+    attempt < 6 && (await monthLabel.textContent()) !== target.monthLabel;
+    attempt += 1
+  ) {
+    await page.locator('.date-picker-nav:visible').last().click({ force: true });
+    await expect(monthLabel).toHaveText(target.monthLabel, { timeout: 5_000 });
   }
+  await expect(monthLabel).toHaveText(target.monthLabel);
 
-  throw new Error(`Could not select calendar date ${target.iso}`);
+  const day = panel.locator(`.date-picker-day[aria-label="${target.accessibleLabel}"]`);
+  await day.click();
+  // Selecting a date closes the popover; failing here means the click missed
+  // rather than surfacing pages later as a stale preview.
+  await expect(panel).toHaveCount(0);
 }
 
 test.describe.configure({ mode: 'serial' });
@@ -138,7 +155,7 @@ test.describe('Task Modal CRUD', () => {
     await page.getByPlaceholder("What's on your mind today?").fill(`${name} today`);
     await expect(page.locator('#capture-date-preview')).toContainText('today resolves to');
     await page.getByRole('button', { name: 'Change due date' }).click();
-    await selectCalendarDate(page, manualDate, page.locator('body'));
+    await selectCalendarDate(page, manualDate);
     await expect(page.locator('#capture-date-preview')).toContainText(manualDate.displayLabel);
 
     const createResponsePromise = page.waitForResponse(
@@ -182,7 +199,7 @@ test.describe('Task Modal CRUD', () => {
 
     const dialog = page.getByRole('dialog');
     await dialog.getByRole('button', { name: 'Change due date' }).click();
-    await selectCalendarDate(page, manualDate, dialog);
+    await selectCalendarDate(page, manualDate);
     await expect(page.locator('#task-date-preview')).toContainText(manualDate.displayLabel);
 
     const createResponsePromise = page.waitForResponse(
