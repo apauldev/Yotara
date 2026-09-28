@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.78.0](https://github.com/apauldev/Yotara/compare/v0.77.3...v0.78.0) (2026-09-28)
+
+
+### Features
+
+* **frontend:** natural-language due-date preview for new tasks ([#384](https://github.com/apauldev/Yotara/issues/384)) ([dad161f](https://github.com/apauldev/Yotara/commit/dad161ff8265a75cffef6414173f01a7ddc87722))
+
 ## [0.77.3](https://github.com/apauldev/Yotara/compare/v0.77.2...v0.77.3) (2026-09-24)
 
 
