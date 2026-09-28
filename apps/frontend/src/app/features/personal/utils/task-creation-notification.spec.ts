@@ -57,6 +57,34 @@ describe('task creation notifications', () => {
     ).toBe('"Buy milk" added to Inbox');
   });
 
+  it('omits the bucket when the task lands in the default project', () => {
+    // A default project named "Inbox" would otherwise read as the destination
+    // view on a dated task that actually lands in Upcoming.
+    expect(
+      taskCreationNotification({
+        title: 'Pay rent in 15 days',
+        dueDate: '2026-10-10',
+        projectId: 'inbox-1',
+        defaultProjectId: 'inbox-1',
+        projects,
+        reference,
+      }),
+    ).toBe('"Pay rent in 15 days" added to Upcoming · due Sat, Oct 10, 2026');
+  });
+
+  it('still names a project chosen outside the default', () => {
+    expect(
+      taskCreationNotification({
+        title: 'Pay rent in 15 days',
+        dueDate: '2026-10-10',
+        projectId: 'home-1',
+        defaultProjectId: 'inbox-1',
+        projects,
+        reference,
+      }),
+    ).toBe('"Pay rent in 15 days" added to Upcoming (Home) · due Sat, Oct 10, 2026');
+  });
+
   it('truncates a long title so the toast stays readable', () => {
     const message = taskCreationNotification({
       title: 'Renew the passport and ship the quarterly report before Friday',

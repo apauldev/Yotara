@@ -273,6 +273,7 @@ export class TaskListPageComponent implements OnInit {
               status: 'inbox',
               projects: this.projectService.projects(),
               projectId,
+              defaultProjectId: this.defaultCaptureProjectId() || undefined,
             }),
           );
           bar.resetCapture();

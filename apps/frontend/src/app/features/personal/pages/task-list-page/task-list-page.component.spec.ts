@@ -193,9 +193,10 @@ describe('TaskListPageComponent', () => {
       expect(payload.dueDate).toBe('2026-10-02');
       expect(payload.simpleMode).toBeFalse();
       expect(mockStatusService.success).toHaveBeenCalledWith(
-        jasmine.stringMatching(
-          /^"Quick task Friday" added to (Today|Upcoming|Overdue)( \(.+?\))? · due /,
-        ),
+        // The default project is never named as a bucket: a default project
+        // called "Inbox" would otherwise read as the destination view on a
+        // dated task that actually lands in Today/Upcoming/Overdue.
+        jasmine.stringMatching(/^"Quick task Friday" added to (Today|Upcoming|Overdue) · due /),
       );
     });
 

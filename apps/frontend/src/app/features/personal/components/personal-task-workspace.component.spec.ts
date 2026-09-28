@@ -264,9 +264,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
       }),
     );
     expect(projectService.refresh).toHaveBeenCalled();
-    expect(statusServiceSpy.success).toHaveBeenCalledWith(
-      '"New task" added to Inbox (Launch Plan)',
-    );
+    expect(statusServiceSpy.success).toHaveBeenCalledWith('"New task" added to Inbox');
     expect(savedSpy).toHaveBeenCalledWith('create');
     expect(workspace['modalOpen']()).toBeFalse();
     expect(workspace['selectedTask']()).toBeNull();
@@ -292,8 +290,32 @@ describe('PersonalTaskWorkspaceComponent', () => {
       },
     });
 
+    expect(statusServiceSpy.success).toHaveBeenCalledWith('"Plan the week" added to Today');
+  });
+
+  it('names the bucket when the task lands outside the default project', async () => {
+    fixture.componentInstance.initialProjectId = 'project-2';
+    fixture.detectChanges();
+
+    const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
+      .componentInstance as PersonalTaskWorkspaceComponent;
+
+    await workspace['saveTask']({
+      mode: 'create',
+      payload: {
+        title: 'Buy milk',
+        description: '',
+        status: 'inbox',
+        priority: 'medium',
+        dueDate: undefined,
+        simpleMode: true,
+        bucket: 'personal-sanctuary',
+        projectId: 'project-1',
+      },
+    });
+
     expect(statusServiceSpy.success).toHaveBeenCalledWith(
-      '"Plan the week" added to Today (Launch Plan)',
+      '"Buy milk" added to Inbox (Launch Plan)',
     );
   });
 

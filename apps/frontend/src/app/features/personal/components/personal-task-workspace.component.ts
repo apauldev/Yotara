@@ -117,6 +117,7 @@ export class PersonalTaskWorkspaceComponent {
             status: event.payload.status ?? 'inbox',
             projects: this.projectService.projects(),
             projectId: createdProjectId,
+            defaultProjectId: this.initialProjectId ?? undefined,
           }),
         );
       }
