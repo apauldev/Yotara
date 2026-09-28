@@ -99,7 +99,7 @@ test.describe('Task Modal CRUD', () => {
 
     await page.getByRole('button', { name: 'Change due date' }).click();
     await expect(page.locator('.date-picker-panel')).toBeVisible();
-    await page.locator('.capture-date-picker .date-picker-trigger').click();
+    await page.getByPlaceholder("What's on your mind today?").click();
     await expect(page.locator('.date-picker-panel')).not.toBeVisible();
 
     await page.getByRole('button', { name: 'Clear due date' }).click();

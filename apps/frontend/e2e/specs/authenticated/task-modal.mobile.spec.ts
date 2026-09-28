@@ -43,10 +43,10 @@ async function measureTouchTargets(page: Page, selectors: string[]) {
 
 /** Scopes the picker lookups; the popover renders in a portal, so callers pass
  * the page when the picker is not a descendant of the element under test. */
-async function selectFutureDate(page: Page, root: Page | Locator) {
-  const target = await page.evaluate(() => {
+async function selectFutureDate(page: Page, root: Page | Locator, days = 7) {
+  const target = await page.evaluate((offset) => {
     const date = new Date();
-    date.setDate(date.getDate() + 7);
+    date.setDate(date.getDate() + offset);
     return {
       label: new Intl.DateTimeFormat('en-US', {
         weekday: 'long',
@@ -55,7 +55,7 @@ async function selectFutureDate(page: Page, root: Page | Locator) {
         year: 'numeric',
       }).format(date),
     };
-  });
+  }, days);
   const panel = root.locator('.date-picker-panel').last();
   await expect(panel).toBeVisible();
 
@@ -248,18 +248,18 @@ test.describe('Task modal on mobile', () => {
     await page.getByPlaceholder("What's on your mind today?").fill(`${name} today`);
     await page.getByRole('button', { name: 'Add task with details' }).click();
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    const dialog = page.getByRole('dialog');
     const preview = page.locator('#task-date-preview');
     await expect(preview).toBeVisible();
     await expect(preview).toHaveAttribute('aria-live', 'polite');
     await expect(preview).toContainText('today resolves to');
 
-    const detailsToggle = page.getByRole('button', { name: /More details/ });
+    const detailsToggle = dialog.locator('.details-toggle');
     await expect(detailsToggle).toHaveAttribute('aria-expanded', 'true');
     await detailsToggle.click();
     await expect(detailsToggle).toHaveAttribute('aria-expanded', 'false');
     await expect(preview).toBeVisible();
 
-    const dialog = page.getByRole('dialog');
     const previewActions = dialog.locator('.date-preview-action');
     await expect(previewActions).toHaveCount(2);
     for (let index = 0; index < 2; index += 1) {
@@ -274,7 +274,7 @@ test.describe('Task modal on mobile', () => {
     expect(
       await page.evaluate(() => document.activeElement?.classList.contains('date-picker-nav')),
     ).toBe(true);
-    await selectFutureDate(page, dialog);
+    await selectFutureDate(page, page, 2);
     await expect(page.locator('#task-date-preview')).not.toContainText('today resolves to');
 
     await dialog.getByRole('button', { name: 'Clear due date' }).click();

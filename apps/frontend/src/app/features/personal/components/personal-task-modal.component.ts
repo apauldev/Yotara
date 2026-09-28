@@ -350,6 +350,12 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
     }
     this.showAdvanced.set(true);
     this.cdr.detectChanges();
+    const datePickerTrigger = this.host.nativeElement.querySelector(
+      '.schedule-picker .date-picker-trigger',
+    );
+    if (datePickerTrigger instanceof HTMLElement) {
+      datePickerTrigger.scrollIntoView({ block: 'center' });
+    }
     this.scheduleDatePicker()?.open();
   }
 
