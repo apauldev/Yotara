@@ -38,6 +38,7 @@
     "@types/luxon": "^3.7.5",
     "@yotara/shared": "workspace:*",
     "better-auth": "^1.5.4",
+    "chrono-node": "2.10.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "dompurify": "^3.4.8",

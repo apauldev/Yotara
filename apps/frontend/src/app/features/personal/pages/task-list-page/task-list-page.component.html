@@ -1,6 +1,7 @@
 <app-personal-task-workspace
   #workspace
   [initialTitle]="viewMode() === 'inbox' ? (captureBar()?.getTitle() ?? '') : ''"
+  [initialDueDateDraft]="viewMode() === 'inbox' ? (captureBar()?.getDueDateDraft() ?? null) : null"
   (taskSaved)="handleTaskSaved($event)"
 >
   <section class="page" [attr.data-view]="viewMode()">
