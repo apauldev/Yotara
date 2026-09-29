@@ -61,7 +61,7 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
                 [attr.aria-label]="(notif.read ? '' : 'Unread: ') + notif.title + ': ' + notif.body"
               >
                 <div class="notification-type-badge" [class]="'badge-' + notif.type">
-                  {{ notif.type === 'due_today' ? 'Today' : 'Overdue' }}
+                  {{ typeLabel(notif.type) }}
                 </div>
                 <div class="notification-body">
                   <strong>{{ notif.title }}</strong>
@@ -223,6 +223,11 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
         color: var(--error-solid);
       }
 
+      .badge-due_time {
+        background: var(--warning-soft);
+        color: var(--status-pending);
+      }
+
       .notification-body {
         flex: 1;
         display: flex;
@@ -296,6 +301,17 @@ export class NotificationsPageComponent implements OnInit {
   async ngOnInit() {
     await this.service.fetchNotifications();
     await this.service.fetchUnreadCount();
+  }
+
+  protected typeLabel(type: Notification['type']): string {
+    switch (type) {
+      case 'due_time':
+        return 'Now';
+      case 'due_today':
+        return 'Today';
+      default:
+        return 'Overdue';
+    }
   }
 
   async markRead(notif: Notification) {

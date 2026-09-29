@@ -165,7 +165,7 @@ export type UpdateProjectDto = Partial<CreateProjectDto>;
 
 // ─── Notification Types ─────────────────────────────────────────────────────
 
-export type NotificationType = 'due_today' | 'overdue';
+export type NotificationType = 'due_today' | 'overdue' | 'due_time';
 
 export interface Notification {
   id: string;

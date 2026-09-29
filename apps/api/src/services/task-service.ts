@@ -401,6 +401,7 @@ function createTaskForOwnerSync(ownerId: string, body: CreateTaskDto, tz?: strin
         id,
         title: payload.title,
         dueDate: payload.dueDate ?? null,
+        dueTime: payload.dueTime ?? null,
         completed: false,
       },
       tz,
@@ -601,13 +602,15 @@ function updateTaskForOwnerSync(
     // the task transitions from completed back to incomplete (undone) and
     // is now due/overdue. Avoid write amplification on unrelated edits.
     const prevDueDate = current.dueDate ?? null;
+    const prevDueTime = current.dueTime ?? null;
     const wasCompleted = current.completed;
     const isNowIncomplete = completed === false || (body.completed === undefined && !wasCompleted);
 
     const dueDateChanged = nextDueDate !== prevDueDate;
+    const dueTimeChanged = nextDueTime !== prevDueTime;
     const becameUndone = wasCompleted && isNowIncomplete;
 
-    if (dueDateChanged || becameUndone) {
+    if (dueDateChanged || dueTimeChanged || becameUndone) {
       createDueNotificationIfNeeded(
         client,
         ownerId,
@@ -615,6 +618,7 @@ function updateTaskForOwnerSync(
           id: taskId,
           title: body.title?.trim() || current.title,
           dueDate: nextDueDate ?? null,
+          dueTime: nextDueTime,
           completed,
         },
         tz,

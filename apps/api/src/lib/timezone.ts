@@ -4,13 +4,13 @@ import { DateTime } from 'luxon';
  * Compute today's date (YYYY-MM-DD) in a given IANA timezone.
  * Falls back to UTC if the timezone is invalid or undefined.
  */
-export function todayInTimezone(tz?: string): string {
+export function todayInTimezone(tz?: string, now: DateTime = DateTime.now()): string {
   if (!tz) {
-    return DateTime.now().setZone('UTC').toFormat('yyyy-MM-dd');
+    return now.setZone('UTC').toFormat('yyyy-MM-dd');
   }
-  const dt = DateTime.now().setZone(tz);
+  const dt = now.setZone(tz);
   const zone = dt.isValid ? tz : 'UTC';
-  return DateTime.now().setZone(zone).toFormat('yyyy-MM-dd');
+  return now.setZone(zone).toFormat('yyyy-MM-dd');
 }
 
 /**

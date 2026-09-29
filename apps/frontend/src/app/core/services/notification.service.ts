@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import type { Notification as AppNotification } from '@yotara/shared';
 import { PreferencesStore } from './preferences-store.service';
+import { getUserTimezone } from '../../shared/utils/timezone';
 import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
@@ -23,9 +24,11 @@ export class NotificationService {
   readonly isSupported = typeof globalThis.Notification !== 'undefined';
 
   async fetchNotifications(limit = 50): Promise<void> {
+    // The server evaluates due-state in the user's timezone, so every
+    // notification call must carry it.
     const result = await firstValueFrom(
       this.http.get<AppNotification[]>(`${this.baseUrl}/notifications`, {
-        params: { limit: String(limit) },
+        params: { limit: String(limit), tz: getUserTimezone() },
         withCredentials: true,
       }),
     );
@@ -35,6 +38,7 @@ export class NotificationService {
   async fetchUnreadCount(): Promise<void> {
     const result = await firstValueFrom(
       this.http.get<{ count: number }>(`${this.baseUrl}/notifications/unread-count`, {
+        params: { tz: getUserTimezone() },
         withCredentials: true,
       }),
     );

@@ -3,6 +3,7 @@ import { provideHttpClientTesting, HttpTestingController } from '@angular/common
 import { provideHttpClient, withXhr } from '@angular/common/http';
 import { NotificationService } from './notification.service';
 import { PreferencesStore } from './preferences-store.service';
+import { getUserTimezone } from '../../shared/utils/timezone';
 import { environment } from '../../../environments/environment';
 import type { Notification as AppNotification } from '@yotara/shared';
 
@@ -51,18 +52,18 @@ describe('NotificationService', () => {
     httpMock.verify();
   });
 
-  it('fetchNotifications populates the signal', async () => {
+  it('fetchNotifications populates the signal and sends the timezone', async () => {
     const promise = service.fetchNotifications(10);
-    const req = httpMock.expectOne(`${baseUrl}/notifications?limit=10`);
+    const req = httpMock.expectOne(`${baseUrl}/notifications?limit=10&tz=${getUserTimezone()}`);
     req.flush(mockNotifications);
     await promise;
 
     expect(service.notifications()).toEqual(mockNotifications);
   });
 
-  it('fetchUnreadCount populates the signal', async () => {
+  it('fetchUnreadCount populates the signal and sends the timezone', async () => {
     const promise = service.fetchUnreadCount();
-    const req = httpMock.expectOne(`${baseUrl}/notifications/unread-count`);
+    const req = httpMock.expectOne(`${baseUrl}/notifications/unread-count?tz=${getUserTimezone()}`);
     req.flush({ count: 3 });
     await promise;
 
@@ -118,7 +119,9 @@ describe('NotificationService', () => {
     tick();
 
     // flush fetchUnreadCount GET inside markAsRead
-    const countReq = httpMock.expectOne(`${baseUrl}/notifications/unread-count`);
+    const countReq = httpMock.expectOne(
+      `${baseUrl}/notifications/unread-count?tz=${getUserTimezone()}`,
+    );
     countReq.flush({ count: 0 });
     tick();
 

@@ -6,6 +6,7 @@ import { Router, provideRouter } from '@angular/router';
 import { PersonalShellComponent } from './personal-shell.component';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { DueTimeSchedulerService } from '../../../core/services/due-time-scheduler.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { APP_VERSION } from '../../../core/constants/version';
 
@@ -72,10 +73,31 @@ describe('PersonalShellComponent', () => {
             markAsRead: jasmine.createSpy('markAsRead').and.resolveTo(),
           },
         },
+        {
+          provide: DueTimeSchedulerService,
+          useValue: {
+            start: jasmine.createSpy('start'),
+            stop: jasmine.createSpy('stop'),
+          },
+        },
       ],
     }).compileComponents();
 
     preferences = TestBed.inject(PreferencesStore);
+  });
+
+  it('starts the due-time scheduler while authenticated and stops it on destroy', () => {
+    const fixture = TestBed.createComponent(PersonalShellComponent);
+    fixture.detectChanges();
+
+    const scheduler = TestBed.inject(DueTimeSchedulerService) as unknown as {
+      start: jasmine.Spy;
+      stop: jasmine.Spy;
+    };
+    expect(scheduler.start).toHaveBeenCalled();
+
+    fixture.destroy();
+    expect(scheduler.stop).toHaveBeenCalled();
   });
 
   it('renders the personal navigation in the planned order', () => {

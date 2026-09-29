@@ -549,7 +549,7 @@ const notificationSchema = {
   properties: {
     id: { type: 'string' },
     taskId: { type: 'string' },
-    type: { type: 'string', enum: ['due_today', 'overdue'] },
+    type: { type: 'string', enum: ['due_today', 'overdue', 'due_time'] },
     title: { type: 'string' },
     body: { type: 'string' },
     read: { type: 'boolean' },
