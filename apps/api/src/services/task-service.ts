@@ -28,6 +28,7 @@ function normalizeCreatePayload(body: CreateTaskDto): CreateTaskDto {
     status: body.status ?? 'inbox',
     priority: body.priority ?? 'medium',
     dueDate: body.simpleMode ? undefined : body.dueDate,
+    dueTime: body.simpleMode ? undefined : body.dueTime,
   };
 }
 
@@ -76,6 +77,7 @@ export function toTask(task: TaskRow, labelIds: string[] = []): Task {
     priority: task.priority as 'low' | 'medium' | 'high',
     completed: task.completed,
     dueDate: task.dueDate ?? undefined,
+    dueTime: task.dueTime ?? undefined,
     simpleMode: task.simpleMode,
     projectId: task.projectId ?? undefined,
     parentId: task.parentId ?? undefined,
@@ -339,6 +341,10 @@ function createTaskForOwnerSync(ownerId: string, body: CreateTaskDto, tz?: strin
     const now = nowIsoTimestamp();
     const id = randomUUID();
 
+    if (payload.dueTime && !payload.dueDate) {
+      throw new BadRequestError('A due time requires a due date');
+    }
+
     if (payload.parentId) {
       if (payload.parentId === id) {
         throw new BadRequestError('A task cannot be its own parent');
@@ -370,6 +376,7 @@ function createTaskForOwnerSync(ownerId: string, body: CreateTaskDto, tz?: strin
         status: payload.status,
         priority: payload.priority,
         dueDate: payload.dueDate,
+        dueTime: payload.dueTime,
         simpleMode: payload.simpleMode ?? false,
         projectId,
         parentId: payload.parentId ?? null,
@@ -495,6 +502,19 @@ function updateTaskForOwnerSync(
         );
       }
     }
+
+    const nextDueDate = simpleMode ? null : (body.dueDate ?? current.dueDate);
+    // null clears a persisted time; undefined leaves it unchanged.
+    const nextDueTime = simpleMode
+      ? null
+      : body.dueTime === undefined
+        ? current.dueTime
+        : body.dueTime;
+
+    if (nextDueTime && !nextDueDate) {
+      throw new BadRequestError('A due time requires a due date');
+    }
+
     const nextRecurrenceRule =
       body.recurrenceRule === null
         ? null
@@ -559,19 +579,15 @@ function updateTaskForOwnerSync(
         title: body.title?.trim() || current.title,
         description: body.description ?? current.description,
         priority: body.priority ?? current.priority,
-        dueDate: simpleMode ? null : (body.dueDate ?? current.dueDate),
+        dueDate: nextDueDate,
+        dueTime: nextDueTime,
         simpleMode,
         projectId: nextProjectId,
         parentId: nextParentId,
         recurrenceRule: nextRecurrenceRule,
         order: body.order ?? current.order,
         completed,
-        status: normalizeStatusOnCompletion(
-          status,
-          completed,
-          simpleMode ? null : (body.dueDate ?? current.dueDate),
-          tz,
-        ),
+        status: normalizeStatusOnCompletion(status, completed, nextDueDate, tz),
         archivedAt: nextArchivedAt,
         permanentArchive: completed ? nextPermanentArchive : false,
         updatedAt: nowIsoTimestamp(),
@@ -586,7 +602,6 @@ function updateTaskForOwnerSync(
     // is now due/overdue. Avoid write amplification on unrelated edits.
     const prevDueDate = current.dueDate ?? null;
     const wasCompleted = current.completed;
-    const nextDueDate = simpleMode ? null : (body.dueDate ?? current.dueDate);
     const isNowIncomplete = completed === false || (body.completed === undefined && !wasCompleted);
 
     const dueDateChanged = nextDueDate !== prevDueDate;

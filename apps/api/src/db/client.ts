@@ -87,6 +87,7 @@ const SQLITE_BOOTSTRAP_SQL = `
     completed INTEGER NOT NULL DEFAULT 0,
     sort_order INTEGER NOT NULL DEFAULT 0,
     due_date TEXT,
+    due_time TEXT,
     simple_mode INTEGER NOT NULL DEFAULT 0,
     bucket TEXT DEFAULT 'personal-sanctuary',
     project_id TEXT,
@@ -344,6 +345,10 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
       sqlite.exec(
         `ALTER TABLE tasks ADD COLUMN project_id TEXT REFERENCES projects(id) ON DELETE SET NULL`,
       );
+    }
+
+    if (!taskColumnNames.has('due_time')) {
+      sqlite.exec(`ALTER TABLE tasks ADD COLUMN due_time TEXT`);
     }
 
     if (!taskColumnNames.has('archived_at')) {

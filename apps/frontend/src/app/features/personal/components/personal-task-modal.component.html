@@ -305,6 +305,15 @@
           [invalid]="!!dueDateError()"
           [describedBy]="dueDateError() ? 'task-due-date-error' : null"
         />
+        <label class="field-label" for="task-due-time">Due time</label>
+        <input
+          id="task-due-time"
+          type="time"
+          name="taskDueTime"
+          [ngModel]="draftDueTime()"
+          (ngModelChange)="onDraftDueTimeChange($event)"
+          [disabled]="draftSimpleMode() || !draftDueDate()"
+        />
         @if (dueDateError()) {
           <p id="task-due-date-error" class="field-error-message">{{ dueDateError() }}</p>
         }

@@ -272,6 +272,12 @@ select:focus {
   transform: translateY(-1px);
 }
 
+input:disabled,
+select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 input.field-error,
 textarea.field-error,
 select.field-error {

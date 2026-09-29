@@ -18,6 +18,7 @@ const testLabel: Label = {
 
 const inferredDateDraft: DueDateDraft = {
   value: '2026-10-02',
+  dueTime: null,
   source: 'inferred',
   matchedText: 'Friday',
   matchStart: 9,
@@ -449,6 +450,7 @@ describe('PersonalTaskModalComponent', () => {
     it('re-resolves an inferred phrase against the current day after midnight rolls over', () => {
       const staleDraft: DueDateDraft = {
         value: '2020-01-01',
+        dueTime: null,
         source: 'inferred',
         matchedText: 'today',
         matchStart: 9,
@@ -467,6 +469,7 @@ describe('PersonalTaskModalComponent', () => {
     it('leaves a manual selection alone when the day rolls over', () => {
       const manualDraft: DueDateDraft = {
         value: '2026-11-11',
+        dueTime: null,
         source: 'manual',
         matchedText: null,
         matchStart: null,
@@ -631,6 +634,225 @@ describe('PersonalTaskModalComponent', () => {
           }),
         }),
       );
+    });
+
+    it('hydrates a time-bearing handoff draft and includes it in the create payload', () => {
+      const inferredDateTimeDraft: DueDateDraft = {
+        value: '2026-10-02',
+        dueTime: '15:00',
+        source: 'inferred',
+        matchedText: 'Friday at 3pm',
+        matchStart: 9,
+        matchEnd: 22,
+      };
+      fixture.componentRef.setInput('initialTitle', 'Call Sam Friday at 3pm');
+      fixture.componentRef.setInput('initialDueDateDraft', inferredDateTimeDraft);
+      fixture.componentRef.setInput('open', true);
+      fixture.detectChanges();
+
+      expect(component['draftDueTime']()).toBe('15:00');
+      const preview = fixture.debugElement.query(By.css('.date-preview'));
+      expect(preview.nativeElement.textContent).toContain('Friday at 3pm resolves to');
+      expect(preview.nativeElement.textContent).toContain('3:00 PM');
+
+      const saveSpy = spyOn(component['save'], 'emit');
+      component['submit']();
+      expect(saveSpy).toHaveBeenCalledWith(
+        jasmine.objectContaining({
+          mode: 'create',
+          payload: jasmine.objectContaining({
+            dueDate: '2026-10-02',
+            dueTime: '15:00',
+            simpleMode: false,
+          }),
+        }),
+      );
+    });
+
+    it('keeps a time-bearing inferred draft through unrelated title edits', () => {
+      const inferredDateTimeDraft: DueDateDraft = {
+        value: '2026-10-02',
+        dueTime: '15:00',
+        source: 'inferred',
+        matchedText: 'Friday at 3pm',
+        matchStart: 9,
+        matchEnd: 22,
+      };
+      fixture.componentRef.setInput('initialTitle', 'Call Sam Friday at 3pm');
+      fixture.componentRef.setInput('initialDueDateDraft', inferredDateTimeDraft);
+      fixture.componentRef.setInput('open', true);
+      fixture.detectChanges();
+
+      component['onTitleInput']('Call Sam and Jane Friday at 3pm');
+      fixture.detectChanges();
+
+      expect(component['draftDueDate']()).toBe('2026-10-02');
+      expect(component['draftDueTime']()).toBe('15:00');
+      expect(component['dateDraftSource']()).toBe('inferred');
+    });
+
+    it('refreshes date and time together after midnight rolls over', () => {
+      const staleTimedDraft: DueDateDraft = {
+        value: '2020-01-01',
+        dueTime: '15:00',
+        source: 'inferred',
+        matchedText: 'today at 3pm',
+        matchStart: 9,
+        matchEnd: 21,
+      };
+      openNewTaskWithDateDraft(staleTimedDraft, 'Call Sam today at 3pm');
+      expect(component['draftDueDate']()).toBe('2020-01-01');
+
+      component['refreshInferredDueDate']();
+
+      expect(component['draftDueDate']()).toBe(DateTime.local().toISODate());
+      expect(component['draftDueTime']()).toBe('15:00');
+      expect(component['dateDraftSource']()).toBe('inferred');
+    });
+  });
+
+  describe('Due time (manual entry)', () => {
+    function openNewTask() {
+      fixture.componentRef.setInput('open', true);
+      fixture.detectChanges();
+    }
+
+    function openExistingTask(dueDate: string, dueTime?: string) {
+      fixture.componentRef.setInput('task', {
+        id: 'timed-task',
+        title: 'Timed task',
+        description: '',
+        status: 'inbox',
+        priority: 'medium',
+        completed: false,
+        simpleMode: false,
+        bucket: 'personal-sanctuary',
+        dueDate,
+        dueTime,
+        order: 0,
+        createdAt: '2026-04-18T08:00:00.000Z',
+        updatedAt: '2026-04-18T08:00:00.000Z',
+      } as Task);
+      fixture.componentRef.setInput('open', true);
+      fixture.detectChanges();
+    }
+
+    function timeInput() {
+      return fixture.debugElement.query(By.css('#task-due-time'));
+    }
+
+    // Model-to-DOM writes for ngModel-bound inputs land one change-detection
+    // pass behind in this setup, so settle before asserting rendered state.
+    async function settle() {
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    }
+
+    it('labels the due time field', () => {
+      openNewTask();
+
+      const label = fixture.debugElement.query(By.css('label[for="task-due-time"]'));
+      expect(label.nativeElement.textContent).toContain('Due time');
+    });
+
+    it('disables the time input without a date and in Simple Mode', async () => {
+      openNewTask();
+      await settle();
+
+      expect(timeInput().nativeElement.disabled).toBeTrue();
+
+      component['onSimpleModeChange'](false);
+      await settle();
+      expect(timeInput().nativeElement.disabled).toBeTrue();
+
+      component['draftDueDate'].set('2026-10-02');
+      await settle();
+      expect(timeInput().nativeElement.disabled).toBeFalse();
+
+      component['onSimpleModeChange'](true);
+      await settle();
+      expect(timeInput().nativeElement.disabled).toBeTrue();
+    });
+
+    it('shows the resolved time in the preview and includes it in the create payload', () => {
+      openNewTask();
+      component['draftTitle'].set('Timed create task');
+      const saveSpy = spyOn(component['save'], 'emit');
+
+      component['onDraftDueDateChange']('2026-10-02');
+      component['onDraftDueTimeChange']('15:30');
+      fixture.detectChanges();
+
+      const preview = fixture.debugElement.query(By.css('.date-preview'));
+      expect(preview.nativeElement.textContent).toContain('Due Friday, Oct 2, 2026, 3:30 PM');
+
+      component['submit']();
+
+      expect(saveSpy).toHaveBeenCalledWith(
+        jasmine.objectContaining({
+          mode: 'create',
+          payload: jasmine.objectContaining({
+            dueDate: '2026-10-02',
+            dueTime: '15:30',
+            simpleMode: false,
+          }),
+        }),
+      );
+    });
+
+    it('omits dueTime from the create payload when no time is set', () => {
+      openNewTask();
+      component['draftTitle'].set('Untimed create task');
+      const saveSpy = spyOn(component['save'], 'emit');
+
+      component['onDraftDueDateChange']('2026-10-02');
+      component['submit']();
+
+      const event = saveSpy.calls.mostRecent().args[0];
+      expect(event?.payload.dueDate).toBe('2026-10-02');
+      expect(event?.payload.dueTime).toBeUndefined();
+    });
+
+    it('hydrates an existing task time, sends changes, and clears with null', async () => {
+      openExistingTask('2026-10-02', '15:30');
+      await settle();
+      const saveSpy = spyOn(component['save'], 'emit');
+
+      expect(component['draftDueTime']()).toBe('15:30');
+      expect(timeInput().nativeElement.value).toBe('15:30');
+      expect(timeInput().nativeElement.disabled).toBeFalse();
+
+      component['onDraftDueTimeChange']('09:05');
+      component['submit']();
+
+      let event = saveSpy.calls.mostRecent().args[0];
+      expect(event?.mode).toBe('update');
+      expect(event?.payload.dueTime).toBe('09:05');
+
+      component['onDraftDueTimeChange']('');
+      component['submit']();
+
+      event = saveSpy.calls.mostRecent().args[0];
+      expect(event?.payload.dueTime).toBeNull();
+      expect(event?.payload.dueDate).toBe('2026-10-02');
+    });
+
+    it('clears the time when Simple Mode is enabled or the date is cleared', () => {
+      openNewTask();
+      component['onDraftDueDateChange']('2026-10-02');
+      component['onDraftDueTimeChange']('15:30');
+
+      component['onSimpleModeChange'](true);
+      expect(component['draftDueTime']()).toBe('');
+
+      component['onSimpleModeChange'](false);
+      component['onDraftDueDateChange']('2026-10-02');
+      component['onDraftDueTimeChange']('15:30');
+      component['clearDraftDueDate']();
+
+      expect(component['draftDueDate']()).toBe('');
+      expect(component['draftDueTime']()).toBe('');
     });
   });
 

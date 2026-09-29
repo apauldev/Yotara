@@ -59,6 +59,7 @@ export interface Task {
   priority: Priority;
   completed: boolean;
   dueDate?: string; // ISO 8601 date string
+  dueTime?: string; // 'HH:mm' local wall-clock time
   simpleMode?: boolean;
   bucket?: TaskBucket;
   projectId?: string;
@@ -114,6 +115,7 @@ export interface CreateTaskDto {
   status?: TaskStatus;
   priority?: Priority;
   dueDate?: string;
+  dueTime?: string; // 'HH:mm'; requires a dueDate
   simpleMode?: boolean;
   bucket?: TaskBucket;
   projectId?: string;
@@ -130,6 +132,7 @@ export interface UpdateTaskDto {
   status?: TaskStatus;
   priority?: Priority;
   dueDate?: string;
+  dueTime?: string | null; // null clears a persisted time; undefined leaves it unchanged
   simpleMode?: boolean;
   bucket?: TaskBucket;
   projectId?: string | null;

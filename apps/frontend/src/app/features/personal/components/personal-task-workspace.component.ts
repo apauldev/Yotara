@@ -114,6 +114,7 @@ export class PersonalTaskWorkspaceComponent {
           taskCreationNotification({
             title: event.payload.title,
             dueDate: event.payload.dueDate,
+            dueTime: event.payload.dueTime,
             status: event.payload.status ?? 'inbox',
             projects: this.projectService.projects(),
             projectId: createdProjectId,

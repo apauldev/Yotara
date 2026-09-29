@@ -19,7 +19,7 @@ import { StatusService } from '../../../core/services/status.service';
 import { TaskService } from '../../../core/services/task.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
-import { parseCalendarDate } from '../../../shared/utils/timestamps';
+import { formatTimeLabel, parseCalendarDate } from '../../../shared/utils/timestamps';
 
 @Component({
   selector: 'app-personal-task-card',
@@ -668,11 +668,15 @@ export class PersonalTaskCardComponent {
       return '';
     }
 
-    return new Intl.DateTimeFormat('en-US', {
+    const formattedDate = new Intl.DateTimeFormat('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
     }).format(parsed.toJSDate());
+    const formattedTime = formatTimeLabel(this.task.dueTime);
+
+    // The time appears only when the task actually carries one.
+    return formattedTime ? `${formattedDate}, ${formattedTime}` : formattedDate;
   }
 
   protected labelName(labelId: string) {

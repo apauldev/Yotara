@@ -33,6 +33,11 @@ const dateTimeSchema = {
   format: 'date-time',
 } as const;
 
+const timeOfDaySchema = {
+  type: 'string',
+  pattern: '^([01]\\d|2[0-3]):[0-5]\\d$',
+} as const;
+
 const authTimestampSchema = {
   anyOf: [dateTimeSchema, { type: 'integer' }],
 } as const;
@@ -55,6 +60,7 @@ const taskSchema = {
     },
     completed: { type: 'boolean' },
     dueDate: { type: 'string', format: 'date' },
+    dueTime: timeOfDaySchema,
     simpleMode: { type: 'boolean' },
     bucket: {
       type: 'string',
@@ -94,6 +100,7 @@ const createTaskSchema = {
       enum: ['low', 'medium', 'high'],
     },
     dueDate: { type: 'string', format: 'date' },
+    dueTime: timeOfDaySchema,
     simpleMode: { type: 'boolean' },
     bucket: {
       type: 'string',
@@ -139,6 +146,9 @@ const updateTaskSchema = {
       enum: ['low', 'medium', 'high'],
     },
     dueDate: { type: 'string', format: 'date' },
+    dueTime: {
+      anyOf: [timeOfDaySchema, { type: 'null' }],
+    },
     simpleMode: { type: 'boolean' },
     bucket: {
       type: 'string',

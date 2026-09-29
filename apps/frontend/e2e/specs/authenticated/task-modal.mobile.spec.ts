@@ -904,13 +904,13 @@ test.describe('Capture bar on mobile', () => {
     await expect(page.getByRole('button', { name: 'Clear due date' })).toBeVisible();
   });
 
-  test('explains that a time is kept as text on mobile', async ({ page }) => {
+  test('explains that only exact times are understood on mobile', async ({ page }) => {
     await openInbox(page, { width: 390, height: 844 });
-    await captureInput(page).fill(`${taskName('capture-time')} friday at 3pm`);
+    await captureInput(page).fill(`${taskName('capture-time')} friday morning`);
 
     const note = page.locator('#capture-date-note');
     await expect(note).toBeVisible();
-    await expect(note).toHaveText(/Times aren't supported yet/);
+    await expect(note).toHaveText(/Only exact times like 3pm or 15:00/);
     await expect(note).toHaveAttribute('role', 'status');
     // Nothing was inferred, so there is no date preview to contradict the note.
     await expect(page.locator('#capture-date-preview')).toHaveCount(0);
@@ -1030,5 +1030,45 @@ test.describe('Capture bar on mobile', () => {
     expect(created.dueDate).toBe(dueDate);
 
     await expect(page.getByText(/" added to Upcoming/).first()).toBeVisible();
+  });
+
+  test('submits the inferred time during mobile quick capture', async ({ page }) => {
+    await openInbox(page, { width: 390, height: 844 });
+    const name = taskName('capture-timed');
+
+    // A vague time stays text and explains the supported forms.
+    await captureInput(page).fill(`${name} today morning`);
+    await expect(page.locator('#capture-date-note')).toContainText(
+      'Only exact times like 3pm or 15:00',
+    );
+    await expect(datePreview(page)).toHaveCount(0);
+
+    await captureInput(page).fill(`${name} today at 3pm`);
+    await expect(datePreview(page)).toContainText('today at 3pm resolves to');
+    await expect(datePreview(page)).toContainText('3:00 PM');
+
+    const today = await page.evaluate(() => {
+      const target = new Date();
+      const month = String(target.getMonth() + 1).padStart(2, '0');
+      const day = String(target.getDate()).padStart(2, '0');
+      return `${target.getFullYear()}-${month}-${day}`;
+    });
+
+    const createResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' && new URL(response.url()).pathname === '/tasks',
+    );
+    await page.getByRole('button', { name: 'Add Task', exact: true }).click();
+    const createResponse = await createResponsePromise;
+    expect(createResponse.status()).toBe(201);
+
+    const payload = createResponse.request().postDataJSON() as {
+      dueDate?: string;
+      dueTime?: string;
+    };
+    expect(payload.dueDate).toBe(today);
+    expect(payload.dueTime).toBe('15:00');
+    const created = (await createResponse.json()) as { dueTime?: string };
+    expect(created.dueTime).toBe('15:00');
   });
 });

@@ -9,11 +9,34 @@ function expectDate(input: string, dueDate: string, reference: DateTime = monday
 
   expect(result.status).toBe('date');
   expect(result.dueDate).toBe(dueDate);
+  expect(result.dueTime).toBeNull();
   expect(result.referenceDate).toBe(reference.toISODate());
   expect(result.matchedText).not.toBeNull();
   expect(result.matchStart).not.toBeNull();
   expect(result.matchEnd).not.toBeNull();
   expect(input.slice(result.matchStart!, result.matchEnd!)).toBe(result.matchedText!);
+}
+
+function expectDateTime(
+  input: string,
+  dueDate: string,
+  dueTime: string,
+  reference: DateTime = monday,
+  matchedText?: string,
+): void {
+  const result = parseTaskDueDate(input, reference);
+
+  expect(result.status).toBe('date');
+  expect(result.dueDate).toBe(dueDate);
+  expect(result.dueTime).toBe(dueTime);
+  expect(result.referenceDate).toBe(reference.toISODate());
+  expect(result.matchedText).not.toBeNull();
+  expect(result.matchStart).not.toBeNull();
+  expect(result.matchEnd).not.toBeNull();
+  expect(input.slice(result.matchStart!, result.matchEnd!)).toBe(result.matchedText!);
+  if (matchedText !== undefined) {
+    expect(result.matchedText).toBe(matchedText);
+  }
 }
 
 function expectNoDate(input: string, reference: DateTime = monday): void {
@@ -92,9 +115,56 @@ describe('parseTaskDueDate', () => {
     });
   });
 
+  describe('supported date and time phrases', () => {
+    it('resolves 12-hour times after a supported date phrase', () => {
+      expectDateTime('Call Sam Friday at 3pm', '2026-10-02', '15:00', monday, 'Friday at 3pm');
+      expectDateTime('Call Sam Friday 3pm', '2026-10-02', '15:00', monday, 'Friday 3pm');
+      expectDateTime('Call Sam Friday at 3 pm', '2026-10-02', '15:00');
+      expectDateTime('Call Sam Friday at 3:30pm', '2026-10-02', '15:30');
+      expectDateTime('Call Sam Friday 3:30 pm', '2026-10-02', '15:30');
+      expectDateTime('Call Sam tomorrow at 9:30am', '2026-09-29', '09:30');
+    });
+
+    it('maps 12am and 12pm onto 24-hour values', () => {
+      expectDateTime('Call Sam Friday at 12am', '2026-10-02', '00:00');
+      expectDateTime('Call Sam Friday at 12pm', '2026-10-02', '12:00');
+      expectDateTime('Call Sam Friday 12:05am', '2026-10-02', '00:05');
+    });
+
+    it('resolves 24-hour times with minute precision', () => {
+      expectDateTime('Call Sam Friday at 15:00', '2026-10-02', '15:00');
+      expectDateTime('Call Sam Friday 09:05', '2026-10-02', '09:05');
+      expectDateTime('Call Sam Friday at 09:05.', '2026-10-02', '09:05');
+    });
+
+    it('resolves noon and midnight as exact synonyms', () => {
+      expectDateTime('Call Sam Friday at noon', '2026-10-02', '12:00');
+      expectDateTime('Call Sam Friday noon', '2026-10-02', '12:00');
+      expectDateTime('Call Sam Friday at midnight', '2026-10-02', '00:00');
+      expectDateTime('Call Sam Oct 12 at noon', '2026-10-12', '12:00');
+    });
+
+    it('includes the time phrase in the matched span next to commands', () => {
+      expectDateTime(
+        'Call Sam Friday at 3pm #work !high',
+        '2026-10-02',
+        '15:00',
+        monday,
+        'Friday at 3pm',
+      );
+    });
+
+    it('keeps the resolved local time independent of the reference time of day', () => {
+      const early = DateTime.fromISO('2026-09-28T00:01:00', { zone: 'UTC' });
+      const late = DateTime.fromISO('2026-09-28T23:59:00', { zone: 'UTC' });
+
+      expectDateTime('Call Sam tomorrow at 9:30am', '2026-09-29', '09:30', early);
+      expectDateTime('Call Sam tomorrow at 9:30am', '2026-09-29', '09:30', late);
+    });
+  });
+
   describe('rejected time, recurrence, range, and context', () => {
-    it('rejects clock and vague-time phrases', () => {
-      expect(parseTaskDueDate('Call Sam Friday at 3pm', monday).status).toBe('time');
+    it('rejects vague and unsupported time phrases', () => {
       expect(parseTaskDueDate('Call Sam Friday morning', monday).status).toBe('time');
       expect(parseTaskDueDate('Call Sam tonight', monday).status).toBe('time');
       expect(parseTaskDueDate('Call Sam Friday EOD', monday).status).toBe('time');
@@ -102,6 +172,32 @@ describe('parseTaskDueDate', () => {
       expect(parseTaskDueDate('Call Sam Oct 12 PST', monday).status).toBe('time');
       expect(parseTaskDueDate('Call Sam tomorrow morning', monday).status).toBe('time');
       expect(parseTaskDueDate('Call Sam at 3pm', monday).status).toBe('time');
+    });
+
+    it('rejects ambiguous, malformed, and suffixed clock times', () => {
+      expect(parseTaskDueDate('Call Sam Friday at 3', monday).status).toBe('time');
+      expect(parseTaskDueDate('Call Sam Friday 3:30', monday).status).toBe('time');
+      expect(parseTaskDueDate('Call Sam Friday 15:00:30', monday).status).toBe('time');
+      expect(parseTaskDueDate('Call Sam Friday 3-4pm', monday).status).toBe('time');
+      expect(parseTaskDueDate('Call Sam Friday 25:00', monday).status).toBe('time');
+      expect(parseTaskDueDate('Call Sam Friday 13pm', monday).status).toBe('time');
+      expect(parseTaskDueDate('Call Sam Friday at 3pm PST', monday).status).toBe('time');
+      expect(parseTaskDueDate('Call Sam Friday at 3pm morning', monday).status).toBe('time');
+      expect(parseTaskDueDate('Call Sam Friday at 3pm at 4pm', monday).status).toBe('time');
+      expect(parseTaskDueDate('Call Sam Friday 15:00 UTC', monday).status).toBe('time');
+    });
+
+    it('keeps the date and time span when trailing prose makes the phrase unsupported', () => {
+      const result = parseTaskDueDate('Call Sam Friday at 3pm notes', monday);
+
+      expect(result.status).toBe('unsupported');
+      expect(result.matchedText).toBe('Friday at 3pm');
+      expect(result.dueDate).toBeNull();
+      expect(result.dueTime).toBeNull();
+    });
+
+    it('rejects multiple date phrases even when one carries a time', () => {
+      expect(parseTaskDueDate('Call Sam Friday at 3pm tomorrow', monday).status).toBe('multiple');
     });
 
     it('rejects time and URL cues before an otherwise valid date phrase', () => {

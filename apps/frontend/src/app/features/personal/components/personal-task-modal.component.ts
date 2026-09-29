@@ -33,7 +33,7 @@ import { TaskService } from '../../../core/services/task.service';
 import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
 import { MarkdownEditorComponent } from '../../../shared/ui/markdown-editor/markdown-editor.component';
 import { ModalComponent } from '../../../shared/ui/modal/modal.component';
-import { parseCalendarDate, startOfToday } from '../../../shared/utils/timestamps';
+import { formatTimeLabel, parseCalendarDate, startOfToday } from '../../../shared/utils/timestamps';
 import { parseTaskCommand } from '../utils/task-command-parser';
 import { parseTaskDueDate } from '../utils/task-due-date-parser';
 import type { DueDateDraft, DueDateDraftSource } from '../utils/due-date-draft';
@@ -83,6 +83,7 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
   protected readonly draftStatus = signal<TaskStatus>('inbox');
   protected readonly draftPriority = signal<Priority>('medium');
   protected readonly draftDueDate = signal('');
+  protected readonly draftDueTime = signal('');
   protected readonly dateDraftSource = signal<DueDateDraftSource>('none');
   protected readonly dateDraftMatchedText = signal<string | null>(null);
   protected readonly dateDraftMatchStart = signal<number | null>(null);
@@ -156,9 +157,12 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
       year: 'numeric',
     }).format(date.toJSDate());
 
+    const formattedTime = formatTimeLabel(this.draftDueTime());
+    const formattedValue = formattedTime ? `${formattedDate}, ${formattedTime}` : formattedDate;
+
     return source === 'inferred' && this.dateDraftMatchedText()
-      ? `${this.dateDraftMatchedText()} resolves to ${formattedDate}`
-      : `Due ${formattedDate}`;
+      ? `${this.dateDraftMatchedText()} resolves to ${formattedValue}`
+      : `Due ${formattedValue}`;
   });
 
   ngOnChanges(changes: SimpleChanges) {
@@ -228,11 +232,13 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (result.dueDate === this.draftDueDate()) {
+    const nextDueTime = result.dueTime ?? '';
+    if (result.dueDate === this.draftDueDate() && nextDueTime === this.draftDueTime()) {
       return;
     }
 
     this.draftDueDate.set(toDateInputValue(result.dueDate));
+    this.draftDueTime.set(nextDueTime);
     this.dateDraftMatchedText.set(result.matchedText);
     this.dateDraftMatchStart.set(result.matchStart);
     this.dateDraftMatchEnd.set(result.matchEnd);
@@ -272,8 +278,11 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
       const match = this.findInferredDatePhrase(value);
       const samePhrase =
         result.matchedText?.toLowerCase() === this.dateDraftMatchedText()?.toLowerCase();
+      // The phrase must survive unchanged: a title that now resolves a
+      // different phrase (for example a date that gained a time) must not keep
+      // a stale inferred draft.
       const stillValid =
-        result.status === 'date' || (result.status === 'unsupported' && samePhrase);
+        samePhrase && (result.status === 'date' || result.status === 'unsupported');
       if (!match || !stillValid) {
         this.clearDraftDueDate();
         return;
@@ -384,8 +393,13 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
     this.dateDraftSuppressed.set(false);
   }
 
+  protected onDraftDueTimeChange(value: string) {
+    this.draftDueTime.set(value);
+  }
+
   protected clearDraftDueDate() {
     this.draftDueDate.set('');
+    this.draftDueTime.set('');
 
     if (!this.task) {
       this.dateDraftSource.set('cleared');
@@ -519,6 +533,7 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
 
     if (value) {
       this.draftDueDate.set('');
+      this.draftDueTime.set('');
       if (!this.task) {
         if (this.dateDraftSource() !== 'none') {
           this.dateDraftSource.set('cleared');
@@ -612,12 +627,14 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
     const dueDate = this.draftSimpleMode()
       ? undefined
       : normalizeDateInputValue(this.draftDueDate());
+    const dueTime = this.draftSimpleMode() ? undefined : this.draftDueTime().trim() || undefined;
     const payload: CreateTaskDto = {
       title: this.draftTitle(),
       description: this.draftDescription().trim() || undefined,
       status: this.draftStatus(),
       priority: this.draftPriority(),
       ...(dueDate ? { dueDate } : {}),
+      ...(dueTime ? { dueTime } : {}),
       simpleMode: this.draftSimpleMode(),
       projectId: this.draftProjectId() || undefined,
       labels: this.draftLabels(),
@@ -635,6 +652,7 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
           completed: this.draftCompleted(),
           labels: this.draftLabels(),
           recurrenceRule: this.isRecurrenceDisabled() ? undefined : recurrenceRule,
+          dueTime: this.draftSimpleMode() ? null : this.draftDueTime().trim() || null,
         },
       });
       return;
@@ -733,11 +751,17 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
       : initialDraft?.source === 'cleared'
         ? undefined
         : initialDraft?.value;
+    const initialDueTime = this.task
+      ? this.task.dueTime
+      : initialDraft?.source === 'cleared'
+        ? undefined
+        : (initialDraft?.dueTime ?? undefined);
     const initialDateSource =
       initialDraft?.source === 'cleared' || initialDraft?.value
         ? (initialDraft.source ?? 'none')
         : 'none';
     this.draftDueDate.set(toDateInputValue(initialDueDate));
+    this.draftDueTime.set(initialDueTime ?? '');
     this.draftSimpleMode.set(this.task?.simpleMode ?? !initialDueDate);
     this.dateDraftSource.set(initialDateSource);
     this.dateDraftMatchedText.set(

@@ -162,6 +162,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
       .componentInstance as PersonalTaskWorkspaceComponent;
     const dueDateDraft: DueDateDraft = {
       value: '2026-10-02',
+      dueTime: null,
       source: 'inferred',
       matchedText: 'Friday',
       matchStart: 9,
@@ -185,6 +186,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
       .componentInstance as PersonalTaskWorkspaceComponent;
     workspace.openCreateTaskModal('project-1', {
       value: '',
+      dueTime: null,
       source: 'cleared',
       matchedText: 'Friday',
       matchStart: 9,
@@ -291,6 +293,32 @@ describe('PersonalTaskWorkspaceComponent', () => {
     });
 
     expect(statusServiceSpy.success).toHaveBeenCalledWith('"Plan the week" added to Today');
+  });
+
+  it('names the resolved time in the destination confirmation', async () => {
+    fixture.detectChanges();
+
+    const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
+      .componentInstance as PersonalTaskWorkspaceComponent;
+
+    await workspace['saveTask']({
+      mode: 'create',
+      payload: {
+        title: 'Call Sam',
+        description: '',
+        status: 'inbox',
+        priority: 'medium',
+        dueDate: '2026-10-02',
+        dueTime: '15:00',
+        simpleMode: false,
+        bucket: 'personal-sanctuary',
+        projectId: 'project-1',
+      },
+    });
+
+    expect(statusServiceSpy.success).toHaveBeenCalledWith(
+      jasmine.stringMatching(/"Call Sam" added to .* · due .*3:00 PM/),
+    );
   });
 
   it('names the bucket when the task lands outside the default project', async () => {

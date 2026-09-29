@@ -1095,3 +1095,161 @@ test('updating task with self parent returns 400 and does not persist', async ()
     await ctx.cleanup();
   }
 });
+
+test('tasks persist a due time with a due date, change it, and clear it with null', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`due-time-${randomUUID()}@example.com`);
+
+    const createRes = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Call Sam', dueDate: '2026-10-02', dueTime: '15:30' },
+    });
+    assert.equal(createRes.statusCode, 201);
+    const created = createRes.json();
+    assert.equal(created.dueDate, '2026-10-02');
+    assert.equal(created.dueTime, '15:30');
+
+    const changeRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${created.id}`,
+      headers: { cookie },
+      payload: { dueTime: '09:05' },
+    });
+    assert.equal(changeRes.statusCode, 200);
+    assert.equal(changeRes.json().dueDate, '2026-10-02');
+    assert.equal(changeRes.json().dueTime, '09:05');
+
+    const unrelatedRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${created.id}`,
+      headers: { cookie },
+      payload: { title: 'Call Sam updated' },
+    });
+    assert.equal(unrelatedRes.statusCode, 200);
+    assert.equal(unrelatedRes.json().dueTime, '09:05');
+
+    const clearRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${created.id}`,
+      headers: { cookie },
+      payload: { dueTime: null },
+    });
+    assert.equal(clearRes.statusCode, 200);
+    assert.equal(clearRes.json().dueDate, '2026-10-02');
+    assert.equal(clearRes.json().dueTime, undefined);
+
+    const fetchRes = await ctx.app.inject({
+      method: 'GET',
+      url: `/tasks/${created.id}`,
+      headers: { cookie },
+    });
+    assert.equal(fetchRes.statusCode, 200);
+    assert.equal(fetchRes.json().dueTime, undefined);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('tasks reject malformed due times and a due time without a due date', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`due-time-invalid-${randomUUID()}@example.com`);
+
+    for (const dueTime of ['3pm', '25:00', '12:60', 'noon', '15:00:00', '15:3', '']) {
+      const res = await ctx.app.inject({
+        method: 'POST',
+        url: '/tasks',
+        headers: { cookie },
+        payload: { title: 'Invalid time', dueDate: '2026-10-02', dueTime },
+      });
+      assert.equal(res.statusCode, 400, `expected 400 for dueTime ${JSON.stringify(dueTime)}`);
+    }
+
+    const noDateRes = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Time only', dueTime: '15:00' },
+    });
+    assert.equal(noDateRes.statusCode, 400);
+    assert.match(noDateRes.json().message, /A due time requires a due date/);
+
+    const createRes = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'No date yet' },
+    });
+    assert.equal(createRes.statusCode, 201);
+    const taskId = createRes.json().id as string;
+
+    const patchRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}`,
+      headers: { cookie },
+      payload: { dueTime: '15:00' },
+    });
+    assert.equal(patchRes.statusCode, 400);
+    assert.match(patchRes.json().message, /A due time requires a due date/);
+
+    const fetchRes = await ctx.app.inject({
+      method: 'GET',
+      url: `/tasks/${taskId}`,
+      headers: { cookie },
+    });
+    assert.equal(fetchRes.statusCode, 200);
+    assert.equal(fetchRes.json().dueTime, undefined);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('simple mode strips due time on create and update', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`due-time-simple-${randomUUID()}@example.com`);
+
+    const simpleCreateRes = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: {
+        title: 'Simple timed task',
+        simpleMode: true,
+        dueDate: '2026-10-02',
+        dueTime: '15:30',
+      },
+    });
+    assert.equal(simpleCreateRes.statusCode, 201);
+    assert.equal(simpleCreateRes.json().dueDate, undefined);
+    assert.equal(simpleCreateRes.json().dueTime, undefined);
+
+    const timedRes = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Timed task', dueDate: '2026-10-02', dueTime: '15:30' },
+    });
+    assert.equal(timedRes.statusCode, 201);
+    assert.equal(timedRes.json().dueTime, '15:30');
+    const timedId = timedRes.json().id as string;
+
+    const patchRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${timedId}`,
+      headers: { cookie },
+      payload: { simpleMode: true },
+    });
+    assert.equal(patchRes.statusCode, 200);
+    assert.equal(patchRes.json().dueDate, undefined);
+    assert.equal(patchRes.json().dueTime, undefined);
+  } finally {
+    await ctx.cleanup();
+  }
+});

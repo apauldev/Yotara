@@ -1,6 +1,6 @@
 import type { TaskStatus } from '@yotara/shared';
 import { DateTime } from 'luxon';
-import { parseCalendarDate, startOfToday } from '../../../shared/utils/timestamps';
+import { formatTimeLabel, parseCalendarDate, startOfToday } from '../../../shared/utils/timestamps';
 
 export type TaskViewDestination = 'inbox' | 'today' | 'upcoming' | 'overdue';
 
@@ -22,6 +22,7 @@ export interface TaskCreationNotice {
   /** The title as it was saved, so the user can identify which task this is. */
   title: string;
   dueDate?: string | null;
+  dueTime?: string | null;
   status?: TaskStatus;
   /** The projects the user can choose from, used to name the bucket. */
   projects?: ProjectOption[];
@@ -73,6 +74,7 @@ export function taskCreationNotification(notice: TaskCreationNotice): string {
   const {
     title,
     dueDate,
+    dueTime,
     status = 'inbox',
     projects = [],
     projectId,
@@ -84,6 +86,7 @@ export function taskCreationNotification(notice: TaskCreationNotice): string {
   const label = DESTINATION_LABELS[destination];
   const projectName = resolveProjectName(projects, projectId);
   const formattedDueDate = parseCalendarDate(dueDate)?.toFormat('EEE, LLL d, yyyy');
+  const formattedDueTime = formatTimeLabel(dueTime);
 
   // Name the bucket only when it tells the user something: an explicitly
   // chosen (or contextual) project. The default project is omitted, since a
@@ -94,7 +97,13 @@ export function taskCreationNotification(notice: TaskCreationNotice): string {
   const bucket = showBucket ? ` (${projectName})` : '';
   const head = `"${truncateTitle(title)}" added to ${label}${bucket}`;
 
-  return formattedDueDate ? `${head} · due ${formattedDueDate}` : head;
+  // The time is only ever shown when one was set; a date-only task stays
+  // date-only in the confirmation.
+  const due = formattedDueDate
+    ? `${formattedDueDate}${formattedDueTime ? `, ${formattedDueTime}` : ''}`
+    : '';
+
+  return due ? `${head} · due ${due}` : head;
 }
 
 function truncateTitle(title: string): string {
