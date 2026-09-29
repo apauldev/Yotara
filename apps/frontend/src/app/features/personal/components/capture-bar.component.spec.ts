@@ -234,6 +234,25 @@ describe('CaptureBarComponent', () => {
       );
     });
 
+    it('resolves a time that precedes the date phrase', () => {
+      const fixture = createFixture();
+
+      fixture.componentInstance.setTitle('Go to dentist at 5pm Friday');
+      fixture.detectChanges();
+
+      const preview = fixture.debugElement.query(By.css('.capture-date-preview'));
+      expect(preview.nativeElement.textContent).toContain('at 5pm Friday resolves to');
+      expect(preview.nativeElement.textContent).toContain('5:00 PM');
+      expect(fixture.componentInstance.getDueDateDraft()).toEqual(
+        jasmine.objectContaining({
+          value: '2026-10-02',
+          dueTime: '17:00',
+          source: 'inferred',
+          matchedText: 'at 5pm Friday',
+        }),
+      );
+    });
+
     it('preserves an inferred time when the date is changed manually', () => {
       const fixture = createFixture();
       fixture.componentInstance.setTitle('Call Sam Friday at 3pm');

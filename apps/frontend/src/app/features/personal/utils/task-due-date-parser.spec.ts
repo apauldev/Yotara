@@ -144,6 +144,38 @@ describe('parseTaskDueDate', () => {
       expectDateTime('Call Sam Oct 12 at noon', '2026-10-12', '12:00');
     });
 
+    it('resolves an exact time directly before the date phrase', () => {
+      expectDateTime('Go to dentist at 5pm friday', '2026-10-02', '17:00', monday, 'at 5pm friday');
+      expectDateTime('Call Sam 5pm friday', '2026-10-02', '17:00', monday, '5pm friday');
+      expectDateTime('Call Sam 3pm Friday', '2026-10-02', '15:00', monday, '3pm Friday');
+      expectDateTime('Call Sam at 5:30pm on Friday', '2026-10-02', '17:30');
+      expectDateTime('Call Sam at 15:00 Friday', '2026-10-02', '15:00');
+      expectDateTime('Call Sam at noon Friday', '2026-10-02', '12:00');
+      expectDateTime('Call Sam noon Friday', '2026-10-02', '12:00', monday, 'noon Friday');
+      expectDateTime('Call Sam at 12am Friday', '2026-10-02', '00:00');
+    });
+
+    it('rejects ambiguous or doubled time cues around a date', () => {
+      expect(parseTaskDueDate('Call Sam 5 Friday', monday).status).toBe('time');
+      expect(parseTaskDueDate('Call Sam at 5 Friday', monday).status).toBe('time');
+      expect(parseTaskDueDate('Call Sam 3:30 Friday', monday).status).toBe('time');
+      expect(parseTaskDueDate('Call Sam PST 5pm Friday', monday).status).toBe('time');
+      expect(parseTaskDueDate('Call Sam 5pm PST Friday', monday).status).toBe('time');
+      expect(parseTaskDueDate('Call Sam morning Friday', monday).status).toBe('time');
+      expect(parseTaskDueDate('Call Sam at 5pm Friday at 6pm', monday).status).toBe('time');
+      expect(parseTaskDueDate('Call Sam at 4pm 5pm Friday', monday).status).toBe('time');
+    });
+
+    it('does not treat a non-adjacent time as part of the phrase', () => {
+      // The time is ordinary title text when something separates it from the
+      // date; only the date resolves.
+      const result = parseTaskDueDate('Call Sam at 5pm sometime Friday', monday);
+
+      expect(result.status).toBe('date');
+      expect(result.dueDate).toBe('2026-10-02');
+      expect(result.dueTime).toBeNull();
+    });
+
     it('includes the time phrase in the matched span next to commands', () => {
       expectDateTime(
         'Call Sam Friday at 3pm #work !high',
@@ -200,11 +232,10 @@ describe('parseTaskDueDate', () => {
       expect(parseTaskDueDate('Call Sam Friday at 3pm tomorrow', monday).status).toBe('multiple');
     });
 
-    it('rejects time and URL cues before an otherwise valid date phrase', () => {
+    it('rejects vague and zone cues before an otherwise valid date phrase', () => {
       expect(parseTaskDueDate('Call Sam morning Friday', monday).status).toBe('time');
       expect(parseTaskDueDate('Call Sam at Friday', monday).status).toBe('time');
       expect(parseTaskDueDate('Call Sam UTC Friday', monday).status).toBe('time');
-      expect(parseTaskDueDate('Call Sam 3pm Friday', monday).status).toBe('time');
       expectNoDate('Call Sam https://example.com?date=Friday');
       expectNoDate('Call Sam www.example.com?date=Friday');
     });

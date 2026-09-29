@@ -531,6 +531,34 @@ test.describe('Task Modal CRUD', () => {
     await page.getByRole('button', { name: 'Cancel' }).click();
   });
 
+  test('quick-captures a time that precedes the date', async ({ page }) => {
+    await page.goto('/tasks?view=inbox');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    const name = taskName('prefix-timed');
+    const today = await calendarDateAfter(page, 0);
+    await page.getByPlaceholder("What's on your mind today?").fill(`${name} at 5pm today`);
+
+    const preview = page.locator('#capture-date-preview');
+    await expect(preview).toContainText('at 5pm today resolves to');
+    await expect(preview).toContainText('5:00 PM');
+
+    const createResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' && new URL(response.url()).pathname === '/tasks',
+    );
+    await page.getByRole('button', { name: 'Add Task', exact: true }).click();
+    const createResponse = await createResponsePromise;
+    expect(createResponse.status()).toBe(201);
+    const payload = createResponse.request().postDataJSON() as {
+      dueDate?: string;
+      dueTime?: string;
+    };
+    expect(payload.dueDate).toBe(today.iso);
+    expect(payload.dueTime).toBe('17:00');
+  });
+
   test('carries a timed NLP draft through the details modal', async ({ page }) => {
     await page.goto('/tasks?view=inbox');
     await page.waitForLoadState('networkidle');

@@ -49,8 +49,8 @@ interface DateCandidate {
 type DateResolution = { status: 'date'; date: DateTime } | { status: 'invalid' | 'unsupported' };
 
 type CandidateContext =
-  | { kind: 'reject'; status: RejectionStatus; end: number }
-  | { kind: 'accept'; dueTime: string | null; end: number };
+  | { kind: 'reject'; status: RejectionStatus; start: number; end: number }
+  | { kind: 'accept'; dueTime: string | null; start: number; end: number };
 
 interface TimeSuffix {
   length: number;
@@ -182,11 +182,13 @@ const RELATIONAL_AFTER_WORDS = new Set([
 
 const TIME_LIKE_AFTER_PATTERN = /^\d{1,2}(?::\d{2})?(?:am|pm)?(?:\b|$)/i;
 
-// Accepted time suffixes, anchored at the start of the text after the date
-// phrase: `at` is optional for every form, and the lookahead keeps the match
-// from ending mid-token.
-const TIME_SUFFIX_PATTERN =
-  /^(?:at\s+)?(?:(noon|midnight)|(\d{1,2}):(\d{2})\s?(am|pm)|(\d{1,2})\s?(am|pm)|(\d{2}):(\d{2}))(?![A-Za-z0-9])/i;
+// Accepted exact-time tokens, used both as a suffix after the date phrase and
+// as a directly adjacent prefix before it. `at` is optional for every form;
+// the lookarounds keep a match from starting or ending mid-token.
+const TIME_TOKEN_SOURCE =
+  '(?:at\\s+)?(?:(noon|midnight)|(\\d{1,2}):(\\d{2})\\s?(am|pm)|(\\d{1,2})\\s?(am|pm)|(\\d{2}):(\\d{2}))';
+const TIME_SUFFIX_PATTERN = new RegExp(`^${TIME_TOKEN_SOURCE}(?![A-Za-z0-9])`, 'i');
+const TIME_PREFIX_PATTERN = new RegExp(`(?<![A-Za-z0-9])${TIME_TOKEN_SOURCE}$`, 'i');
 
 /**
  * Parse one of the deliberately small due-date phrases supported by the
@@ -231,22 +233,29 @@ export function parseTaskDueDate(input: string, reference: DateTime): TaskDueDat
 
   const candidate = candidates[0];
   const context = validateCandidateContext(maskedInput, candidate);
-  const matchedText = maskedInput.slice(candidate.start, context.end);
-  const matchedSpan = { text: matchedText, end: context.end };
 
   if (context.kind === 'reject') {
-    return createResult(context.status, referenceDate, candidate, matchedSpan);
+    return createResult(context.status, referenceDate, candidate, {
+      text: maskedInput.slice(context.start, context.end),
+      start: context.start,
+      end: context.end,
+    });
   }
 
   const resolution = resolveCandidate(candidate, referenceDay);
+  const matchedText = maskedInput.slice(context.start, context.end);
   if (resolution.status !== 'date') {
-    return createResult(resolution.status, referenceDate, candidate, matchedSpan);
+    return createResult(resolution.status, referenceDate, candidate, {
+      text: matchedText,
+      start: context.start,
+      end: context.end,
+    });
   }
 
   return {
     status: 'date',
     matchedText,
-    matchStart: candidate.start,
+    matchStart: context.start,
     matchEnd: context.end,
     dueDate: resolution.date.toFormat('yyyy-MM-dd'),
     dueTime: context.dueTime,
@@ -369,14 +378,24 @@ function validateCandidateContext(input: string, candidate: DateCandidate): Cand
   const previousWord = getLastWord(beforeTrimmed);
   const afterWord = getFirstWord(afterTrimmed);
 
-  const reject = (status: RejectionStatus, end = candidate.end): CandidateContext => ({
+  const reject = (
+    status: RejectionStatus,
+    end = candidate.end,
+    start = candidate.start,
+  ): CandidateContext => ({
     kind: 'reject',
     status,
+    start,
     end,
   });
-  const accept = (dueTime: string | null, end = candidate.end): CandidateContext => ({
+  const accept = (
+    dueTime: string | null,
+    start = candidate.start,
+    end = candidate.end,
+  ): CandidateContext => ({
     kind: 'accept',
     dueTime,
+    start,
     end,
   });
 
@@ -392,12 +411,31 @@ function validateCandidateContext(input: string, candidate: DateCandidate): Cand
     return reject('unsupported');
   }
 
-  if (VAGUE_TIME_TOKEN_PATTERN.test(beforeTrimmed) || TIME_AFTER_WORDS.has(previousWord)) {
-    return reject('time');
-  }
+  // An exact time directly before the date is the mirror of the suffix form:
+  // adjacency is required, and the token before the time must not itself be a
+  // time or zone cue.
+  const prefix = matchSupportedTimePrefix(beforeTrimmed);
+  let prefixDueTime: string | null = null;
+  let prefixStart = candidate.start;
 
-  if (TIME_LIKE_AFTER_PATTERN.test(previousWord)) {
-    return reject('time');
+  if (prefix) {
+    const wordBeforePrefix = getLastWord(
+      beforeTrimmed.slice(0, beforeTrimmed.length - prefix.length),
+    );
+    if (TIME_AFTER_WORDS.has(wordBeforePrefix) || TIME_LIKE_AFTER_PATTERN.test(wordBeforePrefix)) {
+      return reject('time');
+    }
+
+    prefixDueTime = prefix.dueTime;
+    prefixStart = candidate.start - (before.length - beforeTrimmed.length) - prefix.length;
+  } else {
+    if (VAGUE_TIME_TOKEN_PATTERN.test(beforeTrimmed) || TIME_AFTER_WORDS.has(previousWord)) {
+      return reject('time');
+    }
+
+    if (TIME_LIKE_AFTER_PATTERN.test(previousWord)) {
+      return reject('time');
+    }
   }
 
   if (/^\d{4}$/.test(previousWord)) {
@@ -430,10 +468,15 @@ function validateCandidateContext(input: string, candidate: DateCandidate): Cand
   const suffix = matchSupportedTimeSuffix(afterTrimmed);
   if (suffix) {
     const end = candidate.end + (after.length - afterTrimmed.length) + suffix.length;
+    const start = prefixDueTime ? prefixStart : candidate.start;
     const remainder = afterTrimmed.slice(suffix.length).trimStart();
 
     if (!remainder || PUNCTUATION_ONLY_PATTERN.test(remainder)) {
-      return accept(suffix.dueTime, end);
+      // Two exact time cues around one date are ambiguous; fail closed.
+      if (prefixDueTime) {
+        return reject('time', end, start);
+      }
+      return accept(suffix.dueTime, candidate.start, end);
     }
 
     if (
@@ -441,10 +484,10 @@ function validateCandidateContext(input: string, candidate: DateCandidate): Cand
       TIME_LIKE_AFTER_PATTERN.test(remainder) ||
       TIME_AFTER_WORDS.has(getFirstWord(remainder))
     ) {
-      return reject('time', end);
+      return reject('time', end, start);
     }
 
-    return reject('unsupported', end);
+    return reject('unsupported', end, start);
   }
 
   if (TIME_AFTER_WORDS.has(afterWord) || TIME_LIKE_AFTER_PATTERN.test(afterTrimmed)) {
@@ -463,7 +506,7 @@ function validateCandidateContext(input: string, candidate: DateCandidate): Cand
     return reject('unsupported');
   }
 
-  return accept(null);
+  return accept(prefixDueTime, prefixStart, candidate.end);
 }
 
 function resolveCandidate(candidate: DateCandidate, reference: DateTime): DateResolution {
@@ -643,21 +686,39 @@ function matchSupportedTimeSuffix(text: string): TimeSuffix | null {
   const match = TIME_SUFFIX_PATTERN.exec(text);
   if (!match) return null;
 
+  const dueTime = resolveTimeMatch(match);
+  return dueTime ? { length: match[0].length, dueTime } : null;
+}
+
+/**
+ * Match one of the supported exact-time forms at the end of `text`, for the
+ * adjacent prefix position (`at 5pm friday`).
+ */
+function matchSupportedTimePrefix(text: string): TimeSuffix | null {
+  const match = TIME_PREFIX_PATTERN.exec(text);
+  if (!match) return null;
+
+  const dueTime = resolveTimeMatch(match);
+  return dueTime ? { length: match[0].length, dueTime } : null;
+}
+
+/** Resolve the shared capture groups into a 24-hour 'HH:mm' value, or null. */
+function resolveTimeMatch(match: RegExpExecArray): string | null {
   const [, word, h12, min12, mer12, hOnly, merOnly, h24, min24] = match;
-  let dueTime: string | null = null;
 
   if (word) {
-    dueTime = word.toLowerCase() === 'noon' ? '12:00' : '00:00';
-  } else if (h12 !== undefined) {
-    dueTime = formatClock(Number(h12), Number(min12), mer12 ?? null);
-  } else if (hOnly !== undefined) {
-    dueTime = formatClock(Number(hOnly), 0, merOnly ?? null);
-  } else if (h24 !== undefined) {
-    dueTime = formatClock(Number(h24), Number(min24), null);
+    return word.toLowerCase() === 'noon' ? '12:00' : '00:00';
   }
-
-  if (!dueTime) return null;
-  return { length: match[0].length, dueTime };
+  if (h12 !== undefined) {
+    return formatClock(Number(h12), Number(min12), mer12 ?? null);
+  }
+  if (hOnly !== undefined) {
+    return formatClock(Number(hOnly), 0, merOnly ?? null);
+  }
+  if (h24 !== undefined) {
+    return formatClock(Number(h24), Number(min24), null);
+  }
+  return null;
 }
 
 function formatClock(hour: number, minute: number, meridiem: string | null): string | null {
@@ -683,12 +744,12 @@ function createResult(
   status: RejectionStatus | 'none' | 'multiple',
   referenceDate: string | null,
   candidate?: DateCandidate,
-  matchedSpan?: { text: string; end: number },
+  matchedSpan?: { text: string; start: number; end: number },
 ): TaskDueDateParseResult {
   return {
     status,
     matchedText: matchedSpan?.text ?? candidate?.text ?? null,
-    matchStart: candidate?.start ?? null,
+    matchStart: matchedSpan?.start ?? candidate?.start ?? null,
     matchEnd: matchedSpan?.end ?? candidate?.end ?? null,
     dueDate: null,
     dueTime: null,
