@@ -43,6 +43,7 @@ import { ThemeService } from '../../../core/services/theme.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { DueTimeSchedulerService } from '../../../core/services/due-time-scheduler.service';
+import { TIMED_REMINDERS_UNAVAILABLE } from '../utils/timezone-notices';
 import { LogoutConfirmModalComponent } from '../../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
 import type { Notification } from '@yotara/shared';
 import { AppStatusComponent } from '../../../shared/ui/app-status/app-status.component';
@@ -128,6 +129,7 @@ export class PersonalShellComponent implements OnDestroy {
   protected readonly taskService = inject(TaskService);
   protected readonly themeService = inject(ThemeService);
   protected readonly notificationService = inject(NotificationService);
+  protected readonly timedRemindersUnavailable = TIMED_REMINDERS_UNAVAILABLE;
   private readonly dueTimeScheduler = inject(DueTimeSchedulerService);
   protected readonly searchQuery = signal(this.route.snapshot.queryParamMap.get('q') ?? '');
   protected readonly showTip = signal<string | null>(null);

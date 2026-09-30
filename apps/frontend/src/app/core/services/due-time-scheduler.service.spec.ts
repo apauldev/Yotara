@@ -92,6 +92,17 @@ describe('DueTimeSchedulerService', () => {
     expect(showBrowserNotification).not.toHaveBeenCalled();
   });
 
+  it('does not announce anything when the browser has no timezone', async () => {
+    spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').and.returnValue(
+      {} as Intl.ResolvedDateTimeFormatOptions,
+    );
+    notifications.set([dueTimeNotification()]);
+
+    await service.check();
+
+    expect(showBrowserNotification).not.toHaveBeenCalled();
+  });
+
   it('checks on focus and on becoming visible, and stops listening after stop()', async () => {
     service.start();
     await flush();

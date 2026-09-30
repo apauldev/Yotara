@@ -70,6 +70,41 @@ describe('NotificationService', () => {
     expect(service.unreadCount()).toBe(3);
   });
 
+  describe('when the browser cannot resolve a timezone', () => {
+    beforeEach(() => {
+      spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').and.returnValue(
+        {} as Intl.ResolvedDateTimeFormatOptions,
+      );
+    });
+
+    it('omits tz rather than sending a guessed UTC', async () => {
+      const promise = service.fetchNotifications(10);
+      const req = httpMock.expectOne(`${baseUrl}/notifications?limit=10`);
+      req.flush(mockNotifications);
+      await promise;
+
+      expect(service.notifications()).toEqual(mockNotifications);
+    });
+
+    it('flags the missing timezone so the UI can explain it', async () => {
+      const promise = service.fetchUnreadCount();
+      const req = httpMock.expectOne(`${baseUrl}/notifications/unread-count`);
+      req.flush({ count: 0 });
+      await promise;
+
+      expect(service.timezoneUnavailable()).toBe(true);
+    });
+  });
+
+  it('does not flag a missing timezone when the browser has one', async () => {
+    const promise = service.fetchUnreadCount();
+    const req = httpMock.expectOne(`${baseUrl}/notifications/unread-count?tz=${getUserTimezone()}`);
+    req.flush({ count: 1 });
+    await promise;
+
+    expect(service.timezoneUnavailable()).toBe(false);
+  });
+
   it('clearRead sends DELETE and removes read notifications', async () => {
     service['_notifications'].set([...mockNotifications]);
 

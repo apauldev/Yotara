@@ -381,6 +381,42 @@ describe('CaptureBarComponent', () => {
       expect(fixture.debugElement.query(By.css('.capture-date-preview'))).toBeTruthy();
     });
 
+    it('warns that a picked-up time may not fire when the browser has no timezone', () => {
+      spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').and.returnValue(
+        {} as Intl.ResolvedDateTimeFormatOptions,
+      );
+      const fixture = createFixture();
+
+      fixture.componentInstance.setTitle('Call Sam Friday at 3pm');
+      fixture.detectChanges();
+
+      const preview = fixture.debugElement.query(By.css('.capture-date-preview'));
+      expect(preview).toBeTruthy();
+      expect(preview.nativeElement.textContent).toContain('3:00 PM');
+
+      const note = fixture.debugElement.query(By.css('.capture-date-note'));
+      expect(note).toBeTruthy();
+      expect(note.nativeElement.textContent).toContain(
+        "Couldn't detect your timezone — the 3:00 PM reminder may not arrive on time.",
+      );
+
+      const input = fixture.debugElement.query(By.css('input'));
+      expect(input.nativeElement.getAttribute('aria-describedby')).toContain('capture-date-note');
+    });
+
+    it('says nothing about the timezone for a date-only task', () => {
+      spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').and.returnValue(
+        {} as Intl.ResolvedDateTimeFormatOptions,
+      );
+      const fixture = createFixture();
+
+      fixture.componentInstance.setTitle('Call Sam Friday');
+      fixture.detectChanges();
+
+      expect(fixture.debugElement.query(By.css('.capture-date-preview'))).toBeTruthy();
+      expect(fixture.debugElement.query(By.css('.capture-date-note'))).toBeNull();
+    });
+
     it('shows no notice for ordinary task text', () => {
       const fixture = createFixture();
 

@@ -34,6 +34,8 @@ import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.
 import { MarkdownEditorComponent } from '../../../shared/ui/markdown-editor/markdown-editor.component';
 import { ModalComponent } from '../../../shared/ui/modal/modal.component';
 import { formatTimeLabel, parseCalendarDate, startOfToday } from '../../../shared/utils/timestamps';
+import { tryGetUserTimezone } from '../../../shared/utils/timezone';
+import { timedTaskTimezoneNotice } from '../utils/timezone-notices';
 import { parseTaskCommand } from '../utils/task-command-parser';
 import { parseTaskDueDate } from '../utils/task-due-date-parser';
 import type { DueDateDraft, DueDateDraftSource } from '../utils/due-date-draft';
@@ -165,6 +167,18 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
       : `Due ${formattedValue}`;
   });
 
+  /**
+   * Mirrors the capture bar: a due time is still saved without a browser
+   * timezone, but the server cannot judge when it is due, so the preview says
+   * the reminder is not guaranteed.
+   */
+  protected readonly dueDateNotice = computed(() => {
+    const timeLabel = formatTimeLabel(this.draftDueTime());
+    if (!timeLabel || tryGetUserTimezone()) return null;
+
+    return timedTaskTimezoneNotice(timeLabel);
+  });
+
   ngOnChanges(changes: SimpleChanges) {
     // Hydrate only when a new editing session starts: the modal opening or a
     // different task being supplied. Late-arriving inputs (projects loading,
@@ -253,6 +267,7 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
     const ids: string[] = [];
     if (this.titleError()) ids.push('task-title-error');
     if (!this.task && this.dateDraftSource() !== 'none') ids.push('task-date-preview');
+    if (!this.task && this.dueDateNotice()) ids.push('task-date-note');
     return ids.length > 0 ? ids.join(' ') : null;
   }
 

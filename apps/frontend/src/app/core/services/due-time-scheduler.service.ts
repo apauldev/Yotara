@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { DateTime } from 'luxon';
 import { NotificationService } from './notification.service';
 import { AuthStateService } from './auth-state.service';
-import { getUserTimezone } from '../../shared/utils/timezone';
+import { tryGetUserTimezone } from '../../shared/utils/timezone';
 
 const ANNOUNCED_KEY_PREFIX = 'yotara_due_time_announced_';
 const MAX_ANNOUNCED_IDS = 100;
@@ -89,7 +89,11 @@ export class DueTimeSchedulerService {
   }
 
   private isFromToday(createdAtIso: string): boolean {
-    const zone = getUserTimezone();
+    const zone = tryGetUserTimezone();
+    // Without a zone there is no reliable "today", so nothing is announced
+    // rather than guessed at.
+    if (!zone) return false;
+
     const created = DateTime.fromISO(createdAtIso, { zone: 'utc' }).setZone(zone);
     const now = DateTime.now().setZone(zone);
 

@@ -68,6 +68,7 @@ describe('PersonalShellComponent', () => {
           useValue: {
             unreadCount: signal(0),
             notifications: signal([]),
+            timezoneUnavailable: signal(false),
             fetchUnreadCount: jasmine.createSpy('fetchUnreadCount').and.resolveTo(),
             fetchNotifications: jasmine.createSpy('fetchNotifications').and.resolveTo(),
             markAsRead: jasmine.createSpy('markAsRead').and.resolveTo(),
@@ -266,6 +267,25 @@ describe('PersonalShellComponent', () => {
     expect(fixture.debugElement.query(By.css('.notifications-dropdown'))).toBeTruthy();
     expect(notifService.fetchNotifications).toHaveBeenCalled();
     expect(notifService.fetchUnreadCount).toHaveBeenCalled();
+  });
+
+  it('explains the missing timezone in the notification dropdown', () => {
+    const notifService = TestBed.inject(NotificationService) as any;
+    const fixture = TestBed.createComponent(PersonalShellComponent);
+    fixture.detectChanges();
+
+    fixture.debugElement.queryAll(By.css('.icon-button'))[0].nativeElement.click();
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('.notifications-timezone-note'))).toBeNull();
+
+    notifService.timezoneUnavailable.set(true);
+    fixture.detectChanges();
+
+    const note = fixture.debugElement.query(By.css('.notifications-timezone-note'));
+    expect(note).toBeTruthy();
+    expect(note.nativeElement.getAttribute('role')).toBe('status');
+    expect(note.nativeElement.textContent).toContain('Timezone not detected');
   });
 
   it('keeps the notification list scrollable when there are many notifications', () => {

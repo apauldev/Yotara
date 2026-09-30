@@ -21,6 +21,8 @@ import { DateTime } from 'luxon';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
 import { formatTimeLabel, parseCalendarDate, startOfToday } from '../../../shared/utils/timestamps';
+import { tryGetUserTimezone } from '../../../shared/utils/timezone';
+import { timedTaskTimezoneNotice } from '../utils/timezone-notices';
 import { LabelService } from '../../../core/services/label.service';
 import { highlightInlineCommands } from '../../../shared/utils/html-helpers';
 import {
@@ -578,6 +580,12 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
    * parser rather than a date-only feature.
    */
   protected readonly dueDateNotice = computed(() => {
+    const draft = this.dueDateDraft();
+    const timeLabel = draft.dueTime ? formatTimeLabel(draft.dueTime) : null;
+    // A picked-up time is still saved, but without a browser timezone the
+    // server cannot judge when it is due, so say so where the time is shown.
+    if (timeLabel && !tryGetUserTimezone()) return timedTaskTimezoneNotice(timeLabel);
+
     const result = this.parserResult();
     if (!result) return null;
 

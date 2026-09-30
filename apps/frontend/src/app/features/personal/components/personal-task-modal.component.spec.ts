@@ -801,6 +801,25 @@ describe('PersonalTaskModalComponent', () => {
       );
     });
 
+    it('warns in the preview that a due time may not fire when the browser has no timezone', () => {
+      spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').and.returnValue(
+        {} as Intl.ResolvedDateTimeFormatOptions,
+      );
+      openNewTask();
+      component['draftTitle'].set('Timed task');
+
+      component['onDraftDueDateChange']('2026-10-02');
+      component['onDraftDueTimeChange']('15:30');
+      fixture.detectChanges();
+
+      const note = fixture.debugElement.query(By.css('.date-preview-note'));
+      expect(note).toBeTruthy();
+      expect(note.nativeElement.getAttribute('role')).toBe('status');
+      expect(note.nativeElement.textContent).toContain(
+        "Couldn't detect your timezone — the 3:30 PM reminder may not arrive on time.",
+      );
+    });
+
     it('omits dueTime from the create payload when no time is set', () => {
       openNewTask();
       component['draftTitle'].set('Untimed create task');
