@@ -155,6 +155,31 @@ describe('parseTaskDueDate', () => {
       expectDateTime('Call Sam at 12am Friday', '2026-10-02', '00:00');
     });
 
+    it('rejects a vague time cue in front of an adjacent prefix time', () => {
+      // The cue scan covers the text before the prefix, so the same words that
+      // make the date-only form ambiguous also make the timed form ambiguous.
+      expect(parseTaskDueDate('Call Sam midday 5pm Friday', monday).status).toBe('time');
+      expect(parseTaskDueDate('Call Sam morning 5pm Friday', monday).status).toBe('time');
+      expect(parseTaskDueDate('Morning notes 5pm Friday', monday).status).toBe('time');
+      expect(parseTaskDueDate('Evening run at 5pm Friday', monday).status).toBe('time');
+      expect(parseTaskDueDate('close of business 5pm Friday', monday).status).toBe('time');
+      expect(parseTaskDueDate('Call Sam PST 5pm Friday', monday).status).toBe('time');
+    });
+
+    it('rejects a vague cue between a prefix time and the date instead of dropping the time', () => {
+      const result = parseTaskDueDate('Call Sam 5pm midday Friday', monday);
+
+      expect(result.status).toBe('time');
+      expect(result.dueDate).toBeNull();
+      expect(result.dueTime).toBeNull();
+    });
+
+    it('still resolves a prefix time whose own token is a vague word', () => {
+      expectDateTime('Call Sam at noon Friday', '2026-10-02', '12:00', monday, 'at noon Friday');
+      expectDateTime('Call Sam noon Friday', '2026-10-02', '12:00', monday, 'noon Friday');
+      expectDateTime('Call Sam at midnight Friday', '2026-10-02', '00:00');
+    });
+
     it('rejects ambiguous or doubled time cues around a date', () => {
       expect(parseTaskDueDate('Call Sam 5 Friday', monday).status).toBe('time');
       expect(parseTaskDueDate('Call Sam at 5 Friday', monday).status).toBe('time');

@@ -115,7 +115,7 @@ const COMMAND_TOKEN_PATTERN = /(?:^|\s)(?:!(?:h|l|m|high|med|medium|low)\b|#[\w-
 const RECURRING_TOKEN_PATTERN = /\b(?:every|each)\b/i;
 const RECURRING_BEFORE_PATTERN = /\b(?:every|each)\s+other\s*$/i;
 const VAGUE_TIME_TOKEN_PATTERN =
-  /\b(?:morning|afternoon|evening|tonight|midnight|noon|eod|cob|close of business)\b/i;
+  /\b(?:morning|midday|afternoon|evening|tonight|midnight|noon|eod|cob|close of business)\b/i;
 const UNSUPPORTED_RELATIVE_PATTERN = /\bin\s+(?:[+-]?0+(?:\.\d+)?|[+-]?\d+\.\d+|\.\d+)\s+days?\b/i;
 const BARE_MONTH_PATTERN = new RegExp(`\\b(?:${MONTH_PATTERN})\\b`, 'i');
 const INVALID_RELATIVE_AFTER_PATTERN = /^[-–—/]/;
@@ -128,6 +128,7 @@ const TIME_AFTER_WORDS = new Set([
   'am',
   'pm',
   'morning',
+  'midday',
   'afternoon',
   'evening',
   'night',
@@ -419,10 +420,19 @@ function validateCandidateContext(input: string, candidate: DateCandidate): Cand
   let prefixStart = candidate.start;
 
   if (prefix) {
-    const wordBeforePrefix = getLastWord(
-      beforeTrimmed.slice(0, beforeTrimmed.length - prefix.length),
-    );
-    if (TIME_AFTER_WORDS.has(wordBeforePrefix) || TIME_LIKE_AFTER_PATTERN.test(wordBeforePrefix)) {
+    // The time token itself may be a vague word ("at noon"), so the cue scan
+    // covers only the text in front of the prefix. Scanning the whole span
+    // would reject the very phrase it is meant to guard, and the single-word
+    // check alone misses cues when the prefix carries its own "at"
+    // ("evening run at 5pm friday"). The date-only branch scans its full span
+    // below, so both paths fail closed together.
+    const beforePrefix = beforeTrimmed.slice(0, beforeTrimmed.length - prefix.length);
+    const wordBeforePrefix = getLastWord(beforePrefix);
+    if (
+      VAGUE_TIME_TOKEN_PATTERN.test(beforePrefix) ||
+      TIME_AFTER_WORDS.has(wordBeforePrefix) ||
+      TIME_LIKE_AFTER_PATTERN.test(wordBeforePrefix)
+    ) {
       return reject('time');
     }
 
