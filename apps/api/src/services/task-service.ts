@@ -17,7 +17,11 @@ import { todayInTimezone, startOfDayInUtc } from '../lib/timezone.js';
 import { AppError, BadRequestError, NotFoundError } from '../lib/app-error.js';
 import { getLabelsForTasks, getTaskLabels, syncTaskLabels } from './label-service.js';
 import { getDefaultProjectForOwner } from './project-service.js';
-import { createDueNotificationIfNeeded, scanDueNotifications } from './notification-service.js';
+import {
+  createDueNotificationIfNeeded,
+  retireSupersededDueNotifications,
+  scanDueNotifications,
+} from './notification-service.js';
 
 type TaskRow = typeof tasks.$inferSelect;
 
@@ -609,6 +613,14 @@ function updateTaskForOwnerSync(
     const dueDateChanged = nextDueDate !== prevDueDate;
     const dueTimeChanged = nextDueTime !== prevDueTime;
     const becameUndone = wasCompleted && isNowIncomplete;
+
+    // Changing a task's time supersedes the reminder its old timing already
+    // earned for this day: a newly timed task is only reminded at its exact
+    // instant, and one that just lost its time falls back to the date-only
+    // reminder. Restricting this to an unchanged date keeps other days' rows.
+    if (dueTimeChanged && !dueDateChanged) {
+      retireSupersededDueNotifications(client, ownerId, taskId, tz);
+    }
 
     if (dueDateChanged || dueTimeChanged || becameUndone) {
       createDueNotificationIfNeeded(

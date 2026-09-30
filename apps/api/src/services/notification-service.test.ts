@@ -12,8 +12,10 @@ import {
   markAllReadForOwner,
   createDueNotificationIfNeeded,
   hasDueTimeReached,
+  retireSupersededDueNotifications,
   scanDueNotifications,
 } from './notification-service.js';
+import { notifications } from '../db/schema.js';
 
 function createTestDb(): {
   db: Database;
@@ -282,6 +284,100 @@ test('createDueNotificationIfNeeded deduplicates when notification already exist
 
   const rows = getNotificationsForOwner(userId, 50, db);
   assert.equal(rows.length, 1, 'should not create duplicate notification');
+});
+
+test('retireSupersededDueNotifications removes only this day\u2019s reminders', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const now = DateTime.fromISO('2026-09-25T15:00:00', { zone: 'UTC' });
+  const taskId = randomUUID();
+  const otherTaskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Call Sam');
+  createTask(sqlite, otherTaskId, userId, 'Other task');
+
+  createNotification(userId, 'due_today', 'Task due today', 'Call Sam', taskId, db);
+  createNotification(userId, 'overdue', 'Task overdue', 'Call Sam', taskId, db);
+  createNotification(userId, 'due_time', 'Task due now', 'Call Sam', taskId, db);
+  createNotification(userId, 'due_today', 'Task due today', 'Other task', otherTaskId, db);
+  // Earlier-day rows describe that day's state and are not this decision's business.
+  for (const type of ['due_today', 'due_time'] as const) {
+    db.insert(notifications)
+      .values({
+        id: randomUUID(),
+        userId,
+        taskId,
+        type,
+        title: 'Task due today',
+        body: 'Call Sam',
+        read: false,
+        createdAt: '2026-09-24T08:00:00.000Z',
+      })
+      .run();
+  }
+
+  retireSupersededDueNotifications(db, userId, taskId, 'UTC', now);
+
+  const rows = getNotificationsForOwner(userId, 50, db);
+  const todaysRows = rows.filter(
+    (row) => row.body === 'Call Sam' && row.createdAt >= '2026-09-25T00:00:00.000Z',
+  );
+  assert.deepEqual(
+    todaysRows.map((row) => row.type),
+    ['overdue'],
+    'only today\u2019s overdue row is kept',
+  );
+  assert.equal(rows.length, 4, 'earlier-day and other-task rows survive');
+});
+
+test('retireSupersededDueNotifications scopes the day to the caller\u2019s zone', () => {
+  const now = DateTime.fromISO('2026-09-25T02:00:00', { zone: 'UTC' });
+  // 16:00 on 2026-09-24 in New York, and still 2026-09-24 in UTC.
+  const createdAt = '2026-09-24T20:00:00.000Z';
+
+  const newYork = createTestDb();
+  const newYorkTaskId = randomUUID();
+  createTask(newYork.sqlite, newYorkTaskId, newYork.userId, 'Call Sam');
+  newYork.db
+    .insert(notifications)
+    .values({
+      id: randomUUID(),
+      userId: newYork.userId,
+      taskId: newYorkTaskId,
+      type: 'due_today',
+      title: 'Task due today',
+      body: 'Call Sam',
+      read: false,
+      createdAt,
+    })
+    .run();
+  retireSupersededDueNotifications(
+    newYork.db,
+    newYork.userId,
+    newYorkTaskId,
+    'America/New_York',
+    now,
+  );
+  // New York is still on 2026-09-24 at 02:00Z, so the row is the current day's.
+  assert.equal(getNotificationsForOwner(newYork.userId, 50, newYork.db).length, 0);
+
+  const utc = createTestDb();
+  const utcTaskId = randomUUID();
+  createTask(utc.sqlite, utcTaskId, utc.userId, 'Call Sam');
+  utc.db
+    .insert(notifications)
+    .values({
+      id: randomUUID(),
+      userId: utc.userId,
+      taskId: utcTaskId,
+      type: 'due_today',
+      title: 'Task due today',
+      body: 'Call Sam',
+      read: false,
+      createdAt,
+    })
+    .run();
+  retireSupersededDueNotifications(utc.db, utc.userId, utcTaskId, 'UTC', now);
+  // In UTC the same moment is already 2026-09-25, so the row belongs to yesterday.
+  assert.equal(getNotificationsForOwner(utc.userId, 50, utc.db).length, 1);
 });
 
 test('createDueNotificationIfNeeded respects custom timezone', () => {

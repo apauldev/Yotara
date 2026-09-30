@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { DateTime } from 'luxon';
 import { db, type Database } from '../db/client.js';
 import { notifications, tasks, type DbNotification } from '../db/schema.js';
@@ -147,6 +147,35 @@ function createDueNotificationOnce(
   if (hasNotificationToday(tx, userId, task.id, type, sinceIso)) return;
 
   createNotification(userId, type, title, task.title, task.id, tx);
+}
+
+/**
+ * Drop the current local day's reminders for a task whose timing just changed,
+ * so the new timing is the only one the user hears about: a task that just
+ * became timed no longer owes its date-only reminder, and one that just lost
+ * its time no longer owes the exact-time reminder for the old instant. The day
+ * window matches the reminder logic below, so rows from earlier days — which
+ * describe that day's state — are left alone.
+ */
+export function retireSupersededDueNotifications(
+  tx: Database,
+  userId: string,
+  taskId: string,
+  tz?: string,
+  now: DateTime = DateTime.now(),
+): void {
+  const sinceIso = startOfDayInUtc(todayInTimezone(tz, now), tz);
+
+  tx.delete(notifications)
+    .where(
+      and(
+        eq(notifications.userId, userId),
+        eq(notifications.taskId, taskId),
+        inArray(notifications.type, ['due_today', 'due_time']),
+        sql`${notifications.createdAt} >= ${sinceIso}`,
+      ),
+    )
+    .run();
 }
 
 /**
