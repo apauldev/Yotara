@@ -216,6 +216,9 @@ export default async function authBridgePlugin(app: FastifyInstance) {
           const userId = respJson?.user?.id;
           if (userId) {
             try {
+              // No timezone is available at login, so date-only tasks are
+              // scanned and timed ones are left to the first tz-aware request
+              // from the client rather than being judged against UTC.
               scanDueNotifications(userId);
             } catch (err) {
               app.log.error({ err, userId }, 'Failed to scan due notifications on login');

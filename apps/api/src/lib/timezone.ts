@@ -1,6 +1,17 @@
 import { DateTime } from 'luxon';
 
 /**
+ * Resolve a caller-supplied IANA timezone, or `null` when none was supplied
+ * or the value is not a real zone. Callers that need a day boundary should
+ * use todayInTimezone; callers evaluating an exact wall-clock instant must
+ * use this so an unknown zone is never silently read as UTC.
+ */
+export function resolveTimezone(tz?: string, now: DateTime = DateTime.now()): string | null {
+  if (!tz) return null;
+  return now.setZone(tz).isValid ? tz : null;
+}
+
+/**
  * Compute today's date (YYYY-MM-DD) in a given IANA timezone.
  * Falls back to UTC if the timezone is invalid or undefined.
  */

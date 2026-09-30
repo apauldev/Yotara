@@ -415,8 +415,9 @@ test('hasDueTimeReached compares the due instant in the user timezone', () => {
   // 15:00 UTC is 11:00 in New York, so 10:00 has passed and 12:00 has not.
   assert.equal(hasDueTimeReached('2026-09-25', '10:00', 'America/New_York', now), true);
   assert.equal(hasDueTimeReached('2026-09-25', '12:00', 'America/New_York', now), false);
-  // Invalid zones fall back to UTC; invalid times fail closed.
-  assert.equal(hasDueTimeReached('2026-09-25', '14:00', 'Not/AZone', now), true);
+  // Unknown zones fail closed: a wall-clock time is not an instant without one.
+  assert.equal(hasDueTimeReached('2026-09-25', '14:00', 'Not/AZone', now), false);
+  assert.equal(hasDueTimeReached('2026-09-25', '14:00', undefined, now), false);
   assert.equal(hasDueTimeReached('2026-09-25', 'nope', 'UTC', now), false);
 });
 
@@ -586,4 +587,78 @@ test('scanDueNotifications skips a timed task before its instant', () => {
 
   assert.equal(scanDueNotifications(userId, 'UTC', db, now), 0);
   assert.equal(getNotificationsForOwner(userId, 50, db).length, 0);
+});
+
+test('scanDueNotifications skips timed tasks when no timezone is supplied', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const now = DateTime.fromISO('2026-09-25T15:00:00', { zone: 'UTC' });
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Timed task');
+  sqlite
+    .prepare(`UPDATE tasks SET due_date = ?, due_time = ? WHERE id = ?`)
+    .run('2026-09-25', '14:00', taskId);
+
+  assert.equal(scanDueNotifications(userId, undefined, db, now), 0);
+  assert.equal(scanDueNotifications(userId, 'Not/AZone', db, now), 0);
+  assert.equal(getNotificationsForOwner(userId, 50, db).length, 0);
+});
+
+test('a timezone-less scan still notifies date-only tasks', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const now = DateTime.fromISO('2026-09-25T15:00:00', { zone: 'UTC' });
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Date-only task');
+  sqlite.prepare(`UPDATE tasks SET due_date = ? WHERE id = ?`).run('2026-09-25', taskId);
+
+  assert.equal(scanDueNotifications(userId, undefined, db, now), 1);
+  const rows = getNotificationsForOwner(userId, 50, db);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].type, 'due_today');
+});
+
+test('a timed task is not announced early when the zone is unknown at login', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Call Sam');
+  sqlite
+    .prepare(`UPDATE tasks SET due_date = ?, due_time = ? WHERE id = ?`)
+    .run('2026-09-25', '09:00', taskId);
+
+  // Due at 09:00 Pacific, which is 16:00 UTC. The login hook has no timezone,
+  // so at 09:00 UTC (02:00 Pacific) reading 09:00 as UTC would fire it seven
+  // hours early.
+  assert.equal(
+    scanDueNotifications(
+      userId,
+      undefined,
+      db,
+      DateTime.fromISO('2026-09-25T09:00:00', { zone: 'UTC' }),
+    ),
+    0,
+  );
+
+  // The same moment with the real zone also waits.
+  assert.equal(
+    scanDueNotifications(
+      userId,
+      'America/Los_Angeles',
+      db,
+      DateTime.fromISO('2026-09-25T09:00:00', { zone: 'UTC' }),
+    ),
+    0,
+  );
+
+  // Once 09:00 Pacific arrives, exactly one notification exists.
+  assert.equal(
+    scanDueNotifications(
+      userId,
+      'America/Los_Angeles',
+      db,
+      DateTime.fromISO('2026-09-25T16:00:00', { zone: 'UTC' }),
+    ),
+    1,
+  );
+  const rows = getNotificationsForOwner(userId, 50, db);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].type, 'due_time');
 });

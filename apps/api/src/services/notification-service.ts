@@ -4,7 +4,7 @@ import { DateTime } from 'luxon';
 import { db, type Database } from '../db/client.js';
 import { notifications, tasks, type DbNotification } from '../db/schema.js';
 import { nowIsoTimestamp } from '../lib/timestamps.js';
-import { startOfDayInUtc, todayInTimezone } from '../lib/timezone.js';
+import { startOfDayInUtc, resolveTimezone, todayInTimezone } from '../lib/timezone.js';
 
 export function createNotification(
   userId: string,
@@ -114,8 +114,10 @@ function hasNotificationToday(
 
 /**
  * True once the due instant (date plus wall-clock time in the user's
- * timezone) has been reached. Falls back to UTC for an invalid timezone and
- * fails closed for an invalid date or time.
+ * timezone) has been reached. Fails closed for an invalid date or time, and
+ * for an unknown timezone: a wall-clock time cannot be turned into an instant
+ * without knowing the zone, so guessing UTC would fire the reminder early for
+ * anyone west of Greenwich.
  */
 export function hasDueTimeReached(
   dueDate: string,
@@ -123,7 +125,9 @@ export function hasDueTimeReached(
   tz?: string,
   now: DateTime = DateTime.now(),
 ): boolean {
-  const zone = tz && now.setZone(tz).isValid ? tz : 'UTC';
+  const zone = resolveTimezone(tz, now);
+  if (!zone) return false;
+
   const current = now.setZone(zone);
   const due = DateTime.fromISO(`${dueDate.slice(0, 10)}T${dueTime}`, { zone });
 
@@ -146,9 +150,10 @@ function createDueNotificationOnce(
 }
 
 /**
- * Materialize the one notification a task is owed for the current local day.
+ * Materialize the notifications a task is owed for the current local day.
  * A task with an exact time waits for its instant and never also fires
  * due_today on the same day; date-only tasks keep their existing behavior.
+ * Timed tasks are skipped when the caller's timezone is missing or invalid.
  */
 export function createDueNotificationIfNeeded(
   tx: Database,
@@ -176,6 +181,10 @@ export function createDueNotificationIfNeeded(
   if (dueDateKey > todayKey) return;
 
   if (task.dueTime) {
+    // A timed reminder needs the user's zone: without one the stored
+    // wall-clock time cannot be placed on a timeline, so it waits for a
+    // timezone-aware scan instead of firing at a guessed instant.
+    if (!resolveTimezone(tz, now)) return;
     if (!hasDueTimeReached(dueDateKey, task.dueTime, tz, now)) return;
     createDueNotificationOnce(tx, userId, task, 'due_time', 'Task due now', todayKey, tz);
     return;
@@ -184,6 +193,11 @@ export function createDueNotificationIfNeeded(
   createDueNotificationOnce(tx, userId, task, 'due_today', 'Task due today', todayKey, tz);
 }
 
+/**
+ * Create any due/overdue notification the user is currently owed. Date-only
+ * tasks are handled on the UTC day boundary when no timezone is supplied;
+ * timed tasks are skipped in that case because their instant is zone-dependent.
+ */
 export function scanDueNotifications(
   userId: string,
   tz?: string,
