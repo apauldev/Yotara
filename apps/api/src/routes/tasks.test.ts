@@ -823,6 +823,94 @@ test('moving due date to past creates overdue notification', async () => {
   }
 });
 
+test('clearing the due date on update removes the date and its time', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`cleardate-${randomUUID()}@example.com`);
+
+    const createRes = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks?tz=UTC',
+      headers: { cookie },
+      payload: { title: 'Call Sam', dueDate: '2026-10-02', dueTime: '15:00' },
+    });
+    assert.equal(createRes.statusCode, 201);
+    const taskId = createRes.json().id;
+
+    // A null date is the explicit "clear it" the modal sends; the time cannot
+    // outlive its day, so it goes with it.
+    const clearRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}?tz=UTC`,
+      headers: { cookie },
+      payload: { dueDate: null, dueTime: null },
+    });
+    assert.equal(clearRes.statusCode, 200);
+    // Nulls are omitted from the response body, so a cleared date reads as absent.
+    assert.equal(clearRes.json().dueDate, undefined);
+    assert.equal(clearRes.json().dueTime, undefined);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('an update that omits the due date leaves it untouched', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`keepdate-${randomUUID()}@example.com`);
+
+    const createRes = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks?tz=UTC',
+      headers: { cookie },
+      payload: { title: 'Call Sam', dueDate: '2026-10-02', dueTime: '15:00' },
+    });
+    const taskId = createRes.json().id;
+
+    // An absent key still means "unchanged", which is how unrelated edits keep
+    // the schedule.
+    const editRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}?tz=UTC`,
+      headers: { cookie },
+      payload: { title: 'Call Sam about the invoice' },
+    });
+    assert.equal(editRes.statusCode, 200);
+    assert.equal(editRes.json().dueDate, '2026-10-02');
+    assert.equal(editRes.json().dueTime, '15:00');
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('a due time without a due date is still rejected', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`orphan-time-${randomUUID()}@example.com`);
+
+    const createRes = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks?tz=UTC',
+      headers: { cookie },
+      payload: { title: 'Call Sam', dueDate: '2026-10-02' },
+    });
+    const taskId = createRes.json().id;
+
+    const res = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}?tz=UTC`,
+      headers: { cookie },
+      payload: { dueDate: null, dueTime: '15:00' },
+    });
+    assert.equal(res.statusCode, 400);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
 test('moving due date back to today after overdue does not duplicate', async () => {
   const ctx = await createAuthedApp();
 

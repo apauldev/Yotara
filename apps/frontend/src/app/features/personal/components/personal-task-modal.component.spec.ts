@@ -857,6 +857,35 @@ describe('PersonalTaskModalComponent', () => {
       expect(event?.payload.dueDate).toBe('2026-10-02');
     });
 
+    it('sends a cleared due date as an explicit null so the stored date goes too', async () => {
+      openExistingTask('2026-10-02', '15:30');
+      await settle();
+      const saveSpy = spyOn(component['save'], 'emit');
+
+      expect(component['draftDueDate']()).toBe('2026-10-02');
+
+      component['clearDraftDueDate']();
+      component['submit']();
+
+      const event = saveSpy.calls.mostRecent().args[0];
+      expect(event?.mode).toBe('update');
+      expect(event?.payload.dueDate).toBeNull();
+      expect(event?.payload.dueTime).toBeNull();
+    });
+
+    it('keeps the existing due date when the schedule is untouched', async () => {
+      openExistingTask('2026-10-02', '15:30');
+      await settle();
+      const saveSpy = spyOn(component['save'], 'emit');
+
+      component['onTitleInput']('Timed task about the invoice');
+      component['submit']();
+
+      const event = saveSpy.calls.mostRecent().args[0];
+      expect(event?.payload.dueDate).toBe('2026-10-02');
+      expect(event?.payload.dueTime).toBe('15:30');
+    });
+
     it('clears the time when Simple Mode is enabled or the date is cleared', () => {
       openNewTask();
       component['onDraftDueDateChange']('2026-10-02');

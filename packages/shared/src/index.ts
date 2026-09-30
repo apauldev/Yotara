@@ -131,7 +131,7 @@ export interface UpdateTaskDto {
   description?: string;
   status?: TaskStatus;
   priority?: Priority;
-  dueDate?: string;
+  dueDate?: string | null; // null clears a persisted date; undefined leaves it unchanged
   dueTime?: string | null; // null clears a persisted time; undefined leaves it unchanged
   simpleMode?: boolean;
   bucket?: TaskBucket;

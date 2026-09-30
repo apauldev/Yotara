@@ -145,7 +145,9 @@ const updateTaskSchema = {
       type: 'string',
       enum: ['low', 'medium', 'high'],
     },
-    dueDate: { type: 'string', format: 'date' },
+    dueDate: {
+      anyOf: [{ type: 'string', format: 'date' }, { type: 'null' }],
+    },
     dueTime: {
       anyOf: [timeOfDaySchema, { type: 'null' }],
     },

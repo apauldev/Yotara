@@ -508,12 +508,21 @@ function updateTaskForOwnerSync(
       }
     }
 
-    const nextDueDate = simpleMode ? null : (body.dueDate ?? current.dueDate);
-    // null clears a persisted time; undefined leaves it unchanged.
+    // null clears a persisted date; undefined leaves it unchanged.
+    const nextDueDate = simpleMode
+      ? null
+      : body.dueDate === undefined
+        ? current.dueDate
+        : body.dueDate;
+    // null clears a persisted time; undefined leaves it unchanged. A cleared
+    // date takes the time with it, but a time sent alongside a cleared date is
+    // a client mistake and falls through to the check below.
     const nextDueTime = simpleMode
       ? null
       : body.dueTime === undefined
-        ? current.dueTime
+        ? body.dueDate === null
+          ? null
+          : current.dueTime
         : body.dueTime;
 
     if (nextDueTime && !nextDueDate) {

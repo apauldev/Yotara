@@ -667,6 +667,10 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
           completed: this.draftCompleted(),
           labels: this.draftLabels(),
           recurrenceRule: this.isRecurrenceDisabled() ? undefined : recurrenceRule,
+          // The update draft is the task's full state, so a cleared date is sent
+          // as an explicit null. Omitting the key would leave the stored date in
+          // place, which is how a cleared date used to silently survive a save.
+          dueDate: this.draftSimpleMode() ? null : (dueDate ?? null),
           dueTime: this.draftSimpleMode() ? null : this.draftDueTime().trim() || null,
         },
       });
