@@ -116,7 +116,10 @@ test.describe('Task Modal CRUD', () => {
 
     await page.getByRole('button', { name: 'Change due date' }).click();
     await expect(page.locator('.date-picker-panel')).toBeVisible();
-    await page.getByPlaceholder("What's on your mind today?").click();
+    // Escape, rather than clicking the capture input: the panel flips above its
+    // trigger when the capture bar sits low enough, and then covers that input,
+    // so an outside click there is a pointer-interception gamble.
+    await page.keyboard.press('Escape');
     await expect(page.locator('.date-picker-panel')).not.toBeVisible();
 
     await page.getByRole('button', { name: 'Clear due date' }).click();
