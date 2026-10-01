@@ -380,6 +380,39 @@ test('retireSupersededDueNotifications scopes the day to the caller\u2019s zone'
   assert.equal(getNotificationsForOwner(utc.userId, 50, utc.db).length, 1);
 });
 
+test('a timezone-less scan does not call a timed task overdue', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Call Sam');
+  sqlite
+    .prepare(`UPDATE tasks SET due_date = ?, due_time = ? WHERE id = ?`)
+    .run('2026-09-25', '23:30', taskId);
+
+  // 2026-09-26T02:00Z is still 2026-09-25 in Los Angeles, so the task is not
+  // overdue there yet and its instant is still six hours away. Judged against
+  // the UTC day instead, the date alone would already look past.
+  const instant = DateTime.fromISO('2026-09-26T02:00:00', { zone: 'UTC' });
+  assert.equal(scanDueNotifications(userId, undefined, db, instant), 0);
+  assert.equal(scanDueNotifications(userId, 'America/Los_Angeles', db, instant), 0);
+  assert.equal(getNotificationsForOwner(userId, 50, db).length, 0);
+
+  // Past the local day and the instant, the same task is overdue.
+  const later = DateTime.fromISO('2026-09-27T02:00:00', { zone: 'UTC' });
+  assert.equal(scanDueNotifications(userId, 'America/Los_Angeles', db, later), 1);
+  assert.equal(getNotificationsForOwner(userId, 50, db)[0].type, 'overdue');
+});
+
+test('a timezone-less scan still calls a date-only task overdue', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Old task');
+  sqlite.prepare(`UPDATE tasks SET due_date = ? WHERE id = ?`).run('2026-09-25', taskId);
+
+  const instant = DateTime.fromISO('2026-09-26T02:00:00', { zone: 'UTC' });
+  assert.equal(scanDueNotifications(userId, undefined, db, instant), 1);
+  assert.equal(getNotificationsForOwner(userId, 50, db)[0].type, 'overdue');
+});
+
 test('createDueNotificationIfNeeded respects custom timezone', () => {
   const { db, userId, sqlite } = createTestDb();
   const today = new Date().toISOString().slice(0, 10);

@@ -182,7 +182,9 @@ export function retireSupersededDueNotifications(
  * Materialize the notifications a task is owed for the current local day.
  * A task with an exact time waits for its instant and never also fires
  * due_today on the same day; date-only tasks keep their existing behavior.
- * Timed tasks are skipped when the caller's timezone is missing or invalid.
+ * Timed tasks are skipped entirely when the caller's timezone is missing or
+ * invalid, including the overdue branch: their day is the user's local day, so
+ * a UTC comparison can put them in the past before their instant has passed.
  */
 export function createDueNotificationIfNeeded(
   tx: Database,
@@ -199,6 +201,12 @@ export function createDueNotificationIfNeeded(
 ): void {
   if (!task.dueDate || task.completed) return;
 
+  // Without a zone a timed task's wall-clock time cannot be placed on a
+  // timeline at all, and neither can its due date be compared to a local day:
+  // at 02:00Z it is still yesterday in Los Angeles. Rather than announce such a
+  // task early, leave it for the first timezone-aware scan.
+  if (task.dueTime && !resolveTimezone(tz, now)) return;
+
   const dueDateKey = task.dueDate.slice(0, 10);
   const todayKey = todayInTimezone(tz, now);
 
@@ -210,10 +218,6 @@ export function createDueNotificationIfNeeded(
   if (dueDateKey > todayKey) return;
 
   if (task.dueTime) {
-    // A timed reminder needs the user's zone: without one the stored
-    // wall-clock time cannot be placed on a timeline, so it waits for a
-    // timezone-aware scan instead of firing at a guessed instant.
-    if (!resolveTimezone(tz, now)) return;
     if (!hasDueTimeReached(dueDateKey, task.dueTime, tz, now)) return;
     createDueNotificationOnce(tx, userId, task, 'due_time', 'Task due now', todayKey, tz);
     return;

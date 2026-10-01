@@ -627,7 +627,11 @@ function updateTaskForOwnerSync(
     // earned for this day: a newly timed task is only reminded at its exact
     // instant, and one that just lost its time falls back to the date-only
     // reminder. Restricting this to an unchanged date keeps other days' rows.
-    if (dueTimeChanged && !dueDateChanged) {
+    // Clearing the schedule supersedes them too, otherwise a task that lost its
+    // date and time keeps today's rows and the scheduler announces a reminder
+    // for a schedule that no longer exists.
+    const scheduleCleared = nextDueDate === null && (prevDueDate !== null || prevDueTime !== null);
+    if ((dueTimeChanged && !dueDateChanged) || scheduleCleared) {
       retireSupersededDueNotifications(client, ownerId, taskId, tz);
     }
 

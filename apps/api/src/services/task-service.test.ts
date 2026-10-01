@@ -867,6 +867,34 @@ test('removing a due time retires the exact-time reminder and restores the date-
   }
 });
 
+test('clearing the whole schedule retires the reminder it earned today', async () => {
+  const { scanDueNotifications, getNotificationsForOwner } =
+    await import('./notification-service.js');
+  const { createTaskForOwner, updateTaskForOwner } = await import('./task-service.js');
+  const { db, sqlite, ownerId, today, at } = await setupReminderTestDb();
+
+  try {
+    const tz = 'UTC';
+    const task = await createTaskForOwner(ownerId, { title: 'Call Sam' }, tz, db);
+    assert.ok(task);
+    sqlite
+      .prepare(`UPDATE tasks SET due_date = ?, due_time = ? WHERE id = ?`)
+      .run(today, '15:00', task.id);
+
+    assert.equal(scanDueNotifications(ownerId, tz, db, at(today, 20)), 1);
+    assert.equal(getNotificationsForOwner(ownerId, 50, db)[0].type, 'due_time');
+
+    // Clearing both fields is not a timing change on an unchanged date, so the
+    // retirement has to recognise the cleared schedule itself. Otherwise the
+    // scheduler would still announce this reminder on its next load.
+    await updateTaskForOwner(ownerId, task.id, { dueDate: null, dueTime: null }, null, tz, db);
+
+    assert.equal(getNotificationsForOwner(ownerId, 50, db).length, 0);
+  } finally {
+    sqlite.close();
+  }
+});
+
 test('moving a task to another date while timing it keeps the other day\u2019s reminder', async () => {
   const { scanDueNotifications, getNotificationsForOwner } =
     await import('./notification-service.js');
