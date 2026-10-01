@@ -1,19 +1,7 @@
-CREATE TABLE `notifications` (
-	`id` text PRIMARY KEY NOT NULL,
-	`user_id` text NOT NULL,
-	`task_id` text,
-	`type` text NOT NULL,
-	`title` text NOT NULL,
-	`body` text,
-	`read` integer DEFAULT false NOT NULL,
-	`read_at` text,
-	`created_at` text NOT NULL,
-	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade,
-	FOREIGN KEY (`task_id`) REFERENCES `tasks`(`id`) ON UPDATE no action ON DELETE set null
-);
---> statement-breakpoint
-ALTER TABLE `tasks` ADD `due_time` text;--> statement-breakpoint
-ALTER TABLE `tasks` ADD `parent_id` text REFERENCES tasks(id);--> statement-breakpoint
-ALTER TABLE `tasks` ADD `recurrence_rule` text;--> statement-breakpoint
-ALTER TABLE `tasks` ADD `base_task_id` text REFERENCES tasks(id);--> statement-breakpoint
-ALTER TABLE `user` ADD `passwordSetupRequired` integer DEFAULT false NOT NULL;
+-- Scoped to the one object the runtime bootstrap does not already create.
+-- Every other statement here (the notifications table, parent_id,
+-- recurrence_rule, base_task_id, passwordSetupRequired) exists in any database
+-- this project has initialized, so replaying it would abort on the first
+-- duplicate. db/client.ts applies due_time through a guarded ALTER on startup;
+-- this file exists so the generated chain records the same change.
+ALTER TABLE `tasks` ADD `due_time` text;
