@@ -466,7 +466,55 @@ describe('PersonalTaskModalComponent', () => {
       expect(component['dateDraftMatchedText']()).toBe('today');
     });
 
-    it('leaves a manual selection alone when the day rolls over', () => {
+    it('stops attributing a hand-edited time to the title’s phrase', () => {
+      const timedDraft: DueDateDraft = {
+        value: '2026-10-02',
+        dueTime: '15:00',
+        source: 'inferred',
+        matchedText: 'Friday at 3pm',
+        matchStart: 9,
+        matchEnd: 24,
+      };
+      openNewTaskWithDateDraft(timedDraft, 'Call Sam Friday at 3pm');
+      fixture.detectChanges();
+      expect(
+        fixture.debugElement.query(By.css('.date-preview')).nativeElement.textContent,
+      ).toContain('Friday at 3pm resolves to');
+
+      component['onDraftDueTimeChange']('17:00');
+      fixture.detectChanges();
+
+      // The user chose 5:00 PM, so the preview must stop claiming the title's
+      // 3pm phrase resolves to it.
+      expect(component['dateDraftSource']()).toBe('manual');
+      expect(component['dateDraftMatchedText']()).toBeNull();
+      const preview = fixture.debugElement.query(By.css('.date-preview')).nativeElement
+        .textContent as string;
+      expect(preview).toContain('Due Friday, Oct 2, 2026, 5:00 PM');
+      expect(preview).not.toContain('resolves to');
+    });
+
+    it('keeps a hand-edited time through the midnight refresh', () => {
+      const timedDraft: DueDateDraft = {
+        value: '2020-01-01',
+        dueTime: '15:00',
+        source: 'inferred',
+        matchedText: 'today',
+        matchStart: 9,
+        matchEnd: 14,
+      };
+      openNewTaskWithDateDraft(timedDraft, 'Call Sam today');
+
+      component['onDraftDueTimeChange']('17:00');
+      component['refreshInferredDueDate']();
+
+      // A manual choice outranks the parsed one: the rollover must not put
+      // 3:00 PM back.
+      expect(component['draftDueTime']()).toBe('17:00');
+      expect(component['draftDueDate']()).toBe('2020-01-01');
+    });
+
+    it('leaves a manual date alone when the day rolls over', () => {
       const manualDraft: DueDateDraft = {
         value: '2026-11-11',
         dueTime: null,

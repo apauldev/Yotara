@@ -401,15 +401,30 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
 
     this.draftDueDate.set(value);
     this.draftSimpleMode.set(false);
+    this.takeManualOwnershipOfSchedule();
+  }
+
+  protected onDraftDueTimeChange(value: string) {
+    this.draftDueTime.set(value);
+    // Only an inferred draft changes hands here. A date already picked by hand
+    // needs no promotion, and a draft with no date has nothing to take over —
+    // the time control is disabled in that case anyway.
+    if (this.dateDraftSource() === 'inferred') {
+      this.takeManualOwnershipOfSchedule();
+    }
+  }
+
+  /**
+   * A hand-edited schedule is no longer inferred: the preview must describe what
+   * will be saved instead of claiming the title's phrase resolves to it, and the
+   * midnight refresh must not restore the parsed time over the user's choice.
+   */
+  private takeManualOwnershipOfSchedule() {
     this.dateDraftSource.set('manual');
     this.dateDraftMatchedText.set(null);
     this.dateDraftMatchStart.set(null);
     this.dateDraftMatchEnd.set(null);
     this.dateDraftSuppressed.set(false);
-  }
-
-  protected onDraftDueTimeChange(value: string) {
-    this.draftDueTime.set(value);
   }
 
   protected clearDraftDueDate() {
