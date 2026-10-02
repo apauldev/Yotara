@@ -1,7 +1,8 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, effect, inject, untracked } from '@angular/core';
 import { DateTime } from 'luxon';
 import { NotificationService } from './notification.service';
 import { AuthStateService } from './auth-state.service';
+import { TaskService } from './task.service';
 import { tryGetUserTimezone } from '../../shared/utils/timezone';
 
 const ANNOUNCED_KEY_PREFIX = 'yotara_due_time_announced_';
@@ -24,9 +25,23 @@ const POLL_INTERVAL_MS = 300_000;
 export class DueTimeSchedulerService {
   private readonly notificationService = inject(NotificationService);
   private readonly authState = inject(AuthStateService);
+  private readonly taskService = inject(TaskService);
   private timer: ReturnType<typeof setInterval> | null = null;
   private dueTimer: ReturnType<typeof setTimeout> | null = null;
   private checking = false;
+  private rescheduleToken = 0;
+
+  constructor() {
+    // Creating a task, or moving one to an earlier time, changes when the next
+    // reminder is owed. Recalculating only on a poll would leave a task due at
+    // 12:01 waiting for a timer already armed for 12:05, so every task change
+    // re-arms. TaskService bumps its version on each mutation.
+    effect(() => {
+      this.taskService.version();
+      const token = ++this.rescheduleToken;
+      untracked(() => void this.scheduleNextDueCheck(token));
+    });
+  }
 
   private readonly onVisibilityChange = () => {
     if (document.visibilityState === 'visible') {
@@ -83,15 +98,16 @@ export class DueTimeSchedulerService {
    * server owns the instants, so this only needs the zone to read the instant in
    * the user's local time. Nothing is scheduled without a zone or when the next
    * instant is beyond this poll interval: the interval will come into range on
-   * its own and schedule it then.
+   * its own and schedule it then. A newer request supersedes an in-flight one.
    */
-  private async scheduleNextDueCheck(): Promise<void> {
+  private async scheduleNextDueCheck(token = ++this.rescheduleToken): Promise<void> {
     this.clearDueTimer();
 
     const zone = tryGetUserTimezone();
     if (!zone) return;
 
     const at = await this.notificationService.fetchNextDueAt();
+    if (token !== this.rescheduleToken) return;
     if (!at) return;
 
     const dueAt = DateTime.fromISO(at).setZone(zone);
