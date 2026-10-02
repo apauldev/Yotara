@@ -42,6 +42,7 @@ describe('NotificationsPageComponent', () => {
         unreadCount: signal(0),
         permission: signal('default' as NotificationPermission),
         isSupported: true,
+        timezoneUnavailable: signal(false),
       },
     );
 
@@ -57,6 +58,21 @@ describe('NotificationsPageComponent', () => {
     fixture.detectChanges();
     expect(fixture.debugElement.query(By.css('.empty-state'))).toBeTruthy();
     expect(fixture.debugElement.query(By.css('.notifications-list'))).toBeNull();
+  });
+
+  it('explains the missing timezone when timed reminders are held back', () => {
+    fixture.detectChanges();
+    expect(fixture.debugElement.query(By.css('.notifications-timezone-note'))).toBeNull();
+
+    (serviceSpy as any).timezoneUnavailable.set(true);
+    fixture.detectChanges();
+
+    const note = fixture.debugElement.query(By.css('.notifications-timezone-note'));
+    expect(note).toBeTruthy();
+    expect(note.nativeElement.getAttribute('role')).toBe('status');
+    expect(note.nativeElement.textContent).toContain(
+      'Timezone not detected — timed reminders are paused',
+    );
   });
 
   it('renders notifications list when available', () => {

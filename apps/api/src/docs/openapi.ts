@@ -33,6 +33,11 @@ const dateTimeSchema = {
   format: 'date-time',
 } as const;
 
+const timeOfDaySchema = {
+  type: 'string',
+  pattern: '^([01]\\d|2[0-3]):[0-5]\\d$',
+} as const;
+
 const authTimestampSchema = {
   anyOf: [dateTimeSchema, { type: 'integer' }],
 } as const;
@@ -55,6 +60,7 @@ const taskSchema = {
     },
     completed: { type: 'boolean' },
     dueDate: { type: 'string', format: 'date' },
+    dueTime: timeOfDaySchema,
     simpleMode: { type: 'boolean' },
     bucket: {
       type: 'string',
@@ -94,6 +100,7 @@ const createTaskSchema = {
       enum: ['low', 'medium', 'high'],
     },
     dueDate: { type: 'string', format: 'date' },
+    dueTime: timeOfDaySchema,
     simpleMode: { type: 'boolean' },
     bucket: {
       type: 'string',
@@ -138,7 +145,12 @@ const updateTaskSchema = {
       type: 'string',
       enum: ['low', 'medium', 'high'],
     },
-    dueDate: { type: 'string', format: 'date' },
+    dueDate: {
+      anyOf: [{ type: 'string', format: 'date' }, { type: 'null' }],
+    },
+    dueTime: {
+      anyOf: [timeOfDaySchema, { type: 'null' }],
+    },
     simpleMode: { type: 'boolean' },
     bucket: {
       type: 'string',
@@ -539,7 +551,7 @@ const notificationSchema = {
   properties: {
     id: { type: 'string' },
     taskId: { type: 'string' },
-    type: { type: 'string', enum: ['due_today', 'overdue'] },
+    type: { type: 'string', enum: ['due_today', 'overdue', 'due_time'] },
     title: { type: 'string' },
     body: { type: 'string' },
     read: { type: 'boolean' },

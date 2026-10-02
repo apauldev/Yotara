@@ -43,6 +43,13 @@
       "when": 1782993449825,
       "tag": "0005_add_task_labels_index",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1790683822897,
+      "tag": "0006_thin_tomorrow_man",
+      "breakpoints": true
     }
   ]
 }

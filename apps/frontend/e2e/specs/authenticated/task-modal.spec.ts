@@ -116,7 +116,10 @@ test.describe('Task Modal CRUD', () => {
 
     await page.getByRole('button', { name: 'Change due date' }).click();
     await expect(page.locator('.date-picker-panel')).toBeVisible();
-    await page.getByPlaceholder("What's on your mind today?").click();
+    // Escape, rather than clicking the capture input: the panel flips above its
+    // trigger when the capture bar sits low enough, and then covers that input,
+    // so an outside click there is a pointer-interception gamble.
+    await page.keyboard.press('Escape');
     await expect(page.locator('.date-picker-panel')).not.toBeVisible();
 
     await page.getByRole('button', { name: 'Clear due date' }).click();
@@ -407,5 +410,223 @@ test.describe('Task Modal CRUD', () => {
     await expect(
       page.getByRole('button', { name: `Open task details for ${name}` }).first(),
     ).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('sets, persists, and clears a due time in the modal', async ({ page }) => {
+    await page.goto('/tasks?view=inbox');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    const name = taskName('due-time');
+    const manualDate = await calendarDateAfter(page, 7);
+
+    await page.getByPlaceholder("What's on your mind today?").fill(name);
+    await page.getByRole('button', { name: 'Add task with details' }).click();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+
+    // Simple Mode disables the schedule controls; turn it off first. The time
+    // field then still waits for a date.
+    const timeInput = page.locator('#task-due-time');
+    await expect(timeInput).toBeDisabled();
+    const simpleModeCheckbox = page.getByRole('checkbox', {
+      name: 'Keep it lightweight with no date metadata',
+    });
+    await expect(simpleModeCheckbox).toBeVisible({ timeout: 3_000 });
+    if (await simpleModeCheckbox.isChecked()) {
+      await simpleModeCheckbox.click();
+    }
+
+    await page.locator('.schedule-picker .date-picker-trigger').click();
+    await selectCalendarDate(page, manualDate);
+    await expect(timeInput).toBeEnabled();
+    await timeInput.fill('15:30');
+
+    // The preview shows the exact date and time that will be saved.
+    const preview = page.locator('#task-date-preview');
+    await expect(preview).toContainText(manualDate.displayLabel);
+    await expect(preview).toContainText('3:30 PM');
+
+    const createResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' && new URL(response.url()).pathname === '/tasks',
+    );
+    await page.getByRole('button', { name: 'Create Task' }).click();
+    const createResponse = await createResponsePromise;
+    expect(createResponse.status()).toBe(201);
+    const payload = createResponse.request().postDataJSON() as {
+      dueDate?: string;
+      dueTime?: string;
+    };
+    expect(payload.dueDate).toBe(manualDate.iso);
+    expect(payload.dueTime).toBe('15:30');
+    const createdTask = (await createResponse.json()) as { dueDate?: string; dueTime?: string };
+    expect(createdTask.dueTime).toBe('15:30');
+
+    // The persisted time round-trips when the task is reopened.
+    const card = await findTaskCard(page, name);
+    await card.click();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('#task-due-time')).toHaveValue('15:30');
+
+    // Clearing the time sends null and persists the clear.
+    const clearResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'PATCH' &&
+        new URL(response.url()).pathname.startsWith('/tasks/'),
+    );
+    await page.locator('#task-due-time').fill('');
+    await page.getByRole('button', { name: 'Save Task' }).click();
+    const clearResponse = await clearResponsePromise;
+    expect(clearResponse.status()).toBe(200);
+    const clearPayload = clearResponse.request().postDataJSON() as { dueTime?: string | null };
+    expect(clearPayload.dueTime).toBeNull();
+
+    // Reopening shows the cleared time while the date survives.
+    const cardAfterClear = await findTaskCard(page, name);
+    await cardAfterClear.click();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('#task-due-time')).toHaveValue('');
+    await expect(page.locator('.schedule-picker .date-picker-trigger')).toContainText(
+      manualDate.displayLabel,
+    );
+    await page.getByRole('button', { name: 'Cancel' }).click();
+  });
+
+  test('quick-captures a timed task and persists its time', async ({ page }) => {
+    await page.goto('/tasks?view=inbox');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    const name = taskName('quick-timed');
+    const today = await calendarDateAfter(page, 0);
+    await page.getByPlaceholder("What's on your mind today?").fill(`${name} today at 3pm`);
+
+    const preview = page.locator('#capture-date-preview');
+    await expect(preview).toContainText('today at 3pm resolves to');
+    await expect(preview).toContainText('3:00 PM');
+
+    const createResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' && new URL(response.url()).pathname === '/tasks',
+    );
+    await page.getByRole('button', { name: 'Add Task', exact: true }).click();
+    const createResponse = await createResponsePromise;
+    expect(createResponse.status()).toBe(201);
+    const payload = createResponse.request().postDataJSON() as {
+      dueDate?: string;
+      dueTime?: string;
+    };
+    expect(payload.dueDate).toBe(today.iso);
+    expect(payload.dueTime).toBe('15:00');
+    const createdTask = (await createResponse.json()) as { dueTime?: string };
+    expect(createdTask.dueTime).toBe('15:00');
+
+    // The confirmation and the card badge both name the time that was set.
+    await expect(page.getByText(/" added to Today( \(.+?\))? · due /).first()).toContainText(
+      '3:00 PM',
+    );
+
+    const card = await findTaskCard(page, name);
+    await expect(card).toContainText('3:00 PM');
+    await card.click();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('#task-due-time')).toHaveValue('15:00');
+    await page.getByRole('button', { name: 'Cancel' }).click();
+  });
+
+  test('quick-captures a time that precedes the date', async ({ page }) => {
+    await page.goto('/tasks?view=inbox');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    const name = taskName('prefix-timed');
+    const today = await calendarDateAfter(page, 0);
+    await page.getByPlaceholder("What's on your mind today?").fill(`${name} at 5pm today`);
+
+    const preview = page.locator('#capture-date-preview');
+    await expect(preview).toContainText('at 5pm today resolves to');
+    await expect(preview).toContainText('5:00 PM');
+
+    const createResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' && new URL(response.url()).pathname === '/tasks',
+    );
+    await page.getByRole('button', { name: 'Add Task', exact: true }).click();
+    const createResponse = await createResponsePromise;
+    expect(createResponse.status()).toBe(201);
+    const payload = createResponse.request().postDataJSON() as {
+      dueDate?: string;
+      dueTime?: string;
+    };
+    expect(payload.dueDate).toBe(today.iso);
+    expect(payload.dueTime).toBe('17:00');
+  });
+
+  test('carries a timed NLP draft through the details modal', async ({ page }) => {
+    await page.goto('/tasks?view=inbox');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    const name = taskName('details-timed');
+    const tomorrow = await calendarDateAfter(page, 1);
+    await page.getByPlaceholder("What's on your mind today?").fill(`${name} tomorrow at 9:30am`);
+    await page.getByRole('button', { name: 'Add task with details' }).click();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+
+    const preview = page.locator('#task-date-preview');
+    await expect(preview).toContainText('tomorrow at 9:30am resolves to');
+    await expect(preview).toContainText('9:30 AM');
+    await expect(page.locator('#task-due-time')).toHaveValue('09:30');
+
+    const createResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' && new URL(response.url()).pathname === '/tasks',
+    );
+    await page.getByRole('button', { name: 'Create Task' }).click();
+    const createResponse = await createResponsePromise;
+    expect(createResponse.status()).toBe(201);
+    const payload = createResponse.request().postDataJSON() as {
+      dueDate?: string;
+      dueTime?: string;
+    };
+    expect(payload.dueDate).toBe(tomorrow.iso);
+    expect(payload.dueTime).toBe('09:30');
+    const createdTask = (await createResponse.json()) as { dueTime?: string };
+    expect(createdTask.dueTime).toBe('09:30');
+    await expect(page.getByText(/" added to Upcoming( \(.+?\))? · due /).first()).toBeVisible();
+
+    const card = await findTaskCard(page, name);
+    await card.click();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('#task-due-time')).toHaveValue('09:30');
+    await page.getByRole('button', { name: 'Cancel' }).click();
+  });
+
+  test('keeps a vague time as plain text with a notice', async ({ page }) => {
+    await page.goto('/tasks?view=inbox');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    const name = taskName('vague-time');
+    await page.getByPlaceholder("What's on your mind today?").fill(`${name} tomorrow morning`);
+
+    await expect(page.locator('#capture-date-note')).toContainText(
+      'Only exact times like 3pm or 15:00',
+    );
+    await expect(page.locator('#capture-date-preview')).toHaveCount(0);
+
+    const createResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' && new URL(response.url()).pathname === '/tasks',
+    );
+    await page.getByRole('button', { name: 'Add Task', exact: true }).click();
+    const createResponse = await createResponsePromise;
+    expect(createResponse.status()).toBe(201);
+    const payload = createResponse.request().postDataJSON() as {
+      dueDate?: string;
+      dueTime?: string;
+    };
+    expect(payload.dueDate).toBeUndefined();
+    expect(payload.dueTime).toBeUndefined();
   });
 });

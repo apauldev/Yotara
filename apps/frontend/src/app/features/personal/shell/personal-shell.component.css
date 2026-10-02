@@ -982,6 +982,16 @@
   color: var(--on-surface-muted);
 }
 
+.notifications-timezone-note {
+  margin: 0 0.85rem 0.35rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.6rem;
+  background: var(--warning-soft);
+  color: var(--status-pending);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
 .notification-dropdown-item {
   display: flex;
   align-items: flex-start;

@@ -18,6 +18,7 @@ export interface TaskDueDateParseResult {
   matchStart: number | null;
   matchEnd: number | null;
   dueDate: string | null;
+  dueTime: string | null;
   referenceDate: string | null;
 }
 
@@ -46,6 +47,15 @@ interface DateCandidate {
 }
 
 type DateResolution = { status: 'date'; date: DateTime } | { status: 'invalid' | 'unsupported' };
+
+type CandidateContext =
+  | { kind: 'reject'; status: RejectionStatus; start: number; end: number }
+  | { kind: 'accept'; dueTime: string | null; start: number; end: number };
+
+interface TimeSuffix {
+  length: number;
+  dueTime: string;
+}
 
 const MAX_RELATIVE_DAYS = 3650;
 
@@ -105,7 +115,7 @@ const COMMAND_TOKEN_PATTERN = /(?:^|\s)(?:!(?:h|l|m|high|med|medium|low)\b|#[\w-
 const RECURRING_TOKEN_PATTERN = /\b(?:every|each)\b/i;
 const RECURRING_BEFORE_PATTERN = /\b(?:every|each)\s+other\s*$/i;
 const VAGUE_TIME_TOKEN_PATTERN =
-  /\b(?:morning|afternoon|evening|tonight|midnight|noon|eod|cob|close of business)\b/i;
+  /\b(?:morning|midday|afternoon|evening|tonight|midnight|noon|eod|cob|close of business)\b/i;
 const UNSUPPORTED_RELATIVE_PATTERN = /\bin\s+(?:[+-]?0+(?:\.\d+)?|[+-]?\d+\.\d+|\.\d+)\s+days?\b/i;
 const BARE_MONTH_PATTERN = new RegExp(`\\b(?:${MONTH_PATTERN})\\b`, 'i');
 const INVALID_RELATIVE_AFTER_PATTERN = /^[-–—/]/;
@@ -118,6 +128,7 @@ const TIME_AFTER_WORDS = new Set([
   'am',
   'pm',
   'morning',
+  'midday',
   'afternoon',
   'evening',
   'night',
@@ -172,9 +183,18 @@ const RELATIONAL_AFTER_WORDS = new Set([
 
 const TIME_LIKE_AFTER_PATTERN = /^\d{1,2}(?::\d{2})?(?:am|pm)?(?:\b|$)/i;
 
+// Accepted exact-time tokens, used both as a suffix after the date phrase and
+// as a directly adjacent prefix before it. `at` is optional for every form;
+// the lookarounds keep a match from starting or ending mid-token.
+const TIME_TOKEN_SOURCE =
+  '(?:at\\s+)?(?:(noon|midnight)|(\\d{1,2}):(\\d{2})\\s?(am|pm)|(\\d{1,2})\\s?(am|pm)|(\\d{2}):(\\d{2}))';
+const TIME_SUFFIX_PATTERN = new RegExp(`^${TIME_TOKEN_SOURCE}(?![A-Za-z0-9])`, 'i');
+const TIME_PREFIX_PATTERN = new RegExp(`(?<![A-Za-z0-9])${TIME_TOKEN_SOURCE}$`, 'i');
+
 /**
- * Parse one of the deliberately small, date-only phrases supported by the
- * capture MVP. The input is never mutated.
+ * Parse one of the deliberately small due-date phrases supported by the
+ * capture MVP, including an optional exact time suffix. The input is never
+ * mutated.
  *
  * The caller supplies the local calendar reference. This keeps relative-date
  * behavior deterministic and prevents the parser from depending on UTC
@@ -213,22 +233,33 @@ export function parseTaskDueDate(input: string, reference: DateTime): TaskDueDat
   }
 
   const candidate = candidates[0];
-  const contextStatus = validateCandidateContext(maskedInput, candidate);
-  if (contextStatus) {
-    return createResult(contextStatus, referenceDate, candidate);
+  const context = validateCandidateContext(maskedInput, candidate);
+
+  if (context.kind === 'reject') {
+    return createResult(context.status, referenceDate, candidate, {
+      text: maskedInput.slice(context.start, context.end),
+      start: context.start,
+      end: context.end,
+    });
   }
 
   const resolution = resolveCandidate(candidate, referenceDay);
+  const matchedText = maskedInput.slice(context.start, context.end);
   if (resolution.status !== 'date') {
-    return createResult(resolution.status, referenceDate, candidate);
+    return createResult(resolution.status, referenceDate, candidate, {
+      text: matchedText,
+      start: context.start,
+      end: context.end,
+    });
   }
 
   return {
     status: 'date',
-    matchedText: candidate.text,
-    matchStart: candidate.start,
-    matchEnd: candidate.end,
+    matchedText,
+    matchStart: context.start,
+    matchEnd: context.end,
     dueDate: resolution.date.toFormat('yyyy-MM-dd'),
+    dueTime: context.dueTime,
     referenceDate,
   };
 }
@@ -339,7 +370,7 @@ function addMonthDateCandidate(
   });
 }
 
-function validateCandidateContext(input: string, candidate: DateCandidate): RejectionStatus | null {
+function validateCandidateContext(input: string, candidate: DateCandidate): CandidateContext {
   const before = input.slice(0, candidate.start);
   const after = input.slice(candidate.end);
   const beforeTrimmed = before.trimEnd();
@@ -348,67 +379,144 @@ function validateCandidateContext(input: string, candidate: DateCandidate): Reje
   const previousWord = getLastWord(beforeTrimmed);
   const afterWord = getFirstWord(afterTrimmed);
 
+  const reject = (
+    status: RejectionStatus,
+    end = candidate.end,
+    start = candidate.start,
+  ): CandidateContext => ({
+    kind: 'reject',
+    status,
+    start,
+    end,
+  });
+  const accept = (
+    dueTime: string | null,
+    start = candidate.start,
+    end = candidate.end,
+  ): CandidateContext => ({
+    kind: 'accept',
+    dueTime,
+    start,
+    end,
+  });
+
   if (previousCharacter && '#@/\\-–—?&=:;'.includes(previousCharacter)) {
-    return 'unsupported';
+    return reject('unsupported');
   }
 
   if (URL_PREFIX_PATTERN.test(before.slice(-100))) {
-    return 'unsupported';
+    return reject('unsupported');
   }
 
   if (POSSESSIVE_BEFORE_PATTERN.test(before)) {
-    return 'unsupported';
+    return reject('unsupported');
   }
 
-  if (VAGUE_TIME_TOKEN_PATTERN.test(beforeTrimmed) || TIME_AFTER_WORDS.has(previousWord)) {
-    return 'time';
-  }
+  // An exact time directly before the date is the mirror of the suffix form:
+  // adjacency is required, and the token before the time must not itself be a
+  // time or zone cue.
+  const prefix = matchSupportedTimePrefix(beforeTrimmed);
+  let prefixDueTime: string | null = null;
+  let prefixStart = candidate.start;
 
-  if (TIME_LIKE_AFTER_PATTERN.test(previousWord)) {
-    return 'time';
+  if (prefix) {
+    // The time token itself may be a vague word ("at noon"), so the cue scan
+    // covers only the text in front of the prefix. Scanning the whole span
+    // would reject the very phrase it is meant to guard, and the single-word
+    // check alone misses cues when the prefix carries its own "at"
+    // ("evening run at 5pm friday"). The date-only branch scans its full span
+    // below, so both paths fail closed together.
+    const beforePrefix = beforeTrimmed.slice(0, beforeTrimmed.length - prefix.length);
+    const wordBeforePrefix = getLastWord(beforePrefix);
+    if (
+      VAGUE_TIME_TOKEN_PATTERN.test(beforePrefix) ||
+      TIME_AFTER_WORDS.has(wordBeforePrefix) ||
+      TIME_LIKE_AFTER_PATTERN.test(wordBeforePrefix)
+    ) {
+      return reject('time');
+    }
+
+    prefixDueTime = prefix.dueTime;
+    prefixStart = candidate.start - (before.length - beforeTrimmed.length) - prefix.length;
+  } else {
+    if (VAGUE_TIME_TOKEN_PATTERN.test(beforeTrimmed) || TIME_AFTER_WORDS.has(previousWord)) {
+      return reject('time');
+    }
+
+    if (TIME_LIKE_AFTER_PATTERN.test(previousWord)) {
+      return reject('time');
+    }
   }
 
   if (/^\d{4}$/.test(previousWord)) {
-    return 'unsupported';
+    return reject('unsupported');
   }
 
   if (RECURRING_BEFORE_PATTERN.test(before)) {
-    return 'recurring';
+    return reject('recurring');
   }
 
   if (previousWord === 'every' || previousWord === 'each') {
-    return 'recurring';
+    return reject('recurring');
   }
 
   if (RELATIONAL_BEFORE_WORDS.has(previousWord)) {
-    return 'unsupported';
+    return reject('unsupported');
   }
 
   if (after.startsWith("'") || after.startsWith('’') || after.startsWith('@')) {
-    return 'unsupported';
+    return reject('unsupported');
   }
 
   if (INVALID_RELATIVE_AFTER_PATTERN.test(afterTrimmed)) {
-    return 'range';
+    return reject('range');
+  }
+
+  // An exact clock time is the only accepted continuation after the date. It
+  // must be followed by punctuation or the end of the title, mirroring the
+  // single-phrase rule the date-only grammar already enforces.
+  const suffix = matchSupportedTimeSuffix(afterTrimmed);
+  if (suffix) {
+    const end = candidate.end + (after.length - afterTrimmed.length) + suffix.length;
+    const start = prefixDueTime ? prefixStart : candidate.start;
+    const remainder = afterTrimmed.slice(suffix.length).trimStart();
+
+    if (!remainder || PUNCTUATION_ONLY_PATTERN.test(remainder)) {
+      // Two exact time cues around one date are ambiguous; fail closed.
+      if (prefixDueTime) {
+        return reject('time', end, start);
+      }
+      return accept(suffix.dueTime, candidate.start, end);
+    }
+
+    if (
+      remainder.startsWith(':') ||
+      TIME_LIKE_AFTER_PATTERN.test(remainder) ||
+      TIME_AFTER_WORDS.has(getFirstWord(remainder))
+    ) {
+      return reject('time', end, start);
+    }
+
+    return reject('unsupported', end, start);
   }
 
   if (TIME_AFTER_WORDS.has(afterWord) || TIME_LIKE_AFTER_PATTERN.test(afterTrimmed)) {
-    return 'time';
+    return reject('time');
   }
 
   if (afterWord === 'every' || afterWord === 'each') {
-    return 'recurring';
+    return reject('recurring');
   }
 
   if (RELATIONAL_AFTER_WORDS.has(afterWord)) {
-    return 'unsupported';
+    return reject('unsupported');
   }
 
   if (afterTrimmed && !PUNCTUATION_ONLY_PATTERN.test(afterTrimmed)) {
-    return 'unsupported';
+    return reject('unsupported');
   }
 
-  return null;
+  return accept(prefixDueTime, prefixStart, candidate.end);
 }
 
 function resolveCandidate(candidate: DateCandidate, reference: DateTime): DateResolution {
@@ -579,17 +687,82 @@ function getLastWord(value: string): string {
   return words?.[words.length - 1]?.toLowerCase() ?? '';
 }
 
+/**
+ * Match one of the supported exact-time forms at the start of `text`.
+ * Returns null when the text does not begin with a supported form; every other
+ * time cue keeps its fail-closed rejection in the caller.
+ */
+function matchSupportedTimeSuffix(text: string): TimeSuffix | null {
+  const match = TIME_SUFFIX_PATTERN.exec(text);
+  if (!match) return null;
+
+  const dueTime = resolveTimeMatch(match);
+  return dueTime ? { length: match[0].length, dueTime } : null;
+}
+
+/**
+ * Match one of the supported exact-time forms at the end of `text`, for the
+ * adjacent prefix position (`at 5pm friday`).
+ */
+function matchSupportedTimePrefix(text: string): TimeSuffix | null {
+  const match = TIME_PREFIX_PATTERN.exec(text);
+  if (!match) return null;
+
+  const dueTime = resolveTimeMatch(match);
+  return dueTime ? { length: match[0].length, dueTime } : null;
+}
+
+/** Resolve the shared capture groups into a 24-hour 'HH:mm' value, or null. */
+function resolveTimeMatch(match: RegExpExecArray): string | null {
+  const [, word, h12, min12, mer12, hOnly, merOnly, h24, min24] = match;
+
+  if (word) {
+    return word.toLowerCase() === 'noon' ? '12:00' : '00:00';
+  }
+  if (h12 !== undefined) {
+    return formatClock(Number(h12), Number(min12), mer12 ?? null);
+  }
+  if (hOnly !== undefined) {
+    return formatClock(Number(hOnly), 0, merOnly ?? null);
+  }
+  if (h24 !== undefined) {
+    return formatClock(Number(h24), Number(min24), null);
+  }
+  return null;
+}
+
+function formatClock(hour: number, minute: number, meridiem: string | null): string | null {
+  if (!Number.isInteger(minute) || minute < 0 || minute > 59) {
+    return null;
+  }
+
+  let hours = hour;
+  if (meridiem) {
+    if (hour < 1 || hour > 12) {
+      return null;
+    }
+    hours =
+      meridiem.toLowerCase() === 'am' ? (hour === 12 ? 0 : hour) : hour === 12 ? 12 : hour + 12;
+  } else if (hour < 0 || hour > 23) {
+    return null;
+  }
+
+  return `${String(hours).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
 function createResult(
   status: RejectionStatus | 'none' | 'multiple',
   referenceDate: string | null,
   candidate?: DateCandidate,
+  matchedSpan?: { text: string; start: number; end: number },
 ): TaskDueDateParseResult {
   return {
     status,
-    matchedText: candidate?.text ?? null,
-    matchStart: candidate?.start ?? null,
-    matchEnd: candidate?.end ?? null,
+    matchedText: matchedSpan?.text ?? candidate?.text ?? null,
+    matchStart: matchedSpan?.start ?? candidate?.start ?? null,
+    matchEnd: matchedSpan?.end ?? candidate?.end ?? null,
     dueDate: null,
+    dueTime: null,
     referenceDate,
   };
 }

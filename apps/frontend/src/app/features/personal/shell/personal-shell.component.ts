@@ -6,6 +6,7 @@ import {
   inject,
   signal,
   ChangeDetectionStrategy,
+  OnDestroy,
 } from '@angular/core';
 import {
   ActivatedRoute,
@@ -41,6 +42,8 @@ import { TaskService } from '../../../core/services/task.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { DueTimeSchedulerService } from '../../../core/services/due-time-scheduler.service';
+import { TIMED_REMINDERS_UNAVAILABLE } from '../utils/timezone-notices';
 import { LogoutConfirmModalComponent } from '../../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
 import type { Notification } from '@yotara/shared';
 import { AppStatusComponent } from '../../../shared/ui/app-status/app-status.component';
@@ -104,7 +107,7 @@ interface PersonalNavItem {
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './personal-shell.component.html',
 })
-export class PersonalShellComponent {
+export class PersonalShellComponent implements OnDestroy {
   protected readonly appVersion = APP_VERSION;
   protected readonly faBars = faBars;
   protected readonly faEnvelope = faEnvelope;
@@ -126,6 +129,8 @@ export class PersonalShellComponent {
   protected readonly taskService = inject(TaskService);
   protected readonly themeService = inject(ThemeService);
   protected readonly notificationService = inject(NotificationService);
+  protected readonly timedRemindersUnavailable = TIMED_REMINDERS_UNAVAILABLE;
+  private readonly dueTimeScheduler = inject(DueTimeSchedulerService);
   protected readonly searchQuery = signal(this.route.snapshot.queryParamMap.get('q') ?? '');
   protected readonly showTip = signal<string | null>(null);
   protected readonly tipDontShowAgain = signal(false);
@@ -182,8 +187,15 @@ export class PersonalShellComponent {
       if (this.authState.initialized() && this.authState.isAuthenticated()) {
         this.notificationService.fetchUnreadCount();
         this.notificationService.fetchNotifications();
+        this.dueTimeScheduler.start();
+      } else if (this.authState.initialized()) {
+        this.dueTimeScheduler.stop();
       }
     });
+  }
+
+  ngOnDestroy() {
+    this.dueTimeScheduler.stop();
   }
 
   protected onTipCheckboxChange(event: Event) {

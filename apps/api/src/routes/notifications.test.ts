@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { DateTime } from 'luxon';
 
 async function createAuthedApp() {
   const dbFile = join(tmpdir(), `yotara-notifications-test-${randomUUID()}.db`);
@@ -282,6 +283,44 @@ test('notifications cascade-delete when user is deleted', async () => {
       headers: { cookie: cookie2 },
     });
     assert.equal(otherRes.json().length, 0);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('a timed task becomes a due_time notification instead of due_today', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`notif-timed-${randomUUID()}@example.com`);
+
+    // A due time already passed today (UTC). Five minutes back keeps the
+    // instant in the past; the day edge clamps to the start of the day.
+    const nowUtc = DateTime.now().setZone('UTC');
+    const past = nowUtc.minus({ minutes: 5 });
+    const dueDate = (past.hasSame(nowUtc, 'day') ? past : nowUtc.startOf('day')).toISODate();
+    const dueTime = past.hasSame(nowUtc, 'day') ? past.toFormat('HH:mm') : '00:00';
+    assert.ok(dueDate && dueTime);
+
+    const createRes = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks?tz=UTC',
+      headers: { cookie },
+      payload: { title: 'Timed route task', dueDate, dueTime },
+    });
+    assert.equal(createRes.statusCode, 201);
+
+    const listRes = await ctx.app.inject({
+      method: 'GET',
+      url: '/notifications?tz=UTC',
+      headers: { cookie },
+    });
+    assert.equal(listRes.statusCode, 200);
+    const rows = listRes.json();
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].type, 'due_time');
+    assert.equal(rows[0].title, 'Task due now');
+    assert.equal(rows[0].body, 'Timed route task');
   } finally {
     await ctx.cleanup();
   }

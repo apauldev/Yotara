@@ -17,7 +17,11 @@ import { todayInTimezone, startOfDayInUtc } from '../lib/timezone.js';
 import { AppError, BadRequestError, NotFoundError } from '../lib/app-error.js';
 import { getLabelsForTasks, getTaskLabels, syncTaskLabels } from './label-service.js';
 import { getDefaultProjectForOwner } from './project-service.js';
-import { createDueNotificationIfNeeded, scanDueNotifications } from './notification-service.js';
+import {
+  createDueNotificationIfNeeded,
+  retireSupersededDueNotifications,
+  scanDueNotifications,
+} from './notification-service.js';
 
 type TaskRow = typeof tasks.$inferSelect;
 
@@ -28,6 +32,7 @@ function normalizeCreatePayload(body: CreateTaskDto): CreateTaskDto {
     status: body.status ?? 'inbox',
     priority: body.priority ?? 'medium',
     dueDate: body.simpleMode ? undefined : body.dueDate,
+    dueTime: body.simpleMode ? undefined : body.dueTime,
   };
 }
 
@@ -76,6 +81,7 @@ export function toTask(task: TaskRow, labelIds: string[] = []): Task {
     priority: task.priority as 'low' | 'medium' | 'high',
     completed: task.completed,
     dueDate: task.dueDate ?? undefined,
+    dueTime: task.dueTime ?? undefined,
     simpleMode: task.simpleMode,
     projectId: task.projectId ?? undefined,
     parentId: task.parentId ?? undefined,
@@ -339,6 +345,10 @@ function createTaskForOwnerSync(ownerId: string, body: CreateTaskDto, tz?: strin
     const now = nowIsoTimestamp();
     const id = randomUUID();
 
+    if (payload.dueTime && !payload.dueDate) {
+      throw new BadRequestError('A due time requires a due date');
+    }
+
     if (payload.parentId) {
       if (payload.parentId === id) {
         throw new BadRequestError('A task cannot be its own parent');
@@ -370,6 +380,7 @@ function createTaskForOwnerSync(ownerId: string, body: CreateTaskDto, tz?: strin
         status: payload.status,
         priority: payload.priority,
         dueDate: payload.dueDate,
+        dueTime: payload.dueTime,
         simpleMode: payload.simpleMode ?? false,
         projectId,
         parentId: payload.parentId ?? null,
@@ -394,6 +405,7 @@ function createTaskForOwnerSync(ownerId: string, body: CreateTaskDto, tz?: strin
         id,
         title: payload.title,
         dueDate: payload.dueDate ?? null,
+        dueTime: payload.dueTime ?? null,
         completed: false,
       },
       tz,
@@ -495,6 +507,28 @@ function updateTaskForOwnerSync(
         );
       }
     }
+
+    // null clears a persisted date; undefined leaves it unchanged.
+    const nextDueDate = simpleMode
+      ? null
+      : body.dueDate === undefined
+        ? current.dueDate
+        : body.dueDate;
+    // null clears a persisted time; undefined leaves it unchanged. A cleared
+    // date takes the time with it, but a time sent alongside a cleared date is
+    // a client mistake and falls through to the check below.
+    const nextDueTime = simpleMode
+      ? null
+      : body.dueTime === undefined
+        ? body.dueDate === null
+          ? null
+          : current.dueTime
+        : body.dueTime;
+
+    if (nextDueTime && !nextDueDate) {
+      throw new BadRequestError('A due time requires a due date');
+    }
+
     const nextRecurrenceRule =
       body.recurrenceRule === null
         ? null
@@ -559,19 +593,15 @@ function updateTaskForOwnerSync(
         title: body.title?.trim() || current.title,
         description: body.description ?? current.description,
         priority: body.priority ?? current.priority,
-        dueDate: simpleMode ? null : (body.dueDate ?? current.dueDate),
+        dueDate: nextDueDate,
+        dueTime: nextDueTime,
         simpleMode,
         projectId: nextProjectId,
         parentId: nextParentId,
         recurrenceRule: nextRecurrenceRule,
         order: body.order ?? current.order,
         completed,
-        status: normalizeStatusOnCompletion(
-          status,
-          completed,
-          simpleMode ? null : (body.dueDate ?? current.dueDate),
-          tz,
-        ),
+        status: normalizeStatusOnCompletion(status, completed, nextDueDate, tz),
         archivedAt: nextArchivedAt,
         permanentArchive: completed ? nextPermanentArchive : false,
         updatedAt: nowIsoTimestamp(),
@@ -585,14 +615,27 @@ function updateTaskForOwnerSync(
     // the task transitions from completed back to incomplete (undone) and
     // is now due/overdue. Avoid write amplification on unrelated edits.
     const prevDueDate = current.dueDate ?? null;
+    const prevDueTime = current.dueTime ?? null;
     const wasCompleted = current.completed;
-    const nextDueDate = simpleMode ? null : (body.dueDate ?? current.dueDate);
     const isNowIncomplete = completed === false || (body.completed === undefined && !wasCompleted);
 
     const dueDateChanged = nextDueDate !== prevDueDate;
+    const dueTimeChanged = nextDueTime !== prevDueTime;
     const becameUndone = wasCompleted && isNowIncomplete;
 
-    if (dueDateChanged || becameUndone) {
+    // Changing a task's time supersedes the reminder its old timing already
+    // earned for this day: a newly timed task is only reminded at its exact
+    // instant, and one that just lost its time falls back to the date-only
+    // reminder. Restricting this to an unchanged date keeps other days' rows.
+    // Clearing the schedule supersedes them too, otherwise a task that lost its
+    // date and time keeps today's rows and the scheduler announces a reminder
+    // for a schedule that no longer exists.
+    const scheduleCleared = nextDueDate === null && (prevDueDate !== null || prevDueTime !== null);
+    if ((dueTimeChanged && !dueDateChanged) || scheduleCleared) {
+      retireSupersededDueNotifications(client, ownerId, taskId, tz);
+    }
+
+    if (dueDateChanged || dueTimeChanged || becameUndone) {
       createDueNotificationIfNeeded(
         client,
         ownerId,
@@ -600,6 +643,7 @@ function updateTaskForOwnerSync(
           id: taskId,
           title: body.title?.trim() || current.title,
           dueDate: nextDueDate ?? null,
+          dueTime: nextDueTime,
           completed,
         },
         tz,

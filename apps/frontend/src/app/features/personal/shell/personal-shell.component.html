@@ -171,6 +171,11 @@
                 >View all</a
               >
             </div>
+            @if (notificationService.timezoneUnavailable()) {
+              <p class="notifications-timezone-note" role="status">
+                {{ timedRemindersUnavailable }}
+              </p>
+            }
             <div class="notifications-dropdown-list">
               @if (notificationService.notifications().length === 0) {
                 <p class="notifications-empty">No notifications yet</p>

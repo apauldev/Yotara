@@ -36,6 +36,32 @@ describe('task creation notifications', () => {
     ).toBe('"Plan the garden" added to Today (Home) · due Fri, Sep 25, 2026');
   });
 
+  it('shows the resolved time when one was set', () => {
+    expect(
+      taskCreationNotification({
+        title: 'Call Sam',
+        dueDate: '2026-09-25',
+        dueTime: '15:00',
+        projectId: 'home-1',
+        projects,
+        reference,
+      }),
+    ).toBe('"Call Sam" added to Today (Home) · due Fri, Sep 25, 2026, 3:00 PM');
+  });
+
+  it('omits the time when none was set', () => {
+    expect(
+      taskCreationNotification({
+        title: 'Plan the garden',
+        dueDate: '2026-09-25',
+        dueTime: null,
+        projectId: 'home-1',
+        projects,
+        reference,
+      }),
+    ).toBe('"Plan the garden" added to Today (Home) · due Fri, Sep 25, 2026');
+  });
+
   it('reports the destination and bucket without a due date', () => {
     expect(
       taskCreationNotification({ title: 'Buy milk', projectId: 'home-1', projects, reference }),

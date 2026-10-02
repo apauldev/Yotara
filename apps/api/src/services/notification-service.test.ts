@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { DateTime } from 'luxon';
 import { createDbClient, type Database } from '../db/client.js';
 import {
   createNotification,
@@ -10,8 +11,12 @@ import {
   clearReadForOwner,
   markAllReadForOwner,
   createDueNotificationIfNeeded,
+  getNextDueInstant,
+  hasDueTimeReached,
+  retireSupersededDueNotifications,
   scanDueNotifications,
 } from './notification-service.js';
+import { notifications } from '../db/schema.js';
 
 function createTestDb(): {
   db: Database;
@@ -282,6 +287,237 @@ test('createDueNotificationIfNeeded deduplicates when notification already exist
   assert.equal(rows.length, 1, 'should not create duplicate notification');
 });
 
+test('getNextDueInstant returns the next scheduled timed instant', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const now = DateTime.fromISO('2026-09-25T10:00:00', { zone: 'UTC' });
+
+  const soon = randomUUID();
+  const later = randomUUID();
+  const past = randomUUID();
+  const untimed = randomUUID();
+  createTask(sqlite, soon, userId, 'Soon');
+  createTask(sqlite, later, userId, 'Later');
+  createTask(sqlite, past, userId, 'Already due');
+  createTask(sqlite, untimed, userId, 'Untimed');
+  sqlite
+    .prepare(`UPDATE tasks SET due_date = ?, due_time = ? WHERE id = ?`)
+    .run('2026-09-25', '10:03', soon);
+  sqlite
+    .prepare(`UPDATE tasks SET due_date = ?, due_time = ? WHERE id = ?`)
+    .run('2026-09-25', '18:00', later);
+  sqlite
+    .prepare(`UPDATE tasks SET due_date = ?, due_time = ? WHERE id = ?`)
+    .run('2026-09-25', '09:00', past);
+  sqlite.prepare(`UPDATE tasks SET due_date = ? WHERE id = ?`).run('2026-09-25', untimed);
+
+  // The soonest future instant wins; an instant already passed and a task with
+  // no time are not candidates.
+  assert.equal(getNextDueInstant(userId, 'UTC', db, now), '2026-09-25T10:03:00.000Z');
+});
+
+test('getNextDueInstant skips completed, deleted and subtask candidates', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const now = DateTime.fromISO('2026-09-25T10:00:00', { zone: 'UTC' });
+
+  const completed = randomUUID();
+  const deleted = randomUUID();
+  const parent = randomUUID();
+  const subtask = randomUUID();
+  createTask(sqlite, completed, userId, 'Completed');
+  createTask(sqlite, deleted, userId, 'Deleted');
+  createTask(sqlite, parent, userId, 'Parent');
+  createTask(sqlite, subtask, userId, 'Subtask');
+  for (const id of [completed, deleted, subtask]) {
+    sqlite
+      .prepare(`UPDATE tasks SET due_date = ?, due_time = ? WHERE id = ?`)
+      .run('2026-09-25', '10:01', id);
+  }
+  sqlite.prepare(`UPDATE tasks SET completed = 1 WHERE id = ?`).run(completed);
+  sqlite
+    .prepare(`UPDATE tasks SET deleted_at = ? WHERE id = ?`)
+    .run('2026-09-25T00:00:00.000Z', deleted);
+  sqlite.prepare(`UPDATE tasks SET parent_id = ? WHERE id = ?`).run(parent, subtask);
+
+  assert.equal(getNextDueInstant(userId, 'UTC', db, now), null);
+});
+
+test('getNextDueInstant returns null without a usable timezone', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Timed');
+  sqlite
+    .prepare(`UPDATE tasks SET due_date = ?, due_time = ? WHERE id = ?`)
+    .run('2026-09-25', '10:03', taskId);
+
+  const now = DateTime.fromISO('2026-09-25T10:00:00', { zone: 'UTC' });
+  assert.equal(getNextDueInstant(userId, undefined, db, now), null);
+  assert.equal(getNextDueInstant(userId, 'Not/AZone', db, now), null);
+  assert.equal(getNextDueInstant(userId, 'UTC', db, now), '2026-09-25T10:03:00.000Z');
+});
+
+test('getNextDueInstant reads the instant in the user timezone', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Call Sam');
+  sqlite
+    .prepare(`UPDATE tasks SET due_date = ?, due_time = ? WHERE id = ?`)
+    .run('2026-09-25', '09:00', taskId);
+
+  // 09:00 in New York is 13:00 UTC.
+  const now = DateTime.fromISO('2026-09-25T12:00:00', { zone: 'UTC' });
+  assert.equal(getNextDueInstant(userId, 'America/New_York', db, now), '2026-09-25T13:00:00.000Z');
+});
+
+test('createDueNotificationIfNeeded reports whether it created a notification', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const now = DateTime.fromISO('2026-09-25T15:00:00', { zone: 'UTC' });
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Call Sam');
+  const task = {
+    id: taskId,
+    title: 'Call Sam',
+    dueDate: '2026-09-25',
+    dueTime: '14:00',
+    completed: false,
+  };
+
+  assert.equal(createDueNotificationIfNeeded(db, userId, task, 'UTC', now), true);
+  // Already earned today, so a second pass creates nothing and reports so.
+  assert.equal(createDueNotificationIfNeeded(db, userId, task, 'UTC', now), false);
+  // Before its instant, and with no usable zone, nothing is created either.
+  const notYet = { ...task, dueTime: '23:00' };
+  assert.equal(createDueNotificationIfNeeded(db, userId, notYet, 'UTC', now), false);
+  assert.equal(createDueNotificationIfNeeded(db, userId, task, undefined, now), false);
+  assert.equal(getNotificationsForOwner(userId, 50, db).length, 1);
+});
+
+test('retireSupersededDueNotifications removes only this day\u2019s reminders', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const now = DateTime.fromISO('2026-09-25T15:00:00', { zone: 'UTC' });
+  const taskId = randomUUID();
+  const otherTaskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Call Sam');
+  createTask(sqlite, otherTaskId, userId, 'Other task');
+
+  createNotification(userId, 'due_today', 'Task due today', 'Call Sam', taskId, db);
+  createNotification(userId, 'overdue', 'Task overdue', 'Call Sam', taskId, db);
+  createNotification(userId, 'due_time', 'Task due now', 'Call Sam', taskId, db);
+  createNotification(userId, 'due_today', 'Task due today', 'Other task', otherTaskId, db);
+  // Earlier-day rows describe that day's state and are not this decision's business.
+  for (const type of ['due_today', 'due_time'] as const) {
+    db.insert(notifications)
+      .values({
+        id: randomUUID(),
+        userId,
+        taskId,
+        type,
+        title: 'Task due today',
+        body: 'Call Sam',
+        read: false,
+        createdAt: '2026-09-24T08:00:00.000Z',
+      })
+      .run();
+  }
+
+  retireSupersededDueNotifications(db, userId, taskId, 'UTC', now);
+
+  const rows = getNotificationsForOwner(userId, 50, db);
+  const todaysRows = rows.filter(
+    (row) => row.body === 'Call Sam' && row.createdAt >= '2026-09-25T00:00:00.000Z',
+  );
+  assert.deepEqual(
+    todaysRows.map((row) => row.type),
+    ['overdue'],
+    'only today\u2019s overdue row is kept',
+  );
+  assert.equal(rows.length, 4, 'earlier-day and other-task rows survive');
+});
+
+test('retireSupersededDueNotifications scopes the day to the caller\u2019s zone', () => {
+  const now = DateTime.fromISO('2026-09-25T02:00:00', { zone: 'UTC' });
+  // 16:00 on 2026-09-24 in New York, and still 2026-09-24 in UTC.
+  const createdAt = '2026-09-24T20:00:00.000Z';
+
+  const newYork = createTestDb();
+  const newYorkTaskId = randomUUID();
+  createTask(newYork.sqlite, newYorkTaskId, newYork.userId, 'Call Sam');
+  newYork.db
+    .insert(notifications)
+    .values({
+      id: randomUUID(),
+      userId: newYork.userId,
+      taskId: newYorkTaskId,
+      type: 'due_today',
+      title: 'Task due today',
+      body: 'Call Sam',
+      read: false,
+      createdAt,
+    })
+    .run();
+  retireSupersededDueNotifications(
+    newYork.db,
+    newYork.userId,
+    newYorkTaskId,
+    'America/New_York',
+    now,
+  );
+  // New York is still on 2026-09-24 at 02:00Z, so the row is the current day's.
+  assert.equal(getNotificationsForOwner(newYork.userId, 50, newYork.db).length, 0);
+
+  const utc = createTestDb();
+  const utcTaskId = randomUUID();
+  createTask(utc.sqlite, utcTaskId, utc.userId, 'Call Sam');
+  utc.db
+    .insert(notifications)
+    .values({
+      id: randomUUID(),
+      userId: utc.userId,
+      taskId: utcTaskId,
+      type: 'due_today',
+      title: 'Task due today',
+      body: 'Call Sam',
+      read: false,
+      createdAt,
+    })
+    .run();
+  retireSupersededDueNotifications(utc.db, utc.userId, utcTaskId, 'UTC', now);
+  // In UTC the same moment is already 2026-09-25, so the row belongs to yesterday.
+  assert.equal(getNotificationsForOwner(utc.userId, 50, utc.db).length, 1);
+});
+
+test('a timezone-less scan does not call a timed task overdue', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Call Sam');
+  sqlite
+    .prepare(`UPDATE tasks SET due_date = ?, due_time = ? WHERE id = ?`)
+    .run('2026-09-25', '23:30', taskId);
+
+  // 2026-09-26T02:00Z is still 2026-09-25 in Los Angeles, so the task is not
+  // overdue there yet and its instant is still six hours away. Judged against
+  // the UTC day instead, the date alone would already look past.
+  const instant = DateTime.fromISO('2026-09-26T02:00:00', { zone: 'UTC' });
+  assert.equal(scanDueNotifications(userId, undefined, db, instant), 0);
+  assert.equal(scanDueNotifications(userId, 'America/Los_Angeles', db, instant), 0);
+  assert.equal(getNotificationsForOwner(userId, 50, db).length, 0);
+
+  // Past the local day and the instant, the same task is overdue.
+  const later = DateTime.fromISO('2026-09-27T02:00:00', { zone: 'UTC' });
+  assert.equal(scanDueNotifications(userId, 'America/Los_Angeles', db, later), 1);
+  assert.equal(getNotificationsForOwner(userId, 50, db)[0].type, 'overdue');
+});
+
+test('a timezone-less scan still calls a date-only task overdue', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Old task');
+  sqlite.prepare(`UPDATE tasks SET due_date = ? WHERE id = ?`).run('2026-09-25', taskId);
+
+  const instant = DateTime.fromISO('2026-09-26T02:00:00', { zone: 'UTC' });
+  assert.equal(scanDueNotifications(userId, undefined, db, instant), 1);
+  assert.equal(getNotificationsForOwner(userId, 50, db)[0].type, 'overdue');
+});
+
 test('createDueNotificationIfNeeded respects custom timezone', () => {
   const { db, userId, sqlite } = createTestDb();
   const today = new Date().toISOString().slice(0, 10);
@@ -402,4 +638,261 @@ test('scanDueNotifications returns 0 for user with no tasks', () => {
   const { db, userId } = createTestDb();
   const created = scanDueNotifications(userId, undefined, db);
   assert.equal(created, 0);
+});
+
+test('hasDueTimeReached compares the due instant in the user timezone', () => {
+  const now = DateTime.fromISO('2026-09-25T15:00:00', { zone: 'UTC' });
+
+  assert.equal(hasDueTimeReached('2026-09-25', '14:59', 'UTC', now), true);
+  assert.equal(hasDueTimeReached('2026-09-25', '15:00', 'UTC', now), true);
+  assert.equal(hasDueTimeReached('2026-09-25', '15:01', 'UTC', now), false);
+  // 15:00 UTC is 11:00 in New York, so 10:00 has passed and 12:00 has not.
+  assert.equal(hasDueTimeReached('2026-09-25', '10:00', 'America/New_York', now), true);
+  assert.equal(hasDueTimeReached('2026-09-25', '12:00', 'America/New_York', now), false);
+  // Unknown zones fail closed: a wall-clock time is not an instant without one.
+  assert.equal(hasDueTimeReached('2026-09-25', '14:00', 'Not/AZone', now), false);
+  assert.equal(hasDueTimeReached('2026-09-25', '14:00', undefined, now), false);
+  assert.equal(hasDueTimeReached('2026-09-25', 'nope', 'UTC', now), false);
+});
+
+test('createDueNotificationIfNeeded creates a due_time notification once the instant passes', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const now = DateTime.fromISO('2026-09-25T15:00:00', { zone: 'UTC' });
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Call Sam');
+
+  createDueNotificationIfNeeded(
+    db,
+    userId,
+    {
+      id: taskId,
+      title: 'Call Sam',
+      dueDate: '2026-09-25',
+      dueTime: '14:00',
+      completed: false,
+    },
+    'UTC',
+    now,
+  );
+
+  const rows = getNotificationsForOwner(userId, 50, db);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].type, 'due_time');
+  assert.equal(rows[0].title, 'Task due now');
+  assert.equal(rows[0].body, 'Call Sam');
+});
+
+test('createDueNotificationIfNeeded waits for a same-day due time', () => {
+  const { db, userId } = createTestDb();
+  const now = DateTime.fromISO('2026-09-25T15:00:00', { zone: 'UTC' });
+
+  createDueNotificationIfNeeded(
+    db,
+    userId,
+    {
+      id: randomUUID(),
+      title: 'Later task',
+      dueDate: '2026-09-25',
+      dueTime: '15:01',
+      completed: false,
+    },
+    'UTC',
+    now,
+  );
+
+  assert.equal(getNotificationsForOwner(userId, 50, db).length, 0);
+});
+
+test('createDueNotificationIfNeeded skips a completed timed task', () => {
+  const { db, userId } = createTestDb();
+  const now = DateTime.fromISO('2026-09-25T15:00:00', { zone: 'UTC' });
+
+  createDueNotificationIfNeeded(
+    db,
+    userId,
+    {
+      id: randomUUID(),
+      title: 'Done timed task',
+      dueDate: '2026-09-25',
+      dueTime: '14:00',
+      completed: true,
+    },
+    'UTC',
+    now,
+  );
+
+  assert.equal(getNotificationsForOwner(userId, 50, db).length, 0);
+});
+
+test('a timed task produces due_time instead of due_today on the same day', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const now = DateTime.fromISO('2026-09-25T15:00:00', { zone: 'UTC' });
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Timed task');
+
+  createDueNotificationIfNeeded(
+    db,
+    userId,
+    {
+      id: taskId,
+      title: 'Timed task',
+      dueDate: '2026-09-25',
+      dueTime: '14:00',
+      completed: false,
+    },
+    'UTC',
+    now,
+  );
+
+  const rows = getNotificationsForOwner(userId, 50, db);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].type, 'due_time');
+});
+
+test('a timed task from an earlier day is overdue, not due_time', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const now = DateTime.fromISO('2026-09-25T15:00:00', { zone: 'UTC' });
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Old timed task');
+
+  createDueNotificationIfNeeded(
+    db,
+    userId,
+    {
+      id: taskId,
+      title: 'Old timed task',
+      dueDate: '2026-09-24',
+      dueTime: '14:00',
+      completed: false,
+    },
+    'UTC',
+    now,
+  );
+
+  const rows = getNotificationsForOwner(userId, 50, db);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].type, 'overdue');
+});
+
+test('createDueNotificationIfNeeded deduplicates due_time within the local day', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const now = DateTime.fromISO('2026-09-25T15:00:00', { zone: 'UTC' });
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Timed task');
+  const task = {
+    id: taskId,
+    title: 'Timed task',
+    dueDate: '2026-09-25',
+    dueTime: '14:00',
+    completed: false,
+  };
+
+  createDueNotificationIfNeeded(db, userId, task, 'UTC', now);
+  createDueNotificationIfNeeded(db, userId, { ...task, dueTime: '14:30' }, 'UTC', now);
+
+  assert.equal(getNotificationsForOwner(userId, 50, db).length, 1);
+});
+
+test('scanDueNotifications creates due_time once the instant passes', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const now = DateTime.fromISO('2026-09-25T15:00:00', { zone: 'UTC' });
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Timed task');
+  sqlite
+    .prepare(`UPDATE tasks SET due_date = ?, due_time = ? WHERE id = ?`)
+    .run('2026-09-25', '14:00', taskId);
+
+  const created = scanDueNotifications(userId, 'UTC', db, now);
+
+  assert.equal(created, 1);
+  const rows = getNotificationsForOwner(userId, 50, db);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].type, 'due_time');
+});
+
+test('scanDueNotifications skips a timed task before its instant', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const now = DateTime.fromISO('2026-09-25T15:00:00', { zone: 'UTC' });
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Later timer');
+  sqlite
+    .prepare(`UPDATE tasks SET due_date = ?, due_time = ? WHERE id = ?`)
+    .run('2026-09-25', '16:00', taskId);
+
+  assert.equal(scanDueNotifications(userId, 'UTC', db, now), 0);
+  assert.equal(getNotificationsForOwner(userId, 50, db).length, 0);
+});
+
+test('scanDueNotifications skips timed tasks when no timezone is supplied', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const now = DateTime.fromISO('2026-09-25T15:00:00', { zone: 'UTC' });
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Timed task');
+  sqlite
+    .prepare(`UPDATE tasks SET due_date = ?, due_time = ? WHERE id = ?`)
+    .run('2026-09-25', '14:00', taskId);
+
+  assert.equal(scanDueNotifications(userId, undefined, db, now), 0);
+  assert.equal(scanDueNotifications(userId, 'Not/AZone', db, now), 0);
+  assert.equal(getNotificationsForOwner(userId, 50, db).length, 0);
+});
+
+test('a timezone-less scan still notifies date-only tasks', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const now = DateTime.fromISO('2026-09-25T15:00:00', { zone: 'UTC' });
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Date-only task');
+  sqlite.prepare(`UPDATE tasks SET due_date = ? WHERE id = ?`).run('2026-09-25', taskId);
+
+  assert.equal(scanDueNotifications(userId, undefined, db, now), 1);
+  const rows = getNotificationsForOwner(userId, 50, db);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].type, 'due_today');
+});
+
+test('a timed task is not announced early when the zone is unknown at login', () => {
+  const { db, userId, sqlite } = createTestDb();
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Call Sam');
+  sqlite
+    .prepare(`UPDATE tasks SET due_date = ?, due_time = ? WHERE id = ?`)
+    .run('2026-09-25', '09:00', taskId);
+
+  // Due at 09:00 Pacific, which is 16:00 UTC. The login hook has no timezone,
+  // so at 09:00 UTC (02:00 Pacific) reading 09:00 as UTC would fire it seven
+  // hours early.
+  assert.equal(
+    scanDueNotifications(
+      userId,
+      undefined,
+      db,
+      DateTime.fromISO('2026-09-25T09:00:00', { zone: 'UTC' }),
+    ),
+    0,
+  );
+
+  // The same moment with the real zone also waits.
+  assert.equal(
+    scanDueNotifications(
+      userId,
+      'America/Los_Angeles',
+      db,
+      DateTime.fromISO('2026-09-25T09:00:00', { zone: 'UTC' }),
+    ),
+    0,
+  );
+
+  // Once 09:00 Pacific arrives, exactly one notification exists.
+  assert.equal(
+    scanDueNotifications(
+      userId,
+      'America/Los_Angeles',
+      db,
+      DateTime.fromISO('2026-09-25T16:00:00', { zone: 'UTC' }),
+    ),
+    1,
+  );
+  const rows = getNotificationsForOwner(userId, 50, db);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].type, 'due_time');
 });

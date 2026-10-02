@@ -20,7 +20,9 @@ import { FormsModule } from '@angular/forms';
 import { DateTime } from 'luxon';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
-import { parseCalendarDate, startOfToday } from '../../../shared/utils/timestamps';
+import { formatTimeLabel, parseCalendarDate, startOfToday } from '../../../shared/utils/timestamps';
+import { tryGetUserTimezone } from '../../../shared/utils/timezone';
+import { timedTaskTimezoneNotice } from '../utils/timezone-notices';
 import { LabelService } from '../../../core/services/label.service';
 import { highlightInlineCommands } from '../../../shared/utils/html-helpers';
 import {
@@ -578,12 +580,18 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
    * parser rather than a date-only feature.
    */
   protected readonly dueDateNotice = computed(() => {
+    const draft = this.dueDateDraft();
+    const timeLabel = draft.dueTime ? formatTimeLabel(draft.dueTime) : null;
+    // A picked-up time is still saved, but without a browser timezone the
+    // server cannot judge when it is due, so say so where the time is shown.
+    if (timeLabel && !tryGetUserTimezone()) return timedTaskTimezoneNotice(timeLabel);
+
     const result = this.parserResult();
     if (!result) return null;
 
     switch (result.status) {
       case 'time':
-        return "Times aren't supported yet — kept as text";
+        return 'Only exact times like 3pm or 15:00 are supported — kept as text';
       case 'recurring':
         return "Repeating isn't set from the title — set it in the task details";
       default:
@@ -606,9 +614,12 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
       year: 'numeric',
     }).format(date.toJSDate());
 
+    const formattedTime = formatTimeLabel(draft.dueTime);
+    const formattedValue = formattedTime ? `${formattedDate}, ${formattedTime}` : formattedDate;
+
     return draft.source === 'inferred' && draft.matchedText
-      ? `${draft.matchedText} resolves to ${formattedDate}`
-      : `Due ${formattedDate}`;
+      ? `${draft.matchedText} resolves to ${formattedValue}`
+      : `Due ${formattedValue}`;
   });
 
   ngOnChanges(changes: SimpleChanges) {
@@ -724,6 +735,7 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
 
     this.dueDateDraft.set({
       value: date.toFormat('yyyy-MM-dd'),
+      dueTime: currentDraft.dueTime,
       source: 'manual',
       matchedText,
       matchStart,
@@ -768,6 +780,7 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
     if (result.status === 'date' && result.dueDate) {
       this.dueDateDraft.set({
         value: result.dueDate,
+        dueTime: result.dueTime,
         source: 'inferred',
         matchedText: result.matchedText,
         matchStart: result.matchStart,

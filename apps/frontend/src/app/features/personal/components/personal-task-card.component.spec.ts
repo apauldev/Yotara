@@ -459,6 +459,17 @@ describe('PersonalTaskCardComponent', () => {
       expect(dateLabel).toContain('20');
     });
 
+    it('should show the due time only when one is set', () => {
+      component.task = { ...mockTask, dueDate: '2026-04-20', dueTime: '15:30' };
+      fixture.detectChanges();
+      expect(component['dateLabel']()).toContain('Apr');
+      expect(component['dateLabel']()).toContain('3:30 PM');
+
+      component.task = { ...mockTask, dueDate: '2026-04-20' };
+      fixture.detectChanges();
+      expect(component['dateLabel']()).not.toContain('PM');
+    });
+
     it('should return empty string for invalid date', () => {
       component.task = { ...mockTask, dueDate: 'invalid-date' };
       fixture.detectChanges();

@@ -59,6 +59,7 @@ export interface Task {
   priority: Priority;
   completed: boolean;
   dueDate?: string; // ISO 8601 date string
+  dueTime?: string; // 'HH:mm' local wall-clock time
   simpleMode?: boolean;
   bucket?: TaskBucket;
   projectId?: string;
@@ -114,6 +115,7 @@ export interface CreateTaskDto {
   status?: TaskStatus;
   priority?: Priority;
   dueDate?: string;
+  dueTime?: string; // 'HH:mm'; requires a dueDate
   simpleMode?: boolean;
   bucket?: TaskBucket;
   projectId?: string;
@@ -129,7 +131,8 @@ export interface UpdateTaskDto {
   description?: string;
   status?: TaskStatus;
   priority?: Priority;
-  dueDate?: string;
+  dueDate?: string | null; // null clears a persisted date; undefined leaves it unchanged
+  dueTime?: string | null; // null clears a persisted time; undefined leaves it unchanged
   simpleMode?: boolean;
   bucket?: TaskBucket;
   projectId?: string | null;
@@ -162,7 +165,7 @@ export type UpdateProjectDto = Partial<CreateProjectDto>;
 
 // ─── Notification Types ─────────────────────────────────────────────────────
 
-export type NotificationType = 'due_today' | 'overdue';
+export type NotificationType = 'due_today' | 'overdue' | 'due_time';
 
 export interface Notification {
   id: string;

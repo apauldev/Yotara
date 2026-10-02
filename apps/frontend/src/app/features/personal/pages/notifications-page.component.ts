@@ -5,6 +5,7 @@ import { faCheck, faCheckDouble, faEnvelope, faTrash } from '@fortawesome/free-s
 import type { Notification } from '@yotara/shared';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { TIMED_REMINDERS_UNAVAILABLE } from '../utils/timezone-notices';
 
 @Component({
   selector: 'app-notifications-page',
@@ -18,6 +19,9 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
       />
 
       <div class="notifications-card">
+        @if (service.timezoneUnavailable()) {
+          <p class="notifications-timezone-note" role="status">{{ timedRemindersUnavailable }}</p>
+        }
         @if (service.notifications().length === 0) {
           <div class="empty-state">
             <fa-icon [icon]="faEnvelope" class="empty-icon"></fa-icon>
@@ -61,7 +65,7 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
                 [attr.aria-label]="(notif.read ? '' : 'Unread: ') + notif.title + ': ' + notif.body"
               >
                 <div class="notification-type-badge" [class]="'badge-' + notif.type">
-                  {{ notif.type === 'due_today' ? 'Today' : 'Overdue' }}
+                  {{ typeLabel(notif.type) }}
                 </div>
                 <div class="notification-body">
                   <strong>{{ notif.title }}</strong>
@@ -99,6 +103,16 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
         flex-direction: column;
         gap: 1rem;
         max-width: 42rem;
+      }
+
+      .notifications-timezone-note {
+        margin: 0;
+        padding: 0.55rem 0.7rem;
+        border-radius: 0.7rem;
+        background: var(--warning-soft);
+        color: var(--status-pending);
+        font-size: 0.78rem;
+        line-height: 1.4;
       }
 
       .empty-state {
@@ -223,6 +237,11 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
         color: var(--error-solid);
       }
 
+      .badge-due_time {
+        background: var(--warning-soft);
+        color: var(--status-pending);
+      }
+
       .notification-body {
         flex: 1;
         display: flex;
@@ -284,6 +303,7 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
 })
 export class NotificationsPageComponent implements OnInit {
   protected readonly service = inject(NotificationService);
+  protected readonly timedRemindersUnavailable = TIMED_REMINDERS_UNAVAILABLE;
   protected readonly faEnvelope = faEnvelope;
   protected readonly faCheck = faCheck;
   protected readonly faCheckDouble = faCheckDouble;
@@ -296,6 +316,17 @@ export class NotificationsPageComponent implements OnInit {
   async ngOnInit() {
     await this.service.fetchNotifications();
     await this.service.fetchUnreadCount();
+  }
+
+  protected typeLabel(type: Notification['type']): string {
+    switch (type) {
+      case 'due_time':
+        return 'Now';
+      case 'due_today':
+        return 'Today';
+      default:
+        return 'Overdue';
+    }
   }
 
   async markRead(notif: Notification) {

@@ -256,6 +256,7 @@ export class TaskListPageComponent implements OnInit {
       if (behavior === 'quick') {
         try {
           const dueDate = dueDateDraft.source === 'cleared' ? '' : dueDateDraft.value;
+          const dueTime = dueDateDraft.source === 'cleared' ? '' : (dueDateDraft.dueTime ?? '');
           const projectId = bar.getProjectId() || this.defaultCaptureProjectId() || undefined;
           await this.taskService.createTask({
             title,
@@ -264,12 +265,14 @@ export class TaskListPageComponent implements OnInit {
             projectId,
             status: 'inbox',
             ...(dueDate ? { dueDate } : {}),
+            ...(dueTime ? { dueTime } : {}),
             simpleMode: false,
           });
           this.statusService.success(
             taskCreationNotification({
               title,
               dueDate,
+              dueTime,
               status: 'inbox',
               projects: this.projectService.projects(),
               projectId,

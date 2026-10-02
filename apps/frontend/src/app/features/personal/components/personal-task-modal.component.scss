@@ -149,6 +149,13 @@ textarea:focus-visible {
   line-height: 1.35;
 }
 
+.date-preview-note {
+  margin: 0.1rem 0 0;
+  color: var(--status-pending);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
 .date-preview-actions {
   display: flex;
   flex-shrink: 0;
@@ -270,6 +277,12 @@ select:focus {
     inset 0 0 0 1px var(--primary-solid),
     0 0 0 4px var(--primary-soft);
   transform: translateY(-1px);
+}
+
+input:disabled,
+select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 input.field-error,

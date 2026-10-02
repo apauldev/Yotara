@@ -207,10 +207,107 @@ describe('CaptureBarComponent', () => {
       expect(fixture.componentInstance.getDueDateDraft()).toEqual(
         jasmine.objectContaining({
           value: '2026-10-02',
+          dueTime: null,
           source: 'inferred',
           matchedText: 'Friday',
         }),
       );
+    });
+
+    it('shows the matched phrase with its resolved time', () => {
+      const fixture = createFixture();
+
+      fixture.componentInstance.setTitle('Call Sam Friday at 3pm');
+      fixture.detectChanges();
+
+      const preview = fixture.debugElement.query(By.css('.capture-date-preview'));
+      expect(preview).toBeTruthy();
+      expect(preview.nativeElement.textContent).toContain('Friday at 3pm resolves to');
+      expect(preview.nativeElement.textContent).toContain('Friday, Oct 2, 2026, 3:00 PM');
+      expect(fixture.componentInstance.getDueDateDraft()).toEqual(
+        jasmine.objectContaining({
+          value: '2026-10-02',
+          dueTime: '15:00',
+          source: 'inferred',
+          matchedText: 'Friday at 3pm',
+        }),
+      );
+    });
+
+    it('resolves a time that precedes the date phrase', () => {
+      const fixture = createFixture();
+
+      fixture.componentInstance.setTitle('Go to dentist at 5pm Friday');
+      fixture.detectChanges();
+
+      const preview = fixture.debugElement.query(By.css('.capture-date-preview'));
+      expect(preview.nativeElement.textContent).toContain('at 5pm Friday resolves to');
+      expect(preview.nativeElement.textContent).toContain('5:00 PM');
+      expect(fixture.componentInstance.getDueDateDraft()).toEqual(
+        jasmine.objectContaining({
+          value: '2026-10-02',
+          dueTime: '17:00',
+          source: 'inferred',
+          matchedText: 'at 5pm Friday',
+        }),
+      );
+    });
+
+    it('preserves an inferred time when the date is changed manually', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('Call Sam Friday at 3pm');
+      fixture.detectChanges();
+
+      const picker = fixture.debugElement.query(By.directive(DatePickerComponent))
+        .componentInstance as DatePickerComponent;
+      picker.valueChange.emit('2026-10-05');
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.getDueDateDraft()).toEqual(
+        jasmine.objectContaining({
+          value: '2026-10-05',
+          dueTime: '15:00',
+          source: 'manual',
+        }),
+      );
+      const preview = fixture.debugElement.query(By.css('.capture-date-preview'));
+      expect(preview.nativeElement.textContent).toContain('3:00 PM');
+    });
+
+    it('drops the time when the phrase no longer carries one', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('Call Sam Friday at 3pm');
+      expect(fixture.componentInstance.getDueDateDraft().dueTime).toBe('15:00');
+
+      fixture.componentInstance.setTitle('Call Sam Friday');
+
+      expect(fixture.componentInstance.getDueDateDraft().source).toBe('inferred');
+      expect(fixture.componentInstance.getDueDateDraft().value).toBe('2026-10-02');
+      expect(fixture.componentInstance.getDueDateDraft().dueTime).toBeNull();
+    });
+
+    it('clears the inferred time together with the date', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('Call Sam Friday at 3pm');
+
+      fixture.componentInstance['clearDueDate']();
+
+      expect(fixture.componentInstance.getDueDateDraft().source).toBe('cleared');
+      expect(fixture.componentInstance.getDueDateDraft().dueTime).toBeNull();
+    });
+
+    it('keeps the resolved time when the local reference changes', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('Call Sam Friday at 3pm');
+
+      fixture.componentRef.setInput(
+        'referenceDate',
+        DateTime.fromObject({ year: 2026, month: 9, day: 25 }, { zone: 'UTC' }),
+      );
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.getDueDateDraft().value).toBe('2026-09-25');
+      expect(fixture.componentInstance.getDueDateDraft().dueTime).toBe('15:00');
     });
 
     it('does not fail open when the supplied local reference is invalid', () => {
@@ -237,7 +334,7 @@ describe('CaptureBarComponent', () => {
     it('does not show a preview for rejected input', () => {
       const fixture = createFixture();
 
-      fixture.componentInstance.setTitle('Call Sam Friday at 3pm');
+      fixture.componentInstance.setTitle('Call Sam Friday morning');
       fixture.detectChanges();
 
       expect(fixture.debugElement.query(By.css('.capture-date-preview'))).toBeNull();
@@ -245,16 +342,16 @@ describe('CaptureBarComponent', () => {
       expect(fixture.componentInstance.getDueDateDraft().source).toBe('none');
     });
 
-    it('explains that a time is kept as text rather than showing nothing', () => {
+    it('explains that only exact times are understood rather than showing nothing', () => {
       const fixture = createFixture();
 
-      fixture.componentInstance.setTitle('Call Sam Friday at 3pm');
+      fixture.componentInstance.setTitle('Call Sam Friday morning');
       fixture.detectChanges();
 
       const note = fixture.debugElement.query(By.css('.capture-date-note'));
       expect(note).toBeTruthy();
       expect(note.nativeElement.getAttribute('role')).toBe('status');
-      expect(note.nativeElement.textContent).toContain("Times aren't supported yet");
+      expect(note.nativeElement.textContent).toContain('Only exact times like 3pm or 15:00');
 
       const input = fixture.debugElement.query(By.css('input'));
       expect(input.nativeElement.getAttribute('aria-describedby')).toContain('capture-date-note');
@@ -271,15 +368,52 @@ describe('CaptureBarComponent', () => {
       expect(note.nativeElement.textContent).toContain("Repeating isn't set from the title");
     });
 
-    it('removes the notice once a supported phrase is used', () => {
+    it('removes the notice once an exact time is used', () => {
+      const fixture = createFixture();
+
+      fixture.componentInstance.setTitle('Call Sam Friday morning');
+      fixture.detectChanges();
+      expect(fixture.debugElement.query(By.css('.capture-date-note'))).toBeTruthy();
+
+      fixture.componentInstance.setTitle('Call Sam Friday at 3pm');
+      fixture.detectChanges();
+      expect(fixture.debugElement.query(By.css('.capture-date-note'))).toBeNull();
+      expect(fixture.debugElement.query(By.css('.capture-date-preview'))).toBeTruthy();
+    });
+
+    it('warns that a picked-up time may not fire when the browser has no timezone', () => {
+      spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').and.returnValue(
+        {} as Intl.ResolvedDateTimeFormatOptions,
+      );
       const fixture = createFixture();
 
       fixture.componentInstance.setTitle('Call Sam Friday at 3pm');
       fixture.detectChanges();
-      expect(fixture.debugElement.query(By.css('.capture-date-note'))).toBeTruthy();
+
+      const preview = fixture.debugElement.query(By.css('.capture-date-preview'));
+      expect(preview).toBeTruthy();
+      expect(preview.nativeElement.textContent).toContain('3:00 PM');
+
+      const note = fixture.debugElement.query(By.css('.capture-date-note'));
+      expect(note).toBeTruthy();
+      expect(note.nativeElement.textContent).toContain(
+        "Couldn't detect your timezone — the 3:00 PM reminder may not arrive on time.",
+      );
+
+      const input = fixture.debugElement.query(By.css('input'));
+      expect(input.nativeElement.getAttribute('aria-describedby')).toContain('capture-date-note');
+    });
+
+    it('says nothing about the timezone for a date-only task', () => {
+      spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').and.returnValue(
+        {} as Intl.ResolvedDateTimeFormatOptions,
+      );
+      const fixture = createFixture();
 
       fixture.componentInstance.setTitle('Call Sam Friday');
       fixture.detectChanges();
+
+      expect(fixture.debugElement.query(By.css('.capture-date-preview'))).toBeTruthy();
       expect(fixture.debugElement.query(By.css('.capture-date-note'))).toBeNull();
     });
 

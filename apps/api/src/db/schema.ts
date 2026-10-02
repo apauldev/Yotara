@@ -108,6 +108,7 @@ export const tasks = sqliteTable('tasks', {
   completed: integer('completed', { mode: 'boolean' }).notNull().default(false),
   order: integer('sort_order').notNull().default(0),
   dueDate: text('due_date'),
+  dueTime: text('due_time'),
   simpleMode: integer('simple_mode', { mode: 'boolean' }).notNull().default(false),
   bucket: text('bucket', {
     enum: TASK_BUCKET_VALUES,

@@ -771,3 +771,155 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
     ctx.cleanup();
   }
 });
+
+/**
+ * Reminder tests below drive the scan with an injected clock while the update
+ * path runs on the real one, so the fixtures are anchored to the real UTC day
+ * rather than a hardcoded date that would only line up on the day it was
+ * written.
+ */
+async function setupReminderTestDb() {
+  const { createDbClient } = await import('../db/client.js');
+  const { users } = await import('../db/schema.js');
+  const { DateTime } = await import('luxon');
+  const { todayInTimezone } = await import('../lib/timezone.js');
+
+  const { db, sqlite } = createDbClient(':memory:');
+  const ownerId = randomUUID();
+  await db.insert(users).values({
+    id: ownerId,
+    name: 'Test User',
+    email: `${ownerId}@example.com`,
+    emailVerified: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+
+  const today = todayInTimezone('UTC');
+  const yesterday = DateTime.fromISO(today).minus({ days: 1 }).toISODate() as string;
+  /** An instant on the given UTC day, for scans that take an injected clock. */
+  const at = (day: string, hour: number) =>
+    DateTime.fromISO(`${day}T${String(hour).padStart(2, '0')}:00:00`, { zone: 'UTC' });
+
+  return { db, sqlite, ownerId, today, yesterday, at };
+}
+
+test('adding a due time to a date-only task retires its due_today reminder', async () => {
+  const { scanDueNotifications, getNotificationsForOwner } =
+    await import('./notification-service.js');
+  const { createTaskForOwner, updateTaskForOwner } = await import('./task-service.js');
+  const { db, sqlite, ownerId, today, at } = await setupReminderTestDb();
+
+  try {
+    const tz = 'UTC';
+    const task = await createTaskForOwner(ownerId, { title: 'Call Sam' }, tz, db);
+    assert.ok(task);
+    // Set directly so the scenario does not depend on how the create path scans.
+    sqlite.prepare(`UPDATE tasks SET due_date = ? WHERE id = ?`).run(today, task.id);
+
+    // Morning: the date-only task earns its due_today reminder.
+    assert.equal(scanDueNotifications(ownerId, tz, db, at(today, 9)), 1);
+
+    // Midday: the user adds an exact time. The instant has not passed yet.
+    await updateTaskForOwner(ownerId, task.id, { dueTime: '15:00' }, null, tz, db);
+    assert.equal(scanDueNotifications(ownerId, tz, db, at(today, 12)), 0);
+
+    // The instant passes: the exact-time reminder is the only one owed.
+    scanDueNotifications(ownerId, tz, db, at(today, 20));
+
+    const rows = getNotificationsForOwner(ownerId, 50, db);
+    assert.equal(rows.length, 1, 'the date-only reminder is retired, not duplicated');
+    assert.equal(rows[0].type, 'due_time');
+    assert.equal(rows[0].read, false);
+  } finally {
+    sqlite.close();
+  }
+});
+
+test('removing a due time retires the exact-time reminder and restores the date-only one', async () => {
+  const { scanDueNotifications, getNotificationsForOwner } =
+    await import('./notification-service.js');
+  const { createTaskForOwner, updateTaskForOwner } = await import('./task-service.js');
+  const { db, sqlite, ownerId, today, at } = await setupReminderTestDb();
+
+  try {
+    const tz = 'UTC';
+    const task = await createTaskForOwner(ownerId, { title: 'Call Sam' }, tz, db);
+    assert.ok(task);
+    sqlite
+      .prepare(`UPDATE tasks SET due_date = ?, due_time = ? WHERE id = ?`)
+      .run(today, '15:00', task.id);
+
+    // The exact instant passes, so the timed reminder is issued.
+    assert.equal(scanDueNotifications(ownerId, tz, db, at(today, 20)), 1);
+    assert.equal(getNotificationsForOwner(ownerId, 50, db)[0].type, 'due_time');
+
+    // The user drops the time. The task is date-only again, so the stale
+    // exact-time reminder goes and the date-only one takes over.
+    await updateTaskForOwner(ownerId, task.id, { dueTime: null }, null, tz, db);
+
+    const rows = getNotificationsForOwner(ownerId, 50, db);
+    assert.equal(rows.length, 1, 'the exact-time reminder is retired, not kept alongside');
+    assert.equal(rows[0].type, 'due_today');
+    assert.equal(rows[0].read, false);
+  } finally {
+    sqlite.close();
+  }
+});
+
+test('clearing the whole schedule retires the reminder it earned today', async () => {
+  const { scanDueNotifications, getNotificationsForOwner } =
+    await import('./notification-service.js');
+  const { createTaskForOwner, updateTaskForOwner } = await import('./task-service.js');
+  const { db, sqlite, ownerId, today, at } = await setupReminderTestDb();
+
+  try {
+    const tz = 'UTC';
+    const task = await createTaskForOwner(ownerId, { title: 'Call Sam' }, tz, db);
+    assert.ok(task);
+    sqlite
+      .prepare(`UPDATE tasks SET due_date = ?, due_time = ? WHERE id = ?`)
+      .run(today, '15:00', task.id);
+
+    assert.equal(scanDueNotifications(ownerId, tz, db, at(today, 20)), 1);
+    assert.equal(getNotificationsForOwner(ownerId, 50, db)[0].type, 'due_time');
+
+    // Clearing both fields is not a timing change on an unchanged date, so the
+    // retirement has to recognise the cleared schedule itself. Otherwise the
+    // scheduler would still announce this reminder on its next load.
+    await updateTaskForOwner(ownerId, task.id, { dueDate: null, dueTime: null }, null, tz, db);
+
+    assert.equal(getNotificationsForOwner(ownerId, 50, db).length, 0);
+  } finally {
+    sqlite.close();
+  }
+});
+
+test('moving a task to another date while timing it keeps the other day\u2019s reminder', async () => {
+  const { scanDueNotifications, getNotificationsForOwner } =
+    await import('./notification-service.js');
+  const { createTaskForOwner, updateTaskForOwner } = await import('./task-service.js');
+  const { db, sqlite, ownerId, today, yesterday, at } = await setupReminderTestDb();
+
+  try {
+    const tz = 'UTC';
+    const task = await createTaskForOwner(ownerId, { title: 'Call Sam' }, tz, db);
+    assert.ok(task);
+    sqlite.prepare(`UPDATE tasks SET due_date = ? WHERE id = ?`).run(yesterday, task.id);
+
+    // A reminder earned yesterday belongs to that day, not to today.
+    assert.equal(scanDueNotifications(ownerId, tz, db, at(yesterday, 20)), 1);
+
+    // Now the task gets both a new date and a time: only the new day's state
+    // is at stake, so the earlier day's reminder must survive.
+    await updateTaskForOwner(ownerId, task.id, { dueDate: today, dueTime: '15:00' }, null, tz, db);
+
+    const rows = getNotificationsForOwner(ownerId, 50, db);
+    assert.ok(
+      rows.some((row) => row.type === 'due_today'),
+      'the earlier day\u2019s date-only reminder is untouched',
+    );
+  } finally {
+    sqlite.close();
+  }
+});

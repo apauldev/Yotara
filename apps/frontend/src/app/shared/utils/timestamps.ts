@@ -27,3 +27,20 @@ export function startOfToday(): DateTime {
   const now = DateTime.local();
   return DateTime.local(now.year, now.month, now.day);
 }
+
+/**
+ * Format an 'HH:mm' wall-clock time for display (e.g. '15:30' → '3:30 PM').
+ * Returns an empty string for missing or malformed values.
+ */
+export function formatTimeLabel(value?: string | null): string {
+  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(value?.trim() ?? '');
+  if (!match) {
+    return '';
+  }
+
+  const [, hours, minutes] = match;
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(2000, 0, 1, Number(hours), Number(minutes)));
+}
