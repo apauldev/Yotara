@@ -67,6 +67,22 @@ export class NotificationService {
     this._unreadCount.set(result.count);
   }
 
+  /**
+   * When the next timed task becomes due, so the scheduler can wake up for that
+   * moment instead of waiting for its next tick. Read-only: this endpoint does
+   * not materialize notifications.
+   */
+  async fetchNextDueAt(): Promise<string | null> {
+    const zone = this.dueZone();
+    const result = await firstValueFrom(
+      this.http.get<{ at: string | null }>(`${this.baseUrl}/notifications/next-due`, {
+        params: zone ? { tz: zone } : {},
+        withCredentials: true,
+      }),
+    );
+    return result.at ?? null;
+  }
+
   async markAsRead(id: string): Promise<void> {
     await firstValueFrom(
       this.http.patch<AppNotification>(`${this.baseUrl}/notifications/${id}/read`, null, {

@@ -6,7 +6,13 @@ import { tryGetUserTimezone } from '../../shared/utils/timezone';
 
 const ANNOUNCED_KEY_PREFIX = 'yotara_due_time_announced_';
 const MAX_ANNOUNCED_IDS = 100;
-const POLL_INTERVAL_MS = 60_000;
+/**
+ * How often the list and unread count are refreshed while the site is open.
+ * Reminders do not rely on this cadence: when the next due instant falls inside
+ * it, a one-shot timer wakes the scheduler at that moment instead, so a task due
+ * at 10:03 is still announced at 10:03 rather than at the next tick.
+ */
+const POLL_INTERVAL_MS = 300_000;
 
 /**
  * Announces due-time notifications while the site is open: checks on start,
@@ -19,6 +25,7 @@ export class DueTimeSchedulerService {
   private readonly notificationService = inject(NotificationService);
   private readonly authState = inject(AuthStateService);
   private timer: ReturnType<typeof setInterval> | null = null;
+  private dueTimer: ReturnType<typeof setTimeout> | null = null;
   private checking = false;
 
   private readonly onVisibilityChange = () => {
@@ -49,6 +56,7 @@ export class DueTimeSchedulerService {
       clearInterval(this.timer);
       this.timer = null;
     }
+    this.clearDueTimer();
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
     globalThis.removeEventListener('focus', this.onWindowFocus);
   }
@@ -61,11 +69,48 @@ export class DueTimeSchedulerService {
       await this.notificationService.fetchNotifications();
       await this.notificationService.fetchUnreadCount();
       this.announceNewDueTimeNotifications();
+      await this.scheduleNextDueCheck();
     } catch {
       // A failed poll is retried on the next tick; the in-app list stays
       // authoritative either way.
     } finally {
       this.checking = false;
+    }
+  }
+
+  /**
+   * Ask the server when the next timed task becomes due and wake up for it. The
+   * server owns the instants, so this only needs the zone to read the instant in
+   * the user's local time. Nothing is scheduled without a zone or when the next
+   * instant is beyond this poll interval: the interval will come into range on
+   * its own and schedule it then.
+   */
+  private async scheduleNextDueCheck(): Promise<void> {
+    this.clearDueTimer();
+
+    const zone = tryGetUserTimezone();
+    if (!zone) return;
+
+    const at = await this.notificationService.fetchNextDueAt();
+    if (!at) return;
+
+    const dueAt = DateTime.fromISO(at).setZone(zone);
+    if (!dueAt.isValid) return;
+
+    const delayMs = dueAt.diffNow('milliseconds').milliseconds;
+    if (!Number.isFinite(delayMs) || delayMs <= 0 || delayMs > POLL_INTERVAL_MS) return;
+
+    if (this.dueTimer !== null) return;
+    this.dueTimer = setTimeout(() => {
+      this.dueTimer = null;
+      void this.check();
+    }, delayMs);
+  }
+
+  private clearDueTimer(): void {
+    if (this.dueTimer !== null) {
+      clearTimeout(this.dueTimer);
+      this.dueTimer = null;
     }
   }
 
