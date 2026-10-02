@@ -288,6 +288,66 @@ test('notifications cascade-delete when user is deleted', async () => {
   }
 });
 
+test('next-due reports null when nothing timed is scheduled ahead', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`next-due-empty-${randomUUID()}@example.com`);
+
+    // The common case: the response is a successful 200 with an explicit null,
+    // which the schema has to allow rather than promise a string.
+    const empty = await ctx.app.inject({
+      method: 'GET',
+      url: '/notifications/next-due?tz=UTC',
+      headers: { cookie },
+    });
+    assert.equal(empty.statusCode, 200);
+    assert.deepEqual(empty.json(), { at: null });
+
+    // With a timed task ahead, the instant comes back.
+    const nowUtc = DateTime.now().setZone('UTC');
+    const later = nowUtc.plus({ hours: 2 });
+    const createRes = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks?tz=UTC',
+      headers: { cookie },
+      payload: {
+        title: 'Later timed route task',
+        dueDate: later.toISODate(),
+        dueTime: later.toFormat('HH:mm'),
+      },
+    });
+    assert.equal(createRes.statusCode, 201);
+
+    const scheduled = await ctx.app.inject({
+      method: 'GET',
+      url: '/notifications/next-due?tz=UTC',
+      headers: { cookie },
+    });
+    assert.equal(scheduled.statusCode, 200);
+    assert.equal(
+      DateTime.fromISO(scheduled.json().at).toUTC().toFormat('HH:mm'),
+      later.toFormat('HH:mm'),
+    );
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('next-due requires authentication', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const res = await ctx.app.inject({
+      method: 'GET',
+      url: '/notifications/next-due?tz=UTC',
+    });
+    assert.equal(res.statusCode, 401);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
 test('a timed task becomes a due_time notification instead of due_today', async () => {
   const ctx = await createAuthedApp();
 

@@ -485,6 +485,119 @@ test('retireSupersededDueNotifications scopes the day to the caller\u2019s zone'
   assert.equal(getNotificationsForOwner(utc.userId, 50, utc.db).length, 1);
 });
 
+/**
+ * Seeds a notification row with an explicit createdAt, since createNotification
+ * always stamps the current instant.
+ */
+function seedReminder(
+  db: Database,
+  userId: string,
+  taskId: string,
+  type: 'due_today' | 'due_time' | 'overdue',
+  createdAt: string,
+  body = 'Call Sam',
+): void {
+  db.insert(notifications)
+    .values({
+      id: randomUUID(),
+      userId,
+      taskId,
+      type,
+      title: 'Task due today',
+      body,
+      read: false,
+      createdAt,
+    })
+    .run();
+}
+
+test('a zone-less retirement still removes a reminder earned east of Greenwich', () => {
+  const now = DateTime.fromISO('2026-09-25T02:00:00', { zone: 'UTC' });
+  // 05:00 on 2026-09-25 in Tokyo. A UTC-day window opens at 00:00Z, which is
+  // nine hours after this row was created, so the row sits outside it and
+  // survives — and then suppresses the replacement reminder for the new time.
+  const { db, userId, sqlite } = createTestDb();
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Call Sam');
+  seedReminder(db, userId, taskId, 'due_time', '2026-09-24T20:00:00.000Z');
+
+  retireSupersededDueNotifications(db, userId, taskId, undefined, now);
+
+  assert.equal(
+    getNotificationsForOwner(userId, 50, db).length,
+    0,
+    'the superseded reminder is retired even without a zone',
+  );
+});
+
+test('an invalid zone is retired as cautiously as an absent one', () => {
+  const now = DateTime.fromISO('2026-09-25T02:00:00', { zone: 'UTC' });
+  const { db, userId, sqlite } = createTestDb();
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Call Sam');
+  seedReminder(db, userId, taskId, 'due_time', '2026-09-24T20:00:00.000Z');
+
+  // A garbage zone must not silently narrow the window the way UTC did.
+  retireSupersededDueNotifications(db, userId, taskId, 'Not/AZone', now);
+
+  assert.equal(getNotificationsForOwner(userId, 50, db).length, 0);
+});
+
+test('a zone-less retirement stays bounded to recent rows of that task', () => {
+  const now = DateTime.fromISO('2026-09-25T02:00:00', { zone: 'UTC' });
+  const { db, userId, sqlite } = createTestDb();
+  const taskId = randomUUID();
+  const otherTaskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Call Sam');
+  createTask(sqlite, otherTaskId, userId, 'Other task');
+
+  seedReminder(db, userId, taskId, 'due_time', '2026-09-24T20:00:00.000Z');
+  // Types outside the superseded pair describe a different decision.
+  seedReminder(db, userId, taskId, 'overdue', '2026-09-24T20:00:00.000Z');
+  // Another task's row is never this call's business.
+  seedReminder(db, userId, otherTaskId, 'due_time', '2026-09-24T20:00:00.000Z', 'Other task');
+  // And a reminder from well before the fallback window stays as history.
+  seedReminder(db, userId, taskId, 'due_today', '2026-09-22T08:00:00.000Z');
+
+  retireSupersededDueNotifications(db, userId, taskId, undefined, now);
+
+  const rows = getNotificationsForOwner(userId, 50, db);
+  assert.deepEqual(
+    rows.map((row) => `${row.type}:${row.body}`).sort(),
+    ['due_time:Other task', 'due_today:Call Sam', 'overdue:Call Sam'],
+    'only the recent due_today row of this task is retired',
+  );
+});
+
+test('a zone-less reschedule does not suppress the reminder for the new time', () => {
+  const now = DateTime.fromISO('2026-09-25T02:00:00', { zone: 'UTC' });
+  const { db, userId, sqlite } = createTestDb();
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Call Sam');
+  // The reminder earned for the original 08:00 Tokyo instant.
+  seedReminder(db, userId, taskId, 'due_time', '2026-09-24T20:00:00.000Z');
+
+  // A client that does not send a zone moves the task's time.
+  retireSupersededDueNotifications(db, userId, taskId, undefined, now);
+
+  // The follow-up timezone-aware scan owes a fresh reminder for the new time.
+  sqlite
+    .prepare(`UPDATE tasks SET due_date = ?, due_time = ? WHERE id = ?`)
+    .run('2026-09-25', '10:00', taskId);
+
+  assert.equal(
+    createDueNotificationIfNeeded(
+      db,
+      userId,
+      { id: taskId, title: 'Call Sam', dueDate: '2026-09-25', dueTime: '10:00', completed: false },
+      'Asia/Tokyo',
+      now,
+    ),
+    true,
+    'the replacement reminder is created rather than deduplicated away',
+  );
+});
+
 test('a timezone-less scan does not call a timed task overdue', () => {
   const { db, userId, sqlite } = createTestDb();
   const taskId = randomUUID();

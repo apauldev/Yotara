@@ -157,6 +157,16 @@ function createDueNotificationOnce(
  * its time no longer owes the exact-time reminder for the old instant. The day
  * window matches the reminder logic below, so rows from earlier days — which
  * describe that day's state — are left alone.
+ *
+ * A caller without a usable zone cannot be trusted to name that day. Falling
+ * back to UTC is not a safe approximation: the UTC day begins after the local
+ * day for anyone east of Greenwich, so a reminder they earned earlier that same
+ * evening would fall outside the window, survive, and then suppress the
+ * replacement in hasNotificationToday — the user would silently never hear
+ * about the time they just set. Without a zone the window widens to the widest
+ * real offset instead, which over-retires rather than under-retires. That is
+ * safe here because only a genuine schedule change reaches this function: the
+ * rows it removes describe a timing the task no longer has.
  */
 export function retireSupersededDueNotifications(
   tx: Database,
@@ -165,7 +175,10 @@ export function retireSupersededDueNotifications(
   tz?: string,
   now: DateTime = DateTime.now(),
 ): void {
-  const sinceIso = startOfDayInUtc(todayInTimezone(tz, now), tz);
+  const zone = resolveTimezone(tz, now);
+  const sinceIso = zone
+    ? startOfDayInUtc(todayInTimezone(zone, now), zone)
+    : now.minus({ hours: 26 }).toUTC().toISO() || now.minus({ hours: 26 }).toUTC().toString();
 
   tx.delete(notifications)
     .where(

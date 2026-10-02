@@ -1,8 +1,9 @@
-import { signal, type WritableSignal } from '@angular/core';
+import { ApplicationRef, signal, type WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { Notification as AppNotification } from '@yotara/shared';
 import { DueTimeSchedulerService } from './due-time-scheduler.service';
 import { NotificationService } from './notification.service';
+import { TaskService } from './task.service';
 import { AuthStateService } from './auth-state.service';
 
 function dueTimeNotification(overrides: Partial<AppNotification> = {}): AppNotification {
@@ -26,6 +27,7 @@ async function flush(): Promise<void> {
 describe('DueTimeSchedulerService', () => {
   let service: DueTimeSchedulerService;
   let notifications: WritableSignal<AppNotification[]>;
+  let taskVersion: WritableSignal<number>;
   let fetchNotifications: jasmine.Spy;
   let fetchUnreadCount: jasmine.Spy;
   let fetchNextDueAt: jasmine.Spy;
@@ -34,6 +36,7 @@ describe('DueTimeSchedulerService', () => {
   beforeEach(() => {
     localStorage.clear();
     notifications = signal<AppNotification[]>([]);
+    taskVersion = signal(0);
     fetchNotifications = jasmine.createSpy('fetchNotifications').and.resolveTo(undefined);
     fetchUnreadCount = jasmine.createSpy('fetchUnreadCount').and.resolveTo(undefined);
     fetchNextDueAt = jasmine.createSpy('fetchNextDueAt').and.resolveTo(null);
@@ -51,6 +54,10 @@ describe('DueTimeSchedulerService', () => {
             fetchNextDueAt,
             showBrowserNotification,
           },
+        },
+        {
+          provide: TaskService,
+          useValue: { version: taskVersion.asReadonly() },
         },
         { provide: AuthStateService, useValue: { user: signal({ id: 'user-1' }) } },
       ],
@@ -188,6 +195,26 @@ describe('DueTimeSchedulerService', () => {
       service.stop();
 
       expect(spy).toHaveBeenCalled();
+    });
+
+    it('re-arms when a task is created or moved to an earlier time', async () => {
+      // A completed poll leaves nothing armed, because nothing is scheduled.
+      fetchNextDueAt.and.resolveTo(null);
+      await service.check();
+
+      // A task is created due shortly; the server now reports that instant.
+      fetchNextDueAt.and.resolveTo(atIn(30));
+      fetchNextDueAt.calls.reset();
+      fetchNotifications.calls.reset();
+      taskVersion.set(1);
+      TestBed.inject(ApplicationRef).tick();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // The scheduler asked again without waiting for the next poll, and did so
+      // through the read-only endpoint rather than another full scan.
+      expect(fetchNextDueAt).toHaveBeenCalledTimes(1);
+      expect(fetchNotifications).not.toHaveBeenCalled();
+      service.stop();
     });
   });
 
