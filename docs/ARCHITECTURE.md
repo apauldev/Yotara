@@ -112,6 +112,13 @@ interpret “today”, “upcoming”, or restoration buckets carry the user's
 timezone. Shared timestamp/calendar helpers should be used instead of ad-hoc
 date parsing or raw UTC assumptions.
 
+An absent timezone is not permission to approximate one. The shared helpers
+fall back to UTC, and because the UTC day begins after the local day for
+anyone east of Greenwich, that fallback quietly selects the wrong rows instead
+of failing. Where a missing zone could produce a wrong-but-plausible answer,
+either widen the affected window or reject the request; never let a fallback
+decide which records a user is owed.
+
 ### Security at deployment boundaries
 
 The supported deployment is nginx in front of the API. The API derives
