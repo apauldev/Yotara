@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.79.0](https://github.com/apauldev/Yotara/compare/v0.78.0...v0.79.0) (2026-10-02)
+
+
+### Features
+
+* **tasks:** due-time support — manual entry, NLP parsing, and notifications ([#396](https://github.com/apauldev/Yotara/issues/396)) ([825bd4e](https://github.com/apauldev/Yotara/commit/825bd4e024dca06a235021b7ebc9115e77bc3965))
+
 ## [0.78.0](https://github.com/apauldev/Yotara/compare/v0.77.3...v0.78.0) (2026-09-28)
 
 
