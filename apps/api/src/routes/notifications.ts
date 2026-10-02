@@ -130,7 +130,10 @@ export default async function notificationRoutes(fastify: FastifyInstance) {
             type: 'object',
             required: ['at'],
             properties: {
-              at: { type: 'string', format: 'date-time' },
+              // Null whenever nothing timed is scheduled ahead, which is the
+              // common case: the client needs to tell "no reminder coming" from
+              // a missing value.
+              at: { anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }] },
             },
           },
           401: errorResponseSchema('Authentication required', 'Unauthorized'),
