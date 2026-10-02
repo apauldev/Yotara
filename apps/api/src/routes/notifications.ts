@@ -6,6 +6,7 @@ import { sendNotFound } from '../lib/api-errors.js';
 import requireAuthenticatedUser from '../plugins/auth-required.js';
 import {
   clearReadForOwner,
+  getNextDueInstant,
   getNotificationsForOwner,
   getUnreadCountForOwner,
   markAllReadForOwner,
@@ -102,6 +103,46 @@ export default async function notificationRoutes(fastify: FastifyInstance) {
       scanDueNotifications(request.userId, request.query.tz);
       const count = getUnreadCountForOwner(request.userId);
       return { count };
+    },
+  );
+
+  // Read-only and cheap: a single bounded query, so a client can poll it to
+  // learn when the next reminder is owed without materializing anything.
+  fastify.get<{
+    Querystring: { tz?: string };
+    Reply: { at: string | null } | { message: string };
+  }>(
+    '/notifications/next-due',
+    {
+      schema: withJsonResponse({
+        tags: ['notifications'],
+        summary: 'Get the next scheduled due-time reminder',
+        security: authCookieSecurity,
+        querystring: {
+          type: 'object',
+          properties: {
+            tz: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            description: 'The instant the next timed task becomes due, if any',
+            type: 'object',
+            required: ['at'],
+            properties: {
+              at: { type: 'string', format: 'date-time' },
+            },
+          },
+          401: errorResponseSchema('Authentication required', 'Unauthorized'),
+        },
+      }),
+    },
+    async (request) => {
+      if (!request.userId) {
+        throw new UnauthorizedError();
+      }
+
+      return { at: getNextDueInstant(request.userId, request.query.tz) };
     },
   );
 
