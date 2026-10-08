@@ -683,6 +683,23 @@ test('tasks timezone-aware queries (overdue, view, completedSince)', async () =>
   }
 });
 
+test('tasks reject a completedSince that is not a calendar date', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`bad-since-${randomUUID()}@example.com`);
+
+    const res = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?completedSince=not-a-date',
+      headers: { cookie },
+    });
+    assert.equal(res.statusCode, 400);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
 test('tasks export endpoint returns all tasks without pagination limit', async () => {
   const ctx = await createAuthedApp();
 

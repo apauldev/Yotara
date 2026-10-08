@@ -569,6 +569,29 @@ test('a zone-less retirement stays bounded to recent rows of that task', () => {
   );
 });
 
+test('a zone-less retirement widens to the longest real offset and no further', () => {
+  const now = DateTime.fromISO('2026-09-25T12:00:00', { zone: 'UTC' });
+  const { db, userId, sqlite } = createTestDb();
+  const taskId = randomUUID();
+  createTask(sqlite, taskId, userId, 'Call Sam');
+
+  // A local day can start at most 25 hours before "now" (a DST-longest day), so
+  // the widened window reaches back 26 hours: a row 25h59m old is the current
+  // day's and is retired; one 26h01m old belongs to an earlier day and stays.
+  const inside = now.minus({ hours: 25, minutes: 59 }).toUTC().toISO() as string;
+  const outside = now.minus({ hours: 26, minutes: 1 }).toUTC().toISO() as string;
+  seedReminder(db, userId, taskId, 'due_time', inside);
+  seedReminder(db, userId, taskId, 'due_today', outside, 'Older');
+
+  retireSupersededDueNotifications(db, userId, taskId, undefined, now);
+
+  assert.deepEqual(
+    getNotificationsForOwner(userId, 50, db).map((row) => row.body),
+    ['Older'],
+    'only the row inside the widened window is retired',
+  );
+});
+
 test('a zone-less reschedule does not suppress the reminder for the new time', () => {
   const now = DateTime.fromISO('2026-09-25T02:00:00', { zone: 'UTC' });
   const { db, userId, sqlite } = createTestDb();

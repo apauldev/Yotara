@@ -4,7 +4,12 @@ import { DateTime } from 'luxon';
 import { db, type Database } from '../db/client.js';
 import { notifications, tasks, type DbNotification } from '../db/schema.js';
 import { nowIsoTimestamp } from '../lib/timestamps.js';
-import { startOfDayInUtc, resolveTimezone, todayInTimezone } from '../lib/timezone.js';
+import {
+  startOfDayInUtc,
+  resolveTimezone,
+  toUtcIsoString,
+  todayInTimezone,
+} from '../lib/timezone.js';
 
 export function createNotification(
   userId: string,
@@ -178,7 +183,7 @@ export function retireSupersededDueNotifications(
   const zone = resolveTimezone(tz, now);
   const sinceIso = zone
     ? startOfDayInUtc(todayInTimezone(zone, now), zone)
-    : now.minus({ hours: 26 }).toUTC().toISO() || now.minus({ hours: 26 }).toUTC().toString();
+    : toUtcIsoString(now.minus({ hours: 26 }));
 
   tx.delete(notifications)
     .where(

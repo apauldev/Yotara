@@ -75,7 +75,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
             overdue: { type: 'string', enum: ['true', 'false'] },
             tz: { type: 'string' },
             view: { type: 'string', enum: ['today', 'inbox', 'upcoming'] },
-            completedSince: { type: 'string' },
+            completedSince: { type: 'string', format: 'date' },
           },
         },
         response: {
