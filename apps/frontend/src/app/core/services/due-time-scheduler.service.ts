@@ -96,7 +96,7 @@ export class DueTimeSchedulerService {
     try {
       await this.notificationService.fetchNotifications();
       await this.notificationService.fetchUnreadCount();
-      this.announceNewDueTimeNotifications();
+      await this.announceNewDueTimeNotifications();
       await this.scheduleNextDueCheck(token);
     } catch {
       // A failed poll is retried on the next tick; the in-app list stays
@@ -153,22 +153,51 @@ export class DueTimeSchedulerService {
     }
   }
 
-  private announceNewDueTimeNotifications(): void {
+  private async announceNewDueTimeNotifications(): Promise<void> {
     const rows = this.notificationService.notifications();
-    const announced = this.readAnnouncedIds();
-    let changed = false;
+    const candidates = rows.filter(
+      (row) => row.type === 'due_time' && !row.read && this.isFromToday(row.createdAt),
+    );
+    if (candidates.length === 0) return;
 
-    for (const row of rows) {
-      if (row.type !== 'due_time' || row.read) continue;
-      if (announced.has(row.id) || !this.isFromToday(row.createdAt)) continue;
+    // Two tabs can both fetch the same unread reminder before either records
+    // it, and each would then pop its own browser notification. Read, decide
+    // and write the announced set under a cross-tab lock, re-reading inside it,
+    // so only the tab that claims an id announces it.
+    await this.withAnnounceLock(() => {
+      const announced = this.readAnnouncedIds();
+      let changed = false;
 
-      this.notificationService.showBrowserNotification(row.title, row.body ?? '');
-      announced.add(row.id);
-      changed = true;
+      for (const row of candidates) {
+        if (announced.has(row.id)) continue;
+
+        this.notificationService.showBrowserNotification(row.title, row.body ?? '');
+        announced.add(row.id);
+        changed = true;
+      }
+
+      if (changed) {
+        this.writeAnnouncedIds(announced);
+      }
+    });
+  }
+
+  /**
+   * Serialize the announce read-decide-write across tabs of the same origin.
+   * Without the Web Locks API the action still runs, but two tabs can race as
+   * they did before — a duplicate popup is better than a missed reminder.
+   */
+  private async withAnnounceLock(action: () => void): Promise<void> {
+    const locks = globalThis.navigator?.locks;
+    if (!locks) {
+      action();
+      return;
     }
 
-    if (changed) {
-      this.writeAnnouncedIds(announced);
+    try {
+      await locks.request(this.storageKey(), action);
+    } catch {
+      action();
     }
   }
 

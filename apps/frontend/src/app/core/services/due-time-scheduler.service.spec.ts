@@ -110,6 +110,19 @@ describe('DueTimeSchedulerService', () => {
     expect(showBrowserNotification).not.toHaveBeenCalled();
   });
 
+  it('announces an overlapping reminder from another tab only once', async () => {
+    notifications.set([dueTimeNotification({ id: 'n1' })]);
+    const announce = (
+      service as unknown as { announceNewDueTimeNotifications: () => Promise<void> }
+    ).announceNewDueTimeNotifications.bind(service);
+
+    // Two tabs race the same unread row; the cross-tab lock lets exactly one
+    // claim and announce it.
+    await Promise.all([announce(), announce()]);
+
+    expect(showBrowserNotification).toHaveBeenCalledTimes(1);
+  });
+
   it('does not announce anything when the browser has no timezone', async () => {
     spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').and.returnValue(
       {} as Intl.ResolvedDateTimeFormatOptions,
