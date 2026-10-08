@@ -24,6 +24,14 @@ async function flush(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve));
 }
 
+/** Drain pending microtasks without scheduling a macrotask, so a test can
+ * watch a promise continuation that must not touch the real timer. */
+async function drainMicrotasks(): Promise<void> {
+  for (let i = 0; i < 20; i += 1) {
+    await Promise.resolve();
+  }
+}
+
 describe('DueTimeSchedulerService', () => {
   let service: DueTimeSchedulerService;
   let notifications: WritableSignal<AppNotification[]>;
@@ -198,9 +206,10 @@ describe('DueTimeSchedulerService', () => {
     });
 
     it('re-arms when a task is created or moved to an earlier time', async () => {
-      // A completed poll leaves nothing armed, because nothing is scheduled.
+      // A started scheduler with nothing scheduled leaves nothing armed.
       fetchNextDueAt.and.resolveTo(null);
-      await service.check();
+      service.start();
+      await flush();
 
       // A task is created due shortly; the server now reports that instant.
       fetchNextDueAt.and.resolveTo(atIn(30));
@@ -208,13 +217,63 @@ describe('DueTimeSchedulerService', () => {
       fetchNotifications.calls.reset();
       taskVersion.set(1);
       TestBed.inject(ApplicationRef).tick();
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await flush();
 
       // The scheduler asked again without waiting for the next poll, and did so
       // through the read-only endpoint rather than another full scan.
       expect(fetchNextDueAt).toHaveBeenCalledTimes(1);
       expect(fetchNotifications).not.toHaveBeenCalled();
       service.stop();
+    });
+
+    it('keeps an armed timer when a re-arm lookup fails', async () => {
+      fetchNextDueAt.and.resolveTo(atIn(120));
+      await service.check();
+
+      const clearSpy = spyOn(globalThis, 'clearTimeout').and.callThrough();
+
+      // The next lookup fails. The armed timer still names the instant the
+      // server last confirmed, so it must survive rather than be dropped.
+      fetchNextDueAt.and.callFake(() => Promise.reject(new Error('offline')));
+      await service.check();
+
+      expect(clearSpy).not.toHaveBeenCalled();
+    });
+
+    it('does not arm a timer when a lookup resolves after stop()', async () => {
+      let resolveNextDue: (value: string | null) => void = () => {};
+      fetchNextDueAt.and.callFake(
+        () =>
+          new Promise<string | null>((resolve) => {
+            resolveNextDue = resolve;
+          }),
+      );
+
+      const pending = service.check();
+      await flush();
+
+      const setSpy = spyOn(globalThis, 'setTimeout').and.callThrough();
+      service.stop();
+
+      // The in-flight lookup now resolves, but the stop has superseded it.
+      resolveNextDue(atIn(60));
+      await drainMicrotasks();
+      await pending;
+
+      expect(setSpy).not.toHaveBeenCalled();
+    });
+
+    it('ignores a task change once the scheduler has stopped', async () => {
+      service.start();
+      await flush();
+      service.stop();
+
+      fetchNextDueAt.calls.reset();
+      taskVersion.set(1);
+      TestBed.inject(ApplicationRef).tick();
+      await flush();
+
+      expect(fetchNextDueAt).not.toHaveBeenCalled();
     });
   });
 

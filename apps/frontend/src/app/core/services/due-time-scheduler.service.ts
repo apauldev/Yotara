@@ -29,6 +29,7 @@ export class DueTimeSchedulerService {
   private timer: ReturnType<typeof setInterval> | null = null;
   private dueTimer: ReturnType<typeof setTimeout> | null = null;
   private checking = false;
+  private active = false;
   private rescheduleToken = 0;
 
   constructor() {
@@ -38,6 +39,10 @@ export class DueTimeSchedulerService {
     // re-arms. TaskService bumps its version on each mutation.
     effect(() => {
       this.taskService.version();
+      // Only a running scheduler reacts: otherwise the constructor's own run
+      // would issue a request before authentication settles, and a mutation
+      // after stop() would re-arm a timer the user has asked us to drop.
+      if (!this.active) return;
       const token = ++this.rescheduleToken;
       untracked(() => void this.scheduleNextDueCheck(token));
     });
@@ -56,6 +61,7 @@ export class DueTimeSchedulerService {
   start(): void {
     if (this.timer !== null) return;
 
+    this.active = true;
     void this.check();
     this.timer = setInterval(() => {
       if (document.visibilityState === 'visible') {
@@ -67,6 +73,10 @@ export class DueTimeSchedulerService {
   }
 
   stop(): void {
+    this.active = false;
+    // Invalidate any in-flight reschedule: a lookup that resolves after this
+    // must not arm a timer, or it would undo the stop.
+    this.rescheduleToken++;
     if (this.timer !== null) {
       clearInterval(this.timer);
       this.timer = null;
@@ -79,12 +89,15 @@ export class DueTimeSchedulerService {
   async check(): Promise<void> {
     if (this.checking) return;
     this.checking = true;
+    // Claim the newest scheduling token up front, so a lookup already in flight
+    // when a task changes or the scheduler stops cannot arm after this one.
+    const token = ++this.rescheduleToken;
 
     try {
       await this.notificationService.fetchNotifications();
       await this.notificationService.fetchUnreadCount();
       this.announceNewDueTimeNotifications();
-      await this.scheduleNextDueCheck();
+      await this.scheduleNextDueCheck(token);
     } catch {
       // A failed poll is retried on the next tick; the in-app list stays
       // authoritative either way.
@@ -98,16 +111,27 @@ export class DueTimeSchedulerService {
    * server owns the instants, so this only needs the zone to read the instant in
    * the user's local time. Nothing is scheduled without a zone or when the next
    * instant is beyond this poll interval: the interval will come into range on
-   * its own and schedule it then. A newer request supersedes an in-flight one.
+   * its own and schedule it then.
+   *
+   * A newer request supersedes an in-flight one, and a lookup that fails or
+   * arrives after the scheduler stops leaves the existing timer untouched. The
+   * armed instant is still the one the server last confirmed, so clearing it
+   * here would silently drop the reminder until the next poll.
    */
-  private async scheduleNextDueCheck(token = ++this.rescheduleToken): Promise<void> {
-    this.clearDueTimer();
-
+  private async scheduleNextDueCheck(token: number): Promise<void> {
     const zone = tryGetUserTimezone();
     if (!zone) return;
 
-    const at = await this.notificationService.fetchNextDueAt();
+    let at: string | null;
+    try {
+      at = await this.notificationService.fetchNextDueAt();
+    } catch {
+      return;
+    }
+
     if (token !== this.rescheduleToken) return;
+
+    this.clearDueTimer();
     if (!at) return;
 
     const dueAt = DateTime.fromISO(at).setZone(zone);
@@ -116,7 +140,6 @@ export class DueTimeSchedulerService {
     const delayMs = dueAt.diffNow('milliseconds').milliseconds;
     if (!Number.isFinite(delayMs) || delayMs <= 0 || delayMs > POLL_INTERVAL_MS) return;
 
-    if (this.dueTimer !== null) return;
     this.dueTimer = setTimeout(() => {
       this.dueTimer = null;
       void this.check();
