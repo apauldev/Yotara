@@ -868,6 +868,22 @@ describe('PersonalTaskModalComponent', () => {
       );
     });
 
+    it('shows the timezone warning when editing a timed task', async () => {
+      spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').and.returnValue(
+        {} as Intl.ResolvedDateTimeFormatOptions,
+      );
+      openExistingTask('2026-10-02', '15:30');
+      await settle();
+
+      const note = fixture.debugElement.query(By.css('.date-preview-note'));
+      expect(note).toBeTruthy();
+      expect(note.nativeElement.getAttribute('role')).toBe('status');
+      expect(note.nativeElement.textContent).toContain(
+        "Couldn't detect your timezone — the 3:30 PM reminder may not arrive on time.",
+      );
+      expect(timeInput().nativeElement.getAttribute('aria-describedby')).toBe('task-date-note');
+    });
+
     it('omits dueTime from the create payload when no time is set', () => {
       openNewTask();
       component['draftTitle'].set('Untimed create task');
