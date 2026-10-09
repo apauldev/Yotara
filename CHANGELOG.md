@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.79.2](https://github.com/apauldev/Yotara/compare/v0.79.1...v0.79.2) (2026-10-09)
+
+
+### Bug Fixes
+
+* **frontend:** improve due-time notification messaging ([#398](https://github.com/apauldev/Yotara/issues/398)) ([74591a5](https://github.com/apauldev/Yotara/commit/74591a5d34aa8831167b4684d003a28fd252fb4f))
+
 ## [0.79.1](https://github.com/apauldev/Yotara/compare/v0.79.0...v0.79.1) (2026-10-09)
 
 
