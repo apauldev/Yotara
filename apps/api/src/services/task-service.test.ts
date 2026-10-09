@@ -168,6 +168,7 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       const weeklyTask = await ctx.taskService.createTaskForOwner(ownerId, {
         title: 'Weekly Task',
         dueDate: weeklyDueDate,
+        dueTime: '15:00',
         recurrenceRule: { frequency: 'weekly', interval: 1 },
       });
 
@@ -179,6 +180,7 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       const nextWeekly = allTasks.data.find((t) => t.title === 'Weekly Task' && !t.completed);
       assert.ok(nextWeekly);
       assert.equal(nextWeekly.dueDate, '2026-05-08T00:00:00Z');
+      assert.equal(nextWeekly.dueTime, '15:00');
 
       // 2. Daily recurrence - anchor from NOW
       const dailyTask = await ctx.taskService.createTaskForOwner(ownerId, {
@@ -919,6 +921,81 @@ test('moving a task to another date while timing it keeps the other day\u2019s r
       rows.some((row) => row.type === 'due_today'),
       'the earlier day\u2019s date-only reminder is untouched',
     );
+  } finally {
+    sqlite.close();
+  }
+});
+
+test('a zone-less reschedule still lets the reminder for the new time through', async () => {
+  const { scanDueNotifications, getNotificationsForOwner } =
+    await import('./notification-service.js');
+  const { createTaskForOwner, updateTaskForOwner } = await import('./task-service.js');
+  const { db, sqlite, ownerId, today, at } = await setupReminderTestDb();
+
+  try {
+    const tz = 'UTC';
+    const task = await createTaskForOwner(ownerId, { title: 'Call Sam' }, tz, db);
+    assert.ok(task);
+    sqlite
+      .prepare(`UPDATE tasks SET due_date = ?, due_time = ? WHERE id = ?`)
+      .run(today, '08:00', task.id);
+
+    // The 08:00 instant passes and earns its exact-time reminder.
+    assert.equal(scanDueNotifications(ownerId, tz, db, at(today, 9)), 1);
+    const original = getNotificationsForOwner(ownerId, 50, db)[0];
+    assert.equal(original.type, 'due_time');
+
+    // A client that sends no timezone moves the task to 15:00. Nothing about
+    // that response is allowed to depend on the zone being echoed back.
+    await updateTaskForOwner(ownerId, task.id, { dueTime: '15:00' }, null, undefined, db);
+
+    // The next timezone-aware scan owes a reminder for the new instant.
+    assert.equal(scanDueNotifications(ownerId, tz, db, at(today, 16)), 1);
+
+    const rows = getNotificationsForOwner(ownerId, 50, db);
+    assert.equal(rows.length, 1, 'the superseded reminder is replaced, not duplicated');
+    assert.notEqual(
+      rows[0].id,
+      original.id,
+      'the surviving row is a fresh reminder rather than the superseded one',
+    );
+    assert.equal(rows[0].type, 'due_time');
+  } finally {
+    sqlite.close();
+  }
+});
+
+test('a zone-less edit that leaves the timing alone retires nothing', async () => {
+  const { scanDueNotifications, getNotificationsForOwner } =
+    await import('./notification-service.js');
+  const { createTaskForOwner, updateTaskForOwner } = await import('./task-service.js');
+  const { db, sqlite, ownerId, today, at } = await setupReminderTestDb();
+
+  try {
+    const tz = 'UTC';
+    const task = await createTaskForOwner(ownerId, { title: 'Call Sam' }, tz, db);
+    assert.ok(task);
+    sqlite
+      .prepare(`UPDATE tasks SET due_date = ?, due_time = ? WHERE id = ?`)
+      .run(today, '08:00', task.id);
+
+    assert.equal(scanDueNotifications(ownerId, tz, db, at(today, 9)), 1);
+    const earned = getNotificationsForOwner(ownerId, 50, db)[0];
+
+    // Retiring a widened window must not leak through the gate on schedule
+    // changes: renaming the task leaves the timing it was reminded for intact.
+    await updateTaskForOwner(
+      ownerId,
+      task.id,
+      { title: 'Call Sam about tax' },
+      null,
+      undefined,
+      db,
+    );
+
+    const rows = getNotificationsForOwner(ownerId, 50, db);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].id, earned.id, 'the earned reminder is still the one on file');
   } finally {
     sqlite.close();
   }

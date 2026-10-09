@@ -25,12 +25,25 @@ export function todayInTimezone(tz?: string, now: DateTime = DateTime.now()): st
 }
 
 /**
- * Compute the start of a given date (YYYY-MM-DD) in the specified timezone
- * and return it as a UTC ISO timestamp (e.g. 2026-06-18T04:00:00.000Z).
- * Falls back to UTC if the timezone is invalid or undefined.
+ * Format an instant as a UTC ISO string, rejecting an invalid DateTime rather
+ * than emitting Luxon's "Invalid DateTime" placeholder. A caller that cannot
+ * name a real instant must fail rather than hand a fabricated value to a
+ * comparison.
+ */
+export function toUtcIsoString(dt: DateTime): string {
+  const iso = dt.toUTC().toISO();
+  if (iso === null) {
+    throw new RangeError('Cannot format an invalid DateTime as an ISO timestamp');
+  }
+  return iso;
+}
+
+/**
+ * Compute the start of a given date (YYYY-MM-DD) in the specified timezone and
+ * return it as a UTC ISO timestamp. Falls back to UTC for an invalid or absent
+ * timezone; a date that is not a real calendar day is rejected.
  */
 export function startOfDayInUtc(dateStr: string, tz?: string): string {
   const zone = tz && DateTime.now().setZone(tz).isValid ? tz : 'UTC';
-  const dt = DateTime.fromFormat(dateStr, 'yyyy-MM-dd', { zone }).startOf('day');
-  return dt.toUTC().toISO() || dt.toUTC().toString();
+  return toUtcIsoString(DateTime.fromFormat(dateStr, 'yyyy-MM-dd', { zone }).startOf('day'));
 }

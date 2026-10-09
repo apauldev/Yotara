@@ -1,7 +1,8 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, effect, inject, untracked } from '@angular/core';
 import { DateTime } from 'luxon';
 import { NotificationService } from './notification.service';
 import { AuthStateService } from './auth-state.service';
+import { TaskService } from './task.service';
 import { tryGetUserTimezone } from '../../shared/utils/timezone';
 
 const ANNOUNCED_KEY_PREFIX = 'yotara_due_time_announced_';
@@ -24,9 +25,28 @@ const POLL_INTERVAL_MS = 300_000;
 export class DueTimeSchedulerService {
   private readonly notificationService = inject(NotificationService);
   private readonly authState = inject(AuthStateService);
+  private readonly taskService = inject(TaskService);
   private timer: ReturnType<typeof setInterval> | null = null;
   private dueTimer: ReturnType<typeof setTimeout> | null = null;
   private checking = false;
+  private active = false;
+  private rescheduleToken = 0;
+
+  constructor() {
+    // Creating a task, or moving one to an earlier time, changes when the next
+    // reminder is owed. Recalculating only on a poll would leave a task due at
+    // 12:01 waiting for a timer already armed for 12:05, so every task change
+    // re-arms. TaskService bumps its version on each mutation.
+    effect(() => {
+      this.taskService.version();
+      // Only a running scheduler reacts: otherwise the constructor's own run
+      // would issue a request before authentication settles, and a mutation
+      // after stop() would re-arm a timer the user has asked us to drop.
+      if (!this.active) return;
+      const token = ++this.rescheduleToken;
+      untracked(() => void this.scheduleNextDueCheck(token));
+    });
+  }
 
   private readonly onVisibilityChange = () => {
     if (document.visibilityState === 'visible') {
@@ -41,6 +61,7 @@ export class DueTimeSchedulerService {
   start(): void {
     if (this.timer !== null) return;
 
+    this.active = true;
     void this.check();
     this.timer = setInterval(() => {
       if (document.visibilityState === 'visible') {
@@ -52,6 +73,10 @@ export class DueTimeSchedulerService {
   }
 
   stop(): void {
+    this.active = false;
+    // Invalidate any in-flight reschedule: a lookup that resolves after this
+    // must not arm a timer, or it would undo the stop.
+    this.rescheduleToken++;
     if (this.timer !== null) {
       clearInterval(this.timer);
       this.timer = null;
@@ -64,12 +89,15 @@ export class DueTimeSchedulerService {
   async check(): Promise<void> {
     if (this.checking) return;
     this.checking = true;
+    // Claim the newest scheduling token up front, so a lookup already in flight
+    // when a task changes or the scheduler stops cannot arm after this one.
+    const token = ++this.rescheduleToken;
 
     try {
       await this.notificationService.fetchNotifications();
       await this.notificationService.fetchUnreadCount();
-      this.announceNewDueTimeNotifications();
-      await this.scheduleNextDueCheck();
+      await this.announceNewDueTimeNotifications();
+      await this.scheduleNextDueCheck(token);
     } catch {
       // A failed poll is retried on the next tick; the in-app list stays
       // authoritative either way.
@@ -84,14 +112,26 @@ export class DueTimeSchedulerService {
    * the user's local time. Nothing is scheduled without a zone or when the next
    * instant is beyond this poll interval: the interval will come into range on
    * its own and schedule it then.
+   *
+   * A newer request supersedes an in-flight one, and a lookup that fails or
+   * arrives after the scheduler stops leaves the existing timer untouched. The
+   * armed instant is still the one the server last confirmed, so clearing it
+   * here would silently drop the reminder until the next poll.
    */
-  private async scheduleNextDueCheck(): Promise<void> {
-    this.clearDueTimer();
-
+  private async scheduleNextDueCheck(token: number): Promise<void> {
     const zone = tryGetUserTimezone();
     if (!zone) return;
 
-    const at = await this.notificationService.fetchNextDueAt();
+    let at: string | null;
+    try {
+      at = await this.notificationService.fetchNextDueAt();
+    } catch {
+      return;
+    }
+
+    if (token !== this.rescheduleToken) return;
+
+    this.clearDueTimer();
     if (!at) return;
 
     const dueAt = DateTime.fromISO(at).setZone(zone);
@@ -100,7 +140,6 @@ export class DueTimeSchedulerService {
     const delayMs = dueAt.diffNow('milliseconds').milliseconds;
     if (!Number.isFinite(delayMs) || delayMs <= 0 || delayMs > POLL_INTERVAL_MS) return;
 
-    if (this.dueTimer !== null) return;
     this.dueTimer = setTimeout(() => {
       this.dueTimer = null;
       void this.check();
@@ -114,22 +153,51 @@ export class DueTimeSchedulerService {
     }
   }
 
-  private announceNewDueTimeNotifications(): void {
+  private async announceNewDueTimeNotifications(): Promise<void> {
     const rows = this.notificationService.notifications();
-    const announced = this.readAnnouncedIds();
-    let changed = false;
+    const candidates = rows.filter(
+      (row) => row.type === 'due_time' && !row.read && this.isFromToday(row.createdAt),
+    );
+    if (candidates.length === 0) return;
 
-    for (const row of rows) {
-      if (row.type !== 'due_time' || row.read) continue;
-      if (announced.has(row.id) || !this.isFromToday(row.createdAt)) continue;
+    // Two tabs can both fetch the same unread reminder before either records
+    // it, and each would then pop its own browser notification. Read, decide
+    // and write the announced set under a cross-tab lock, re-reading inside it,
+    // so only the tab that claims an id announces it.
+    await this.withAnnounceLock(() => {
+      const announced = this.readAnnouncedIds();
+      let changed = false;
 
-      this.notificationService.showBrowserNotification(row.title, row.body ?? '');
-      announced.add(row.id);
-      changed = true;
+      for (const row of candidates) {
+        if (announced.has(row.id)) continue;
+
+        this.notificationService.showBrowserNotification(row.title, row.body ?? '');
+        announced.add(row.id);
+        changed = true;
+      }
+
+      if (changed) {
+        this.writeAnnouncedIds(announced);
+      }
+    });
+  }
+
+  /**
+   * Serialize the announce read-decide-write across tabs of the same origin.
+   * Without the Web Locks API the action still runs, but two tabs can race as
+   * they did before — a duplicate popup is better than a missed reminder.
+   */
+  private async withAnnounceLock(action: () => void): Promise<void> {
+    const locks = globalThis.navigator?.locks;
+    if (!locks) {
+      action();
+      return;
     }
 
-    if (changed) {
-      this.writeAnnouncedIds(announced);
+    try {
+      await locks.request(this.storageKey(), action);
+    } catch {
+      action();
     }
   }
 

@@ -46,4 +46,8 @@ describe('startOfDayInUtc', () => {
     const result = startOfDayInUtc('2026-06-18', undefined);
     assert.ok(result.includes('2026-06-18'));
   });
+
+  it('rejects a date that is not a real calendar day', () => {
+    assert.throws(() => startOfDayInUtc('not-a-date', 'UTC'), RangeError);
+  });
 });
