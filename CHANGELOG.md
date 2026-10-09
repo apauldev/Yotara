@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.79.1](https://github.com/apauldev/Yotara/compare/v0.79.0...v0.79.1) (2026-10-09)
+
+
+### Bug Fixes
+
+* **notifications:** nullable next-due contract, task-change re-arm, and zone-less retirement window ([#397](https://github.com/apauldev/Yotara/issues/397)) ([aa3152a](https://github.com/apauldev/Yotara/commit/aa3152a64b1ffba0611c6af81d55efd87e3e3651))
+
 ## [0.79.0](https://github.com/apauldev/Yotara/compare/v0.78.0...v0.79.0) (2026-10-02)
 
 
