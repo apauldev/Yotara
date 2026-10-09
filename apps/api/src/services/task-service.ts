@@ -574,6 +574,7 @@ function updateTaskForOwnerSync(
               description: current.description ?? undefined,
               priority: (current.priority ?? 'medium') as Priority,
               dueDate: nextDueDate,
+              dueTime: current.dueTime ?? undefined,
               simpleMode: current.simpleMode,
               projectId: current.projectId ?? undefined,
               recurrenceRule: rule,

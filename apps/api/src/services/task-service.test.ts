@@ -168,6 +168,7 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       const weeklyTask = await ctx.taskService.createTaskForOwner(ownerId, {
         title: 'Weekly Task',
         dueDate: weeklyDueDate,
+        dueTime: '15:00',
         recurrenceRule: { frequency: 'weekly', interval: 1 },
       });
 
@@ -179,6 +180,7 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       const nextWeekly = allTasks.data.find((t) => t.title === 'Weekly Task' && !t.completed);
       assert.ok(nextWeekly);
       assert.equal(nextWeekly.dueDate, '2026-05-08T00:00:00Z');
+      assert.equal(nextWeekly.dueTime, '15:00');
 
       // 2. Daily recurrence - anchor from NOW
       const dailyTask = await ctx.taskService.createTaskForOwner(ownerId, {
