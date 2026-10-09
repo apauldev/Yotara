@@ -611,7 +611,7 @@ test.describe('Task Modal CRUD', () => {
     await page.getByPlaceholder("What's on your mind today?").fill(`${name} tomorrow morning`);
 
     await expect(page.locator('#capture-date-note')).toContainText(
-      'Only exact times like 3pm or 15:00',
+      'To set a timed due date, include a date and exact time',
     );
     await expect(page.locator('#capture-date-preview')).toHaveCount(0);
 

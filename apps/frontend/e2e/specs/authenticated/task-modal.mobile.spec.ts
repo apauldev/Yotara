@@ -910,7 +910,7 @@ test.describe('Capture bar on mobile', () => {
 
     const note = page.locator('#capture-date-note');
     await expect(note).toBeVisible();
-    await expect(note).toHaveText(/Only exact times like 3pm or 15:00/);
+    await expect(note).toHaveText(/include a date and exact time/);
     await expect(note).toHaveAttribute('role', 'status');
     // Nothing was inferred, so there is no date preview to contradict the note.
     await expect(page.locator('#capture-date-preview')).toHaveCount(0);
@@ -1039,7 +1039,7 @@ test.describe('Capture bar on mobile', () => {
     // A vague time stays text and explains the supported forms.
     await captureInput(page).fill(`${name} today morning`);
     await expect(page.locator('#capture-date-note')).toContainText(
-      'Only exact times like 3pm or 15:00',
+      'To set a timed due date, include a date and exact time',
     );
     await expect(datePreview(page)).toHaveCount(0);
 

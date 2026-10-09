@@ -41,9 +41,6 @@
           <div class="date-preview-copy">
             <span id="task-date-preview-label" class="field-label">Due date</span>
             <span class="date-preview-value">{{ dueDatePreviewLabel() }}</span>
-            @if (dueDateNotice(); as notice) {
-              <p id="task-date-note" class="date-preview-note" role="status">{{ notice }}</p>
-            }
           </div>
           <div class="date-preview-actions">
             <button
@@ -316,7 +313,11 @@
           [ngModel]="draftDueTime()"
           (ngModelChange)="onDraftDueTimeChange($event)"
           [disabled]="draftSimpleMode() || !draftDueDate()"
+          [attr.aria-describedby]="dueDateNotice() ? 'task-date-note' : null"
         />
+        @if (dueDateNotice(); as notice) {
+          <p id="task-date-note" class="date-preview-note" role="status">{{ notice }}</p>
+        }
         @if (dueDateError()) {
           <p id="task-due-date-error" class="field-error-message">{{ dueDateError() }}</p>
         }

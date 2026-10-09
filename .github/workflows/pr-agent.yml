@@ -22,17 +22,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           openrouter__key: ${{ secrets.OPENROUTER_REVIEW_KEY }}
-          config.model: 'openrouter/stealth/space-bunny-alpha'
+          config.model: 'openrouter/inclusionai/ling-3.1-flash'
           # Required, not optional. get_max_tokens() raises unless the model is
           # in pr_agent/algo/__init__.py's MAX_TOKENS table or this is positive,
-          # and max_model_tokens caps whatever this resolves to. Contexts are the
-          # values OpenRouter reports for each model id.
-          config.custom_model_max_tokens: '1000000'
-          config.max_model_tokens: '1000000'
-          # A slow primary now fails over in-process instead of costing a whole
-          # extra job. Drop this to shorten failover if the primary is
-          # regularly slow but capable.
-          config.fallback_models: '["openrouter/qwen/qwen3.8-27b:free"]'
+          # and max_model_tokens caps whatever this resolves to.
+          config.custom_model_max_tokens: '262144'
+          config.max_model_tokens: '262144'
+          # Fail over in-process to the backup model if the primary request fails.
+          config.fallback_models: '["openrouter/dots-studio/dots-3-note-preview:free"]'
           # pr-agent defaults to 2 minutes, and LiteLLM retries a timed-out call
           # internally, so every request was failing after three attempts while
           # the model was still working.
@@ -63,11 +60,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           openrouter__key: ${{ secrets.OPENROUTER_REVIEW_KEY }}
-          config.model: 'openrouter/qwen/qwen3.8-27b:free'
+          config.model: 'openrouter/dots-studio/dots-3-note-preview:free'
           # Same reason as the primary job: without a positive value the action
-          # throws before it reviews anything. This model reports 262144.
-          config.custom_model_max_tokens: '262144'
-          config.max_model_tokens: '262144'
+          # throws before it reviews anything. This model reports 524288.
+          config.custom_model_max_tokens: '524288'
+          config.max_model_tokens: '524288'
           config.fallback_models: '[]'
           config.ai_timeout: '900'
           config.propagate_tool_errors: 'true'

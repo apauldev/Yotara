@@ -591,7 +591,7 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
 
     switch (result.status) {
       case 'time':
-        return 'Only exact times like 3pm or 15:00 are supported — kept as text';
+        return 'To set a timed due date, include a date and exact time (e.g. Friday at 3pm). Otherwise, no due date or time is set.';
       case 'recurring':
         return "Repeating isn't set from the title — set it in the task details";
       default:
