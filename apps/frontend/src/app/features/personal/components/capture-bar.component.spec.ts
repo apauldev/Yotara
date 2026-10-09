@@ -342,7 +342,7 @@ describe('CaptureBarComponent', () => {
       expect(fixture.componentInstance.getDueDateDraft().source).toBe('none');
     });
 
-    it('explains that only exact times are understood rather than showing nothing', () => {
+    it('explains that a date and exact time are required rather than showing nothing', () => {
       const fixture = createFixture();
 
       fixture.componentInstance.setTitle('Call Sam Friday morning');
@@ -351,10 +351,24 @@ describe('CaptureBarComponent', () => {
       const note = fixture.debugElement.query(By.css('.capture-date-note'));
       expect(note).toBeTruthy();
       expect(note.nativeElement.getAttribute('role')).toBe('status');
-      expect(note.nativeElement.textContent).toContain('Only exact times like 3pm or 15:00');
+      expect(note.nativeElement.textContent).toContain(
+        'To set a timed due date, include a date and exact time (e.g. Friday at 3pm)',
+      );
 
       const input = fixture.debugElement.query(By.css('input'));
       expect(input.nativeElement.getAttribute('aria-describedby')).toContain('capture-date-note');
+    });
+
+    it('explains why a standalone exact time is kept as text', () => {
+      const fixture = createFixture();
+
+      fixture.componentInstance.setTitle('Set a reminder for 9am');
+      fixture.detectChanges();
+
+      const note = fixture.debugElement.query(By.css('.capture-date-note'));
+      expect(note).toBeTruthy();
+      expect(note.nativeElement.textContent).toContain('include a date and exact time');
+      expect(fixture.componentInstance.getDueDateDraft().source).toBe('none');
     });
 
     it('explains that repeating is not set from the title', () => {
