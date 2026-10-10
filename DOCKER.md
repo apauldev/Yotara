@@ -190,6 +190,27 @@ real client address (`$remote_addr`). Running the API bare — or trusting a wid
 range — makes `request.ip` attacker-controllable, defeating per-IP lockout and rate
 limiting.
 
+### Behind a CDN or another proxy
+
+The real-IP handling ships in the image (`docker/realip.conf`, loaded from `conf.d`), so it
+applies even when a deployment bind-mounts its own `default.conf.template`. If the origin
+is behind the orange-cloud proxy, nginx rewrites `$remote_addr` from `CF-Connecting-IP`
+before writing `X-Forwarded-For`, and `request.ip` is the real visitor with no extra
+configuration.
+
+A **Cloudflare Tunnel** is a different case. `cloudflared` connects from a localhost or
+private address, which is not a Cloudflare edge, so the realip rule does not match and
+every visitor would appear as that single address — collapsing per-IP lockout and rate
+limiting into one shared key. For a tunnel, add `set_real_ip_from <cloudflared source>`
+plus `real_ip_header CF-Connecting-IP` in an extra `conf.d` include.
+
+For any other reverse proxy in front of the bundled nginx, keep `TRUST_PROXY` pointed at
+the bundled nginx (Fastify's direct peer) and recover the real client at nginx instead:
+add the outer proxy to `set_real_ip_from` and set the matching `real_ip_header` in a
+`conf.d` include. Do **not** repoint `TRUST_PROXY` at the outer proxy — nginx stays
+Fastify's peer, and nginx overwrites `X-Forwarded-For` with its own `$remote_addr`, so
+replacing it would make `request.ip` the outer proxy address (or the nginx address).
+
 ## Override Without Editing the Compose File
 
 Create a `docker-compose.override.yml` in the project root (Docker Compose merges it
