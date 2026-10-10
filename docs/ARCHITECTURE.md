@@ -136,6 +136,17 @@ client address, which the bundled `docker/nginx.conf` does
 `$remote_addr` over `$proxy_add_x_forwarded_for`: the latter appends whatever
 the client sent, so a client-supplied value would survive into `request.ip`.
 
+When Cloudflare proxies the origin (orange-cloud DNS), nginx's `$remote_addr`
+is the CF edge, not the visitor. `docker/nginx.conf` therefore teaches nginx
+the Cloudflare hop: `set_real_ip_from` lists the Cloudflare ranges and
+`real_ip_header CF-Connecting-IP` rewrites `$remote_addr` to the true client
+*before* it is written into `X-Forwarded-For`. The rewrite only applies when
+the TCP peer is a Cloudflare edge, so a spoofed `CF-Connecting-IP` from any
+other source is ignored and the anti-spoof invariant above still holds. It is a
+no-op for deployments not behind Cloudflare. A Cloudflare Tunnel is a different
+case — its peer is `cloudflared`, not a Cloudflare edge, so it needs its own
+`set_real_ip_from` entry; see `DOCKER.md`.
+
 Never expose the API directly with an unscoped `trustProxy`: a client could
 then forge `X-Forwarded-For`, making `request.ip` attacker-controllable and
 defeating rate limiting and login-lockout scoping. If you must run without

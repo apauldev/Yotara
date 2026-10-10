@@ -116,11 +116,6 @@ export default async function authBridgePlugin(app: FastifyInstance) {
       // selecting lockout or honeypot-ban keys.
       const clientIp = request.ip ?? 'unknown';
 
-      // Honeypot-triggered IPs are banned from auth endpoints for 24h.
-      if (isIpBanned(clientIp)) {
-        return reply.code(403).send({ message: 'Forbidden' });
-      }
-
       // Parse body once for all branches
       const parsedBody = parseRequestBody(request.body);
       if (request.method === 'POST' && parsedBody === null) {
@@ -130,10 +125,20 @@ export default async function authBridgePlugin(app: FastifyInstance) {
       // Honeypot: hidden "website" field on the signup form. Bots fill it;
       // humans never see it. On trigger: ban the IP, return a fake success so
       // the bot can't tell it was caught, and create no user / send no email.
+      //
+      // The ban gates signup ONLY. Sign-in, verification, and reset never
+      // consult blocked_ips — a honeypot trip must not lock a shared/CGNAT
+      // address out of login or account recovery, and a banned bot has no
+      // account to sign in to anyway. A previously banned IP is faked here too
+      // (regardless of the website field), so a bot that stops filling the
+      // honeypot still cannot create an account.
       if (isSignUp) {
         const website = parsedBody?.['website'];
-        if (typeof website === 'string' && website.trim() !== '') {
+        const honeypotTripped = typeof website === 'string' && website.trim() !== '';
+        if (honeypotTripped) {
           banIp(clientIp);
+        }
+        if (honeypotTripped || isIpBanned(clientIp)) {
           return reply.code(200).send({ user: null, token: null });
         }
       }

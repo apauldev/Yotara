@@ -137,21 +137,109 @@ test('honeypot signup triggers IP ban and creates no user', async () => {
     });
     assert.equal(honeypotResponse.statusCode, 200, 'fake success so bots cannot detect the trap');
 
-    // The IP is now banned → subsequent auth requests from it are 403.
+    // The IP is now banned → a further signup from it is faked too (no user),
+    // so a bot that stops filling the honeypot still cannot register.
+    const secondEmail = `second-${randomUUID()}@example.com`;
     const bannedResponse = await ctx.app.inject({
       method: 'POST',
       url: '/auth/sign-up/email',
       headers: { origin: TEST_ORIGIN },
       payload: {
-        email: `second-${randomUUID()}@example.com`,
+        email: secondEmail,
         password: TEST_PASSWORD,
         name: 'Bot 2',
       },
     });
-    assert.equal(bannedResponse.statusCode, 403);
+    assert.equal(bannedResponse.statusCode, 200, 'a banned signup is faked, never 403');
+    assert.equal(bannedResponse.json().user, null);
+
+    const { sqlite } = await import('../db/client.js');
+    const created = sqlite.prepare(`SELECT id FROM user WHERE email = ?`).get(secondEmail);
+    assert.equal(created, undefined, 'no user is created for a banned signup');
     assert.equal(isIpBanned('127.0.0.1'), true);
   } finally {
     // Remove the ban so it doesn't leak into other tests sharing the DB.
+    const { sqlite } = await import('../db/client.js');
+    sqlite.prepare(`DELETE FROM blocked_ips WHERE ip = '127.0.0.1'`).run();
+    await ctx.cleanup();
+  }
+});
+
+test('a banned IP can still sign in', async () => {
+  const ctx = await createTestApp();
+  const email = `banned-signin-${randomUUID()}@example.com`;
+
+  try {
+    await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: TEST_PASSWORD, name: 'Banned Signin User' },
+    });
+
+    const { banIp } = await import('../lib/blocked-ips.js');
+    banIp('127.0.0.1');
+
+    // A ban gates signup only — sign-in must never return 403.
+    const wrong = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-in/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: 'WrongPassword1!' },
+    });
+    assert.equal(wrong.statusCode, 401);
+
+    const right = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-in/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: TEST_PASSWORD },
+    });
+    assert.equal(right.statusCode, 200);
+  } finally {
+    const { sqlite } = await import('../db/client.js');
+    sqlite.prepare(`DELETE FROM blocked_ips WHERE ip = '127.0.0.1'`).run();
+    await ctx.cleanup();
+  }
+});
+
+test('a banned IP can still request a password reset and the email is sent', async () => {
+  const ctx = await createTestApp();
+  const email = `banned-reset-${randomUUID()}@example.com`;
+
+  try {
+    // A real account so the reset is meaningful.
+    await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: TEST_PASSWORD, name: 'Banned Reset User' },
+    });
+
+    const { banIp } = await import('../lib/blocked-ips.js');
+    banIp('127.0.0.1');
+
+    const logs: string[] = [];
+    mock.method(console, 'log', (msg: string) => {
+      if (typeof msg === 'string' && msg.startsWith('[email]')) logs.push(msg);
+    });
+
+    try {
+      const response = await ctx.app.inject({
+        method: 'POST',
+        url: '/auth/request-password-reset',
+        headers: { origin: TEST_ORIGIN },
+        payload: { email, redirectTo: 'http://localhost:4200/reset-password' },
+      });
+      assert.equal(response.statusCode, 200, 'reset must not be blocked by the honeypot ban');
+      assert.ok(
+        logs.some((line) => line.includes('reset-password')),
+        'a reset email is actually produced: ' + JSON.stringify(logs),
+      );
+    } finally {
+      mock.restoreAll();
+    }
+  } finally {
     const { sqlite } = await import('../db/client.js');
     sqlite.prepare(`DELETE FROM blocked_ips WHERE ip = '127.0.0.1'`).run();
     await ctx.cleanup();

@@ -190,6 +190,22 @@ real client address (`$remote_addr`). Running the API bare — or trusting a wid
 range — makes `request.ip` attacker-controllable, defeating per-IP lockout and rate
 limiting.
 
+### Behind a CDN or another proxy
+
+The bundled `docker/nginx.conf` knows the Cloudflare hop. If the origin is behind the
+orange-cloud proxy, it rewrites `$remote_addr` from `CF-Connecting-IP` before writing
+`X-Forwarded-For`, so `request.ip` is the real visitor with no extra configuration.
+
+A **Cloudflare Tunnel** is a different case. `cloudflared` connects from a localhost or
+private address, which is not a Cloudflare edge, so the realip rule does not match and
+every visitor would appear as that single address — collapsing per-IP lockout and rate
+limiting into one shared key. For a tunnel, add `set_real_ip_from <cloudflared source>`
+plus `real_ip_header CF-Connecting-IP` to the nginx config, or front the app with the
+bundled nginx and point `TRUST_PROXY` at that hop.
+
+For any other reverse proxy in front of the bundled nginx, set `TRUST_PROXY` to that
+proxy's address/CIDR and make sure it overwrites `X-Forwarded-For` with the real client.
+
 ## Override Without Editing the Compose File
 
 Create a `docker-compose.override.yml` in the project root (Docker Compose merges it
