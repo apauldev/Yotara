@@ -190,6 +190,51 @@ test('direct clients cannot ban a spoofed forwarded IP', async () => {
   }
 });
 
+test('honeypot ban keys on the forwarded client when the proxy is trusted', async () => {
+  // trustProxy is resolved inside buildApp(), so set it before the app is
+  // built. This is the real-app guard for the gap that shipped the bug: no
+  // other test runs buildApp with TRUST_PROXY set (rate-limit.test.ts builds
+  // bare Fastify apps instead).
+  const previousTrustProxy = process.env['TRUST_PROXY'];
+  process.env['TRUST_PROXY'] = '172.16.0.0/12';
+
+  const ctx = await createTestApp();
+  const proxyIp = '172.16.0.5';
+  const forwardedIp = '203.0.113.50';
+
+  try {
+    const response = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      remoteAddress: proxyIp,
+      headers: {
+        origin: TEST_ORIGIN,
+        'x-forwarded-for': forwardedIp,
+      },
+      payload: {
+        email: `trusted-proxy-${randomUUID()}@example.com`,
+        password: TEST_PASSWORD,
+        name: 'Trusted Proxy Bot',
+        website: 'http://spam.example.com',
+      },
+    });
+    assert.equal(response.statusCode, 200, 'fake success so bots cannot detect the trap');
+
+    const { isIpBanned } = await import('../lib/blocked-ips.js');
+    assert.equal(isIpBanned(forwardedIp), true, 'the forwarded client is banned');
+    assert.equal(isIpBanned(proxyIp), false, 'the trusted proxy address is not banned');
+  } finally {
+    const { sqlite } = await import('../db/client.js');
+    sqlite.prepare(`DELETE FROM blocked_ips WHERE ip IN (?, ?)`).run(forwardedIp, proxyIp);
+    await ctx.cleanup();
+    if (previousTrustProxy === undefined) {
+      delete process.env['TRUST_PROXY'];
+    } else {
+      process.env['TRUST_PROXY'] = previousTrustProxy;
+    }
+  }
+});
+
 test('dev mode flips the require-email flag and bypasses rate limit, lockout, and IP ban', async () => {
   const ctx = await createTestApp();
   const previousDevMode = process.env['DEV_MODE'];
