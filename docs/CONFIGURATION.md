@@ -31,12 +31,12 @@ The API derives `request.ip` from `X-Forwarded-For`, and the global rate limiter
 and per-IP login lockout depend on that IP being the real client. Only enable
 `TRUST_PROXY` when a proxy you control overwrites the header — the bundled
 `docker/nginx.conf` does, using `$remote_addr`. When the origin sits behind
-Cloudflare, that config rewrites `$remote_addr` from `CF-Connecting-IP` first
-(`set_real_ip_from` + `real_ip_header`), so `request.ip` stays the real client;
-do **not** instead widen `TRUST_PROXY` to Cloudflare's ranges, which would let a
-client forge the header. Leaving `TRUST_PROXY` unset is the safe default for
-direct access. See the security note in
-[docs/ARCHITECTURE.md](./ARCHITECTURE.md#security-at-deployment-boundaries).
+Cloudflare, the image's `docker/realip.conf` rewrites `$remote_addr` from
+`CF-Connecting-IP` first (`set_real_ip_from` + `real_ip_header`), so
+`request.ip` stays the real client; do **not** instead widen `TRUST_PROXY` to
+Cloudflare's ranges, which would let a client forge the header. Leaving
+`TRUST_PROXY` unset is the safe default for direct access. See the security note
+in [docs/ARCHITECTURE.md](./ARCHITECTURE.md#security-at-deployment-boundaries).
 
 ## Authentication
 

@@ -137,7 +137,8 @@ client address, which the bundled `docker/nginx.conf` does
 the client sent, so a client-supplied value would survive into `request.ip`.
 
 When Cloudflare proxies the origin (orange-cloud DNS), nginx's `$remote_addr`
-is the CF edge, not the visitor. `docker/nginx.conf` therefore teaches nginx
+is the CF edge, not the visitor. The image ships `docker/realip.conf` (loaded
+from `conf.d`, so a custom server template cannot drop it), which teaches nginx
 the Cloudflare hop: `set_real_ip_from` lists the Cloudflare ranges and
 `real_ip_header CF-Connecting-IP` rewrites `$remote_addr` to the true client
 *before* it is written into `X-Forwarded-For`. The rewrite only applies when
