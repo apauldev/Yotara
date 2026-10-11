@@ -90,6 +90,60 @@ pnpm release:minor
 pnpm release:patch
 ```
 
+## Deploying a release to beta
+
+Once a release is merged and its images are published, deploy it to the beta EC2 from your
+machine with one command:
+
+```bash
+pnpm deploy            # verify + deploy the newest v* tag on origin/main
+pnpm deploy --check    # verify only — prints the plan, mutates nothing
+pnpm deploy --version v0.79.3
+pnpm deploy:rollback   # re-pin to the previously deployed version
+```
+
+`pnpm deploy` **verifies before it touches anything**:
+
+1. **Build** — CI on `main` passed for the release's parent commit (`vX.Y.Z^{commit}^`). The
+   `chore(release):` commit itself has no CI run, because the release job pushes it with
+   `GITHUB_TOKEN` (which does not trigger workflows).
+2. **Docker** — the GitHub Release exists **and** both `apauldev2/yotara-{api,frontend}:vX.Y.Z`
+   tags are published on Docker Hub. Those tags only appear after `docker-manifest`, so they are
+   the real gate.
+3. **Target** — the compose on the host is version-pinned, and the current version is read from it.
+
+It then takes a WAL-safe DB backup (retention disabled, so every existing backup is kept), backs
+up the compose, bumps the image tags, runs `docker compose pull`, restarts **frontend first
+(realip) then api**, and verifies `realip.conf` is present, `nginx -t` passes, and
+`127.0.0.1:3000/health` returns ok.
+
+### Environment overrides
+
+| Var | Default | Purpose |
+|:---|:---|:---|
+| `DEPLOY_HOST` | `yotara` | SSH alias |
+| `DEPLOY_COMPOSE_FILE` | `/home/ubuntu/docker-compose.hub.yml` | Hub compose on the host |
+| `DEPLOY_COMPOSE_DIR` | `/home/ubuntu` | Working dir (for `${...}` from `.env`) |
+| `DEPLOY_API_IMAGE` / `DEPLOY_FRONTEND_IMAGE` | `apauldev2/yotara-api` / `-frontend` | Image repos |
+| `DEPLOY_HEALTH_URL` | `https://beta.yotara.website/api/health` | Post-deploy external check |
+| `DEPLOY_SSH_OPTS` | `-o BatchMode=yes -o ConnectTimeout=15` | ssh args |
+
+### Guardrails
+
+- `--check` is fully read-only (verification + plan; no SSH mutation, no backup).
+- Aborts before changing anything if CI isn't green, either image tag is missing, the DB backup
+  fails its integrity check, or the compose isn't version-pinned (the first deploy must be pinned
+  by hand once).
+- `--no-backup` skips the DB backup (not recommended); `--yes` skips the prompt (for unattended
+  runs); `--force` redeploys the current version.
+
+### Rollback
+
+`pnpm deploy:rollback` re-pins to the newest compose backup (the previously deployed version),
+re-pulls, restarts, and verifies. It restores **code only** — the DB schema is not reverted
+(migrations are additive, so old code ignores newer columns/tables). It backs up the current
+compose first, so a rollback is itself reversible.
+
 ## Troubleshooting
 
 ### "Tag already exists on remote"
