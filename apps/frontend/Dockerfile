@@ -31,6 +31,7 @@ RUN pnpm --filter @yotara/frontend build
 FROM nginx:1.27-alpine
 
 COPY docker/nginx.conf /etc/nginx/templates/default.conf.template
+COPY docker/realip.conf /etc/nginx/conf.d/realip.conf
 COPY --from=build /app/apps/frontend/dist/frontend/browser /usr/share/nginx/html
 
 # Inject the CSP into the nginx config from the env (single source of truth with
