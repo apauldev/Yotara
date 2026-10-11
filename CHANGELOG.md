@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.79.3](https://github.com/apauldev/Yotara/compare/v0.79.2...v0.79.3) (2026-10-11)
+
+
+### Bug Fixes
+
+* derive the real client IP behind Cloudflare and scope the honeypot ban ([#401](https://github.com/apauldev/Yotara/issues/401)) ([51e327a](https://github.com/apauldev/Yotara/commit/51e327a43a286e15b4165dc9f19c544049b93905))
+
 ## [0.79.2](https://github.com/apauldev/Yotara/compare/v0.79.1...v0.79.2) (2026-10-09)
 
 
