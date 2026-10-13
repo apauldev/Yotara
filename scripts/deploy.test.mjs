@@ -8,6 +8,7 @@ import {
   resolveTargetVersion,
   classifyCiRuns,
   buildTagBumpScript,
+  parseDeployedImageVersions,
   selectRollbackBackup,
   backupSucceeded,
   normalizeLineEndings,
@@ -51,6 +52,27 @@ test('parseDeployedVersion extracts the api tag from a compose grep line', () =>
   assert.equal(parseDeployedVersion(`    image: ${API_IMAGE}:v0.79.3`, API_IMAGE), 'v0.79.3');
   assert.equal(parseDeployedVersion(`    image: ${FRONTEND_IMAGE}:v0.79.3`, API_IMAGE), null);
   assert.equal(parseDeployedVersion('', API_IMAGE), null);
+});
+
+test('parseDeployedImageVersions reads both image tags for compose preflight', () => {
+  const lines = {
+    apiLine: `    image: ${API_IMAGE}:v0.79.3`,
+    frontendLine: `    image: ${FRONTEND_IMAGE}:v0.79.3`,
+    apiImage: API_IMAGE,
+    frontendImage: FRONTEND_IMAGE,
+  };
+  assert.deepEqual(parseDeployedImageVersions(lines), {
+    apiVersion: 'v0.79.3',
+    frontendVersion: 'v0.79.3',
+  });
+  assert.deepEqual(
+    parseDeployedImageVersions({ ...lines, frontendLine: `image: ${FRONTEND_IMAGE}:v0.79.2` }),
+    { apiVersion: 'v0.79.3', frontendVersion: 'v0.79.2' },
+  );
+  assert.deepEqual(parseDeployedImageVersions({ ...lines, frontendLine: undefined }), {
+    apiVersion: 'v0.79.3',
+    frontendVersion: null,
+  });
 });
 
 test('resolveTargetVersion prefers override, then describe, then tag list', () => {

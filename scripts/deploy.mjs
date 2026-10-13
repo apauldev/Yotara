@@ -24,6 +24,7 @@ import {
   buildTagBumpScript,
   classifyCiRuns,
   normalizeLineEndings,
+  parseDeployedImageVersions,
   parseDeployedVersion,
   pullWithComposeRestore,
   resolveTargetVersion,
@@ -231,9 +232,17 @@ async function verifyDocker(version) {
   }
 }
 
-function readCurrentVersion() {
-  const res = ssh(`grep '${config.apiImage}:' ${config.composeFile}`);
-  return parseDeployedVersion(res.stdout, config.apiImage);
+function readDeployedVersions() {
+  const res = ssh(
+    `grep -F -e '${config.apiImage}:' -e '${config.frontendImage}:' ${config.composeFile}`,
+  );
+  const lines = res.stdout.split('\n');
+  return parseDeployedImageVersions({
+    apiLine: lines.find((line) => line.includes(config.apiImage)),
+    frontendLine: lines.find((line) => line.includes(config.frontendImage)),
+    apiImage: config.apiImage,
+    frontendImage: config.frontendImage,
+  });
 }
 
 function preflight(version, args) {
@@ -243,10 +252,20 @@ function preflight(version, args) {
   }
   ok(`ssh ${config.host} reachable`);
 
-  const current = readCurrentVersion();
-  if (!current) {
-    die(FIRST_DEPLOY_MESSAGE);
+  const { apiVersion, frontendVersion } = readDeployedVersions();
+  if (!apiVersion || !frontendVersion) {
+    die(
+      `Compose must pin both ${config.apiImage} and ${config.frontendImage} to version tags. ` +
+        'Deploy once by hand (or pin both image tags), then re-run.',
+    );
   }
+  if (apiVersion !== frontendVersion) {
+    die(
+      `Compose image tags differ: API is ${apiVersion}, frontend is ${frontendVersion}. ` +
+        'Align both tags before deploying.',
+    );
+  }
+  const current = apiVersion;
   ok(`deployed: ${current}`);
 
   if (current === version && !args.force) {

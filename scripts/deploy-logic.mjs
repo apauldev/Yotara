@@ -25,14 +25,21 @@ function escapeRegex(value) {
  *   "    image: apauldev2/yotara-api:v0.79.3" -> "v0.79.3"
  * Returns null when the line has no match (including the frontend line).
  */
-export function parseDeployedVersion(grepLine, apiImage) {
+export function parseDeployedVersion(grepLine, image) {
   if (!grepLine) {
     return null;
   }
   const match = String(grepLine).match(
-    new RegExp(`image:\\s*${escapeRegex(apiImage)}:(v?\\d+\\.\\d+\\.\\d+)`),
+    new RegExp(`image:\\s*${escapeRegex(image)}:(v?\\d+\\.\\d+\\.\\d+)`),
   );
   return match ? match[1] : null;
+}
+
+export function parseDeployedImageVersions({ apiLine, frontendLine, apiImage, frontendImage }) {
+  return {
+    apiVersion: parseDeployedVersion(apiLine, apiImage),
+    frontendVersion: parseDeployedVersion(frontendLine, frontendImage),
+  };
 }
 
 /**
