@@ -11,6 +11,7 @@ import {
   selectRollbackBackup,
   backupSucceeded,
   normalizeLineEndings,
+  pullWithComposeRestore,
 } from './deploy-logic.mjs';
 
 const API_IMAGE = 'apauldev2/yotara-api';
@@ -96,6 +97,43 @@ test('selectRollbackBackup picks the newest backup strictly older than the curre
   );
   assert.equal(selectRollbackBackup(['x.bak.2026-10-11T070000Z'], '2026-10-11T061358Z'), null);
   assert.equal(selectRollbackBackup([], '2026-10-11T061358Z'), null);
+});
+
+test('pullWithComposeRestore preserves the target compose when the pull succeeds', () => {
+  let restored = false;
+  assert.deepEqual(
+    pullWithComposeRestore({
+      pull: () => true,
+      restore: () => {
+        restored = true;
+        return true;
+      },
+    }),
+    { pulled: true, restored: false },
+  );
+  assert.equal(restored, false);
+});
+
+test('pullWithComposeRestore restores the previous compose when the pull fails', () => {
+  let restoreCalls = 0;
+  assert.deepEqual(
+    pullWithComposeRestore({
+      pull: () => false,
+      restore: () => {
+        restoreCalls += 1;
+        return true;
+      },
+    }),
+    { pulled: false, restored: true },
+  );
+  assert.equal(restoreCalls, 1);
+});
+
+test('pullWithComposeRestore reports when both pull and restore fail', () => {
+  assert.deepEqual(pullWithComposeRestore({ pull: () => false, restore: () => false }), {
+    pulled: false,
+    restored: false,
+  });
 });
 
 test('backupSucceeded requires the integrity_check ok marker', () => {

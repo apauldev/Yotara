@@ -25,6 +25,7 @@ import {
   classifyCiRuns,
   normalizeLineEndings,
   parseDeployedVersion,
+  pullWithComposeRestore,
   resolveTargetVersion,
   selectRollbackBackup,
 } from './deploy-logic.mjs';
@@ -305,8 +306,21 @@ function bumpAndRestart(fromVersion, toVersion) {
   ok(`compose pinned to ${toVersion}`);
 
   const compose = `cd ${config.composeDir} && docker compose -f ${config.composeFile}`;
-  if (ssh(`${compose} pull`).status !== 0) {
-    die('docker compose pull failed — refusing to restart onto stale/partial images.');
+  const pullResult = pullWithComposeRestore({
+    pull: () => ssh(`${compose} pull`).status === 0,
+    restore: () => ssh(`cp ${config.composeFile}.bak.${stamp} ${config.composeFile}`).status === 0,
+  });
+  if (!pullResult.pulled) {
+    if (pullResult.restored) {
+      die(
+        'docker compose pull failed; restored the previous compose file. No services were restarted.',
+      );
+    }
+    die(
+      'docker compose pull failed and the previous compose file could not be restored. ' +
+        `Restore ${config.composeFile}.bak.${stamp} to ${config.composeFile} manually. ` +
+        'No services were restarted.',
+    );
   }
   ok('images pulled');
   assertRemote('frontend restart (realip first)', `${compose} up -d --no-deps frontend`);

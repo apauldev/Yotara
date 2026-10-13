@@ -82,6 +82,13 @@ export function buildTagBumpScript({ current, target, apiImage, frontendImage })
   return `s#${apiImage}:${from}#${apiImage}:${to}#;s#${frontendImage}:${from}#${frontendImage}:${to}#`;
 }
 
+export function pullWithComposeRestore({ pull, restore }) {
+  if (pull()) {
+    return { pulled: true, restored: false };
+  }
+  return { pulled: false, restored: restore() };
+}
+
 /**
  * Choose the compose backup to restore. Names look like
  * `docker-compose.hub.yml.bak.2026-10-11T061358Z`; stamps are fixed-width UTC so
