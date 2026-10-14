@@ -17,18 +17,25 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
-import { parseArgs } from 'node:util';
 
 import {
   backupSucceeded,
+  buildComposeCommand,
   buildTagBumpScript,
   classifyCiRuns,
+  findImageVersionLine,
   normalizeLineEndings,
+  parseDeployArgs,
   parseDeployedImageVersions,
+  releaseCheckFailure,
   parseDeployedVersion,
+  pollUntilReady,
   pullWithComposeRestore,
+  isValidComposeProjectName,
+  isValidDockerImageName,
   resolveTargetVersion,
   selectRollbackBackup,
+  shellQuote,
 } from './deploy-logic.mjs';
 
 const BACKUP_SCRIPT = new URL('./ec2-backup.sh', import.meta.url);
@@ -37,6 +44,7 @@ const config = {
   host: process.env['DEPLOY_HOST'] || 'yotara',
   composeFile: process.env['DEPLOY_COMPOSE_FILE'] || '/home/ubuntu/docker-compose.hub.yml',
   composeDir: process.env['DEPLOY_COMPOSE_DIR'] || '/home/ubuntu',
+  project: process.env['DEPLOY_PROJECT'] || 'ubuntu',
   apiImage: process.env['DEPLOY_API_IMAGE'] || 'apauldev2/yotara-api',
   frontendImage: process.env['DEPLOY_FRONTEND_IMAGE'] || 'apauldev2/yotara-frontend',
   healthUrl: process.env['DEPLOY_HEALTH_URL'] || 'https://beta.yotara.website/api/health',
@@ -49,6 +57,39 @@ const config = {
 const FIRST_DEPLOY_MESSAGE =
   `Compose not found or not version-pinned at ${config.composeFile}. ` +
   'Deploy once by hand (or pin the image tags), then re-run.';
+
+function validateConfig() {
+  for (const [name, image] of [
+    ['DEPLOY_API_IMAGE', config.apiImage],
+    ['DEPLOY_FRONTEND_IMAGE', config.frontendImage],
+  ]) {
+    if (!isValidDockerImageName(image)) {
+      die(`${name} is not a supported Docker image repository: ${image}`);
+    }
+  }
+  if (!isValidComposeProjectName(config.project)) {
+    die(`DEPLOY_PROJECT is not a valid Compose project name: ${config.project}`);
+  }
+  if (!/^[A-Za-z0-9-]+\/[A-Za-z0-9_.-]+$/.test(config.ghRepo)) {
+    die(`DEPLOY_GH_REPO must be an owner/repository pair: ${config.ghRepo}`);
+  }
+  try {
+    const healthUrl = new URL(config.healthUrl);
+    if (!['http:', 'https:'].includes(healthUrl.protocol)) {
+      throw new Error('unsupported protocol');
+    }
+  } catch {
+    die(`DEPLOY_HEALTH_URL must be a valid HTTP(S) URL: ${config.healthUrl}`);
+  }
+}
+
+function composeCommand() {
+  return buildComposeCommand({
+    composeDir: config.composeDir,
+    project: config.project,
+    composeFile: config.composeFile,
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Output + process helpers
@@ -69,8 +110,11 @@ function execFile(file, args) {
   return execFileSync(file, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 }
 
-function ssh(command) {
-  const res = spawnSync('ssh', [...config.sshOpts, config.host, command], { encoding: 'utf8' });
+function ssh(command, timeout = 0) {
+  const res = spawnSync('ssh', [...config.sshOpts, config.host, command], {
+    encoding: 'utf8',
+    ...(timeout ? { timeout } : {}),
+  });
   return { status: res.status, stdout: res.stdout ?? '', stderr: res.stderr ?? '' };
 }
 
@@ -201,18 +245,21 @@ function verifyBuild(version) {
 
 async function verifyDocker(version) {
   step(`Verifying Docker images for ${version}`);
-  const releaseExists =
-    spawnSync('gh', ['api', `repos/${config.ghRepo}/releases/tags/${version}`, '--silent'])
-      .status === 0;
-  if (releaseExists) {
-    ok(`GitHub Release ${version} exists`);
-  } else {
-    warn(`GitHub Release ${version} not found (continuing; Docker Hub is authoritative)`);
+  const releaseStatus = spawnSync('gh', [
+    'api',
+    `repos/${config.ghRepo}/releases/tags/${version}`,
+    '--silent',
+  ]).status;
+  const releaseFailure = releaseCheckFailure(releaseStatus, version);
+  if (releaseFailure) {
+    die(releaseFailure);
   }
+  ok(`GitHub Release ${version} exists`);
 
   const missing = [];
   for (const image of [config.apiImage, config.frontendImage]) {
-    const url = `https://hub.docker.com/v2/repositories/${image}/tags/${version}/`;
+    const imagePath = image.split('/').map(encodeURIComponent).join('/');
+    const url = `https://hub.docker.com/v2/repositories/${imagePath}/tags/${encodeURIComponent(version)}/`;
     let present = false;
     try {
       const res = await fetch(url);
@@ -234,12 +281,12 @@ async function verifyDocker(version) {
 
 function readDeployedVersions() {
   const res = ssh(
-    `grep -F -e '${config.apiImage}:' -e '${config.frontendImage}:' ${config.composeFile}`,
+    `grep -F -e ${shellQuote(`${config.apiImage}:`)} -e ${shellQuote(`${config.frontendImage}:`)} ${shellQuote(config.composeFile)}`,
   );
   const lines = res.stdout.split('\n');
   return parseDeployedImageVersions({
-    apiLine: lines.find((line) => line.includes(config.apiImage)),
-    frontendLine: lines.find((line) => line.includes(config.frontendImage)),
+    apiLine: findImageVersionLine(lines, config.apiImage),
+    frontendLine: findImageVersionLine(lines, config.frontendImage),
     apiImage: config.apiImage,
     frontendImage: config.frontendImage,
   });
@@ -309,7 +356,10 @@ function takeBackup(args) {
 function bumpAndRestart(fromVersion, toVersion) {
   step(`Bumping ${fromVersion} -> ${toVersion} and restarting`);
   const stamp = utcStamp();
-  assertRemote('compose backup', `cp ${config.composeFile} ${config.composeFile}.bak.${stamp}`);
+  assertRemote(
+    'compose backup',
+    `cp ${shellQuote(config.composeFile)} ${shellQuote(`${config.composeFile}.bak.${stamp}`)}`,
+  );
 
   const sedExpr = buildTagBumpScript({
     current: fromVersion,
@@ -317,17 +367,27 @@ function bumpAndRestart(fromVersion, toVersion) {
     apiImage: config.apiImage,
     frontendImage: config.frontendImage,
   });
-  assertRemote('tag bump', `sed -i '${sedExpr}' ${config.composeFile}`);
+  assertRemote('tag bump', `sed -i ${shellQuote(sedExpr)} ${shellQuote(config.composeFile)}`);
 
-  if (!remoteOk(`grep '${config.apiImage}:${toVersion}' ${config.composeFile}`)) {
+  if (
+    !remoteOk(
+      `grep -F ${shellQuote(`${config.apiImage}:${toVersion}`)} ${shellQuote(config.composeFile)}`,
+    ) ||
+    !remoteOk(
+      `grep -F ${shellQuote(`${config.frontendImage}:${toVersion}`)} ${shellQuote(config.composeFile)}`,
+    )
+  ) {
     die(`Tag bump did not take effect (compose still not pinned to ${toVersion}).`);
   }
   ok(`compose pinned to ${toVersion}`);
 
-  const compose = `cd ${config.composeDir} && docker compose -f ${config.composeFile}`;
+  const compose = composeCommand();
   const pullResult = pullWithComposeRestore({
     pull: () => ssh(`${compose} pull`).status === 0,
-    restore: () => ssh(`cp ${config.composeFile}.bak.${stamp} ${config.composeFile}`).status === 0,
+    restore: () =>
+      ssh(
+        `cp ${shellQuote(`${config.composeFile}.bak.${stamp}`)} ${shellQuote(config.composeFile)}`,
+      ).status === 0,
   });
   if (!pullResult.pulled) {
     if (pullResult.restored) {
@@ -354,7 +414,7 @@ function bumpAndRestart(fromVersion, toVersion) {
 
 async function verifyStack() {
   step('Verifying the stack');
-  const compose = `docker compose -f ${config.composeFile}`;
+  const compose = composeCommand();
   const frontendId = ssh(`${compose} ps -q frontend`).stdout.trim();
   const apiId = ssh(`${compose} ps -q api`).stdout.trim();
   if (!frontendId || !apiId) {
@@ -370,11 +430,29 @@ async function verifyStack() {
   assertRemote('nginx -t', `docker exec ${frontendId} nginx -t`);
   ok('nginx -t ok');
 
-  const health = ssh(`docker exec ${apiId} wget -qO- http://127.0.0.1:3000/health`);
-  if (!health.stdout.includes('"status":"ok"')) {
-    die(`API health check failed:\n${health.stdout}\n${health.stderr}`);
+  const readiness = await pollUntilReady({
+    timeoutMs: 60_000,
+    probe: () => {
+      const result = ssh(
+        `docker exec ${shellQuote(apiId)} wget -qO- http://127.0.0.1:3000/health`,
+        5000,
+      );
+      return {
+        ready: result.status === 0 && result.stdout.includes('"status":"ok"'),
+        ...result,
+      };
+    },
+  });
+  if (!readiness.ready) {
+    const result = readiness.result ?? {};
+    const logs = ssh(`docker logs --tail 100 ${shellQuote(apiId)}`);
+    die(
+      `API did not become healthy after ${readiness.attempts} attempts; services have already been restarted.\n` +
+        `Last health response:\n${result.stdout ?? ''}\n${result.stderr ?? ''}\n` +
+        `API logs:\n${logs.stdout}\n${logs.stderr}`,
+    );
   }
-  ok('api health ok');
+  ok(`api health ok (attempt ${readiness.attempts})`);
 
   try {
     const res = await fetch(config.healthUrl);
@@ -441,7 +519,7 @@ async function deployFlow(args) {
   if (backupPath) {
     out(`  DB backup: ${backupPath}`);
   }
-  out(`  Rollback:  pnpm deploy:rollback`);
+  out(`  Rollback:  pnpm run deploy:rollback`);
 }
 
 async function rollbackFlow(args) {
@@ -449,22 +527,39 @@ async function rollbackFlow(args) {
   if (!remoteOk('true')) {
     die(`Cannot reach ${config.host} over ssh (check the alias/keys).`);
   }
-  const current = readCurrentVersion();
-  if (!current) {
+  const { apiVersion, frontendVersion } = readDeployedVersions();
+  if (!apiVersion || !frontendVersion) {
     die(FIRST_DEPLOY_MESSAGE);
   }
+  if (apiVersion !== frontendVersion) {
+    die(
+      `Compose image tags differ: API is ${apiVersion}, frontend is ${frontendVersion}. ` +
+        'Align both tags before rolling back.',
+    );
+  }
+  const current = apiVersion;
   ok(`deployed: ${current}`);
 
-  const listed = ssh(`ls -1 ${config.composeFile}.bak.* 2>/dev/null`);
-  const names = listed.stdout
+  const composeFileDir = config.composeFile.slice(0, config.composeFile.lastIndexOf('/')) || '.';
+  const composeFileName = config.composeFile.split('/').pop();
+  const listed = ssh(
+    `find ${shellQuote(composeFileDir)} -maxdepth 1 -type f -name ${shellQuote(`${composeFileName}.bak.*`)} -printf '%f\\n'`,
+  );
+  const backups = listed.stdout
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((path) => path.split('/').pop());
+    .map((path) => {
+      const name = path.split('/').pop();
+      const backupPath = `${composeFileDir}/${name}`;
+      const version = parseDeployedVersion(
+        ssh(`grep -F ${shellQuote(`${config.apiImage}:`)} ${shellQuote(backupPath)}`).stdout,
+        config.apiImage,
+      );
+      return { name, version };
+    });
 
-  // "strictly older than the current deploy": pass now, so the newest existing
-  // backup wins — that file holds the version we were on before the last change.
-  const chosen = selectRollbackBackup(names, utcStamp());
+  const chosen = selectRollbackBackup(backups, utcStamp(), current);
   if (!chosen) {
     die(
       'No usable compose backup found. Roll back by hand: restore a ' +
@@ -475,7 +570,7 @@ async function rollbackFlow(args) {
   const dir = config.composeFile.slice(0, config.composeFile.lastIndexOf('/') + 1);
   const chosenPath = `${dir}${chosen}`;
   const target = parseDeployedVersion(
-    ssh(`grep '${config.apiImage}:' ${chosenPath}`).stdout,
+    ssh(`grep -F ${shellQuote(`${config.apiImage}:`)} ${shellQuote(chosenPath)}`).stdout,
     config.apiImage,
   );
   if (!target) {
@@ -506,37 +601,13 @@ async function rollbackFlow(args) {
 // ---------------------------------------------------------------------------
 
 function parseCli() {
-  const { values } = parseArgs({
-    options: {
-      version: { type: 'string' },
-      check: { type: 'boolean', default: false },
-      'dry-run': { type: 'boolean', default: false },
-      yes: { type: 'boolean', default: false },
-      'no-backup': { type: 'boolean', default: false },
-      force: { type: 'boolean', default: false },
-      rollback: { type: 'boolean', default: false },
-      host: { type: 'string' },
-      help: { type: 'boolean', default: false },
-    },
-    strict: false,
-    allowPositionals: false,
-  });
-  return {
-    version: values.version,
-    check: values.check || values['dry-run'],
-    yes: values.yes,
-    noBackup: values['no-backup'],
-    force: values.force,
-    rollback: values.rollback,
-    host: values.host,
-    help: values.help,
-  };
+  return parseDeployArgs(process.argv.slice(2));
 }
 
 function printHelp() {
   out(`Yotara beta deploy
 
-Usage: pnpm deploy [flags]
+Usage: pnpm run deploy [flags]
 
 Flags:
   --version vX.Y.Z   Target release (default: newest v* tag on origin/main)
@@ -551,12 +622,13 @@ Flags:
 
 async function main() {
   const args = parseCli();
-  if (args.host) {
-    config.host = args.host;
-  }
   if (args.help) {
     printHelp();
     return;
+  }
+  validateConfig();
+  if (args.host) {
+    config.host = args.host;
   }
   if (args.rollback) {
     await rollbackFlow(args);

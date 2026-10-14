@@ -1,4 +1,4 @@
-# Plan: Semi-automated deploy (`pnpm deploy`)
+# Plan: Semi-automated deploy (`pnpm run deploy`)
 
 > Spec for `scripts/deploy.mjs`. Run from the maintainer's machine; verifies the release
 > pipeline and deploys a released version to the beta EC2. It never merges, tags, or releases.
@@ -20,7 +20,7 @@ deploys.
 ## Decisions (confirmed)
 
 - **Verify then deploy** — the user merges; the script fails cleanly if the release isn't ready.
-  (No waiting/polling, no auto-merge.)
+  It does not wait for CI or release publication; API readiness is polled only after restart. No auto-merge.
 - **EC2 compose only** — edit `/home/ubuntu/docker-compose.hub.yml` in place. The repo's
   `docker-compose.hub.yml` (the `chore(deploy)` pin) is out of scope.
 
@@ -39,7 +39,7 @@ deploys.
 | `DEPLOY_HOST` | `yotara` | SSH alias (uses `~/.ssh/config`) |
 | `DEPLOY_COMPOSE_FILE` | `/home/ubuntu/docker-compose.hub.yml` | Hub compose on the server |
 | `DEPLOY_COMPOSE_DIR` | `/home/ubuntu` | Working dir (for `${...}` from `.env`) |
-| `DEPLOY_PROJECT` | `ubuntu` | Compose project name |
+| `DEPLOY_PROJECT` | `ubuntu` | Explicit Docker Compose project name |
 | `DEPLOY_API_IMAGE` / `DEPLOY_FRONTEND_IMAGE` | `apauldev2/yotara-api` / `-frontend` | Image repos |
 | `DEPLOY_HEALTH_URL` | `https://beta.yotara.website/api/health` | Post-deploy external check |
 | `DEPLOY_SSH_OPTS` | `-o BatchMode=yes -o ConnectTimeout=15` | ssh args |
@@ -54,6 +54,8 @@ deploys.
 - `--force` — redeploy even if the target equals the currently deployed version.
 - `--rollback` — re-pin to the previously deployed version and bring the stack up.
 - `--host <alias>` — override `DEPLOY_HOST`.
+
+Invoke the package script with `pnpm run deploy` (not `pnpm deploy`, which is a pnpm built-in command).
 
 ## Script flow
 
@@ -88,12 +90,15 @@ deploys.
   - **Images published**: `GET https://hub.docker.com/v2/repositories/apauldev2/yotara-api/tags/vX.Y.Z`
     and `.../yotara-frontend/tags/vX.Y.Z` → 200, **both**. These manifests only exist once
     `docker-manifest` completes, so they are the real "docker succeeded" gate.
+  - If the GitHub Release check is absent or cannot be verified, **abort**; do not continue with a
+    warning. The Release and image tags are separate gates.
 - Optional extra confidence: `gh run list --workflow release.yml --commit <ci_sha>` → `success`.
 
 ### Phase 4 — preflight (target)
 
 - `ssh $DEPLOY_HOST true` (reachability).
-- Read the currently deployed version: `grep 'apauldev2/yotara-api:' <compose>` → parse `:vX.Y.Z`.
+- Read both configured image tags from the host compose file. **Missing, unpinned, or unequal API
+  and frontend tags → abort** before backup or mutation.
 - **No version match / compose missing → abort** with a first-deploy message ("compose not found
   or not version-pinned; deploy once by hand, then re-run"). Never let Phase 6's `sed` run unanchored.
 - If `current == target` and not `--force` → print "already on vX.Y.Z" and exit 0.
@@ -120,33 +125,39 @@ deploys.
   sed -i 's#apauldev2/yotara-api:v0\.79\.2#apauldev2/yotara-api:v0.79.3#;
           s#apauldev2/yotara-frontend:v0\.79\.2#apauldev2/yotara-frontend:v0.79.3#' <compose>
   ```
-- `cd <compose dir> && docker compose -f <compose> pull` — **abort on failure** (never restart onto
+- Use one Compose command context for pull, restart, verification, and rollback:
+  `cd <compose dir> && docker compose --project-name <DEPLOY_PROJECT> -f <compose>`.
+- **Abort on pull failure**, restoring the pre-deploy compose backup before exiting (never restart onto
   stale/partial images).
 - Restart **frontend first, then api** — realip (nginx) must be live before the api's signup-only
   ban behaviour:
   ```
-  docker compose -f <compose> up -d --no-deps frontend
-  docker compose -f <compose> up -d api
+  <compose-command> up -d --no-deps frontend
+  <compose-command> up -d api
   ```
 
 ### Phase 7 — verify
 
-- Derive container IDs from the compose (don't hardcode `ubuntu-frontend-1`):
-  `docker compose -f <compose> ps -q frontend` / `... ps -q api`.
+- Derive container IDs from the same Compose command context (don't hardcode `ubuntu-frontend-1`):
+  `<compose-command> ps -q frontend` / `<compose-command> ps -q api`.
 - `docker exec <frontend-id> ls /etc/nginx/conf.d` → contains `realip.conf` (guards the image-baked
   realip fix).
 - `docker exec <frontend-id> nginx -t` → ok.
-- `docker exec <api-id> wget -qO- http://127.0.0.1:3000/health` → `{"status":"ok",…}`
-  (**127.0.0.1, not `localhost`** — see issue #402).
+- Poll `docker exec <api-id> wget -qO- http://127.0.0.1:3000/health` until it returns
+  `{"status":"ok",…}`, bounded by 60 seconds and 60 attempts; include the last response and API logs
+  if readiness times out. Use **127.0.0.1, not `localhost`** (see issue #402).
 - Optional external: `curl $DEPLOY_HEALTH_URL` → 200.
 - Print: deployed version, backup path, and the rollback command.
 
 ### Phase 8 — rollback (`--rollback`)
 
-- Select the newest `<compose>.bak.*` **strictly older than the current deploy**, sorted by the UTC
-  timestamp suffix. **If none exists → abort** and print the manual recipe (don't guess).
-- Re-pin the tags, `docker compose -f <compose> pull` (a `docker image prune` may have dropped the
-  old per-arch images — `up` alone could re-pull or fail), `up -d` (frontend first, then api), verify.
+- Select the newest `<compose>.bak.*` **strictly older than now** whose API tag differs from the
+  currently deployed version, sorted by the UTC timestamp suffix. This skips same-version snapshots
+  left by failed pulls or forced redeploys while keeping rollback reversible. **If none exists →
+  abort** and print the manual recipe (don't guess).
+- Re-pin the tags, `<compose-command> pull` (a `docker image prune` may have dropped the old
+  per-arch images — `up` alone could re-pull or fail), then `<compose-command> up -d` (frontend first,
+  then api), and verify.
 - **Scope:** restores **code only**, not the DB. Migrations are additive, so old code ignores newer
   columns/tables — usually safe, but state it in the output.
 
@@ -184,9 +195,9 @@ The non-obvious spots a reviewer should check — each is deliberate:
 
 ## Verification of the tooling
 
-- `pnpm deploy:check` against the live `v0.79.3` → passes all checks and reports "already on v0.79.3".
-- `pnpm deploy --version v0.78.0 --check` → prints the plan for a downgrade (no mutation).
-- Full `pnpm deploy` on the next release (with `--yes` optional).
+- `pnpm run deploy:check` against the live `v0.79.3` → passes all checks and reports "already on v0.79.3".
+- `pnpm run deploy --version v0.78.0 --check` → prints the plan for a downgrade (no mutation).
+- Full `pnpm run deploy` on the next release (with `--yes` optional).
 
 ## Out of scope / follow-ups
 

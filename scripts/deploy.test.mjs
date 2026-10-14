@@ -9,6 +9,13 @@ import {
   classifyCiRuns,
   buildTagBumpScript,
   parseDeployedImageVersions,
+  findImageVersionLine,
+  parseDeployArgs,
+  buildComposeCommand,
+  isValidComposeProjectName,
+  isValidDockerImageName,
+  releaseCheckFailure,
+  pollUntilReady,
   selectRollbackBackup,
   backupSucceeded,
   normalizeLineEndings,
@@ -21,6 +28,36 @@ const FRONTEND_IMAGE = 'apauldev2/yotara-frontend';
 test('escapeSedRegex escapes version dots and other sed metacharacters', () => {
   assert.equal(escapeSedRegex('v0.79.3'), 'v0\\.79\\.3');
   assert.equal(escapeSedRegex('a*b[c]^d$e#f\\g'), 'a\\*b\\[c\\]\\^d\\$e\\#f\\\\g');
+});
+
+test('image repository validation accepts registry hostnames and rejects shell syntax', () => {
+  assert.equal(isValidDockerImageName('registry.example.com:5000/team/api-image'), true);
+  assert.equal(isValidDockerImageName('apauldev2/yotara-api'), true);
+  assert.equal(isValidDockerImageName('registry.example.com/team/api;touch /tmp/pwned'), false);
+  assert.equal(isValidComposeProjectName('ubuntu'), true);
+  assert.equal(isValidComposeProjectName('bad project'), false);
+});
+
+test('buildComposeCommand pins project, file, and working directory', () => {
+  assert.equal(
+    buildComposeCommand({
+      composeDir: '/home/ubuntu app',
+      project: 'ubuntu',
+      composeFile: '/home/ubuntu app/docker-compose.hub.yml',
+    }),
+    "cd '/home/ubuntu app' && docker compose --project-name 'ubuntu' -f '/home/ubuntu app/docker-compose.hub.yml'",
+  );
+});
+
+test('buildTagBumpScript escapes version and registry image regex characters', () => {
+  const script = buildTagBumpScript({
+    current: 'v0.79.2',
+    target: 'v0.79.3',
+    apiImage: 'registry.example.com/team/yotara-api',
+    frontendImage: 'registry.example.com/team/yotara-frontend',
+  });
+  assert.ok(script.includes('registry\\.example\\.com/team/yotara-api:v0\\.79\\.2'));
+  assert.ok(script.includes('registry\\.example\\.com/team/yotara-frontend:v0\\.79\\.3'));
 });
 
 test('buildTagBumpScript produces anchored sed expressions for both images', () => {
@@ -54,6 +91,18 @@ test('parseDeployedVersion extracts the api tag from a compose grep line', () =>
   assert.equal(parseDeployedVersion('', API_IMAGE), null);
 });
 
+test('findImageVersionLine matches the full image repository before its tag', () => {
+  const lines = [
+    '    image: registry.example.com/team/yotara-api-frontend:v0.79.3',
+    '    image: registry.example.com/team/yotara-api:v0.79.2',
+  ];
+  assert.equal(findImageVersionLine(lines, 'registry.example.com/team/yotara-api'), lines[1]);
+  assert.equal(
+    findImageVersionLine(lines, 'registry.example.com/team/yotara-api-frontend'),
+    lines[0],
+  );
+});
+
 test('parseDeployedImageVersions reads both image tags for compose preflight', () => {
   const lines = {
     apiLine: `    image: ${API_IMAGE}:v0.79.3`,
@@ -73,6 +122,86 @@ test('parseDeployedImageVersions reads both image tags for compose preflight', (
     apiVersion: 'v0.79.3',
     frontendVersion: null,
   });
+});
+
+test('parseDeployArgs accepts documented flags and maps dry-run to check mode', () => {
+  assert.deepEqual(parseDeployArgs(['--version', 'v1.2.3', '--yes', '--no-backup']), {
+    version: 'v1.2.3',
+    check: false,
+    yes: true,
+    noBackup: true,
+    force: false,
+    rollback: false,
+    host: undefined,
+    help: false,
+  });
+  assert.equal(parseDeployArgs(['--dry-run']).check, true);
+  assert.equal(parseDeployArgs(['--check']).check, true);
+});
+
+test('parseDeployArgs rejects unknown flags, positionals, and missing values', () => {
+  assert.throws(() => parseDeployArgs(['--versoin', 'v1.2.3']), {
+    code: 'ERR_PARSE_ARGS_UNKNOWN_OPTION',
+  });
+  assert.throws(() => parseDeployArgs(['unexpected']), {
+    code: 'ERR_PARSE_ARGS_UNEXPECTED_POSITIONAL',
+  });
+  assert.throws(() => parseDeployArgs(['--version']), {
+    code: 'ERR_PARSE_ARGS_INVALID_OPTION_VALUE',
+  });
+});
+
+test('releaseCheckFailure requires a verifiable GitHub Release', () => {
+  assert.equal(releaseCheckFailure(0, 'v1.2.3'), null);
+  assert.match(releaseCheckFailure(1, 'v1.2.3'), /could not be verified/);
+  assert.match(releaseCheckFailure(null, 'v1.2.3'), /could not be verified/);
+});
+
+test('pollUntilReady retries transient failures and returns eventual success', async () => {
+  let probes = 0;
+  let delays = 0;
+  const result = await pollUntilReady({
+    attempts: 4,
+    probe: async () => ({ ready: ++probes === 3, status: probes === 3 ? 0 : 1 }),
+    delay: async () => {
+      delays += 1;
+    },
+  });
+  assert.equal(result.ready, true);
+  assert.equal(result.attempts, 3);
+  assert.equal(delays, 2);
+});
+
+test('pollUntilReady returns the last failed probe after its bounded attempts', async () => {
+  let probes = 0;
+  const result = await pollUntilReady({
+    attempts: 3,
+    probe: async () => ({ ready: false, status: ++probes, stderr: 'starting' }),
+    delay: async () => {},
+  });
+  assert.equal(result.ready, false);
+  assert.equal(result.attempts, 3);
+  assert.deepEqual(result.result, { ready: false, status: 3, stderr: 'starting' });
+});
+
+test('pollUntilReady also stops when its elapsed-time deadline expires', async () => {
+  let time = 0;
+  let probes = 0;
+  const result = await pollUntilReady({
+    attempts: 60,
+    timeoutMs: 2500,
+    now: () => time,
+    probe: async () => {
+      probes += 1;
+      return { ready: false };
+    },
+    delay: async (ms) => {
+      time += ms;
+    },
+  });
+  assert.equal(result.ready, false);
+  assert.equal(result.attempts, 3);
+  assert.equal(probes, 3);
 });
 
 test('resolveTargetVersion prefers override, then describe, then tag list', () => {
@@ -108,17 +237,42 @@ test('classifyCiRuns distinguishes success, in-progress, failed, missing', () =>
   assert.equal(classifyCiRuns([]).status, 'missing');
 });
 
-test('selectRollbackBackup picks the newest backup strictly older than the current deploy', () => {
-  const names = [
-    'docker-compose.hub.yml.bak.2026-10-10T100000Z',
-    'docker-compose.hub.yml.bak.2026-10-11T060000Z',
+test('selectRollbackBackup picks newest older backup with a distinct deployed version', () => {
+  const backups = [
+    { name: 'docker-compose.hub.yml.bak.2026-10-10T100000Z', version: 'v0.79.1' },
+    { name: 'docker-compose.hub.yml.bak.2026-10-11T060000Z', version: 'v0.79.2' },
+    { name: 'docker-compose.hub.yml.bak.2026-10-11T061200Z', version: 'v0.79.3' },
   ];
   assert.equal(
-    selectRollbackBackup(names, '2026-10-11T061358Z'),
+    selectRollbackBackup(backups, '2026-10-11T061358Z', 'v0.79.3'),
     'docker-compose.hub.yml.bak.2026-10-11T060000Z',
   );
-  assert.equal(selectRollbackBackup(['x.bak.2026-10-11T070000Z'], '2026-10-11T061358Z'), null);
-  assert.equal(selectRollbackBackup([], '2026-10-11T061358Z'), null);
+});
+
+test('selectRollbackBackup skips same-version snapshots left by failed pulls or forced deploys', () => {
+  const backups = [
+    { name: 'compose.bak.2026-10-11T061200Z', version: 'v0.79.3' },
+    { name: 'compose.bak.invalid', version: 'v0.79.2' },
+    { name: 'compose.bak.20261011T060000Z', version: 'v0.79.2' },
+    { name: 'compose.bak.2026-10-11T060000Z', version: null },
+  ];
+  assert.equal(selectRollbackBackup(backups, '2026-10-11T061358Z', 'v0.79.3'), null);
+  assert.equal(selectRollbackBackup([], '2026-10-11T061358Z', 'v0.79.3'), null);
+});
+
+test('selectRollbackBackup makes rollback reversible between distinct versions', () => {
+  const snapshots = [
+    { name: 'compose.bak.2026-10-11T050000Z', version: 'v0.79.1' },
+    { name: 'compose.bak.2026-10-11T060000Z', version: 'v0.79.2' },
+  ];
+  assert.equal(
+    selectRollbackBackup(snapshots, '2026-10-11T061000Z', 'v0.79.2'),
+    'compose.bak.2026-10-11T050000Z',
+  );
+  assert.equal(
+    selectRollbackBackup(snapshots, '2026-10-11T061500Z', 'v0.79.1'),
+    'compose.bak.2026-10-11T060000Z',
+  );
 });
 
 test('pullWithComposeRestore preserves the target compose when the pull succeeds', () => {
