@@ -76,19 +76,25 @@ export function findImageVersionLine(lines, image) {
  * usable is supplied or the override is malformed.
  */
 export function resolveTargetVersion({ override, describeResult, sortedTags = [] } = {}) {
+  let version;
+  let source;
   if (override !== undefined && override !== null && override !== '') {
-    if (!isValidVersion(override)) {
-      throw new Error(`Invalid version: ${override}`);
-    }
-    return { version: override, source: 'override' };
+    version = override;
+    source = 'override';
+  } else if (describeResult && String(describeResult).trim() !== '') {
+    version = String(describeResult).trim();
+    source = 'describe';
+  } else if (Array.isArray(sortedTags) && sortedTags.length > 0) {
+    version = sortedTags[0];
+    source = 'tag-list';
+  } else {
+    throw new Error('No target version could be resolved (no override, describe, or tags).');
   }
-  if (describeResult && String(describeResult).trim() !== '') {
-    return { version: String(describeResult).trim(), source: 'describe' };
+
+  if (!isValidVersion(version)) {
+    throw new Error(`Invalid version from ${source}: ${version}`);
   }
-  if (Array.isArray(sortedTags) && sortedTags.length > 0) {
-    return { version: sortedTags[0], source: 'tag-list' };
-  }
-  throw new Error('No target version could be resolved (no override, describe, or tags).');
+  return { version: version.startsWith('v') ? version : `v${version}`, source };
 }
 
 export function parseDeployArgs(args) {

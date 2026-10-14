@@ -151,10 +151,38 @@ function assertRemote(label, command) {
 
 function resolveTarget(args) {
   step('Resolving target version');
+  let fetchError = null;
   try {
-    execFile('git', ['fetch', '--tags', '--force']);
-  } catch {
-    warn('git fetch --tags failed; using local tags');
+    execFile('git', [
+      'fetch',
+      '--tags',
+      '--force',
+      'origin',
+      '+refs/heads/main:refs/remotes/origin/main',
+    ]);
+  } catch (error) {
+    fetchError = error;
+  }
+
+  if (args.version) {
+    if (fetchError) {
+      warn(
+        `git fetch failed; checking the explicit version against local tags: ${fetchError.message}`,
+      );
+    }
+    try {
+      const resolved = resolveTargetVersion({ override: args.version });
+      ok(`target ${resolved.version} (source: ${resolved.source})`);
+      return resolved.version;
+    } catch (error) {
+      die(error.message);
+    }
+  }
+
+  if (fetchError) {
+    die(
+      `Could not fetch origin/main and tags; refusing to select a potentially stale release: ${fetchError.message}`,
+    );
   }
 
   let describeResult = null;
@@ -185,11 +213,7 @@ function resolveTarget(args) {
 
   let resolved;
   try {
-    resolved = resolveTargetVersion({
-      override: args.version,
-      describeResult,
-      sortedTags,
-    });
+    resolved = resolveTargetVersion({ describeResult, sortedTags });
   } catch (error) {
     die(error.message);
   }
@@ -206,7 +230,12 @@ function verifyBuild(version) {
   } catch {
     die(`Tag ${version} not found locally (run: git fetch --tags).`);
   }
-  const ciSha = execFile('git', ['rev-parse', `${releaseCommit}^`]);
+  let ciSha;
+  try {
+    ciSha = execFile('git', ['rev-parse', `${releaseCommit}^`]);
+  } catch {
+    die(`Tag ${version} has no parent commit to verify CI against.`);
+  }
   info(`release commit ${releaseCommit.slice(0, 7)}, CI commit ${ciSha.slice(0, 7)}`);
 
   let runs = [];

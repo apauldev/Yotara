@@ -207,8 +207,12 @@ test('pollUntilReady also stops when its elapsed-time deadline expires', async (
   assert.equal(probes, 3);
 });
 
-test('resolveTargetVersion prefers override, then describe, then tag list', () => {
+test('resolveTargetVersion validates and normalizes every target source', () => {
   assert.deepEqual(resolveTargetVersion({ override: 'v1.2.3', sortedTags: ['v0.1.0'] }), {
+    version: 'v1.2.3',
+    source: 'override',
+  });
+  assert.deepEqual(resolveTargetVersion({ override: '1.2.3' }), {
     version: 'v1.2.3',
     source: 'override',
   });
@@ -216,11 +220,23 @@ test('resolveTargetVersion prefers override, then describe, then tag list', () =
     version: 'v0.79.3',
     source: 'describe',
   });
+  assert.deepEqual(resolveTargetVersion({ describeResult: '0.79.3\n' }), {
+    version: 'v0.79.3',
+    source: 'describe',
+  });
   assert.deepEqual(resolveTargetVersion({ sortedTags: ['v0.79.3', 'v0.78.0'] }), {
     version: 'v0.79.3',
     source: 'tag-list',
   });
-  assert.throws(() => resolveTargetVersion({ override: 'banana' }));
+  assert.throws(() => resolveTargetVersion({ override: 'banana' }), /Invalid version/);
+  assert.throws(
+    () => resolveTargetVersion({ describeResult: 'v0.79.3-rc.1' }),
+    /Invalid version from describe/,
+  );
+  assert.throws(
+    () => resolveTargetVersion({ sortedTags: ['v0.79.3-rc.1'] }),
+    /Invalid version from tag-list/,
+  );
 });
 
 test('resolveTargetVersion picks the highest semver from a sorted tag list (v0.100.0 regression)', () => {
