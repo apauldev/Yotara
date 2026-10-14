@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.80.0](https://github.com/apauldev/Yotara/compare/v0.79.3...v0.80.0) (2026-10-14)
+
+
+### Features
+
+* semi-automated beta deploy (pnpm deploy) ([#403](https://github.com/apauldev/Yotara/issues/403)) ([e624a74](https://github.com/apauldev/Yotara/commit/e624a7479a706912a5148bddb958597e9c051e0d))
+
 ## [0.79.3](https://github.com/apauldev/Yotara/compare/v0.79.2...v0.79.3) (2026-10-11)
 
 
