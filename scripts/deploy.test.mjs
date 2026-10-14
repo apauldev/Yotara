@@ -85,9 +85,12 @@ test('isValidVersion accepts vX.Y.Z and X.Y.Z only', () => {
   assert.equal(isValidVersion(''), false);
 });
 
-test('parseDeployedVersion extracts the api tag from a compose grep line', () => {
+test('parseDeployedVersion extracts only the exact API image tag', () => {
   assert.equal(parseDeployedVersion(`    image: ${API_IMAGE}:v0.79.3`, API_IMAGE), 'v0.79.3');
   assert.equal(parseDeployedVersion(`    image: ${FRONTEND_IMAGE}:v0.79.3`, API_IMAGE), null);
+  assert.equal(parseDeployedVersion(`    image: ${API_IMAGE}:v0.79.30`, API_IMAGE), 'v0.79.30');
+  assert.equal(parseDeployedVersion(`    image: ${API_IMAGE}:v0.79.3-extra`, API_IMAGE), null);
+  assert.equal(parseDeployedVersion(`    image: ${API_IMAGE}:v0.79.3junk`, API_IMAGE), null);
   assert.equal(parseDeployedVersion('', API_IMAGE), null);
 });
 

@@ -369,14 +369,8 @@ function bumpAndRestart(fromVersion, toVersion) {
   });
   assertRemote('tag bump', `sed -i ${shellQuote(sedExpr)} ${shellQuote(config.composeFile)}`);
 
-  if (
-    !remoteOk(
-      `grep -F ${shellQuote(`${config.apiImage}:${toVersion}`)} ${shellQuote(config.composeFile)}`,
-    ) ||
-    !remoteOk(
-      `grep -F ${shellQuote(`${config.frontendImage}:${toVersion}`)} ${shellQuote(config.composeFile)}`,
-    )
-  ) {
+  const bumpedVersions = readDeployedVersions();
+  if (bumpedVersions.apiVersion !== toVersion || bumpedVersions.frontendVersion !== toVersion) {
     die(`Tag bump did not take effect (compose still not pinned to ${toVersion}).`);
   }
   ok(`compose pinned to ${toVersion}`);

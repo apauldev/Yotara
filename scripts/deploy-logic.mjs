@@ -49,10 +49,16 @@ export function parseDeployedVersion(grepLine, image) {
   if (!grepLine) {
     return null;
   }
-  const match = String(grepLine).match(
-    new RegExp(`image:\\s*${escapeRegex(image)}:(v?\\d+\\.\\d+\\.\\d+)`),
-  );
-  return match ? match[1] : null;
+  const match = String(grepLine).match(/^\s*image:\s*(\S+)\s*$/);
+  if (!match) {
+    return null;
+  }
+  const prefix = `${image}:`;
+  if (!match[1].startsWith(prefix)) {
+    return null;
+  }
+  const version = match[1].slice(prefix.length);
+  return isValidVersion(version) ? version : null;
 }
 
 export function parseDeployedImageVersions({ apiLine, frontendLine, apiImage, frontendImage }) {
