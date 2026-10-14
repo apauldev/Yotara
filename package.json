@@ -25,8 +25,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test",
+    "test": "pnpm -r test && pnpm test:scripts",
     "test:coverage": "pnpm -r test:coverage",
+    "test:scripts": "node --test \"scripts/*.test.mjs\"",
     "prepare": "husky install && pnpm version:gen",
     "dev:frontend": "pnpm --filter @yotara/frontend dev",
     "dev:api": "pnpm --filter @yotara/api dev",
@@ -41,7 +42,10 @@
     "docker:up": "docker compose up --build -d",
     "docker:down": "docker compose down",
     "smoke:docker": "bash scripts/docker-smoke.sh",
-    "smoke:docker:api": "bash scripts/docker-api-smoke.sh"
+    "smoke:docker:api": "bash scripts/docker-api-smoke.sh",
+    "deploy": "node scripts/deploy.mjs",
+    "deploy:check": "node scripts/deploy.mjs --check",
+    "deploy:rollback": "node scripts/deploy.mjs --rollback"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",
