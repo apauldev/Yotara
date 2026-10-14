@@ -35,11 +35,6 @@ export function isValidVersion(version) {
   return /^v?\d+\.\d+\.\d+$/.test(String(version));
 }
 
-/** Escape regex metacharacters when interpolating a literal string. */
-function escapeRegex(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 /**
  * Pull the deployed version tag out of a `grep` line for the API image, e.g.
  *   "    image: apauldev2/yotara-api:v0.79.3" -> "v0.79.3"
