@@ -23,6 +23,7 @@ import {
   buildComposeCommand,
   buildTagBumpScript,
   classifyCiRuns,
+  classifyDockerTagResponse,
   findImageVersionLine,
   normalizeLineEndings,
   parseDeployArgs,
@@ -110,20 +111,29 @@ function execFile(file, args) {
   return execFileSync(file, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 }
 
-function ssh(command, timeout = 0) {
+function ssh(command, timeout = 120_000) {
   const res = spawnSync('ssh', [...config.sshOpts, config.host, command], {
     encoding: 'utf8',
-    ...(timeout ? { timeout } : {}),
+    timeout,
   });
-  return { status: res.status, stdout: res.stdout ?? '', stderr: res.stderr ?? '' };
+  return {
+    status: res.status,
+    stdout: res.stdout ?? '',
+    stderr: res.stderr ?? (res.error ? res.error.message : ''),
+  };
 }
 
-function sshWithInput(command, input) {
+function sshWithInput(command, input, timeout = 60_000) {
   const res = spawnSync('ssh', [...config.sshOpts, config.host, command], {
     encoding: 'utf8',
     input,
+    timeout,
   });
-  return { status: res.status, stdout: res.stdout ?? '', stderr: res.stderr ?? '' };
+  return {
+    status: res.status,
+    stdout: res.stdout ?? '',
+    stderr: res.stderr ?? (res.error ? res.error.message : ''),
+  };
 }
 
 function utcStamp() {
@@ -289,17 +299,19 @@ async function verifyDocker(version) {
   for (const image of [config.apiImage, config.frontendImage]) {
     const imagePath = image.split('/').map(encodeURIComponent).join('/');
     const url = `https://hub.docker.com/v2/repositories/${imagePath}/tags/${encodeURIComponent(version)}/`;
-    let present = false;
+    let res;
     try {
-      const res = await fetch(url);
-      present = res.ok;
+      res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
     } catch (error) {
       die(`Docker Hub request failed for ${image}: ${error.message}`);
     }
-    if (present) {
+    const responseStatus = classifyDockerTagResponse(res.status);
+    if (responseStatus === 'published') {
       ok(`${image}:${version} published`);
-    } else {
+    } else if (responseStatus === 'missing') {
       missing.push(`${image}:${version}`);
+    } else {
+      die(`Docker Hub returned HTTP ${res.status} while checking ${image}:${version}.`);
     }
   }
 
@@ -367,7 +379,7 @@ function takeBackup(args) {
     die(`Could not upload the backup script: ${upload.stderr.trim()}`);
   }
 
-  const res = ssh('RETENTION_DAYS=0 bash /tmp/yotara-backup.sh');
+  const res = ssh('RETENTION_DAYS=0 bash /tmp/yotara-backup.sh', 900_000);
   if (!backupSucceeded(`${res.stdout}\n${res.stderr}`)) {
     die(`DB backup failed — aborting before any change.\n\n${res.stdout}${res.stderr}`);
   }
@@ -406,7 +418,7 @@ function bumpAndRestart(fromVersion, toVersion) {
 
   const compose = composeCommand();
   const pullResult = pullWithComposeRestore({
-    pull: () => ssh(`${compose} pull`).status === 0,
+    pull: () => ssh(`${compose} pull`, 600_000).status === 0,
     restore: () =>
       ssh(
         `cp ${shellQuote(`${config.composeFile}.bak.${stamp}`)} ${shellQuote(config.composeFile)}`,

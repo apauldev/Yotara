@@ -90,6 +90,8 @@ Invoke the package script with `pnpm run deploy` (not `pnpm deploy`, which is a 
   - **Images published**: `GET https://hub.docker.com/v2/repositories/apauldev2/yotara-api/tags/vX.Y.Z`
     and `.../yotara-frontend/tags/vX.Y.Z` → 200, **both**. These manifests only exist once
     `docker-manifest` completes, so they are the real "docker succeeded" gate.
+  - Docker Hub `404` means the tag is missing; other non-2xx responses abort with their HTTP status
+    instead of being misreported as missing tags. Requests time out after 15 seconds.
   - If the GitHub Release check is absent or cannot be verified, **abort**; do not continue with a
     warning. The Release and image tags are separate gates.
 - Optional extra confidence: `gh run list --workflow release.yml --commit <ci_sha>` → `success`.
@@ -114,6 +116,8 @@ Invoke the package script with `pnpm run deploy` (not `pnpm deploy`, which is a 
   ```
   (`RETENTION_DAYS=0` → the script's `find … -delete` block is skipped, so **all existing
   backups are preserved**.)
+- Bound script upload to 60 seconds and the remote DB backup command to 15 minutes; abort with the SSH
+  timeout diagnostic if either stalls.
 - Assert output contains `integrity_check ok`; **abort before any compose change** otherwise.
 
 ### Phase 6 — deploy
@@ -127,7 +131,8 @@ Invoke the package script with `pnpm run deploy` (not `pnpm deploy`, which is a 
   ```
 - Use one Compose command context for pull, restart, verification, and rollback:
   `cd <compose dir> && docker compose --project-name <DEPLOY_PROJECT> -f <compose>`.
-- **Abort on pull failure**, restoring the pre-deploy compose backup before exiting (never restart onto
+- Bound ordinary SSH operations to two minutes and image pulls to ten minutes. **Abort on pull
+  failure or timeout**, restoring the pre-deploy compose backup before exiting (never restart onto
   stale/partial images).
 - Restart **frontend first, then api** — realip (nginx) must be live before the api's signup-only
   ban behaviour:

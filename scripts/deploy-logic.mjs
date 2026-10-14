@@ -129,6 +129,16 @@ export function releaseCheckFailure(status, version) {
   return status === 0 ? null : `GitHub Release ${version} could not be verified; aborting deploy.`;
 }
 
+export function classifyDockerTagResponse(status) {
+  if (status >= 200 && status < 300) {
+    return 'published';
+  }
+  if (status === 404) {
+    return 'missing';
+  }
+  return 'error';
+}
+
 export async function pollUntilReady({
   probe,
   attempts = 60,

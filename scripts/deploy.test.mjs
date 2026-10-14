@@ -15,6 +15,7 @@ import {
   isValidComposeProjectName,
   isValidDockerImageName,
   releaseCheckFailure,
+  classifyDockerTagResponse,
   pollUntilReady,
   selectRollbackBackup,
   backupSucceeded,
@@ -158,6 +159,14 @@ test('releaseCheckFailure requires a verifiable GitHub Release', () => {
   assert.equal(releaseCheckFailure(0, 'v1.2.3'), null);
   assert.match(releaseCheckFailure(1, 'v1.2.3'), /could not be verified/);
   assert.match(releaseCheckFailure(null, 'v1.2.3'), /could not be verified/);
+});
+
+test('classifyDockerTagResponse distinguishes published, missing, and Hub errors', () => {
+  assert.equal(classifyDockerTagResponse(200), 'published');
+  assert.equal(classifyDockerTagResponse(299), 'published');
+  assert.equal(classifyDockerTagResponse(404), 'missing');
+  assert.equal(classifyDockerTagResponse(429), 'error');
+  assert.equal(classifyDockerTagResponse(503), 'error');
 });
 
 test('pollUntilReady retries transient failures and returns eventual success', async () => {

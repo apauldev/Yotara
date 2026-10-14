@@ -104,6 +104,7 @@ pnpm run deploy:rollback   # re-pin to the previously deployed version
 
 `pnpm run deploy` **verifies before it touches anything**. It requires a verified GitHub Release and
 both published image tags; inability to verify the Release aborts rather than warning and continuing.
+Docker Hub `404` means a tag is missing; rate-limit/server errors report their HTTP status instead.
 
 The deploy then:
 
@@ -118,8 +119,9 @@ The deploy then:
 It then takes a WAL-safe DB backup (retention disabled, so every existing backup is kept), backs
 up the compose, bumps both image tags, and pulls images. If pulling fails, it restores the previous
 compose file and stops before restarting services. Compose uses the configured project name and
-working directory consistently. It restarts **frontend first (realip) then api**, and verifies
-`realip.conf` is present, `nginx -t` passes, and
+working directory consistently. Remote SSH commands have a two-minute default timeout, image pulls
+allow ten minutes, and DB backup allows fifteen minutes. It restarts **frontend first (realip) then
+api**, and verifies `realip.conf` is present, `nginx -t` passes, and
 `127.0.0.1:3000/health` returns ok (polling for up to 60 seconds/60 attempts). The optional external
 health URL remains warning-only.
 
