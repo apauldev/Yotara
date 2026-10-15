@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { spawn, type ChildProcess } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { createDbClient } from './client.js';
+import { spawnNode, waitForExit, waitForLine } from './test-child-helpers.js';
 
 /**
  * The contention tests below use child processes rather than in-process
@@ -12,59 +12,6 @@ import { createDbClient } from './client.js';
  * would block the very thread that needs to release the lock and could only
  * ever run out the timeout.
  */
-
-function spawnNode(
-  script: string,
-  args: string[],
-): { child: ChildProcess; stdout: NodeJS.ReadableStream; stderr: NodeJS.ReadableStream } {
-  const child = spawn(process.execPath, ['-e', script, ...args], {
-    // The apps/api package root, so the child can require('better-sqlite3').
-    cwd: new URL('../../', import.meta.url),
-  });
-  if (!child.stdout || !child.stderr) {
-    throw new Error('child process missing stdio pipes');
-  }
-  return { child, stdout: child.stdout, stderr: child.stderr };
-}
-
-function waitForLine(
-  child: ChildProcess,
-  stdout: NodeJS.ReadableStream,
-  line: string,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    let buffer = '';
-    const onData = (chunk: Buffer) => {
-      buffer += chunk.toString();
-      if (buffer.includes(line)) {
-        cleanup();
-        resolve();
-      }
-    };
-    const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
-      cleanup();
-      reject(new Error(`child exited before printing '${line}' (code ${code}, signal ${signal})`));
-    };
-    const cleanup = () => {
-      stdout.off('data', onData);
-      child.off('exit', onExit);
-    };
-    stdout.on('data', onData);
-    child.once('exit', onExit);
-  });
-}
-
-function waitForExit(
-  child: ChildProcess,
-): Promise<{ code: number | null; signal: NodeJS.Signals | null; stderr: string }> {
-  return new Promise((resolve) => {
-    let stderr = '';
-    child.stderr?.on('data', (chunk: Buffer) => {
-      stderr += chunk.toString();
-    });
-    child.once('exit', (code, signal) => resolve({ code, signal, stderr }));
-  });
-}
 
 test('createDbClient sets concurrency pragmas on in-memory databases', () => {
   const { sqlite } = createDbClient(':memory:');
