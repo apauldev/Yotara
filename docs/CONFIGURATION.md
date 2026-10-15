@@ -38,6 +38,22 @@ Cloudflare's ranges, which would let a client forge the header. Leaving
 `TRUST_PROXY` unset is the safe default for direct access. See the security note
 in [docs/ARCHITECTURE.md](./ARCHITECTURE.md#security-at-deployment-boundaries).
 
+### SQLite storage and pragmas
+
+The API opens every connection with `journal_mode = WAL`,
+`synchronous = NORMAL`, and `busy_timeout = 5000` (see `createDbClient` in
+`apps/api/src/db/client.ts`). Consequences for operating the database:
+
+- WAL mode creates `-wal` and `-shm` sidecar files next to the database file.
+  Filesystem-level copies must include or checkpoint them — copying only the
+  `.db` file can silently drop committed data. Prefer `sqlite3 <db> .backup`,
+  which is WAL-safe.
+- `synchronous = NORMAL` is crash-safe for the application and OS; a power
+  loss can roll back the most recent commits, but never corrupts the database.
+- `busy_timeout = 5000` lets a writer wait up to five seconds for a lock held
+  by another process (backup, CLI, clustered instance) instead of failing
+  immediately.
+
 ## Authentication
 
 | Variable | Default | Purpose |
