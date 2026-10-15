@@ -100,7 +100,11 @@ pnpm run deploy            # verify + deploy the newest v* tag on origin/main
 pnpm run deploy --check    # verify only — prints the plan, mutates nothing
 pnpm run deploy --version v0.79.3
 pnpm run deploy:rollback   # re-pin to the previously deployed version
+pnpm run deploy:rollback --restore-db   # ...and revert the DB to its pre-deploy snapshot
 ```
+
+A forwarded `--` (as in `pnpm run deploy -- --check`) is accepted and ignored, so npm-style
+invocations work too.
 
 `pnpm run deploy` **verifies before it touches anything**. It requires a verified GitHub Release and
 both published image tags; inability to verify the Release aborts rather than warning and continuing.
@@ -133,6 +137,8 @@ health URL remains warning-only.
 | `DEPLOY_COMPOSE_FILE` | `/home/ubuntu/docker-compose.hub.yml` | Hub compose on the host |
 | `DEPLOY_COMPOSE_DIR` | `/home/ubuntu` | Working dir (for `${...}` from `.env`) |
 | `DEPLOY_PROJECT` | `ubuntu` | Explicit Docker Compose project name |
+| `DEPLOY_DB_VOLUME` | `ubuntu_yotara_api_data` | Named volume holding `yotara.db` |
+| `DEPLOY_BACKUP_DIR` | `/opt/backups` | Host dir for `.db` snapshots (read by `--restore-db`) |
 | `DEPLOY_API_IMAGE` / `DEPLOY_FRONTEND_IMAGE` | `apauldev2/yotara-api` / `-frontend` | Image repos |
 | `DEPLOY_HEALTH_URL` | `https://beta.yotara.website/api/health` | Post-deploy external check |
 | `DEPLOY_SSH_OPTS` | `-o BatchMode=yes -o ConnectTimeout=15` | ssh args |
@@ -146,14 +152,31 @@ health URL remains warning-only.
   hand once).
 - `--no-backup` skips the DB backup (not recommended); `--yes` skips the prompt (for unattended
   runs); `--force` redeploys the current version.
+- `--restore-db` is only valid together with `--rollback`, and the rollback aborts unless a DB
+  snapshot older than the selected compose backup exists.
 
 ### Rollback
 
 `pnpm run deploy:rollback` re-pins to the newest compose backup with a version different from
 the currently deployed version, skipping same-version snapshots left by failed or forced deploys.
-It re-pulls, restarts, and verifies. It restores **code only** — the DB schema is not reverted
-(migrations are additive, so old code ignores newer columns/tables). It backs up the current
-compose first, so a rollback is itself reversible.
+It re-pulls, restarts, and verifies. By default it restores **code only** — the DB schema is not
+reverted (migrations are additive, so old code ignores newer columns/tables). It backs up the
+current compose first, so a rollback is itself reversible.
+
+`pnpm run deploy:rollback --restore-db` additionally reverts the database. Every compose backup
+gets an association record beside it (`docker-compose.hub.yml.dbsnap.<stamp>`) naming the DB
+snapshot taken by the same operation (`none` when the operation took none), and `--restore-db`
+restores exactly that snapshot. It aborts when the record says `none` (e.g. the deploy ran with
+`--no-backup`, or a code-only rollback), when the record is unreadable, or when the recorded
+snapshot file is missing. Backups created before association tracking fall back to a bounded
+deployment window — the newest `/opt/backups/yotara-*.db` taken between the previous compose
+backup and the selected one — and abort when nothing fits, never guessing from an older snapshot.
+The restore stops the api container, swaps the snapshot into the `ubuntu_yotara_api_data` volume
+(via rename, clearing stale `-wal`/`-shm` files), then re-pulls, restarts frontend-then-api, and
+verifies. **Writes made while the current version was deployed are discarded** (snapshot
+semantics). To keep the restore itself reversible, a fresh WAL-safe backup of the live DB is taken
+first and its path is printed. `--check` previews the selected snapshot and how it was matched
+(recorded association vs time window) without mutating anything.
 
 ## Troubleshooting
 

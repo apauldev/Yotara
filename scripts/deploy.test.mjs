@@ -11,6 +11,7 @@ import {
   parseDeployedImageVersions,
   findImageVersionLine,
   parseDeployArgs,
+  buildBackupScriptCommand,
   buildComposeCommand,
   isValidComposeProjectName,
   isValidDockerImageName,
@@ -18,6 +19,13 @@ import {
   classifyDockerTagResponse,
   pollUntilReady,
   selectRollbackBackup,
+  composeBackupStamp,
+  previousComposeStamp,
+  selectDbBackupForRollback,
+  dbSnapshotSidecarName,
+  isDbBackupName,
+  parseDbSnapshotRecord,
+  buildDbSnapshotRecordCommand,
   backupSucceeded,
   normalizeLineEndings,
   pullWithComposeRestore,
@@ -47,6 +55,24 @@ test('buildComposeCommand pins project, file, and working directory', () => {
       composeFile: '/home/ubuntu app/docker-compose.hub.yml',
     }),
     "cd '/home/ubuntu app' && docker compose --project-name 'ubuntu' -f '/home/ubuntu app/docker-compose.hub.yml'",
+  );
+});
+
+test('buildBackupScriptCommand forwards volume and backup dir with quoting', () => {
+  assert.equal(
+    buildBackupScriptCommand({
+      volume: 'ubuntu_yotara_api_data',
+      backupDir: '/opt/backups',
+    }),
+    "VOLUME='ubuntu_yotara_api_data' BACKUP_DIR='/opt/backups' RETENTION_DAYS=0 bash '/tmp/yotara-backup.sh'",
+  );
+  assert.equal(
+    buildBackupScriptCommand({
+      volume: 'vol it',
+      backupDir: "/opt/back'ups",
+      scriptPath: '/tmp/stub.sh',
+    }),
+    "VOLUME='vol it' BACKUP_DIR='/opt/back'\\''ups' RETENTION_DAYS=0 bash '/tmp/stub.sh'",
   );
 });
 
@@ -136,11 +162,27 @@ test('parseDeployArgs accepts documented flags and maps dry-run to check mode', 
     noBackup: true,
     force: false,
     rollback: false,
+    restoreDb: false,
     host: undefined,
     help: false,
   });
   assert.equal(parseDeployArgs(['--dry-run']).check, true);
   assert.equal(parseDeployArgs(['--check']).check, true);
+});
+
+test('parseDeployArgs tolerates the separator forwarded by `pnpm run deploy -- ...`', () => {
+  assert.deepEqual(parseDeployArgs(['--', '--version', 'v1.2.3', '--yes']), {
+    version: 'v1.2.3',
+    check: false,
+    yes: true,
+    noBackup: false,
+    force: false,
+    rollback: false,
+    restoreDb: false,
+    host: undefined,
+    help: false,
+  });
+  assert.equal(parseDeployArgs(['--', '--restore-db', '--rollback']).restoreDb, true);
 });
 
 test('parseDeployArgs rejects unknown flags, positionals, and missing values', () => {
@@ -300,6 +342,130 @@ test('selectRollbackBackup makes rollback reversible between distinct versions',
   assert.equal(
     selectRollbackBackup(snapshots, '2026-10-11T061500Z', 'v0.79.1'),
     'compose.bak.2026-10-11T060000Z',
+  );
+});
+
+test('composeBackupStamp reads fixed-width UTC stamps and rejects other names', () => {
+  assert.equal(
+    composeBackupStamp('docker-compose.hub.yml.bak.2026-10-15T113544Z'),
+    '2026-10-15T113544Z',
+  );
+  assert.equal(composeBackupStamp('compose.bak.invalid'), null);
+  assert.equal(composeBackupStamp('docker-compose.hub.yml'), null);
+});
+
+test('selectDbBackupForRollback picks the newest snapshot inside the deployment window', () => {
+  const names = [
+    'yotara-latest.db',
+    'yotara-2026-10-14T090000Z.db',
+    'yotara-2026-10-15T020001Z.db',
+    'yotara-2026-10-15T113544Z.db',
+    'yotara-2026-10-15T113544Z.db.sha256',
+    'yotara-not-a-stamp.db',
+    'yotara-2026-10-15T120000Z.db',
+  ];
+  // Window = (previous compose backup, chosen compose backup): the deploy that
+  // shipped the current version took the 113544Z snapshot moments before its
+  // 113546Z compose backup; the 12:00 snapshot is newer than the window.
+  assert.equal(
+    selectDbBackupForRollback(names, {
+      upperStamp: '2026-10-15T113546Z',
+      lowerStamp: '2026-10-14T163955Z',
+    }),
+    'yotara-2026-10-15T113544Z.db',
+  );
+});
+
+test('selectDbBackupForRollback snapshots never cross the window bounds', () => {
+  const window = { upperStamp: '2026-10-15T113546Z', lowerStamp: '2026-10-14T163955Z' };
+  // A stale cross-release snapshot (older than the previous compose backup) is rejected...
+  assert.equal(selectDbBackupForRollback(['yotara-2026-10-11T052223Z.db'], window), null);
+  // ...as are the bounds themselves: stamp == lowerStamp and stamp == upperStamp.
+  assert.equal(selectDbBackupForRollback(['yotara-2026-10-14T163955Z.db'], window), null);
+  assert.equal(selectDbBackupForRollback(['yotara-2026-10-15T113546Z.db'], window), null);
+  // The newest in-window snapshot wins even when older candidates also fit.
+  assert.equal(
+    selectDbBackupForRollback(
+      ['yotara-2026-10-15T020001Z.db', 'yotara-2026-10-15T113544Z.db'],
+      window,
+    ),
+    'yotara-2026-10-15T113544Z.db',
+  );
+});
+
+test('selectDbBackupForRollback requires valid bounds and defaults the lower stamp to open', () => {
+  assert.equal(
+    selectDbBackupForRollback(['yotara-2026-10-15T113544Z.db'], {
+      upperStamp: '2026-10-15T113546Z',
+    }),
+    'yotara-2026-10-15T113544Z.db',
+  );
+  assert.equal(selectDbBackupForRollback([], { upperStamp: '2026-10-15T113546Z' }), null);
+  assert.equal(selectDbBackupForRollback(['yotara-2026-10-15T113544Z.db'], {}), null);
+  assert.equal(
+    selectDbBackupForRollback(['yotara-2026-10-15T113544Z.db'], {
+      upperStamp: '2026-10-15T113546Z',
+      lowerStamp: 'not-a-stamp',
+    }),
+    null,
+  );
+  assert.equal(
+    selectDbBackupForRollback(['yotara-2026-10-15T113544Z.db'], {
+      upperStamp: 'not-a-stamp',
+    }),
+    null,
+  );
+});
+
+test('previousComposeStamp finds the nearest earlier recognized compose backup', () => {
+  const names = [
+    'docker-compose.hub.yml.bak.2026-10-11T052330Z',
+    'docker-compose.hub.yml.bak.2026-10-14T163955Z',
+    'docker-compose.hub.yml.bak.20261011T052330Z',
+    'docker-compose.hub.yml.bak.8080',
+    'docker-compose.hub.yml.dbsnap.2026-10-15T113546Z',
+  ];
+  assert.equal(previousComposeStamp(names, '2026-10-15T113546Z'), '2026-10-14T163955Z');
+  assert.equal(previousComposeStamp(names, '2026-10-11T052330Z'), null);
+  assert.equal(previousComposeStamp(names, 'not-a-stamp'), null);
+});
+
+test('isDbBackupName accepts only stamped snapshot file names', () => {
+  assert.equal(isDbBackupName('yotara-2026-10-15T113544Z.db'), true);
+  assert.equal(isDbBackupName('yotara-latest.db'), false);
+  assert.equal(isDbBackupName('yotara-2026-10-15T113544Z.db.sha256'), false);
+  assert.equal(isDbBackupName('/opt/backups/yotara-2026-10-15T113544Z.db'), false);
+  assert.equal(isDbBackupName('(see /opt/backups)'), false);
+});
+
+test('dbSnapshotSidecarName sits beside the compose file without matching bak globs', () => {
+  const path = dbSnapshotSidecarName('/home/ubuntu/docker-compose.hub.yml', '2026-10-15T113546Z');
+  assert.equal(path, '/home/ubuntu/docker-compose.hub.yml.dbsnap.2026-10-15T113546Z');
+  assert.equal(path.includes('.bak.'), false);
+});
+
+test('parseDbSnapshotRecord accepts a snapshot name, none, and rejects anything else', () => {
+  assert.deepEqual(parseDbSnapshotRecord('yotara-2026-10-15T113544Z.db\n'), {
+    kind: 'snapshot',
+    name: 'yotara-2026-10-15T113544Z.db',
+  });
+  assert.deepEqual(parseDbSnapshotRecord('  none  '), { kind: 'none' });
+  assert.deepEqual(parseDbSnapshotRecord(''), { kind: 'invalid' });
+  assert.deepEqual(parseDbSnapshotRecord('yotara-not-a-stamp.db'), { kind: 'invalid' });
+  assert.deepEqual(parseDbSnapshotRecord('rm -rf /'), { kind: 'invalid' });
+});
+
+test('buildDbSnapshotRecordCommand quotes the record and target path', () => {
+  assert.equal(
+    buildDbSnapshotRecordCommand(
+      '/home/ubuntu/docker-compose.hub.yml.dbsnap.2026-10-15T113546Z',
+      'yotara-2026-10-15T113544Z.db',
+    ),
+    `printf '%s\\n' 'yotara-2026-10-15T113544Z.db' > '/home/ubuntu/docker-compose.hub.yml.dbsnap.2026-10-15T113546Z'`,
+  );
+  assert.equal(
+    buildDbSnapshotRecordCommand('/home/ubuntu/it.s.yml.dbsnap.X', null),
+    `printf '%s\\n' 'none' > '/home/ubuntu/it.s.yml.dbsnap.X'`,
   );
 });
 

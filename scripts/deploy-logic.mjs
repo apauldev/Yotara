@@ -30,6 +30,22 @@ export function buildComposeCommand({ composeDir, project, composeFile }) {
   return `cd ${shellQuote(composeDir)} && docker compose --project-name ${shellQuote(project)} -f ${shellQuote(composeFile)}`;
 }
 
+/**
+ * Remote command that runs `ec2-backup.sh` with the deploy's volume and backup
+ * dir forwarded, so backups land where the restore path (`--restore-db`,
+ * snapshot selection) looks. RETENTION_DAYS=0: deploys never prune.
+ */
+export function buildBackupScriptCommand({
+  volume,
+  backupDir,
+  scriptPath = '/tmp/yotara-backup.sh',
+}) {
+  return (
+    `VOLUME=${shellQuote(volume)} BACKUP_DIR=${shellQuote(backupDir)} ` +
+    `RETENTION_DAYS=0 bash ${shellQuote(scriptPath)}`
+  );
+}
+
 /** True for `vX.Y.Z` or `X.Y.Z` (no pre-release/build metadata). */
 export function isValidVersion(version) {
   return /^v?\d+\.\d+\.\d+$/.test(String(version));
@@ -97,9 +113,18 @@ export function resolveTargetVersion({ override, describeResult, sortedTags = []
   return { version: version.startsWith('v') ? version : `v${version}`, source };
 }
 
+/**
+ * `pnpm run deploy -- <flags>` forwards the separator through to the script,
+ * and `parseArgs` would then treat every following flag as a positional.
+ * Drop bare separators so direct and package-manager invocations parse alike.
+ */
+export function stripArgSeparator(args) {
+  return (Array.isArray(args) ? args : []).filter((arg) => arg !== '--');
+}
+
 export function parseDeployArgs(args) {
   const { values } = parseArgs({
-    args,
+    args: stripArgSeparator(args),
     options: {
       version: { type: 'string' },
       check: { type: 'boolean', default: false },
@@ -108,6 +133,7 @@ export function parseDeployArgs(args) {
       'no-backup': { type: 'boolean', default: false },
       force: { type: 'boolean', default: false },
       rollback: { type: 'boolean', default: false },
+      'restore-db': { type: 'boolean', default: false },
       host: { type: 'string' },
       help: { type: 'boolean', default: false },
     },
@@ -120,6 +146,7 @@ export function parseDeployArgs(args) {
     noBackup: values['no-backup'],
     force: values.force,
     rollback: values.rollback,
+    restoreDb: values['restore-db'],
     host: values.host,
     help: values.help,
   };
@@ -222,6 +249,101 @@ export function selectRollbackBackup(backups, currentStamp, currentVersion) {
     });
 
   return candidates[0]?.name ?? null;
+}
+
+const UTC_STAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{6}Z$/;
+const DB_BACKUP_NAME_PATTERN = /^yotara-(\d{4}-\d{2}-\d{2}T\d{6}Z)\.db$/;
+
+/** Extract the fixed-width UTC stamp from a `...bak.<stamp>` compose backup name. */
+export function composeBackupStamp(name) {
+  const text = String(name);
+  if (!text.includes('.bak.')) {
+    return null;
+  }
+  const stamp = text.split('.bak.').pop();
+  return UTC_STAMP_PATTERN.test(stamp) ? stamp : null;
+}
+
+/** Newest recognized compose-backup stamp strictly older than `beforeStamp`, or null. */
+export function previousComposeStamp(backupNames, beforeStamp) {
+  if (!UTC_STAMP_PATTERN.test(String(beforeStamp ?? ''))) {
+    return null;
+  }
+  const stamps = (Array.isArray(backupNames) ? backupNames : [])
+    .map((name) => composeBackupStamp(name))
+    .filter((stamp) => stamp !== null && stamp < beforeStamp)
+    .sort();
+  return stamps[stamps.length - 1] ?? null;
+}
+
+/** True when `value` is a `yotara-<utc-stamp>.db` snapshot file name. */
+export function isDbBackupName(value) {
+  return DB_BACKUP_NAME_PATTERN.test(String(value));
+}
+
+/**
+ * Choose the DB snapshot for a `--restore-db` rollback from a bounded window:
+ * `lowerStamp < snapshot stamp < upperStamp`. `upperStamp` is the chosen
+ * compose backup's stamp; `lowerStamp` is the nearest earlier compose backup
+ * (null when the caller has no earlier bound). Any match was therefore taken
+ * while the rollback target version was live, so cross-release snapshots can
+ * never be selected — and an unidentifiable window returns null instead of
+ * guessing. `yotara-latest.db` and `.sha256` companions never match the name
+ * pattern. Returns the newest eligible file name, or null when none exists.
+ */
+export function selectDbBackupForRollback(backupNames, { upperStamp, lowerStamp = null } = {}) {
+  if (!UTC_STAMP_PATTERN.test(String(upperStamp ?? ''))) {
+    return null;
+  }
+  if (
+    lowerStamp !== null &&
+    lowerStamp !== undefined &&
+    !UTC_STAMP_PATTERN.test(String(lowerStamp))
+  ) {
+    return null;
+  }
+  const lower = lowerStamp ?? null;
+  const candidates = (Array.isArray(backupNames) ? backupNames : [])
+    .map((name) => ({ name: String(name), match: DB_BACKUP_NAME_PATTERN.exec(String(name)) }))
+    .filter(({ match }) => match !== null)
+    .filter(({ match }) => {
+      const stamp = match?.[1] ?? '';
+      return stamp < upperStamp && (lower === null || stamp > lower);
+    })
+    .sort((a, b) => {
+      const aStamp = a.match?.[1] ?? '';
+      const bStamp = b.match?.[1] ?? '';
+      return aStamp < bStamp ? 1 : aStamp > bStamp ? -1 : 0;
+    });
+
+  return candidates[0]?.name ?? null;
+}
+
+/** Path of the association record that sits beside a compose backup. */
+export function dbSnapshotSidecarName(composeFile, stamp) {
+  return `${composeFile}.dbsnap.${stamp}`;
+}
+
+/**
+ * Parse a snapshot association record: the snapshot file name, `none` when the
+ * operation took no snapshot, or `invalid` for anything else (including empty).
+ */
+export function parseDbSnapshotRecord(text) {
+  const value = String(text ?? '').trim();
+  if (value === 'none') {
+    return { kind: 'none' };
+  }
+  if (DB_BACKUP_NAME_PATTERN.test(value)) {
+    return { kind: 'snapshot', name: value };
+  }
+  return { kind: 'invalid' };
+}
+
+/** Remote command that writes a compose backup's snapshot association record. */
+export function buildDbSnapshotRecordCommand(sidecarPath, snapshotName) {
+  const record =
+    snapshotName === null || snapshotName === undefined ? 'none' : String(snapshotName);
+  return `printf '%s\\n' ${shellQuote(record)} > ${shellQuote(sidecarPath)}`;
 }
 
 /** A backup run is only trusted when the integrity check passed. */
