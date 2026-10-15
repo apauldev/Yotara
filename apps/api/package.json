@@ -13,6 +13,7 @@
     "test:coverage": "NODE_ENV=test c8 --reporter=lcov --reporter=text tsx --test src/**/*.test.ts",
     "docs:check": "tsx --test src/docs/openapi.test.ts",
     "docs:export": "tsx src/scripts/export-openapi.ts",
+    "bench:sqlite": "tsx src/scripts/bench-sqlite.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
