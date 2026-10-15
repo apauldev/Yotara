@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.80.1](https://github.com/apauldev/Yotara/compare/v0.80.0...v0.80.1) (2026-10-15)
+
+
+### Bug Fixes
+
+* **api:** harden SQLite concurrency pragmas with contention, backup, and CI coverage ([#404](https://github.com/apauldev/Yotara/issues/404)) ([7a071ed](https://github.com/apauldev/Yotara/commit/7a071ed15e5d776cb08aa12eeda9488d1529e049))
+
 ## [0.80.0](https://github.com/apauldev/Yotara/compare/v0.79.3...v0.80.0) (2026-10-14)
 
 
