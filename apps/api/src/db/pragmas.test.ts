@@ -1,10 +1,70 @@
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { createDbClient } from './client.js';
+
+/**
+ * The contention tests below use child processes rather than in-process
+ * contenders: better-sqlite3 is synchronous, so an in-process "second writer"
+ * would block the very thread that needs to release the lock and could only
+ * ever run out the timeout.
+ */
+
+function spawnNode(
+  script: string,
+  args: string[],
+): { child: ChildProcess; stdout: NodeJS.ReadableStream; stderr: NodeJS.ReadableStream } {
+  const child = spawn(process.execPath, ['-e', script, ...args], {
+    // The apps/api package root, so the child can require('better-sqlite3').
+    cwd: new URL('../../', import.meta.url),
+  });
+  if (!child.stdout || !child.stderr) {
+    throw new Error('child process missing stdio pipes');
+  }
+  return { child, stdout: child.stdout, stderr: child.stderr };
+}
+
+function waitForLine(
+  child: ChildProcess,
+  stdout: NodeJS.ReadableStream,
+  line: string,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let buffer = '';
+    const onData = (chunk: Buffer) => {
+      buffer += chunk.toString();
+      if (buffer.includes(line)) {
+        cleanup();
+        resolve();
+      }
+    };
+    const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
+      cleanup();
+      reject(new Error(`child exited before printing '${line}' (code ${code}, signal ${signal})`));
+    };
+    const cleanup = () => {
+      stdout.off('data', onData);
+      child.off('exit', onExit);
+    };
+    stdout.on('data', onData);
+    child.once('exit', onExit);
+  });
+}
+
+function waitForExit(
+  child: ChildProcess,
+): Promise<{ code: number | null; signal: NodeJS.Signals | null; stderr: string }> {
+  return new Promise((resolve) => {
+    let stderr = '';
+    child.stderr?.on('data', (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
+    child.once('exit', (code, signal) => resolve({ code, signal, stderr }));
+  });
+}
 
 test('createDbClient sets concurrency pragmas on in-memory databases', () => {
   const { sqlite } = createDbClient(':memory:');
@@ -33,7 +93,7 @@ test('createDbClient enables WAL on file-backed databases', () => {
   }
 });
 
-const CHILD_SCRIPT = `
+const CONTENTION_SCRIPT = `
   const Database = require('better-sqlite3');
   const db = new Database(process.argv[1]); // argv[1] = dbFile (node -e)
   db.exec('BEGIN IMMEDIATE');
@@ -41,18 +101,6 @@ const CHILD_SCRIPT = `
   console.log('LOCKED');
   setTimeout(() => { db.exec('COMMIT'); process.exit(0); }, 1000);
 `;
-
-function waitForLine(stream: NodeJS.ReadableStream, line: string): Promise<void> {
-  return new Promise((resolve) => {
-    const onData = (chunk: Buffer) => {
-      if (chunk.toString().includes(line)) {
-        stream.off('data', onData);
-        resolve();
-      }
-    };
-    stream.on('data', onData);
-  });
-}
 
 test(
   'a contended write waits out an external writer instead of failing with SQLITE_BUSY',
@@ -63,20 +111,14 @@ test(
     const { sqlite } = createDbClient(dbFile);
     sqlite.exec('CREATE TABLE IF NOT EXISTS busy_lock_test (id INTEGER PRIMARY KEY)');
 
-    // cwd: the apps/api package root, so the child can require('better-sqlite3').
-    const child = spawn(process.execPath, ['-e', CHILD_SCRIPT, dbFile], {
-      cwd: new URL('../../', import.meta.url),
-    });
-    if (!child.stdout) {
-      throw new Error('child process has no stdout pipe');
-    }
+    const { child, stdout } = spawnNode(CONTENTION_SCRIPT, [dbFile]);
 
     try {
-      await waitForLine(child.stdout, 'LOCKED');
+      await waitForLine(child, stdout, 'LOCKED');
       const started = Date.now();
       sqlite.prepare('INSERT INTO busy_lock_test DEFAULT VALUES').run();
-      // Without busy_timeout the line above throws SQLITE_BUSY immediately.
-      // The child holds the lock for ~1s, so the write must have waited.
+      // The child holds the lock for ~1s, so this write must have waited for
+      // it; without any busy timeout it would throw SQLITE_BUSY immediately.
       assert.ok(Date.now() - started >= 200, 'write should have waited for the lock');
     } finally {
       child.kill();
@@ -85,3 +127,199 @@ test(
     }
   },
 );
+
+const ISOLATION_SCRIPT = `
+  const Database = require('better-sqlite3');
+  const db = new Database(process.argv[1]);
+  db.exec('BEGIN IMMEDIATE');
+  db.prepare("INSERT INTO isolation_test (note) VALUES ('pending')").run();
+  console.log('LOCKED');
+  setTimeout(() => { db.exec('COMMIT'); process.exit(0); }, 1000);
+`;
+
+test(
+  'readers are not blocked by an open writer transaction and only see committed rows',
+  { timeout: 15_000 },
+  async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'yotara-isolation-'));
+    const dbFile = join(dir, 'test.db');
+    const { sqlite } = createDbClient(dbFile);
+    sqlite.exec(`CREATE TABLE isolation_test (
+      id INTEGER PRIMARY KEY,
+      note TEXT NOT NULL
+    )`);
+    sqlite.prepare(`INSERT INTO isolation_test (note) VALUES ('committed')`).run();
+
+    const { child, stdout } = spawnNode(ISOLATION_SCRIPT, [dbFile]);
+    const exitPromise = waitForExit(child);
+
+    try {
+      await waitForLine(child, stdout, 'LOCKED');
+
+      // In WAL mode the read must complete while the writer holds its
+      // transaction (well under the child's 1s hold) and must not see the
+      // uncommitted row.
+      const started = Date.now();
+      const rowsBefore = sqlite.prepare(`SELECT note FROM isolation_test ORDER BY id`).all();
+      const readElapsed = Date.now() - started;
+
+      assert.deepEqual(rowsBefore, [{ note: 'committed' }], 'uncommitted rows must stay invisible');
+      assert.ok(readElapsed < 700, `read must not wait for the writer (took ${readElapsed}ms)`);
+
+      const result = await exitPromise;
+      assert.equal(result.code, 0, result.stderr);
+
+      const rowsAfter = sqlite.prepare(`SELECT note FROM isolation_test ORDER BY id`).all();
+      assert.deepEqual(rowsAfter, [{ note: 'committed' }, { note: 'pending' }]);
+    } finally {
+      child.kill();
+      sqlite.close();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  },
+);
+
+const STRESS_SCRIPT = `
+  const Database = require('better-sqlite3');
+  const db = new Database(process.argv[1]);
+  db.pragma('busy_timeout = 5000');
+  db.pragma('synchronous = NORMAL');
+  const worker = process.argv[2];
+  const txns = Number(process.argv[3]);
+  const insert = db.prepare('INSERT INTO stress_test (worker) VALUES (?)');
+  for (let i = 0; i < txns; i += 1) {
+    db.exec('BEGIN IMMEDIATE');
+    insert.run(worker);
+    db.exec('COMMIT');
+  }
+`;
+
+test(
+  'concurrent writer processes queue without SQLITE_BUSY failures',
+  { timeout: 30_000 },
+  async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'yotara-stress-'));
+    const dbFile = join(dir, 'test.db');
+    const { sqlite } = createDbClient(dbFile);
+    sqlite.exec(`CREATE TABLE stress_test (
+      id INTEGER PRIMARY KEY,
+      worker TEXT NOT NULL
+    )`);
+
+    const workers = ['a', 'b', 'c'];
+    const txnsPerWorker = 25;
+    const children = workers.map((worker) =>
+      spawnNode(STRESS_SCRIPT, [dbFile, worker, String(txnsPerWorker)]),
+    );
+    const exitPromises = children.map(({ child }) => waitForExit(child));
+
+    try {
+      const results = await Promise.all(exitPromises);
+      results.forEach((result, index) => {
+        assert.equal(result.code, 0, `worker ${workers[index]} failed: ${result.stderr}`);
+      });
+
+      const { n } = sqlite.prepare(`SELECT COUNT(*) AS n FROM stress_test`).get() as { n: number };
+      assert.equal(n, workers.length * txnsPerWorker, 'every transaction must be committed');
+
+      const { worker_count: workerCount } = sqlite
+        .prepare(`SELECT COUNT(DISTINCT worker) AS worker_count FROM stress_test`)
+        .get() as { worker_count: number };
+      assert.equal(workerCount, workers.length, 'every worker must have made progress');
+    } finally {
+      for (const { child } of children) {
+        child.kill();
+      }
+      sqlite.close();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  },
+);
+
+const CRASH_MID_TXN_SCRIPT = `
+  const Database = require('better-sqlite3');
+  const db = new Database(process.argv[1]);
+  db.pragma('synchronous = NORMAL');
+  db.exec('BEGIN IMMEDIATE');
+  db.prepare("INSERT INTO crash_test (note) VALUES ('pending')").run();
+  console.log('LOCKED');
+  setTimeout(() => {}, 60000);
+`;
+
+test('SIGKILL during an open write transaction rolls back and leaves the database intact', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'yotara-crash-mid-'));
+  const dbFile = join(dir, 'test.db');
+  const { sqlite } = createDbClient(dbFile);
+  sqlite.exec(`CREATE TABLE crash_test (
+    id INTEGER PRIMARY KEY,
+    note TEXT NOT NULL
+  )`);
+
+  const { child, stdout } = spawnNode(CRASH_MID_TXN_SCRIPT, [dbFile]);
+  const exitPromise = waitForExit(child);
+
+  try {
+    await waitForLine(child, stdout, 'LOCKED');
+    child.kill('SIGKILL');
+    const result = await exitPromise;
+    assert.equal(result.signal, 'SIGKILL');
+
+    assert.equal(sqlite.pragma('integrity_check', { simple: true }), 'ok');
+    const { pending } = sqlite
+      .prepare(`SELECT COUNT(*) AS pending FROM crash_test WHERE note = 'pending'`)
+      .get() as { pending: number };
+    assert.equal(pending, 0, 'an uncommitted write must not survive a crashed writer');
+
+    // The crashed writer's lock must be released and the file writable again.
+    sqlite.prepare(`INSERT INTO crash_test (note) VALUES ('after-crash')`).run();
+    const { total } = sqlite.prepare(`SELECT COUNT(*) AS total FROM crash_test`).get() as {
+      total: number;
+    };
+    assert.equal(total, 1);
+  } finally {
+    child.kill();
+    sqlite.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+const CRASH_AFTER_COMMIT_SCRIPT = `
+  const Database = require('better-sqlite3');
+  const db = new Database(process.argv[1]);
+  db.pragma('synchronous = NORMAL');
+  db.exec('BEGIN IMMEDIATE');
+  db.prepare("INSERT INTO crash_test (note) VALUES ('committed')").run();
+  db.exec('COMMIT');
+  console.log('COMMITTED');
+  setTimeout(() => {}, 60000);
+`;
+
+test('SIGKILL after COMMIT preserves the committed write', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'yotara-crash-after-'));
+  const dbFile = join(dir, 'test.db');
+  const { sqlite } = createDbClient(dbFile);
+  sqlite.exec(`CREATE TABLE crash_test (
+    id INTEGER PRIMARY KEY,
+    note TEXT NOT NULL
+  )`);
+
+  const { child, stdout } = spawnNode(CRASH_AFTER_COMMIT_SCRIPT, [dbFile]);
+  const exitPromise = waitForExit(child);
+
+  try {
+    await waitForLine(child, stdout, 'COMMITTED');
+    child.kill('SIGKILL');
+    const result = await exitPromise;
+    assert.equal(result.signal, 'SIGKILL');
+
+    assert.equal(sqlite.pragma('integrity_check', { simple: true }), 'ok');
+    const { committed } = sqlite
+      .prepare(`SELECT COUNT(*) AS committed FROM crash_test WHERE note = 'committed'`)
+      .get() as { committed: number };
+    assert.equal(committed, 1, 'a committed write must survive a crashed writer process');
+  } finally {
+    child.kill();
+    sqlite.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
