@@ -1,6 +1,6 @@
 # Plan: SQLite Concurrency Hardening & Architectural Scaling Docs
 
-> **Status:** Active Plan
+> **Status:** Completed — 2026-10-15 (PR #404)
 > **Owner:** @apauldev
 > **Date:** 2026-10-15
 >
@@ -154,3 +154,19 @@ pnpm lint
 | Power loss with `synchronous = NORMAL` can roll back the most recent commits | Accepted and documented: the database is never corrupted, only the newest commits may be lost. Switch to `FULL` if the durability requirement changes. |
 | In-memory test databases (`:memory:`) cannot use WAL | Assertions cover both paths individually: `:memory:` keeps `journal_mode = 'memory'`; a temp-file database asserts `'wal'`. |
 | Docs drift against CI scripts | Verified using automated `pnpm docs:check:env` test. |
+
+---
+
+## 5. Outcome (as implemented)
+
+Shipped 2026-10-15 in PR [#404](https://github.com/apauldev/Yotara/pull/404) (`feat/sqlite-concurrency-hardening`):
+
+1. **Pragmas** — as planned: `busy_timeout = 5000` before the schema bootstrap and `synchronous = NORMAL` after `journal_mode = WAL` in `apps/api/src/db/client.ts`.
+2. **Tests** — beyond the planned pragma-value and contention tests, `apps/api/src/db/` now covers:
+   - `pragmas.test.ts`: pragma pins on `:memory:` and file-backed databases, a contended write queueing behind an external writer, reader isolation during an open writer transaction, three-writer stress with zero lost transactions, and SIGKILL crash safety (mid-transaction rollback and post-`COMMIT` durability).
+   - `http-write-contention.test.ts`: an authenticated HTTP write queues behind an external process holding the write lock and lands once it is released.
+   - `backup.test.ts`: an online `sqlite.backup()` snapshot taken while another process commits is valid and contains every row committed by snapshot time (WAL-safe; copying only the `.db` file would silently drop them).
+   - Shared child-process helpers live in `test-child-helpers.ts`.
+3. **Tooling** — `pnpm --filter @yotara/api bench:sqlite` (opt-in, not CI) measures `synchronous = NORMAL` vs `FULL` and multi-process contention on one file. First local sample (M-series/APFS): ~165k writes/s (NORMAL) vs 15–41k writes/s (FULL) single-connection; ~120k writes/s aggregate across 4 processes with zero lost writes. The figures measure the raw commit path (tiny rows, no application logic) and are machine-specific.
+4. **CI** — new `test-api-macos` job runs the API suite on macOS (APFS locking and fsync semantics differ from Linux) and repeats the timing-sensitive SQLite tests 5x as a flake soak.
+5. **Docs** — `ARCHITECTURE.md` and `CONFIGURATION.md` updated as described in Tasks 3 and 4; the Task 3 capacity estimates remain order-of-magnitude planning figures.

@@ -1,6 +1,6 @@
 # SQLite Concurrency Hardening & Scaling Docs Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Status:** Completed 2026-10-15 in PR [#404](https://github.com/apauldev/Yotara/pull/404). All steps below were executed; the additional tests, benchmark, and macOS CI job are summarized in the [spec's outcome section](../../plans/2026-10-15-sqlite-scaling-and-concurrency.md#5-outcome-as-implemented).
 
 **Goal:** Pin SQLite's runtime concurrency pragmas (`busy_timeout = 5000`, `synchronous = NORMAL`) explicitly so the contract is visible, tested, and independent of better-sqlite3 defaults (its constructor default busy timeout is already 5000ms; `synchronous` defaults to `FULL`), and thoroughly document capacity estimates, scaling limits, and PostgreSQL graduation criteria in `docs/ARCHITECTURE.md`.
 
@@ -18,7 +18,7 @@
 - Create: `apps/api/src/db/pragmas.test.ts`
 - Modify: `apps/api/src/db/client.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 Create `apps/api/src/db/pragmas.test.ts` with pragma-value tests for both database flavors:
 ```ts
 import assert from 'node:assert/strict';
@@ -56,7 +56,7 @@ test('createDbClient enables WAL on file-backed databases', () => {
 });
 ```
 
-- [ ] **Step 2: Add the multi-process contention test**
+- [x] **Step 2: Add the multi-process contention test**
 Append to `pragmas.test.ts` (merge the `spawn` import into the existing import block). This must use a child process — better-sqlite3 is synchronous, so an in-process contender would block the thread that needs to release the lock and could only ever run out the timeout.
 ```ts
 import { spawn } from 'node:child_process';
@@ -108,10 +108,10 @@ test('a contended write waits out an external writer instead of failing with SQL
 });
 ```
 
-- [ ] **Step 3: Run tests to confirm failure**
+- [x] **Step 3: Run tests to confirm failure**
 Run `pnpm --filter @yotara/api test` and verify both pragma tests fail on `synchronous` (better-sqlite3 defaults to `FULL` = 2). `busy_timeout` already reads 5000 from better-sqlite3's constructor default, and the contention test also passes pre-fix — that is expected; the explicit pragma pins the contract and the assertions lock it in.
 
-- [ ] **Step 4: Update `apps/api/src/db/client.ts`**
+- [x] **Step 4: Update `apps/api/src/db/client.ts`**
 Set the two pragmas at two points in `createDbClient` (order matters):
 1. Right after `const sqlite = new Database(databasePath);`, **before** `ensureSqliteSchema(sqlite)`, so the schema bootstrap's `BEGIN IMMEDIATE` also waits out external writers (this pins better-sqlite3's constructor default explicitly):
 ```ts
@@ -130,7 +130,7 @@ sqlite.pragma('busy_timeout = 5000');
 sqlite.pragma('synchronous = NORMAL');
 ```
 
-- [ ] **Step 5: Run tests to confirm they pass**
+- [x] **Step 5: Run tests to confirm they pass**
 Run `pnpm --filter @yotara/api test` and verify all tests pass.
 
 ---
@@ -140,7 +140,7 @@ Run `pnpm --filter @yotara/api test` and verify all tests pass.
 **Files:**
 - Modify: `docs/ARCHITECTURE.md`
 
-- [ ] **Step 1: Expand "SQLite first" section**
+- [x] **Step 1: Expand "SQLite first" section**
 Document:
 1. Concurrency model: WAL non-blocking reads, serialized immediate write transactions, and the fact that a single synchronous connection serializes in-process calls — cross-process writers (clustering, CLI/`.backup`, Litestream) are the real contention source.
 2. Pragma tuning (`journal_mode = WAL`, `synchronous = NORMAL`, `busy_timeout = 5000`), including:
@@ -158,13 +158,13 @@ Document:
 **Files:**
 - Modify: `docs/CONFIGURATION.md`
 
-- [ ] **Step 1: Add a storage/pragma note near the `DATABASE_URL` row**
+- [x] **Step 1: Add a storage/pragma note near the `DATABASE_URL` row**
 Document:
 1. Runtime pragma defaults: `journal_mode = WAL`, `synchronous = NORMAL`, `busy_timeout = 5000`.
 2. WAL sidecar files (`-wal`/`-shm`) live next to the database file: filesystem-level backups must include or checkpoint them, or use `sqlite3 .backup`.
 
-- [ ] **Step 2: Run checks**
-  - [ ] `pnpm docs:check:env`
-  - [ ] `pnpm typecheck`
-  - [ ] `pnpm test`
-  - [ ] `pnpm lint`
+- [x] **Step 2: Run checks**
+  - [x] `pnpm docs:check:env`
+  - [x] `pnpm typecheck`
+  - [x] `pnpm test`
+  - [x] `pnpm lint`
