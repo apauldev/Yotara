@@ -18,6 +18,8 @@ import {
   classifyDockerTagResponse,
   pollUntilReady,
   selectRollbackBackup,
+  composeBackupStamp,
+  selectDbBackupForRollback,
   backupSucceeded,
   normalizeLineEndings,
   pullWithComposeRestore,
@@ -136,11 +138,27 @@ test('parseDeployArgs accepts documented flags and maps dry-run to check mode', 
     noBackup: true,
     force: false,
     rollback: false,
+    restoreDb: false,
     host: undefined,
     help: false,
   });
   assert.equal(parseDeployArgs(['--dry-run']).check, true);
   assert.equal(parseDeployArgs(['--check']).check, true);
+});
+
+test('parseDeployArgs tolerates the separator forwarded by `pnpm run deploy -- ...`', () => {
+  assert.deepEqual(parseDeployArgs(['--', '--version', 'v1.2.3', '--yes']), {
+    version: 'v1.2.3',
+    check: false,
+    yes: true,
+    noBackup: false,
+    force: false,
+    rollback: false,
+    restoreDb: false,
+    host: undefined,
+    help: false,
+  });
+  assert.equal(parseDeployArgs(['--', '--restore-db', '--rollback']).restoreDb, true);
 });
 
 test('parseDeployArgs rejects unknown flags, positionals, and missing values', () => {
@@ -301,6 +319,35 @@ test('selectRollbackBackup makes rollback reversible between distinct versions',
     selectRollbackBackup(snapshots, '2026-10-11T061500Z', 'v0.79.1'),
     'compose.bak.2026-10-11T060000Z',
   );
+});
+
+test('composeBackupStamp reads fixed-width UTC stamps and rejects other names', () => {
+  assert.equal(
+    composeBackupStamp('docker-compose.hub.yml.bak.2026-10-15T113544Z'),
+    '2026-10-15T113544Z',
+  );
+  assert.equal(composeBackupStamp('compose.bak.invalid'), null);
+  assert.equal(composeBackupStamp('docker-compose.hub.yml'), null);
+});
+
+test('selectDbBackupForRollback picks the newest snapshot older than the compose backup', () => {
+  const names = [
+    'yotara-latest.db',
+    'yotara-2026-10-14T090000Z.db',
+    'yotara-2026-10-15T113544Z.db',
+    'yotara-2026-10-15T113544Z.db.sha256',
+    'yotara-not-a-stamp.db',
+    'yotara-2026-10-15T120000Z.db',
+  ];
+  // The chosen compose backup was taken at 113545Z, moments after the DB backup
+  // from the same deploy; the 12:00 snapshot is newer and must not be picked.
+  assert.equal(
+    selectDbBackupForRollback(names, '2026-10-15T113545Z'),
+    'yotara-2026-10-15T113544Z.db',
+  );
+  assert.equal(selectDbBackupForRollback(names, '2026-10-14T085959Z'), null);
+  assert.equal(selectDbBackupForRollback(names, 'not-a-stamp'), null);
+  assert.equal(selectDbBackupForRollback([], '2026-10-15T113545Z'), null);
 });
 
 test('pullWithComposeRestore preserves the target compose when the pull succeeds', () => {

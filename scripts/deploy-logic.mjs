@@ -97,9 +97,18 @@ export function resolveTargetVersion({ override, describeResult, sortedTags = []
   return { version: version.startsWith('v') ? version : `v${version}`, source };
 }
 
+/**
+ * `pnpm run deploy -- <flags>` forwards the separator through to the script,
+ * and `parseArgs` would then treat every following flag as a positional.
+ * Drop bare separators so direct and package-manager invocations parse alike.
+ */
+export function stripArgSeparator(args) {
+  return (Array.isArray(args) ? args : []).filter((arg) => arg !== '--');
+}
+
 export function parseDeployArgs(args) {
   const { values } = parseArgs({
-    args,
+    args: stripArgSeparator(args),
     options: {
       version: { type: 'string' },
       check: { type: 'boolean', default: false },
@@ -108,6 +117,7 @@ export function parseDeployArgs(args) {
       'no-backup': { type: 'boolean', default: false },
       force: { type: 'boolean', default: false },
       rollback: { type: 'boolean', default: false },
+      'restore-db': { type: 'boolean', default: false },
       host: { type: 'string' },
       help: { type: 'boolean', default: false },
     },
@@ -120,6 +130,7 @@ export function parseDeployArgs(args) {
     noBackup: values['no-backup'],
     force: values.force,
     rollback: values.rollback,
+    restoreDb: values['restore-db'],
     host: values.host,
     help: values.help,
   };
@@ -218,6 +229,42 @@ export function selectRollbackBackup(backups, currentStamp, currentVersion) {
     .sort((a, b) => {
       const aStamp = String(a.name).split('.bak.').pop();
       const bStamp = String(b.name).split('.bak.').pop();
+      return aStamp < bStamp ? 1 : aStamp > bStamp ? -1 : 0;
+    });
+
+  return candidates[0]?.name ?? null;
+}
+
+/** Extract the fixed-width UTC stamp from a `...bak.<stamp>` compose backup name. */
+export function composeBackupStamp(name) {
+  const text = String(name);
+  if (!text.includes('.bak.')) {
+    return null;
+  }
+  const stamp = text.split('.bak.').pop();
+  return /^\d{4}-\d{2}-\d{2}T\d{6}Z$/.test(stamp) ? stamp : null;
+}
+
+const DB_BACKUP_NAME_PATTERN = /^yotara-(\d{4}-\d{2}-\d{2}T\d{6}Z)\.db$/;
+
+/**
+ * Choose the DB snapshot for a `--restore-db` rollback. Deploys take the DB
+ * backup moments before the compose backup, so the newest `yotara-*.db` with a
+ * stamp strictly older than the selected compose backup is the snapshot from
+ * before the currently deployed version (i.e. its schema, without its writes).
+ * `yotara-latest.db` and `.sha256` companions never match the name pattern.
+ * Returns the backup file name, or null when no eligible snapshot exists.
+ */
+export function selectDbBackupForRollback(backupNames, composeStamp) {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{6}Z$/.test(String(composeStamp))) {
+    return null;
+  }
+  const candidates = (Array.isArray(backupNames) ? backupNames : [])
+    .map((name) => ({ name: String(name), match: DB_BACKUP_NAME_PATTERN.exec(String(name)) }))
+    .filter(({ match }) => match !== null && match[1] < composeStamp)
+    .sort((a, b) => {
+      const aStamp = a.match?.[1] ?? '';
+      const bStamp = b.match?.[1] ?? '';
       return aStamp < bStamp ? 1 : aStamp > bStamp ? -1 : 0;
     });
 
