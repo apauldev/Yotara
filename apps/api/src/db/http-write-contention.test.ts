@@ -77,6 +77,8 @@ test(
       child?.kill();
       await app.close();
       rmSync(dbFile, { force: true });
+      rmSync(`${dbFile}-wal`, { force: true });
+      rmSync(`${dbFile}-shm`, { force: true });
       delete process.env['DATABASE_URL'];
       delete process.env['BETTER_AUTH_SECRET'];
       delete process.env['APP_BASE_URL'];

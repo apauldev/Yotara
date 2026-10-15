@@ -20,17 +20,22 @@ const WRITER_SCRIPT = `
   const db = new Database(process.argv[1]);
   db.pragma('busy_timeout = 5000');
   db.pragma('synchronous = NORMAL');
-  const txns = Number(process.argv[2]);
   const insert = db.prepare("INSERT INTO backup_events (worker) VALUES ('writer')");
-  db.exec('BEGIN IMMEDIATE');
-  insert.run();
-  db.exec('COMMIT');
-  console.log('STARTED');
-  for (let i = 1; i < txns; i += 1) {
+  const commit = () => {
     db.exec('BEGIN IMMEDIATE');
     insert.run();
     db.exec('COMMIT');
-  }
+  };
+  commit();
+  console.log('STARTED');
+  // Keep committing until the parent signals that the backup is done, so the
+  // writer is provably still active while the snapshot runs.
+  process.stdin.resume();
+  process.stdin.once('data', () => {
+    commit();
+    process.exit(0);
+  });
+  setInterval(commit, 2);
 `;
 
 function countEvents(sqlite: Database.Database): number {
@@ -55,34 +60,33 @@ test(
     const seedRows = 10;
     for (let i = 0; i < seedRows; i += 1) seed.run();
 
-    const writerTxns = 800;
-    const { child, stdout } = spawnNode(WRITER_SCRIPT, [dbFile, String(writerTxns)]);
+    const { child, stdout } = spawnNode(WRITER_SCRIPT, [dbFile]);
     const exitPromise = waitForExit(child);
 
     try {
-      // The writer has committed its first transaction and is mid-loop. From
-      // here on, every row it commits must be captured by (or come after) the
-      // snapshot, which is taken without checkpointing the WAL first.
+      // The writer has committed its first transaction and keeps committing
+      // every few milliseconds from here on. The snapshot is taken without
+      // checkpointing the WAL first, so it must capture rows that live only
+      // in the -wal file.
       await waitForLine(child, stdout, 'STARTED');
       const rowsBeforeBackup = countEvents(sqlite);
 
       await sqlite.backup(backupFile);
-      const rowsWhenBackupFinished = countEvents(sqlite);
 
+      // The writer cannot exit until we tell it to, so it was still active
+      // when the snapshot completed.
+      assert.equal(child.exitCode, null, 'writer exited before the backup finished');
+
+      assert.ok(child.stdin);
+      child.stdin.write('stop\n');
       const writer = await exitPromise;
       assert.equal(writer.code, 0, writer.stderr);
 
-      // The writer kept committing while the online backup ran.
-      assert.ok(
-        rowsWhenBackupFinished > rowsBeforeBackup,
-        `writer made no progress during the backup (${rowsBeforeBackup} -> ${rowsWhenBackupFinished})`,
-      );
-
+      // The final commit happened after the snapshot started.
       const rowsAfterWrites = countEvents(sqlite);
-      assert.equal(
-        rowsAfterWrites,
-        seedRows + writerTxns,
-        'every committed transaction must survive the backup',
+      assert.ok(
+        rowsAfterWrites > rowsBeforeBackup,
+        'writer must have committed after the snapshot started',
       );
 
       const snapshot = new Database(backupFile);

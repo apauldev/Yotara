@@ -39,12 +39,18 @@ export function waitForLine(
       cleanup();
       reject(new Error(`child exited before printing '${line}' (code ${code}, signal ${signal})`));
     };
+    const onError = (error: Error) => {
+      cleanup();
+      reject(new Error(`child failed while waiting for '${line}': ${error.message}`));
+    };
     const cleanup = () => {
       stdout.off('data', onData);
       child.off('exit', onExit);
+      child.off('error', onError);
     };
     stdout.on('data', onData);
     child.once('exit', onExit);
+    child.once('error', onError);
   });
 }
 

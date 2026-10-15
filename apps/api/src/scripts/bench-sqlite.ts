@@ -104,24 +104,41 @@ function startWorker(file: string, txns: number): Promise<Worker> {
 
     let stderr = '';
     let ready = false;
+    let finish: (error?: Error) => void = () => undefined;
+
+    const done = new Promise<void>((resolvePromise, rejectPromise) => {
+      finish = (error) => {
+        if (error) {
+          rejectPromise(error);
+        } else {
+          resolvePromise();
+        }
+      };
+    });
+
+    const fail = (message: string): void => {
+      const error = new Error(`${message}${stderr ? `:\n${stderr}` : ''}`);
+      // Errors after READY belong to the worker's result; errors before it
+      // mean the worker never became usable, so settle the outer promise.
+      if (ready) {
+        finish(error);
+      } else {
+        reject(error);
+      }
+    };
+
     child.stderr?.on('data', (chunk: Buffer) => {
       stderr += chunk.toString();
     });
-
-    const done = new Promise<void>((resolveDone, rejectDone) => {
-      child.once('error', rejectDone);
-      child.once('exit', (code) => {
-        if (code === 0) {
-          resolveDone();
-          return;
-        }
-        const error = new Error(`worker exited with code ${code}${stderr ? `:\n${stderr}` : ''}`);
-        if (ready) {
-          rejectDone(error);
-        } else {
-          reject(error);
-        }
-      });
+    child.once('error', (error) => fail(`worker failed to spawn: ${error.message}`));
+    child.once('exit', (code) => {
+      if (code === 0 && ready) {
+        finish();
+        return;
+      }
+      fail(
+        code === 0 ? 'worker exited before signaling readiness' : `worker exited with code ${code}`,
+      );
     });
 
     child.stdout?.on('data', (chunk: Buffer) => {
