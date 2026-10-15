@@ -509,6 +509,13 @@ export function createDbClient(databaseUrl = process.env['DATABASE_URL'] ?? DEFA
 
   const sqlite = new Database(databasePath);
 
+  // Queue write transactions for up to 5000ms instead of failing immediately
+  // with SQLITE_BUSY when another process (backup, CLI, clustered instance)
+  // holds the write lock. Set before the schema bootstrap so it benefits too.
+  // (better-sqlite3's constructor default is also 5000ms; this pins the value
+  // explicitly so the contract is visible, tested, and independent of it.)
+  sqlite.pragma('busy_timeout = 5000');
+
   // 7a. Tighten permissions on the database file only (avoid chmodding shared dirs)
   if (databasePath !== ':memory:') {
     try {
@@ -521,6 +528,11 @@ export function createDbClient(databaseUrl = process.env['DATABASE_URL'] ?? DEFA
   ensureSqliteSchema(sqlite);
 
   sqlite.pragma('journal_mode = WAL');
+
+  // In WAL mode, synchronous = NORMAL avoids an fsync on every commit while
+  // staying safe against application and OS crashes. A power loss can roll
+  // back the most recent commits, but never corrupts the database.
+  sqlite.pragma('synchronous = NORMAL');
 
   const db = drizzle(sqlite, { schema });
   return { db, sqlite, databasePath };
