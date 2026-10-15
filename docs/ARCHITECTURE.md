@@ -1,6 +1,6 @@
 # Architecture Guide — Yotara
 
-> **Status:** Living architectural reference. Last reviewed 2026-07-31.
+> **Status:** Living architectural reference. Last reviewed 2026-10-15.
 > **Owner:** @apauldev
 >
 > This document describes architecture, durable engineering decisions, and
@@ -17,7 +17,8 @@ pnpm monorepo. The current product is substantially beyond the original MVP:
   shared UI primitives.
 - Fastify 5 API with a route → service → database shape.
 - SQLite with Drizzle ORM, transactional multi-table writes, startup schema
-  bootstrap, timestamp normalization, and database permission hardening.
+  bootstrap, WAL mode with pinned concurrency pragmas, timestamp normalization,
+  and database permission hardening.
 - Better Auth session-cookie authentication, password reset email flow,
   account deletion, rate limiting, login lockout, and security headers.
 - Email verification is enforced in production: `emailVerificationRequired()`
@@ -104,6 +105,72 @@ SQLite is the default because Yotara targets a self-hosted personal workload:
 one portable database, low operational overhead, simple backup, and no
 required database service. Any future team-mode storage change must be driven
 by measured requirements rather than premature abstraction.
+
+#### Concurrency model
+
+`createDbClient` (`apps/api/src/db/client.ts`) opens the database in WAL mode
+and pins three pragmas on every connection:
+
+- `journal_mode = WAL` — readers never block the writer and the writer never
+  blocks readers.
+- `synchronous = NORMAL` — skips the per-commit fsync, which is safe against
+  application and OS crashes in WAL mode. A power loss can roll back the most
+  recent commits, but never corrupts the database.
+- `busy_timeout = 5000` — a writer waits up to five seconds for the SQLite
+  write lock before failing with `SQLITE_BUSY`. The value is pinned explicitly
+  rather than inherited from better-sqlite3's constructor default, and it is
+  set before the schema bootstrap so startup also waits out an external
+  writer.
+
+All multi-statement write paths acquire their locks up front with immediate
+transactions (`BEGIN IMMEDIATE`, or Drizzle's `{ behavior: 'immediate' }`),
+which prevents lock-upgrade deadlocks.
+
+The API runs a single synchronous connection, and better-sqlite3 is
+synchronous, so in-process calls are serialized by the event loop and cannot
+contend with each other. Contention is a multi-process concern: a clustered
+API instance, `sqlite3` CLI or `.backup` scripts, Litestream, or test
+processes sharing the file. Because a busy wait blocks the event loop of the
+waiting process, the five-second ceiling is only acceptable while the app is a
+single process; revisit it if process clustering is introduced.
+
+#### Capacity expectations
+
+These are order-of-magnitude planning estimates, not benchmark results.
+Assumptions: NVMe/SSD storage, a read-heavy personal-task workload, and a
+single API process.
+
+- ~1,000 write ops/sec and >10,000 read ops/sec per node.
+- 50,000–100,000 registered users and 10,000–25,000 daily active users, with
+  500–1,500 concurrently active users, fit a single SQLite deployment.
+
+Validate them against production metrics before they inform a decision; the
+graduation criteria below — not these estimates — trigger a migration.
+
+#### What breaks first
+
+1. CPU: the single Node.js event loop. Process clustering is the first lever.
+2. Write serialization: sustained writes above roughly 500 ops/sec across
+   clustered processes. Busy waits block the waiting process's event loop for
+   up to the timeout, so contention surfaces as latency, not errors.
+3. Backup duration: once the database approaches tens of gigabytes, snapshot
+   copies become a visible maintenance window.
+
+#### PostgreSQL graduation criteria
+
+Migrate off SQLite when one of these is measured, not projected:
+
+1. Multi-node active-active horizontal scaling is required.
+2. Team collaboration sustains >500 writes/sec and contention is measured.
+3. Cross-region multi-master replication is required.
+
+#### High availability and disaster recovery
+
+Backups use `sqlite3 .backup` (or an equivalent checkpointing backup), which
+is WAL-safe while the API is running. Copying only the `.db` file is not: the
+`-wal`/`-shm` sidecar files carry committed data until checkpointed. A future
+continuous-replication path (sub-second snapshots to S3/R2 via Litestream) is
+compatible with this setup and needs no schema changes.
 
 ### Explicit timezone handling
 
