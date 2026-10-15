@@ -11,6 +11,7 @@ import {
   parseDeployedImageVersions,
   findImageVersionLine,
   parseDeployArgs,
+  buildBackupScriptCommand,
   buildComposeCommand,
   isValidComposeProjectName,
   isValidDockerImageName,
@@ -54,6 +55,24 @@ test('buildComposeCommand pins project, file, and working directory', () => {
       composeFile: '/home/ubuntu app/docker-compose.hub.yml',
     }),
     "cd '/home/ubuntu app' && docker compose --project-name 'ubuntu' -f '/home/ubuntu app/docker-compose.hub.yml'",
+  );
+});
+
+test('buildBackupScriptCommand forwards volume and backup dir with quoting', () => {
+  assert.equal(
+    buildBackupScriptCommand({
+      volume: 'ubuntu_yotara_api_data',
+      backupDir: '/opt/backups',
+    }),
+    "VOLUME='ubuntu_yotara_api_data' BACKUP_DIR='/opt/backups' RETENTION_DAYS=0 bash '/tmp/yotara-backup.sh'",
+  );
+  assert.equal(
+    buildBackupScriptCommand({
+      volume: 'vol it',
+      backupDir: "/opt/back'ups",
+      scriptPath: '/tmp/stub.sh',
+    }),
+    "VOLUME='vol it' BACKUP_DIR='/opt/back'\\''ups' RETENTION_DAYS=0 bash '/tmp/stub.sh'",
   );
 });
 

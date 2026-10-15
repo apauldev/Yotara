@@ -30,6 +30,22 @@ export function buildComposeCommand({ composeDir, project, composeFile }) {
   return `cd ${shellQuote(composeDir)} && docker compose --project-name ${shellQuote(project)} -f ${shellQuote(composeFile)}`;
 }
 
+/**
+ * Remote command that runs `ec2-backup.sh` with the deploy's volume and backup
+ * dir forwarded, so backups land where the restore path (`--restore-db`,
+ * snapshot selection) looks. RETENTION_DAYS=0: deploys never prune.
+ */
+export function buildBackupScriptCommand({
+  volume,
+  backupDir,
+  scriptPath = '/tmp/yotara-backup.sh',
+}) {
+  return (
+    `VOLUME=${shellQuote(volume)} BACKUP_DIR=${shellQuote(backupDir)} ` +
+    `RETENTION_DAYS=0 bash ${shellQuote(scriptPath)}`
+  );
+}
+
 /** True for `vX.Y.Z` or `X.Y.Z` (no pre-release/build metadata). */
 export function isValidVersion(version) {
   return /^v?\d+\.\d+\.\d+$/.test(String(version));

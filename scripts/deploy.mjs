@@ -22,6 +22,7 @@ import { createInterface } from 'node:readline';
 
 import {
   backupSucceeded,
+  buildBackupScriptCommand,
   buildComposeCommand,
   buildDbSnapshotRecordCommand,
   buildTagBumpScript,
@@ -399,13 +400,16 @@ function takeBackup(args) {
     die(`Could not upload the backup script: ${upload.stderr.trim()}`);
   }
 
-  const res = ssh('RETENTION_DAYS=0 bash /tmp/yotara-backup.sh', 900_000);
+  const res = ssh(
+    buildBackupScriptCommand({ volume: config.dbVolume, backupDir: config.backupDir }),
+    900_000,
+  );
   if (!backupSucceeded(`${res.stdout}\n${res.stderr}`)) {
     die(`DB backup failed — aborting before any change.\n\n${res.stdout}${res.stderr}`);
   }
 
   const match = res.stdout.match(/->\s+(\S+\.db)/);
-  const path = match ? match[1] : '(see /opt/backups)';
+  const path = match ? match[1] : `(see ${config.backupDir})`;
   ok(`backup ok: ${path}`);
   return path;
 }
