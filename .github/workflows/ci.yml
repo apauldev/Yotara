@@ -65,6 +65,35 @@ jobs:
       - name: Test
         run: pnpm test
 
+  # SQLite write locking, fsync behavior and file-lock semantics differ
+  # between Linux (ext4/overlayfs) and macOS (APFS), so the API suite -- which
+  # now includes child-process concurrency tests -- also runs on macOS. The
+  # timing-sensitive SQLite tests are repeated to catch flakes.
+  test-api-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.3
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: API tests (macOS)
+        run: pnpm --filter @yotara/api test
+      - name: SQLite concurrency soak (5 iterations)
+        run: |
+          cd apps/api
+          for i in 1 2 3 4 5; do
+            echo "soak iteration $i"
+            NODE_ENV=test pnpm exec tsx --test src/db/pragmas.test.ts src/db/backup.test.ts src/db/http-write-contention.test.ts
+          done
+
   coverage:
     runs-on: ubuntu-latest
     continue-on-error: true
