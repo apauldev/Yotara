@@ -26,16 +26,17 @@ test(
   { timeout: 20_000 },
   async () => {
     const dbFile = join(tmpdir(), `yotara-http-contention-${randomUUID()}.db`);
-    process.env['DATABASE_URL'] = dbFile;
-    process.env['BETTER_AUTH_SECRET'] = 'test-secret-with-enough-entropy-1234567890';
-    process.env['APP_BASE_URL'] = 'http://localhost:3000';
-
-    const { buildApp } = await import('../server.js');
-    const app = await buildApp();
-
+    let app: Awaited<ReturnType<(typeof import('../server.js'))['buildApp']>> | undefined;
     let child: ReturnType<typeof spawnNode>['child'] | undefined;
 
     try {
+      process.env['DATABASE_URL'] = dbFile;
+      process.env['BETTER_AUTH_SECRET'] = 'test-secret-with-enough-entropy-1234567890';
+      process.env['APP_BASE_URL'] = 'http://localhost:3000';
+
+      const { buildApp } = await import('../server.js');
+      app = await buildApp();
+
       // Sign up before contending so auth setup never races the child's lock.
       const { auth } = await import('../lib/auth.js');
       const signUp = await auth.api.signUpEmail({
@@ -75,7 +76,7 @@ test(
       assert.ok(labels.some((label) => label.name === 'Queued write'));
     } finally {
       child?.kill();
-      await app.close();
+      await app?.close();
       rmSync(dbFile, { force: true });
       rmSync(`${dbFile}-wal`, { force: true });
       rmSync(`${dbFile}-shm`, { force: true });
