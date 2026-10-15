@@ -235,6 +235,9 @@ export function selectRollbackBackup(backups, currentStamp, currentVersion) {
   return candidates[0]?.name ?? null;
 }
 
+const UTC_STAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{6}Z$/;
+const DB_BACKUP_NAME_PATTERN = /^yotara-(\d{4}-\d{2}-\d{2}T\d{6}Z)\.db$/;
+
 /** Extract the fixed-width UTC stamp from a `...bak.<stamp>` compose backup name. */
 export function composeBackupStamp(name) {
   const text = String(name);
@@ -242,26 +245,55 @@ export function composeBackupStamp(name) {
     return null;
   }
   const stamp = text.split('.bak.').pop();
-  return /^\d{4}-\d{2}-\d{2}T\d{6}Z$/.test(stamp) ? stamp : null;
+  return UTC_STAMP_PATTERN.test(stamp) ? stamp : null;
 }
 
-const DB_BACKUP_NAME_PATTERN = /^yotara-(\d{4}-\d{2}-\d{2}T\d{6}Z)\.db$/;
-
-/**
- * Choose the DB snapshot for a `--restore-db` rollback. Deploys take the DB
- * backup moments before the compose backup, so the newest `yotara-*.db` with a
- * stamp strictly older than the selected compose backup is the snapshot from
- * before the currently deployed version (i.e. its schema, without its writes).
- * `yotara-latest.db` and `.sha256` companions never match the name pattern.
- * Returns the backup file name, or null when no eligible snapshot exists.
- */
-export function selectDbBackupForRollback(backupNames, composeStamp) {
-  if (!/^\d{4}-\d{2}-\d{2}T\d{6}Z$/.test(String(composeStamp))) {
+/** Newest recognized compose-backup stamp strictly older than `beforeStamp`, or null. */
+export function previousComposeStamp(backupNames, beforeStamp) {
+  if (!UTC_STAMP_PATTERN.test(String(beforeStamp ?? ''))) {
     return null;
   }
+  const stamps = (Array.isArray(backupNames) ? backupNames : [])
+    .map((name) => composeBackupStamp(name))
+    .filter((stamp) => stamp !== null && stamp < beforeStamp)
+    .sort();
+  return stamps[stamps.length - 1] ?? null;
+}
+
+/** True when `value` is a `yotara-<utc-stamp>.db` snapshot file name. */
+export function isDbBackupName(value) {
+  return DB_BACKUP_NAME_PATTERN.test(String(value));
+}
+
+/**
+ * Choose the DB snapshot for a `--restore-db` rollback from a bounded window:
+ * `lowerStamp < snapshot stamp < upperStamp`. `upperStamp` is the chosen
+ * compose backup's stamp; `lowerStamp` is the nearest earlier compose backup
+ * (null when the caller has no earlier bound). Any match was therefore taken
+ * while the rollback target version was live, so cross-release snapshots can
+ * never be selected — and an unidentifiable window returns null instead of
+ * guessing. `yotara-latest.db` and `.sha256` companions never match the name
+ * pattern. Returns the newest eligible file name, or null when none exists.
+ */
+export function selectDbBackupForRollback(backupNames, { upperStamp, lowerStamp = null } = {}) {
+  if (!UTC_STAMP_PATTERN.test(String(upperStamp ?? ''))) {
+    return null;
+  }
+  if (
+    lowerStamp !== null &&
+    lowerStamp !== undefined &&
+    !UTC_STAMP_PATTERN.test(String(lowerStamp))
+  ) {
+    return null;
+  }
+  const lower = lowerStamp ?? null;
   const candidates = (Array.isArray(backupNames) ? backupNames : [])
     .map((name) => ({ name: String(name), match: DB_BACKUP_NAME_PATTERN.exec(String(name)) }))
-    .filter(({ match }) => match !== null && match[1] < composeStamp)
+    .filter(({ match }) => match !== null)
+    .filter(({ match }) => {
+      const stamp = match?.[1] ?? '';
+      return stamp < upperStamp && (lower === null || stamp > lower);
+    })
     .sort((a, b) => {
       const aStamp = a.match?.[1] ?? '';
       const bStamp = b.match?.[1] ?? '';
@@ -269,6 +301,33 @@ export function selectDbBackupForRollback(backupNames, composeStamp) {
     });
 
   return candidates[0]?.name ?? null;
+}
+
+/** Path of the association record that sits beside a compose backup. */
+export function dbSnapshotSidecarName(composeFile, stamp) {
+  return `${composeFile}.dbsnap.${stamp}`;
+}
+
+/**
+ * Parse a snapshot association record: the snapshot file name, `none` when the
+ * operation took no snapshot, or `invalid` for anything else (including empty).
+ */
+export function parseDbSnapshotRecord(text) {
+  const value = String(text ?? '').trim();
+  if (value === 'none') {
+    return { kind: 'none' };
+  }
+  if (DB_BACKUP_NAME_PATTERN.test(value)) {
+    return { kind: 'snapshot', name: value };
+  }
+  return { kind: 'invalid' };
+}
+
+/** Remote command that writes a compose backup's snapshot association record. */
+export function buildDbSnapshotRecordCommand(sidecarPath, snapshotName) {
+  const record =
+    snapshotName === null || snapshotName === undefined ? 'none' : String(snapshotName);
+  return `printf '%s\\n' ${shellQuote(record)} > ${shellQuote(sidecarPath)}`;
 }
 
 /** A backup run is only trusted when the integrity check passed. */

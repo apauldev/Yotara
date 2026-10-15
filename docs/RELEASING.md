@@ -163,14 +163,20 @@ It re-pulls, restarts, and verifies. By default it restores **code only** — th
 reverted (migrations are additive, so old code ignores newer columns/tables). It backs up the
 current compose first, so a rollback is itself reversible.
 
-`pnpm run deploy:rollback --restore-db` additionally reverts the database. It selects the newest
-`/opt/backups/yotara-*.db` snapshot taken *before* the compose backup being rolled back to — the
-snapshot from the deploy that introduced the currently deployed version — stops the api container,
-swaps that snapshot into the `ubuntu_yotara_api_data` volume (via rename, clearing stale
-`-wal`/`-shm` files), then re-pulls, restarts frontend-then-api, and verifies. **Writes made while
-the current version was deployed are discarded** (snapshot semantics). To keep the restore itself
-reversible, a fresh WAL-safe backup of the live DB is taken first and its path is printed.
-`--check` previews the selected snapshot without mutating anything.
+`pnpm run deploy:rollback --restore-db` additionally reverts the database. Every compose backup
+gets an association record beside it (`docker-compose.hub.yml.dbsnap.<stamp>`) naming the DB
+snapshot taken by the same operation (`none` when the operation took none), and `--restore-db`
+restores exactly that snapshot. It aborts when the record says `none` (e.g. the deploy ran with
+`--no-backup`, or a code-only rollback), when the record is unreadable, or when the recorded
+snapshot file is missing. Backups created before association tracking fall back to a bounded
+deployment window — the newest `/opt/backups/yotara-*.db` taken between the previous compose
+backup and the selected one — and abort when nothing fits, never guessing from an older snapshot.
+The restore stops the api container, swaps the snapshot into the `ubuntu_yotara_api_data` volume
+(via rename, clearing stale `-wal`/`-shm` files), then re-pulls, restarts frontend-then-api, and
+verifies. **Writes made while the current version was deployed are discarded** (snapshot
+semantics). To keep the restore itself reversible, a fresh WAL-safe backup of the live DB is taken
+first and its path is printed. `--check` previews the selected snapshot and how it was matched
+(recorded association vs time window) without mutating anything.
 
 ## Troubleshooting
 

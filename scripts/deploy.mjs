@@ -23,17 +23,22 @@ import { createInterface } from 'node:readline';
 import {
   backupSucceeded,
   buildComposeCommand,
+  buildDbSnapshotRecordCommand,
   buildTagBumpScript,
   classifyCiRuns,
   classifyDockerTagResponse,
   composeBackupStamp,
+  dbSnapshotSidecarName,
   findImageVersionLine,
+  isDbBackupName,
   normalizeLineEndings,
+  parseDbSnapshotRecord,
   parseDeployArgs,
   parseDeployedImageVersions,
   releaseCheckFailure,
   parseDeployedVersion,
   pollUntilReady,
+  previousComposeStamp,
   pullWithComposeRestore,
   isValidComposeProjectName,
   isValidDockerImageName,
@@ -373,6 +378,15 @@ function preflight(version, args) {
 // Phase 5 — DB backup
 // ---------------------------------------------------------------------------
 
+/** Snapshot file name from a `takeBackup` result path, or null when absent or unparseable. */
+function backupBasename(path) {
+  if (!path) {
+    return null;
+  }
+  const name = String(path).split('/').pop();
+  return isDbBackupName(name) ? name : null;
+}
+
 function takeBackup(args) {
   if (args.noBackup) {
     warn('Skipping DB backup (--no-backup)');
@@ -429,12 +443,16 @@ function restoreDbFromBackup(backupName) {
 // Phase 6 — deploy
 // ---------------------------------------------------------------------------
 
-function pullImages(fromVersion, toVersion) {
+function pullImages(fromVersion, toVersion, dbSnapshotName = null) {
   step(`Bumping ${fromVersion} -> ${toVersion} and pulling images`);
   const stamp = utcStamp();
   assertRemote(
     'compose backup',
     `cp ${shellQuote(config.composeFile)} ${shellQuote(`${config.composeFile}.bak.${stamp}`)}`,
+  );
+  assertRemote(
+    'snapshot association',
+    buildDbSnapshotRecordCommand(dbSnapshotSidecarName(config.composeFile, stamp), dbSnapshotName),
   );
 
   const sedExpr = buildTagBumpScript({
@@ -586,7 +604,11 @@ async function deployFlow(args) {
 
   await confirm(args, current, target);
   const backupPath = takeBackup(args);
-  pullImages(current, target);
+  const snapshotName = backupBasename(backupPath);
+  if (backupPath && snapshotName === null) {
+    die(`Could not parse the DB backup file name from: ${backupPath}; aborting before any change.`);
+  }
+  pullImages(current, target, snapshotName);
   startServices();
   await verifyStack();
 
@@ -654,26 +676,67 @@ async function rollbackFlow(args) {
   }
 
   let dbRestoreName = null;
+  let dbMatchSource = null;
   if (args.restoreDb) {
     const stamp = composeBackupStamp(chosen);
-    const dbListed = ssh(
-      `find ${shellQuote(config.backupDir)} -maxdepth 1 -type f -name 'yotara-*.db' -printf '%f\\n'`,
-    );
-    dbRestoreName =
-      stamp === null
-        ? null
-        : selectDbBackupForRollback(
-            dbListed.stdout
-              .split('\n')
-              .map((line) => line.trim())
-              .filter(Boolean),
-            stamp,
-          );
-    if (!dbRestoreName) {
-      die(
-        `--restore-db: no snapshot in ${config.backupDir} is older than the selected ` +
-          `compose backup (${stamp ?? 'unreadable stamp'}). Restore manually, or re-run without --restore-db.`,
+    if (stamp === null) {
+      die(`--restore-db: could not read a timestamp from the selected backup (${chosen}).`);
+    }
+    const sidecarPath = dbSnapshotSidecarName(config.composeFile, stamp);
+    const read = ssh(`cat ${shellQuote(sidecarPath)}`);
+    if (read.status === 0) {
+      const record = parseDbSnapshotRecord(read.stdout);
+      if (record.kind === 'none') {
+        die(
+          `--restore-db: no DB snapshot is associated with ${chosen} — that operation took none ` +
+            `(--no-backup deploy, or a code-only rollback). Restore a snapshot from ` +
+            `${config.backupDir} manually, or re-run without --restore-db.`,
+        );
+      }
+      if (record.kind === 'invalid') {
+        die(`--restore-db: unreadable DB snapshot record at ${sidecarPath}.`);
+      }
+      if (ssh(`test -f ${shellQuote(`${config.backupDir}/${record.name}`)}`).status !== 0) {
+        die(
+          `--restore-db: recorded snapshot ${record.name} is missing from ${config.backupDir} ` +
+            `(association: ${sidecarPath}). Restore manually, or re-run without --restore-db.`,
+        );
+      }
+      dbRestoreName = record.name;
+      dbMatchSource = 'recorded';
+    } else if (ssh(`test -f ${shellQuote(sidecarPath)}`).status === 0) {
+      die(`--restore-db: could not read the DB snapshot record at ${sidecarPath}.`);
+    } else {
+      // Legacy backup with no association record: bound the guess to the
+      // deployment window in which the rollback target version was live.
+      const lowerStamp = previousComposeStamp(
+        backups.map(({ name }) => name),
+        stamp,
       );
+      if (lowerStamp === null) {
+        die(
+          `--restore-db: ${chosen} predates snapshot associations and no earlier compose backup ` +
+            'bounds it, so its DB snapshot cannot be identified. Restore manually, or re-run ' +
+            'without --restore-db.',
+        );
+      }
+      const dbListed = ssh(
+        `find ${shellQuote(config.backupDir)} -maxdepth 1 -type f -name 'yotara-*.db' -printf '%f\\n'`,
+      );
+      dbRestoreName = selectDbBackupForRollback(
+        dbListed.stdout
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean),
+        { upperStamp: stamp, lowerStamp },
+      );
+      if (!dbRestoreName) {
+        die(
+          `--restore-db: no snapshot in ${config.backupDir} falls inside the deployment window ` +
+            `(${lowerStamp}, ${stamp}) for ${chosen}. Restore manually, or re-run without --restore-db.`,
+        );
+      }
+      dbMatchSource = 'time-window';
     }
   }
 
@@ -683,6 +746,11 @@ async function rollbackFlow(args) {
   out(`  from backup: ${chosen}`);
   if (dbRestoreName) {
     out(`  DB restore:  ${config.backupDir}/${dbRestoreName}`);
+    out(
+      dbMatchSource === 'recorded'
+        ? '               (recorded snapshot association)'
+        : '               (time-window match; backup predates snapshot associations)',
+    );
     out('  DB safety:   fresh snapshot of the live DB first (restore is reversible)');
   } else {
     out('  code only — the DB schema is not reverted (migrations are additive)');
@@ -701,7 +769,11 @@ async function rollbackFlow(args) {
     // the restore itself reversible.
     preRestoreBackup = takeBackup({ noBackup: false });
   }
-  pullImages(current, target);
+  const preRestoreName = backupBasename(preRestoreBackup);
+  if (preRestoreBackup && preRestoreName === null) {
+    die(`Could not parse the DB backup file name from: ${preRestoreBackup}.`);
+  }
+  pullImages(current, target, preRestoreName);
   if (dbRestoreName) {
     assertRemote('api stop', `${composeCommand()} stop api`);
     ok('api stopped');
