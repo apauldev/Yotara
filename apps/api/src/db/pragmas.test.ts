@@ -193,42 +193,46 @@ const CRASH_MID_TXN_SCRIPT = `
   setTimeout(() => {}, 60000);
 `;
 
-test('SIGKILL during an open write transaction rolls back and leaves the database intact', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'yotara-crash-mid-'));
-  const dbFile = join(dir, 'test.db');
-  const { sqlite } = createDbClient(dbFile);
-  sqlite.exec(`CREATE TABLE crash_test (
+test(
+  'SIGKILL during an open write transaction rolls back and leaves the database intact',
+  { timeout: 15_000 },
+  async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'yotara-crash-mid-'));
+    const dbFile = join(dir, 'test.db');
+    const { sqlite } = createDbClient(dbFile);
+    sqlite.exec(`CREATE TABLE crash_test (
     id INTEGER PRIMARY KEY,
     note TEXT NOT NULL
   )`);
 
-  const { child, stdout } = spawnNode(CRASH_MID_TXN_SCRIPT, [dbFile]);
-  const exitPromise = waitForExit(child);
+    const { child, stdout } = spawnNode(CRASH_MID_TXN_SCRIPT, [dbFile]);
+    const exitPromise = waitForExit(child);
 
-  try {
-    await waitForLine(child, stdout, 'LOCKED');
-    child.kill('SIGKILL');
-    const result = await exitPromise;
-    assert.equal(result.signal, 'SIGKILL');
+    try {
+      await waitForLine(child, stdout, 'LOCKED');
+      child.kill('SIGKILL');
+      const result = await exitPromise;
+      assert.equal(result.signal, 'SIGKILL');
 
-    assert.equal(sqlite.pragma('integrity_check', { simple: true }), 'ok');
-    const { pending } = sqlite
-      .prepare(`SELECT COUNT(*) AS pending FROM crash_test WHERE note = 'pending'`)
-      .get() as { pending: number };
-    assert.equal(pending, 0, 'an uncommitted write must not survive a crashed writer');
+      assert.equal(sqlite.pragma('integrity_check', { simple: true }), 'ok');
+      const { pending } = sqlite
+        .prepare(`SELECT COUNT(*) AS pending FROM crash_test WHERE note = 'pending'`)
+        .get() as { pending: number };
+      assert.equal(pending, 0, 'an uncommitted write must not survive a crashed writer');
 
-    // The crashed writer's lock must be released and the file writable again.
-    sqlite.prepare(`INSERT INTO crash_test (note) VALUES ('after-crash')`).run();
-    const { total } = sqlite.prepare(`SELECT COUNT(*) AS total FROM crash_test`).get() as {
-      total: number;
-    };
-    assert.equal(total, 1);
-  } finally {
-    child.kill();
-    sqlite.close();
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
+      // The crashed writer's lock must be released and the file writable again.
+      sqlite.prepare(`INSERT INTO crash_test (note) VALUES ('after-crash')`).run();
+      const { total } = sqlite.prepare(`SELECT COUNT(*) AS total FROM crash_test`).get() as {
+        total: number;
+      };
+      assert.equal(total, 1);
+    } finally {
+      child.kill();
+      sqlite.close();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  },
+);
 
 const CRASH_AFTER_COMMIT_SCRIPT = `
   const Database = require('better-sqlite3');
@@ -241,7 +245,7 @@ const CRASH_AFTER_COMMIT_SCRIPT = `
   setTimeout(() => {}, 60000);
 `;
 
-test('SIGKILL after COMMIT preserves the committed write', async () => {
+test('SIGKILL after COMMIT preserves the committed write', { timeout: 15_000 }, async () => {
   const dir = mkdtempSync(join(tmpdir(), 'yotara-crash-after-'));
   const dbFile = join(dir, 'test.db');
   const { sqlite } = createDbClient(dbFile);
