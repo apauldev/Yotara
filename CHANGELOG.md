@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.80.2](https://github.com/apauldev/Yotara/compare/v0.80.1...v0.80.2) (2026-10-15)
+
+
+### Bug Fixes
+
+* **deploy:** accept forwarded -- and add rollback --restore-db ([#405](https://github.com/apauldev/Yotara/issues/405)) ([4fd5e1a](https://github.com/apauldev/Yotara/commit/4fd5e1a26be8ddf9fb0aa6efec7e6361eb51c3a1))
+
 ## [0.80.1](https://github.com/apauldev/Yotara/compare/v0.80.0...v0.80.1) (2026-10-15)
 
 
