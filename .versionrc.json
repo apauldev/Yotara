@@ -11,5 +11,6 @@
   ],
   "scripts": {
     "postbump": "node scripts/sync-website-version.mjs && git add apps/yotara-website/index.html"
-  }
+  },
+  "commitAll": true
 }

@@ -39,9 +39,14 @@ The footer badge and the `softwareVersion` JSON-LD value in `index.html` are
 written by [`scripts/sync-website-version.mjs`](../../scripts/sync-website-version.mjs).
 That script runs automatically during releases via the `postbump` hook in
 [`.versionrc.json`](../../.versionrc.json), so the footer tracks the monorepo
-version without manual edits.
+version without manual edits. `commitAll` is enabled there so the stamped
+`index.html` is included in the release commit — the hook stages the file, and
+without `commitAll` `commit-and-tag-version` would commit only `package.json`
+and `CHANGELOG.md`, silently dropping the stamp.
 
 Do not hand-edit the version badge — it will be overwritten at the next release.
+[`scripts/sync-website-version.test.mjs`](../../scripts/sync-website-version.test.mjs)
+fails CI when the badge or `softwareVersion` drifts from the root `package.json`.
 
 ## Local preview
 
@@ -56,4 +61,6 @@ python3 -m http.server 8080
 The `/api/stars` function only runs on Cloudflare Pages, so the star count will
 not resolve locally. That is expected.
 
-There is no test suite for this app; the CI pipeline ignores it.
+There is no test suite for this app itself; the version-drift test in
+`scripts/sync-website-version.test.mjs` runs with `pnpm test` in CI and fails
+when the badge or `softwareVersion` is out of date.
