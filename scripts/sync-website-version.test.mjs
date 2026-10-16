@@ -50,5 +50,7 @@ test('applyVersionStamp reports missing patterns instead of silently no-oping', 
 });
 
 test('formatReleaseDate renders the badge date format', () => {
-  assert.equal(formatReleaseDate(new Date('2026-08-01T12:00:00Z')), 'Aug 1, 2026');
+  // Built from local components so the assertion holds in every timezone:
+  // a noon-UTC instant is already the next day at UTC+12 and beyond.
+  assert.equal(formatReleaseDate(new Date(2026, 7, 1)), 'Aug 1, 2026');
 });
