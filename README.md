@@ -123,6 +123,9 @@ The stack runs behind a single nginx front on port 8080. Images total ~950 MB (a
 # Generate a strong secret for signing session tokens
 export BETTER_AUTH_SECRET=$(openssl rand -base64 32)
 
+# Add a free Resend API key (https://resend.com) for verification and reset emails
+export RESEND_API_KEY=re_your_key_here
+
 # Build and start
 docker compose up --build -d
 
@@ -130,6 +133,8 @@ docker compose up --build -d
 ```
 
 **`BETTER_AUTH_SECRET` is mandatory.** Compose fails fast if it's unset, and the API refuses to boot with placeholders, plain-text passphrases, malformed values, or values representing fewer than 32 decoded bytes. Generate a unique canonical hex or Base64 value with `openssl rand -hex 32` or `openssl rand -base64 32`; never commit a real value.
+
+**`RESEND_API_KEY` is required too.** The API refuses to boot in production without it — signup verification and password resets depend on email delivery. The free tier is plenty for personal use; set `EMAIL_FROM` once you have verified a sender with Resend.
 
 The stack includes security hardening by default:
 

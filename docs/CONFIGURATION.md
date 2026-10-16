@@ -135,5 +135,7 @@ The E2E suite does read a few variables — see
 ## Docker deployment
 
 For the Compose path, `BETTER_AUTH_SECRET` is mandatory and `docker compose
-config` fails fast when it is unset. See [DOCKER.md](../DOCKER.md) for the full
-deployment guide, including volumes, ports, and TLS termination.
+config` fails fast when it is unset. The API also refuses to boot in production
+without `RESEND_API_KEY` (see [Email](#email)). See
+[DOCKER.md](../DOCKER.md) for the full deployment guide, including volumes,
+ports, and TLS termination.
