@@ -47,7 +47,10 @@ It skips entirely when the commit that triggered CI starts with
 
 1. Installs dependencies
 2. Runs `pnpm release`, which analyzes commits, generates `CHANGELOG.md`, bumps
-   the version, creates a `chore(release): vX.Y.Z` commit, and creates the tag
+   the version, creates a `chore(release): vX.Y.Z` commit, and creates the tag.
+   The `postbump` hook also stamps the version into the marketing site
+   (`apps/yotara-website/index.html`); `commitAll` in `.versionrc.json` includes
+   it in the release commit.
 3. Reads the new version and the release SHA
 4. Pushes directly to `main` with `git push --follow-tags origin HEAD:main` —
    **there is no pull request and no auto-merge step**
@@ -77,7 +80,9 @@ deliberately bypassing the pipeline. Doing so races the automation.
 ### Previewing locally
 
 `pnpm release -- --dry-run` prints the analysis and the version it would produce
-without changing anything. This is safe and useful for checking that your commit
+without changing anything. The log mentions lifecycle scripts such as
+`postbump`, but a dry run does not execute them — nothing is written, staged,
+committed, or tagged. This is safe and useful for checking that your commit
 messages will produce the bump you expect.
 
 ### Forcing a bump type

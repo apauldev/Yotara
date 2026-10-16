@@ -1,5 +1,36 @@
 [
   {
+    "date": "2026-10-16",
+    "title": "Type It Like You Say It",
+    "image": "assets/blog/type-it-like-you-say-it.webp",
+    "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
+    "excerpt": "The capture bar reads dates as you type them, from a deliberately small grammar. What it refuses to understand is the part that took the most work.",
+    "content": [
+      "The capture bar in Yotara reads dates the way you'd write them. Type 'call Sam friday at 3pm' and the task picks up a due date and time while you're still typing. No calendar widget, no picker, no separate field. The interesting part isn't what the parser understands though. It's what it refuses to.\n",
+      "It reads a small set of phrases. Today and tomorrow. 'In 3 days.' Weekday names, on their own or with a 'next' in front. Month dates like 'Oct 12' or '12 October', with a year if you feel like typing one. Plain 'friday' means the next time friday comes around, today included; 'next friday' only skips ahead a week when today is already friday. When a phrase carries a time, it has to be an exact one: 3pm, 3:30pm, 15:00, noon, midnight. The time can sit on either side of the date, 'friday at 3pm' or 'at 3pm friday', as long as it's attached.\n",
+      "Now the refusals. 'Friday to monday', a range is two dates, so which one is due? 'Every friday', recurrence is real in Yotara but it lives in the task details, not in the title. 'Friday morning', 'evening', 'EOD', 'tonight', vague times are not times. 'Friday at 3' is turned down too, because 3am and 3pm are both guesses and it won't make one. So is any timezone suffix like 'PST' or 'UTC'; Yotara already knows your timezone, and a second one is only ever a mistake. Even '2026-10-17' is left alone as text. And if you mix forms, '2026-10-17 friday', it refuses the whole phrase rather than quietly trusting one half and discarding the other. 'Last friday' and 'next week' don't parse either; the grammar only knows 'on' and 'next' in front of a weekday.\n",
+      "The rule underneath all of this is one line: when a phrase is ambiguous, it sets no date at all. The words stay in your title as plain text, and where a note helps, a short one explains what it wanted instead. 'Repeating isn't set from the title,' for example, points you at task details. When the parser does have an answer, the line under the input shows its reading before you commit: 'friday at 3pm resolves to Friday, Oct 23, 2026, 3:00 PM'. Quiet when unsure, explicit when not.\n",
+      "There are smaller guards too. Command tokens are masked before parsing, so 'file taxes #finance !high friday 5pm' still finds its friday. A name with a trailing apostrophe stays a name: 'Chris' friday' sets no due date. Incomplete times, impossible times, and trailing prose after an otherwise good phrase all fail closed rather than half-apply.\n",
+      "The grammar will keep growing, because people type what they type and most of it should eventually work. But it grows one verified phrase at a time, with a test for each. Natural language is wonderful right up until it quietly changes what you meant. The parser's job is to read your words, and on the days it can't, to leave them exactly as they were."
+    ]
+  },
+  {
+    "date": "2026-10-16",
+    "title": "Reminders Without the Cloud",
+    "image": "assets/blog/reminders-without-the-cloud.webp",
+    "author": { "name": "apauldev", "avatar": "assets/author-thumb.jpg" },
+    "excerpt": "Most task apps route your reminders through servers you don't run. Yotara doesn't, and the trade-off is worth stating plainly.",
+    "content": [
+      "Most task apps have a hidden dependency. The moment you ask to be reminded of something, that task usually gets sent through a push service you don't own. Apple's, Google's, someone's. For an app that promises your data stays on your server, that is a hole in the promise.\n",
+      "So Yotara's reminders don't leave the building. No push notifications, no reminder emails, no SMS. Give a task a due time by typing it the way you'd say it, like 'standup tomorrow at 9am', and when 9am comes the reminder appears in your notifications. If you've turned on Desktop notifications in Settings, your browser also shows a popup. That's the whole delivery mechanism.\n",
+      "Under the hood, the server owns the clock. Every time the app syncs, it hands the server your timezone, and the server decides what has actually become due. A date-only task turns into 'due today'. A timed task waits for its exact instant. If your browser can't tell the server what timezone you're in, the server holds timed reminders back rather than firing them at the wrong hour. A 9am standup should be 9am where you are, not wherever the server happens to sit.\n",
+      "The other half lives in the browser. Asking on a fixed loop would deliver a 10:03 reminder at 10:05 or later. So after each sync, the client asks one extra question: when is the next reminder due? Then it sets a timer for exactly that moment.\n",
+      "A few details I fussed over more than anyone will notice. Change a task's time and the old reminder is retired, so you hear the new one and not both. Reminders from days you missed never pop up retroactively when you finally open the app. And with two tabs open, only one of them shows the popup.\n",
+      "The trade-off is real, so here it is plainly: reminders only reach you while Yotara is open in a tab. Nothing is listening while the browser is closed. Real push would mean a service worker and a push service from a browser vendor sitting between you and your reminders, learning the timing of every one. That's the leak I didn't want to build. Limited but quiet beats clever but watched.\n",
+      "It's a smaller feature because of that constraint, but an honest one. Nothing to configure, no accounts with notification vendors, no company that knows when you stand up. Your reminders come from the same place your tasks live, which for an app like this is the whole point."
+    ]
+  },
+  {
     "date": "2026-07-08",
     "title": "Seven Themes",
     "image": "assets/blog/seven-themes.webp",

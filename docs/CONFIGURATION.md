@@ -46,7 +46,7 @@ The API opens every connection with `journal_mode = WAL`,
 
 - WAL mode creates `-wal` and `-shm` sidecar files next to the database file.
   Filesystem-level copies must include or checkpoint them — copying only the
-  `.db` file can silently drop committed data. Prefer `sqlite3 <db> .backup`,
+  `.db` file can silently drop committed data. Prefer `sqlite3 <db> ".backup <backup-file>"`,
   which is WAL-safe.
 - `synchronous = NORMAL` is crash-safe for the application and OS; a power
   loss can roll back the most recent commits, but never corrupts the database.
@@ -135,5 +135,7 @@ The E2E suite does read a few variables — see
 ## Docker deployment
 
 For the Compose path, `BETTER_AUTH_SECRET` is mandatory and `docker compose
-config` fails fast when it is unset. See [DOCKER.md](../DOCKER.md) for the full
-deployment guide, including volumes, ports, and TLS termination.
+config` fails fast when it is unset. The API also refuses to boot in production
+without `RESEND_API_KEY` (see [Email](#email)). See
+[DOCKER.md](../DOCKER.md) for the full deployment guide, including volumes,
+ports, and TLS termination.

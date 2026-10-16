@@ -37,8 +37,12 @@ Use the [hub compose file](./docker-compose.hub.yml) for the quickest start:
 ```bash
 curl -o docker-compose.yml https://raw.githubusercontent.com/apauldev/yotara/main/docker-compose.hub.yml
 export BETTER_AUTH_SECRET=$(openssl rand -base64 32)
+export RESEND_API_KEY=re_your_key_here
 docker compose up -d
 ```
+
+The API refuses to boot in production without `RESEND_API_KEY` — create a free key at
+[resend.com](https://resend.com) and set `EMAIL_FROM` to a sender you have verified there.
 
 The rest of this document covers building from source.
 
@@ -79,6 +83,7 @@ Generate it on every deploy and never commit a real value:
 ```bash
 export BETTER_AUTH_SECRET=$(openssl rand -base64 32)
 # Or: export BETTER_AUTH_SECRET=$(openssl rand -hex 32)
+export RESEND_API_KEY=re_your_key_here
 docker compose up -d
 ```
 
@@ -86,9 +91,16 @@ Production accepts canonical hex or Base64 representing at least 32 decoded rand
 The validator cannot prove how a value was generated, so use a cryptographically secure
 random generator rather than a hand-written value.
 
+`RESEND_API_KEY` is also mandatory in production: the API refuses to boot without it
+because signup verification and password reset depend on email delivery. Create a free key
+at [resend.com](https://resend.com), and set `EMAIL_FROM` to a sender address you have
+verified there.
+
 | Variable | Default / Req'd | Purpose |
 |:---|:---:|:---|
 | `BETTER_AUTH_SECRET` | **Required** | Session signing key (canonical hex/Base64, at least 32 decoded bytes) |
+| `RESEND_API_KEY` | **Required** | Resend API key for verification and password-reset emails; the API refuses to boot in production without it |
+| `EMAIL_FROM` | `noreply@email.yotara.website` | Outgoing email sender; must be an address verified with your Resend account |
 | `DATABASE_URL` | `./apps/api/data/yotara.db` | SQLite path (inside container or volume) |
 | `APP_BASE_URL` | `http://localhost:8080` | Public URL for Better Auth callbacks. Do **not** append `/api` — nginx strips that prefix before proxying |
 | `TRUSTED_ORIGINS` | `http://localhost:8080` | Allowed auth/CORS origins |
@@ -97,8 +109,8 @@ random generator rather than a hand-written value.
 | `CONTENT_SECURITY_POLICY` | *(see below)* | Override the CSP for both nginx and the API |
 
 This table covers the variables that matter for the Docker deployment. For the complete
-reference — including `FRONTEND_BASE_URL`, `HOST`, `RESEND_API_KEY`, `EMAIL_FROM`,
-`DEV_MODE`, and the rate-limit and lockout tuning knobs — see
+reference — including `FRONTEND_BASE_URL`, `HOST`, `DEV_MODE`, and the rate-limit and
+lockout tuning knobs — see
 [docs/CONFIGURATION.md](./docs/CONFIGURATION.md). It is the single source of truth, and CI
 verifies it stays in sync with `apps/api/.env.example`.
 
@@ -257,6 +269,7 @@ docker compose logs api
 
 Common causes:
 - Missing `BETTER_AUTH_SECRET` environment variable
+- Missing `RESEND_API_KEY` (required in production; see [Environment Variables](#environment-variables))
 - SQLite directory not writable
 
 ### Database not persisting

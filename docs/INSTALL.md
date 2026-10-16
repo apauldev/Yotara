@@ -73,17 +73,22 @@ Recommended for self-hosting. The stack runs behind a single nginx front on port
 
 ```bash
 export BETTER_AUTH_SECRET=$(openssl rand -base64 32)
+export RESEND_API_KEY=re_your_key_here
 docker compose up --build -d
 # Then open http://localhost:8080
 ```
 
 `BETTER_AUTH_SECRET` is mandatory — Compose fails fast when it is unset, and the
 API refuses to boot with placeholder, plain-text, malformed, or undersized
-values. You can also use the pre-built images for a zero-build start:
+values. `RESEND_API_KEY` is required in production as well: the API refuses to
+boot without it because signup verification and password resets depend on email
+delivery (a free [Resend](https://resend.com) key is enough). You can also use
+the pre-built images for a zero-build start:
 
 ```bash
 curl -o docker-compose.yml https://raw.githubusercontent.com/apauldev/yotara/main/docker-compose.hub.yml
 export BETTER_AUTH_SECRET=$(openssl rand -base64 32)
+export RESEND_API_KEY=re_your_key_here
 docker compose up -d
 ```
 
@@ -168,8 +173,9 @@ Stop the process holding the port, or set `PORT` for the API.
 `cp apps/api/.env.example apps/api/.env`.
 
 **API exits at boot in production mode.** `BETTER_AUTH_SECRET` is missing or too
-weak. The error names the failing check. Generate one with
-`openssl rand -base64 32`.
+weak, or `RESEND_API_KEY` is missing. The error names the failing check.
+Generate a secret with `openssl rand -base64 32`; get a free key at
+[resend.com](https://resend.com).
 
 **Frontend cannot reach the API.** The dev default expects the API on
 `http://localhost:3000`. If you changed `PORT`, update

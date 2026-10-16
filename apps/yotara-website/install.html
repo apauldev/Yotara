@@ -192,13 +192,22 @@
                 >key</span
               >
               <div>
-                <h3 class="font-semibold text-on-surface mb-1">Set a strong secret</h3>
+                <h3 class="font-semibold text-on-surface mb-1">Set two keys</h3>
                 <p class="text-on-surface-variant text-sm leading-relaxed">
                   You must generate a
                   <code class="bg-surface-container-highest px-1.5 py-0.5 rounded text-xs font-mono"
                     >BETTER_AUTH_SECRET</code
                   >
-                  to sign sessions. Without it the stack refuses to boot.
+                  to sign sessions, and a free
+                  <a
+                    class="text-primary font-semibold hover:underline"
+                    href="https://resend.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >Resend</a
+                  >
+                  API key for verification and password-reset emails. Without either, the stack
+                  refuses to boot in production.
                 </p>
               </div>
             </div>
@@ -221,8 +230,11 @@
               <div>
                 <h3 class="font-semibold text-on-surface mb-1">Back it up</h3>
                 <p class="text-on-surface-variant text-sm leading-relaxed">
-                  You own the data, which means you own the backups. Schedule a copy of the database
-                  file off-server.
+                  You own the data, which means you own the backups. Yotara runs SQLite in WAL mode
+                  — use
+                  <code class="bg-surface-container-highest px-1.5 py-0.5 rounded text-xs font-mono"
+                    >sqlite3 yotara.db ".backup yotara-backup.db"</code
+                  >, or copy the database while the app is stopped, and keep backups off-server.
                 </p>
               </div>
             </div>
@@ -266,7 +278,7 @@
                   class="text-xs text-on-surface-variant hover:text-on-surface transition-colors px-3 py-1 rounded-lg bg-surface-container-highest/50"
                   onclick="
                     navigator.clipboard?.writeText(
-                      'curl -o docker-compose.yml https://raw.githubusercontent.com/apauldev/yotara/main/docker-compose.hub.yml && export BETTER_AUTH_SECRET=$(openssl rand -base64 32) && docker compose up -d',
+                      'curl -o docker-compose.yml https://raw.githubusercontent.com/apauldev/yotara/main/docker-compose.hub.yml && export BETTER_AUTH_SECRET=$(openssl rand -base64 32) && export RESEND_API_KEY=re_your_key_here && docker compose up -d',
                     )
                   "
                   aria-label="Copy Docker Compose command"
@@ -281,6 +293,7 @@
             ><span style="color: #acf2cb;">$</span> curl -o docker-compose.yml \
   https://raw.githubusercontent.com/apauldev/yotara/main/docker-compose.hub.yml
 <span style="color: #acf2cb;">$</span> export BETTER_AUTH_SECRET=$(openssl rand -base64 32)
+<span style="color: #acf2cb;">$</span> export RESEND_API_KEY=re_your_key_here
 <span style="color: #acf2cb;">$</span> docker compose up -d</pre>
           </div>
           <p class="text-on-surface-variant text-lg">
@@ -288,6 +301,22 @@
             <a class="text-primary font-semibold hover:underline" href="http://localhost:8080"
               >http://localhost:8080</a
             >
+          </p>
+          <p class="text-on-surface-variant mt-6 text-base leading-relaxed">
+            The API refuses to boot without a
+            <a
+              class="text-primary font-semibold hover:underline"
+              href="https://resend.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Resend</a
+            >
+            API key — it powers signup verification and password resets, and the free tier is plenty
+            for personal use. Once you've verified a sender domain with Resend, set
+            <code class="bg-surface-container-highest px-2 py-0.5 rounded text-sm font-mono"
+              >EMAIL_FROM</code
+            >
+            to match it.
           </p>
         </div>
       </section>
@@ -340,9 +369,11 @@
     image: apauldev2/yotara-api:latest
     environment:
       DATABASE_URL: /app/apps/api/data/yotara.db
-      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080/api}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost:8080}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET?set a strong secret}
+      RESEND_API_KEY: ${RESEND_API_KEY?set a Resend API key}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@email.yotara.website}
       HOST: 0.0.0.0
       PORT: ${PORT:-3000}
       NODE_ENV: ${NODE_ENV:-production}
@@ -375,6 +406,7 @@
               class="p-4 text-sm leading-relaxed overflow-x-auto font-mono"
               style="background: #1c1c17; color: #e5e2da"
             ><span style="color: #acf2cb;">$</span> export BETTER_AUTH_SECRET=$(openssl rand -base64 32)
+<span style="color: #acf2cb;">$</span> export RESEND_API_KEY=re_your_key_here
 <span style="color: #acf2cb;">$</span> docker compose up -d</pre>
           </div>
           <p class="text-on-surface-variant text-lg">
@@ -422,9 +454,18 @@
               >
               <span class="text-on-surface-variant">OpenSSL to generate a BETTER_AUTH_SECRET</span>
             </div>
+            <div class="stagger-item flex items-center gap-3 p-4 rounded-2xl bg-surface">
+              <span class="material-symbols-outlined text-primary" aria-hidden="true"
+                >check_circle</span
+              >
+              <span class="text-on-surface-variant"
+                >A free Resend API key for verification and reset emails</span
+              >
+            </div>
           </div>
           <p class="text-on-surface-variant mt-6 text-base">
-            That's it. No external database, no Redis, no email server required. Generate your
+            That's it — no external database, no Redis, and no mail server to run (email delivery
+            uses Resend's free tier). Generate your
             <code class="bg-surface-container-highest px-2 py-0.5 rounded text-sm font-mono"
               >BETTER_AUTH_SECRET</code
             >
@@ -432,7 +473,10 @@
             <code class="bg-surface-container-highest px-2 py-0.5 rounded text-sm font-mono"
               >openssl rand -base64 32</code
             >
-            and export it before
+            and export it, along with your
+            <code class="bg-surface-container-highest px-2 py-0.5 rounded text-sm font-mono"
+              >RESEND_API_KEY</code
+            >, before
             <code class="bg-surface-container-highest px-2 py-0.5 rounded text-sm font-mono"
               >docker compose up</code
             >.
@@ -481,8 +525,12 @@
                 >check_circle</span
               >
               <span class="text-on-surface-variant"
-                ><strong class="text-on-surface">Automate backups</strong> of the SQLite file and
-                test a restore occasionally.</span
+                ><strong class="text-on-surface">Automate backups</strong> with
+                <code class="bg-surface-container-highest px-1.5 py-0.5 rounded text-xs font-mono"
+                  >sqlite3 yotara.db ".backup yotara-backup.db"</code
+                >
+                (WAL-safe) or a copy taken while the app is stopped, and test a restore
+                occasionally.</span
               >
             </li>
             <li class="flex items-start gap-3 p-4 rounded-2xl bg-surface">

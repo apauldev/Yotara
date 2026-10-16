@@ -166,7 +166,7 @@ Migrate off SQLite when one of these is measured, not projected:
 
 #### High availability and disaster recovery
 
-Backups use `sqlite3 .backup` (or an equivalent checkpointing backup), which
+Backups use `sqlite3 yotara.db ".backup yotara-backup.db"` (or an equivalent checkpointing backup), which
 is WAL-safe while the API is running. Copying only the `.db` file is not: the
 `-wal`/`-shm` sidecar files carry committed data until checkpointed. A future
 continuous-replication path (sub-second snapshots to S3/R2 via Litestream) is

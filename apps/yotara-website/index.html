@@ -82,7 +82,7 @@
         "description": "A lightweight, self-hosted task manager that puts your privacy first.",
         "url": "https://yotara.website",
         "downloadUrl": "https://hub.docker.com/r/apauldev2/yotara-frontend",
-        "softwareVersion": "0.70.2",
+        "softwareVersion": "0.80.2",
         "offers": {
           "@type": "Offer",
           "price": "0",
@@ -116,7 +116,15 @@
             "name": "Is there a mobile app?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Not yet. The web app is responsive and works well on phones, but there is no native iOS or Android app. A progressive web app is on the roadmap."
+              "text": "Not yet. The web app is responsive — capture and editing are built to work well on a phone — but there is no native iOS or Android app. A progressive web app is on the roadmap."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do reminders work?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Give a task a due time by typing it the way you'd say it — 'standup tomorrow at 9am' — and an in-app notification appears when the time arrives. Date-only tasks show up in Today instead. Reminders stay in-app: no push notifications, no email, nothing leaves your server."
             }
           },
           {
@@ -124,7 +132,7 @@
             "name": "How do backups work?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "All your data lives in a single SQLite file. Back it up by copying the file somewhere safe — another disk, a remote server, or a cloud bucket. No dump or restore commands needed."
+              "text": "All your data lives in one SQLite file. Yotara runs SQLite in WAL mode, which keeps -wal and -shm sidecar files next to the database — so copy the database while the app is stopped, or run sqlite3 yotara.db \".backup yotara-backup.db\", which is safe while it's running. Schedule backups to another disk, a remote server, or a cloud bucket."
             }
           },
           {
@@ -358,8 +366,9 @@
               <div class="flex-1 w-full md:w-1/2">
                 <h3 class="text-2xl font-bold mb-4 font-headline text-on-surface">Plan Today</h3>
                 <p class="text-lg text-on-surface-variant leading-relaxed">
-                  Today surfaces what's due and what you flagged. One clear screen tells you where
-                  to put your attention.
+                  Today surfaces what's due and what you flagged — and an in-app reminder nudges you
+                  when a task's time comes due. One clear screen tells you where to put your
+                  attention.
                 </p>
               </div>
             </div>
@@ -469,8 +478,8 @@
               What you get
             </h2>
             <p class="text-xl text-on-surface-variant leading-relaxed">
-              Quick capture, projects, recurring tasks, markdown, themes, and self-hosted privacy.
-              Everything you need, nothing you don't.
+              Quick capture, projects, recurring tasks, due dates and times, markdown, themes, and
+              self-hosted privacy. Everything you need, nothing you don't.
             </p>
           </div>
           <div class="stagger-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -485,8 +494,9 @@
               </div>
               <h3 class="text-xl font-bold mb-3 font-headline text-on-surface">Quick Capture</h3>
               <p class="text-on-surface-variant leading-relaxed">
-                Hit the capture bar, type your task, and move on. Set dates with the date picker and
-                flag priorities with simple markers.
+                Hit the capture bar, type your task, and move on. Dates and times work the way you
+                say them: 'tomorrow at 3pm' parses with a preview before you save, and priorities
+                are simple markers.
               </p>
             </div>
             <div
@@ -603,7 +613,7 @@
                   >
                   <span class="text-on-surface-variant"
                     ><strong class="text-on-surface">One plain file.</strong> Everything lives in a
-                    single SQLite database you can copy, diff, or restore directly.</span
+                    single SQLite file you can copy, diff, or restore with standard tools.</span
                   >
                 </li>
                 <li class="flex items-start gap-3">
@@ -695,8 +705,26 @@
                 >
               </summary>
               <p class="text-on-surface-variant leading-relaxed mt-4">
-                Not yet. The web app is responsive and works well on phones, but there is no native
-                iOS or Android app. A progressive web app is on the roadmap.
+                Not yet. The web app is responsive — capture and editing are built to work well on a
+                phone — but there is no native iOS or Android app. A progressive web app is on the
+                roadmap.
+              </p>
+            </details>
+            <details class="group rounded-2xl bg-surface p-6">
+              <summary
+                class="flex items-center justify-between cursor-pointer font-semibold text-on-surface text-lg list-none"
+              >
+                How do reminders work?
+                <span
+                  class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180"
+                  >expand_more</span
+                >
+              </summary>
+              <p class="text-on-surface-variant leading-relaxed mt-4">
+                Give a task a due time by typing it the way you'd say it — 'standup tomorrow at 9am'
+                — and an in-app notification appears when the time arrives. Date-only tasks show up
+                in Today instead. Reminders stay in-app: no push notifications, no email, nothing
+                leaves your server.
               </p>
             </details>
             <details class="group rounded-2xl bg-surface p-6">
@@ -710,9 +738,20 @@
                 >
               </summary>
               <p class="text-on-surface-variant leading-relaxed mt-4">
-                All your data lives in a single SQLite file. Back it up by copying the file
-                somewhere safe — another disk, a remote server, or a cloud bucket. No dump or
-                restore commands needed.
+                All your data lives in one SQLite file. Yotara runs SQLite in WAL mode, which keeps
+                <code class="bg-surface-container-highest px-1.5 py-0.5 rounded text-xs font-mono"
+                  >-wal</code
+                >
+                and
+                <code class="bg-surface-container-highest px-1.5 py-0.5 rounded text-xs font-mono"
+                  >-shm</code
+                >
+                sidecar files next to the database — so copy the database while the app is stopped,
+                or run
+                <code class="bg-surface-container-highest px-1.5 py-0.5 rounded text-xs font-mono"
+                  >sqlite3 yotara.db ".backup yotara-backup.db"</code
+                >, which is safe while it's running. Schedule backups to another disk, a remote
+                server, or a cloud bucket.
               </p>
             </details>
             <details class="group rounded-2xl bg-surface p-6">
@@ -770,7 +809,7 @@
                 aria-hidden="true"
                 >tag</span
               >
-              v0.71.1 · released Aug 1, 2026
+              v0.80.2 · released Oct 16, 2026
             </span>
             <span class="inline-flex items-center gap-2">
               <span
