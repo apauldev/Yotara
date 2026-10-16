@@ -233,7 +233,7 @@
                   You own the data, which means you own the backups. Yotara runs SQLite in WAL mode
                   — use
                   <code class="bg-surface-container-highest px-1.5 py-0.5 rounded text-xs font-mono"
-                    >sqlite3 .backup</code
+                    >sqlite3 yotara.db ".backup yotara-backup.db"</code
                   >, or copy the database while the app is stopped, and keep backups off-server.
                 </p>
               </div>
@@ -527,7 +527,7 @@
               <span class="text-on-surface-variant"
                 ><strong class="text-on-surface">Automate backups</strong> with
                 <code class="bg-surface-container-highest px-1.5 py-0.5 rounded text-xs font-mono"
-                  >sqlite3 .backup</code
+                  >sqlite3 yotara.db ".backup yotara-backup.db"</code
                 >
                 (WAL-safe) or a copy taken while the app is stopped, and test a restore
                 occasionally.</span

@@ -132,7 +132,7 @@
             "name": "How do backups work?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "All your data lives in one SQLite file. Yotara runs SQLite in WAL mode, which keeps -wal and -shm sidecar files next to the database — so copy the database while the app is stopped, or run sqlite3 .backup, which is safe while it's running. Schedule backups to another disk, a remote server, or a cloud bucket."
+              "text": "All your data lives in one SQLite file. Yotara runs SQLite in WAL mode, which keeps -wal and -shm sidecar files next to the database — so copy the database while the app is stopped, or run sqlite3 yotara.db \".backup yotara-backup.db\", which is safe while it's running. Schedule backups to another disk, a remote server, or a cloud bucket."
             }
           },
           {
@@ -749,7 +749,7 @@
                 sidecar files next to the database — so copy the database while the app is stopped,
                 or run
                 <code class="bg-surface-container-highest px-1.5 py-0.5 rounded text-xs font-mono"
-                  >sqlite3 .backup</code
+                  >sqlite3 yotara.db ".backup yotara-backup.db"</code
                 >, which is safe while it's running. Schedule backups to another disk, a remote
                 server, or a cloud bucket.
               </p>

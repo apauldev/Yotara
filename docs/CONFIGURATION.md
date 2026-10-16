@@ -46,7 +46,7 @@ The API opens every connection with `journal_mode = WAL`,
 
 - WAL mode creates `-wal` and `-shm` sidecar files next to the database file.
   Filesystem-level copies must include or checkpoint them — copying only the
-  `.db` file can silently drop committed data. Prefer `sqlite3 <db> .backup`,
+  `.db` file can silently drop committed data. Prefer `sqlite3 <db> ".backup <backup-file>"`,
   which is WAL-safe.
 - `synchronous = NORMAL` is crash-safe for the application and OS; a power
   loss can roll back the most recent commits, but never corrupts the database.
