@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.80.3](https://github.com/apauldev/Yotara/compare/v0.80.2...v0.80.3) (2026-10-16)
+
+
+### Bug Fixes
+
+* **release:** sync website version stamp, refresh site copy, add blog posts ([#406](https://github.com/apauldev/Yotara/issues/406)) ([8164a6a](https://github.com/apauldev/Yotara/commit/8164a6aff90d9468d4b5e378c62bfcfbb675a3f0))
+
 ## [0.80.2](https://github.com/apauldev/Yotara/compare/v0.80.1...v0.80.2) (2026-10-15)
 
 
