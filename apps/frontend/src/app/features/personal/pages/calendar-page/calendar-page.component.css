@@ -1,0 +1,48 @@
+:host {
+  display: block;
+}
+
+.cal-page {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 0 2rem;
+}
+
+.cal-loading {
+  padding: 2rem;
+  text-align: center;
+  color: var(--on-surface-muted);
+}
+
+.cal-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20rem;
+  gap: 1rem;
+  align-items: start;
+}
+
+.cal-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.cal-side {
+  min-width: 0;
+}
+
+.cal-month-empty {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.8rem;
+  background: var(--surface-container-low);
+  color: var(--on-surface-muted);
+  font-size: 0.85rem;
+}
+
+@media (width <= 980px) {
+  .cal-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

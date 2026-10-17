@@ -125,6 +125,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'calendar',
+        loadComponent: () =>
+          import('./features/personal/pages/calendar-page/calendar-page.component').then(
+            (m) => m.CalendarPageComponent,
+          ),
+      },
+      {
         path: '**',
         loadComponent: () =>
           import('./features/error/not-found.component').then((m) => m.NotFoundComponent),

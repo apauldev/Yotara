@@ -1,0 +1,70 @@
+<app-personal-task-workspace>
+  <section class="cal-page">
+    <app-page-header
+      title="Calendar"
+      subtitle="See what is due, day by day. Tasks appear on the dates they are scheduled for."
+    />
+
+    <app-calendar-header
+      [monthLabel]="monthLabel()"
+      [noDateCount]="noDateCount()"
+      [noDateActive]="showNoDate()"
+      (previous)="previousMonth()"
+      (next)="nextMonth()"
+      (today)="goToday()"
+      (newTask)="newTask()"
+      (toggleNoDate)="toggleNoDate()"
+    />
+
+    @if (showInitialLoading()) {
+      <div class="cal-loading" role="status" aria-live="polite">Loading your calendar…</div>
+    } @else {
+      <div class="cal-layout">
+        <div class="cal-main">
+          <app-calendar-month-grid
+            [cells]="cells()"
+            [selectedKey]="selectedKey()"
+            [accentByProject]="projectAccents()"
+            [completionIds]="completionIds()"
+            [todayKey]="todayKey"
+            (selectDate)="selectDate($event)"
+            (openTask)="openTask($event)"
+            (completeTask)="completeTask($event)"
+            (createTask)="createTaskForDate($event)"
+          />
+
+          @if (!monthHasTasks()) {
+            <p class="cal-month-empty">
+              Nothing scheduled in {{ monthLabel() }} yet. Give a task a due date to see it here.
+            </p>
+          }
+        </div>
+
+        <aside class="cal-side">
+          @if (showNoDate()) {
+            <app-calendar-no-date-list
+              [tasks]="undatedTasks()"
+              [accentByProject]="projectAccents()"
+              [completionIds]="completionIds()"
+              [todayKey]="todayKey"
+              (openTask)="openTask($event)"
+              (completeTask)="completeTask($event)"
+              (scheduleTask)="scheduleTask($event)"
+            />
+          } @else {
+            <app-calendar-day-panel
+              [dateLabel]="selectedDateLabel()"
+              [tasks]="selectedDayTasks()"
+              [accentByProject]="projectAccents()"
+              [completionIds]="completionIds()"
+              [todayKey]="todayKey"
+              (openTask)="openTask($event)"
+              (completeTask)="completeTask($event)"
+              (addTask)="addTaskForDate()"
+            />
+          }
+        </aside>
+      </div>
+    }
+  </section>
+</app-personal-task-workspace>

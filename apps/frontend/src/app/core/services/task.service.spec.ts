@@ -66,6 +66,13 @@ describe('TaskService', () => {
         req.flush(paginated([]));
       }
     });
+    // Flush undatedTasks request
+    const undatedMatch = http.match((req) => req.url.includes('hasDueDate=false'));
+    undatedMatch.forEach((req) => {
+      if (!req.cancelled) {
+        req.flush(paginated([]));
+      }
+    });
     // Flush recentlyCompleted request
     const completedMatch = http.match((req) => req.url.includes(COMPLETED_URL));
     completedMatch.forEach((req) => {
@@ -1251,5 +1258,87 @@ describe('TaskService', () => {
 
     expect(result.data.length).toBe(1);
     expect(result.data[0].id).toBe('archived-1');
+  }));
+
+  it('fetchUndatedTasks$ requests active tasks without a due date', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    let result: Task[] | undefined;
+    service.fetchUndatedTasks$().subscribe((tasks) => {
+      result = tasks;
+    });
+
+    const req = http.expectOne(
+      (r) => r.url.includes('hasDueDate=false') && r.url.includes('pageSize=1000'),
+    );
+    expect(req.request.url).toContain('completed=false');
+    expect(req.request.url).toContain('tz=');
+    req.flush(
+      paginated([
+        {
+          id: 'undated-1',
+          title: 'No date',
+          status: 'inbox',
+          priority: 'medium',
+          completed: false,
+          order: 0,
+          createdAt: '',
+          updatedAt: '',
+        },
+      ]),
+    );
+    tick();
+
+    expect(result?.map((task) => task.id)).toEqual(['undated-1']);
+  }));
+
+  it('fetchTasksDueBetween$ sends the inclusive calendar-date bounds', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    let result: Task[] | undefined;
+    service.fetchTasksDueBetween$('2026-05-10', '2026-05-13').subscribe((tasks) => {
+      result = tasks;
+    });
+
+    const req = http.expectOne(
+      (r) => r.url.includes('dueFrom=2026-05-10') && r.url.includes('dueTo=2026-05-13'),
+    );
+    expect(req.request.url).toContain('tz=');
+    req.flush(paginated([]));
+    tick();
+
+    expect(result).toEqual([]);
+  }));
+
+  it('loads undatedTasks once authenticated and refetches on refresh', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    http
+      .expectOne((r) => r.url.includes('hasDueDate=false'))
+      .flush(
+        paginated([
+          {
+            id: 'undated-1',
+            title: 'No date',
+            status: 'inbox',
+            priority: 'medium',
+            completed: false,
+            order: 0,
+            createdAt: '',
+            updatedAt: '',
+          },
+        ]),
+      );
+    tick();
+
+    expect(service.undatedTasks().map((task) => task.id)).toEqual(['undated-1']);
   }));
 });

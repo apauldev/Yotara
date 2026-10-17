@@ -109,7 +109,15 @@ describe('PersonalShellComponent', () => {
       .queryAll(By.css('.nav-item'))
       .map((element) => element.nativeElement.textContent.replace(/\s+/g, ' ').trim());
 
-    expect(labels).toEqual(['Inbox', 'Today', 'Upcoming', 'Projects', 'Labels', 'Archive']);
+    expect(labels).toEqual([
+      'Inbox',
+      'Today',
+      'Upcoming',
+      'Calendar',
+      'Projects',
+      'Labels',
+      'Archive',
+    ]);
   });
 
   it('renders the top bar branding and user avatar', () => {

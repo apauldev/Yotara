@@ -139,6 +139,26 @@ export class TaskService {
       .pipe(map((response) => response.data));
   }
 
+  /** Fetch active tasks without a due date (the calendar's No date list). */
+  fetchUndatedTasks$() {
+    const tz = getUserTimezone();
+    return this.http
+      .get<
+        PaginatedResponse<Task[]>
+      >(`${this.baseUrl}/tasks?hasDueDate=false&completed=false&tz=${tz}&pageSize=1000`, { withCredentials: true })
+      .pipe(map((response) => response.data));
+  }
+
+  /** Fetch tasks due within an inclusive calendar-date range (YYYY-MM-DD bounds). */
+  fetchTasksDueBetween$(dueFrom: string, dueTo: string) {
+    const tz = getUserTimezone();
+    return this.http
+      .get<
+        PaginatedResponse<Task[]>
+      >(`${this.baseUrl}/tasks?dueFrom=${dueFrom}&dueTo=${dueTo}&tz=${tz}&pageSize=1000`, { withCredentials: true })
+      .pipe(map((response) => response.data));
+  }
+
   /** Signal of all active tasks for subtask maps, labels, and search. */
   readonly allActiveTasks = toSignal(
     combineLatest([
@@ -157,6 +177,24 @@ export class TaskService {
           catchError(this.handleLoadError('tasks')),
           finalize(() => this.loadingState.set(false)),
         );
+      }),
+    ),
+    { initialValue: [] as Task[] },
+  );
+
+  /** Signal of active tasks without a due date, for the calendar's No date list. */
+  readonly undatedTasks = toSignal(
+    combineLatest([
+      toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
+      toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
+      toObservable(this.refreshState),
+    ]).pipe(
+      switchMap(([initialized, currentUserId]) => {
+        if (!initialized || !currentUserId) {
+          return of([] as Task[]);
+        }
+        this.errorState.set(null);
+        return this.fetchUndatedTasks$().pipe(catchError(this.handleLoadError('undated tasks')));
       }),
     ),
     { initialValue: [] as Task[] },

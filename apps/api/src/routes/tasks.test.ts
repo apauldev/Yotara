@@ -700,6 +700,100 @@ test('tasks reject a completedSince that is not a calendar date', async () => {
   }
 });
 
+test('tasks list supports hasDueDate and inclusive dueFrom/dueTo ranges', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`due-range-${randomUUID()}@example.com`);
+
+    const earlyStr = '2026-05-10';
+    const midStr = '2026-05-11';
+    const lateStr = '2026-05-13';
+
+    const createTask = (payload: Record<string, unknown>) =>
+      ctx.app.inject({
+        method: 'POST',
+        url: '/tasks',
+        headers: { cookie },
+        payload,
+      });
+
+    assert.equal((await createTask({ title: 'Undated task' })).statusCode, 201);
+    assert.equal((await createTask({ title: 'Early task', dueDate: earlyStr })).statusCode, 201);
+    assert.equal((await createTask({ title: 'Mid task', dueDate: midStr })).statusCode, 201);
+    assert.equal((await createTask({ title: 'Late task', dueDate: lateStr })).statusCode, 201);
+
+    const titlesOf = (response: { json(): { data: { title: string }[] } }) =>
+      response
+        .json()
+        .data.map((task) => task.title)
+        .sort();
+
+    // hasDueDate=false returns only tasks without a due date
+    const undatedRes = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?hasDueDate=false&tz=UTC',
+      headers: { cookie },
+    });
+    assert.equal(undatedRes.statusCode, 200);
+    assert.deepEqual(titlesOf(undatedRes), ['Undated task']);
+
+    // hasDueDate=true returns only dated tasks
+    const datedRes = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?hasDueDate=true&tz=UTC',
+      headers: { cookie },
+    });
+    assert.equal(datedRes.statusCode, 200);
+    assert.deepEqual(titlesOf(datedRes), ['Early task', 'Late task', 'Mid task']);
+
+    // dueFrom/dueTo are inclusive on both ends
+    const rangeRes = await ctx.app.inject({
+      method: 'GET',
+      url: `/tasks?dueFrom=${earlyStr}&dueTo=${midStr}&tz=UTC`,
+      headers: { cookie },
+    });
+    assert.equal(rangeRes.statusCode, 200);
+    assert.deepEqual(titlesOf(rangeRes), ['Early task', 'Mid task']);
+
+    // a single-day range includes tasks due exactly on that day
+    const singleDayRes = await ctx.app.inject({
+      method: 'GET',
+      url: `/tasks?dueFrom=${lateStr}&dueTo=${lateStr}&tz=UTC`,
+      headers: { cookie },
+    });
+    assert.equal(singleDayRes.statusCode, 200);
+    assert.deepEqual(titlesOf(singleDayRes), ['Late task']);
+
+    // an inverted range returns empty rather than erroring
+    const invertedRes = await ctx.app.inject({
+      method: 'GET',
+      url: `/tasks?dueFrom=${lateStr}&dueTo=${earlyStr}&tz=UTC`,
+      headers: { cookie },
+    });
+    assert.equal(invertedRes.statusCode, 200);
+    assert.equal(invertedRes.json().data.length, 0);
+    assert.equal(invertedRes.json().meta.total, 0);
+
+    // malformed dates are rejected
+    const badFromRes = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?dueFrom=not-a-date',
+      headers: { cookie },
+    });
+    assert.equal(badFromRes.statusCode, 400);
+
+    const badToRes = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?dueTo=2026-13-99',
+      headers: { cookie },
+    });
+    assert.equal(badToRes.statusCode, 400);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
 test('tasks export endpoint returns all tasks without pagination limit', async () => {
   const ctx = await createAuthedApp();
 
