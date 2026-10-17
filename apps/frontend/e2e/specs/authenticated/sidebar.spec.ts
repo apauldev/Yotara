@@ -12,6 +12,7 @@ test.describe('Sidebar & Navigation', () => {
       { name: 'Inbox', url: /\/tasks/ },
       { name: 'Today', url: /\/tasks/ },
       { name: 'Upcoming', url: /\/tasks/ },
+      { name: 'Calendar', url: /\/calendar/ },
       { name: 'Projects', url: /\/projects/ },
       { name: 'Labels', url: /\/labels/ },
       { name: 'Archive', url: /\/archive/ },

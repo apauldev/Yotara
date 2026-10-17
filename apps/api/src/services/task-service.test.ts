@@ -162,6 +162,51 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       assert.equal(subtasks.filter((s) => s.completed).length, 1);
     });
 
+    await t.test('List filtering: hasDueDate and inclusive due date ranges', async () => {
+      await ctx.taskService.createTaskForOwner(ownerId, { title: 'Range Undated' });
+      await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Range Day A',
+        dueDate: '2026-05-10',
+      });
+      await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Range Day B',
+        dueDate: '2026-05-11',
+      });
+      await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Range Day C',
+        dueDate: '2026-05-13',
+      });
+
+      // hasDueDate=false returns only undated tasks
+      const undated = await ctx.taskService.listTasksForOwner(ownerId, 1, 200, true, undefined, {
+        hasDueDate: false,
+      });
+      assert.ok(undated.data.some((task) => task.title === 'Range Undated'));
+      assert.ok(undated.data.every((task) => !task.dueDate));
+
+      // hasDueDate=true returns only dated tasks
+      const dated = await ctx.taskService.listTasksForOwner(ownerId, 1, 200, true, undefined, {
+        hasDueDate: true,
+      });
+      assert.ok(dated.data.some((task) => task.title === 'Range Day A'));
+      assert.ok(dated.data.every((task) => Boolean(task.dueDate)));
+
+      // the range is inclusive on both ends and excludes undated tasks
+      const range = await ctx.taskService.listTasksForOwner(ownerId, 1, 200, true, undefined, {
+        dueFrom: '2026-05-10',
+        dueTo: '2026-05-11',
+      });
+      assert.deepEqual(range.data.map((task) => task.title).sort(), ['Range Day A', 'Range Day B']);
+
+      // an inverted range returns empty rather than erroring
+      const inverted = await ctx.taskService.listTasksForOwner(ownerId, 1, 200, true, undefined, {
+        dueFrom: '2026-05-13',
+        dueTo: '2026-05-10',
+      });
+      assert.equal(inverted.data.length, 0);
+      assert.equal(inverted.meta.total, 0);
+    });
+
     await t.test('Recurrence materialization', async () => {
       // 1. Weekly recurrence - anchor from original due date
       const weeklyDueDate = '2026-05-01T00:00:00Z';

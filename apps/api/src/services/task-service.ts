@@ -131,6 +131,8 @@ export interface TaskFilters {
   completed?: boolean;
   overdue?: boolean; // dueDate < now AND completed = false
   hasDueDate?: boolean;
+  dueFrom?: string; // inclusive calendar date (YYYY-MM-DD), applied to date(due_date)
+  dueTo?: string; // inclusive calendar date (YYYY-MM-DD), applied to date(due_date)
   tz?: string;
   view?: 'today' | 'inbox' | 'upcoming';
   completedSince?: string;
@@ -166,6 +168,15 @@ export async function listTasksForOwner(
       whereClause = filters.hasDueDate
         ? and(whereClause, isNotNull(tasks.dueDate))
         : and(whereClause, isNull(tasks.dueDate));
+    }
+    // Inclusive calendar-date range over the due date. An inverted range
+    // (dueFrom > dueTo) matches nothing rather than erroring; undated tasks
+    // fall out because date(NULL) satisfies neither bound.
+    if (filters.dueFrom) {
+      whereClause = and(whereClause, sql`date(${tasks.dueDate}) >= ${filters.dueFrom}`);
+    }
+    if (filters.dueTo) {
+      whereClause = and(whereClause, sql`date(${tasks.dueDate}) <= ${filters.dueTo}`);
     }
     if (filters.overdue) {
       const today = todayInTimezone(filters.tz);
