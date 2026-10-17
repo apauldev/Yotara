@@ -1,0 +1,88 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import type { Task } from '@yotara/shared';
+import { CalendarDayPanelComponent } from './calendar-day-panel.component';
+
+function task(overrides: Partial<Task> = {}): Task {
+  return {
+    id: 'task-1',
+    title: 'Task',
+    status: 'inbox',
+    priority: 'medium',
+    completed: false,
+    order: 0,
+    createdAt: '',
+    updatedAt: '',
+    ...overrides,
+  } as Task;
+}
+
+describe('CalendarDayPanelComponent', () => {
+  let fixture: ComponentFixture<CalendarDayPanelComponent>;
+  let component: CalendarDayPanelComponent;
+
+  function el<T extends HTMLElement>(selector: string): T {
+    const found = fixture.nativeElement.querySelector(selector) as T | null;
+    if (!found) {
+      throw new Error(`Element not found: ${selector}`);
+    }
+    return found;
+  }
+
+  function setTasks(tasks: Task[]): void {
+    component.dateLabel = 'Friday, Oct 17, 2026';
+    component.tasks = tasks;
+    fixture.detectChanges();
+  }
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [CalendarDayPanelComponent],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(CalendarDayPanelComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('shows the date, count and the empty state', () => {
+    setTasks([]);
+
+    expect(el('.cal-panel-title').textContent).toContain('Friday, Oct 17, 2026');
+    expect(el('.cal-panel-count').textContent?.trim()).toBe('0 tasks');
+    expect(el('.cal-panel-empty').textContent).toContain('Nothing due on this day.');
+  });
+
+  it('renders a chip per task with a singular count', () => {
+    setTasks([task({ id: 'a', title: 'One' })]);
+
+    expect(fixture.nativeElement.querySelectorAll('app-calendar-task-chip').length).toBe(1);
+    expect(el('.cal-panel-count').textContent?.trim()).toBe('1 task');
+  });
+
+  it('emits openTask, completeTask and addTask', () => {
+    setTasks([task({ id: 'a', title: 'One' })]);
+    const open = jasmine.createSpy('open');
+    const complete = jasmine.createSpy('complete');
+    const add = jasmine.createSpy('add');
+    component.openTask.subscribe(open);
+    component.completeTask.subscribe(complete);
+    component.addTask.subscribe(add);
+
+    el<HTMLButtonElement>('.cal-chip-body').click();
+    el<HTMLButtonElement>('.cal-chip-check').click();
+    el<HTMLButtonElement>('.cal-panel-add').click();
+
+    expect(open).toHaveBeenCalledWith(component.tasks[0]);
+    expect(complete).toHaveBeenCalledWith(component.tasks[0]);
+    expect(add).toHaveBeenCalled();
+  });
+
+  it('reads a chip as completed from completionIds', () => {
+    setTasks([task({ id: 'a', title: 'One' })]);
+
+    component.completionIds = new Set(['a']);
+    fixture.detectChanges();
+
+    expect(el('.cal-chip').classList.contains('cal-chip-completed')).toBe(true);
+  });
+});
