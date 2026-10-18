@@ -259,6 +259,11 @@ export class CalendarPageComponent {
     this.openCreateFor(this.selectedKey());
   }
 
+  /** A day cell's "+" or double-click creates a task on that date. */
+  protected createTaskForDate(date: DateTime): void {
+    this.openCreateFor(dayKey(date));
+  }
+
   /** Toggle completion without opening the modal; revert visibly on failure. */
   protected async completeTask(task: Task): Promise<void> {
     if (this.pendingCompletionIds().has(task.id)) {

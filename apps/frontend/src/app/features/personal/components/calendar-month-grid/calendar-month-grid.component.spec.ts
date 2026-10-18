@@ -209,4 +209,59 @@ describe('CalendarMonthGridComponent', () => {
       fixture.nativeElement.querySelector('[data-cal-day="2026-10-02"]'),
     );
   });
+
+  it('creates a task from the cell add button', () => {
+    setCells([]);
+    let created: DateTime | undefined;
+    component.createTask.subscribe((value) => (created = value));
+
+    (fixture.nativeElement.querySelector('.cal-cell-add') as HTMLButtonElement).click();
+
+    expect(created?.toISODate()).toBe('2026-10-12');
+  });
+
+  it('releases focus after the add button is clicked', () => {
+    setCells([]);
+    const add = fixture.nativeElement.querySelector('.cal-cell-add') as HTMLButtonElement;
+    add.focus();
+    expect(document.activeElement).toBe(add);
+
+    add.click();
+
+    expect(document.activeElement).not.toBe(add);
+  });
+
+  it('creates a task on double-clicking an empty cell', () => {
+    setCells([]);
+    let created: DateTime | undefined;
+    component.createTask.subscribe((value) => (created = value));
+
+    cell().dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+
+    expect(created?.toISODate()).toBe('2026-10-12');
+  });
+
+  it('does not create from a double-click on a task chip', () => {
+    setCells([task({ id: 'a', dueDate: '2026-10-12' })]);
+    let count = 0;
+    component.createTask.subscribe(() => (count += 1));
+
+    (fixture.nativeElement.querySelector('.cal-chip') as HTMLElement).dispatchEvent(
+      new MouseEvent('dblclick', { bubbles: true }),
+    );
+
+    expect(count).toBe(0);
+  });
+
+  it('disables quick create when asked', () => {
+    component.allowQuickCreate = false;
+    setCells([]);
+    let count = 0;
+    component.createTask.subscribe(() => (count += 1));
+
+    expect(fixture.nativeElement.querySelector('.cal-cell-add')).toBeFalsy();
+
+    cell().dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    expect(count).toBe(0);
+  });
 });
