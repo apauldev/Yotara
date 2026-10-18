@@ -98,6 +98,31 @@ describe('CalendarTaskChipComponent', () => {
     expect(el('.cal-chip-bar-medium')).toBeTruthy();
   });
 
+  it('marks the chip with its priority and touch-target classes', () => {
+    expect(el('.cal-chip').classList.contains('cal-chip-priority-medium')).toBe(true);
+
+    component.touchTargets = true;
+    fixture.detectChanges();
+
+    expect(el('.cal-chip').classList.contains('cal-chip-touch')).toBe(true);
+  });
+
+  it('can hide the inline time while still announcing it', () => {
+    component.task = task({ id: 'b', title: 'Standup', dueTime: '09:00' });
+    component.showTime = false;
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.cal-chip-time')).toBeFalsy();
+    expect(el<HTMLButtonElement>('.cal-chip-body').getAttribute('aria-label')).toContain('9:00 AM');
+  });
+
+  it('hides the completion control when showCheck is false', () => {
+    component.showCheck = false;
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.cal-chip-check')).toBeFalsy();
+  });
+
   it('applies the overdue ring', () => {
     component.overdue = true;
     fixture.detectChanges();

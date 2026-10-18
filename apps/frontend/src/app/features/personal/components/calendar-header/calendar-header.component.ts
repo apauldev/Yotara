@@ -22,6 +22,9 @@ import { faChevronLeft, faChevronRight, faPlus } from '@fortawesome/free-solid-s
         <button type="button" class="cal-nav-btn" aria-label="Next month" (click)="next.emit()">
           <fa-icon [icon]="faChevronRight" aria-hidden="true" />
         </button>
+      </div>
+
+      <div class="cal-actions">
         <button
           type="button"
           class="cal-done-btn"
@@ -40,9 +43,6 @@ import { faChevronLeft, faChevronRight, faPlus } from '@fortawesome/free-solid-s
         >
           Show task details
         </button>
-      </div>
-
-      <div class="cal-actions">
         <button
           type="button"
           class="cal-nodate-btn"
@@ -107,6 +107,8 @@ import { faChevronLeft, faChevronRight, faPlus } from '@fortawesome/free-solid-s
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        flex-wrap: wrap;
+        min-width: 0;
       }
 
       .cal-nodate-btn,
@@ -167,6 +169,26 @@ import { faChevronLeft, faChevronRight, faPlus } from '@fortawesome/free-solid-s
       .cal-new-btn:focus-visible {
         outline: 2px solid var(--primary-solid);
         outline-offset: 2px;
+      }
+
+      @media (max-width: 720px) {
+        .cal-toolbar {
+          gap: 0.6rem;
+        }
+
+        .cal-nav {
+          flex: 1 1 100%;
+          justify-content: space-between;
+        }
+
+        .cal-month {
+          flex: 1 1 auto;
+          min-width: 0;
+        }
+
+        .cal-actions {
+          flex: 1 1 100%;
+        }
       }
 
       @media (pointer: coarse) {

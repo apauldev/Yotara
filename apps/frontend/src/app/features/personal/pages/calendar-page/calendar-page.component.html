@@ -22,57 +22,84 @@
     @if (showInitialLoading()) {
       <div class="cal-loading" role="status" aria-live="polite">Loading your calendar…</div>
     } @else {
-      <div class="cal-layout">
-        <div class="cal-main">
-          <app-calendar-month-grid
-            [cells]="cells()"
-            [selectedKey]="selectedKey()"
+      <ng-template #calendarMain>
+        <app-calendar-month-grid
+          [cells]="cells()"
+          [selectedKey]="selectedKey()"
+          [completionIds]="completionIds()"
+          [todayKey]="todayKey"
+          [showMetadata]="showMetadata()"
+          [showCheck]="!isMobile()"
+          (selectDate)="selectDate($event)"
+          (openTask)="openTask($event)"
+          (completeTask)="completeTask($event)"
+        />
+
+        @if (!monthHasTasks()) {
+          <p class="cal-month-empty">
+            Nothing scheduled in {{ monthLabel() }} yet. Give a task a due date to see it here.
+          </p>
+        }
+      </ng-template>
+
+      <ng-template #sidePanel>
+        @if (showNoDate()) {
+          <app-calendar-no-date-list
+            [tasks]="undatedTasks()"
+            [accentByProject]="projectAccents()"
             [completionIds]="completionIds()"
             [todayKey]="todayKey"
+            [projectNames]="projectNames()"
+            [labelNames]="labelNames()"
             [showMetadata]="showMetadata()"
-            (selectDate)="selectDate($event)"
+            [touchTargets]="isMobile()"
             (openTask)="openTask($event)"
             (completeTask)="completeTask($event)"
+            (scheduleTask)="scheduleTask($event)"
           />
+        } @else {
+          <app-calendar-day-panel
+            [dateLabel]="selectedDateLabel()"
+            [tasks]="selectedDayTasks()"
+            [accentByProject]="projectAccents()"
+            [completionIds]="completionIds()"
+            [todayKey]="todayKey"
+            [projectNames]="projectNames()"
+            [labelNames]="labelNames()"
+            [showMetadata]="showMetadata()"
+            [touchTargets]="isMobile()"
+            (openTask)="openTask($event)"
+            (completeTask)="completeTask($event)"
+            (addTask)="addTaskForDate()"
+          />
+        }
+      </ng-template>
 
-          @if (!monthHasTasks()) {
-            <p class="cal-month-empty">
-              Nothing scheduled in {{ monthLabel() }} yet. Give a task a due date to see it here.
-            </p>
-          }
+      @if (isMobile()) {
+        <ng-container [ngTemplateOutlet]="calendarMain" />
+
+        @if (mobilePanelOpen()) {
+          <div class="cal-sheet" role="dialog" aria-modal="true" aria-label="Day details">
+            <header class="cal-sheet-head">
+              <button type="button" class="cal-sheet-back" (click)="closeMobilePanel()">
+                <fa-icon [icon]="faArrowLeft" aria-hidden="true" />
+                Back
+              </button>
+            </header>
+            <ng-container [ngTemplateOutlet]="sidePanel" />
+          </div>
+        }
+      } @else {
+        <div class="cal-layout">
+          <div class="cal-main">
+            <ng-container [ngTemplateOutlet]="calendarMain" />
+          </div>
+
+          <aside class="cal-side">
+            <ng-container [ngTemplateOutlet]="sidePanel" />
+          </aside>
         </div>
-
-        <aside class="cal-side">
-          @if (showNoDate()) {
-            <app-calendar-no-date-list
-              [tasks]="undatedTasks()"
-              [accentByProject]="projectAccents()"
-              [completionIds]="completionIds()"
-              [todayKey]="todayKey"
-              [projectNames]="projectNames()"
-              [labelNames]="labelNames()"
-              [showMetadata]="showMetadata()"
-              (openTask)="openTask($event)"
-              (completeTask)="completeTask($event)"
-              (scheduleTask)="scheduleTask($event)"
-            />
-          } @else {
-            <app-calendar-day-panel
-              [dateLabel]="selectedDateLabel()"
-              [tasks]="selectedDayTasks()"
-              [accentByProject]="projectAccents()"
-              [completionIds]="completionIds()"
-              [todayKey]="todayKey"
-              [projectNames]="projectNames()"
-              [labelNames]="labelNames()"
-              [showMetadata]="showMetadata()"
-              (openTask)="openTask($event)"
-              (completeTask)="completeTask($event)"
-              (addTask)="addTaskForDate()"
-            />
-          }
-        </aside>
-      </div>
+      }
     }
   </section>
 </app-personal-task-workspace>

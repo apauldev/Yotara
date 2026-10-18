@@ -359,4 +359,50 @@ describe('CalendarPageComponent', () => {
       expect(showMetadataPref()).toBe(true);
     });
   });
+
+  it('opens a full-screen day sheet with a Back button on mobile', () => {
+    const component = fixture.componentInstance as unknown as {
+      isMobile: WritableSignal<boolean>;
+    };
+    component.isMobile.set(true);
+    fixture.detectChanges();
+
+    // The side panel is not part of the mobile layout until a day is opened.
+    expect(fixture.nativeElement.querySelector('app-calendar-day-panel')).toBeFalsy();
+
+    dayCell(today.day).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.cal-sheet')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.cal-sheet-back')).toBeTruthy();
+
+    element<HTMLButtonElement>('.cal-sheet-back').click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.cal-sheet')).toBeFalsy();
+  });
+
+  it('hides the grid completion control on mobile but keeps it in the day sheet', () => {
+    allActiveTasks.set([task({ id: 'due-1', title: 'Ship it', dueDate: todayISO })]);
+    const component = fixture.componentInstance as unknown as {
+      isMobile: WritableSignal<boolean>;
+    };
+    component.isMobile.set(true);
+    fixture.detectChanges();
+
+    const gridChip = fixture.nativeElement.querySelector(
+      'app-calendar-month-grid .cal-chip',
+    ) as HTMLElement | null;
+    expect(gridChip).toBeTruthy();
+    expect(gridChip?.querySelector('.cal-chip-check')).toBeFalsy();
+
+    dayCell(today.day).click();
+    fixture.detectChanges();
+
+    const panelChip = fixture.nativeElement.querySelector(
+      '.cal-sheet app-calendar-task-chip .cal-chip',
+    ) as HTMLElement | null;
+    expect(panelChip).toBeTruthy();
+    expect(panelChip?.querySelector('.cal-chip-check')).toBeTruthy();
+  });
 });

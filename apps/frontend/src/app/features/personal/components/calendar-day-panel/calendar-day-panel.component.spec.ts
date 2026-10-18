@@ -99,4 +99,19 @@ describe('CalendarDayPanelComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Work');
     expect(fixture.nativeElement.textContent).toContain('urgent');
   });
+
+  it('shows untimed tasks first, then timed tasks in a time schedule', () => {
+    setTasks([
+      task({ id: 'timed', title: 'Timed task', dueTime: '09:00' }),
+      task({ id: 'untimed', title: 'Untimed task' }),
+    ]);
+
+    const text = fixture.nativeElement.textContent;
+    expect(text.indexOf('Untimed task')).toBeLessThan(text.indexOf('Timed task'));
+
+    expect(el('.cal-schedule')).toBeTruthy();
+    expect(el('.cal-schedule-time').textContent).toContain('9:00 AM');
+    // The timed chip does not repeat its time inline; the gutter owns it.
+    expect(fixture.nativeElement.querySelector('.cal-schedule .cal-chip-time')).toBeFalsy();
+  });
 });

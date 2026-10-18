@@ -1,12 +1,16 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   computed,
   effect,
   inject,
   signal,
   viewChild,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { DateTime } from 'luxon';
 import type { Task } from '@yotara/shared';
 import { LabelService } from '../../../../core/services/label.service';
@@ -44,6 +48,8 @@ function pruneIds(ids: ReadonlySet<string>, allowed: ReadonlySet<string>): Reado
   selector: 'app-calendar-page',
   standalone: true,
   imports: [
+    NgTemplateOutlet,
+    FontAwesomeModule,
     PageHeaderComponent,
     CalendarHeaderComponent,
     CalendarMonthGridComponent,
@@ -63,12 +69,21 @@ export class CalendarPageComponent {
   private readonly preferences = inject(PreferencesStore);
   private readonly workspace = viewChild(PersonalTaskWorkspaceComponent);
 
+  private readonly mobileQuery =
+    typeof globalThis.matchMedia === 'function'
+      ? globalThis.matchMedia('(max-width: 720px)')
+      : null;
+  protected readonly isMobile = signal(this.mobileQuery?.matches ?? false);
+  protected readonly faArrowLeft = faArrowLeft;
+
   private readonly today = startOfToday();
   protected readonly todayKey = dayKey(this.today);
 
   protected readonly viewMonth = signal<DateTime>(this.today.startOf('month'));
   protected readonly selectedDate = signal<DateTime>(this.today);
   protected readonly showNoDate = signal(false);
+  protected readonly mobileDayOpen = signal(false);
+  protected readonly mobilePanelOpen = computed(() => this.mobileDayOpen() || this.showNoDate());
   /** Task ids that read as completed while the save is in flight. */
   protected readonly completionIds = signal<ReadonlySet<string>>(new Set<string>());
   /** Task ids that read as scheduled while the save is in flight. */
@@ -143,6 +158,13 @@ export class CalendarPageComponent {
       const undatedIds = new Set(this.taskService.undatedTasks().map((task) => task.id));
       this.schedulingIds.update((ids) => pruneIds(ids, undatedIds));
     });
+
+    const query = this.mobileQuery;
+    if (query) {
+      const onChange = (event: MediaQueryListEvent) => this.isMobile.set(event.matches);
+      query.addEventListener('change', onChange);
+      inject(DestroyRef).onDestroy(() => query.removeEventListener('change', onChange));
+    }
   }
 
   protected previousMonth(): void {
@@ -155,6 +177,12 @@ export class CalendarPageComponent {
 
   protected selectDate(date: DateTime): void {
     this.selectedDate.set(date);
+    this.showNoDate.set(false);
+    this.mobileDayOpen.set(true);
+  }
+
+  protected closeMobilePanel(): void {
+    this.mobileDayOpen.set(false);
     this.showNoDate.set(false);
   }
 
