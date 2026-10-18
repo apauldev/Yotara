@@ -191,6 +191,38 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       assert.ok(dated.data.some((task) => task.title === 'Range Day A'));
       assert.ok(dated.data.every((task) => Boolean(task.dueDate)));
 
+      // A legacy empty-string due date reads as undated, so it must not fall
+      // between the two filters and disappear from both lists.
+      const { tasks } = await import('../db/schema.js');
+      await ctx.db.insert(tasks).values({
+        id: randomUUID(),
+        userId: ownerId,
+        title: 'Range Blank Date',
+        dueDate: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      const undatedWithBlank = await ctx.taskService.listTasksForOwner(
+        ownerId,
+        1,
+        200,
+        true,
+        undefined,
+        { hasDueDate: false },
+      );
+      assert.ok(undatedWithBlank.data.some((task) => task.title === 'Range Blank Date'));
+
+      const datedWithBlank = await ctx.taskService.listTasksForOwner(
+        ownerId,
+        1,
+        200,
+        true,
+        undefined,
+        { hasDueDate: true },
+      );
+      assert.ok(!datedWithBlank.data.some((task) => task.title === 'Range Blank Date'));
+
       // the range is inclusive on both ends and excludes undated tasks
       const range = await ctx.taskService.listTasksForOwner(ownerId, 1, 200, true, undefined, {
         dueFrom: '2026-05-10',

@@ -166,8 +166,8 @@ export async function listTasksForOwner(
     }
     if (filters.hasDueDate !== undefined) {
       whereClause = filters.hasDueDate
-        ? and(whereClause, isNotNull(tasks.dueDate))
-        : and(whereClause, isNull(tasks.dueDate));
+        ? and(whereClause, isNotNull(tasks.dueDate), sql`${tasks.dueDate} <> ''`)
+        : and(whereClause, or(isNull(tasks.dueDate), eq(tasks.dueDate, '')));
     }
     // Inclusive calendar-date range over the due date. An inverted range
     // (dueFrom > dueTo) matches nothing rather than erroring; undated tasks
