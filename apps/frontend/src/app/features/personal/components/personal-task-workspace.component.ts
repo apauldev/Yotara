@@ -17,6 +17,7 @@ import { NotificationService } from '../../../core/services/notification.service
 import { PersonalTaskModalComponent } from './personal-task-modal.component';
 import type { DueDateDraft } from '../utils/due-date-draft';
 import { taskCreationNotification } from '../utils/task-creation-notification';
+import { notifyTaskCompleted } from '../utils/task-completion-notice';
 
 type SavePayload =
   | { mode: 'create'; payload: CreateTaskDto }
@@ -124,11 +125,10 @@ export class PersonalTaskWorkspaceComponent {
       }
 
       if (event.mode === 'update' && event.payload.completed === true && !wasCompleted) {
-        if (this.preferences.actionNotifications()) {
-          this.statusService.success('Task completed');
-        }
-        this.notificationService.showBrowserNotification(
-          'Task completed',
+        notifyTaskCompleted(
+          this.statusService,
+          this.preferences,
+          this.notificationService,
           this.selectedTask()?.title ?? '',
         );
       }
