@@ -38,20 +38,48 @@ describe('CalendarHeaderComponent', () => {
     expect(el('.cal-nodate-btn').classList.contains('cal-nodate-btn-active')).toBe(true);
   });
 
+  it('reflects the Show done state and emits the toggle', () => {
+    component.showDone = true;
+    fixture.detectChanges();
+    expect(el('.cal-done-btn').classList.contains('cal-done-btn-active')).toBe(true);
+
+    let toggled = 0;
+    component.toggleShowDone.subscribe(() => (toggled += 1));
+    el('.cal-done-btn').click();
+
+    expect(toggled).toBe(1);
+  });
+
   it('emits navigation and action events', () => {
-    const calls = { previous: 0, next: 0, today: 0, newTask: 0, toggleNoDate: 0 };
+    const calls = {
+      previous: 0,
+      next: 0,
+      newTask: 0,
+      toggleNoDate: 0,
+      toggleShowDone: 0,
+      toggleShowMetadata: 0,
+    };
     component.previous.subscribe(() => (calls.previous += 1));
     component.next.subscribe(() => (calls.next += 1));
-    component.today.subscribe(() => (calls.today += 1));
     component.newTask.subscribe(() => (calls.newTask += 1));
     component.toggleNoDate.subscribe(() => (calls.toggleNoDate += 1));
+    component.toggleShowDone.subscribe(() => (calls.toggleShowDone += 1));
+    component.toggleShowMetadata.subscribe(() => (calls.toggleShowMetadata += 1));
 
     el('[aria-label="Previous month"]').click();
     el('[aria-label="Next month"]').click();
-    el('.cal-today-btn').click();
     el('.cal-nodate-btn').click();
+    el('.cal-done-btn').click();
+    el('.cal-meta-btn').click();
     el('.cal-new-btn').click();
 
-    expect(calls).toEqual({ previous: 1, next: 1, today: 1, newTask: 1, toggleNoDate: 1 });
+    expect(calls).toEqual({
+      previous: 1,
+      next: 1,
+      newTask: 1,
+      toggleNoDate: 1,
+      toggleShowDone: 1,
+      toggleShowMetadata: 1,
+    });
   });
 });

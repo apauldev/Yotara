@@ -80,6 +80,15 @@ describe('TaskService', () => {
         req.flush(paginated([]));
       }
     });
+    // Flush completedTasks request (calendar's "show done" view)
+    const allCompletedMatch = http.match(
+      (req) => req.url.includes('pageSize=1000') && req.url.includes('completed=true'),
+    );
+    allCompletedMatch.forEach((req) => {
+      if (!req.cancelled) {
+        req.flush(paginated([]));
+      }
+    });
   }
 
   function flushView(http: HttpTestingController, query: string, tasks: Task[] = []) {
@@ -1340,5 +1349,36 @@ describe('TaskService', () => {
     tick();
 
     expect(service.undatedTasks().map((task) => task.id)).toEqual(['undated-1']);
+  }));
+
+  it('fetchCompletedTasks$ requests completed tasks for the show-done view', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    let result: Task[] | undefined;
+    service.fetchCompletedTasks$().subscribe((tasks) => {
+      result = tasks;
+    });
+
+    const req = http.expectOne(
+      (r) => r.url.includes('completed=true') && r.url.includes('pageSize=1000'),
+    );
+    req.flush(
+      paginated([
+        {
+          id: 'done-1',
+          title: 'Done',
+          status: 'done',
+          priority: 'medium',
+          completed: true,
+          order: 0,
+          createdAt: '',
+          updatedAt: '',
+        },
+      ]),
+    );
+    tick();
+
+    expect(result?.map((task) => task.id)).toEqual(['done-1']);
   }));
 });

@@ -154,4 +154,41 @@ describe('PreferencesStore', () => {
 
     expect(store.desktopNotifications()).toBeTrue();
   });
+
+  it('showDoneCalendar defaults to false', () => {
+    expect(store.showDoneCalendar()).toBeFalse();
+  });
+
+  it('setShowDoneCalendar updates signal and localStorage', () => {
+    store.setShowDoneCalendar(true);
+    expect(store.showDoneCalendar()).toBeTrue();
+    expect(localStorage.getItem('yotara_showDoneCalendar')).toBe('true');
+
+    store.setShowDoneCalendar(false);
+    expect(store.showDoneCalendar()).toBeFalse();
+    expect(localStorage.getItem('yotara_showDoneCalendar')).toBe('false');
+  });
+
+  it('showDoneCalendar initializes from localStorage', () => {
+    localStorage.setItem('yotara_showDoneCalendar', 'true');
+
+    TestBed.resetTestingModule();
+    store = TestBed.inject(PreferencesStore);
+
+    expect(store.showDoneCalendar()).toBeTrue();
+  });
+
+  it('showMetadataCalendar defaults to false', () => {
+    expect(store.showMetadataCalendar()).toBeFalse();
+  });
+
+  it('setShowMetadataCalendar updates signal and localStorage', () => {
+    store.setShowMetadataCalendar(true);
+    expect(store.showMetadataCalendar()).toBeTrue();
+    expect(localStorage.getItem('yotara_showMetadataCalendar')).toBe('true');
+
+    store.setShowMetadataCalendar(false);
+    expect(store.showMetadataCalendar()).toBeFalse();
+    expect(localStorage.getItem('yotara_showMetadataCalendar')).toBe('false');
+  });
 });

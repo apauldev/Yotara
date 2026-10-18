@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faRotate } from '@fortawesome/free-solid-svg-icons';
+import { faRotate, faTag } from '@fortawesome/free-solid-svg-icons';
 import type { Task } from '@yotara/shared';
 import { formatTimeLabel } from '../../../../shared/utils/timestamps';
 
@@ -10,12 +10,7 @@ import { formatTimeLabel } from '../../../../shared/utils/timestamps';
   imports: [FontAwesomeModule],
   changeDetection: ChangeDetectionStrategy.Eager,
   template: `
-    <div
-      class="cal-chip"
-      [class.cal-chip-overdue]="overdue"
-      [class.cal-chip-completed]="completed"
-      [style.--cal-chip-accent]="accent"
-    >
+    <div class="cal-chip" [class.cal-chip-overdue]="overdue" [class.cal-chip-completed]="completed">
       <button
         type="button"
         class="cal-chip-check"
@@ -37,12 +32,19 @@ import { formatTimeLabel } from '../../../../shared/utils/timestamps';
         type="button"
         class="cal-chip-body"
         [attr.title]="task.title"
+        [attr.aria-label]="bodyLabel"
         (click)="select.emit(task)"
       >
-        <span class="cal-chip-bar" aria-hidden="true"></span>
+        <span class="cal-chip-bar cal-chip-bar-{{ task.priority }}" aria-hidden="true"></span>
         <span class="cal-chip-label">{{ task.title }}</span>
         @if (timeLabel) {
           <span class="cal-chip-time">{{ timeLabel }}</span>
+        }
+        @if (showMeta && labelCount > 0) {
+          <span class="cal-chip-labels">
+            <fa-icon [icon]="faTag" aria-hidden="true" />
+            {{ labelCount }}
+          </span>
         }
         @if (task.recurrenceRule) {
           <fa-icon class="cal-chip-recur" [icon]="faRotate" aria-hidden="true" />
@@ -151,7 +153,19 @@ import { formatTimeLabel } from '../../../../shared/utils/timestamps';
         width: 3px;
         align-self: stretch;
         border-radius: 3px;
-        background: var(--cal-chip-accent, var(--primary-solid));
+        background: var(--on-surface-subtle);
+      }
+
+      .cal-chip-bar-high {
+        background: var(--priority-high);
+      }
+
+      .cal-chip-bar-medium {
+        background: var(--priority-medium);
+      }
+
+      .cal-chip-bar-low {
+        background: var(--priority-low);
       }
 
       .cal-chip-label {
@@ -174,6 +188,19 @@ import { formatTimeLabel } from '../../../../shared/utils/timestamps';
         font-size: 0.62rem;
       }
 
+      .cal-chip-labels {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.15rem;
+        color: var(--on-surface-subtle);
+        font-weight: 700;
+      }
+
+      .cal-chip-labels fa-icon {
+        font-size: 0.58rem;
+      }
+
       .cal-chip-check:focus-visible,
       .cal-chip-body:focus-visible {
         outline: 2px solid var(--primary-solid);
@@ -184,15 +211,25 @@ import { formatTimeLabel } from '../../../../shared/utils/timestamps';
 })
 export class CalendarTaskChipComponent {
   @Input({ required: true }) task!: Task;
-  @Input() accent: string | null = null;
   @Input() overdue = false;
   @Input() completed = false;
+  @Input() showMeta = false;
+  @Input() labelCount = 0;
   @Output() readonly select = new EventEmitter<Task>();
   @Output() readonly complete = new EventEmitter<Task>();
 
   protected readonly faRotate = faRotate;
+  protected readonly faTag = faTag;
 
   protected get timeLabel(): string {
     return formatTimeLabel(this.task.dueTime);
+  }
+
+  protected get bodyLabel(): string {
+    const parts = [this.task.title, `${this.task.priority} priority`];
+    if (this.showMeta && this.labelCount > 0) {
+      parts.push(`${this.labelCount} labels`);
+    }
+    return parts.join(', ');
   }
 }

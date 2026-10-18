@@ -87,4 +87,16 @@ describe('CalendarDayPanelComponent', () => {
 
     expect(el('.cal-chip').classList.contains('cal-chip-completed')).toBe(true);
   });
+
+  it('renders full metadata (priority, project, labels) for each task', () => {
+    component.projectNames = new Map([['p1', 'Work']]);
+    component.labelNames = new Map([['l1', 'urgent']]);
+    component.showMetadata = true;
+
+    setTasks([task({ id: 'a', title: 'One', priority: 'high', projectId: 'p1', labels: ['l1'] })]);
+
+    expect(fixture.nativeElement.textContent).toContain('High');
+    expect(fixture.nativeElement.textContent).toContain('Work');
+    expect(fixture.nativeElement.textContent).toContain('urgent');
+  });
 });

@@ -84,6 +84,20 @@ describe('CalendarTaskChipComponent', () => {
     expect(el<HTMLButtonElement>('.cal-chip-check').disabled).toBe(true);
   });
 
+  it('colors the bar by priority and shows the label count when metadata is enabled', () => {
+    component.task = task({ id: 'b', title: 'Ship it', priority: 'high', labels: ['l1'] });
+    component.showMeta = true;
+    component.labelCount = 1;
+    fixture.detectChanges();
+
+    expect(el('.cal-chip-bar-high')).toBeTruthy();
+    expect(el('.cal-chip-labels')).toBeTruthy();
+  });
+
+  it('colors the priority bar even without metadata', () => {
+    expect(el('.cal-chip-bar-medium')).toBeTruthy();
+  });
+
   it('applies the overdue ring', () => {
     component.overdue = true;
     fixture.detectChanges();

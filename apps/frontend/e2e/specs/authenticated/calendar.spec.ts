@@ -44,7 +44,7 @@ test.describe('Calendar', () => {
     await page.getByRole('button', { name: 'Next month' }).click();
     await expect(page.getByText(next, { exact: true })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Today', exact: true }).click();
+    await page.getByRole('button', { name: 'Previous month' }).click();
     await expect(page.getByText(current, { exact: true })).toBeVisible();
   });
 
