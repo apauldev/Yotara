@@ -32,9 +32,13 @@ describe('CalendarPageComponent', () => {
   let fixture: ComponentFixture<CalendarPageComponent>;
   let allActiveTasks: WritableSignal<Task[]>;
   let undatedTasks: WritableSignal<Task[]>;
+  let completedTasks: WritableSignal<Task[]>;
+  let showDonePref: WritableSignal<boolean>;
+  let showMetadataPref: WritableSignal<boolean>;
   let taskService: {
     allActiveTasks: WritableSignal<Task[]>;
     undatedTasks: WritableSignal<Task[]>;
+    completedTasks: WritableSignal<Task[]>;
     loading: WritableSignal<boolean>;
     error: WritableSignal<string | null>;
     updateTask: jasmine.Spy;
@@ -85,10 +89,14 @@ describe('CalendarPageComponent', () => {
   beforeEach(async () => {
     allActiveTasks = signal<Task[]>([]);
     undatedTasks = signal<Task[]>([]);
+    completedTasks = signal<Task[]>([]);
+    showDonePref = signal(false);
+    showMetadataPref = signal(false);
 
     taskService = {
       allActiveTasks,
       undatedTasks,
+      completedTasks,
       loading: signal(false),
       error: signal<string | null>(null),
       updateTask: jasmine.createSpy('updateTask').and.resolveTo({ id: 'task-1' }),
@@ -121,7 +129,11 @@ describe('CalendarPageComponent', () => {
           provide: PreferencesStore,
           useValue: {
             actionNotifications: signal(true),
+            showDoneCalendar: showDonePref,
+            showMetadataCalendar: showMetadataPref,
             setActionNotifications: jasmine.createSpy('setActionNotifications'),
+            setShowDoneCalendar: (value: boolean) => showDonePref.set(value),
+            setShowMetadataCalendar: (value: boolean) => showMetadataPref.set(value),
           },
         },
       ],
@@ -300,6 +312,51 @@ describe('CalendarPageComponent', () => {
       expect(taskService.updateTask).toHaveBeenCalledWith('undated-1', {
         dueDate: today.plus({ days: 1 }).toISODate() as string,
       });
+    });
+  });
+
+  describe('show done', () => {
+    it('reveals completed tasks on the calendar when toggled on', () => {
+      completedTasks.set([
+        task({ id: 'done-1', title: 'Finished thing', dueDate: todayISO, completed: true }),
+      ]);
+      fixture.detectChanges();
+
+      // Hidden while the toggle is off.
+      expect(fixture.nativeElement.querySelector('.cal-chip')).toBeFalsy();
+
+      element<HTMLButtonElement>('.cal-done-btn').click();
+      fixture.detectChanges();
+
+      expect(findByText('.cal-chip-label', 'Finished thing')).toBeTruthy();
+      expect(showDonePref()).toBe(true);
+    });
+  });
+
+  describe('show metadata', () => {
+    it('shows compact priority and label cues on chips when toggled on', () => {
+      allActiveTasks.set([
+        task({
+          id: 'a',
+          title: 'Ship it',
+          dueDate: todayISO,
+          priority: 'high',
+          labels: ['l1'],
+        }),
+      ]);
+      fixture.detectChanges();
+
+      // Hidden while the toggle is off.
+      expect(fixture.nativeElement.querySelector('.cal-chip-labels')).toBeFalsy();
+      expect(fixture.nativeElement.querySelector('app-calendar-task-meta')).toBeFalsy();
+
+      element<HTMLButtonElement>('.cal-meta-btn').click();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.cal-chip-bar-high')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('.cal-chip-labels')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('app-calendar-task-meta')).toBeTruthy();
+      expect(showMetadataPref()).toBe(true);
     });
   });
 });

@@ -149,6 +149,15 @@ export class TaskService {
       .pipe(map((response) => response.data));
   }
 
+  /** Fetch completed tasks (with subtasks), for the calendar's "show done" view. */
+  fetchCompletedTasks$() {
+    return this.http
+      .get<
+        PaginatedResponse<Task[]>
+      >(`${this.baseUrl}/tasks?page=1&pageSize=1000&completed=true&includeSubtasks=true`, { withCredentials: true })
+      .pipe(map((response) => response.data));
+  }
+
   /** Fetch tasks due within an inclusive calendar-date range (YYYY-MM-DD bounds). */
   fetchTasksDueBetween$(dueFrom: string, dueTo: string) {
     const tz = getUserTimezone();
@@ -195,6 +204,26 @@ export class TaskService {
         }
         this.errorState.set(null);
         return this.fetchUndatedTasks$().pipe(catchError(this.handleLoadError('undated tasks')));
+      }),
+    ),
+    { initialValue: [] as Task[] },
+  );
+
+  /** Signal of completed tasks, for the calendar's "show done" view. */
+  readonly completedTasks = toSignal(
+    combineLatest([
+      toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
+      toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
+      toObservable(this.refreshState),
+    ]).pipe(
+      switchMap(([initialized, currentUserId]) => {
+        if (!initialized || !currentUserId) {
+          return of([] as Task[]);
+        }
+        this.errorState.set(null);
+        return this.fetchCompletedTasks$().pipe(
+          catchError(this.handleLoadError('completed tasks')),
+        );
       }),
     ),
     { initialValue: [] as Task[] },

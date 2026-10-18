@@ -3,6 +3,7 @@ import { DateTime } from 'luxon';
 import type { Task } from '@yotara/shared';
 import { DatePickerComponent } from '../../../../shared/ui/date-picker/date-picker.component';
 import { CalendarTaskChipComponent } from '../calendar-task-chip/calendar-task-chip.component';
+import { CalendarTaskMetaComponent } from '../calendar-task-meta/calendar-task-meta.component';
 
 export interface CalendarScheduleRequest {
   task: Task;
@@ -12,7 +13,7 @@ export interface CalendarScheduleRequest {
 @Component({
   selector: 'app-calendar-no-date-list',
   standalone: true,
-  imports: [DatePickerComponent, CalendarTaskChipComponent],
+  imports: [DatePickerComponent, CalendarTaskChipComponent, CalendarTaskMetaComponent],
   changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <div class="cal-panel">
@@ -27,11 +28,19 @@ export interface CalendarScheduleRequest {
             <li class="cal-nodate-row">
               <app-calendar-task-chip
                 [task]="task"
-                [accent]="accentFor(task)"
                 [completed]="completionIds.has(task.id)"
                 (select)="openTask.emit($event)"
                 (complete)="completeTask.emit($event)"
               />
+
+              @if (showMetadata) {
+                <app-calendar-task-meta
+                  [task]="task"
+                  [projectName]="projectNameFor(task)"
+                  [projectAccent]="accentFor(task)"
+                  [labelNames]="labelNamesFor(task)"
+                />
+              }
 
               <div class="cal-quick">
                 <button type="button" class="cal-quick-btn" (click)="schedule(task, todayKey)">
@@ -173,6 +182,9 @@ export class CalendarNoDateListComponent {
   @Input() accentByProject: Map<string, string> = new Map();
   @Input() completionIds: ReadonlySet<string> = new Set<string>();
   @Input() todayKey = '';
+  @Input() projectNames: Map<string, string> = new Map();
+  @Input() labelNames: Map<string, string> = new Map();
+  @Input() showMetadata = false;
   @Output() readonly openTask = new EventEmitter<Task>();
   @Output() readonly completeTask = new EventEmitter<Task>();
   @Output() readonly scheduleTask = new EventEmitter<CalendarScheduleRequest>();
@@ -201,5 +213,15 @@ export class CalendarNoDateListComponent {
 
   protected accentFor(task: Task): string | null {
     return task.projectId ? (this.accentByProject.get(task.projectId) ?? null) : null;
+  }
+
+  protected projectNameFor(task: Task): string | null {
+    return task.projectId ? (this.projectNames.get(task.projectId) ?? null) : null;
+  }
+
+  protected labelNamesFor(task: Task): string[] {
+    return (task.labels ?? [])
+      .map((id) => this.labelNames.get(id))
+      .filter((name): name is string => !!name);
   }
 }

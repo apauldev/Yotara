@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { DateTime } from 'luxon';
 import type { Task } from '@yotara/shared';
+import { LabelService } from '../../../../core/services/label.service';
 import { PreferencesStore } from '../../../../core/services/preferences-store.service';
 import { ProjectService } from '../../../../core/services/project.service';
 import { StatusService } from '../../../../core/services/status.service';
@@ -57,6 +58,7 @@ function pruneIds(ids: ReadonlySet<string>, allowed: ReadonlySet<string>): Reado
 export class CalendarPageComponent {
   private readonly taskService = inject(TaskService);
   private readonly projectService = inject(ProjectService);
+  private readonly labelService = inject(LabelService);
   private readonly statusService = inject(StatusService);
   private readonly preferences = inject(PreferencesStore);
   private readonly workspace = viewChild(PersonalTaskWorkspaceComponent);
@@ -71,6 +73,10 @@ export class CalendarPageComponent {
   protected readonly completionIds = signal<ReadonlySet<string>>(new Set<string>());
   /** Task ids that read as scheduled while the save is in flight. */
   private readonly schedulingIds = signal<ReadonlySet<string>>(new Set<string>());
+  /** Whether completed tasks are shown on the calendar (persisted preference). */
+  protected readonly showDone = this.preferences.showDoneCalendar;
+  /** Whether compact metadata is shown on calendar chips (persisted preference). */
+  protected readonly showMetadata = this.preferences.showMetadataCalendar;
 
   protected readonly monthLabel = computed(() => this.viewMonth().toFormat('LLLL yyyy'));
   protected readonly selectedDateLabel = computed(() =>
@@ -86,7 +92,28 @@ export class CalendarPageComponent {
     return accents;
   });
 
-  private readonly tasksByDay = computed(() => buildTasksByDay(this.taskService.allActiveTasks()));
+  protected readonly projectNames = computed(() => {
+    const names = new Map<string, string>();
+    for (const project of this.projectService.projects()) {
+      names.set(project.id, project.name);
+    }
+    return names;
+  });
+
+  protected readonly labelNames = computed(() => {
+    const names = new Map<string, string>();
+    for (const label of this.labelService.labels()) {
+      names.set(label.id, label.name);
+    }
+    return names;
+  });
+
+  private readonly tasksByDay = computed(() =>
+    buildTasksByDay([
+      ...this.taskService.allActiveTasks(),
+      ...(this.showDone() ? this.taskService.completedTasks() : []),
+    ]),
+  );
   protected readonly undatedTasks = computed(() =>
     buildUndatedTasks(this.taskService.undatedTasks()).filter(
       (task) => !this.schedulingIds().has(task.id),
@@ -126,12 +153,6 @@ export class CalendarPageComponent {
     this.viewMonth.update((month) => month.plus({ months: 1 }));
   }
 
-  protected goToday(): void {
-    this.viewMonth.set(this.today.startOf('month'));
-    this.selectedDate.set(this.today);
-    this.showNoDate.set(false);
-  }
-
   protected selectDate(date: DateTime): void {
     this.selectedDate.set(date);
     this.showNoDate.set(false);
@@ -139,6 +160,14 @@ export class CalendarPageComponent {
 
   protected toggleNoDate(): void {
     this.showNoDate.update((value) => !value);
+  }
+
+  protected toggleShowDone(): void {
+    this.preferences.setShowDoneCalendar(!this.showDone());
+  }
+
+  protected toggleShowMetadata(): void {
+    this.preferences.setShowMetadataCalendar(!this.showMetadata());
   }
 
   protected openTask(task: Task): void {

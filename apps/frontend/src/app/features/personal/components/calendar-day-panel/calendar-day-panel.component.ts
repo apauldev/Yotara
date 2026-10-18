@@ -3,12 +3,13 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import type { Task } from '@yotara/shared';
 import { CalendarTaskChipComponent } from '../calendar-task-chip/calendar-task-chip.component';
+import { CalendarTaskMetaComponent } from '../calendar-task-meta/calendar-task-meta.component';
 import { fadeCollapse } from '../../../../shared/animations/fade-collapse.animation';
 
 @Component({
   selector: 'app-calendar-day-panel',
   standalone: true,
-  imports: [FontAwesomeModule, CalendarTaskChipComponent],
+  imports: [FontAwesomeModule, CalendarTaskChipComponent, CalendarTaskMetaComponent],
   changeDetection: ChangeDetectionStrategy.Eager,
   animations: [fadeCollapse],
   template: `
@@ -21,16 +22,23 @@ import { fadeCollapse } from '../../../../shared/animations/fade-collapse.animat
       @if (tasks.length > 0) {
         <ul class="cal-panel-list">
           @for (task of tasks; track task.id) {
-            <li>
+            <li class="cal-panel-item">
               <app-calendar-task-chip
                 @fadeCollapse
                 [task]="task"
-                [accent]="accentFor(task)"
                 [overdue]="isOverdue(task)"
-                [completed]="completionIds.has(task.id)"
+                [completed]="completionIds.has(task.id) || task.completed"
                 (select)="openTask.emit($event)"
                 (complete)="completeTask.emit($event)"
               />
+              @if (showMetadata) {
+                <app-calendar-task-meta
+                  [task]="task"
+                  [projectName]="projectNameFor(task)"
+                  [projectAccent]="accentFor(task)"
+                  [labelNames]="labelNamesFor(task)"
+                />
+              }
             </li>
           }
         </ul>
@@ -87,7 +95,12 @@ import { fadeCollapse } from '../../../../shared/animations/fade-collapse.animat
         padding: 0;
         display: flex;
         flex-direction: column;
-        gap: 0.3rem;
+        gap: 0.55rem;
+      }
+
+      .cal-panel-item {
+        display: grid;
+        gap: 0.25rem;
       }
 
       .cal-panel-empty {
@@ -124,6 +137,9 @@ export class CalendarDayPanelComponent {
   @Input() accentByProject: Map<string, string> = new Map();
   @Input() completionIds: ReadonlySet<string> = new Set<string>();
   @Input() todayKey = '';
+  @Input() projectNames: Map<string, string> = new Map();
+  @Input() labelNames: Map<string, string> = new Map();
+  @Input() showMetadata = false;
   @Output() readonly openTask = new EventEmitter<Task>();
   @Output() readonly completeTask = new EventEmitter<Task>();
   @Output() readonly addTask = new EventEmitter<void>();
@@ -137,6 +153,16 @@ export class CalendarDayPanelComponent {
 
   protected accentFor(task: Task): string | null {
     return task.projectId ? (this.accentByProject.get(task.projectId) ?? null) : null;
+  }
+
+  protected projectNameFor(task: Task): string | null {
+    return task.projectId ? (this.projectNames.get(task.projectId) ?? null) : null;
+  }
+
+  protected labelNamesFor(task: Task): string[] {
+    return (task.labels ?? [])
+      .map((id) => this.labelNames.get(id))
+      .filter((name): name is string => !!name);
   }
 
   protected isOverdue(task: Task): boolean {

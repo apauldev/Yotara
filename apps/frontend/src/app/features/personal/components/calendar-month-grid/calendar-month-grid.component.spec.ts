@@ -73,6 +73,12 @@ describe('CalendarMonthGridComponent', () => {
     expect(selected).toBe(false);
   });
 
+  it('renders a completed task as completed', () => {
+    setCells([task({ id: 'a', dueDate: '2026-10-12', completed: true })]);
+
+    expect(fixture.nativeElement.querySelector('.cal-chip-completed')).toBeTruthy();
+  });
+
   it('selects the day from the day-number button', () => {
     setCells([task({ id: 'a', dueDate: '2026-10-12' })]);
     let selected: DateTime | undefined;

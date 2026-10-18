@@ -46,9 +46,10 @@ const MAX_VISIBLE_TASKS = 3;
                 <app-calendar-task-chip
                   @fadeCollapse
                   [task]="task"
-                  [accent]="accentFor(task)"
                   [overdue]="isOverdue(task)"
-                  [completed]="completionIds.has(task.id)"
+                  [completed]="completionIds.has(task.id) || task.completed"
+                  [showMeta]="showMetadata"
+                  [labelCount]="task.labels?.length ?? 0"
                   (select)="openTask.emit($event)"
                   (complete)="completeTask.emit($event)"
                 />
@@ -174,9 +175,9 @@ const MAX_VISIBLE_TASKS = 3;
 export class CalendarMonthGridComponent {
   @Input({ required: true }) cells: CalendarCell[] = [];
   @Input() selectedKey = '';
-  @Input() accentByProject: Map<string, string> = new Map();
   @Input() completionIds: ReadonlySet<string> = new Set<string>();
   @Input() todayKey = '';
+  @Input() showMetadata = false;
   @Output() readonly selectDate = new EventEmitter<DateTime>();
   @Output() readonly openTask = new EventEmitter<Task>();
   @Output() readonly completeTask = new EventEmitter<Task>();
@@ -205,10 +206,6 @@ export class CalendarMonthGridComponent {
     }
 
     this.selectDate.emit(cell.date);
-  }
-
-  protected accentFor(task: Task): string | null {
-    return task.projectId ? (this.accentByProject.get(task.projectId) ?? null) : null;
   }
 
   protected isOverdue(task: Task): boolean {
