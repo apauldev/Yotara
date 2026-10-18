@@ -9,6 +9,11 @@ export interface CalendarCell {
   tasks: Task[];
 }
 
+export interface CalendarRescheduleRequest {
+  task: Task;
+  date: string;
+}
+
 const PRIORITY_RANK: Record<Task['priority'], number> = {
   high: 0,
   medium: 1,

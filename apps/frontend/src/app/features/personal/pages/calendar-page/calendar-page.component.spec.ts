@@ -405,4 +405,21 @@ describe('CalendarPageComponent', () => {
     expect(panelChip).toBeTruthy();
     expect(panelChip?.querySelector('.cal-chip-check')).toBeTruthy();
   });
+
+  it('moves a task optimistically and reports a failed move', async () => {
+    allActiveTasks.set([task({ id: 'due-1', title: 'Ship it', dueDate: todayISO })]);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance as unknown as {
+      moveTask: (request: { task: Task; date: string }) => Promise<void>;
+    };
+
+    taskService.updateTask.and.resolveTo({ id: 'due-1' });
+    await component.moveTask({ task: allActiveTasks()[0], date: '2026-12-01' });
+    expect(taskService.updateTask).toHaveBeenCalledWith('due-1', { dueDate: '2026-12-01' });
+
+    taskService.updateTask.and.returnValue(Promise.reject(new Error('boom')));
+    await component.moveTask({ task: allActiveTasks()[0], date: '2026-12-02' });
+    expect(statusService.error).toHaveBeenCalledWith('Could not move the task. Please try again.');
+  });
 });
