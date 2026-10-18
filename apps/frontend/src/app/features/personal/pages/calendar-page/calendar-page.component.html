@@ -23,7 +23,7 @@
         <app-calendar-month-grid
           [cells]="cells()"
           [selectedKey]="selectedKey()"
-          [completionIds]="completionIds()"
+          [completionOverrides]="completionOverrides()"
           [todayKey]="todayKey"
           [showMetadata]="showMetadata()"
           [showCheck]="!isMobile()"
@@ -47,7 +47,7 @@
           <app-calendar-no-date-list
             [tasks]="undatedTasks()"
             [accentByProject]="projectAccents()"
-            [completionIds]="completionIds()"
+            [completionOverrides]="completionOverrides()"
             [todayKey]="todayKey"
             [projectNames]="projectNames()"
             [labelNames]="labelNames()"
@@ -62,7 +62,7 @@
             [dateLabel]="selectedDateLabel()"
             [tasks]="selectedDayTasks()"
             [accentByProject]="projectAccents()"
-            [completionIds]="completionIds()"
+            [completionOverrides]="completionOverrides()"
             [todayKey]="todayKey"
             [projectNames]="projectNames()"
             [labelNames]="labelNames()"

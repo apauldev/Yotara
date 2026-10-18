@@ -79,10 +79,10 @@ describe('CalendarDayPanelComponent', () => {
     expect(add).toHaveBeenCalled();
   });
 
-  it('reads a chip as completed from completionIds', () => {
+  it('reads a chip as completed from the completion overrides', () => {
     setTasks([task({ id: 'a', title: 'One' })]);
 
-    component.completionIds = new Set(['a']);
+    component.completionOverrides = new Map([['a', true]]);
     fixture.detectChanges();
 
     expect(el('.cal-chip').classList.contains('cal-chip-completed')).toBe(true);

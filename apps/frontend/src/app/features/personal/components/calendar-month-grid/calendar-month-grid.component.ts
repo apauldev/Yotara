@@ -67,7 +67,7 @@ const MAX_VISIBLE_TASKS = 3;
                   @fadeCollapse
                   [task]="task"
                   [overdue]="isOverdue(task)"
-                  [completed]="completionIds.has(task.id) || task.completed"
+                  [completed]="completionOverrides.get(task.id) ?? task.completed"
                   [showMeta]="showMetadata"
                   [labelCount]="task.labels?.length ?? 0"
                   [showCheck]="showCheck"
@@ -132,6 +132,11 @@ const MAX_VISIBLE_TASKS = 3;
       }
 
       .cal-cell-selected {
+        box-shadow: inset 0 0 0 2px var(--primary-solid);
+      }
+
+      .cal-cell.cdk-drop-list-receiving {
+        background: var(--surface-container-high);
         box-shadow: inset 0 0 0 2px var(--primary-solid);
       }
 
@@ -213,7 +218,7 @@ const MAX_VISIBLE_TASKS = 3;
 export class CalendarMonthGridComponent {
   @Input({ required: true }) cells: CalendarCell[] = [];
   @Input() selectedKey = '';
-  @Input() completionIds: ReadonlySet<string> = new Set<string>();
+  @Input() completionOverrides: ReadonlyMap<string, boolean> = new Map();
   @Input() todayKey = '';
   @Input() showMetadata = false;
   @Input() showCheck = true;
