@@ -369,8 +369,11 @@ describe('CalendarPageComponent', () => {
 
     // The side panel is not part of the mobile layout until a day is opened.
     expect(fixture.nativeElement.querySelector('app-calendar-day-panel')).toBeFalsy();
+    // Mobile uses a week strip instead of the squeezed month grid.
+    expect(fixture.nativeElement.querySelector('app-calendar-month-grid')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('app-calendar-week-strip')).toBeTruthy();
 
-    dayCell(today.day).click();
+    element<HTMLButtonElement>('.cal-week-day-selected').click();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.cal-sheet')).toBeTruthy();
@@ -382,7 +385,7 @@ describe('CalendarPageComponent', () => {
     expect(fixture.nativeElement.querySelector('.cal-sheet')).toBeFalsy();
   });
 
-  it('hides the grid completion control on mobile but keeps it in the day sheet', () => {
+  it('shows a week strip on mobile and keeps completion in the day sheet', () => {
     allActiveTasks.set([task({ id: 'due-1', title: 'Ship it', dueDate: todayISO })]);
     const component = fixture.componentInstance as unknown as {
       isMobile: WritableSignal<boolean>;
@@ -390,13 +393,13 @@ describe('CalendarPageComponent', () => {
     component.isMobile.set(true);
     fixture.detectChanges();
 
-    const gridChip = fixture.nativeElement.querySelector(
-      'app-calendar-month-grid .cal-chip',
+    const selectedDay = fixture.nativeElement.querySelector(
+      '.cal-week-day-selected',
     ) as HTMLElement | null;
-    expect(gridChip).toBeTruthy();
-    expect(gridChip?.querySelector('.cal-chip-check')).toBeFalsy();
+    expect(selectedDay).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('app-calendar-month-grid')).toBeFalsy();
 
-    dayCell(today.day).click();
+    selectedDay?.click();
     fixture.detectChanges();
 
     const panelChip = fixture.nativeElement.querySelector(
@@ -404,6 +407,36 @@ describe('CalendarPageComponent', () => {
     ) as HTMLElement | null;
     expect(panelChip).toBeTruthy();
     expect(panelChip?.querySelector('.cal-chip-check')).toBeTruthy();
+  });
+
+  it('lets mobile switch between the week strip and the full month grid', () => {
+    allActiveTasks.set([task({ id: 'due-1', title: 'Ship it', dueDate: todayISO })]);
+    const component = fixture.componentInstance as unknown as {
+      isMobile: WritableSignal<boolean>;
+    };
+    component.isMobile.set(true);
+    fixture.detectChanges();
+
+    const toggle = () => element<HTMLButtonElement>('.cal-view-toggle');
+
+    expect(fixture.nativeElement.querySelector('app-calendar-week-strip')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('app-calendar-month-grid')).toBeFalsy();
+    expect(toggle().textContent).toContain('Show full month');
+
+    toggle().click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('app-calendar-month-grid')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('app-calendar-week-strip')).toBeFalsy();
+    expect(toggle().textContent).toContain('Show week');
+    // The dense phone grid shows a count, not the squeezed task contents.
+    expect(fixture.nativeElement.querySelector('.cal-cell-count')?.textContent?.trim()).toBe('1');
+    expect(fixture.nativeElement.querySelector('app-calendar-month-grid .cal-chip')).toBeFalsy();
+
+    toggle().click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('app-calendar-week-strip')).toBeTruthy();
   });
 
   it('reopens a completed task from the calendar', async () => {

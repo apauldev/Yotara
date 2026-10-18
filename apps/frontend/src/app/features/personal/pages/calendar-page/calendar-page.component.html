@@ -4,6 +4,8 @@
 
     <app-calendar-header
       [monthLabel]="monthLabel()"
+      [previousLabel]="isMobile() && !mobileMonthView() ? 'Previous week' : 'Previous month'"
+      [nextLabel]="isMobile() && !mobileMonthView() ? 'Next week' : 'Next month'"
       [noDateCount]="noDateCount()"
       [noDateActive]="showNoDate()"
       [showDone]="showDone()"
@@ -28,8 +30,8 @@
           [showMetadata]="showMetadata()"
           [showCheck]="!isMobile()"
           [allowDrag]="!isMobile()"
-          [selectDayOnTaskTap]="isMobile()"
           [allowQuickCreate]="!isMobile()"
+          [compactCounts]="isMobile()"
           (selectDate)="selectDate($event)"
           (openTask)="openTask($event)"
           (completeTask)="completeTask($event)"
@@ -78,7 +80,19 @@
       </ng-template>
 
       @if (isMobile()) {
-        <ng-container [ngTemplateOutlet]="calendarMain" />
+        @if (mobileMonthView()) {
+          <ng-container [ngTemplateOutlet]="calendarMain" />
+        } @else {
+          <app-calendar-week-strip [days]="weekDays()" (selectDate)="selectDate($event)" />
+        }
+
+        <button type="button" class="cal-view-toggle" (click)="toggleMobileMonth()">
+          <fa-icon
+            [icon]="mobileMonthView() ? faCalendarWeek : faCalendarDays"
+            aria-hidden="true"
+          />
+          {{ mobileMonthView() ? 'Show week' : 'Show full month' }}
+        </button>
 
         @if (mobilePanelOpen()) {
           <div class="cal-sheet" role="dialog" aria-modal="true" aria-label="Day details">

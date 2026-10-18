@@ -156,20 +156,16 @@ describe('CalendarMonthGridComponent', () => {
     expect(count).toBe(0);
   });
 
-  it('opens the day instead of the task on touch layouts', () => {
-    setCells([task({ id: 'a', dueDate: '2026-10-12' })]);
-    component.selectDayOnTaskTap = true;
+  it('shows only a task count per day in compact mode', () => {
+    setCells([task({ id: 'a', dueDate: '2026-10-12' }), task({ id: 'b', dueDate: '2026-10-12' })]);
+    component.compactCounts = true;
     fixture.detectChanges();
 
-    let selected: DateTime | undefined;
-    let opened = false;
-    component.selectDate.subscribe((value) => (selected = value));
-    component.openTask.subscribe(() => (opened = true));
-
-    (fixture.nativeElement.querySelector('.cal-chip-body') as HTMLButtonElement).click();
-
-    expect(selected?.toISODate()).toBe('2026-10-12');
-    expect(opened).toBe(false);
+    const counts = fixture.nativeElement.querySelectorAll('.cal-cell-count');
+    expect(counts).toHaveSize(1);
+    expect(counts[0].textContent?.trim()).toBe('2');
+    expect(fixture.nativeElement.querySelector('app-calendar-task-chip')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.cal-more')).toBeNull();
   });
 
   it('labels a day with its full date and task count', () => {

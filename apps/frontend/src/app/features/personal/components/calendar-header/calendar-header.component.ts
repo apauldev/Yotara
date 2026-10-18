@@ -13,13 +13,18 @@ import { faChevronLeft, faChevronRight, faPlus } from '@fortawesome/free-solid-s
         <button
           type="button"
           class="cal-nav-btn"
-          aria-label="Previous month"
+          [attr.aria-label]="previousLabel"
           (click)="previous.emit()"
         >
           <fa-icon [icon]="faChevronLeft" aria-hidden="true" />
         </button>
         <span class="cal-month" aria-live="polite">{{ monthLabel }}</span>
-        <button type="button" class="cal-nav-btn" aria-label="Next month" (click)="next.emit()">
+        <button
+          type="button"
+          class="cal-nav-btn"
+          [attr.aria-label]="nextLabel"
+          (click)="next.emit()"
+        >
           <fa-icon [icon]="faChevronRight" aria-hidden="true" />
         </button>
       </div>
@@ -209,6 +214,8 @@ import { faChevronLeft, faChevronRight, faPlus } from '@fortawesome/free-solid-s
 })
 export class CalendarHeaderComponent {
   @Input() monthLabel = '';
+  @Input() previousLabel = 'Previous month';
+  @Input() nextLabel = 'Next month';
   @Input() noDateCount = 0;
   @Input() noDateActive = false;
   @Input() showDone = false;

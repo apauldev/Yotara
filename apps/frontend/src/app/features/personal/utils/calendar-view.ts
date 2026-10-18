@@ -9,6 +9,14 @@ export interface CalendarCell {
   tasks: Task[];
 }
 
+export interface CalendarWeekDay {
+  key: string;
+  date: DateTime;
+  isToday: boolean;
+  isSelected: boolean;
+  taskCount: number;
+}
+
 export interface CalendarRescheduleRequest {
   task: Task;
   date: string;
@@ -67,6 +75,29 @@ export function buildTasksByDay(tasks: Task[]): Map<string, Task[]> {
 
 export function buildUndatedTasks(tasks: Task[]): Task[] {
   return sortDayTasks(tasks.filter((task) => isCalendarTask(task) && !task.dueDate));
+}
+
+/** The seven days (Sunday-first) of the week containing `reference`. */
+export function buildWeekDays(
+  reference: DateTime,
+  tasksByDay: Map<string, Task[]>,
+  today: DateTime,
+): CalendarWeekDay[] {
+  const start = reference.startOf('day').minus({ days: reference.weekday % 7 });
+  const todayKey = dayKey(today);
+  const selectedKey = dayKey(reference);
+
+  return Array.from({ length: 7 }, (_, offset) => {
+    const date = start.plus({ days: offset });
+    const key = dayKey(date);
+    return {
+      key,
+      date,
+      isToday: key === todayKey,
+      isSelected: key === selectedKey,
+      taskCount: tasksByDay.get(key)?.length ?? 0,
+    };
+  });
 }
 
 /**

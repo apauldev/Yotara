@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faCalendarDays, faCalendarWeek } from '@fortawesome/free-solid-svg-icons';
 import { DateTime } from 'luxon';
 import type { Task } from '@yotara/shared';
 import { LabelService } from '../../../../core/services/label.service';
@@ -24,6 +24,7 @@ import { projectPaletteFor } from '../../project-presentation';
 import { CalendarDayPanelComponent } from '../../components/calendar-day-panel/calendar-day-panel.component';
 import { CalendarHeaderComponent } from '../../components/calendar-header/calendar-header.component';
 import { CalendarMonthGridComponent } from '../../components/calendar-month-grid/calendar-month-grid.component';
+import { CalendarWeekStripComponent } from '../../components/calendar-week-strip/calendar-week-strip.component';
 import {
   CalendarNoDateListComponent,
   type CalendarScheduleRequest,
@@ -33,6 +34,7 @@ import {
   buildMonthCells,
   buildTasksByDay,
   buildUndatedTasks,
+  buildWeekDays,
   dayKey,
   type CalendarRescheduleRequest,
 } from '../../utils/calendar-view';
@@ -54,6 +56,7 @@ function pruneIds(ids: ReadonlySet<string>, allowed: ReadonlySet<string>): Reado
     PageHeaderComponent,
     CalendarHeaderComponent,
     CalendarMonthGridComponent,
+    CalendarWeekStripComponent,
     CalendarDayPanelComponent,
     CalendarNoDateListComponent,
     PersonalTaskWorkspaceComponent,
@@ -76,6 +79,10 @@ export class CalendarPageComponent {
       : null;
   protected readonly isMobile = signal(this.mobileQuery?.matches ?? false);
   protected readonly faArrowLeft = faArrowLeft;
+  protected readonly faCalendarDays = faCalendarDays;
+  protected readonly faCalendarWeek = faCalendarWeek;
+  /** On mobile, whether the dense month grid replaces the week strip. */
+  protected readonly mobileMonthView = signal(false);
 
   private readonly today = startOfToday();
   protected readonly todayKey = dayKey(this.today);
@@ -156,6 +163,9 @@ export class CalendarPageComponent {
   protected readonly selectedDayTasks = computed(
     () => this.tasksByDay().get(this.selectedKey()) ?? [],
   );
+  protected readonly weekDays = computed(() =>
+    buildWeekDays(this.selectedDate(), this.tasksByDay(), this.today),
+  );
 
   protected readonly noDateCount = computed(() => this.undatedTasks().length);
   protected readonly monthHasTasks = computed(() =>
@@ -210,11 +220,30 @@ export class CalendarPageComponent {
   }
 
   protected previousMonth(): void {
+    if (this.isMobile() && !this.mobileMonthView()) {
+      this.shiftWeek(-7);
+      return;
+    }
     this.viewMonth.update((month) => month.minus({ months: 1 }));
   }
 
   protected nextMonth(): void {
+    if (this.isMobile() && !this.mobileMonthView()) {
+      this.shiftWeek(7);
+      return;
+    }
     this.viewMonth.update((month) => month.plus({ months: 1 }));
+  }
+
+  private shiftWeek(days: number): void {
+    const next = this.selectedDate().plus({ days });
+    this.selectedDate.set(next);
+    this.viewMonth.set(next.startOf('month'));
+    this.mobileDayOpen.set(false);
+  }
+
+  protected toggleMobileMonth(): void {
+    this.mobileMonthView.update((shown) => !shown);
   }
 
   protected selectDate(date: DateTime): void {
