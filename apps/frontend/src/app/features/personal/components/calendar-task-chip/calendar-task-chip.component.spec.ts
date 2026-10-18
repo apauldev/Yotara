@@ -76,12 +76,12 @@ describe('CalendarTaskChipComponent', () => {
     expect(el('.cal-chip-recur')).toBeTruthy();
   });
 
-  it('shows a completed chip and disables its check', () => {
+  it('shows a completed chip whose check stays usable for undo', () => {
     component.completed = true;
     fixture.detectChanges();
 
     expect(el('.cal-chip').classList.contains('cal-chip-completed')).toBe(true);
-    expect(el<HTMLButtonElement>('.cal-chip-check').disabled).toBe(true);
+    expect(el<HTMLButtonElement>('.cal-chip-check').disabled).toBe(false);
   });
 
   it('colors the bar by priority and shows the label count when metadata is enabled', () => {

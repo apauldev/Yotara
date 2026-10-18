@@ -24,9 +24,10 @@ import { formatTimeLabel } from '../../../../shared/utils/timestamps';
           type="button"
           class="cal-chip-check"
           [class.cal-chip-check-done]="completed"
-          [disabled]="completed"
           [attr.aria-label]="
-            completed ? task.title + ' completed' : 'Mark ' + task.title + ' as complete'
+            completed
+              ? 'Mark ' + task.title + ' as not complete'
+              : 'Mark ' + task.title + ' as complete'
           "
           (click)="complete.emit(task)"
         >
@@ -110,10 +111,6 @@ import { formatTimeLabel } from '../../../../shared/utils/timestamps';
         border: 0;
         background: transparent;
         cursor: pointer;
-      }
-
-      .cal-chip-check:disabled {
-        cursor: default;
       }
 
       .cal-chip-check-box {

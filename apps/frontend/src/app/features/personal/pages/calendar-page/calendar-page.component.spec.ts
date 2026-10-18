@@ -233,12 +233,12 @@ describe('CalendarPageComponent', () => {
       fixture.detectChanges();
 
       const component = fixture.componentInstance as any;
-      expect(component.completionIds().has('due-1')).toBe(true);
+      expect(component.completionOverrides().has('due-1')).toBe(true);
 
       allActiveTasks.set([]);
       fixture.detectChanges();
 
-      expect(component.completionIds().has('due-1')).toBe(false);
+      expect(component.completionOverrides().has('due-1')).toBe(false);
     });
   });
 
@@ -404,6 +404,22 @@ describe('CalendarPageComponent', () => {
     ) as HTMLElement | null;
     expect(panelChip).toBeTruthy();
     expect(panelChip?.querySelector('.cal-chip-check')).toBeTruthy();
+  });
+
+  it('reopens a completed task from the calendar', async () => {
+    const done = task({ id: 'done-1', title: 'Ship it', dueDate: todayISO, completed: true });
+    completedTasks.set([done]);
+    showDonePref.set(true);
+    fixture.detectChanges();
+
+    taskService.updateTask.and.resolveTo({ ...done, completed: false });
+    await (
+      fixture.componentInstance as unknown as {
+        completeTask: (task: Task) => Promise<void>;
+      }
+    ).completeTask(done);
+
+    expect(taskService.updateTask).toHaveBeenCalledWith('done-1', { completed: false });
   });
 
   it('moves a task optimistically and reports a failed move', async () => {

@@ -30,7 +30,7 @@ import { formatTimeLabel } from '../../../../shared/utils/timestamps';
                     @fadeCollapse
                     [task]="task"
                     [overdue]="isOverdue(task)"
-                    [completed]="completionIds.has(task.id) || task.completed"
+                    [completed]="completionOverrides.get(task.id) ?? task.completed"
                     [touchTargets]="touchTargets"
                     (select)="openTask.emit($event)"
                     (complete)="completeTask.emit($event)"
@@ -60,7 +60,7 @@ import { formatTimeLabel } from '../../../../shared/utils/timestamps';
                       @fadeCollapse
                       [task]="task"
                       [overdue]="isOverdue(task)"
-                      [completed]="completionIds.has(task.id) || task.completed"
+                      [completed]="completionOverrides.get(task.id) ?? task.completed"
                       [touchTargets]="touchTargets"
                       [showTime]="false"
                       (select)="openTask.emit($event)"
@@ -211,7 +211,7 @@ export class CalendarDayPanelComponent {
   @Input() dateLabel = '';
   @Input() tasks: Task[] = [];
   @Input() accentByProject: Map<string, string> = new Map();
-  @Input() completionIds: ReadonlySet<string> = new Set<string>();
+  @Input() completionOverrides: ReadonlyMap<string, boolean> = new Map();
   @Input() todayKey = '';
   @Input() projectNames: Map<string, string> = new Map();
   @Input() labelNames: Map<string, string> = new Map();

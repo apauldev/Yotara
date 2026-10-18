@@ -85,8 +85,9 @@ export class CalendarPageComponent {
   protected readonly showNoDate = signal(false);
   protected readonly mobileDayOpen = signal(false);
   protected readonly mobilePanelOpen = computed(() => this.mobileDayOpen() || this.showNoDate());
-  /** Task ids that read as completed while the save is in flight. */
-  protected readonly completionIds = signal<ReadonlySet<string>>(new Set<string>());
+  /** Optimistic completion state per task while the save is in flight. */
+  protected readonly completionOverrides = signal<ReadonlyMap<string, boolean>>(new Map());
+  private readonly pendingCompletionIds = signal<ReadonlySet<string>>(new Set());
   /** Task ids that read as scheduled while the save is in flight. */
   private readonly schedulingIds = signal<ReadonlySet<string>>(new Set<string>());
   /** Optimistic due-date overrides while a reschedule save is in flight. */
@@ -166,13 +167,26 @@ export class CalendarPageComponent {
 
   constructor() {
     effect(() => {
-      const activeIds = new Set(this.taskService.allActiveTasks().map((task) => task.id));
-      this.completionIds.update((ids) => pruneIds(ids, activeIds));
+      const activeById = new Map(this.taskService.allActiveTasks().map((task) => [task.id, task]));
+
+      this.completionOverrides.update((overrides) => {
+        let changed = false;
+        const next = new Map(overrides);
+        for (const [id, expected] of overrides) {
+          const active = activeById.get(id);
+          // Completing removes the task from the active list; reopening brings
+          // it back as not completed. Either way the server has caught up.
+          if ((expected && !active) || (!expected && !!active && !active.completed)) {
+            next.delete(id);
+            changed = true;
+          }
+        }
+        return changed ? next : overrides;
+      });
 
       const undatedIds = new Set(this.taskService.undatedTasks().map((task) => task.id));
       this.schedulingIds.update((ids) => pruneIds(ids, undatedIds));
 
-      const activeById = new Map(this.taskService.allActiveTasks().map((task) => [task.id, task]));
       this.dueDateOverrides.update((overrides) => {
         let changed = false;
         const next = new Map(overrides);
@@ -207,6 +221,11 @@ export class CalendarPageComponent {
     this.selectedDate.set(date);
     this.showNoDate.set(false);
     this.mobileDayOpen.set(true);
+
+    // Clicking a leading/trailing day brings its month into view.
+    if (date.month !== this.viewMonth().month || date.year !== this.viewMonth().year) {
+      this.viewMonth.set(date.startOf('month'));
+    }
   }
 
   protected closeMobilePanel(): void {
@@ -240,24 +259,41 @@ export class CalendarPageComponent {
     this.openCreateFor(this.selectedKey());
   }
 
-  /** Complete without opening the modal; revert visibly when the save fails. */
+  /** Toggle completion without opening the modal; revert visibly on failure. */
   protected async completeTask(task: Task): Promise<void> {
-    if (this.completionIds().has(task.id)) {
+    if (this.pendingCompletionIds().has(task.id)) {
       return;
     }
 
-    this.completionIds.update((ids) => new Set(ids).add(task.id));
+    const nextCompleted = !(this.completionOverrides().get(task.id) ?? task.completed);
+    this.pendingCompletionIds.update((ids) => new Set(ids).add(task.id));
+    this.completionOverrides.update((overrides) => new Map(overrides).set(task.id, nextCompleted));
 
     try {
-      await this.taskService.updateTask(task.id, { completed: true });
-      notifyTaskCompleted(this.statusService, this.preferences);
+      await this.taskService.updateTask(task.id, { completed: nextCompleted });
+      if (nextCompleted) {
+        notifyTaskCompleted(this.statusService, this.preferences);
+      }
     } catch {
-      this.completionIds.update((ids) => {
+      this.completionOverrides.update((overrides) => {
+        if (overrides.get(task.id) !== nextCompleted) {
+          return overrides;
+        }
+        const next = new Map(overrides);
+        next.delete(task.id);
+        return next;
+      });
+      this.statusService.error(
+        nextCompleted
+          ? 'Could not complete the task. Please try again.'
+          : 'Could not reopen the task. Please try again.',
+      );
+    } finally {
+      this.pendingCompletionIds.update((ids) => {
         const next = new Set(ids);
         next.delete(task.id);
         return next;
       });
-      this.statusService.error('Could not complete the task. Please try again.');
     }
   }
 
