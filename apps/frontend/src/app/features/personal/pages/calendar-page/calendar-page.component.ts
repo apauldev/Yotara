@@ -152,11 +152,6 @@ export class CalendarPageComponent {
     this.openCreateFor(this.selectedKey());
   }
 
-  /** Clicking a day cell's empty space pre-fills that cell's date. */
-  protected createTaskForDate(date: DateTime): void {
-    this.openCreateFor(dayKey(date));
-  }
-
   /** Complete without opening the modal; revert visibly when the save fails. */
   protected async completeTask(task: Task): Promise<void> {
     if (this.completionIds().has(task.id)) {

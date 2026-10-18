@@ -141,14 +141,16 @@ describe('CalendarPageComponent', () => {
   });
 
   describe('create with a pre-filled date', () => {
-    it("passes a clicked day cell's date as the due date draft", () => {
+    it('selects the clicked day without opening the create editor', () => {
       spyOn(workspace, 'openCreateTaskModal');
+      const otherDay = today.day === 1 ? 2 : 1;
 
-      dayCell(today.day).click();
+      dayCell(otherDay).click();
+      fixture.detectChanges();
 
-      expect(workspace.openCreateTaskModal).toHaveBeenCalledWith(
-        undefined,
-        jasmine.objectContaining({ value: todayISO, source: 'manual', dueTime: null }),
+      expect(workspace.openCreateTaskModal).not.toHaveBeenCalled();
+      expect(fixture.nativeElement.textContent).toContain(
+        today.set({ day: otherDay }).toFormat('cccc, LLLL d, yyyy'),
       );
     });
 
