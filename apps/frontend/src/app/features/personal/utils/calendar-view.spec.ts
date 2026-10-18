@@ -4,6 +4,7 @@ import {
   buildMonthCells,
   buildTasksByDay,
   buildUndatedTasks,
+  buildWeekDays,
   dayKey,
   isCalendarTask,
 } from './calendar-view';
@@ -71,6 +72,35 @@ describe('calendar-view', () => {
       ]);
 
       expect(undated.map((t) => t.id)).toEqual(['a']);
+    });
+  });
+
+  describe('buildWeekDays', () => {
+    const today = DateTime.fromISO('2026-10-17');
+
+    it('returns the Sunday-first week containing the reference', () => {
+      const days = buildWeekDays(DateTime.fromISO('2026-10-14'), new Map(), today);
+
+      expect(days).toHaveSize(7);
+      expect(days[0].key).toBe('2026-10-11');
+      expect(days[6].key).toBe('2026-10-17');
+    });
+
+    it('flags the selected day, today, and each day task count', () => {
+      const tasksByDay = buildTasksByDay([
+        task({ id: 'a', dueDate: '2026-10-14' }),
+        task({ id: 'b', dueDate: '2026-10-14' }),
+        task({ id: 'c', dueDate: '2026-10-17' }),
+      ]);
+      const days = buildWeekDays(DateTime.fromISO('2026-10-14'), tasksByDay, today);
+
+      const selected = days.find((day) => day.key === '2026-10-14');
+      const todayDay = days.find((day) => day.key === '2026-10-17');
+
+      expect(selected?.isSelected).toBe(true);
+      expect(selected?.taskCount).toBe(2);
+      expect(todayDay?.isToday).toBe(true);
+      expect(todayDay?.taskCount).toBe(1);
     });
   });
 

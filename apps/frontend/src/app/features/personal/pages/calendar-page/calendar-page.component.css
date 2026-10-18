@@ -47,14 +47,36 @@
   }
 }
 
+.cal-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  align-self: center;
+  margin-top: 0.65rem;
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 0.7rem;
+  background: var(--surface-container-low);
+  color: var(--on-surface-muted);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cal-view-toggle:focus-visible {
+  outline: 2px solid var(--primary-solid);
+  outline-offset: 2px;
+}
+
 .cal-sheet {
   position: fixed;
-  inset: 0;
-  z-index: var(--z-modal, 40);
+  inset: var(--topbar-offset, 0) 0 0 0;
+  z-index: 3;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  padding: 0.85rem;
+  padding: 0 0.85rem 0.85rem;
   padding-bottom: calc(0.85rem + env(safe-area-inset-bottom));
   background: var(--surface);
   overflow-y: auto;
@@ -64,7 +86,7 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  margin: -0.85rem -0.85rem 0;
+  margin: 0 -0.85rem;
   padding: 0.85rem;
   background: var(--surface);
 }

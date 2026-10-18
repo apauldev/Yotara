@@ -75,29 +75,37 @@ const MAX_VISIBLE_TASKS = 3;
               }
             </div>
 
-            <div class="cal-cell-tasks">
-              @for (task of visibleTasks(cell); track task.id) {
-                <app-calendar-task-chip
-                  cdkDrag
-                  [cdkDragData]="task"
-                  [cdkDragDisabled]="!canDrag(task)"
-                  @fadeCollapse
-                  [task]="task"
-                  [overdue]="isOverdue(task)"
-                  [completed]="completionOverrides.get(task.id) ?? task.completed"
-                  [showMeta]="showMetadata"
-                  [labelCount]="task.labels?.length ?? 0"
-                  [showCheck]="showCheck"
-                  (select)="onSelect($event, cell)"
-                  (complete)="onComplete($event)"
-                />
+            @if (compactCounts) {
+              @if (cell.tasks.length > 0) {
+                <div class="cal-cell-count-wrap">
+                  <span class="cal-cell-count">{{ cell.tasks.length }}</span>
+                </div>
               }
-              @if (cell.tasks.length > maxVisible) {
-                <button type="button" class="cal-more" (click)="selectDate.emit(cell.date)">
-                  +{{ cell.tasks.length - maxVisible }} more
-                </button>
-              }
-            </div>
+            } @else {
+              <div class="cal-cell-tasks">
+                @for (task of visibleTasks(cell); track task.id) {
+                  <app-calendar-task-chip
+                    cdkDrag
+                    [cdkDragData]="task"
+                    [cdkDragDisabled]="!canDrag(task)"
+                    @fadeCollapse
+                    [task]="task"
+                    [overdue]="isOverdue(task)"
+                    [completed]="completionOverrides.get(task.id) ?? task.completed"
+                    [showMeta]="showMetadata"
+                    [labelCount]="task.labels?.length ?? 0"
+                    [showCheck]="showCheck"
+                    (select)="onSelect($event)"
+                    (complete)="onComplete($event)"
+                  />
+                }
+                @if (cell.tasks.length > maxVisible) {
+                  <button type="button" class="cal-more" (click)="selectDate.emit(cell.date)">
+                    +{{ cell.tasks.length - maxVisible }} more
+                  </button>
+                }
+              </div>
+            }
           </div>
         }
       </div>
@@ -238,6 +246,29 @@ const MAX_VISIBLE_TASKS = 3;
         min-width: 0;
       }
 
+      /*
+       * On phones the seven columns are too narrow for task chips, so the
+       * compact view shows only how many tasks fall on each day.
+       */
+      .cal-cell-count-wrap {
+        display: grid;
+        place-items: center;
+        flex: 1;
+      }
+
+      .cal-cell-count {
+        display: grid;
+        place-items: center;
+        min-width: 1.75rem;
+        height: 1.75rem;
+        padding: 0 0.45rem;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--primary-soft) 70%, transparent);
+        color: var(--on-surface);
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
       .cal-more {
         align-self: flex-start;
         border: 0;
@@ -282,9 +313,9 @@ export class CalendarMonthGridComponent {
   @Input() showMetadata = false;
   @Input() showCheck = true;
   @Input() allowDrag = true;
-  /** On touch layouts, tapping a task opens its day sheet instead of the editor. */
-  @Input() selectDayOnTaskTap = false;
   @Input() allowQuickCreate = true;
+  /** On phones, show only the count of tasks per day instead of task chips. */
+  @Input() compactCounts = false;
   @Output() readonly selectDate = new EventEmitter<DateTime>();
   @Output() readonly openTask = new EventEmitter<Task>();
   @Output() readonly completeTask = new EventEmitter<Task>();
@@ -380,13 +411,8 @@ export class CalendarMonthGridComponent {
     this.rescheduleTask.emit({ task, date: cell.key });
   }
 
-  protected onSelect(task: Task, cell: CalendarCell): void {
+  protected onSelect(task: Task): void {
     if (this.isClickSuppressed()) return;
-
-    if (this.selectDayOnTaskTap) {
-      this.selectDate.emit(cell.date);
-      return;
-    }
 
     this.openTask.emit(task);
   }
@@ -440,12 +466,8 @@ export class CalendarMonthGridComponent {
         return;
       }
 
-      // Clicks on a chip's padding (not its buttons) behave like a day tap on
-      // touch, where the day sheet is the intended destination.
+      // Clicks on a chip's padding (not its buttons) belong to the chip.
       if (target.closest('app-calendar-task-chip')) {
-        if (this.selectDayOnTaskTap) {
-          this.selectDate.emit(cell.date);
-        }
         return;
       }
     }
