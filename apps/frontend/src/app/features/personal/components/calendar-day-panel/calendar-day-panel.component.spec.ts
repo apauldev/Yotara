@@ -114,4 +114,11 @@ describe('CalendarDayPanelComponent', () => {
     // The timed chip does not repeat its time inline; the gutter owns it.
     expect(fixture.nativeElement.querySelector('.cal-schedule .cal-chip-time')).toBeFalsy();
   });
+
+  it('announces changes to the selected day', () => {
+    setTasks([]);
+
+    const header = fixture.nativeElement.querySelector('.cal-panel-head') as HTMLElement;
+    expect(header.getAttribute('aria-live')).toBe('polite');
+  });
 });
