@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.81.0](https://github.com/apauldev/Yotara/compare/v0.80.3...v0.81.0) (2026-10-18)
+
+
+### Features
+
+* **calendar:** add a native month calendar (view, create, complete, schedule) ([559f7bb](https://github.com/apauldev/Yotara/commit/559f7bb45a689137c58fb71502732e975393f0f9))
+* **calendar:** add hover and double-click quick task creation ([145e189](https://github.com/apauldev/Yotara/commit/145e1892e0046b3d674f6bb9d4cf54f5e2aa2e20))
+* **calendar:** add keyboard navigation and accessible day labels ([fa598b2](https://github.com/apauldev/Yotara/commit/fa598b2cb5c64226711e017f23498c82cdf1be3f))
+* **calendar:** add Show done and Show task details toggles ([ab58fb4](https://github.com/apauldev/Yotara/commit/ab58fb471a2a30354c822c34436115d159aeacec))
+* **calendar:** drag to reschedule with optimistic move and guards ([c4a10d0](https://github.com/apauldev/Yotara/commit/c4a10d051be03c3c6afd843f46bd788e1ab94969))
+* **calendar:** keep a fixed six-row month grid ([854efc9](https://github.com/apauldev/Yotara/commit/854efc9a00801990f5836a4dd30de5825cfa3f1e))
+* **calendar:** load the visible window instead of every task ([65f2023](https://github.com/apauldev/Yotara/commit/65f20238191beb87616a933d51decaddf59f787c))
+* **calendar:** mobile day sheet, touch targets, and timed schedule ([dec1dc2](https://github.com/apauldev/Yotara/commit/dec1dc2e2298daa3dd38c14de7795ca2b7ec71b0))
+* **calendar:** reversible completion, drop highlight, month navigation ([e84ff84](https://github.com/apauldev/Yotara/commit/e84ff84ec553f13468175062c4c4b58052a3b105))
+* **calendar:** use a mobile week strip with a full-month count grid ([2667e5a](https://github.com/apauldev/Yotara/commit/2667e5af902e4bdf94ca4cd83aa5d21a59ca27d1))
+* **pages:** trim taglines and open the day sheet on mobile calendar taps ([529bd17](https://github.com/apauldev/Yotara/commit/529bd172e4a1c12621aa935bee9059a3c4b1cafe))
+* **shell:** publish the rendered top bar height as --topbar-offset ([d40e869](https://github.com/apauldev/Yotara/commit/d40e869a46279e913c9c30bc4b33fe9eff4015c4))
+
+
+### Bug Fixes
+
+* **api:** treat an empty due date as undated ([847ba18](https://github.com/apauldev/Yotara/commit/847ba18bdb4b32faf2d991927a90b5d627cd8137))
+* **api:** validate the calendar date bounds in the service ([5333681](https://github.com/apauldev/Yotara/commit/53336814e85953938b96906166c03f00298eb4b3))
+* **calendar:** announce task completions and fade completed chips out ([c052457](https://github.com/apauldev/Yotara/commit/c0524578211f3061cfb74360a7b7d76e5235fda2))
+* **calendar:** select a day on click instead of opening the create editor ([c3a842d](https://github.com/apauldev/Yotara/commit/c3a842da090c6d911d66da427efa3020e5584bb5))
+* **notifications:** stop OS notifications on task completion ([73bac3c](https://github.com/apauldev/Yotara/commit/73bac3c8a4e351bb3463645e82da94f5622ddfe0))
+
+
+### Tests
+
+* **calendar:** cover the calendar components ([f3c8962](https://github.com/apauldev/Yotara/commit/f3c8962d49d279ca2a710f1b67383d52f35b2d8f))
+* **calendar:** cover the calendar's remaining paths ([588dc52](https://github.com/apauldev/Yotara/commit/588dc523470243eeb7b9366d68eededd9b085cc6))
+
 ## [0.80.3](https://github.com/apauldev/Yotara/compare/v0.80.2...v0.80.3) (2026-10-16)
 
 
