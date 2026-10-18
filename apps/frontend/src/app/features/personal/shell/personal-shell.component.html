@@ -1,4 +1,8 @@
-<div class="personal-shell" [class.sidebar-collapsed]="sidebarCollapsed()">
+<div
+  class="personal-shell"
+  [class.sidebar-collapsed]="sidebarCollapsed()"
+  [style.--topbar-offset]="topbarOffset() ? topbarOffset() + 'px' : null"
+>
   @if (mobileMenuOpen()) {
     <button
       type="button"
@@ -88,7 +92,7 @@
   </aside>
 
   <main class="content">
-    <header class="topbar">
+    <header class="topbar" #topbar>
       <div class="topbar-left">
         <button
           type="button"

@@ -5,6 +5,9 @@ import {
   effect,
   inject,
   signal,
+  viewChild,
+  ElementRef,
+  afterNextRender,
   ChangeDetectionStrategy,
   OnDestroy,
 } from '@angular/core';
@@ -150,6 +153,9 @@ export class PersonalShellComponent implements OnDestroy {
   protected readonly mobileMenuOpen = signal(false);
   protected readonly sidebarCollapsed = signal(false);
   protected readonly now = signal(new Date());
+  protected readonly topbarOffset = signal(0);
+  private readonly topbar = viewChild<ElementRef<HTMLElement>>('topbar');
+  private topbarObserver?: ResizeObserver;
   protected readonly profileMenuOpen = signal(false);
   protected readonly preferencesMenuOpen = signal(false);
   protected readonly notificationsOpen = signal(false);
@@ -195,9 +201,19 @@ export class PersonalShellComponent implements OnDestroy {
         this.dueTimeScheduler.stop();
       }
     });
+
+    afterNextRender(() => {
+      const element = this.topbar()?.nativeElement;
+      if (!element || typeof ResizeObserver === 'undefined') return;
+
+      this.topbarOffset.set(element.offsetHeight);
+      this.topbarObserver = new ResizeObserver(() => this.topbarOffset.set(element.offsetHeight));
+      this.topbarObserver.observe(element);
+    });
   }
 
   ngOnDestroy() {
+    this.topbarObserver?.disconnect();
     this.dueTimeScheduler.stop();
   }
 
