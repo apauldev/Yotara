@@ -77,24 +77,26 @@ describe('calendar-view', () => {
   describe('buildMonthCells', () => {
     const today = DateTime.fromISO('2026-10-17');
 
-    it('builds a 4-row month whose first day is Sunday', () => {
+    it('pads a 4-row month to a fixed six rows', () => {
       const cells = buildMonthCells(DateTime.fromISO('2026-02-01'), new Map(), today);
 
-      expect(cells).toHaveSize(28);
+      expect(cells).toHaveSize(42);
       expect(cells[0].key).toBe('2026-02-01');
-      expect(cells.every((cell) => cell.inMonth)).toBe(true);
+      expect(cells[27].inMonth).toBe(true);
+      expect(cells[28].inMonth).toBe(false);
+      expect(cells[cells.length - 1].key).toBe('2026-03-14');
     });
 
-    it('builds a 5-row month with leading days from the previous month', () => {
+    it('keeps six rows for a 5-row month with leading days', () => {
       const cells = buildMonthCells(DateTime.fromISO('2026-10-01'), new Map(), today);
 
-      expect(cells).toHaveSize(35);
+      expect(cells).toHaveSize(42);
       expect(cells[0].key).toBe('2026-09-27');
       expect(cells[0].inMonth).toBe(false);
-      expect(cells[cells.length - 1].key).toBe('2026-10-31');
+      expect(cells[cells.length - 1].key).toBe('2026-11-07');
     });
 
-    it('builds a 6-row month with trailing days into the next month', () => {
+    it('keeps six rows for a naturally 6-row month', () => {
       const cells = buildMonthCells(DateTime.fromISO('2026-08-01'), new Map(), today);
 
       expect(cells).toHaveSize(42);
