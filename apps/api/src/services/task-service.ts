@@ -131,9 +131,24 @@ export interface TaskFilters {
   completed?: boolean;
   overdue?: boolean; // dueDate < now AND completed = false
   hasDueDate?: boolean;
+  dueFrom?: string; // inclusive calendar date (YYYY-MM-DD), applied to date(due_date)
+  dueTo?: string; // inclusive calendar date (YYYY-MM-DD), applied to date(due_date)
   tz?: string;
   view?: 'today' | 'inbox' | 'upcoming';
   completedSince?: string;
+}
+
+const CALENDAR_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Calendar bounds are interpolated into the date range predicate, so they are
+ * checked here rather than trusted from the route schema: a caller reaching
+ * this service directly must not be able to pass an arbitrary string.
+ */
+function assertCalendarDate(value: string, field: string): void {
+  if (!CALENDAR_DATE_PATTERN.test(value) || !DateTime.fromISO(value, { zone: 'utc' }).isValid) {
+    throw new BadRequestError(`${field} must be a calendar date (YYYY-MM-DD)`);
+  }
 }
 
 export async function listTasksForOwner(
@@ -156,6 +171,12 @@ export async function listTasksForOwner(
       : and(baseWhere, isNull(tasks.parentId));
 
   if (filters) {
+    if (filters.dueFrom) {
+      assertCalendarDate(filters.dueFrom, 'dueFrom');
+    }
+    if (filters.dueTo) {
+      assertCalendarDate(filters.dueTo, 'dueTo');
+    }
     if (filters.status) {
       whereClause = and(whereClause, eq(tasks.status, filters.status));
     }
@@ -164,8 +185,17 @@ export async function listTasksForOwner(
     }
     if (filters.hasDueDate !== undefined) {
       whereClause = filters.hasDueDate
-        ? and(whereClause, isNotNull(tasks.dueDate))
-        : and(whereClause, isNull(tasks.dueDate));
+        ? and(whereClause, isNotNull(tasks.dueDate), sql`${tasks.dueDate} <> ''`)
+        : and(whereClause, or(isNull(tasks.dueDate), eq(tasks.dueDate, '')));
+    }
+    // Inclusive calendar-date range over the due date. An inverted range
+    // (dueFrom > dueTo) matches nothing rather than erroring; undated tasks
+    // fall out because date(NULL) satisfies neither bound.
+    if (filters.dueFrom) {
+      whereClause = and(whereClause, sql`date(${tasks.dueDate}) >= ${filters.dueFrom}`);
+    }
+    if (filters.dueTo) {
+      whereClause = and(whereClause, sql`date(${tasks.dueDate}) <= ${filters.dueTo}`);
     }
     if (filters.overdue) {
       const today = todayInTimezone(filters.tz);

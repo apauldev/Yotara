@@ -619,7 +619,7 @@ describe('PersonalTaskCardComponent', () => {
     });
   });
 
-  it('calls showBrowserNotification when task is completed', async () => {
+  it('announces a completion with a toast but no browser notification', async () => {
     component.task = { ...mockTask };
     component.interactive = true;
     preferences.setSkipCompleteConfirm(true);
@@ -628,10 +628,8 @@ describe('PersonalTaskCardComponent', () => {
 
     await component.completeTask();
 
-    expect(notificationServiceSpy.showBrowserNotification).toHaveBeenCalledWith(
-      'Task completed',
-      mockTask.title,
-    );
+    expect(statusServiceSpy.success).toHaveBeenCalledWith('Task completed');
+    expect(notificationServiceSpy.showBrowserNotification).not.toHaveBeenCalled();
   });
 
   describe('Recurrence labels', () => {

@@ -140,14 +140,6 @@ export class SearchPageComponent {
 
   protected readonly pageTitle = 'Search';
 
-  protected readonly pageSubtitle = computed(() => {
-    const query = this.queryParamMap().q;
-    if (!query) {
-      return 'Search tasks and projects from the sanctuary.';
-    }
-    return `Results for \u201C${query}\u201D.`;
-  });
-
   protected readonly totalTasksCount = computed(() =>
     this.activeTab() === 'tasks' ? this.allTaskResults().length : this.results().tasks.length,
   );

@@ -13,10 +13,10 @@ import { ProjectService } from '../../../core/services/project.service';
 import { StatusService } from '../../../core/services/status.service';
 import { TaskService } from '../../../core/services/task.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
-import { NotificationService } from '../../../core/services/notification.service';
 import { PersonalTaskModalComponent } from './personal-task-modal.component';
 import type { DueDateDraft } from '../utils/due-date-draft';
 import { taskCreationNotification } from '../utils/task-creation-notification';
+import { notifyTaskCompleted } from '../utils/task-completion-notice';
 
 type SavePayload =
   | { mode: 'create'; payload: CreateTaskDto }
@@ -56,7 +56,6 @@ export class PersonalTaskWorkspaceComponent {
   protected readonly taskService = inject(TaskService);
   private readonly statusService = inject(StatusService);
   private readonly preferences = inject(PreferencesStore);
-  private readonly notificationService = inject(NotificationService);
   protected readonly modalOpen = signal(false);
   protected readonly selectedTask = signal<Task | null>(null);
   protected readonly draftProjectId = signal<string | null>(null);
@@ -124,13 +123,7 @@ export class PersonalTaskWorkspaceComponent {
       }
 
       if (event.mode === 'update' && event.payload.completed === true && !wasCompleted) {
-        if (this.preferences.actionNotifications()) {
-          this.statusService.success('Task completed');
-        }
-        this.notificationService.showBrowserNotification(
-          'Task completed',
-          this.selectedTask()?.title ?? '',
-        );
+        notifyTaskCompleted(this.statusService, this.preferences);
       }
 
       this.projectService.refresh();

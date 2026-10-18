@@ -162,6 +162,108 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       assert.equal(subtasks.filter((s) => s.completed).length, 1);
     });
 
+    await t.test('List filtering: hasDueDate and inclusive due date ranges', async () => {
+      await ctx.taskService.createTaskForOwner(ownerId, { title: 'Range Undated' });
+      await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Range Day A',
+        dueDate: '2026-05-10',
+      });
+      await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Range Day B',
+        dueDate: '2026-05-11',
+      });
+      await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Range Day C',
+        dueDate: '2026-05-13',
+      });
+
+      // hasDueDate=false returns only undated tasks
+      const undated = await ctx.taskService.listTasksForOwner(ownerId, 1, 200, true, undefined, {
+        hasDueDate: false,
+      });
+      assert.ok(undated.data.some((task) => task.title === 'Range Undated'));
+      assert.ok(undated.data.every((task) => !task.dueDate));
+
+      // hasDueDate=true returns only dated tasks
+      const dated = await ctx.taskService.listTasksForOwner(ownerId, 1, 200, true, undefined, {
+        hasDueDate: true,
+      });
+      assert.ok(dated.data.some((task) => task.title === 'Range Day A'));
+      assert.ok(dated.data.every((task) => Boolean(task.dueDate)));
+
+      // A legacy empty-string due date reads as undated, so it must not fall
+      // between the two filters and disappear from both lists.
+      const { tasks } = await import('../db/schema.js');
+      await ctx.db.insert(tasks).values({
+        id: randomUUID(),
+        userId: ownerId,
+        title: 'Range Blank Date',
+        dueDate: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      const undatedWithBlank = await ctx.taskService.listTasksForOwner(
+        ownerId,
+        1,
+        200,
+        true,
+        undefined,
+        { hasDueDate: false },
+      );
+      assert.ok(undatedWithBlank.data.some((task) => task.title === 'Range Blank Date'));
+
+      const datedWithBlank = await ctx.taskService.listTasksForOwner(
+        ownerId,
+        1,
+        200,
+        true,
+        undefined,
+        { hasDueDate: true },
+      );
+      assert.ok(!datedWithBlank.data.some((task) => task.title === 'Range Blank Date'));
+
+      // the range is inclusive on both ends and excludes undated tasks
+      const range = await ctx.taskService.listTasksForOwner(ownerId, 1, 200, true, undefined, {
+        dueFrom: '2026-05-10',
+        dueTo: '2026-05-11',
+      });
+      assert.deepEqual(range.data.map((task) => task.title).sort(), ['Range Day A', 'Range Day B']);
+
+      // an inverted range returns empty rather than erroring
+      const inverted = await ctx.taskService.listTasksForOwner(ownerId, 1, 200, true, undefined, {
+        dueFrom: '2026-05-13',
+        dueTo: '2026-05-10',
+      });
+      assert.equal(inverted.data.length, 0);
+      assert.equal(inverted.meta.total, 0);
+    });
+
+    await t.test('List filtering rejects malformed calendar bounds', async () => {
+      const malformed = [
+        'not-a-date',
+        '2026-13-45',
+        '2026-02-30',
+        '2026-5-1',
+        '2026-05-10T00:00:00Z',
+      ];
+
+      for (const value of malformed) {
+        await assert.rejects(
+          () =>
+            ctx.taskService.listTasksForOwner(ownerId, 1, 200, true, undefined, { dueFrom: value }),
+          (error: Error & { statusCode?: number }) =>
+            error.name === 'BadRequestError' && error.statusCode === 400,
+        );
+      }
+
+      await assert.rejects(
+        () =>
+          ctx.taskService.listTasksForOwner(ownerId, 1, 200, true, undefined, { dueTo: 'nope' }),
+        (error: Error) => error.name === 'BadRequestError',
+      );
+    });
+
     await t.test('Recurrence materialization', async () => {
       // 1. Weekly recurrence - anchor from original due date
       const weeklyDueDate = '2026-05-01T00:00:00Z';

@@ -7,6 +7,8 @@ export class PreferencesStore {
   private static readonly SKIP_COMPLETE_KEY = 'yotara_skipCompleteConfirm';
   private static readonly ACTION_NOTIFICATIONS_KEY = 'yotara_actionNotifications';
   private static readonly DESKTOP_NOTIFICATIONS_KEY = 'yotara_desktopNotifications';
+  private static readonly SHOW_DONE_CALENDAR_KEY = 'yotara_showDoneCalendar';
+  private static readonly SHOW_METADATA_CALENDAR_KEY = 'yotara_showMetadataCalendar';
   private static readonly INSIGHT_DISMISSED_KEY = 'yotara_insightDismissed';
   private static readonly LOGIN_TIP_DISMISSED_KEY = 'yotara_loginTipDismissed';
   private static readonly ONBOARDING_COMPLETED_KEY = 'onboardingCompleted';
@@ -20,6 +22,12 @@ export class PreferencesStore {
   );
   readonly desktopNotifications = signal(
     localStorage.getItem(PreferencesStore.DESKTOP_NOTIFICATIONS_KEY) === 'true',
+  );
+  readonly showDoneCalendar = signal(
+    localStorage.getItem(PreferencesStore.SHOW_DONE_CALENDAR_KEY) === 'true',
+  );
+  readonly showMetadataCalendar = signal(
+    localStorage.getItem(PreferencesStore.SHOW_METADATA_CALENDAR_KEY) === 'true',
   );
   readonly insightDismissed = signal(
     localStorage.getItem(PreferencesStore.INSIGHT_DISMISSED_KEY) === 'true',
@@ -46,6 +54,16 @@ export class PreferencesStore {
   setDesktopNotifications(value: boolean): void {
     this.desktopNotifications.set(value);
     localStorage.setItem(PreferencesStore.DESKTOP_NOTIFICATIONS_KEY, value ? 'true' : 'false');
+  }
+
+  setShowDoneCalendar(value: boolean): void {
+    this.showDoneCalendar.set(value);
+    localStorage.setItem(PreferencesStore.SHOW_DONE_CALENDAR_KEY, value ? 'true' : 'false');
+  }
+
+  setShowMetadataCalendar(value: boolean): void {
+    this.showMetadataCalendar.set(value);
+    localStorage.setItem(PreferencesStore.SHOW_METADATA_CALENDAR_KEY, value ? 'true' : 'false');
   }
 
   setInsightDismissed(value: boolean): void {

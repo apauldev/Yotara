@@ -50,6 +50,9 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       status?: TaskStatus;
       completed?: string;
       overdue?: string;
+      hasDueDate?: string;
+      dueFrom?: string;
+      dueTo?: string;
       tz?: string;
       view?: 'today' | 'inbox' | 'upcoming';
       completedSince?: string;
@@ -73,6 +76,9 @@ export default async function taskRoutes(fastify: FastifyInstance) {
             status: { type: 'string', enum: ['inbox', 'today', 'upcoming', 'done', 'archived'] },
             completed: { type: 'string', enum: ['true', 'false'] },
             overdue: { type: 'string', enum: ['true', 'false'] },
+            hasDueDate: { type: 'string', enum: ['true', 'false'] },
+            dueFrom: { type: 'string', format: 'date' },
+            dueTo: { type: 'string', format: 'date' },
             tz: { type: 'string' },
             view: { type: 'string', enum: ['today', 'inbox', 'upcoming'] },
             completedSince: { type: 'string', format: 'date' },
@@ -108,6 +114,14 @@ export default async function taskRoutes(fastify: FastifyInstance) {
               ? false
               : undefined,
         overdue: request.query.overdue === 'true',
+        hasDueDate:
+          request.query.hasDueDate === 'true'
+            ? true
+            : request.query.hasDueDate === 'false'
+              ? false
+              : undefined,
+        dueFrom: request.query.dueFrom,
+        dueTo: request.query.dueTo,
         tz: request.query.tz,
         view: request.query.view,
         completedSince: request.query.completedSince,

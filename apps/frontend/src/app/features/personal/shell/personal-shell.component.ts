@@ -5,6 +5,9 @@ import {
   effect,
   inject,
   signal,
+  viewChild,
+  ElementRef,
+  afterNextRender,
   ChangeDetectionStrategy,
   OnDestroy,
 } from '@angular/core';
@@ -22,6 +25,7 @@ import {
   faBars,
   faEnvelope,
   faCalendarDays,
+  faCalendarWeek,
   faBoxArchive,
   faInbox,
   faArrowRightLong,
@@ -81,7 +85,7 @@ const TIPS = [
   'Take breaks between tasks — sustained focus works best with short rests.',
 ];
 
-type PersonalIcon = 'inbox' | 'today' | 'upcoming' | 'projects' | 'labels' | 'archive';
+type PersonalIcon = 'inbox' | 'today' | 'upcoming' | 'calendar' | 'projects' | 'labels' | 'archive';
 
 interface PersonalNavItem {
   label: string;
@@ -113,6 +117,7 @@ export class PersonalShellComponent implements OnDestroy {
   protected readonly faEnvelope = faEnvelope;
   protected readonly faArrowRightLong = faArrowRightLong;
   protected readonly faCalendarDays = faCalendarDays;
+  protected readonly faCalendarWeek = faCalendarWeek;
   protected readonly faBoxArchive = faBoxArchive;
   protected readonly faInbox = faInbox;
   protected readonly faRocket = faRocket;
@@ -140,6 +145,7 @@ export class PersonalShellComponent implements OnDestroy {
     { label: 'Inbox', route: '/tasks', icon: 'inbox', queryParams: { view: 'inbox' } },
     { label: 'Today', route: '/tasks', icon: 'today', queryParams: { view: 'today' } },
     { label: 'Upcoming', route: '/tasks', icon: 'upcoming', queryParams: { view: 'upcoming' } },
+    { label: 'Calendar', route: '/calendar', icon: 'calendar' },
     { label: 'Projects', route: '/projects', icon: 'projects' },
     { label: 'Labels', route: '/labels', icon: 'labels' },
     { label: 'Archive', route: '/archive', icon: 'archive' },
@@ -147,6 +153,9 @@ export class PersonalShellComponent implements OnDestroy {
   protected readonly mobileMenuOpen = signal(false);
   protected readonly sidebarCollapsed = signal(false);
   protected readonly now = signal(new Date());
+  protected readonly topbarOffset = signal(0);
+  private readonly topbar = viewChild<ElementRef<HTMLElement>>('topbar');
+  private topbarObserver?: ResizeObserver;
   protected readonly profileMenuOpen = signal(false);
   protected readonly preferencesMenuOpen = signal(false);
   protected readonly notificationsOpen = signal(false);
@@ -192,9 +201,19 @@ export class PersonalShellComponent implements OnDestroy {
         this.dueTimeScheduler.stop();
       }
     });
+
+    afterNextRender(() => {
+      const element = this.topbar()?.nativeElement;
+      if (!element || typeof ResizeObserver === 'undefined') return;
+
+      this.topbarOffset.set(element.offsetHeight);
+      this.topbarObserver = new ResizeObserver(() => this.topbarOffset.set(element.offsetHeight));
+      this.topbarObserver.observe(element);
+    });
   }
 
   ngOnDestroy() {
+    this.topbarObserver?.disconnect();
     this.dueTimeScheduler.stop();
   }
 
