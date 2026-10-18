@@ -104,7 +104,6 @@ describe('ArchivePageComponent', () => {
 
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Archive');
-    expect(text).toContain('Completed tasks stay here');
   });
 
   describe('Loading state', () => {

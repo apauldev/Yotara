@@ -120,15 +120,18 @@ export class TaskListPageComponent implements OnInit {
 
   protected readonly pageSubtitle = computed(() => {
     switch (this.viewMode()) {
-      case 'inbox':
-        return 'Collect everything that needs your attention.';
       case 'today':
         return `${this.dateLabel()} - ${this.progressLabel()}`;
       case 'upcoming':
-        return 'See what is approaching and space it out before it becomes noisy.';
+        return this.upcomingLabel();
       default:
         return '';
     }
+  });
+
+  protected readonly upcomingLabel = computed(() => {
+    const total = this.taskService.upcomingTasks().length;
+    return total === 0 ? 'a clear horizon' : `${total} ${total === 1 ? 'task' : 'tasks'} ahead`;
   });
 
   // --- Inbox Logic ---

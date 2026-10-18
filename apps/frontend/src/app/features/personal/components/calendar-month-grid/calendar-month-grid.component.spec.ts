@@ -156,6 +156,22 @@ describe('CalendarMonthGridComponent', () => {
     expect(count).toBe(0);
   });
 
+  it('opens the day instead of the task on touch layouts', () => {
+    setCells([task({ id: 'a', dueDate: '2026-10-12' })]);
+    component.selectDayOnTaskTap = true;
+    fixture.detectChanges();
+
+    let selected: DateTime | undefined;
+    let opened = false;
+    component.selectDate.subscribe((value) => (selected = value));
+    component.openTask.subscribe(() => (opened = true));
+
+    (fixture.nativeElement.querySelector('.cal-chip-body') as HTMLButtonElement).click();
+
+    expect(selected?.toISODate()).toBe('2026-10-12');
+    expect(opened).toBe(false);
+  });
+
   it('labels a day with its full date and task count', () => {
     component.cells = [
       makeCell('2026-10-01'),

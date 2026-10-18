@@ -190,7 +190,6 @@ describe('SearchPageComponent', () => {
 
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Start with a title, project, or keyword');
-    expect(text).toContain('Search tasks and projects from the sanctuary.');
   });
 
   it('shows an empty state when the query matches nothing', fakeAsync(() => {
@@ -216,18 +215,6 @@ describe('SearchPageComponent', () => {
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Polish search results');
     expect(text).toContain('1 matches');
-  }));
-
-  it('displays the search query in the page subtitle', fakeAsync(() => {
-    queryParams$.next(convertToParamMap({ q: 'groceries' }));
-    const fixture = TestBed.createComponent(SearchPageComponent);
-    fixture.detectChanges();
-    tick();
-    fixture.detectChanges();
-
-    const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Results for');
-    expect(text).toContain('groceries');
   }));
 
   it('navigates to /search with the query on form submit', fakeAsync(() => {

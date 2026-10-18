@@ -13,10 +13,7 @@ import { TIMED_REMINDERS_UNAVAILABLE } from '../utils/timezone-notices';
   imports: [CommonModule, FontAwesomeModule, PageHeaderComponent],
   template: `
     <section class="page">
-      <app-page-header
-        title="Notifications"
-        subtitle="Stay on top of your tasks with timely reminders."
-      />
+      <app-page-header title="Notifications" />
 
       <div class="notifications-card">
         @if (service.timezoneUnavailable()) {

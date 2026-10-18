@@ -71,7 +71,7 @@ const MAX_VISIBLE_TASKS = 3;
                   [showMeta]="showMetadata"
                   [labelCount]="task.labels?.length ?? 0"
                   [showCheck]="showCheck"
-                  (select)="onSelect($event)"
+                  (select)="onSelect($event, cell)"
                   (complete)="onComplete($event)"
                 />
               }
@@ -218,6 +218,8 @@ export class CalendarMonthGridComponent {
   @Input() showMetadata = false;
   @Input() showCheck = true;
   @Input() allowDrag = true;
+  /** On touch layouts, tapping a task opens its day sheet instead of the editor. */
+  @Input() selectDayOnTaskTap = false;
   @Output() readonly selectDate = new EventEmitter<DateTime>();
   @Output() readonly openTask = new EventEmitter<Task>();
   @Output() readonly completeTask = new EventEmitter<Task>();
@@ -311,8 +313,14 @@ export class CalendarMonthGridComponent {
     this.rescheduleTask.emit({ task, date: cell.key });
   }
 
-  protected onSelect(task: Task): void {
+  protected onSelect(task: Task, cell: CalendarCell): void {
     if (this.isClickSuppressed()) return;
+
+    if (this.selectDayOnTaskTap) {
+      this.selectDate.emit(cell.date);
+      return;
+    }
+
     this.openTask.emit(task);
   }
 
@@ -336,11 +344,20 @@ export class CalendarMonthGridComponent {
     if (this.isClickSuppressed()) return;
 
     const target = event.target;
-    if (
-      target instanceof HTMLElement &&
-      target.closest('app-calendar-task-chip, button, a, input, [role="button"]')
-    ) {
-      return;
+    if (target instanceof HTMLElement) {
+      // Interactive controls handle their own taps.
+      if (target.closest('button, a, input, [role="button"]')) {
+        return;
+      }
+
+      // Clicks on a chip's padding (not its buttons) behave like a day tap on
+      // touch, where the day sheet is the intended destination.
+      if (target.closest('app-calendar-task-chip')) {
+        if (this.selectDayOnTaskTap) {
+          this.selectDate.emit(cell.date);
+        }
+        return;
+      }
     }
 
     this.selectDate.emit(cell.date);
