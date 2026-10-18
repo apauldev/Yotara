@@ -30,16 +30,16 @@ function task(overrides: Partial<Task> = {}): Task {
 
 describe('CalendarPageComponent', () => {
   let fixture: ComponentFixture<CalendarPageComponent>;
-  let allActiveTasks: WritableSignal<Task[]>;
+  let rangeTasks: WritableSignal<Task[]>;
   let undatedTasks: WritableSignal<Task[]>;
-  let completedTasks: WritableSignal<Task[]>;
   let showDonePref: WritableSignal<boolean>;
   let showMetadataPref: WritableSignal<boolean>;
   let taskService: {
-    allActiveTasks: WritableSignal<Task[]>;
+    calendarRangeTasks: WritableSignal<Task[]>;
+    calendarRangeLoading: WritableSignal<boolean>;
+    calendarRangeLoaded: WritableSignal<boolean>;
+    setCalendarRange: jasmine.Spy;
     undatedTasks: WritableSignal<Task[]>;
-    completedTasks: WritableSignal<Task[]>;
-    loading: WritableSignal<boolean>;
     error: WritableSignal<string | null>;
     updateTask: jasmine.Spy;
     createTask: jasmine.Spy;
@@ -87,17 +87,17 @@ describe('CalendarPageComponent', () => {
   }
 
   beforeEach(async () => {
-    allActiveTasks = signal<Task[]>([]);
+    rangeTasks = signal<Task[]>([]);
     undatedTasks = signal<Task[]>([]);
-    completedTasks = signal<Task[]>([]);
     showDonePref = signal(false);
     showMetadataPref = signal(false);
 
     taskService = {
-      allActiveTasks,
+      calendarRangeTasks: rangeTasks,
+      calendarRangeLoading: signal(false),
+      calendarRangeLoaded: signal(true),
+      setCalendarRange: jasmine.createSpy('setCalendarRange'),
       undatedTasks,
-      completedTasks,
-      loading: signal(false),
       error: signal<string | null>(null),
       updateTask: jasmine.createSpy('updateTask').and.resolveTo({ id: 'task-1' }),
       createTask: jasmine.createSpy('createTask').and.resolveTo({ id: 'created-task' }),
@@ -183,9 +183,38 @@ describe('CalendarPageComponent', () => {
     });
   });
 
+  it('requests the 42-day grid window from the service', () => {
+    fixture.detectChanges();
+
+    const [range] = taskService.setCalendarRange.calls.mostRecent().args as [
+      { from: string; to: string },
+    ];
+    const gridStart = DateTime.fromISO(range.from);
+
+    expect(gridStart.weekday).toBe(7);
+    expect(gridStart.plus({ days: 41 }).toISODate()).toBe(range.to);
+    expect(range.from <= todayISO && todayISO <= range.to).toBe(true);
+  });
+
+  it('re-requests the window on month change and keeps the open day inside it', () => {
+    fixture.detectChanges();
+    const first = taskService.setCalendarRange.calls.mostRecent().args[0];
+
+    element<HTMLButtonElement>('[aria-label="Next month"]').click();
+    fixture.detectChanges();
+
+    const [second] = taskService.setCalendarRange.calls.mostRecent().args as [
+      { from: string; to: string },
+    ];
+
+    expect(second).not.toEqual(first);
+    // The day panel still shows the open day, so its date must stay in range.
+    expect(second.from).toBe(todayISO);
+  });
+
   describe('complete', () => {
     it('completes from the chip without opening the modal and announces it', async () => {
-      allActiveTasks.set([task({ id: 'due-1', title: 'Ship the calendar', dueDate: todayISO })]);
+      rangeTasks.set([task({ id: 'due-1', title: 'Ship the calendar', dueDate: todayISO })]);
       fixture.detectChanges();
 
       spyOn(workspace, 'openCreateTaskModal');
@@ -207,7 +236,7 @@ describe('CalendarPageComponent', () => {
     });
 
     it('rolls back the optimistic completion and surfaces an error when the save fails', async () => {
-      allActiveTasks.set([task({ id: 'due-1', title: 'Ship the calendar', dueDate: todayISO })]);
+      rangeTasks.set([task({ id: 'due-1', title: 'Ship the calendar', dueDate: todayISO })]);
       taskService.updateTask.and.returnValue(Promise.reject(new Error('boom')));
       fixture.detectChanges();
 
@@ -226,7 +255,7 @@ describe('CalendarPageComponent', () => {
     });
 
     it('prunes optimistic completion ids once the refreshed list drops the task', () => {
-      allActiveTasks.set([task({ id: 'due-1', title: 'Ship the calendar', dueDate: todayISO })]);
+      rangeTasks.set([task({ id: 'due-1', title: 'Ship the calendar', dueDate: todayISO })]);
       fixture.detectChanges();
 
       element<HTMLButtonElement>('.cal-chip-check').click();
@@ -235,7 +264,7 @@ describe('CalendarPageComponent', () => {
       const component = fixture.componentInstance as any;
       expect(component.completionOverrides().has('due-1')).toBe(true);
 
-      allActiveTasks.set([]);
+      rangeTasks.set([]);
       fixture.detectChanges();
 
       expect(component.completionOverrides().has('due-1')).toBe(false);
@@ -261,7 +290,7 @@ describe('CalendarPageComponent', () => {
 
       // After the refresh it is a dated task, so it shows under the day.
       undatedTasks.set([]);
-      allActiveTasks.set([task({ id: 'undated-1', title: 'Read the brief', dueDate: todayISO })]);
+      rangeTasks.set([task({ id: 'undated-1', title: 'Read the brief', dueDate: todayISO })]);
       fixture.detectChanges();
 
       expect(fixture.nativeElement.textContent).toContain('Read the brief');
@@ -317,7 +346,7 @@ describe('CalendarPageComponent', () => {
 
   describe('show done', () => {
     it('reveals completed tasks on the calendar when toggled on', () => {
-      completedTasks.set([
+      rangeTasks.set([
         task({ id: 'done-1', title: 'Finished thing', dueDate: todayISO, completed: true }),
       ]);
       fixture.detectChanges();
@@ -335,7 +364,7 @@ describe('CalendarPageComponent', () => {
 
   describe('show metadata', () => {
     it('shows compact priority and label cues on chips when toggled on', () => {
-      allActiveTasks.set([
+      rangeTasks.set([
         task({
           id: 'a',
           title: 'Ship it',
@@ -386,7 +415,7 @@ describe('CalendarPageComponent', () => {
   });
 
   it('shows a week strip on mobile and keeps completion in the day sheet', () => {
-    allActiveTasks.set([task({ id: 'due-1', title: 'Ship it', dueDate: todayISO })]);
+    rangeTasks.set([task({ id: 'due-1', title: 'Ship it', dueDate: todayISO })]);
     const component = fixture.componentInstance as unknown as {
       isMobile: WritableSignal<boolean>;
     };
@@ -410,7 +439,7 @@ describe('CalendarPageComponent', () => {
   });
 
   it('lets mobile switch between the week strip and the full month grid', () => {
-    allActiveTasks.set([task({ id: 'due-1', title: 'Ship it', dueDate: todayISO })]);
+    rangeTasks.set([task({ id: 'due-1', title: 'Ship it', dueDate: todayISO })]);
     const component = fixture.componentInstance as unknown as {
       isMobile: WritableSignal<boolean>;
     };
@@ -441,7 +470,7 @@ describe('CalendarPageComponent', () => {
 
   it('reopens a completed task from the calendar', async () => {
     const done = task({ id: 'done-1', title: 'Ship it', dueDate: todayISO, completed: true });
-    completedTasks.set([done]);
+    rangeTasks.set([done]);
     showDonePref.set(true);
     fixture.detectChanges();
 
@@ -456,7 +485,7 @@ describe('CalendarPageComponent', () => {
   });
 
   it('moves a task optimistically and reports a failed move', async () => {
-    allActiveTasks.set([task({ id: 'due-1', title: 'Ship it', dueDate: todayISO })]);
+    rangeTasks.set([task({ id: 'due-1', title: 'Ship it', dueDate: todayISO })]);
     fixture.detectChanges();
 
     const component = fixture.componentInstance as unknown as {
@@ -464,11 +493,11 @@ describe('CalendarPageComponent', () => {
     };
 
     taskService.updateTask.and.resolveTo({ id: 'due-1' });
-    await component.moveTask({ task: allActiveTasks()[0], date: '2026-12-01' });
+    await component.moveTask({ task: rangeTasks()[0], date: '2026-12-01' });
     expect(taskService.updateTask).toHaveBeenCalledWith('due-1', { dueDate: '2026-12-01' });
 
     taskService.updateTask.and.returnValue(Promise.reject(new Error('boom')));
-    await component.moveTask({ task: allActiveTasks()[0], date: '2026-12-02' });
+    await component.moveTask({ task: rangeTasks()[0], date: '2026-12-02' });
     expect(statusService.error).toHaveBeenCalledWith('Could not move the task. Please try again.');
   });
 });

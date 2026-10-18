@@ -40,6 +40,9 @@ export class TaskService {
   private loadingState = signal(false);
   private creatingState = signal(false);
   private errorState = signal<string | null>(null);
+  private calendarRangeState = signal<{ from: string; to: string } | null>(null);
+  private calendarRangeLoadingState = signal(false);
+  private calendarRangeLoadedState = signal(false);
 
   private handleLoadError(context: string) {
     return (error: unknown) => {
@@ -149,15 +152,6 @@ export class TaskService {
       .pipe(map((response) => response.data));
   }
 
-  /** Fetch completed tasks (with subtasks), for the calendar's "show done" view. */
-  fetchCompletedTasks$() {
-    return this.http
-      .get<
-        PaginatedResponse<Task[]>
-      >(`${this.baseUrl}/tasks?page=1&pageSize=1000&completed=true&includeSubtasks=true`, { withCredentials: true })
-      .pipe(map((response) => response.data));
-  }
-
   /** Fetch tasks due within an inclusive calendar-date range (YYYY-MM-DD bounds). */
   fetchTasksDueBetween$(dueFrom: string, dueTo: string) {
     const tz = getUserTimezone();
@@ -209,20 +203,43 @@ export class TaskService {
     { initialValue: [] as Task[] },
   );
 
-  /** Signal of completed tasks, for the calendar's "show done" view. */
-  readonly completedTasks = toSignal(
+  /** Set the calendar's visible window (inclusive YYYY-MM-DD bounds). */
+  setCalendarRange(range: { from: string; to: string }): void {
+    this.calendarRangeState.update((current) =>
+      current?.from === range.from && current?.to === range.to ? current : range,
+    );
+  }
+
+  readonly calendarRangeLoading = this.calendarRangeLoadingState.asReadonly();
+
+  /** True once a window has been fetched, so refetches never re-show the loader. */
+  readonly calendarRangeLoaded = this.calendarRangeLoadedState.asReadonly();
+
+  /**
+   * Signal of tasks due inside the calendar's visible window. Fetching the
+   * window instead of every active task keeps the grid correct on accounts
+   * larger than the page size an "all active tasks" request is capped at.
+   */
+  readonly calendarRangeTasks = toSignal(
     combineLatest([
       toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
       toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
       toObservable(this.refreshState),
+      toObservable(this.calendarRangeState),
     ]).pipe(
-      switchMap(([initialized, currentUserId]) => {
-        if (!initialized || !currentUserId) {
+      switchMap(([initialized, currentUserId, , range]) => {
+        if (!initialized || !currentUserId || !range) {
+          this.calendarRangeLoadingState.set(false);
           return of([] as Task[]);
         }
+        this.calendarRangeLoadingState.set(true);
         this.errorState.set(null);
-        return this.fetchCompletedTasks$().pipe(
-          catchError(this.handleLoadError('completed tasks')),
+        return this.fetchTasksDueBetween$(range.from, range.to).pipe(
+          catchError(this.handleLoadError('calendar tasks')),
+          finalize(() => {
+            this.calendarRangeLoadingState.set(false);
+            this.calendarRangeLoadedState.set(true);
+          }),
         );
       }),
     ),

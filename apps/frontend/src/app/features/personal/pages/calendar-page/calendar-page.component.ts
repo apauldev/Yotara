@@ -134,11 +134,26 @@ export class CalendarPageComponent {
     return names;
   });
 
+  /**
+   * The 42-day window the grid draws, widened to include the open day so the
+   * day panel never blanks when the viewed month moves away from it.
+   */
+  private readonly visibleRange = computed(() => {
+    const monthStart = this.viewMonth().startOf('month');
+    const gridStart = monthStart.minus({ days: monthStart.weekday % 7 });
+    const gridEnd = gridStart.plus({ days: 41 });
+    const selected = this.selectedDate();
+
+    return {
+      from: dayKey(selected.toMillis() < gridStart.toMillis() ? selected : gridStart),
+      to: dayKey(selected.toMillis() > gridEnd.toMillis() ? selected : gridEnd),
+    };
+  });
+
   private readonly calendarTasks = computed(() => {
-    const tasks = [
-      ...this.taskService.allActiveTasks(),
-      ...(this.showDone() ? this.taskService.completedTasks() : []),
-    ];
+    const tasks = this.taskService
+      .calendarRangeTasks()
+      .filter((task) => this.showDone() || !task.completed);
     const overrides = this.dueDateOverrides();
     if (overrides.size === 0) {
       return tasks;
@@ -172,12 +187,21 @@ export class CalendarPageComponent {
     this.cells().some((cell) => cell.inMonth && cell.tasks.length > 0),
   );
   protected readonly showInitialLoading = computed(
-    () => this.taskService.loading() && this.taskService.allActiveTasks().length === 0,
+    () => this.taskService.calendarRangeLoading() && !this.taskService.calendarRangeLoaded(),
   );
 
   constructor() {
     effect(() => {
-      const activeById = new Map(this.taskService.allActiveTasks().map((task) => [task.id, task]));
+      this.taskService.setCalendarRange(this.visibleRange());
+    });
+
+    effect(() => {
+      const activeById = new Map(
+        this.taskService
+          .calendarRangeTasks()
+          .filter((task) => this.showDone() || !task.completed)
+          .map((task) => [task.id, task]),
+      );
 
       this.completionOverrides.update((overrides) => {
         let changed = false;
