@@ -5,6 +5,7 @@ import type { Task } from '@yotara/shared';
 import { CalendarTaskChipComponent } from '../calendar-task-chip/calendar-task-chip.component';
 import { CalendarTaskMetaComponent } from '../calendar-task-meta/calendar-task-meta.component';
 import { fadeCollapse } from '../../../../shared/animations/fade-collapse.animation';
+import { formatTimeLabel } from '../../../../shared/utils/timestamps';
 
 @Component({
   selector: 'app-calendar-day-panel',
@@ -20,28 +21,65 @@ import { fadeCollapse } from '../../../../shared/animations/fade-collapse.animat
       </header>
 
       @if (tasks.length > 0) {
-        <ul class="cal-panel-list">
-          @for (task of tasks; track task.id) {
-            <li class="cal-panel-item">
-              <app-calendar-task-chip
-                @fadeCollapse
-                [task]="task"
-                [overdue]="isOverdue(task)"
-                [completed]="completionIds.has(task.id) || task.completed"
-                (select)="openTask.emit($event)"
-                (complete)="completeTask.emit($event)"
-              />
-              @if (showMetadata) {
-                <app-calendar-task-meta
-                  [task]="task"
-                  [projectName]="projectNameFor(task)"
-                  [projectAccent]="accentFor(task)"
-                  [labelNames]="labelNamesFor(task)"
-                />
+        <div class="cal-day-sections">
+          @if (untimedTasks.length > 0) {
+            <ul class="cal-panel-list">
+              @for (task of untimedTasks; track task.id) {
+                <li class="cal-panel-item">
+                  <app-calendar-task-chip
+                    @fadeCollapse
+                    [task]="task"
+                    [overdue]="isOverdue(task)"
+                    [completed]="completionIds.has(task.id) || task.completed"
+                    [touchTargets]="touchTargets"
+                    (select)="openTask.emit($event)"
+                    (complete)="completeTask.emit($event)"
+                  />
+                  @if (showMetadata) {
+                    <app-calendar-task-meta
+                      [task]="task"
+                      [projectName]="projectNameFor(task)"
+                      [projectAccent]="accentFor(task)"
+                      [labelNames]="labelNamesFor(task)"
+                    />
+                  }
+                </li>
               }
-            </li>
+            </ul>
           }
-        </ul>
+
+          @if (timedTasks.length > 0) {
+            <ul class="cal-schedule">
+              @for (task of timedTasks; track task.id) {
+                <li class="cal-schedule-row">
+                  <time class="cal-schedule-time" [attr.datetime]="task.dueTime">{{
+                    timeLabelFor(task)
+                  }}</time>
+                  <div class="cal-schedule-task">
+                    <app-calendar-task-chip
+                      @fadeCollapse
+                      [task]="task"
+                      [overdue]="isOverdue(task)"
+                      [completed]="completionIds.has(task.id) || task.completed"
+                      [touchTargets]="touchTargets"
+                      [showTime]="false"
+                      (select)="openTask.emit($event)"
+                      (complete)="completeTask.emit($event)"
+                    />
+                    @if (showMetadata) {
+                      <app-calendar-task-meta
+                        [task]="task"
+                        [projectName]="projectNameFor(task)"
+                        [projectAccent]="accentFor(task)"
+                        [labelNames]="labelNamesFor(task)"
+                      />
+                    }
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </div>
       } @else {
         <p class="cal-panel-empty">Nothing due on this day.</p>
       }
@@ -103,6 +141,44 @@ import { fadeCollapse } from '../../../../shared/animations/fade-collapse.animat
         gap: 0.25rem;
       }
 
+      .cal-day-sections {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .cal-schedule {
+        list-style: none;
+        margin: 0;
+        padding: 0.6rem 0 0;
+        border-top: 1px solid var(--outline-variant);
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+
+      .cal-schedule-row {
+        display: grid;
+        grid-template-columns: 3.6rem minmax(0, 1fr);
+        gap: 0.5rem;
+        align-items: start;
+      }
+
+      .cal-schedule-time {
+        padding-top: 0.3rem;
+        text-align: right;
+        white-space: nowrap;
+        font-size: 0.68rem;
+        font-weight: 800;
+        color: var(--on-surface-subtle);
+      }
+
+      .cal-schedule-task {
+        min-width: 0;
+        display: grid;
+        gap: 0.25rem;
+      }
+
       .cal-panel-empty {
         margin: 0;
         color: var(--on-surface-muted);
@@ -140,6 +216,7 @@ export class CalendarDayPanelComponent {
   @Input() projectNames: Map<string, string> = new Map();
   @Input() labelNames: Map<string, string> = new Map();
   @Input() showMetadata = false;
+  @Input() touchTargets = false;
   @Output() readonly openTask = new EventEmitter<Task>();
   @Output() readonly completeTask = new EventEmitter<Task>();
   @Output() readonly addTask = new EventEmitter<void>();
@@ -153,6 +230,20 @@ export class CalendarDayPanelComponent {
 
   protected accentFor(task: Task): string | null {
     return task.projectId ? (this.accentByProject.get(task.projectId) ?? null) : null;
+  }
+
+  protected get untimedTasks(): Task[] {
+    return this.tasks.filter((task) => !task.dueTime);
+  }
+
+  protected get timedTasks(): Task[] {
+    return this.tasks
+      .filter((task) => !!task.dueTime)
+      .sort((a, b) => (a.dueTime ?? '').localeCompare(b.dueTime ?? ''));
+  }
+
+  protected timeLabelFor(task: Task): string {
+    return formatTimeLabel(task.dueTime);
   }
 
   protected projectNameFor(task: Task): string | null {

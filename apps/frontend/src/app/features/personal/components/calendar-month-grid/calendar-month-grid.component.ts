@@ -50,6 +50,7 @@ const MAX_VISIBLE_TASKS = 3;
                   [completed]="completionIds.has(task.id) || task.completed"
                   [showMeta]="showMetadata"
                   [labelCount]="task.labels?.length ?? 0"
+                  [showCheck]="showCheck"
                   (select)="openTask.emit($event)"
                   (complete)="completeTask.emit($event)"
                 />
@@ -178,6 +179,7 @@ export class CalendarMonthGridComponent {
   @Input() completionIds: ReadonlySet<string> = new Set<string>();
   @Input() todayKey = '';
   @Input() showMetadata = false;
+  @Input() showCheck = true;
   @Output() readonly selectDate = new EventEmitter<DateTime>();
   @Output() readonly openTask = new EventEmitter<Task>();
   @Output() readonly completeTask = new EventEmitter<Task>();

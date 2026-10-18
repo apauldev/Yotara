@@ -10,23 +10,33 @@ import { formatTimeLabel } from '../../../../shared/utils/timestamps';
   imports: [FontAwesomeModule],
   changeDetection: ChangeDetectionStrategy.Eager,
   template: `
-    <div class="cal-chip" [class.cal-chip-overdue]="overdue" [class.cal-chip-completed]="completed">
-      <button
-        type="button"
-        class="cal-chip-check"
-        [class.cal-chip-check-done]="completed"
-        [disabled]="completed"
-        [attr.aria-label]="
-          completed ? task.title + ' completed' : 'Mark ' + task.title + ' as complete'
-        "
-        (click)="complete.emit(task)"
-      >
-        <span class="cal-chip-check-box" aria-hidden="true">
-          @if (completed) {
-            <span class="cal-chip-check-mark"></span>
-          }
-        </span>
-      </button>
+    <div
+      class="cal-chip"
+      [class.cal-chip-overdue]="overdue"
+      [class.cal-chip-completed]="completed"
+      [class.cal-chip-priority-high]="task.priority === 'high'"
+      [class.cal-chip-priority-medium]="task.priority === 'medium'"
+      [class.cal-chip-priority-low]="task.priority === 'low'"
+      [class.cal-chip-touch]="touchTargets"
+    >
+      @if (showCheck) {
+        <button
+          type="button"
+          class="cal-chip-check"
+          [class.cal-chip-check-done]="completed"
+          [disabled]="completed"
+          [attr.aria-label]="
+            completed ? task.title + ' completed' : 'Mark ' + task.title + ' as complete'
+          "
+          (click)="complete.emit(task)"
+        >
+          <span class="cal-chip-check-box" aria-hidden="true">
+            @if (completed) {
+              <span class="cal-chip-check-mark"></span>
+            }
+          </span>
+        </button>
+      }
 
       <button
         type="button"
@@ -37,7 +47,7 @@ import { formatTimeLabel } from '../../../../shared/utils/timestamps';
       >
         <span class="cal-chip-bar cal-chip-bar-{{ task.priority }}" aria-hidden="true"></span>
         <span class="cal-chip-label">{{ task.title }}</span>
-        @if (timeLabel) {
+        @if (showTime && timeLabel) {
           <span class="cal-chip-time">{{ timeLabel }}</span>
         }
         @if (showMeta && labelCount > 0) {
@@ -206,6 +216,34 @@ import { formatTimeLabel } from '../../../../shared/utils/timestamps';
         outline: 2px solid var(--primary-solid);
         outline-offset: 1px;
       }
+
+      @media (max-width: 720px) {
+        .cal-chip-bar {
+          display: none;
+        }
+
+        .cal-chip-priority-high {
+          background: color-mix(in srgb, var(--danger-soft) 65%, var(--surface-card));
+        }
+
+        .cal-chip-priority-medium {
+          background: color-mix(in srgb, var(--warning-soft) 65%, var(--surface-card));
+        }
+
+        .cal-chip-priority-low {
+          background: color-mix(in srgb, var(--primary-soft) 65%, var(--surface-card));
+        }
+      }
+
+      .cal-chip-touch .cal-chip-check {
+        width: 2.4rem;
+        height: 2.4rem;
+      }
+
+      .cal-chip-touch .cal-chip-check-box {
+        width: 1.15rem;
+        height: 1.15rem;
+      }
     `,
   ],
 })
@@ -215,6 +253,9 @@ export class CalendarTaskChipComponent {
   @Input() completed = false;
   @Input() showMeta = false;
   @Input() labelCount = 0;
+  @Input() touchTargets = false;
+  @Input() showCheck = true;
+  @Input() showTime = true;
   @Output() readonly select = new EventEmitter<Task>();
   @Output() readonly complete = new EventEmitter<Task>();
 
@@ -226,7 +267,11 @@ export class CalendarTaskChipComponent {
   }
 
   protected get bodyLabel(): string {
-    const parts = [this.task.title, `${this.task.priority} priority`];
+    const parts = [this.task.title];
+    if (this.timeLabel) {
+      parts.push(this.timeLabel);
+    }
+    parts.push(`${this.task.priority} priority`);
     if (this.showMeta && this.labelCount > 0) {
       parts.push(`${this.labelCount} labels`);
     }
