@@ -70,8 +70,9 @@ export function buildUndatedTasks(tasks: Task[]): Task[] {
 }
 
 /**
- * Build the six-week-max grid for the month of `reference`, starting weeks on
- * Sunday to match the rest of the product (`DatePickerComponent`).
+ * Build a fixed six-week grid for the month of `reference`, starting weeks on
+ * Sunday to match the rest of the product (`DatePickerComponent`). Always 42
+ * cells, so moving between months never changes the calendar's height.
  */
 export function buildMonthCells(
   reference: DateTime,
@@ -80,8 +81,7 @@ export function buildMonthCells(
 ): CalendarCell[] {
   const monthStart = reference.startOf('month');
   const leadingDays = monthStart.weekday % 7;
-  const daysInMonth = monthStart.plus({ months: 1 }).startOf('month').minus({ days: 1 }).day;
-  const totalDays = Math.ceil((leadingDays + daysInMonth) / 7) * 7;
+  const totalDays = 7 * 6;
   const gridStart = monthStart.minus({ days: leadingDays });
   const todayKey = dayKey(today);
 
