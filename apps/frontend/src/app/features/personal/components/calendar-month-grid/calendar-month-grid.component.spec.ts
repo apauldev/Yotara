@@ -206,6 +206,96 @@ describe('CalendarMonthGridComponent', () => {
     );
   });
 
+  it('moves focus by day, week, and week edges from the keyboard', () => {
+    component.cells = Array.from({ length: 42 }, (_, index) =>
+      makeCell(DateTime.fromISO('2026-09-27').plus({ days: index }).toISODate() ?? ''),
+    );
+    component.selectedKey = '2026-10-08';
+    fixture.detectChanges();
+
+    // 2026-10-08 is a Thursday, so Home/End land on that week's Sunday/Saturday.
+    const press = (key: string) => {
+      const head = fixture.nativeElement.querySelector(
+        '[data-cal-day="2026-10-08"]',
+      ) as HTMLButtonElement;
+      head.focus();
+      head.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+      fixture.detectChanges();
+
+      return (document.activeElement as HTMLElement | null)?.getAttribute('data-cal-day');
+    };
+
+    expect(press('ArrowLeft')).toBe('2026-10-07');
+    expect(press('ArrowDown')).toBe('2026-10-15');
+    expect(press('ArrowUp')).toBe('2026-10-01');
+    expect(press('Home')).toBe('2026-10-04');
+    expect(press('End')).toBe('2026-10-10');
+    // Keys the grid does not handle leave focus where it is.
+    expect(press('x')).toBe('2026-10-08');
+  });
+
+  it('has no tab stop when the grid is empty', () => {
+    component.cells = [];
+    fixture.detectChanges();
+
+    expect((component as unknown as { tabbableKey: () => string }).tabbableKey()).toBe('');
+  });
+
+  it('falls back to the first cell when no day belongs to the viewed month', () => {
+    component.cells = [makeCell('2026-09-27', { inMonth: false })];
+    fixture.detectChanges();
+
+    expect((component as unknown as { tabbableKey: () => string }).tabbableKey()).toBe(
+      '2026-09-27',
+    );
+  });
+
+  it('ignores a drop without a task and the clicks a drop leaves behind', () => {
+    setCells([task({ id: 'a', dueDate: '2026-10-12' })]);
+    let rescheduled = 0;
+    let opened = 0;
+    let completed = 0;
+    component.rescheduleTask.subscribe(() => (rescheduled += 1));
+    component.openTask.subscribe(() => (opened += 1));
+    component.completeTask.subscribe(() => (completed += 1));
+
+    const internals = component as unknown as {
+      onDrop: (event: unknown, cell: CalendarCell) => void;
+      onSelect: (task: Task) => void;
+      onComplete: (task: Task) => void;
+      onCellClick: (cell: CalendarCell, event: MouseEvent) => void;
+    };
+
+    internals.onDrop({ item: {} } as CdkDragDrop<CalendarCell>, component.cells[0]);
+    expect(rescheduled).toBe(0);
+
+    internals.onDrop(
+      {
+        item: { data: task({ id: 'a', dueDate: '2026-10-11' }) },
+      } as unknown as CdkDragDrop<CalendarCell>,
+      component.cells[0],
+    );
+    expect(rescheduled).toBe(1);
+
+    // CDK leaves the dropped element behind, so the trailing click is ignored.
+    internals.onSelect(task({ id: 'a' }));
+    internals.onComplete(task({ id: 'a' }));
+    internals.onCellClick(component.cells[0], new MouseEvent('click'));
+
+    expect(opened).toBe(0);
+    expect(completed).toBe(0);
+  });
+
+  it('opens the task when its chip is selected', () => {
+    setCells([task({ id: 'a', dueDate: '2026-10-12' })]);
+    let opened: Task | undefined;
+    component.openTask.subscribe((value) => (opened = value));
+
+    (fixture.nativeElement.querySelector('.cal-chip-body') as HTMLButtonElement).click();
+
+    expect(opened?.id).toBe('a');
+  });
+
   it('creates a task from the cell add button', () => {
     setCells([]);
     let created: DateTime | undefined;

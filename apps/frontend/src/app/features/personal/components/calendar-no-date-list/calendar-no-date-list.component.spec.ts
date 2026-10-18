@@ -51,6 +51,21 @@ describe('CalendarNoDateListComponent', () => {
     fixture.detectChanges();
   });
 
+  it('shows project and label metadata when it is enabled', () => {
+    component.showMetadata = true;
+    component.projectNames = new Map([['p1', 'Deep Work']]);
+    component.labelNames = new Map([['l1', 'Call']]);
+    component.accentByProject = new Map([['p1', 'sage']]);
+    setTasks([
+      task({ id: 'u1', title: 'Water plants', projectId: 'p1', labels: ['l1'] }),
+      task({ id: 'u2', title: 'Call the bank' }),
+      task({ id: 'u3', title: 'Orphaned', projectId: 'gone', labels: ['missing'] }),
+    ]);
+
+    expect(fixture.nativeElement.textContent).toContain('Deep Work');
+    expect(fixture.nativeElement.textContent).toContain('Call');
+  });
+
   it('shows the empty state', () => {
     setTasks([]);
 

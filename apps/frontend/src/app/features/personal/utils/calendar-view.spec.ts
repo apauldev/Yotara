@@ -52,6 +52,15 @@ describe('calendar-view', () => {
       expect(map.size).toBe(0);
     });
 
+    it('orders two untimed tasks by priority', () => {
+      const map = buildTasksByDay([
+        task({ id: 'low', dueDate: '2026-10-12', priority: 'low' }),
+        task({ id: 'high', dueDate: '2026-10-12', priority: 'high' }),
+      ]);
+
+      expect(map.get('2026-10-12')?.map((t) => t.id)).toEqual(['high', 'low']);
+    });
+
     it('orders a day by time, then priority, then title', () => {
       const map = buildTasksByDay([
         task({ id: 'untimed-high', dueDate: '2026-10-12', priority: 'high' }),

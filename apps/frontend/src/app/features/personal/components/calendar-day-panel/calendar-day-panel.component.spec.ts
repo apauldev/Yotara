@@ -46,6 +46,20 @@ describe('CalendarDayPanelComponent', () => {
     fixture.detectChanges();
   });
 
+  it('orders the timed section by time', () => {
+    setTasks([
+      task({ id: 'late', title: 'Late standup', dueTime: '17:00' }),
+      task({ id: 'early', title: 'Early standup', dueTime: '09:00' }),
+    ]);
+
+    const rows = Array.from(
+      fixture.nativeElement.querySelectorAll('.cal-schedule-row') as NodeListOf<HTMLElement>,
+    ).map((row) => row.textContent?.trim() ?? '');
+
+    expect(rows[0]).toContain('Early standup');
+    expect(rows[1]).toContain('Late standup');
+  });
+
   it('shows the date, count and the empty state', () => {
     setTasks([]);
 
@@ -93,7 +107,11 @@ describe('CalendarDayPanelComponent', () => {
     component.labelNames = new Map([['l1', 'urgent']]);
     component.showMetadata = true;
 
-    setTasks([task({ id: 'a', title: 'One', priority: 'high', projectId: 'p1', labels: ['l1'] })]);
+    setTasks([
+      task({ id: 'a', title: 'One', priority: 'high', projectId: 'p1', labels: ['l1'] }),
+      task({ id: 'b', title: 'Plain' }),
+      task({ id: 'c', title: 'Orphaned', projectId: 'gone', labels: ['missing'] }),
+    ]);
 
     expect(fixture.nativeElement.textContent).toContain('High');
     expect(fixture.nativeElement.textContent).toContain('Work');

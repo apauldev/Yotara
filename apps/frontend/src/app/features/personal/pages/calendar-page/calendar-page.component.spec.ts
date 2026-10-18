@@ -4,7 +4,7 @@ import { By } from '@angular/platform-browser';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideMarkdown } from 'ngx-markdown';
 import { DateTime } from 'luxon';
-import { Task } from '@yotara/shared';
+import type { Label, Project, Task } from '@yotara/shared';
 import { CalendarPageComponent } from './calendar-page.component';
 import { PersonalTaskWorkspaceComponent } from '../../components/personal-task-workspace.component';
 import { LabelService } from '../../../../core/services/label.service';
@@ -28,10 +28,20 @@ function task(overrides: Partial<Task> = {}): Task {
   } as Task;
 }
 
+function project(id: string, name: string, color: string): Project {
+  return { id, name, color } as unknown as Project;
+}
+
+function label(id: string, name: string): Label {
+  return { id, name } as unknown as Label;
+}
+
 describe('CalendarPageComponent', () => {
   let fixture: ComponentFixture<CalendarPageComponent>;
   let rangeTasks: WritableSignal<Task[]>;
   let undatedTasks: WritableSignal<Task[]>;
+  let projects: WritableSignal<Project[]>;
+  let labels: WritableSignal<Label[]>;
   let showDonePref: WritableSignal<boolean>;
   let showMetadataPref: WritableSignal<boolean>;
   let taskService: {
@@ -89,6 +99,8 @@ describe('CalendarPageComponent', () => {
   beforeEach(async () => {
     rangeTasks = signal<Task[]>([]);
     undatedTasks = signal<Task[]>([]);
+    projects = signal<Project[]>([]);
+    labels = signal<Label[]>([]);
     showDonePref = signal(false);
     showMetadataPref = signal(false);
 
@@ -118,12 +130,12 @@ describe('CalendarPageComponent', () => {
         { provide: TaskService, useValue: taskService },
         {
           provide: ProjectService,
-          useValue: { projects: signal([]), refresh: jasmine.createSpy('refresh') },
+          useValue: { projects, refresh: jasmine.createSpy('refresh') },
         },
         { provide: StatusService, useValue: statusService },
         {
           provide: LabelService,
-          useValue: { labels: signal([]), refresh: jasmine.createSpy('refresh') },
+          useValue: { labels, refresh: jasmine.createSpy('refresh') },
         },
         {
           provide: PreferencesStore,
@@ -478,10 +490,39 @@ describe('CalendarPageComponent', () => {
     await (
       fixture.componentInstance as unknown as {
         completeTask: (task: Task) => Promise<void>;
+        completionOverrides: WritableSignal<ReadonlyMap<string, boolean>>;
       }
     ).completeTask(done);
 
     expect(taskService.updateTask).toHaveBeenCalledWith('done-1', { completed: false });
+
+    // Once the refetch reports it open again, the optimistic override is dropped.
+    const reopened = (
+      fixture.componentInstance as unknown as {
+        completionOverrides: WritableSignal<ReadonlyMap<string, boolean>>;
+      }
+    ).completionOverrides;
+    rangeTasks.set([{ ...done, completed: false }]);
+    fixture.detectChanges();
+
+    expect(reopened().has('done-1')).toBeFalse();
+  });
+
+  it('reports a failed reopen with the reopen message', async () => {
+    const component = fixture.componentInstance as unknown as {
+      completeTask: (task: Task) => Promise<void>;
+    };
+    const done = task({ id: 'done-1', title: 'Ship it', dueDate: todayISO, completed: true });
+    rangeTasks.set([done]);
+    showDonePref.set(true);
+    fixture.detectChanges();
+    taskService.updateTask.and.returnValue(Promise.reject(new Error('boom')));
+
+    await component.completeTask(done);
+
+    expect(statusService.error).toHaveBeenCalledWith(
+      'Could not reopen the task. Please try again.',
+    );
   });
 
   it('moves a task optimistically and reports a failed move', async () => {
@@ -499,5 +540,187 @@ describe('CalendarPageComponent', () => {
     taskService.updateTask.and.returnValue(Promise.reject(new Error('boom')));
     await component.moveTask({ task: rangeTasks()[0], date: '2026-12-02' });
     expect(statusService.error).toHaveBeenCalledWith('Could not move the task. Please try again.');
+  });
+
+  it('maps project accents, project names, and label names', () => {
+    projects.set([project('p1', 'Deep Work', 'sage')]);
+    labels.set([label('l1', 'Call')]);
+    showMetadataPref.set(true);
+    rangeTasks.set([
+      task({ id: 'due-1', title: 'Ship it', dueDate: todayISO, projectId: 'p1', labels: ['l1'] }),
+    ]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Deep Work');
+    expect(fixture.nativeElement.textContent).toContain('Call');
+  });
+
+  it('puts a rescheduled task on its new day and drops the override once the server agrees', async () => {
+    const component = fixture.componentInstance as unknown as {
+      moveTask: (request: { task: Task; date: string }) => Promise<void>;
+      dueDateOverrides: WritableSignal<ReadonlyMap<string, string>>;
+    };
+    const original = task({ id: 'due-1', title: 'Ship it', dueDate: todayISO });
+    rangeTasks.set([original, task({ id: 'other-1', title: 'Stays put', dueDate: todayISO })]);
+    fixture.detectChanges();
+
+    const target = today.day > 15 ? today.minus({ days: 2 }) : today.plus({ days: 2 });
+    const targetISO = target.toISODate() as string;
+
+    taskService.updateTask.and.resolveTo({ id: 'due-1' });
+    await component.moveTask({ task: original, date: targetISO });
+    fixture.detectChanges();
+
+    // Optimistically on the new day, before the refetch lands.
+    expect(component.dueDateOverrides().get('due-1')).toBe(targetISO);
+    expect(dayCell(target.day).textContent).toContain('Ship it');
+
+    // Once the fetched window reports the new date, the override is redundant.
+    rangeTasks.set([task({ id: 'due-1', title: 'Ship it', dueDate: targetISO })]);
+    fixture.detectChanges();
+    expect(component.dueDateOverrides().has('due-1')).toBeFalse();
+  });
+
+  it('moves one week at a time from the mobile header', () => {
+    const component = fixture.componentInstance as unknown as {
+      isMobile: WritableSignal<boolean>;
+    };
+    component.isMobile.set(true);
+    fixture.detectChanges();
+
+    const selectedDay = () =>
+      element<HTMLElement>('.cal-week-day-selected').getAttribute('data-cal-day');
+
+    expect(selectedDay()).toBe(todayISO);
+
+    element<HTMLButtonElement>('[aria-label="Next week"]').click();
+    fixture.detectChanges();
+    expect(selectedDay()).toBe(today.plus({ days: 7 }).toISODate());
+
+    element<HTMLButtonElement>('[aria-label="Previous week"]').click();
+    fixture.detectChanges();
+    expect(selectedDay()).toBe(todayISO);
+  });
+
+  it('brings a clicked day from another month into view', () => {
+    const component = fixture.componentInstance as unknown as {
+      selectDate: (date: DateTime) => void;
+    };
+    const nextMonth = today.plus({ months: 1 });
+
+    component.selectDate(nextMonth);
+    fixture.detectChanges();
+
+    expect(element('.cal-month').textContent?.trim()).toContain(nextMonth.toFormat('LLLL yyyy'));
+  });
+
+  it('steps to the previous month from the desktop header', () => {
+    const previous = today.startOf('month').minus({ months: 1 });
+
+    element<HTMLButtonElement>('[aria-label="Previous month"]').click();
+    fixture.detectChanges();
+
+    expect(element('.cal-month').textContent?.trim()).toContain(previous.toFormat('LLLL yyyy'));
+  });
+
+  it('switches to the mobile layout when the viewport narrows', () => {
+    const listeners: Array<(event: MediaQueryListEvent) => void> = [];
+    spyOn(globalThis, 'matchMedia').and.callFake(
+      () =>
+        ({
+          matches: false,
+          addEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) =>
+            listeners.push(listener),
+          removeEventListener: () => {},
+        }) as unknown as MediaQueryList,
+    );
+
+    const fresh = TestBed.createComponent(CalendarPageComponent);
+    fresh.detectChanges();
+    expect(fresh.nativeElement.querySelector('app-calendar-week-strip')).toBeFalsy();
+
+    listeners.forEach((listener) => listener({ matches: true } as MediaQueryListEvent));
+    fresh.detectChanges();
+
+    expect(fresh.nativeElement.querySelector('app-calendar-week-strip')).toBeTruthy();
+  });
+
+  it('opens the task editor when a chip is selected', () => {
+    rangeTasks.set([task({ id: 'due-1', title: 'Ship it', dueDate: todayISO })]);
+    fixture.detectChanges();
+    spyOn(workspace, 'editTask');
+
+    element<HTMLElement>('.cal-chip-body').click();
+
+    expect(workspace.editTask).toHaveBeenCalled();
+  });
+
+  it('creates a task on the day of the hover add button', () => {
+    spyOn(workspace, 'openCreateTaskModal');
+
+    (dayCell(today.day).querySelector('.cal-cell-add') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(workspace.openCreateTaskModal).toHaveBeenCalledWith(
+      undefined,
+      jasmine.objectContaining({ value: todayISO, source: 'manual' }),
+    );
+  });
+
+  it('ignores a second completion while the first is still saving', async () => {
+    const component = fixture.componentInstance as unknown as {
+      completeTask: (task: Task) => Promise<void>;
+    };
+    const pending = task({ id: 'due-1', title: 'Ship it', dueDate: todayISO });
+    taskService.updateTask.and.returnValue(new Promise(() => {}));
+
+    void component.completeTask(pending);
+    await component.completeTask(pending);
+
+    expect(taskService.updateTask).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a newer completion decision when an older save fails', async () => {
+    const component = fixture.componentInstance as unknown as {
+      completeTask: (task: Task) => Promise<void>;
+      completionOverrides: WritableSignal<ReadonlyMap<string, boolean>>;
+    };
+    let fail: (error: Error) => void = () => {};
+    taskService.updateTask.and.returnValue(
+      new Promise((_, reject) => {
+        fail = reject;
+      }),
+    );
+
+    const saving = component.completeTask(
+      task({ id: 'due-1', title: 'Ship it', dueDate: todayISO }),
+    );
+    // A newer decision supersedes the in-flight save.
+    component.completionOverrides.set(new Map([['due-1', false]]));
+    fail(new Error('offline'));
+    await saving;
+
+    expect(component.completionOverrides().get('due-1')).toBe(false);
+  });
+
+  it('ignores a schedule request without a date', async () => {
+    const component = fixture.componentInstance as unknown as {
+      scheduleTask: (request: { task: Task; date: string }) => Promise<void>;
+    };
+
+    await component.scheduleTask({ task: task({ id: 'undated-1' }), date: '' });
+
+    expect(taskService.updateTask).not.toHaveBeenCalled();
+  });
+
+  it('ignores a drop onto the day the task already sits on', async () => {
+    const component = fixture.componentInstance as unknown as {
+      moveTask: (request: { task: Task; date: string }) => Promise<void>;
+    };
+    const existing = task({ id: 'due-1', title: 'Ship it', dueDate: todayISO });
+
+    await component.moveTask({ task: existing, date: todayISO });
+
+    expect(taskService.updateTask).not.toHaveBeenCalled();
   });
 });
