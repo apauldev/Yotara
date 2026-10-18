@@ -9,7 +9,6 @@ import {
 } from '@angular/core';
 import { DateTime } from 'luxon';
 import type { Task } from '@yotara/shared';
-import { NotificationService } from '../../../../core/services/notification.service';
 import { PreferencesStore } from '../../../../core/services/preferences-store.service';
 import { ProjectService } from '../../../../core/services/project.service';
 import { StatusService } from '../../../../core/services/status.service';
@@ -60,7 +59,6 @@ export class CalendarPageComponent {
   private readonly projectService = inject(ProjectService);
   private readonly statusService = inject(StatusService);
   private readonly preferences = inject(PreferencesStore);
-  private readonly notificationService = inject(NotificationService);
   private readonly workspace = viewChild(PersonalTaskWorkspaceComponent);
 
   private readonly today = startOfToday();
@@ -167,12 +165,7 @@ export class CalendarPageComponent {
 
     try {
       await this.taskService.updateTask(task.id, { completed: true });
-      notifyTaskCompleted(
-        this.statusService,
-        this.preferences,
-        this.notificationService,
-        task.title,
-      );
+      notifyTaskCompleted(this.statusService, this.preferences);
     } catch {
       this.completionIds.update((ids) => {
         const next = new Set(ids);

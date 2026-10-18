@@ -17,7 +17,6 @@ import { LabelService } from '../../../core/services/label.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { StatusService } from '../../../core/services/status.service';
 import { TaskService } from '../../../core/services/task.service';
-import { NotificationService } from '../../../core/services/notification.service';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 import { formatTimeLabel, parseCalendarDate } from '../../../shared/utils/timestamps';
 import { notifyTaskCompleted } from '../utils/task-completion-notice';
@@ -618,7 +617,6 @@ export class PersonalTaskCardComponent {
   private readonly labelService = inject(LabelService);
   private readonly statusService = inject(StatusService);
   private readonly preferences = inject(PreferencesStore);
-  private readonly notificationService = inject(NotificationService);
 
   protected readonly completeConfirmOpen = signal(false);
   protected readonly completing = signal(false);
@@ -768,12 +766,7 @@ export class PersonalTaskCardComponent {
       this.completeConfirmOpen.set(false);
 
       if (!wasCompleted) {
-        notifyTaskCompleted(
-          this.statusService,
-          this.preferences,
-          this.notificationService,
-          this.task.title,
-        );
+        notifyTaskCompleted(this.statusService, this.preferences);
       }
 
       if (this.dontShowAgain) {
