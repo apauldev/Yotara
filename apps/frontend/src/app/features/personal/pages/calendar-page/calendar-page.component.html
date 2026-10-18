@@ -30,9 +30,11 @@
           [todayKey]="todayKey"
           [showMetadata]="showMetadata()"
           [showCheck]="!isMobile()"
+          [allowDrag]="!isMobile()"
           (selectDate)="selectDate($event)"
           (openTask)="openTask($event)"
           (completeTask)="completeTask($event)"
+          (rescheduleTask)="moveTask($event)"
         />
 
         @if (!monthHasTasks()) {

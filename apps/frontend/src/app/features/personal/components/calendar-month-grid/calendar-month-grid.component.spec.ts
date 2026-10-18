@@ -1,7 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import type { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { DateTime } from 'luxon';
 import type { Task } from '@yotara/shared';
+import { CalendarCell, CalendarRescheduleRequest } from '../../utils/calendar-view';
 import { CalendarMonthGridComponent } from './calendar-month-grid.component';
 
 function task(overrides: Partial<Task> = {}): Task {
@@ -87,5 +89,59 @@ describe('CalendarMonthGridComponent', () => {
     (fixture.nativeElement.querySelector('.cal-cell-head') as HTMLButtonElement).click();
 
     expect(selected?.toISODate()).toBe('2026-10-12');
+  });
+
+  it('only allows dragging non-recurring, incomplete tasks when enabled', () => {
+    const canDrag = (value: Task): boolean =>
+      (component as unknown as { canDrag: (t: Task) => boolean }).canDrag(value);
+
+    expect(canDrag(task({ id: 'a' }))).toBe(true);
+    expect(canDrag(task({ id: 'b', recurrenceRule: { frequency: 'weekly', interval: 1 } }))).toBe(
+      false,
+    );
+    expect(canDrag(task({ id: 'c', completed: true }))).toBe(false);
+
+    component.allowDrag = false;
+    expect(canDrag(task({ id: 'd' }))).toBe(false);
+  });
+
+  it('emits a reschedule when a task is dropped on another day', () => {
+    setCells([task({ id: 'a', dueDate: '2026-10-12' })]);
+    let request: CalendarRescheduleRequest | undefined;
+    component.rescheduleTask.subscribe((value) => (request = value));
+
+    const event = {
+      item: { data: component.cells[0].tasks[0] },
+    } as unknown as CdkDragDrop<CalendarCell>;
+    const target: CalendarCell = {
+      key: '2026-10-20',
+      date: DateTime.fromISO('2026-10-20'),
+      inMonth: true,
+      isToday: false,
+      tasks: [],
+    };
+    (component as unknown as { onDrop: (e: unknown, c: CalendarCell) => void }).onDrop(
+      event,
+      target,
+    );
+
+    expect(request?.task.id).toBe('a');
+    expect(request?.date).toBe('2026-10-20');
+  });
+
+  it('does nothing when a task is dropped on its own day', () => {
+    setCells([task({ id: 'a', dueDate: '2026-10-12' })]);
+    let count = 0;
+    component.rescheduleTask.subscribe(() => (count += 1));
+
+    const event = {
+      item: { data: component.cells[0].tasks[0] },
+    } as unknown as CdkDragDrop<CalendarCell>;
+    (component as unknown as { onDrop: (e: unknown, c: CalendarCell) => void }).onDrop(
+      event,
+      component.cells[0],
+    );
+
+    expect(count).toBe(0);
   });
 });

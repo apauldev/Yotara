@@ -1,7 +1,8 @@
 import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
+import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import type { Task } from '@yotara/shared';
 import { DateTime } from 'luxon';
-import { CalendarCell } from '../../utils/calendar-view';
+import { CalendarCell, CalendarRescheduleRequest } from '../../utils/calendar-view';
 import { CalendarTaskChipComponent } from '../calendar-task-chip/calendar-task-chip.component';
 import { fadeCollapse } from '../../../../shared/animations/fade-collapse.animation';
 
@@ -10,7 +11,7 @@ const MAX_VISIBLE_TASKS = 3;
 @Component({
   selector: 'app-calendar-month-grid',
   standalone: true,
-  imports: [CalendarTaskChipComponent],
+  imports: [CalendarTaskChipComponent, DragDropModule],
   changeDetection: ChangeDetectionStrategy.Eager,
   animations: [fadeCollapse],
   template: `
@@ -21,10 +22,13 @@ const MAX_VISIBLE_TASKS = 3;
         }
       </div>
 
-      <div class="cal-days">
+      <div class="cal-days" cdkDropListGroup>
         @for (cell of cells; track cell.key) {
           <div
             class="cal-cell"
+            cdkDropList
+            [cdkDropListSortingDisabled]="true"
+            (cdkDropListDropped)="onDrop($event, cell)"
             [class.cal-cell-outside]="!cell.inMonth"
             [class.cal-cell-today]="cell.isToday"
             [class.cal-cell-selected]="cell.key === selectedKey"
@@ -44,6 +48,9 @@ const MAX_VISIBLE_TASKS = 3;
             <div class="cal-cell-tasks">
               @for (task of visibleTasks(cell); track task.id) {
                 <app-calendar-task-chip
+                  cdkDrag
+                  [cdkDragData]="task"
+                  [cdkDragDisabled]="!canDrag(task)"
                   @fadeCollapse
                   [task]="task"
                   [overdue]="isOverdue(task)"
@@ -51,8 +58,8 @@ const MAX_VISIBLE_TASKS = 3;
                   [showMeta]="showMetadata"
                   [labelCount]="task.labels?.length ?? 0"
                   [showCheck]="showCheck"
-                  (select)="openTask.emit($event)"
-                  (complete)="completeTask.emit($event)"
+                  (select)="onSelect($event)"
+                  (complete)="onComplete($event)"
                 />
               }
               @if (cell.tasks.length > maxVisible) {
@@ -170,6 +177,23 @@ const MAX_VISIBLE_TASKS = 3;
           min-height: 4.5rem;
         }
       }
+
+      /*
+       * The drag preview is a transient clone that CDK destroys on drop, so
+       * these styles are the "picked up" indicator and cannot persist once the
+       * task lands in its new day.
+       */
+      ::ng-deep .cdk-drag-preview {
+        border-radius: 0.55rem;
+        background: var(--surface-container-lowest);
+        box-shadow:
+          0 16px 30px var(--surface-dim-strong),
+          0 0 0 1px var(--primary-solid);
+      }
+
+      ::ng-deep .cdk-drag-placeholder {
+        opacity: 0.35;
+      }
     `,
   ],
 })
@@ -180,15 +204,50 @@ export class CalendarMonthGridComponent {
   @Input() todayKey = '';
   @Input() showMetadata = false;
   @Input() showCheck = true;
+  @Input() allowDrag = true;
   @Output() readonly selectDate = new EventEmitter<DateTime>();
   @Output() readonly openTask = new EventEmitter<Task>();
   @Output() readonly completeTask = new EventEmitter<Task>();
+  @Output() readonly rescheduleTask = new EventEmitter<CalendarRescheduleRequest>();
 
   protected readonly weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
   protected readonly maxVisible = MAX_VISIBLE_TASKS;
 
+  private suppressClickUntil = 0;
+
   protected visibleTasks(cell: CalendarCell): Task[] {
     return cell.tasks.slice(0, this.maxVisible);
+  }
+
+  /** Recurring tasks and completed tasks are not draggable; neither is touch. */
+  protected canDrag(task: Task): boolean {
+    return this.allowDrag && !task.recurrenceRule && !task.completed;
+  }
+
+  protected onDrop(event: CdkDragDrop<CalendarCell>, cell: CalendarCell): void {
+    // CDK leaves the DOM element where it was dropped; suppress the trailing
+    // click that would otherwise open the task.
+    this.suppressClickUntil = Date.now() + 250;
+
+    const task = event.item.data as Task | undefined;
+    if (!task) return;
+    if (task.dueDate?.slice(0, 10) === cell.key) return;
+
+    this.rescheduleTask.emit({ task, date: cell.key });
+  }
+
+  protected onSelect(task: Task): void {
+    if (this.isClickSuppressed()) return;
+    this.openTask.emit(task);
+  }
+
+  protected onComplete(task: Task): void {
+    if (this.isClickSuppressed()) return;
+    this.completeTask.emit(task);
+  }
+
+  private isClickSuppressed(): boolean {
+    return Date.now() < this.suppressClickUntil;
   }
 
   /**
@@ -199,6 +258,8 @@ export class CalendarMonthGridComponent {
    * its padding) are left to the chip's own controls.
    */
   protected onCellClick(cell: CalendarCell, event: MouseEvent): void {
+    if (this.isClickSuppressed()) return;
+
     const target = event.target;
     if (
       target instanceof HTMLElement &&

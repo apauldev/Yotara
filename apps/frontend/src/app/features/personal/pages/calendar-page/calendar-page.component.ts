@@ -34,6 +34,7 @@ import {
   buildTasksByDay,
   buildUndatedTasks,
   dayKey,
+  type CalendarRescheduleRequest,
 } from '../../utils/calendar-view';
 import type { DueDateDraft } from '../../utils/due-date-draft';
 import { notifyTaskCompleted } from '../../utils/task-completion-notice';
@@ -88,6 +89,8 @@ export class CalendarPageComponent {
   protected readonly completionIds = signal<ReadonlySet<string>>(new Set<string>());
   /** Task ids that read as scheduled while the save is in flight. */
   private readonly schedulingIds = signal<ReadonlySet<string>>(new Set<string>());
+  /** Optimistic due-date overrides while a reschedule save is in flight. */
+  private readonly dueDateOverrides = signal<ReadonlyMap<string, string>>(new Map());
   /** Whether completed tasks are shown on the calendar (persisted preference). */
   protected readonly showDone = this.preferences.showDoneCalendar;
   /** Whether compact metadata is shown on calendar chips (persisted preference). */
@@ -123,12 +126,23 @@ export class CalendarPageComponent {
     return names;
   });
 
-  private readonly tasksByDay = computed(() =>
-    buildTasksByDay([
+  private readonly calendarTasks = computed(() => {
+    const tasks = [
       ...this.taskService.allActiveTasks(),
       ...(this.showDone() ? this.taskService.completedTasks() : []),
-    ]),
-  );
+    ];
+    const overrides = this.dueDateOverrides();
+    if (overrides.size === 0) {
+      return tasks;
+    }
+
+    return tasks.map((task) => {
+      const nextDate = overrides.get(task.id);
+      return nextDate ? { ...task, dueDate: nextDate } : task;
+    });
+  });
+
+  private readonly tasksByDay = computed(() => buildTasksByDay(this.calendarTasks()));
   protected readonly undatedTasks = computed(() =>
     buildUndatedTasks(this.taskService.undatedTasks()).filter(
       (task) => !this.schedulingIds().has(task.id),
@@ -157,6 +171,20 @@ export class CalendarPageComponent {
 
       const undatedIds = new Set(this.taskService.undatedTasks().map((task) => task.id));
       this.schedulingIds.update((ids) => pruneIds(ids, undatedIds));
+
+      const activeById = new Map(this.taskService.allActiveTasks().map((task) => [task.id, task]));
+      this.dueDateOverrides.update((overrides) => {
+        let changed = false;
+        const next = new Map(overrides);
+        for (const [id, date] of overrides) {
+          const task = activeById.get(id);
+          if (!task || task.dueDate?.slice(0, 10) === date) {
+            next.delete(id);
+            changed = true;
+          }
+        }
+        return changed ? next : overrides;
+      });
     });
 
     const query = this.mobileQuery;
@@ -250,6 +278,25 @@ export class CalendarPageComponent {
         return next;
       });
       this.statusService.error('Could not schedule the task. Please try again.');
+    }
+  }
+
+  protected async moveTask({ task, date }: CalendarRescheduleRequest): Promise<void> {
+    if (!date || task.dueDate?.slice(0, 10) === date) {
+      return;
+    }
+
+    this.dueDateOverrides.update((overrides) => new Map(overrides).set(task.id, date));
+
+    try {
+      await this.taskService.updateTask(task.id, { dueDate: date });
+    } catch {
+      this.dueDateOverrides.update((overrides) => {
+        const next = new Map(overrides);
+        next.delete(task.id);
+        return next;
+      });
+      this.statusService.error('Could not move the task. Please try again.');
     }
   }
 
