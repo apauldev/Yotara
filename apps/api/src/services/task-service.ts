@@ -138,6 +138,19 @@ export interface TaskFilters {
   completedSince?: string;
 }
 
+const CALENDAR_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Calendar bounds are interpolated into the date range predicate, so they are
+ * checked here rather than trusted from the route schema: a caller reaching
+ * this service directly must not be able to pass an arbitrary string.
+ */
+function assertCalendarDate(value: string, field: string): void {
+  if (!CALENDAR_DATE_PATTERN.test(value) || !DateTime.fromISO(value, { zone: 'utc' }).isValid) {
+    throw new BadRequestError(`${field} must be a calendar date (YYYY-MM-DD)`);
+  }
+}
+
 export async function listTasksForOwner(
   ownerId: string,
   page: number,
@@ -158,6 +171,12 @@ export async function listTasksForOwner(
       : and(baseWhere, isNull(tasks.parentId));
 
   if (filters) {
+    if (filters.dueFrom) {
+      assertCalendarDate(filters.dueFrom, 'dueFrom');
+    }
+    if (filters.dueTo) {
+      assertCalendarDate(filters.dueTo, 'dueTo');
+    }
     if (filters.status) {
       whereClause = and(whereClause, eq(tasks.status, filters.status));
     }

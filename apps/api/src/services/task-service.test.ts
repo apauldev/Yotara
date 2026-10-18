@@ -239,6 +239,31 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       assert.equal(inverted.meta.total, 0);
     });
 
+    await t.test('List filtering rejects malformed calendar bounds', async () => {
+      const malformed = [
+        'not-a-date',
+        '2026-13-45',
+        '2026-02-30',
+        '2026-5-1',
+        '2026-05-10T00:00:00Z',
+      ];
+
+      for (const value of malformed) {
+        await assert.rejects(
+          () =>
+            ctx.taskService.listTasksForOwner(ownerId, 1, 200, true, undefined, { dueFrom: value }),
+          (error: Error & { statusCode?: number }) =>
+            error.name === 'BadRequestError' && error.statusCode === 400,
+        );
+      }
+
+      await assert.rejects(
+        () =>
+          ctx.taskService.listTasksForOwner(ownerId, 1, 200, true, undefined, { dueTo: 'nope' }),
+        (error: Error) => error.name === 'BadRequestError',
+      );
+    });
+
     await t.test('Recurrence materialization', async () => {
       // 1. Weekly recurrence - anchor from original due date
       const weeklyDueDate = '2026-05-01T00:00:00Z';
