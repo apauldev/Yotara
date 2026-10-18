@@ -34,6 +34,17 @@ describe('CalendarMonthGridComponent', () => {
     return fixture.nativeElement.querySelector('.cal-cell') as HTMLElement;
   }
 
+  function makeCell(key: string, overrides: Partial<CalendarCell> = {}): CalendarCell {
+    return {
+      key,
+      date: DateTime.fromISO(key),
+      inMonth: true,
+      isToday: false,
+      tasks: [],
+      ...overrides,
+    };
+  }
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [CalendarMonthGridComponent],
@@ -143,5 +154,43 @@ describe('CalendarMonthGridComponent', () => {
     );
 
     expect(count).toBe(0);
+  });
+
+  it('labels a day with its full date and task count', () => {
+    component.cells = [
+      makeCell('2026-10-01'),
+      makeCell('2026-10-02', { isToday: true, tasks: [task({ id: 'a' })] }),
+    ];
+    fixture.detectChanges();
+
+    const label = fixture.nativeElement
+      .querySelector('[data-cal-day="2026-10-02"]')
+      ?.getAttribute('aria-label');
+
+    expect(label).toContain('Friday, October 2, 2026');
+    expect(label).toContain('1 task');
+    expect(label).toContain('today');
+  });
+
+  it('keeps one tab stop and moves focus with the arrow keys', () => {
+    component.cells = [makeCell('2026-10-01'), makeCell('2026-10-02')];
+    component.selectedKey = '2026-10-01';
+    fixture.detectChanges();
+
+    const heads = Array.from(
+      fixture.nativeElement.querySelectorAll('.cal-cell-head') as NodeListOf<HTMLButtonElement>,
+    );
+    expect(heads.filter((button) => button.getAttribute('tabindex') === '0')).toHaveSize(1);
+
+    const first = fixture.nativeElement.querySelector(
+      '[data-cal-day="2026-10-01"]',
+    ) as HTMLButtonElement;
+    first.focus();
+    first.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    fixture.detectChanges();
+
+    expect(document.activeElement).toBe(
+      fixture.nativeElement.querySelector('[data-cal-day="2026-10-02"]'),
+    );
   });
 });

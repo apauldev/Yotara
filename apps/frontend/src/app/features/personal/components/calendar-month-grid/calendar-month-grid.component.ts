@@ -1,4 +1,13 @@
-import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  Output,
+  ChangeDetectionStrategy,
+  inject,
+  signal,
+} from '@angular/core';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import type { Task } from '@yotara/shared';
 import { DateTime } from 'luxon';
@@ -15,7 +24,7 @@ const MAX_VISIBLE_TASKS = 3;
   changeDetection: ChangeDetectionStrategy.Eager,
   animations: [fadeCollapse],
   template: `
-    <div class="cal-grid" role="grid">
+    <div class="cal-grid" role="group" aria-label="Calendar month">
       <div class="cal-weekdays" aria-hidden="true">
         @for (weekday of weekdays; track weekday) {
           <span>{{ weekday }}</span>
@@ -32,14 +41,18 @@ const MAX_VISIBLE_TASKS = 3;
             [class.cal-cell-outside]="!cell.inMonth"
             [class.cal-cell-today]="cell.isToday"
             [class.cal-cell-selected]="cell.key === selectedKey"
-            role="gridcell"
             (click)="onCellClick(cell, $event)"
           >
             <button
               type="button"
               class="cal-cell-head"
+              [attr.data-cal-day]="cell.key"
+              [attr.tabindex]="cell.key === tabbableKey() ? 0 : -1"
               [attr.aria-current]="cell.isToday ? 'date' : null"
               [attr.aria-pressed]="cell.key === selectedKey"
+              [attr.aria-label]="dayAriaLabel(cell)"
+              (focus)="onDayFocus(cell)"
+              (keydown)="onDayKeydown($event, cell)"
               (click)="selectDate.emit(cell.date)"
             >
               <span class="cal-day-number">{{ cell.date.day }}</span>
@@ -213,10 +226,72 @@ export class CalendarMonthGridComponent {
   protected readonly weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
   protected readonly maxVisible = MAX_VISIBLE_TASKS;
 
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly focusedKey = signal('');
   private suppressClickUntil = 0;
 
   protected visibleTasks(cell: CalendarCell): Task[] {
     return cell.tasks.slice(0, this.maxVisible);
+  }
+
+  /** The single day that participates in tab order: focused, else selected, else the month's first day. */
+  protected tabbableKey(): string {
+    const keys = new Set(this.cells.map((cell) => cell.key));
+    const focused = this.focusedKey();
+    if (focused && keys.has(focused)) {
+      return focused;
+    }
+    if (keys.has(this.selectedKey)) {
+      return this.selectedKey;
+    }
+    return (this.cells.find((cell) => cell.inMonth) ?? this.cells[0])?.key ?? '';
+  }
+
+  protected dayAriaLabel(cell: CalendarCell): string {
+    const count = cell.tasks.length;
+    const tasks = `${count} ${count === 1 ? 'task' : 'tasks'}`;
+    return `${cell.date.toFormat('cccc, LLLL d, yyyy')}, ${tasks}${cell.isToday ? ', today' : ''}`;
+  }
+
+  protected onDayFocus(cell: CalendarCell): void {
+    this.focusedKey.set(cell.key);
+  }
+
+  /** Roving focus across the grid: arrows move by day/week, Home/End by week. */
+  protected onDayKeydown(event: KeyboardEvent, cell: CalendarCell): void {
+    let delta: number;
+    switch (event.key) {
+      case 'ArrowRight':
+        delta = 1;
+        break;
+      case 'ArrowLeft':
+        delta = -1;
+        break;
+      case 'ArrowDown':
+        delta = 7;
+        break;
+      case 'ArrowUp':
+        delta = -7;
+        break;
+      case 'Home':
+        delta = -(cell.date.weekday % 7);
+        break;
+      case 'End':
+        delta = 6 - (cell.date.weekday % 7);
+        break;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    this.focusDay(cell.date.plus({ days: delta }).toISODate() ?? '');
+  }
+
+  private focusDay(key: string): void {
+    const button = this.host.nativeElement.querySelector<HTMLButtonElement>(
+      `[data-cal-day="${key}"]`,
+    );
+    button?.focus();
   }
 
   /** Recurring tasks and completed tasks are not draggable; neither is touch. */

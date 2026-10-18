@@ -15,7 +15,7 @@ import { formatTimeLabel } from '../../../../shared/utils/timestamps';
   animations: [fadeCollapse],
   template: `
     <div class="cal-panel">
-      <header class="cal-panel-head">
+      <header class="cal-panel-head" aria-live="polite">
         <h2 class="cal-panel-title">{{ dateLabel }}</h2>
         <span class="cal-panel-count">{{ countLabel }}</span>
       </header>
