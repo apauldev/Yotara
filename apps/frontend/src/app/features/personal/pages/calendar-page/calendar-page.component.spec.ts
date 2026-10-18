@@ -8,7 +8,6 @@ import { Task } from '@yotara/shared';
 import { CalendarPageComponent } from './calendar-page.component';
 import { PersonalTaskWorkspaceComponent } from '../../components/personal-task-workspace.component';
 import { LabelService } from '../../../../core/services/label.service';
-import { NotificationService } from '../../../../core/services/notification.service';
 import { PreferencesStore } from '../../../../core/services/preferences-store.service';
 import { ProjectService } from '../../../../core/services/project.service';
 import { StatusService } from '../../../../core/services/status.service';
@@ -42,7 +41,6 @@ describe('CalendarPageComponent', () => {
     createTask: jasmine.Spy;
   };
   let statusService: jasmine.SpyObj<StatusService>;
-  let notificationService: jasmine.SpyObj<NotificationService>;
   let workspace: PersonalTaskWorkspaceComponent;
 
   const today = DateTime.now();
@@ -104,10 +102,6 @@ describe('CalendarPageComponent', () => {
       'remove',
     ]);
 
-    notificationService = jasmine.createSpyObj<NotificationService>('NotificationService', [
-      'showBrowserNotification',
-    ]);
-
     await TestBed.configureTestingModule({
       imports: [CalendarPageComponent],
       providers: [
@@ -130,7 +124,6 @@ describe('CalendarPageComponent', () => {
             setActionNotifications: jasmine.createSpy('setActionNotifications'),
           },
         },
-        { provide: NotificationService, useValue: notificationService },
       ],
     }).compileComponents();
 
@@ -196,10 +189,9 @@ describe('CalendarPageComponent', () => {
       // The chip reads as completed immediately, before the save resolves.
       expect(fixture.nativeElement.querySelector('.cal-chip-check-done')).toBeTruthy();
 
-      // ...and the completion is announced, exactly as the card and modal do it.
+      // The completion raises the in-app toast (and no OS notification).
       await fixture.whenStable();
       expect(statusService.success).toHaveBeenCalledWith('Task completed');
-      expect(notificationService.showBrowserNotification).toHaveBeenCalled();
     });
 
     it('rolls back the optimistic completion and surfaces an error when the save fails', async () => {

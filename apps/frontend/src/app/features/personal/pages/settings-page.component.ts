@@ -160,7 +160,7 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
                 } @else if (notificationService.permission() === 'denied') {
                   Blocked — enable in browser settings
                 } @else {
-                  Show browser notifications when tasks are due or completed.
+                  Show browser notifications when tasks are due.
                 }
               </span>
             </div>

@@ -13,7 +13,6 @@ import { ProjectService } from '../../../core/services/project.service';
 import { StatusService } from '../../../core/services/status.service';
 import { TaskService } from '../../../core/services/task.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
-import { NotificationService } from '../../../core/services/notification.service';
 import { PersonalTaskModalComponent } from './personal-task-modal.component';
 import type { DueDateDraft } from '../utils/due-date-draft';
 import { taskCreationNotification } from '../utils/task-creation-notification';
@@ -57,7 +56,6 @@ export class PersonalTaskWorkspaceComponent {
   protected readonly taskService = inject(TaskService);
   private readonly statusService = inject(StatusService);
   private readonly preferences = inject(PreferencesStore);
-  private readonly notificationService = inject(NotificationService);
   protected readonly modalOpen = signal(false);
   protected readonly selectedTask = signal<Task | null>(null);
   protected readonly draftProjectId = signal<string | null>(null);
@@ -125,12 +123,7 @@ export class PersonalTaskWorkspaceComponent {
       }
 
       if (event.mode === 'update' && event.payload.completed === true && !wasCompleted) {
-        notifyTaskCompleted(
-          this.statusService,
-          this.preferences,
-          this.notificationService,
-          this.selectedTask()?.title ?? '',
-        );
+        notifyTaskCompleted(this.statusService, this.preferences);
       }
 
       this.projectService.refresh();
