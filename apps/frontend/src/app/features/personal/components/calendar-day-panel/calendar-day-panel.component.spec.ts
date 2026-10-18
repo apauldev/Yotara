@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import type { Task } from '@yotara/shared';
 import { CalendarDayPanelComponent } from './calendar-day-panel.component';
 
@@ -37,6 +38,7 @@ describe('CalendarDayPanelComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [CalendarDayPanelComponent],
+      providers: [provideNoopAnimations()],
     }).compileComponents();
 
     fixture = TestBed.createComponent(CalendarDayPanelComponent);

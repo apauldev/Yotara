@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { DateTime } from 'luxon';
 import type { Task } from '@yotara/shared';
 import { CalendarMonthGridComponent } from './calendar-month-grid.component';
@@ -34,6 +35,7 @@ describe('CalendarMonthGridComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [CalendarMonthGridComponent],
+      providers: [provideNoopAnimations()],
     }).compileComponents();
 
     fixture = TestBed.createComponent(CalendarMonthGridComponent);

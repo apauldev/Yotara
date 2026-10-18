@@ -9,6 +9,8 @@ import {
 } from '@angular/core';
 import { DateTime } from 'luxon';
 import type { Task } from '@yotara/shared';
+import { NotificationService } from '../../../../core/services/notification.service';
+import { PreferencesStore } from '../../../../core/services/preferences-store.service';
 import { ProjectService } from '../../../../core/services/project.service';
 import { StatusService } from '../../../../core/services/status.service';
 import { TaskService } from '../../../../core/services/task.service';
@@ -30,6 +32,7 @@ import {
   dayKey,
 } from '../../utils/calendar-view';
 import type { DueDateDraft } from '../../utils/due-date-draft';
+import { notifyTaskCompleted } from '../../utils/task-completion-notice';
 
 /** Drop optimistic ids once the refreshed data no longer contains them. */
 function pruneIds(ids: ReadonlySet<string>, allowed: ReadonlySet<string>): ReadonlySet<string> {
@@ -56,6 +59,8 @@ export class CalendarPageComponent {
   private readonly taskService = inject(TaskService);
   private readonly projectService = inject(ProjectService);
   private readonly statusService = inject(StatusService);
+  private readonly preferences = inject(PreferencesStore);
+  private readonly notificationService = inject(NotificationService);
   private readonly workspace = viewChild(PersonalTaskWorkspaceComponent);
 
   private readonly today = startOfToday();
@@ -162,6 +167,12 @@ export class CalendarPageComponent {
 
     try {
       await this.taskService.updateTask(task.id, { completed: true });
+      notifyTaskCompleted(
+        this.statusService,
+        this.preferences,
+        this.notificationService,
+        task.title,
+      );
     } catch {
       this.completionIds.update((ids) => {
         const next = new Set(ids);

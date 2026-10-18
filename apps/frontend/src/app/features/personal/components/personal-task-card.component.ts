@@ -20,6 +20,7 @@ import { TaskService } from '../../../core/services/task.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 import { formatTimeLabel, parseCalendarDate } from '../../../shared/utils/timestamps';
+import { notifyTaskCompleted } from '../utils/task-completion-notice';
 
 @Component({
   selector: 'app-personal-task-card',
@@ -766,12 +767,13 @@ export class PersonalTaskCardComponent {
       await this.taskService.updateTask(this.task.id, { completed: !wasCompleted });
       this.completeConfirmOpen.set(false);
 
-      if (!wasCompleted && this.preferences.actionNotifications()) {
-        this.statusService.success('Task completed');
-      }
-
       if (!wasCompleted) {
-        this.notificationService.showBrowserNotification('Task completed', this.task.title);
+        notifyTaskCompleted(
+          this.statusService,
+          this.preferences,
+          this.notificationService,
+          this.task.title,
+        );
       }
 
       if (this.dontShowAgain) {

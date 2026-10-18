@@ -3,12 +3,14 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import type { Task } from '@yotara/shared';
 import { CalendarTaskChipComponent } from '../calendar-task-chip/calendar-task-chip.component';
+import { fadeCollapse } from '../../../../shared/animations/fade-collapse.animation';
 
 @Component({
   selector: 'app-calendar-day-panel',
   standalone: true,
   imports: [FontAwesomeModule, CalendarTaskChipComponent],
   changeDetection: ChangeDetectionStrategy.Eager,
+  animations: [fadeCollapse],
   template: `
     <div class="cal-panel">
       <header class="cal-panel-head">
@@ -21,6 +23,7 @@ import { CalendarTaskChipComponent } from '../calendar-task-chip/calendar-task-c
           @for (task of tasks; track task.id) {
             <li>
               <app-calendar-task-chip
+                @fadeCollapse
                 [task]="task"
                 [accent]="accentFor(task)"
                 [overdue]="isOverdue(task)"

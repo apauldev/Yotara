@@ -1,6 +1,7 @@
 import { signal, WritableSignal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideMarkdown } from 'ngx-markdown';
 import { DateTime } from 'luxon';
 import { Task } from '@yotara/shared';
@@ -41,6 +42,7 @@ describe('CalendarPageComponent', () => {
     createTask: jasmine.Spy;
   };
   let statusService: jasmine.SpyObj<StatusService>;
+  let notificationService: jasmine.SpyObj<NotificationService>;
   let workspace: PersonalTaskWorkspaceComponent;
 
   const today = DateTime.now();
@@ -102,10 +104,15 @@ describe('CalendarPageComponent', () => {
       'remove',
     ]);
 
+    notificationService = jasmine.createSpyObj<NotificationService>('NotificationService', [
+      'showBrowserNotification',
+    ]);
+
     await TestBed.configureTestingModule({
       imports: [CalendarPageComponent],
       providers: [
         provideMarkdown(),
+        provideNoopAnimations(),
         { provide: TaskService, useValue: taskService },
         {
           provide: ProjectService,
@@ -123,13 +130,7 @@ describe('CalendarPageComponent', () => {
             setActionNotifications: jasmine.createSpy('setActionNotifications'),
           },
         },
-        {
-          provide: NotificationService,
-          useValue: {
-            refresh: jasmine.createSpy('refresh'),
-            showBrowserNotification: jasmine.createSpy('showBrowserNotification'),
-          },
-        },
+        { provide: NotificationService, useValue: notificationService },
       ],
     }).compileComponents();
 
@@ -178,7 +179,7 @@ describe('CalendarPageComponent', () => {
   });
 
   describe('complete', () => {
-    it('completes from the chip without opening the modal and reads completed optimistically', () => {
+    it('completes from the chip without opening the modal and announces it', async () => {
       allActiveTasks.set([task({ id: 'due-1', title: 'Ship the calendar', dueDate: todayISO })]);
       fixture.detectChanges();
 
@@ -194,6 +195,11 @@ describe('CalendarPageComponent', () => {
 
       // The chip reads as completed immediately, before the save resolves.
       expect(fixture.nativeElement.querySelector('.cal-chip-check-done')).toBeTruthy();
+
+      // ...and the completion is announced, exactly as the card and modal do it.
+      await fixture.whenStable();
+      expect(statusService.success).toHaveBeenCalledWith('Task completed');
+      expect(notificationService.showBrowserNotification).toHaveBeenCalled();
     });
 
     it('rolls back the optimistic completion and surfaces an error when the save fails', async () => {

@@ -3,6 +3,7 @@ import type { Task } from '@yotara/shared';
 import { DateTime } from 'luxon';
 import { CalendarCell } from '../../utils/calendar-view';
 import { CalendarTaskChipComponent } from '../calendar-task-chip/calendar-task-chip.component';
+import { fadeCollapse } from '../../../../shared/animations/fade-collapse.animation';
 
 const MAX_VISIBLE_TASKS = 3;
 
@@ -11,6 +12,7 @@ const MAX_VISIBLE_TASKS = 3;
   standalone: true,
   imports: [CalendarTaskChipComponent],
   changeDetection: ChangeDetectionStrategy.Eager,
+  animations: [fadeCollapse],
   template: `
     <div class="cal-grid" role="grid">
       <div class="cal-weekdays" aria-hidden="true">
@@ -42,6 +44,7 @@ const MAX_VISIBLE_TASKS = 3;
             <div class="cal-cell-tasks">
               @for (task of visibleTasks(cell); track task.id) {
                 <app-calendar-task-chip
+                  @fadeCollapse
                   [task]="task"
                   [accent]="accentFor(task)"
                   [overdue]="isOverdue(task)"
