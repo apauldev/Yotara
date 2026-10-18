@@ -9,6 +9,8 @@ import {
   signal,
 } from '@angular/core';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import type { Task } from '@yotara/shared';
 import { DateTime } from 'luxon';
 import { CalendarCell, CalendarRescheduleRequest } from '../../utils/calendar-view';
@@ -20,7 +22,7 @@ const MAX_VISIBLE_TASKS = 3;
 @Component({
   selector: 'app-calendar-month-grid',
   standalone: true,
-  imports: [CalendarTaskChipComponent, DragDropModule],
+  imports: [CalendarTaskChipComponent, DragDropModule, FontAwesomeModule],
   changeDetection: ChangeDetectionStrategy.Eager,
   animations: [fadeCollapse],
   template: `
@@ -42,21 +44,36 @@ const MAX_VISIBLE_TASKS = 3;
             [class.cal-cell-today]="cell.isToday"
             [class.cal-cell-selected]="cell.key === selectedKey"
             (click)="onCellClick(cell, $event)"
+            (dblclick)="onCellDoubleClick(cell, $event)"
           >
-            <button
-              type="button"
-              class="cal-cell-head"
-              [attr.data-cal-day]="cell.key"
-              [attr.tabindex]="cell.key === tabbableKey() ? 0 : -1"
-              [attr.aria-current]="cell.isToday ? 'date' : null"
-              [attr.aria-pressed]="cell.key === selectedKey"
-              [attr.aria-label]="dayAriaLabel(cell)"
-              (focus)="onDayFocus(cell)"
-              (keydown)="onDayKeydown($event, cell)"
-              (click)="selectDate.emit(cell.date)"
-            >
-              <span class="cal-day-number">{{ cell.date.day }}</span>
-            </button>
+            <div class="cal-cell-head-row">
+              <button
+                type="button"
+                class="cal-cell-head"
+                [attr.data-cal-day]="cell.key"
+                [attr.tabindex]="cell.key === tabbableKey() ? 0 : -1"
+                [attr.aria-current]="cell.isToday ? 'date' : null"
+                [attr.aria-pressed]="cell.key === selectedKey"
+                [attr.aria-label]="dayAriaLabel(cell)"
+                (focus)="onDayFocus(cell)"
+                (keydown)="onDayKeydown($event, cell)"
+                (click)="selectDate.emit(cell.date)"
+              >
+                <span class="cal-day-number">{{ cell.date.day }}</span>
+              </button>
+
+              @if (allowQuickCreate) {
+                <button
+                  type="button"
+                  class="cal-cell-add"
+                  tabindex="-1"
+                  [attr.aria-label]="'Add task on ' + cell.date.toFormat('cccc, LLLL d, yyyy')"
+                  (click)="onAddClick(cell, $event)"
+                >
+                  <fa-icon [icon]="faPlus" aria-hidden="true" />
+                </button>
+              }
+            </div>
 
             <div class="cal-cell-tasks">
               @for (task of visibleTasks(cell); track task.id) {
@@ -140,8 +157,14 @@ const MAX_VISIBLE_TASKS = 3;
         box-shadow: inset 0 0 0 2px var(--primary-solid);
       }
 
+      .cal-cell-head-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.25rem;
+      }
+
       .cal-cell-head {
-        align-self: flex-start;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -157,6 +180,35 @@ const MAX_VISIBLE_TASKS = 3;
         cursor: pointer;
       }
 
+      .cal-cell-add {
+        display: grid;
+        place-items: center;
+        width: 1.6rem;
+        height: 1.6rem;
+        padding: 0;
+        border: 0;
+        border-radius: 0.5rem;
+        background: transparent;
+        color: var(--on-surface-subtle);
+        font-size: 0.7rem;
+        cursor: pointer;
+        opacity: 0;
+        transition:
+          opacity 120ms ease,
+          background-color 120ms ease;
+      }
+
+      .cal-cell:hover .cal-cell-add,
+      .cal-cell:focus-within .cal-cell-add,
+      .cal-cell-add:focus-visible {
+        opacity: 1;
+      }
+
+      .cal-cell-add:hover {
+        background: var(--surface-container-high);
+        color: var(--on-surface);
+      }
+
       .cal-cell-today .cal-cell-head {
         background: color-mix(in srgb, var(--primary-soft) 70%, transparent);
       }
@@ -167,9 +219,16 @@ const MAX_VISIBLE_TASKS = 3;
       }
 
       .cal-cell-head:focus-visible,
+      .cal-cell-add:focus-visible,
       .cal-more:focus-visible {
         outline: 2px solid var(--primary-solid);
         outline-offset: 1px;
+      }
+
+      @media (max-width: 720px) {
+        .cal-cell-add {
+          display: none;
+        }
       }
 
       .cal-cell-tasks {
@@ -225,13 +284,16 @@ export class CalendarMonthGridComponent {
   @Input() allowDrag = true;
   /** On touch layouts, tapping a task opens its day sheet instead of the editor. */
   @Input() selectDayOnTaskTap = false;
+  @Input() allowQuickCreate = true;
   @Output() readonly selectDate = new EventEmitter<DateTime>();
   @Output() readonly openTask = new EventEmitter<Task>();
   @Output() readonly completeTask = new EventEmitter<Task>();
   @Output() readonly rescheduleTask = new EventEmitter<CalendarRescheduleRequest>();
+  @Output() readonly createTask = new EventEmitter<DateTime>();
 
   protected readonly weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
   protected readonly maxVisible = MAX_VISIBLE_TASKS;
+  protected readonly faPlus = faPlus;
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly focusedKey = signal('');
@@ -338,12 +400,35 @@ export class CalendarMonthGridComponent {
     return Date.now() < this.suppressClickUntil;
   }
 
+  /** The cell's hover "+" starts the create flow for that day. */
+  protected onAddClick(cell: CalendarCell, event: MouseEvent): void {
+    event.stopPropagation();
+    // Release focus so :focus-within doesn't pin this cell's "+" open once the
+    // modal opens (and restores focus on close).
+    (event.currentTarget as HTMLElement | null)?.blur();
+    this.createTask.emit(cell.date);
+  }
+
+  /** Double-clicking a cell's empty space starts the create flow for that day. */
+  protected onCellDoubleClick(cell: CalendarCell, event: MouseEvent): void {
+    if (!this.allowQuickCreate || this.isClickSuppressed()) return;
+
+    const target = event.target;
+    if (
+      target instanceof HTMLElement &&
+      target.closest('app-calendar-task-chip, button, a, input, [role="button"]')
+    ) {
+      return;
+    }
+
+    this.createTask.emit(cell.date);
+  }
+
   /**
    * Clicking a cell's empty space selects the day, matching the day-number
-   * button and the "+N more" affordance. Creating a task is an explicit action
-   * — "Add task for this date" in the day panel, or "New task" in the header —
-   * so browsing days never opens the editor. Clicks on a task chip (including
-   * its padding) are left to the chip's own controls.
+   * button and the "+N more" affordance. Creation stays explicit — the hover
+   * "+" or a double-click — so a single click never opens the editor. Clicks on
+   * a task chip are left to the chip's own controls.
    */
   protected onCellClick(cell: CalendarCell, event: MouseEvent): void {
     if (this.isClickSuppressed()) return;

@@ -29,10 +29,12 @@
           [showCheck]="!isMobile()"
           [allowDrag]="!isMobile()"
           [selectDayOnTaskTap]="isMobile()"
+          [allowQuickCreate]="!isMobile()"
           (selectDate)="selectDate($event)"
           (openTask)="openTask($event)"
           (completeTask)="completeTask($event)"
           (rescheduleTask)="moveTask($event)"
+          (createTask)="createTaskForDate($event)"
         />
 
         @if (!monthHasTasks()) {
