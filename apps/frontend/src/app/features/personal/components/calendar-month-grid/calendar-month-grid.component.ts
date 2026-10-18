@@ -177,7 +177,6 @@ export class CalendarMonthGridComponent {
   @Output() readonly selectDate = new EventEmitter<DateTime>();
   @Output() readonly openTask = new EventEmitter<Task>();
   @Output() readonly completeTask = new EventEmitter<Task>();
-  @Output() readonly createTask = new EventEmitter<DateTime>();
 
   protected readonly weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
   protected readonly maxVisible = MAX_VISIBLE_TASKS;
@@ -187,11 +186,11 @@ export class CalendarMonthGridComponent {
   }
 
   /**
-   * The day-number button selects the date. Clicking a cell's empty space does
-   * the same on a day that already has tasks; on an empty day it starts the
-   * create flow for that date instead (the design's "click an empty day to
-   * add"). Clicks on a task chip — including its padding — are left to the
-   * chip's own controls.
+   * Clicking a cell's empty space selects the day, matching the day-number
+   * button and the "+N more" affordance. Creating a task is an explicit action
+   * — "Add task for this date" in the day panel, or "New task" in the header —
+   * so browsing days never opens the editor. Clicks on a task chip (including
+   * its padding) are left to the chip's own controls.
    */
   protected onCellClick(cell: CalendarCell, event: MouseEvent): void {
     const target = event.target;
@@ -199,11 +198,6 @@ export class CalendarMonthGridComponent {
       target instanceof HTMLElement &&
       target.closest('app-calendar-task-chip, button, a, input, [role="button"]')
     ) {
-      return;
-    }
-
-    if (cell.tasks.length === 0) {
-      this.createTask.emit(cell.date);
       return;
     }
 

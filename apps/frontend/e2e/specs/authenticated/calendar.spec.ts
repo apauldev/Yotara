@@ -57,7 +57,7 @@ test.describe('Calendar', () => {
     await expect(page.getByRole('heading', { name: 'No date', exact: true })).toBeVisible();
   });
 
-  test('creates a task from a day cell with the date pre-filled', async ({ page }) => {
+  test('creates a task for a selected day and it persists after reload', async ({ page }) => {
     await page.goto('/calendar');
     await page.waitForLoadState('networkidle');
     await dismissTip(page);
@@ -67,6 +67,12 @@ test.describe('Calendar', () => {
     target.setMonth(target.getMonth() + 1);
     target.setDate(10);
     const targetMonth = monthLabel(target);
+    const panelLabel = new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(target);
     const expectedPreview = new Intl.DateTimeFormat('en-US', {
       weekday: 'long',
       month: 'short',
@@ -83,15 +89,14 @@ test.describe('Calendar', () => {
       .first();
     await expect(targetCell).toBeVisible();
 
-    // Click the empty space at the bottom of the cell, away from any chips.
-    const box = await targetCell.boundingBox();
-    if (!box) {
-      throw new Error('Target day cell not visible');
-    }
-    await targetCell.click({ position: { x: 18, y: box.height - 6 } });
+    // Clicking a day selects it and opens the panel — it never opens the editor.
+    await targetCell.click();
+    await expect(page.getByRole('dialog')).not.toBeVisible();
+    await expect(page.getByText(panelLabel, { exact: true })).toBeVisible();
 
+    // Creating is an explicit action, pre-filled with the selected day.
+    await page.getByRole('button', { name: 'Add task for this date' }).click();
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
-    // The create flow opens with the cell's date already set.
     await expect(page.getByText(`Due ${expectedPreview}`)).toBeVisible();
 
     const name = taskName('cell');
