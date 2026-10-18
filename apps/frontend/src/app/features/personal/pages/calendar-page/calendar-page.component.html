@@ -1,9 +1,6 @@
 <app-personal-task-workspace>
   <section class="cal-page">
-    <app-page-header
-      title="Calendar"
-      subtitle="See what is due, day by day. Tasks appear on the dates they are scheduled for."
-    />
+    <app-page-header title="Calendar" />
 
     <app-calendar-header
       [monthLabel]="monthLabel()"
@@ -31,6 +28,7 @@
           [showMetadata]="showMetadata()"
           [showCheck]="!isMobile()"
           [allowDrag]="!isMobile()"
+          [selectDayOnTaskTap]="isMobile()"
           (selectDate)="selectDate($event)"
           (openTask)="openTask($event)"
           (completeTask)="completeTask($event)"

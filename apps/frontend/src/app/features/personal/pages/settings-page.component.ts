@@ -31,10 +31,7 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
   ],
   template: `
     <section class="page">
-      <app-page-header
-        title="Settings"
-        subtitle="Manage your personal sanctuary preferences, including archive cleanup."
-      />
+      <app-page-header title="Settings" />
 
       <div class="settings-card">
         <div class="settings-section">

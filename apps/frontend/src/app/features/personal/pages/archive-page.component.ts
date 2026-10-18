@@ -30,10 +30,7 @@ import { PaginatedResponse, Task } from '@yotara/shared';
   template: `
     <app-personal-task-workspace #workspace>
       <section class="page">
-        <app-page-header
-          title="Archive"
-          subtitle="Completed tasks stay here, and permanent archives remain until you remove them."
-        />
+        <app-page-header title="Archive" />
 
         @if (loadingArchive()) {
           <p class="status-copy">Loading your recent completions...</p>
