@@ -5,6 +5,7 @@
 services:
   api:
     image: apauldev2/yotara-api:v0.77.0
+    restart: unless-stopped
     environment:
       DATABASE_URL: /app/apps/api/data/yotara.db
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
@@ -38,6 +39,7 @@ services:
 
   frontend:
     image: apauldev2/yotara-frontend:v0.77.0
+    restart: unless-stopped
     depends_on:
       - api
     environment:

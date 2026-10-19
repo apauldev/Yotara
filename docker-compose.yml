@@ -1,5 +1,6 @@
 services:
   api:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -42,6 +43,7 @@ services:
       - /tmp
 
   frontend:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: apps/frontend/Dockerfile
