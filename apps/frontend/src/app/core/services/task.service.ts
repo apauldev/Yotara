@@ -48,10 +48,10 @@ interface CalendarRangeState {
 }
 
 /**
- * Page size the calendar lists ask for. It matches the API's per-page cap;
- * when a window holds more tasks than this the calendar flags the truncation.
+ * Largest tasks page the app requests. It matches the API's per-page cap; the
+ * calendar flags truncation when a window returns more than it can hold.
  */
-export const CALENDAR_PAGE_SIZE = 3000;
+export const TASKS_PAGE_SIZE = 3000;
 
 /** Merge the grid and focus windows, keeping one copy of tasks in both. */
 function mergeCalendarTasks(gridTasks: Task[], focusTasks: Task[]): Task[] {
@@ -181,7 +181,7 @@ export class TaskService {
     return this.http
       .get<
         PaginatedResponse<Task[]>
-      >(`${this.baseUrl}/tasks?page=1&pageSize=1000&completed=false&includeSubtasks=true`, { withCredentials: true })
+      >(`${this.baseUrl}/tasks?page=1&pageSize=${TASKS_PAGE_SIZE}&completed=false&includeSubtasks=true`, { withCredentials: true })
       .pipe(map((response) => response.data));
   }
 
@@ -189,7 +189,7 @@ export class TaskService {
   fetchUndatedTasks$() {
     const tz = getUserTimezone();
     return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?hasDueDate=false&completed=false&tz=${tz}&pageSize=${CALENDAR_PAGE_SIZE}`,
+      `${this.baseUrl}/tasks?hasDueDate=false&completed=false&tz=${tz}&pageSize=${TASKS_PAGE_SIZE}`,
       { withCredentials: true },
     );
   }
@@ -198,7 +198,7 @@ export class TaskService {
   fetchTasksDueBetween$(dueFrom: string, dueTo: string) {
     const tz = getUserTimezone();
     return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?dueFrom=${dueFrom}&dueTo=${dueTo}&tz=${tz}&pageSize=${CALENDAR_PAGE_SIZE}`,
+      `${this.baseUrl}/tasks?dueFrom=${dueFrom}&dueTo=${dueTo}&tz=${tz}&pageSize=${TASKS_PAGE_SIZE}`,
       { withCredentials: true },
     );
   }

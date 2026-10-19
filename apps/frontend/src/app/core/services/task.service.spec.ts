@@ -15,7 +15,7 @@ describe('TaskService', () => {
   let projectServiceStub: { projects: ReturnType<typeof signal>; refresh: jasmine.Spy };
 
   const ACTIVE_URL =
-    'http://localhost:3000/tasks?page=1&pageSize=1000&completed=false&includeSubtasks=true';
+    'http://localhost:3000/tasks?page=1&pageSize=3000&completed=false&includeSubtasks=true';
   const COMPLETED_URL =
     'http://localhost:3000/tasks?page=1&pageSize=100&completed=true&includeSubtasks=true';
 
