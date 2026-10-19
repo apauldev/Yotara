@@ -9,6 +9,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
+import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faArrowLeft, faCalendarDays, faCalendarWeek } from '@fortawesome/free-solid-svg-icons';
 import { DateTime } from 'luxon';
@@ -52,6 +53,7 @@ function pruneIds(ids: ReadonlySet<string>, allowed: ReadonlySet<string>): Reado
   standalone: true,
   imports: [
     NgTemplateOutlet,
+    CdkTrapFocus,
     FontAwesomeModule,
     PageHeaderComponent,
     CalendarHeaderComponent,

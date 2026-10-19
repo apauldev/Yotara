@@ -477,6 +477,33 @@ describe('CalendarPageComponent', () => {
     expect(fixture.nativeElement.querySelector('.cal-sheet')).toBeFalsy();
   });
 
+  it('moves focus into the mobile day sheet, closes it on Escape, and restores focus', async () => {
+    const component = fixture.componentInstance as unknown as {
+      isMobile: WritableSignal<boolean>;
+    };
+    component.isMobile.set(true);
+    fixture.detectChanges();
+
+    const dayButton = element<HTMLButtonElement>('.cal-week-day-selected');
+    dayButton.focus();
+    dayButton.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const sheet = element<HTMLElement>('.cal-sheet');
+    // Focus is captured on the sheet's first control instead of staying on
+    // the page behind it.
+    expect(sheet.contains(document.activeElement)).toBe(true);
+    expect(document.activeElement).toBe(element<HTMLElement>('.cal-sheet-back'));
+
+    sheet.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.cal-sheet')).toBeFalsy();
+    // Closing returns focus to the control that opened the sheet.
+    expect(document.activeElement).toBe(dayButton);
+  });
+
   it('shows a week strip on mobile and keeps completion in the day sheet', () => {
     rangeTasks.set([task({ id: 'due-1', title: 'Ship it', dueDate: todayISO })]);
     const component = fixture.componentInstance as unknown as {
