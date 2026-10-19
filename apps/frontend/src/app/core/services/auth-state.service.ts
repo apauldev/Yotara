@@ -253,14 +253,29 @@ export class AuthStateService {
 
   private async applySessionResult(result: SessionResponse | null | undefined) {
     const session = result?.data?.session ?? null;
-    this.sessionState.set(session);
 
     if (!session) {
+      this.sessionState.set(null);
       this.userState.set(null);
       return;
     }
 
+    // A session for a different account is a sign-out plus a sign-in even when
+    // no sign-out happened (e.g. signing in from /login while another account
+    // is still resident). Clear the old identity first so user-scoped caches
+    // drop the previous user's data before the new profile arrives.
+    const switchedAccount =
+      this.currentUserId() !== null && this.currentUserId() !== session.userId;
+
+    if (switchedAccount) {
+      this.sessionState.set(null);
+      this.userState.set(null);
+    } else {
+      this.sessionState.set(session);
+    }
+
     const profile = await AuthService.getProfile();
+    this.sessionState.set(session);
     this.userState.set(profile.user);
   }
 }
