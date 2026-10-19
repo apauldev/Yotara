@@ -18,7 +18,7 @@ import { LabelService } from '../../../../core/services/label.service';
 import { PreferencesStore } from '../../../../core/services/preferences-store.service';
 import { ProjectService } from '../../../../core/services/project.service';
 import { StatusService } from '../../../../core/services/status.service';
-import { TaskService } from '../../../../core/services/task.service';
+import { TaskService, type CalendarRangeRequest } from '../../../../core/services/task.service';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { startOfToday } from '../../../../shared/utils/timestamps';
 import { projectPaletteFor } from '../../project-presentation';
@@ -37,6 +37,7 @@ import {
   buildUndatedTasks,
   buildWeekDays,
   dayKey,
+  weekStart,
   type CalendarRescheduleRequest,
 } from '../../utils/calendar-view';
 import type { DueDateDraft } from '../../utils/due-date-draft';
@@ -137,18 +138,25 @@ export class CalendarPageComponent {
   });
 
   /**
-   * The 42-day window the grid draws, widened to include the open day so the
-   * day panel never blanks when the viewed month moves away from it.
+   * The window the grid draws (a fixed six weeks) plus the week around the
+   * open day. They are fetched separately so browsing far-away months never
+   * widens the request; the open day's week keeps the day panel and the
+   * mobile week strip populated wherever the selection is left behind.
    */
-  private readonly visibleRange = computed(() => {
+  private readonly visibleRange = computed<CalendarRangeRequest>(() => {
     const monthStart = this.viewMonth().startOf('month');
     const gridStart = monthStart.minus({ days: monthStart.weekday % 7 });
-    const gridEnd = gridStart.plus({ days: 41 });
-    const selected = this.selectedDate();
+    const focusStart = weekStart(this.selectedDate());
 
     return {
-      from: dayKey(selected.toMillis() < gridStart.toMillis() ? selected : gridStart),
-      to: dayKey(selected.toMillis() > gridEnd.toMillis() ? selected : gridEnd),
+      grid: {
+        from: dayKey(gridStart),
+        to: dayKey(gridStart.plus({ days: 41 })),
+      },
+      focus: {
+        from: dayKey(focusStart),
+        to: dayKey(focusStart.plus({ days: 6 })),
+      },
     };
   });
 

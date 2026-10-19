@@ -9,6 +9,7 @@ import {
   distinctUntilChanged,
   finalize,
   firstValueFrom,
+  forkJoin,
   map,
   of,
   switchMap,
@@ -28,6 +29,40 @@ export interface UpcomingTaskGroup {
   tasks: Task[];
 }
 
+/**
+ * The calendar's visible windows. The drawn grid and the open day's week are
+ * fetched as two fixed-size requests, so browsing to far-away months never
+ * grows the payload with the months in between. Bounds are inclusive
+ * YYYY-MM-DD dates.
+ */
+export interface CalendarRangeRequest {
+  grid: { from: string; to: string };
+  /** The week around the open day; ignored when the grid already covers it. */
+  focus: { from: string; to: string };
+}
+
+/** Normalized fetch state: focus windows the grid covers collapse to `null`. */
+interface CalendarRangeState {
+  grid: { from: string; to: string };
+  focus: { from: string; to: string } | null;
+}
+
+/** Merge the grid and focus windows, keeping one copy of tasks in both. */
+function mergeCalendarTasks(gridTasks: Task[], focusTasks: Task[]): Task[] {
+  if (focusTasks.length === 0) {
+    return gridTasks;
+  }
+
+  const byId = new Map(gridTasks.map((task) => [task.id, task]));
+  for (const task of focusTasks) {
+    if (!byId.has(task.id)) {
+      byId.set(task.id, task);
+    }
+  }
+
+  return [...byId.values()];
+}
+
 @Injectable({ providedIn: 'root' })
 export class TaskService {
   private http = inject(HttpClient);
@@ -40,7 +75,7 @@ export class TaskService {
   private loadingState = signal(false);
   private creatingState = signal(false);
   private errorState = signal<string | null>(null);
-  private calendarRangeState = signal<{ from: string; to: string } | null>(null);
+  private calendarRangeState = signal<CalendarRangeState | null>(null);
   private calendarRangeLoadingState = signal(false);
   private calendarRangeLoadedState = signal(false);
 
@@ -203,10 +238,25 @@ export class TaskService {
     { initialValue: [] as Task[] },
   );
 
-  /** Set the calendar's visible window (inclusive YYYY-MM-DD bounds). */
-  setCalendarRange(range: { from: string; to: string }): void {
+  /**
+   * Set the calendar's visible windows (inclusive YYYY-MM-DD bounds). A focus
+   * window the grid already covers collapses to `null`, so moving the open day
+   * around inside the drawn grid never triggers a refetch.
+   */
+  setCalendarRange(range: CalendarRangeRequest): void {
+    const covered = range.grid.from <= range.focus.from && range.focus.to <= range.grid.to;
+    const next: CalendarRangeState = {
+      grid: range.grid,
+      focus: covered ? null : range.focus,
+    };
+
     this.calendarRangeState.update((current) =>
-      current?.from === range.from && current?.to === range.to ? current : range,
+      current?.grid.from === next.grid.from &&
+      current?.grid.to === next.grid.to &&
+      current?.focus?.from === next.focus?.from &&
+      current?.focus?.to === next.focus?.to
+        ? current
+        : next,
     );
   }
 
@@ -216,9 +266,10 @@ export class TaskService {
   readonly calendarRangeLoaded = this.calendarRangeLoadedState.asReadonly();
 
   /**
-   * Signal of tasks due inside the calendar's visible window. Fetching the
-   * window instead of every active task keeps the grid correct on accounts
-   * larger than the page size an "all active tasks" request is capped at.
+   * Signal of tasks due inside the calendar's visible windows. The grid and
+   * the open day's week are fetched as two bounded requests (the week is
+   * skipped when the grid already covers it), so the payload never grows with
+   * the months browsed between the selection and the drawn grid.
    */
   readonly calendarRangeTasks = toSignal(
     combineLatest([
@@ -234,7 +285,16 @@ export class TaskService {
         }
         this.calendarRangeLoadingState.set(true);
         this.errorState.set(null);
-        return this.fetchTasksDueBetween$(range.from, range.to).pipe(
+
+        const focusTasks$ = range.focus
+          ? this.fetchTasksDueBetween$(range.focus.from, range.focus.to)
+          : of([] as Task[]);
+
+        return forkJoin([
+          this.fetchTasksDueBetween$(range.grid.from, range.grid.to),
+          focusTasks$,
+        ]).pipe(
+          map(([gridTasks, focusTasks]) => mergeCalendarTasks(gridTasks, focusTasks)),
           catchError(this.handleLoadError('calendar tasks')),
           finalize(() => {
             this.calendarRangeLoadingState.set(false);

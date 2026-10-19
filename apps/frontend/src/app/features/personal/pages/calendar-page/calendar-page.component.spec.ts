@@ -11,7 +11,7 @@ import { LabelService } from '../../../../core/services/label.service';
 import { PreferencesStore } from '../../../../core/services/preferences-store.service';
 import { ProjectService } from '../../../../core/services/project.service';
 import { StatusService } from '../../../../core/services/status.service';
-import { TaskService } from '../../../../core/services/task.service';
+import { TaskService, type CalendarRangeRequest } from '../../../../core/services/task.service';
 import { DatePickerComponent } from '../../../../shared/ui/date-picker/date-picker.component';
 
 function task(overrides: Partial<Task> = {}): Task {
@@ -198,30 +198,50 @@ describe('CalendarPageComponent', () => {
   it('requests the 42-day grid window from the service', () => {
     fixture.detectChanges();
 
-    const [range] = taskService.setCalendarRange.calls.mostRecent().args as [
-      { from: string; to: string },
-    ];
-    const gridStart = DateTime.fromISO(range.from);
+    const [range] = taskService.setCalendarRange.calls.mostRecent().args as [CalendarRangeRequest];
+    const gridStart = DateTime.fromISO(range.grid.from);
 
     expect(gridStart.weekday).toBe(7);
-    expect(gridStart.plus({ days: 41 }).toISODate()).toBe(range.to);
-    expect(range.from <= todayISO && todayISO <= range.to).toBe(true);
+    expect(gridStart.plus({ days: 41 }).toISODate()).toBe(range.grid.to);
+    expect(range.grid.from <= todayISO && todayISO <= range.grid.to).toBe(true);
   });
 
-  it('re-requests the window on month change and keeps the open day inside it', () => {
+  it('re-requests the windows on month change without stretching the grid to the open day', () => {
     fixture.detectChanges();
-    const first = taskService.setCalendarRange.calls.mostRecent().args[0];
+    const [first] = taskService.setCalendarRange.calls.mostRecent().args as [CalendarRangeRequest];
 
     element<HTMLButtonElement>('[aria-label="Next month"]').click();
     fixture.detectChanges();
 
-    const [second] = taskService.setCalendarRange.calls.mostRecent().args as [
-      { from: string; to: string },
-    ];
+    const [second] = taskService.setCalendarRange.calls.mostRecent().args as [CalendarRangeRequest];
 
     expect(second).not.toEqual(first);
-    // The day panel still shows the open day, so its date must stay in range.
-    expect(second.from).toBe(todayISO);
+    // The grid window stays exactly six weeks no matter how far the open day
+    // is left behind; the open day is covered by the separate focus window.
+    const gridStart = DateTime.fromISO(second.grid.from);
+    expect(gridStart.weekday).toBe(7);
+    expect(gridStart.plus({ days: 41 }).toISODate()).toBe(second.grid.to);
+    expect(second.focus.from <= todayISO && todayISO <= second.focus.to).toBe(true);
+  });
+
+  it('keeps both windows fixed in size while browsing far-away months', () => {
+    fixture.detectChanges();
+
+    for (let step = 0; step < 3; step += 1) {
+      element<HTMLButtonElement>('[aria-label="Next month"]').click();
+      fixture.detectChanges();
+    }
+
+    const [range] = taskService.setCalendarRange.calls.mostRecent().args as [CalendarRangeRequest];
+    const gridStart = DateTime.fromISO(range.grid.from);
+    const focusStart = DateTime.fromISO(range.focus.from);
+
+    // Still six weeks of grid plus one week of focus, not a hull reaching all
+    // the way back to the abandoned selection.
+    expect(gridStart.plus({ days: 41 }).toISODate()).toBe(range.grid.to);
+    expect(focusStart.plus({ days: 6 }).toISODate()).toBe(range.focus.to);
+    expect(range.focus.from <= todayISO && todayISO <= range.focus.to).toBe(true);
+    expect(range.grid.from).not.toBe(todayISO);
   });
 
   describe('complete', () => {

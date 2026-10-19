@@ -1341,4 +1341,84 @@ describe('TaskService', () => {
 
     expect(service.undatedTasks().map((task) => task.id)).toEqual(['undated-1']);
   }));
+
+  function calendarTask(id: string, dueDate: string): Task {
+    return {
+      id,
+      title: id,
+      status: 'inbox',
+      priority: 'medium',
+      completed: false,
+      dueDate,
+      order: 0,
+      createdAt: '',
+      updatedAt: '',
+    };
+  }
+
+  it('fetches the grid and the open day separately and merges the results', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    service.setCalendarRange({
+      grid: { from: '2026-10-01', to: '2026-11-11' },
+      focus: { from: '2026-01-04', to: '2026-01-10' },
+    });
+    tick();
+
+    const gridReq = http.expectOne(
+      (r) => r.url.includes('dueFrom=2026-10-01') && r.url.includes('dueTo=2026-11-11'),
+    );
+    const focusReq = http.expectOne(
+      (r) => r.url.includes('dueFrom=2026-01-04') && r.url.includes('dueTo=2026-01-10'),
+    );
+
+    gridReq.flush(paginated([calendarTask('grid-1', '2026-10-02')]));
+    // The grid task repeats in the focus window; the merged list keeps one copy.
+    focusReq.flush(
+      paginated([calendarTask('focus-1', '2026-01-05'), calendarTask('grid-1', '2026-10-02')]),
+    );
+    tick();
+
+    expect(service.calendarRangeTasks().map((task) => task.id)).toEqual(['grid-1', 'focus-1']);
+  }));
+
+  it('reuses the grid data while the open day stays inside it', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    service.setCalendarRange({
+      grid: { from: '2026-10-01', to: '2026-11-11' },
+      focus: { from: '2026-10-04', to: '2026-10-10' },
+    });
+    tick();
+
+    http
+      .expectOne((r) => r.url.includes('dueFrom=2026-10-01'))
+      .flush(paginated([calendarTask('grid-1', '2026-10-02')]));
+    tick();
+
+    expect(service.calendarRangeTasks().map((task) => task.id)).toEqual(['grid-1']);
+    http.expectNone((r) => r.url.includes('dueFrom=2026-10-04'));
+
+    // Moving the open day inside the grid changes its week, but the grid data
+    // already covers it, so no request goes out.
+    service.setCalendarRange({
+      grid: { from: '2026-10-01', to: '2026-11-11' },
+      focus: { from: '2026-10-11', to: '2026-10-17' },
+    });
+    tick();
+
+    http.expectNone((r) => r.url.includes('dueFrom=2026-10-01'));
+  }));
 });
