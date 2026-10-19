@@ -86,6 +86,10 @@ export class TaskService {
   private calendarRangeLoadedState = signal(false);
   private calendarRangeTruncatedState = signal(false);
   private undatedTruncatedState = signal(false);
+  private todayTruncatedState = signal(false);
+  private overdueTruncatedState = signal(false);
+  private inboxTruncatedState = signal(false);
+  private upcomingTruncatedState = signal(false);
 
   private handleLoadError(context: string) {
     return (error: unknown) => {
@@ -138,7 +142,7 @@ export class TaskService {
   fetchTodayTasks$() {
     const tz = getUserTimezone();
     return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?view=today&tz=${tz}&pageSize=100`,
+      `${this.baseUrl}/tasks?view=today&tz=${tz}&pageSize=${TASKS_PAGE_SIZE}`,
       { withCredentials: true },
     );
   }
@@ -146,7 +150,7 @@ export class TaskService {
   fetchOverdueTasks$() {
     const tz = getUserTimezone();
     return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?overdue=true&tz=${tz}&pageSize=100`,
+      `${this.baseUrl}/tasks?overdue=true&tz=${tz}&pageSize=${TASKS_PAGE_SIZE}`,
       { withCredentials: true },
     );
   }
@@ -154,7 +158,7 @@ export class TaskService {
   fetchInboxTasks$() {
     const tz = getUserTimezone();
     return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?view=inbox&tz=${tz}&pageSize=100`,
+      `${this.baseUrl}/tasks?view=inbox&tz=${tz}&pageSize=${TASKS_PAGE_SIZE}`,
       { withCredentials: true },
     );
   }
@@ -162,7 +166,7 @@ export class TaskService {
   fetchUpcomingTasks$() {
     const tz = getUserTimezone();
     return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?view=upcoming&tz=${tz}&pageSize=100`,
+      `${this.baseUrl}/tasks?view=upcoming&tz=${tz}&pageSize=${TASKS_PAGE_SIZE}`,
       { withCredentials: true },
     );
   }
@@ -362,21 +366,29 @@ export class TaskService {
     ]).pipe(
       switchMap(([initialized, currentUserId]) => {
         if (!initialized || !currentUserId) {
+          this.todayTruncatedState.set(false);
           return of([] as Task[]);
         }
         this.errorState.set(null);
         return this.fetchTodayTasks$().pipe(
-          map((response) =>
-            response.data
+          map((response) => {
+            this.todayTruncatedState.set(response.meta.total > response.data.length);
+            return response.data
               .filter((task) => !task.parentId)
-              .sort((left, right) => left.order - right.order),
-          ),
-          catchError(this.handleLoadError('today tasks')),
+              .sort((left, right) => left.order - right.order);
+          }),
+          catchError((error) => {
+            this.todayTruncatedState.set(false);
+            return this.handleLoadError('today tasks')(error);
+          }),
         );
       }),
     ),
     { initialValue: [] as Task[] },
   );
+
+  /** True when the Today view holds more tasks than one API page. */
+  readonly todayTruncated = this.todayTruncatedState.asReadonly();
 
   readonly overdueTasks = toSignal(
     combineLatest([
@@ -386,21 +398,29 @@ export class TaskService {
     ]).pipe(
       switchMap(([initialized, currentUserId]) => {
         if (!initialized || !currentUserId) {
+          this.overdueTruncatedState.set(false);
           return of([] as Task[]);
         }
         this.errorState.set(null);
         return this.fetchOverdueTasks$().pipe(
-          map((response) =>
-            response.data
+          map((response) => {
+            this.overdueTruncatedState.set(response.meta.total > response.data.length);
+            return response.data
               .filter((task) => !task.parentId)
-              .sort((left, right) => left.order - right.order),
-          ),
-          catchError(this.handleLoadError('overdue tasks')),
+              .sort((left, right) => left.order - right.order);
+          }),
+          catchError((error) => {
+            this.overdueTruncatedState.set(false);
+            return this.handleLoadError('overdue tasks')(error);
+          }),
         );
       }),
     ),
     { initialValue: [] as Task[] },
   );
+
+  /** True when the Overdue list holds more tasks than one API page. */
+  readonly overdueTruncated = this.overdueTruncatedState.asReadonly();
 
   readonly inboxTasks = toSignal(
     combineLatest([
@@ -410,21 +430,29 @@ export class TaskService {
     ]).pipe(
       switchMap(([initialized, currentUserId]) => {
         if (!initialized || !currentUserId) {
+          this.inboxTruncatedState.set(false);
           return of([] as Task[]);
         }
         this.errorState.set(null);
         return this.fetchInboxTasks$().pipe(
-          map((response) =>
-            response.data
+          map((response) => {
+            this.inboxTruncatedState.set(response.meta.total > response.data.length);
+            return response.data
               .filter((task) => !task.parentId)
-              .sort((left, right) => left.order - right.order),
-          ),
-          catchError(this.handleLoadError('inbox tasks')),
+              .sort((left, right) => left.order - right.order);
+          }),
+          catchError((error) => {
+            this.inboxTruncatedState.set(false);
+            return this.handleLoadError('inbox tasks')(error);
+          }),
         );
       }),
     ),
     { initialValue: [] as Task[] },
   );
+
+  /** True when the Inbox holds more tasks than one API page. */
+  readonly inboxTruncated = this.inboxTruncatedState.asReadonly();
 
   readonly upcomingTasks = toSignal(
     combineLatest([
@@ -434,21 +462,29 @@ export class TaskService {
     ]).pipe(
       switchMap(([initialized, currentUserId]) => {
         if (!initialized || !currentUserId) {
+          this.upcomingTruncatedState.set(false);
           return of([] as Task[]);
         }
         this.errorState.set(null);
         return this.fetchUpcomingTasks$().pipe(
-          map((response) =>
-            response.data
+          map((response) => {
+            this.upcomingTruncatedState.set(response.meta.total > response.data.length);
+            return response.data
               .filter((task) => !task.parentId)
-              .sort((left, right) => left.order - right.order),
-          ),
-          catchError(this.handleLoadError('upcoming tasks')),
+              .sort((left, right) => left.order - right.order);
+          }),
+          catchError((error) => {
+            this.upcomingTruncatedState.set(false);
+            return this.handleLoadError('upcoming tasks')(error);
+          }),
         );
       }),
     ),
     { initialValue: [] as Task[] },
   );
+
+  /** True when the Upcoming list holds more tasks than one API page. */
+  readonly upcomingTruncated = this.upcomingTruncatedState.asReadonly();
 
   readonly todayCompletedTasks = toSignal(
     combineLatest([

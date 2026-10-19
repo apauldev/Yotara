@@ -82,11 +82,16 @@ describe('TaskService', () => {
     });
   }
 
-  function flushView(http: HttpTestingController, query: string, tasks: Task[] = []) {
+  function flushView(
+    http: HttpTestingController,
+    query: string,
+    tasks: Task[] = [],
+    total?: number,
+  ) {
     const match = http.match((req) => req.url.includes(query));
     match.forEach((req) => {
       if (!req.cancelled) {
-        req.flush(paginated(tasks));
+        req.flush(paginated(tasks, total === undefined ? {} : { total }));
       }
     });
   }
@@ -1535,5 +1540,38 @@ describe('TaskService', () => {
 
     expect(service.undatedTruncated()).toBe(true);
     expect(service.undatedTasks().map((task) => task.id)).toEqual(['undated-1']);
+  }));
+
+  it('flags task views that exceed the page cap and clears them on refetch', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    flushView(http, 'view=today', [calendarTask('today-1', '2026-10-19')], 4000);
+    flushView(http, 'overdue=true', [calendarTask('overdue-1', '2026-10-01')]);
+    flushView(http, 'view=inbox', [calendarTask('inbox-1', '')]);
+    flushView(http, 'view=upcoming', [calendarTask('upcoming-1', '2026-11-01')]);
+    tick();
+
+    // Only Today holds more tasks than a page holds.
+    expect(service.todayTruncated()).toBe(true);
+    expect(service.overdueTruncated()).toBe(false);
+    expect(service.inboxTruncated()).toBe(false);
+    expect(service.upcomingTruncated()).toBe(false);
+
+    // A refetch that fits within the cap clears the flag.
+    service.refresh();
+    tick();
+    flushView(http, 'view=today', [calendarTask('today-1', '2026-10-19')]);
+    flushView(http, 'overdue=true', [calendarTask('overdue-1', '2026-10-01')]);
+    flushView(http, 'view=inbox', [calendarTask('inbox-1', '')]);
+    flushView(http, 'view=upcoming', [calendarTask('upcoming-1', '2026-11-01')]);
+    tick();
+
+    expect(service.todayTruncated()).toBe(false);
   }));
 });

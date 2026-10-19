@@ -206,6 +206,18 @@ export class TaskListPageComponent implements OnInit {
     () => this.taskService.loading() && this.taskService.allActiveTasks().length === 0,
   );
 
+  /** True when the list behind the current view hit the API's page cap. */
+  protected readonly limitExceeded = computed(() => {
+    switch (this.viewMode()) {
+      case 'today':
+        return this.taskService.todayTruncated() || this.taskService.overdueTruncated();
+      case 'upcoming':
+        return this.taskService.upcomingTruncated();
+      default:
+        return this.taskService.inboxTruncated();
+    }
+  });
+
   protected readonly defaultCaptureProjectId = computed(() => {
     const inboxProject = this.projectService.projects().find((project) => project.name === 'Inbox');
     return inboxProject?.id ?? this.projectService.projects()[0]?.id ?? '';

@@ -19,6 +19,10 @@
       }
     </app-page-header>
 
+    @if (limitExceeded()) {
+      <p class="limit-notice" role="status">Task limit exceeded. Some tasks aren't shown.</p>
+    }
+
     @switch (viewMode()) {
       @case ('inbox') {
         <app-capture-bar

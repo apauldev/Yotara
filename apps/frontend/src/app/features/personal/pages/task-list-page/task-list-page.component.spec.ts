@@ -37,6 +37,10 @@ describe('TaskListPageComponent', () => {
       todayCompletedTasks: signal([]),
       overdueTasks: signal([]),
       upcomingTasks: signal([]),
+      todayTruncated: signal(false),
+      overdueTruncated: signal(false),
+      inboxTruncated: signal(false),
+      upcomingTruncated: signal(false),
       upcomingTaskGroups: signal([]),
       upcomingBucketForTask: jasmine.createSpy().and.returnValue('Later'),
       createTask: jasmine.createSpy().and.returnValue(Promise.resolve({})),
@@ -591,6 +595,50 @@ describe('TaskListPageComponent', () => {
       const fab = fixture.debugElement.query(By.css('.fab'));
       expect(fab).toBeTruthy();
       expect(fab.nativeElement.getAttribute('aria-label')).toBe('Quick add task');
+    });
+  });
+
+  describe('Task limit notice', () => {
+    it('shows only when the active view hit the page cap', () => {
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).not.toContain('Task limit exceeded');
+
+      // A truncated list belonging to another view does not raise the notice.
+      mockTaskService.todayTruncated.set(true);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).not.toContain('Task limit exceeded');
+
+      mockTaskService.inboxTruncated.set(true);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain('Task limit exceeded');
+    });
+
+    it('covers the suppressed lists of the today view', () => {
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'today']]));
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      mockTaskService.overdueTruncated.set(true);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain('Task limit exceeded');
+
+      mockTaskService.overdueTruncated.set(false);
+      mockTaskService.todayTruncated.set(true);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain('Task limit exceeded');
+    });
+
+    it('hides the notice for the upcoming view when only today is truncated', () => {
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'upcoming']]));
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      mockTaskService.todayTruncated.set(true);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).not.toContain('Task limit exceeded');
     });
   });
 });

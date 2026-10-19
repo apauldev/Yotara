@@ -28,6 +28,15 @@
   font-size: 1.08rem;
 }
 
+.limit-notice {
+  margin: 0.9rem 0 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.8rem;
+  background: var(--surface-container-low);
+  color: var(--on-surface-muted);
+  font-size: 0.85rem;
+}
+
 .fab {
   position: fixed;
   right: 2.5rem;
