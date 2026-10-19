@@ -9,6 +9,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
+import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faArrowLeft, faCalendarDays, faCalendarWeek } from '@fortawesome/free-solid-svg-icons';
 import { DateTime } from 'luxon';
@@ -17,7 +18,7 @@ import { LabelService } from '../../../../core/services/label.service';
 import { PreferencesStore } from '../../../../core/services/preferences-store.service';
 import { ProjectService } from '../../../../core/services/project.service';
 import { StatusService } from '../../../../core/services/status.service';
-import { TaskService } from '../../../../core/services/task.service';
+import { TaskService, type CalendarRangeRequest } from '../../../../core/services/task.service';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { startOfToday } from '../../../../shared/utils/timestamps';
 import { projectPaletteFor } from '../../project-presentation';
@@ -36,6 +37,7 @@ import {
   buildUndatedTasks,
   buildWeekDays,
   dayKey,
+  weekStart,
   type CalendarRescheduleRequest,
 } from '../../utils/calendar-view';
 import type { DueDateDraft } from '../../utils/due-date-draft';
@@ -52,6 +54,7 @@ function pruneIds(ids: ReadonlySet<string>, allowed: ReadonlySet<string>): Reado
   standalone: true,
   imports: [
     NgTemplateOutlet,
+    CdkTrapFocus,
     FontAwesomeModule,
     PageHeaderComponent,
     CalendarHeaderComponent,
@@ -135,18 +138,25 @@ export class CalendarPageComponent {
   });
 
   /**
-   * The 42-day window the grid draws, widened to include the open day so the
-   * day panel never blanks when the viewed month moves away from it.
+   * The window the grid draws (a fixed six weeks) plus the week around the
+   * open day. They are fetched separately so browsing far-away months never
+   * widens the request; the open day's week keeps the day panel and the
+   * mobile week strip populated wherever the selection is left behind.
    */
-  private readonly visibleRange = computed(() => {
+  private readonly visibleRange = computed<CalendarRangeRequest>(() => {
     const monthStart = this.viewMonth().startOf('month');
     const gridStart = monthStart.minus({ days: monthStart.weekday % 7 });
-    const gridEnd = gridStart.plus({ days: 41 });
-    const selected = this.selectedDate();
+    const focusStart = weekStart(this.selectedDate());
 
     return {
-      from: dayKey(selected.toMillis() < gridStart.toMillis() ? selected : gridStart),
-      to: dayKey(selected.toMillis() > gridEnd.toMillis() ? selected : gridEnd),
+      grid: {
+        from: dayKey(gridStart),
+        to: dayKey(gridStart.plus({ days: 41 })),
+      },
+      focus: {
+        from: dayKey(focusStart),
+        to: dayKey(focusStart.plus({ days: 6 })),
+      },
     };
   });
 
@@ -189,6 +199,10 @@ export class CalendarPageComponent {
   protected readonly showInitialLoading = computed(
     () => this.taskService.calendarRangeLoading() && !this.taskService.calendarRangeLoaded(),
   );
+  /** True when a calendar list holds more tasks than the API returns in a page. */
+  protected readonly limitExceeded = computed(
+    () => this.taskService.calendarRangeTruncated() || this.taskService.undatedTruncated(),
+  );
 
   constructor() {
     effect(() => {
@@ -208,9 +222,12 @@ export class CalendarPageComponent {
         const next = new Map(overrides);
         for (const [id, expected] of overrides) {
           const active = activeById.get(id);
-          // Completing removes the task from the active list; reopening brings
-          // it back as not completed. Either way the server has caught up.
-          if ((expected && !active) || (!expected && !!active && !active.completed)) {
+          // Completing drops the task from the list when done tasks are hidden;
+          // with Show done on it stays in the list. Either way the server has
+          // caught up once the task carries the expected state (or is gone for
+          // a completion), so the override is safe to drop.
+          const caughtUp = active ? active.completed === expected : expected;
+          if (caughtUp) {
             next.delete(id);
             changed = true;
           }
@@ -364,15 +381,25 @@ export class CalendarPageComponent {
     this.schedulingIds.update((ids) => new Set(ids).add(task.id));
 
     try {
-      await this.taskService.updateTask(task.id, { dueDate: date });
+      const updated = await this.taskService.updateTask(task.id, { dueDate: date });
+      // A 200 that did not store the date would otherwise leave the task hidden
+      // from the No date list with nothing on the calendar until a reload.
+      if (updated?.dueDate?.slice(0, 10) !== date) {
+        this.stopScheduling(task.id);
+        this.statusService.error('Could not schedule the task. Please try again.');
+      }
     } catch {
-      this.schedulingIds.update((ids) => {
-        const next = new Set(ids);
-        next.delete(task.id);
-        return next;
-      });
+      this.stopScheduling(task.id);
       this.statusService.error('Could not schedule the task. Please try again.');
     }
+  }
+
+  private stopScheduling(id: string): void {
+    this.schedulingIds.update((ids) => {
+      const next = new Set(ids);
+      next.delete(id);
+      return next;
+    });
   }
 
   protected async moveTask({ task, date }: CalendarRescheduleRequest): Promise<void> {

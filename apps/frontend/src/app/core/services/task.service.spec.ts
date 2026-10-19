@@ -15,7 +15,7 @@ describe('TaskService', () => {
   let projectServiceStub: { projects: ReturnType<typeof signal>; refresh: jasmine.Spy };
 
   const ACTIVE_URL =
-    'http://localhost:3000/tasks?page=1&pageSize=1000&completed=false&includeSubtasks=true';
+    'http://localhost:3000/tasks?page=1&pageSize=3000&completed=false&includeSubtasks=true';
   const COMPLETED_URL =
     'http://localhost:3000/tasks?page=1&pageSize=100&completed=true&includeSubtasks=true';
 
@@ -31,11 +31,11 @@ describe('TaskService', () => {
     return date.toISOString();
   }
 
-  function paginated(tasks: Task[]) {
+  function paginated(tasks: Task[], meta: { total?: number } = {}) {
     return {
       data: tasks,
       meta: {
-        total: tasks.length,
+        total: meta.total ?? tasks.length,
         page: 1,
         pageSize: 100,
         totalPages: tasks.length === 0 ? 0 : 1,
@@ -82,11 +82,16 @@ describe('TaskService', () => {
     });
   }
 
-  function flushView(http: HttpTestingController, query: string, tasks: Task[] = []) {
+  function flushView(
+    http: HttpTestingController,
+    query: string,
+    tasks: Task[] = [],
+    total?: number,
+  ) {
     const match = http.match((req) => req.url.includes(query));
     match.forEach((req) => {
       if (!req.cancelled) {
-        req.flush(paginated(tasks));
+        req.flush(paginated(tasks, total === undefined ? {} : { total }));
       }
     });
   }
@@ -224,6 +229,62 @@ describe('TaskService', () => {
     tick();
 
     expect(service.allActiveTasks().map((task) => task.id)).toEqual(['user-2-task']);
+  }));
+
+  it('resets the calendar load flags on sign-out so the next user gets the loading state', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    service.setCalendarRange({
+      grid: { from: '2026-10-01', to: '2026-11-11' },
+      focus: { from: '2026-01-04', to: '2026-01-10' },
+    });
+    tick();
+
+    http
+      .expectOne((r) => r.url.includes('dueFrom=2026-10-01'))
+      .flush(paginated([calendarTask('grid-1', '2026-10-02')], { total: 4000 }));
+    http
+      .expectOne((r) => r.url.includes('dueFrom=2026-01-04'))
+      .flush(paginated([calendarTask('focus-1', '2026-01-05')]));
+    http
+      .expectOne((r) => r.url.includes('hasDueDate=false'))
+      .flush(paginated([calendarTask('undated-1', '')], { total: 5000 }));
+    tick();
+
+    expect(service.calendarRangeLoaded()).toBe(true);
+    expect(service.calendarRangeTruncated()).toBe(true);
+    expect(service.undatedTruncated()).toBe(true);
+
+    // Signing out drops the sticky flags, so nothing carries over between
+    // accounts sharing the tab.
+    currentUserId.set(null);
+    isAuthenticated.set(false);
+    tick();
+
+    expect(service.calendarRangeTasks()).toEqual([]);
+    expect(service.calendarRangeLoaded()).toBe(false);
+    expect(service.calendarRangeTruncated()).toBe(false);
+    expect(service.undatedTruncated()).toBe(false);
+
+    // The next user therefore starts from the loading state, not a stale
+    // empty calendar, until their own fetch lands.
+    isAuthenticated.set(true);
+    currentUserId.set('user-2');
+    tick();
+
+    expect(service.calendarRangeLoaded()).toBe(false);
+
+    http.expectOne((r) => r.url.includes('dueFrom=2026-10-01')).flush(paginated([]));
+    http.expectOne((r) => r.url.includes('dueFrom=2026-01-04')).flush(paginated([]));
+    tick();
+
+    expect(service.calendarRangeLoaded()).toBe(true);
   }));
 
   it('returns an empty list when the tasks endpoint responds with 401', fakeAsync(() => {
@@ -1265,12 +1326,12 @@ describe('TaskService', () => {
     const http = TestBed.inject(HttpTestingController);
 
     let result: Task[] | undefined;
-    service.fetchUndatedTasks$().subscribe((tasks) => {
-      result = tasks;
+    service.fetchUndatedTasks$().subscribe((response) => {
+      result = response.data;
     });
 
     const req = http.expectOne(
-      (r) => r.url.includes('hasDueDate=false') && r.url.includes('pageSize=1000'),
+      (r) => r.url.includes('hasDueDate=false') && r.url.includes('pageSize=3000'),
     );
     expect(req.request.url).toContain('completed=false');
     expect(req.request.url).toContain('tz=');
@@ -1298,13 +1359,14 @@ describe('TaskService', () => {
     const http = TestBed.inject(HttpTestingController);
 
     let result: Task[] | undefined;
-    service.fetchTasksDueBetween$('2026-05-10', '2026-05-13').subscribe((tasks) => {
-      result = tasks;
+    service.fetchTasksDueBetween$('2026-05-10', '2026-05-13').subscribe((response) => {
+      result = response.data;
     });
 
     const req = http.expectOne(
       (r) => r.url.includes('dueFrom=2026-05-10') && r.url.includes('dueTo=2026-05-13'),
     );
+    expect(req.request.url).toContain('pageSize=3000');
     expect(req.request.url).toContain('tz=');
     req.flush(paginated([]));
     tick();
@@ -1340,5 +1402,176 @@ describe('TaskService', () => {
     tick();
 
     expect(service.undatedTasks().map((task) => task.id)).toEqual(['undated-1']);
+  }));
+
+  function calendarTask(id: string, dueDate: string): Task {
+    return {
+      id,
+      title: id,
+      status: 'inbox',
+      priority: 'medium',
+      completed: false,
+      dueDate,
+      order: 0,
+      createdAt: '',
+      updatedAt: '',
+    };
+  }
+
+  it('fetches the grid and the open day separately and merges the results', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    service.setCalendarRange({
+      grid: { from: '2026-10-01', to: '2026-11-11' },
+      focus: { from: '2026-01-04', to: '2026-01-10' },
+    });
+    tick();
+
+    const gridReq = http.expectOne(
+      (r) => r.url.includes('dueFrom=2026-10-01') && r.url.includes('dueTo=2026-11-11'),
+    );
+    const focusReq = http.expectOne(
+      (r) => r.url.includes('dueFrom=2026-01-04') && r.url.includes('dueTo=2026-01-10'),
+    );
+
+    gridReq.flush(paginated([calendarTask('grid-1', '2026-10-02')]));
+    // The grid task repeats in the focus window; the merged list keeps one copy.
+    focusReq.flush(
+      paginated([calendarTask('focus-1', '2026-01-05'), calendarTask('grid-1', '2026-10-02')]),
+    );
+    tick();
+
+    expect(service.calendarRangeTasks().map((task) => task.id)).toEqual(['grid-1', 'focus-1']);
+  }));
+
+  it('reuses the grid data while the open day stays inside it', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    service.setCalendarRange({
+      grid: { from: '2026-10-01', to: '2026-11-11' },
+      focus: { from: '2026-10-04', to: '2026-10-10' },
+    });
+    tick();
+
+    http
+      .expectOne((r) => r.url.includes('dueFrom=2026-10-01'))
+      .flush(paginated([calendarTask('grid-1', '2026-10-02')]));
+    tick();
+
+    expect(service.calendarRangeTasks().map((task) => task.id)).toEqual(['grid-1']);
+    http.expectNone((r) => r.url.includes('dueFrom=2026-10-04'));
+
+    // Moving the open day inside the grid changes its week, but the grid data
+    // already covers it, so no request goes out.
+    service.setCalendarRange({
+      grid: { from: '2026-10-01', to: '2026-11-11' },
+      focus: { from: '2026-10-11', to: '2026-10-17' },
+    });
+    tick();
+
+    http.expectNone((r) => r.url.includes('dueFrom=2026-10-01'));
+  }));
+
+  it('flags the calendar range as truncated when a window exceeds the page cap', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    service.setCalendarRange({
+      grid: { from: '2026-10-01', to: '2026-11-11' },
+      focus: { from: '2026-01-04', to: '2026-01-10' },
+    });
+    tick();
+
+    http
+      .expectOne((r) => r.url.includes('dueFrom=2026-10-01'))
+      .flush(paginated([calendarTask('grid-1', '2026-10-02')], { total: 4000 }));
+    http
+      .expectOne((r) => r.url.includes('dueFrom=2026-01-04'))
+      .flush(paginated([calendarTask('focus-1', '2026-01-05')]));
+    tick();
+
+    // The grid holds a page of its 4000-task total, so days are incomplete.
+    expect(service.calendarRangeTruncated()).toBe(true);
+
+    // A refetch that fits within the cap clears the flag.
+    service.refresh();
+    tick();
+    http
+      .expectOne((r) => r.url.includes('dueFrom=2026-10-01'))
+      .flush(paginated([calendarTask('grid-1', '2026-10-02')]));
+    http
+      .expectOne((r) => r.url.includes('dueFrom=2026-01-04'))
+      .flush(paginated([calendarTask('focus-1', '2026-01-05')]));
+    tick();
+
+    expect(service.calendarRangeTruncated()).toBe(false);
+  }));
+
+  it('flags the No date list as truncated when it exceeds the page cap', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    http
+      .expectOne((r) => r.url.includes('hasDueDate=false'))
+      .flush(paginated([calendarTask('undated-1', '')], { total: 5000 }));
+    tick();
+
+    expect(service.undatedTruncated()).toBe(true);
+    expect(service.undatedTasks().map((task) => task.id)).toEqual(['undated-1']);
+  }));
+
+  it('flags task views that exceed the page cap and clears them on refetch', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    flushView(http, 'view=today', [calendarTask('today-1', '2026-10-19')], 4000);
+    flushView(http, 'overdue=true', [calendarTask('overdue-1', '2026-10-01')]);
+    flushView(http, 'view=inbox', [calendarTask('inbox-1', '')]);
+    flushView(http, 'view=upcoming', [calendarTask('upcoming-1', '2026-11-01')]);
+    tick();
+
+    // Only Today holds more tasks than a page holds.
+    expect(service.todayTruncated()).toBe(true);
+    expect(service.overdueTruncated()).toBe(false);
+    expect(service.inboxTruncated()).toBe(false);
+    expect(service.upcomingTruncated()).toBe(false);
+
+    // A refetch that fits within the cap clears the flag.
+    service.refresh();
+    tick();
+    flushView(http, 'view=today', [calendarTask('today-1', '2026-10-19')]);
+    flushView(http, 'overdue=true', [calendarTask('overdue-1', '2026-10-01')]);
+    flushView(http, 'view=inbox', [calendarTask('inbox-1', '')]);
+    flushView(http, 'view=upcoming', [calendarTask('upcoming-1', '2026-11-01')]);
+    tick();
+
+    expect(service.todayTruncated()).toBe(false);
   }));
 });

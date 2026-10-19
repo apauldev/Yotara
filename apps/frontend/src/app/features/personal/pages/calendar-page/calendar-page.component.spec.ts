@@ -11,7 +11,7 @@ import { LabelService } from '../../../../core/services/label.service';
 import { PreferencesStore } from '../../../../core/services/preferences-store.service';
 import { ProjectService } from '../../../../core/services/project.service';
 import { StatusService } from '../../../../core/services/status.service';
-import { TaskService } from '../../../../core/services/task.service';
+import { TaskService, type CalendarRangeRequest } from '../../../../core/services/task.service';
 import { DatePickerComponent } from '../../../../shared/ui/date-picker/date-picker.component';
 
 function task(overrides: Partial<Task> = {}): Task {
@@ -40,6 +40,8 @@ describe('CalendarPageComponent', () => {
   let fixture: ComponentFixture<CalendarPageComponent>;
   let rangeTasks: WritableSignal<Task[]>;
   let undatedTasks: WritableSignal<Task[]>;
+  let rangeTruncated: WritableSignal<boolean>;
+  let undatedTruncated: WritableSignal<boolean>;
   let projects: WritableSignal<Project[]>;
   let labels: WritableSignal<Label[]>;
   let showDonePref: WritableSignal<boolean>;
@@ -48,6 +50,8 @@ describe('CalendarPageComponent', () => {
     calendarRangeTasks: WritableSignal<Task[]>;
     calendarRangeLoading: WritableSignal<boolean>;
     calendarRangeLoaded: WritableSignal<boolean>;
+    calendarRangeTruncated: WritableSignal<boolean>;
+    undatedTruncated: WritableSignal<boolean>;
     setCalendarRange: jasmine.Spy;
     undatedTasks: WritableSignal<Task[]>;
     error: WritableSignal<string | null>;
@@ -99,6 +103,8 @@ describe('CalendarPageComponent', () => {
   beforeEach(async () => {
     rangeTasks = signal<Task[]>([]);
     undatedTasks = signal<Task[]>([]);
+    rangeTruncated = signal(false);
+    undatedTruncated = signal(false);
     projects = signal<Project[]>([]);
     labels = signal<Label[]>([]);
     showDonePref = signal(false);
@@ -108,6 +114,8 @@ describe('CalendarPageComponent', () => {
       calendarRangeTasks: rangeTasks,
       calendarRangeLoading: signal(false),
       calendarRangeLoaded: signal(true),
+      calendarRangeTruncated: rangeTruncated,
+      undatedTruncated,
       setCalendarRange: jasmine.createSpy('setCalendarRange'),
       undatedTasks,
       error: signal<string | null>(null),
@@ -198,30 +206,65 @@ describe('CalendarPageComponent', () => {
   it('requests the 42-day grid window from the service', () => {
     fixture.detectChanges();
 
-    const [range] = taskService.setCalendarRange.calls.mostRecent().args as [
-      { from: string; to: string },
-    ];
-    const gridStart = DateTime.fromISO(range.from);
+    const [range] = taskService.setCalendarRange.calls.mostRecent().args as [CalendarRangeRequest];
+    const gridStart = DateTime.fromISO(range.grid.from);
 
     expect(gridStart.weekday).toBe(7);
-    expect(gridStart.plus({ days: 41 }).toISODate()).toBe(range.to);
-    expect(range.from <= todayISO && todayISO <= range.to).toBe(true);
+    expect(gridStart.plus({ days: 41 }).toISODate()).toBe(range.grid.to);
+    expect(range.grid.from <= todayISO && todayISO <= range.grid.to).toBe(true);
   });
 
-  it('re-requests the window on month change and keeps the open day inside it', () => {
+  it('re-requests the windows on month change without stretching the grid to the open day', () => {
     fixture.detectChanges();
-    const first = taskService.setCalendarRange.calls.mostRecent().args[0];
+    const [first] = taskService.setCalendarRange.calls.mostRecent().args as [CalendarRangeRequest];
 
     element<HTMLButtonElement>('[aria-label="Next month"]').click();
     fixture.detectChanges();
 
-    const [second] = taskService.setCalendarRange.calls.mostRecent().args as [
-      { from: string; to: string },
-    ];
+    const [second] = taskService.setCalendarRange.calls.mostRecent().args as [CalendarRangeRequest];
 
     expect(second).not.toEqual(first);
-    // The day panel still shows the open day, so its date must stay in range.
-    expect(second.from).toBe(todayISO);
+    // The grid window stays exactly six weeks no matter how far the open day
+    // is left behind; the open day is covered by the separate focus window.
+    const gridStart = DateTime.fromISO(second.grid.from);
+    expect(gridStart.weekday).toBe(7);
+    expect(gridStart.plus({ days: 41 }).toISODate()).toBe(second.grid.to);
+    expect(second.focus.from <= todayISO && todayISO <= second.focus.to).toBe(true);
+  });
+
+  it('keeps both windows fixed in size while browsing far-away months', () => {
+    fixture.detectChanges();
+
+    for (let step = 0; step < 3; step += 1) {
+      element<HTMLButtonElement>('[aria-label="Next month"]').click();
+      fixture.detectChanges();
+    }
+
+    const [range] = taskService.setCalendarRange.calls.mostRecent().args as [CalendarRangeRequest];
+    const gridStart = DateTime.fromISO(range.grid.from);
+    const focusStart = DateTime.fromISO(range.focus.from);
+
+    // Still six weeks of grid plus one week of focus, not a hull reaching all
+    // the way back to the abandoned selection.
+    expect(gridStart.plus({ days: 41 }).toISODate()).toBe(range.grid.to);
+    expect(focusStart.plus({ days: 6 }).toISODate()).toBe(range.focus.to);
+    expect(range.focus.from <= todayISO && todayISO <= range.focus.to).toBe(true);
+    expect(range.grid.from).not.toBe(todayISO);
+  });
+
+  it('shows the task limit notice when a calendar list exceeds the page cap', () => {
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('Task limit exceeded');
+
+    rangeTruncated.set(true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Task limit exceeded');
+
+    // The No date list is capped too, so it raises the same notice.
+    rangeTruncated.set(false);
+    undatedTruncated.set(true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Task limit exceeded');
   });
 
   describe('complete', () => {
@@ -281,11 +324,36 @@ describe('CalendarPageComponent', () => {
 
       expect(component.completionOverrides().has('due-1')).toBe(false);
     });
+
+    it('prunes the override once the server confirms the completion with Show done on', () => {
+      showDonePref.set(true);
+      rangeTasks.set([task({ id: 'due-1', title: 'Ship the calendar', dueDate: todayISO })]);
+      fixture.detectChanges();
+
+      element<HTMLButtonElement>('.cal-chip-check').click();
+      fixture.detectChanges();
+
+      const component = fixture.componentInstance as any;
+      expect(component.completionOverrides().has('due-1')).toBe(true);
+
+      // Show done keeps the completed task in the fetched list, so the list
+      // never "drops" it; the override must still prune once the server state
+      // matches, or a later external reopen keeps rendering as completed.
+      rangeTasks.set([
+        task({ id: 'due-1', title: 'Ship the calendar', dueDate: todayISO, completed: true }),
+      ]);
+      fixture.detectChanges();
+
+      expect(component.completionOverrides().has('due-1')).toBe(false);
+    });
   });
 
   describe('quick schedule', () => {
     it('schedules an undated task for today and it leaves the list, then appears on the calendar', () => {
       undatedTasks.set([task({ id: 'undated-1', title: 'Read the brief' })]);
+      taskService.updateTask.and.resolveTo(
+        task({ id: 'undated-1', title: 'Read the brief', dueDate: todayISO }),
+      );
       fixture.detectChanges();
 
       openNoDateList();
@@ -311,6 +379,7 @@ describe('CalendarPageComponent', () => {
 
     it('schedules an undated task for a picked date', () => {
       undatedTasks.set([task({ id: 'undated-1', title: 'Read the brief' })]);
+      taskService.updateTask.and.resolveTo(task({ id: 'undated-1', dueDate: '2026-11-30' }));
       fixture.detectChanges();
       openNoDateList();
 
@@ -342,8 +411,33 @@ describe('CalendarPageComponent', () => {
       );
     });
 
+    it('restores the row and surfaces an error when the server does not store the date', async () => {
+      undatedTasks.set([task({ id: 'undated-1', title: 'Read the brief' })]);
+      // A 200 whose payload still has no date: a silent no-op, like the
+      // simple-mode drop this regression covers.
+      taskService.updateTask.and.resolveTo(task({ id: 'undated-1', title: 'Read the brief' }));
+      fixture.detectChanges();
+      openNoDateList();
+
+      findByText('.cal-quick-btn', 'Today').click();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.cal-nodate-row')).toBeFalsy();
+
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).toContain('Read the brief');
+      expect(statusService.error).toHaveBeenCalledWith(
+        'Could not schedule the task. Please try again.',
+      );
+    });
+
     it('schedules for tomorrow from the quick action', () => {
       undatedTasks.set([task({ id: 'undated-1', title: 'Read the brief' })]);
+      taskService.updateTask.and.resolveTo(
+        task({ id: 'undated-1', dueDate: today.plus({ days: 1 }).toISODate() as string }),
+      );
       fixture.detectChanges();
       openNoDateList();
 
@@ -424,6 +518,33 @@ describe('CalendarPageComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.cal-sheet')).toBeFalsy();
+  });
+
+  it('moves focus into the mobile day sheet, closes it on Escape, and restores focus', async () => {
+    const component = fixture.componentInstance as unknown as {
+      isMobile: WritableSignal<boolean>;
+    };
+    component.isMobile.set(true);
+    fixture.detectChanges();
+
+    const dayButton = element<HTMLButtonElement>('.cal-week-day-selected');
+    dayButton.focus();
+    dayButton.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const sheet = element<HTMLElement>('.cal-sheet');
+    // Focus is captured on the sheet's first control instead of staying on
+    // the page behind it.
+    expect(sheet.contains(document.activeElement)).toBe(true);
+    expect(document.activeElement).toBe(element<HTMLElement>('.cal-sheet-back'));
+
+    sheet.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.cal-sheet')).toBeFalsy();
+    // Closing returns focus to the control that opened the sheet.
+    expect(document.activeElement).toBe(dayButton);
   });
 
   it('shows a week strip on mobile and keeps completion in the day sheet', () => {

@@ -186,4 +186,41 @@ test.describe('Calendar', () => {
     await page.getByRole('button', { name: /No date/ }).click();
     await expect(page.locator('.cal-nodate-row').filter({ hasText: name })).toHaveCount(0);
   });
+
+  test('schedules a modal-created task from the No date list', async ({ page }) => {
+    await page.goto('/tasks?view=inbox');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    // A task created through the modal without a date is stored in simple
+    // mode; its due-date-only PATCH used to be silently dropped, stranding it
+    // between the No date list and the calendar.
+    const name = taskName('simple');
+    await page.getByPlaceholder("What's on your mind today?").fill(name);
+    await page.getByRole('button', { name: 'Add task with details' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible({ timeout: 5_000 });
+    await page.getByPlaceholder('Redesign sanctuary garden layout').fill(name);
+    await page.getByRole('button', { name: 'Create Task' }).click();
+    await expect(dialog).not.toBeVisible();
+
+    await page.getByRole('link', { name: 'Calendar' }).click();
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    await page.getByRole('button', { name: /No date/ }).click();
+
+    const row = page.locator('.cal-nodate-row').filter({ hasText: name });
+    await expect(row).toBeVisible({ timeout: 10_000 });
+    await row.getByRole('button', { name: 'Today', exact: true }).click();
+
+    // The row leaves the list and the task is scheduled on today's panel. The
+    // day panel is asserted rather than the cell because a busy day may hide
+    // the chip behind "+N more".
+    await expect(row).toHaveCount(0, { timeout: 10_000 });
+    await page.getByRole('button', { name: /No date/ }).click();
+    await expect(page.locator('app-calendar-day-panel').getByText(name).first()).toBeVisible({
+      timeout: 10_000,
+    });
+  });
 });

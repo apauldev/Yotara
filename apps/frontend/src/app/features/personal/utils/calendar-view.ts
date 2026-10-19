@@ -77,13 +77,18 @@ export function buildUndatedTasks(tasks: Task[]): Task[] {
   return sortDayTasks(tasks.filter((task) => isCalendarTask(task) && !task.dueDate));
 }
 
+/** The Sunday that starts the week containing `reference`. */
+export function weekStart(reference: DateTime): DateTime {
+  return reference.startOf('day').minus({ days: reference.weekday % 7 });
+}
+
 /** The seven days (Sunday-first) of the week containing `reference`. */
 export function buildWeekDays(
   reference: DateTime,
   tasksByDay: Map<string, Task[]>,
   today: DateTime,
 ): CalendarWeekDay[] {
-  const start = reference.startOf('day').minus({ days: reference.weekday % 7 });
+  const start = weekStart(reference);
   const todayKey = dayKey(today);
   const selectedKey = dayKey(reference);
 

@@ -503,7 +503,14 @@ function updateTaskForOwnerSync(
 
     const status = body.status ?? current.status;
     const completed = body.completed ?? current.completed;
-    const simpleMode = body.simpleMode ?? current.simpleMode;
+    // Scheduling a task is a real state change, so an explicit due date exits
+    // simple mode. Without this, a task created without a date (simple mode)
+    // would accept a 200 for a PATCH that asked to be scheduled and silently
+    // drop the date. An explicit `simpleMode: true` still wins: it means "take
+    // the schedule off", mirroring the create path and the client's toggle.
+    const explicitlyScheduled =
+      body.dueDate !== undefined && body.dueDate !== null && body.dueDate !== '';
+    const simpleMode = body.simpleMode ?? (explicitlyScheduled ? false : current.simpleMode);
     const archiveAutoDelete = getArchiveAutoDeleteForOwner(ownerId, client);
     const nextPermanentArchive =
       body.permanentArchive ??

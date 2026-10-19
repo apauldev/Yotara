@@ -394,6 +394,74 @@ describe('AuthStateService', () => {
     expect(service.loading()).toBeFalse();
   });
 
+  it('drops the old user before adopting a different account', async () => {
+    spyOn(AuthService, 'getSession').and.resolveTo({
+      data: { session: { id: 'session-a', userId: 'user-a' }, user: { id: 'user-a' } },
+    } as any);
+    spyOn(AuthService, 'getProfile').and.resolveTo({ user: { id: 'user-a' } } as any);
+
+    const service = TestBed.inject(AuthStateService);
+    await service.refreshSession();
+    expect(service.currentUserId()).toBe('user-a');
+
+    // The session now belongs to another account (e.g. signing in from
+    // /login while user A is still resident in memory).
+    (AuthService.getSession as jasmine.Spy).and.resolveTo({
+      data: { session: { id: 'session-b', userId: 'user-b' }, user: { id: 'user-b' } },
+    } as any);
+
+    let resolveProfile!: (value: unknown) => void;
+    (AuthService.getProfile as jasmine.Spy).and.returnValue(
+      new Promise((resolve) => {
+        resolveProfile = resolve;
+      }),
+    );
+
+    const refresh = service.refreshSession();
+    await new Promise((resolve) => setTimeout(resolve));
+
+    // The old identity is gone before B's profile arrives, so user-scoped
+    // caches clear instead of showing A's data under B.
+    expect(service.currentUserId()).toBeNull();
+    expect(service.isAuthenticated()).toBeFalse();
+
+    resolveProfile({ user: { id: 'user-b' } });
+    await refresh;
+
+    expect(service.currentUserId()).toBe('user-b');
+    expect(service.isAuthenticated()).toBeTrue();
+  });
+
+  it('keeps the current user while refreshing the same account', async () => {
+    spyOn(AuthService, 'getSession').and.resolveTo({
+      data: { session: { id: 'session-a', userId: 'user-a' }, user: { id: 'user-a' } },
+    } as any);
+    spyOn(AuthService, 'getProfile').and.resolveTo({ user: { id: 'user-a' } } as any);
+
+    const service = TestBed.inject(AuthStateService);
+    await service.refreshSession();
+
+    let resolveProfile!: (value: unknown) => void;
+    (AuthService.getProfile as jasmine.Spy).and.returnValue(
+      new Promise((resolve) => {
+        resolveProfile = resolve;
+      }),
+    );
+
+    const refresh = service.refreshSession();
+    await new Promise((resolve) => setTimeout(resolve));
+
+    // Same account: the session is exposed immediately, so no signed-out
+    // flash or cache blanking on a routine refresh.
+    expect(service.currentUserId()).toBe('user-a');
+    expect(service.isAuthenticated()).toBeTrue();
+
+    resolveProfile({ user: { id: 'user-a' } });
+    await refresh;
+
+    expect(service.currentUserId()).toBe('user-a');
+  });
+
   it('delegates signUp to AuthService and refreshes session on success', async () => {
     spyOn(AuthService, 'signUp').and.resolveTo({ error: null } as any);
     spyOn(AuthService, 'getSession').and.resolveTo({ data: { session: null, user: null } } as any);

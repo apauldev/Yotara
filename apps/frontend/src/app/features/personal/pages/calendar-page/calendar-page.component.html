@@ -21,6 +21,10 @@
     @if (showInitialLoading()) {
       <div class="cal-loading" role="status" aria-live="polite">Loading your calendar…</div>
     } @else {
+      @if (limitExceeded()) {
+        <p class="cal-limit-notice" role="status">Task limit exceeded. Some tasks aren't shown.</p>
+      }
+
       <ng-template #calendarMain>
         <app-calendar-month-grid
           [cells]="cells()"
@@ -95,7 +99,16 @@
         </button>
 
         @if (mobilePanelOpen()) {
-          <div class="cal-sheet" role="dialog" aria-modal="true" aria-label="Day details">
+          <div
+            class="cal-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Day details"
+            tabindex="-1"
+            cdkTrapFocus
+            [cdkTrapFocusAutoCapture]="true"
+            (keydown.escape)="closeMobilePanel()"
+          >
             <header class="cal-sheet-head">
               <button type="button" class="cal-sheet-back" (click)="closeMobilePanel()">
                 <fa-icon [icon]="faArrowLeft" aria-hidden="true" />

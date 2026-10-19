@@ -9,6 +9,7 @@ import {
   distinctUntilChanged,
   finalize,
   firstValueFrom,
+  forkJoin,
   map,
   of,
   switchMap,
@@ -28,6 +29,46 @@ export interface UpcomingTaskGroup {
   tasks: Task[];
 }
 
+/**
+ * The calendar's visible windows. The drawn grid and the open day's week are
+ * fetched as two fixed-size requests, so browsing to far-away months never
+ * grows the payload with the months in between. Bounds are inclusive
+ * YYYY-MM-DD dates.
+ */
+export interface CalendarRangeRequest {
+  grid: { from: string; to: string };
+  /** The week around the open day; ignored when the grid already covers it. */
+  focus: { from: string; to: string };
+}
+
+/** Normalized fetch state: focus windows the grid covers collapse to `null`. */
+interface CalendarRangeState {
+  grid: { from: string; to: string };
+  focus: { from: string; to: string } | null;
+}
+
+/**
+ * Largest tasks page the app requests. It matches the API's per-page cap; the
+ * calendar flags truncation when a window returns more than it can hold.
+ */
+export const TASKS_PAGE_SIZE = 3000;
+
+/** Merge the grid and focus windows, keeping one copy of tasks in both. */
+function mergeCalendarTasks(gridTasks: Task[], focusTasks: Task[]): Task[] {
+  if (focusTasks.length === 0) {
+    return gridTasks;
+  }
+
+  const byId = new Map(gridTasks.map((task) => [task.id, task]));
+  for (const task of focusTasks) {
+    if (!byId.has(task.id)) {
+      byId.set(task.id, task);
+    }
+  }
+
+  return [...byId.values()];
+}
+
 @Injectable({ providedIn: 'root' })
 export class TaskService {
   private http = inject(HttpClient);
@@ -40,9 +81,15 @@ export class TaskService {
   private loadingState = signal(false);
   private creatingState = signal(false);
   private errorState = signal<string | null>(null);
-  private calendarRangeState = signal<{ from: string; to: string } | null>(null);
+  private calendarRangeState = signal<CalendarRangeState | null>(null);
   private calendarRangeLoadingState = signal(false);
   private calendarRangeLoadedState = signal(false);
+  private calendarRangeTruncatedState = signal(false);
+  private undatedTruncatedState = signal(false);
+  private todayTruncatedState = signal(false);
+  private overdueTruncatedState = signal(false);
+  private inboxTruncatedState = signal(false);
+  private upcomingTruncatedState = signal(false);
 
   private handleLoadError(context: string) {
     return (error: unknown) => {
@@ -95,7 +142,7 @@ export class TaskService {
   fetchTodayTasks$() {
     const tz = getUserTimezone();
     return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?view=today&tz=${tz}&pageSize=100`,
+      `${this.baseUrl}/tasks?view=today&tz=${tz}&pageSize=${TASKS_PAGE_SIZE}`,
       { withCredentials: true },
     );
   }
@@ -103,7 +150,7 @@ export class TaskService {
   fetchOverdueTasks$() {
     const tz = getUserTimezone();
     return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?overdue=true&tz=${tz}&pageSize=100`,
+      `${this.baseUrl}/tasks?overdue=true&tz=${tz}&pageSize=${TASKS_PAGE_SIZE}`,
       { withCredentials: true },
     );
   }
@@ -111,7 +158,7 @@ export class TaskService {
   fetchInboxTasks$() {
     const tz = getUserTimezone();
     return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?view=inbox&tz=${tz}&pageSize=100`,
+      `${this.baseUrl}/tasks?view=inbox&tz=${tz}&pageSize=${TASKS_PAGE_SIZE}`,
       { withCredentials: true },
     );
   }
@@ -119,7 +166,7 @@ export class TaskService {
   fetchUpcomingTasks$() {
     const tz = getUserTimezone();
     return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?view=upcoming&tz=${tz}&pageSize=100`,
+      `${this.baseUrl}/tasks?view=upcoming&tz=${tz}&pageSize=${TASKS_PAGE_SIZE}`,
       { withCredentials: true },
     );
   }
@@ -138,28 +185,26 @@ export class TaskService {
     return this.http
       .get<
         PaginatedResponse<Task[]>
-      >(`${this.baseUrl}/tasks?page=1&pageSize=1000&completed=false&includeSubtasks=true`, { withCredentials: true })
+      >(`${this.baseUrl}/tasks?page=1&pageSize=${TASKS_PAGE_SIZE}&completed=false&includeSubtasks=true`, { withCredentials: true })
       .pipe(map((response) => response.data));
   }
 
   /** Fetch active tasks without a due date (the calendar's No date list). */
   fetchUndatedTasks$() {
     const tz = getUserTimezone();
-    return this.http
-      .get<
-        PaginatedResponse<Task[]>
-      >(`${this.baseUrl}/tasks?hasDueDate=false&completed=false&tz=${tz}&pageSize=1000`, { withCredentials: true })
-      .pipe(map((response) => response.data));
+    return this.http.get<PaginatedResponse<Task[]>>(
+      `${this.baseUrl}/tasks?hasDueDate=false&completed=false&tz=${tz}&pageSize=${TASKS_PAGE_SIZE}`,
+      { withCredentials: true },
+    );
   }
 
   /** Fetch tasks due within an inclusive calendar-date range (YYYY-MM-DD bounds). */
   fetchTasksDueBetween$(dueFrom: string, dueTo: string) {
     const tz = getUserTimezone();
-    return this.http
-      .get<
-        PaginatedResponse<Task[]>
-      >(`${this.baseUrl}/tasks?dueFrom=${dueFrom}&dueTo=${dueTo}&tz=${tz}&pageSize=1000`, { withCredentials: true })
-      .pipe(map((response) => response.data));
+    return this.http.get<PaginatedResponse<Task[]>>(
+      `${this.baseUrl}/tasks?dueFrom=${dueFrom}&dueTo=${dueTo}&tz=${tz}&pageSize=${TASKS_PAGE_SIZE}`,
+      { withCredentials: true },
+    );
   }
 
   /** Signal of all active tasks for subtask maps, labels, and search. */
@@ -194,31 +239,75 @@ export class TaskService {
     ]).pipe(
       switchMap(([initialized, currentUserId]) => {
         if (!initialized || !currentUserId) {
+          // No user owns the list now; clear its flag so the next user does
+          // not inherit a truncation notice from the previous account.
+          this.undatedTruncatedState.set(false);
           return of([] as Task[]);
         }
         this.errorState.set(null);
-        return this.fetchUndatedTasks$().pipe(catchError(this.handleLoadError('undated tasks')));
+        return this.fetchUndatedTasks$().pipe(
+          map((response) => {
+            this.undatedTruncatedState.set(response.meta.total > response.data.length);
+            return response.data;
+          }),
+          catchError((error) => {
+            this.undatedTruncatedState.set(false);
+            return this.handleLoadError('undated tasks')(error);
+          }),
+        );
       }),
     ),
     { initialValue: [] as Task[] },
   );
 
-  /** Set the calendar's visible window (inclusive YYYY-MM-DD bounds). */
-  setCalendarRange(range: { from: string; to: string }): void {
+  /**
+   * True when the No date list holds more tasks than the API returns in a
+   * page, so the list (and its count) is incomplete.
+   */
+  readonly undatedTruncated = this.undatedTruncatedState.asReadonly();
+
+  /**
+   * Set the calendar's visible windows (inclusive YYYY-MM-DD bounds). A focus
+   * window the grid already covers collapses to `null`, so moving the open day
+   * around inside the drawn grid never triggers a refetch.
+   */
+  setCalendarRange(range: CalendarRangeRequest): void {
+    const covered = range.grid.from <= range.focus.from && range.focus.to <= range.grid.to;
+    const next: CalendarRangeState = {
+      grid: range.grid,
+      focus: covered ? null : range.focus,
+    };
+
     this.calendarRangeState.update((current) =>
-      current?.from === range.from && current?.to === range.to ? current : range,
+      current?.grid.from === next.grid.from &&
+      current?.grid.to === next.grid.to &&
+      current?.focus?.from === next.focus?.from &&
+      current?.focus?.to === next.focus?.to
+        ? current
+        : next,
     );
   }
 
   readonly calendarRangeLoading = this.calendarRangeLoadingState.asReadonly();
 
-  /** True once a window has been fetched, so refetches never re-show the loader. */
+  /**
+   * True once a window has been fetched, so refetches never re-show the
+   * loader. Reset on sign-out so the next user in the tab still gets it.
+   */
   readonly calendarRangeLoaded = this.calendarRangeLoadedState.asReadonly();
 
   /**
-   * Signal of tasks due inside the calendar's visible window. Fetching the
-   * window instead of every active task keeps the grid correct on accounts
-   * larger than the page size an "all active tasks" request is capped at.
+   * True when the fetched windows hold more tasks than the API returns in a
+   * page, so some days in the range are missing their tail.
+   */
+  readonly calendarRangeTruncated = this.calendarRangeTruncatedState.asReadonly();
+
+  /**
+   * Signal of tasks due inside the calendar's visible windows. The grid and
+   * the open day's week are fetched as two bounded requests (the week is
+   * skipped when the grid already covers it), so the payload never grows with
+   * the months browsed between the selection and the drawn grid. A window that
+   * fills the API page cap is surfaced through `calendarRangeTruncated`.
    */
   readonly calendarRangeTasks = toSignal(
     combineLatest([
@@ -229,13 +318,36 @@ export class TaskService {
     ]).pipe(
       switchMap(([initialized, currentUserId, , range]) => {
         if (!initialized || !currentUserId || !range) {
+          // No user owns the calendar now, so drop the sticky load flags. The
+          // next user in this tab then gets the loading state instead of a
+          // stale, empty calendar (and no stale truncation notice).
           this.calendarRangeLoadingState.set(false);
+          this.calendarRangeLoadedState.set(false);
+          this.calendarRangeTruncatedState.set(false);
           return of([] as Task[]);
         }
         this.calendarRangeLoadingState.set(true);
         this.errorState.set(null);
-        return this.fetchTasksDueBetween$(range.from, range.to).pipe(
-          catchError(this.handleLoadError('calendar tasks')),
+
+        const focusResponse$ = range.focus
+          ? this.fetchTasksDueBetween$(range.focus.from, range.focus.to)
+          : of<PaginatedResponse<Task[]> | null>(null);
+
+        return forkJoin([
+          this.fetchTasksDueBetween$(range.grid.from, range.grid.to),
+          focusResponse$,
+        ]).pipe(
+          map(([gridResponse, focusResponse]) => {
+            const truncated =
+              gridResponse.meta.total > gridResponse.data.length ||
+              (focusResponse ? focusResponse.meta.total > focusResponse.data.length : false);
+            this.calendarRangeTruncatedState.set(truncated);
+            return mergeCalendarTasks(gridResponse.data, focusResponse?.data ?? []);
+          }),
+          catchError((error) => {
+            this.calendarRangeTruncatedState.set(false);
+            return this.handleLoadError('calendar tasks')(error);
+          }),
           finalize(() => {
             this.calendarRangeLoadingState.set(false);
             this.calendarRangeLoadedState.set(true);
@@ -254,21 +366,29 @@ export class TaskService {
     ]).pipe(
       switchMap(([initialized, currentUserId]) => {
         if (!initialized || !currentUserId) {
+          this.todayTruncatedState.set(false);
           return of([] as Task[]);
         }
         this.errorState.set(null);
         return this.fetchTodayTasks$().pipe(
-          map((response) =>
-            response.data
+          map((response) => {
+            this.todayTruncatedState.set(response.meta.total > response.data.length);
+            return response.data
               .filter((task) => !task.parentId)
-              .sort((left, right) => left.order - right.order),
-          ),
-          catchError(this.handleLoadError('today tasks')),
+              .sort((left, right) => left.order - right.order);
+          }),
+          catchError((error) => {
+            this.todayTruncatedState.set(false);
+            return this.handleLoadError('today tasks')(error);
+          }),
         );
       }),
     ),
     { initialValue: [] as Task[] },
   );
+
+  /** True when the Today view holds more tasks than one API page. */
+  readonly todayTruncated = this.todayTruncatedState.asReadonly();
 
   readonly overdueTasks = toSignal(
     combineLatest([
@@ -278,21 +398,29 @@ export class TaskService {
     ]).pipe(
       switchMap(([initialized, currentUserId]) => {
         if (!initialized || !currentUserId) {
+          this.overdueTruncatedState.set(false);
           return of([] as Task[]);
         }
         this.errorState.set(null);
         return this.fetchOverdueTasks$().pipe(
-          map((response) =>
-            response.data
+          map((response) => {
+            this.overdueTruncatedState.set(response.meta.total > response.data.length);
+            return response.data
               .filter((task) => !task.parentId)
-              .sort((left, right) => left.order - right.order),
-          ),
-          catchError(this.handleLoadError('overdue tasks')),
+              .sort((left, right) => left.order - right.order);
+          }),
+          catchError((error) => {
+            this.overdueTruncatedState.set(false);
+            return this.handleLoadError('overdue tasks')(error);
+          }),
         );
       }),
     ),
     { initialValue: [] as Task[] },
   );
+
+  /** True when the Overdue list holds more tasks than one API page. */
+  readonly overdueTruncated = this.overdueTruncatedState.asReadonly();
 
   readonly inboxTasks = toSignal(
     combineLatest([
@@ -302,21 +430,29 @@ export class TaskService {
     ]).pipe(
       switchMap(([initialized, currentUserId]) => {
         if (!initialized || !currentUserId) {
+          this.inboxTruncatedState.set(false);
           return of([] as Task[]);
         }
         this.errorState.set(null);
         return this.fetchInboxTasks$().pipe(
-          map((response) =>
-            response.data
+          map((response) => {
+            this.inboxTruncatedState.set(response.meta.total > response.data.length);
+            return response.data
               .filter((task) => !task.parentId)
-              .sort((left, right) => left.order - right.order),
-          ),
-          catchError(this.handleLoadError('inbox tasks')),
+              .sort((left, right) => left.order - right.order);
+          }),
+          catchError((error) => {
+            this.inboxTruncatedState.set(false);
+            return this.handleLoadError('inbox tasks')(error);
+          }),
         );
       }),
     ),
     { initialValue: [] as Task[] },
   );
+
+  /** True when the Inbox holds more tasks than one API page. */
+  readonly inboxTruncated = this.inboxTruncatedState.asReadonly();
 
   readonly upcomingTasks = toSignal(
     combineLatest([
@@ -326,21 +462,29 @@ export class TaskService {
     ]).pipe(
       switchMap(([initialized, currentUserId]) => {
         if (!initialized || !currentUserId) {
+          this.upcomingTruncatedState.set(false);
           return of([] as Task[]);
         }
         this.errorState.set(null);
         return this.fetchUpcomingTasks$().pipe(
-          map((response) =>
-            response.data
+          map((response) => {
+            this.upcomingTruncatedState.set(response.meta.total > response.data.length);
+            return response.data
               .filter((task) => !task.parentId)
-              .sort((left, right) => left.order - right.order),
-          ),
-          catchError(this.handleLoadError('upcoming tasks')),
+              .sort((left, right) => left.order - right.order);
+          }),
+          catchError((error) => {
+            this.upcomingTruncatedState.set(false);
+            return this.handleLoadError('upcoming tasks')(error);
+          }),
         );
       }),
     ),
     { initialValue: [] as Task[] },
   );
+
+  /** True when the Upcoming list holds more tasks than one API page. */
+  readonly upcomingTruncated = this.upcomingTruncatedState.asReadonly();
 
   readonly todayCompletedTasks = toSignal(
     combineLatest([

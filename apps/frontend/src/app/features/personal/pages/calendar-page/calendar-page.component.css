@@ -41,6 +41,15 @@
   font-size: 0.85rem;
 }
 
+.cal-limit-notice {
+  margin: 0 0 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.8rem;
+  background: var(--surface-container-low);
+  color: var(--on-surface-muted);
+  font-size: 0.85rem;
+}
+
 @media (width <= 980px) {
   .cal-layout {
     grid-template-columns: minmax(0, 1fr);
