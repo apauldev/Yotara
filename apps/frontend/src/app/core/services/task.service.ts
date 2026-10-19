@@ -235,6 +235,9 @@ export class TaskService {
     ]).pipe(
       switchMap(([initialized, currentUserId]) => {
         if (!initialized || !currentUserId) {
+          // No user owns the list now; clear its flag so the next user does
+          // not inherit a truncation notice from the previous account.
+          this.undatedTruncatedState.set(false);
           return of([] as Task[]);
         }
         this.errorState.set(null);
@@ -283,7 +286,10 @@ export class TaskService {
 
   readonly calendarRangeLoading = this.calendarRangeLoadingState.asReadonly();
 
-  /** True once a window has been fetched, so refetches never re-show the loader. */
+  /**
+   * True once a window has been fetched, so refetches never re-show the
+   * loader. Reset on sign-out so the next user in the tab still gets it.
+   */
   readonly calendarRangeLoaded = this.calendarRangeLoadedState.asReadonly();
 
   /**
@@ -308,7 +314,12 @@ export class TaskService {
     ]).pipe(
       switchMap(([initialized, currentUserId, , range]) => {
         if (!initialized || !currentUserId || !range) {
+          // No user owns the calendar now, so drop the sticky load flags. The
+          // next user in this tab then gets the loading state instead of a
+          // stale, empty calendar (and no stale truncation notice).
           this.calendarRangeLoadingState.set(false);
+          this.calendarRangeLoadedState.set(false);
+          this.calendarRangeTruncatedState.set(false);
           return of([] as Task[]);
         }
         this.calendarRangeLoadingState.set(true);

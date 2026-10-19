@@ -226,6 +226,62 @@ describe('TaskService', () => {
     expect(service.allActiveTasks().map((task) => task.id)).toEqual(['user-2-task']);
   }));
 
+  it('resets the calendar load flags on sign-out so the next user gets the loading state', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    service.setCalendarRange({
+      grid: { from: '2026-10-01', to: '2026-11-11' },
+      focus: { from: '2026-01-04', to: '2026-01-10' },
+    });
+    tick();
+
+    http
+      .expectOne((r) => r.url.includes('dueFrom=2026-10-01'))
+      .flush(paginated([calendarTask('grid-1', '2026-10-02')], { total: 4000 }));
+    http
+      .expectOne((r) => r.url.includes('dueFrom=2026-01-04'))
+      .flush(paginated([calendarTask('focus-1', '2026-01-05')]));
+    http
+      .expectOne((r) => r.url.includes('hasDueDate=false'))
+      .flush(paginated([calendarTask('undated-1', '')], { total: 5000 }));
+    tick();
+
+    expect(service.calendarRangeLoaded()).toBe(true);
+    expect(service.calendarRangeTruncated()).toBe(true);
+    expect(service.undatedTruncated()).toBe(true);
+
+    // Signing out drops the sticky flags, so nothing carries over between
+    // accounts sharing the tab.
+    currentUserId.set(null);
+    isAuthenticated.set(false);
+    tick();
+
+    expect(service.calendarRangeTasks()).toEqual([]);
+    expect(service.calendarRangeLoaded()).toBe(false);
+    expect(service.calendarRangeTruncated()).toBe(false);
+    expect(service.undatedTruncated()).toBe(false);
+
+    // The next user therefore starts from the loading state, not a stale
+    // empty calendar, until their own fetch lands.
+    isAuthenticated.set(true);
+    currentUserId.set('user-2');
+    tick();
+
+    expect(service.calendarRangeLoaded()).toBe(false);
+
+    http.expectOne((r) => r.url.includes('dueFrom=2026-10-01')).flush(paginated([]));
+    http.expectOne((r) => r.url.includes('dueFrom=2026-01-04')).flush(paginated([]));
+    tick();
+
+    expect(service.calendarRangeLoaded()).toBe(true);
+  }));
+
   it('returns an empty list when the tasks endpoint responds with 401', fakeAsync(() => {
     const service = TestBed.inject(TaskService);
     const http = TestBed.inject(HttpTestingController);
