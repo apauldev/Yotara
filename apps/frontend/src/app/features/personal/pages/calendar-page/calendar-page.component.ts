@@ -208,9 +208,12 @@ export class CalendarPageComponent {
         const next = new Map(overrides);
         for (const [id, expected] of overrides) {
           const active = activeById.get(id);
-          // Completing removes the task from the active list; reopening brings
-          // it back as not completed. Either way the server has caught up.
-          if ((expected && !active) || (!expected && !!active && !active.completed)) {
+          // Completing drops the task from the list when done tasks are hidden;
+          // with Show done on it stays in the list. Either way the server has
+          // caught up once the task carries the expected state (or is gone for
+          // a completion), so the override is safe to drop.
+          const caughtUp = active ? active.completed === expected : expected;
+          if (caughtUp) {
             next.delete(id);
             changed = true;
           }

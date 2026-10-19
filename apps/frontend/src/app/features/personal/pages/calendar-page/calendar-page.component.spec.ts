@@ -281,6 +281,28 @@ describe('CalendarPageComponent', () => {
 
       expect(component.completionOverrides().has('due-1')).toBe(false);
     });
+
+    it('prunes the override once the server confirms the completion with Show done on', () => {
+      showDonePref.set(true);
+      rangeTasks.set([task({ id: 'due-1', title: 'Ship the calendar', dueDate: todayISO })]);
+      fixture.detectChanges();
+
+      element<HTMLButtonElement>('.cal-chip-check').click();
+      fixture.detectChanges();
+
+      const component = fixture.componentInstance as any;
+      expect(component.completionOverrides().has('due-1')).toBe(true);
+
+      // Show done keeps the completed task in the fetched list, so the list
+      // never "drops" it; the override must still prune once the server state
+      // matches, or a later external reopen keeps rendering as completed.
+      rangeTasks.set([
+        task({ id: 'due-1', title: 'Ship the calendar', dueDate: todayISO, completed: true }),
+      ]);
+      fixture.detectChanges();
+
+      expect(component.completionOverrides().has('due-1')).toBe(false);
+    });
   });
 
   describe('quick schedule', () => {
