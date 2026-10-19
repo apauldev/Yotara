@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.81.1](https://github.com/apauldev/Yotara/compare/v0.81.0...v0.81.1) (2026-10-19)
+
+
+### Bug Fixes
+
+* **auth:** clear the old identity when switching accounts ([fef931a](https://github.com/apauldev/Yotara/commit/fef931a1a933d6b596ead2197feaac06a9de7648))
+* **calendar:** cap the visible fetch at six weeks plus the open day ([b8a74b5](https://github.com/apauldev/Yotara/commit/b8a74b5aeceb2a7d7ba2a08d3d409b79aa5b31fe))
+* **calendar:** prune completion overrides with Show done on ([c14d74a](https://github.com/apauldev/Yotara/commit/c14d74af7b68a082766a5c4fb411c00855728149))
+* **calendar:** reset the calendar load flags per user ([4f67f90](https://github.com/apauldev/Yotara/commit/4f67f90ad5b33730e0faaaaa1055d04e48440a71))
+* **calendar:** schedule simple-mode tasks from the No date list ([8d1ee98](https://github.com/apauldev/Yotara/commit/8d1ee98281188c4e0eb272ab03c4656c43d7011a))
+* **calendar:** surface and raise the calendar's task page cap ([d2b78ec](https://github.com/apauldev/Yotara/commit/d2b78ec71d4010dd8ae7a25dd10d9f4c736c5aca))
+* **calendar:** trap focus in the mobile day sheet ([ee12e5f](https://github.com/apauldev/Yotara/commit/ee12e5f184aff192bdd84f5805af0aeb5fe40fb3))
+* **tasks:** fill task views up to the API page cap ([e3c6b4c](https://github.com/apauldev/Yotara/commit/e3c6b4c30b003e5ec681beb2323c6d92085653cc))
+* **tasks:** raise the all-active list page size to the API cap ([adf7e9a](https://github.com/apauldev/Yotara/commit/adf7e9a9437c3ccb1d8daebb3c96d6f92d9c58b6))
+* **tasks:** scope the limit notice to known task views ([9890ecf](https://github.com/apauldev/Yotara/commit/9890ecf945ae3d0543bf71ce9b970cd19b39671e))
+
 ## [0.81.0](https://github.com/apauldev/Yotara/compare/v0.80.3...v0.81.0) (2026-10-18)
 
 
