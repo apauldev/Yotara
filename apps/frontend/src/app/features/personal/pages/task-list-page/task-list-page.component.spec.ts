@@ -640,5 +640,15 @@ describe('TaskListPageComponent', () => {
       fixture.detectChanges();
       expect(fixture.nativeElement.textContent).not.toContain('Task limit exceeded');
     });
+
+    it('stays hidden for an unrecognized view param', () => {
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'done']]));
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      mockTaskService.inboxTruncated.set(true);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).not.toContain('Task limit exceeded');
+    });
   });
 });

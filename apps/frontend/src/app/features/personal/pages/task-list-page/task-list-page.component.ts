@@ -213,8 +213,10 @@ export class TaskListPageComponent implements OnInit {
         return this.taskService.todayTruncated() || this.taskService.overdueTruncated();
       case 'upcoming':
         return this.taskService.upcomingTruncated();
-      default:
+      case 'inbox':
         return this.taskService.inboxTruncated();
+      default:
+        return false;
     }
   });
 
