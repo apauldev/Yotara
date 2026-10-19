@@ -21,6 +21,10 @@
     @if (showInitialLoading()) {
       <div class="cal-loading" role="status" aria-live="polite">Loading your calendar…</div>
     } @else {
+      @if (limitExceeded()) {
+        <p class="cal-limit-notice" role="status">Task limit exceeded. Some tasks aren't shown.</p>
+      }
+
       <ng-template #calendarMain>
         <app-calendar-month-grid
           [cells]="cells()"

@@ -256,6 +256,21 @@ test('tasks pagination validates query bounds and deleted tasks cannot be update
     });
     assert.equal(invalidPageResponse.statusCode, 400);
 
+    const oversizedPageResponse = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?page=1&pageSize=3001',
+      headers: { cookie: userCookie },
+    });
+    assert.equal(oversizedPageResponse.statusCode, 400);
+
+    const maxPageResponse = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?page=1&pageSize=3000',
+      headers: { cookie: userCookie },
+    });
+    assert.equal(maxPageResponse.statusCode, 200);
+    assert.equal(maxPageResponse.json().meta.pageSize, 3000);
+
     const validResponse = await ctx.app.inject({
       method: 'GET',
       url: '/tasks?page=1&pageSize=2',

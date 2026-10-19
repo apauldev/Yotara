@@ -31,11 +31,11 @@ describe('TaskService', () => {
     return date.toISOString();
   }
 
-  function paginated(tasks: Task[]) {
+  function paginated(tasks: Task[], meta: { total?: number } = {}) {
     return {
       data: tasks,
       meta: {
-        total: tasks.length,
+        total: meta.total ?? tasks.length,
         page: 1,
         pageSize: 100,
         totalPages: tasks.length === 0 ? 0 : 1,
@@ -1265,12 +1265,12 @@ describe('TaskService', () => {
     const http = TestBed.inject(HttpTestingController);
 
     let result: Task[] | undefined;
-    service.fetchUndatedTasks$().subscribe((tasks) => {
-      result = tasks;
+    service.fetchUndatedTasks$().subscribe((response) => {
+      result = response.data;
     });
 
     const req = http.expectOne(
-      (r) => r.url.includes('hasDueDate=false') && r.url.includes('pageSize=1000'),
+      (r) => r.url.includes('hasDueDate=false') && r.url.includes('pageSize=3000'),
     );
     expect(req.request.url).toContain('completed=false');
     expect(req.request.url).toContain('tz=');
@@ -1298,13 +1298,14 @@ describe('TaskService', () => {
     const http = TestBed.inject(HttpTestingController);
 
     let result: Task[] | undefined;
-    service.fetchTasksDueBetween$('2026-05-10', '2026-05-13').subscribe((tasks) => {
-      result = tasks;
+    service.fetchTasksDueBetween$('2026-05-10', '2026-05-13').subscribe((response) => {
+      result = response.data;
     });
 
     const req = http.expectOne(
       (r) => r.url.includes('dueFrom=2026-05-10') && r.url.includes('dueTo=2026-05-13'),
     );
+    expect(req.request.url).toContain('pageSize=3000');
     expect(req.request.url).toContain('tz=');
     req.flush(paginated([]));
     tick();
@@ -1420,5 +1421,63 @@ describe('TaskService', () => {
     tick();
 
     http.expectNone((r) => r.url.includes('dueFrom=2026-10-01'));
+  }));
+
+  it('flags the calendar range as truncated when a window exceeds the page cap', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    service.setCalendarRange({
+      grid: { from: '2026-10-01', to: '2026-11-11' },
+      focus: { from: '2026-01-04', to: '2026-01-10' },
+    });
+    tick();
+
+    http
+      .expectOne((r) => r.url.includes('dueFrom=2026-10-01'))
+      .flush(paginated([calendarTask('grid-1', '2026-10-02')], { total: 4000 }));
+    http
+      .expectOne((r) => r.url.includes('dueFrom=2026-01-04'))
+      .flush(paginated([calendarTask('focus-1', '2026-01-05')]));
+    tick();
+
+    // The grid holds a page of its 4000-task total, so days are incomplete.
+    expect(service.calendarRangeTruncated()).toBe(true);
+
+    // A refetch that fits within the cap clears the flag.
+    service.refresh();
+    tick();
+    http
+      .expectOne((r) => r.url.includes('dueFrom=2026-10-01'))
+      .flush(paginated([calendarTask('grid-1', '2026-10-02')]));
+    http
+      .expectOne((r) => r.url.includes('dueFrom=2026-01-04'))
+      .flush(paginated([calendarTask('focus-1', '2026-01-05')]));
+    tick();
+
+    expect(service.calendarRangeTruncated()).toBe(false);
+  }));
+
+  it('flags the No date list as truncated when it exceeds the page cap', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    http
+      .expectOne((r) => r.url.includes('hasDueDate=false'))
+      .flush(paginated([calendarTask('undated-1', '')], { total: 5000 }));
+    tick();
+
+    expect(service.undatedTruncated()).toBe(true);
+    expect(service.undatedTasks().map((task) => task.id)).toEqual(['undated-1']);
   }));
 });

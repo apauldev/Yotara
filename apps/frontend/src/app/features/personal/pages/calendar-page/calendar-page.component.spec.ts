@@ -40,6 +40,8 @@ describe('CalendarPageComponent', () => {
   let fixture: ComponentFixture<CalendarPageComponent>;
   let rangeTasks: WritableSignal<Task[]>;
   let undatedTasks: WritableSignal<Task[]>;
+  let rangeTruncated: WritableSignal<boolean>;
+  let undatedTruncated: WritableSignal<boolean>;
   let projects: WritableSignal<Project[]>;
   let labels: WritableSignal<Label[]>;
   let showDonePref: WritableSignal<boolean>;
@@ -48,6 +50,8 @@ describe('CalendarPageComponent', () => {
     calendarRangeTasks: WritableSignal<Task[]>;
     calendarRangeLoading: WritableSignal<boolean>;
     calendarRangeLoaded: WritableSignal<boolean>;
+    calendarRangeTruncated: WritableSignal<boolean>;
+    undatedTruncated: WritableSignal<boolean>;
     setCalendarRange: jasmine.Spy;
     undatedTasks: WritableSignal<Task[]>;
     error: WritableSignal<string | null>;
@@ -99,6 +103,8 @@ describe('CalendarPageComponent', () => {
   beforeEach(async () => {
     rangeTasks = signal<Task[]>([]);
     undatedTasks = signal<Task[]>([]);
+    rangeTruncated = signal(false);
+    undatedTruncated = signal(false);
     projects = signal<Project[]>([]);
     labels = signal<Label[]>([]);
     showDonePref = signal(false);
@@ -108,6 +114,8 @@ describe('CalendarPageComponent', () => {
       calendarRangeTasks: rangeTasks,
       calendarRangeLoading: signal(false),
       calendarRangeLoaded: signal(true),
+      calendarRangeTruncated: rangeTruncated,
+      undatedTruncated,
       setCalendarRange: jasmine.createSpy('setCalendarRange'),
       undatedTasks,
       error: signal<string | null>(null),
@@ -242,6 +250,21 @@ describe('CalendarPageComponent', () => {
     expect(focusStart.plus({ days: 6 }).toISODate()).toBe(range.focus.to);
     expect(range.focus.from <= todayISO && todayISO <= range.focus.to).toBe(true);
     expect(range.grid.from).not.toBe(todayISO);
+  });
+
+  it('shows the task limit notice when a calendar list exceeds the page cap', () => {
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('Task limit exceeded');
+
+    rangeTruncated.set(true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Task limit exceeded');
+
+    // The No date list is capped too, so it raises the same notice.
+    rangeTruncated.set(false);
+    undatedTruncated.set(true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Task limit exceeded');
   });
 
   describe('complete', () => {

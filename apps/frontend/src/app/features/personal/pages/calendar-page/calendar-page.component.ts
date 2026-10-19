@@ -199,6 +199,10 @@ export class CalendarPageComponent {
   protected readonly showInitialLoading = computed(
     () => this.taskService.calendarRangeLoading() && !this.taskService.calendarRangeLoaded(),
   );
+  /** True when a calendar list holds more tasks than the API returns in a page. */
+  protected readonly limitExceeded = computed(
+    () => this.taskService.calendarRangeTruncated() || this.taskService.undatedTruncated(),
+  );
 
   constructor() {
     effect(() => {

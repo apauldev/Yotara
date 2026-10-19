@@ -47,6 +47,12 @@ interface CalendarRangeState {
   focus: { from: string; to: string } | null;
 }
 
+/**
+ * Page size the calendar lists ask for. It matches the API's per-page cap;
+ * when a window holds more tasks than this the calendar flags the truncation.
+ */
+export const CALENDAR_PAGE_SIZE = 3000;
+
 /** Merge the grid and focus windows, keeping one copy of tasks in both. */
 function mergeCalendarTasks(gridTasks: Task[], focusTasks: Task[]): Task[] {
   if (focusTasks.length === 0) {
@@ -78,6 +84,8 @@ export class TaskService {
   private calendarRangeState = signal<CalendarRangeState | null>(null);
   private calendarRangeLoadingState = signal(false);
   private calendarRangeLoadedState = signal(false);
+  private calendarRangeTruncatedState = signal(false);
+  private undatedTruncatedState = signal(false);
 
   private handleLoadError(context: string) {
     return (error: unknown) => {
@@ -180,21 +188,19 @@ export class TaskService {
   /** Fetch active tasks without a due date (the calendar's No date list). */
   fetchUndatedTasks$() {
     const tz = getUserTimezone();
-    return this.http
-      .get<
-        PaginatedResponse<Task[]>
-      >(`${this.baseUrl}/tasks?hasDueDate=false&completed=false&tz=${tz}&pageSize=1000`, { withCredentials: true })
-      .pipe(map((response) => response.data));
+    return this.http.get<PaginatedResponse<Task[]>>(
+      `${this.baseUrl}/tasks?hasDueDate=false&completed=false&tz=${tz}&pageSize=${CALENDAR_PAGE_SIZE}`,
+      { withCredentials: true },
+    );
   }
 
   /** Fetch tasks due within an inclusive calendar-date range (YYYY-MM-DD bounds). */
   fetchTasksDueBetween$(dueFrom: string, dueTo: string) {
     const tz = getUserTimezone();
-    return this.http
-      .get<
-        PaginatedResponse<Task[]>
-      >(`${this.baseUrl}/tasks?dueFrom=${dueFrom}&dueTo=${dueTo}&tz=${tz}&pageSize=1000`, { withCredentials: true })
-      .pipe(map((response) => response.data));
+    return this.http.get<PaginatedResponse<Task[]>>(
+      `${this.baseUrl}/tasks?dueFrom=${dueFrom}&dueTo=${dueTo}&tz=${tz}&pageSize=${CALENDAR_PAGE_SIZE}`,
+      { withCredentials: true },
+    );
   }
 
   /** Signal of all active tasks for subtask maps, labels, and search. */
@@ -232,11 +238,26 @@ export class TaskService {
           return of([] as Task[]);
         }
         this.errorState.set(null);
-        return this.fetchUndatedTasks$().pipe(catchError(this.handleLoadError('undated tasks')));
+        return this.fetchUndatedTasks$().pipe(
+          map((response) => {
+            this.undatedTruncatedState.set(response.meta.total > response.data.length);
+            return response.data;
+          }),
+          catchError((error) => {
+            this.undatedTruncatedState.set(false);
+            return this.handleLoadError('undated tasks')(error);
+          }),
+        );
       }),
     ),
     { initialValue: [] as Task[] },
   );
+
+  /**
+   * True when the No date list holds more tasks than the API returns in a
+   * page, so the list (and its count) is incomplete.
+   */
+  readonly undatedTruncated = this.undatedTruncatedState.asReadonly();
 
   /**
    * Set the calendar's visible windows (inclusive YYYY-MM-DD bounds). A focus
@@ -266,10 +287,17 @@ export class TaskService {
   readonly calendarRangeLoaded = this.calendarRangeLoadedState.asReadonly();
 
   /**
+   * True when the fetched windows hold more tasks than the API returns in a
+   * page, so some days in the range are missing their tail.
+   */
+  readonly calendarRangeTruncated = this.calendarRangeTruncatedState.asReadonly();
+
+  /**
    * Signal of tasks due inside the calendar's visible windows. The grid and
    * the open day's week are fetched as two bounded requests (the week is
    * skipped when the grid already covers it), so the payload never grows with
-   * the months browsed between the selection and the drawn grid.
+   * the months browsed between the selection and the drawn grid. A window that
+   * fills the API page cap is surfaced through `calendarRangeTruncated`.
    */
   readonly calendarRangeTasks = toSignal(
     combineLatest([
@@ -286,16 +314,25 @@ export class TaskService {
         this.calendarRangeLoadingState.set(true);
         this.errorState.set(null);
 
-        const focusTasks$ = range.focus
+        const focusResponse$ = range.focus
           ? this.fetchTasksDueBetween$(range.focus.from, range.focus.to)
-          : of([] as Task[]);
+          : of<PaginatedResponse<Task[]> | null>(null);
 
         return forkJoin([
           this.fetchTasksDueBetween$(range.grid.from, range.grid.to),
-          focusTasks$,
+          focusResponse$,
         ]).pipe(
-          map(([gridTasks, focusTasks]) => mergeCalendarTasks(gridTasks, focusTasks)),
-          catchError(this.handleLoadError('calendar tasks')),
+          map(([gridResponse, focusResponse]) => {
+            const truncated =
+              gridResponse.meta.total > gridResponse.data.length ||
+              (focusResponse ? focusResponse.meta.total > focusResponse.data.length : false);
+            this.calendarRangeTruncatedState.set(truncated);
+            return mergeCalendarTasks(gridResponse.data, focusResponse?.data ?? []);
+          }),
+          catchError((error) => {
+            this.calendarRangeTruncatedState.set(false);
+            return this.handleLoadError('calendar tasks')(error);
+          }),
           finalize(() => {
             this.calendarRangeLoadingState.set(false);
             this.calendarRangeLoadedState.set(true);
