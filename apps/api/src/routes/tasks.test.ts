@@ -1452,3 +1452,57 @@ test('simple mode strips due time on create and update', async () => {
     await ctx.cleanup();
   }
 });
+
+test('a due-date-only PATCH schedules a simple-mode task', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`simple-schedule-${randomUUID()}@example.com`);
+
+    const createRes = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Water the plants', simpleMode: true },
+    });
+    assert.equal(createRes.statusCode, 201);
+    const created = createRes.json();
+    assert.equal(created.simpleMode, true);
+    assert.equal(created.dueDate, undefined);
+
+    // The calendar's No date quick action sends only the date.
+    const patchRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${created.id}`,
+      headers: { cookie },
+      payload: { dueDate: '2026-11-05' },
+    });
+    assert.equal(patchRes.statusCode, 200);
+    assert.equal(patchRes.json().dueDate, '2026-11-05');
+    assert.equal(patchRes.json().simpleMode, false);
+
+    // And it is now visible to the calendar's due-date window query.
+    const listRes = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?dueFrom=2026-11-05&dueTo=2026-11-05&pageSize=100',
+      headers: { cookie },
+    });
+    assert.equal(listRes.statusCode, 200);
+    assert.deepEqual(
+      listRes.json().data.map((row: { id: string }) => row.id),
+      [created.id],
+    );
+
+    // An explicit simple mode still takes the schedule off.
+    const stripRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${created.id}`,
+      headers: { cookie },
+      payload: { simpleMode: true },
+    });
+    assert.equal(stripRes.statusCode, 200);
+    assert.equal(stripRes.json().dueDate, undefined);
+  } finally {
+    await ctx.cleanup();
+  }
+});

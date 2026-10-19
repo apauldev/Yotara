@@ -286,6 +286,9 @@ describe('CalendarPageComponent', () => {
   describe('quick schedule', () => {
     it('schedules an undated task for today and it leaves the list, then appears on the calendar', () => {
       undatedTasks.set([task({ id: 'undated-1', title: 'Read the brief' })]);
+      taskService.updateTask.and.resolveTo(
+        task({ id: 'undated-1', title: 'Read the brief', dueDate: todayISO }),
+      );
       fixture.detectChanges();
 
       openNoDateList();
@@ -311,6 +314,7 @@ describe('CalendarPageComponent', () => {
 
     it('schedules an undated task for a picked date', () => {
       undatedTasks.set([task({ id: 'undated-1', title: 'Read the brief' })]);
+      taskService.updateTask.and.resolveTo(task({ id: 'undated-1', dueDate: '2026-11-30' }));
       fixture.detectChanges();
       openNoDateList();
 
@@ -342,8 +346,33 @@ describe('CalendarPageComponent', () => {
       );
     });
 
+    it('restores the row and surfaces an error when the server does not store the date', async () => {
+      undatedTasks.set([task({ id: 'undated-1', title: 'Read the brief' })]);
+      // A 200 whose payload still has no date: a silent no-op, like the
+      // simple-mode drop this regression covers.
+      taskService.updateTask.and.resolveTo(task({ id: 'undated-1', title: 'Read the brief' }));
+      fixture.detectChanges();
+      openNoDateList();
+
+      findByText('.cal-quick-btn', 'Today').click();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.cal-nodate-row')).toBeFalsy();
+
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).toContain('Read the brief');
+      expect(statusService.error).toHaveBeenCalledWith(
+        'Could not schedule the task. Please try again.',
+      );
+    });
+
     it('schedules for tomorrow from the quick action', () => {
       undatedTasks.set([task({ id: 'undated-1', title: 'Read the brief' })]);
+      taskService.updateTask.and.resolveTo(
+        task({ id: 'undated-1', dueDate: today.plus({ days: 1 }).toISODate() as string }),
+      );
       fixture.detectChanges();
       openNoDateList();
 

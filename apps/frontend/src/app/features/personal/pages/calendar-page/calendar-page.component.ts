@@ -364,15 +364,25 @@ export class CalendarPageComponent {
     this.schedulingIds.update((ids) => new Set(ids).add(task.id));
 
     try {
-      await this.taskService.updateTask(task.id, { dueDate: date });
+      const updated = await this.taskService.updateTask(task.id, { dueDate: date });
+      // A 200 that did not store the date would otherwise leave the task hidden
+      // from the No date list with nothing on the calendar until a reload.
+      if (updated?.dueDate?.slice(0, 10) !== date) {
+        this.stopScheduling(task.id);
+        this.statusService.error('Could not schedule the task. Please try again.');
+      }
     } catch {
-      this.schedulingIds.update((ids) => {
-        const next = new Set(ids);
-        next.delete(task.id);
-        return next;
-      });
+      this.stopScheduling(task.id);
       this.statusService.error('Could not schedule the task. Please try again.');
     }
+  }
+
+  private stopScheduling(id: string): void {
+    this.schedulingIds.update((ids) => {
+      const next = new Set(ids);
+      next.delete(id);
+      return next;
+    });
   }
 
   protected async moveTask({ task, date }: CalendarRescheduleRequest): Promise<void> {

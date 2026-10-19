@@ -1102,3 +1102,51 @@ test('a zone-less edit that leaves the timing alone retires nothing', async () =
     sqlite.close();
   }
 });
+
+test('scheduling a simple-mode task stores the due date and exits simple mode', async () => {
+  const { createTaskForOwner, updateTaskForOwner } = await import('./task-service.js');
+  const { db, sqlite, ownerId, today } = await setupReminderTestDb();
+
+  try {
+    // Tasks created without a due date default to simple mode (the modal's
+    // no-date draft), so this is the shape the calendar's No date list holds.
+    const task = await createTaskForOwner(
+      ownerId,
+      { title: 'Water the plants', simpleMode: true },
+      'UTC',
+      db,
+    );
+    assert.ok(task);
+    assert.equal(task.simpleMode, true);
+    assert.equal(task.dueDate, null);
+
+    // Scheduling it sends only a due date; it must stick rather than being
+    // dropped by the simple-mode rule.
+    const scheduled = await updateTaskForOwner(
+      ownerId,
+      task.id,
+      { dueDate: today },
+      null,
+      'UTC',
+      db,
+    );
+    assert.ok(scheduled);
+    assert.equal(scheduled.dueDate, today);
+    assert.equal(scheduled.simpleMode, false);
+
+    // An explicit simpleMode: true still means "take the schedule off".
+    const stripped = await updateTaskForOwner(
+      ownerId,
+      task.id,
+      { simpleMode: true },
+      null,
+      'UTC',
+      db,
+    );
+    assert.ok(stripped);
+    assert.equal(stripped.dueDate, null);
+    assert.equal(stripped.simpleMode, true);
+  } finally {
+    sqlite.close();
+  }
+});
