@@ -39,7 +39,8 @@ import { isHexColor, isNearNeutralColor, pickOnColor } from '../../utils/color-c
         <button
           type="button"
           class="label-chip-body label-chip-control"
-          [attr.aria-pressed]="selected || null"
+          [attr.aria-pressed]="selected"
+          [attr.title]="label.name"
           (click)="handleSelect($event)"
         >
           <fa-icon class="label-chip-icon" [icon]="faTag" aria-hidden="true" />
@@ -50,7 +51,12 @@ import { isHexColor, isNearNeutralColor, pickOnColor } from '../../utils/color-c
           }
         </button>
       } @else {
-        <span class="label-chip-body" role="img" [attr.aria-label]="'Label: ' + label.name">
+        <span
+          class="label-chip-body"
+          role="img"
+          [attr.aria-label]="'Label: ' + label.name"
+          [attr.title]="label.name"
+        >
           <fa-icon class="label-chip-icon" [icon]="faTag" aria-hidden="true" />
           @if (mode === 'full') {
             <span class="label-chip-name">{{ label.name }}</span>
@@ -77,6 +83,8 @@ import { isHexColor, isNearNeutralColor, pickOnColor } from '../../utils/color-c
       :host {
         /* Replaced from label data when its color parses. */
         --label-color: var(--accent-strong);
+        --label-strong: var(--label-color);
+        --label-soft: color-mix(in srgb, var(--label-color) 12%, var(--surface-card));
         --label-on-strong: hsl(var(--primary-foreground));
         display: inline-flex;
         max-width: 100%;
@@ -100,7 +108,7 @@ import { isHexColor, isNearNeutralColor, pickOnColor } from '../../utils/color-c
         min-height: 1.55rem;
         border-radius: 999px;
         padding: 0.1rem 0.5rem 0.1rem 0.22rem;
-        background: color-mix(in srgb, var(--label-color) 12%, var(--surface-card));
+        background: var(--label-soft);
         color: var(--on-surface);
         white-space: nowrap;
       }
@@ -108,7 +116,7 @@ import { isHexColor, isNearNeutralColor, pickOnColor } from '../../utils/color-c
       /* Near-neutral label colors would vanish on the tint; give the body a
          hairline of the label color so the chip's identity survives. */
       :host(.label-chip-neutral) .label-chip-body {
-        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--label-color) 55%, transparent);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--label-strong) 55%, transparent);
       }
 
       .label-chip-control {
@@ -119,17 +127,17 @@ import { isHexColor, isNearNeutralColor, pickOnColor } from '../../utils/color-c
       .label-chip-icon {
         display: inline-grid;
         place-items: center;
-        width: 1.05rem;
-        height: 1.05rem;
+        width: 1.25rem;
+        height: 1.25rem;
         border-radius: 0.45rem;
-        background: var(--label-color);
+        background: var(--label-strong);
         color: var(--label-on-strong);
-        font-size: 0.6rem;
+        font-size: 0.62rem;
         flex: 0 0 auto;
       }
 
       .label-chip-name {
-        font-size: 0.68rem;
+        font-size: 0.72rem;
         font-weight: 600;
         letter-spacing: 0.01em;
         text-transform: none;
@@ -142,13 +150,19 @@ import { isHexColor, isNearNeutralColor, pickOnColor } from '../../utils/color-c
         min-height: 1.35rem;
       }
 
+      .label-chip[data-size='sm'] .label-chip-icon {
+        width: 1.05rem;
+        height: 1.05rem;
+        font-size: 0.55rem;
+      }
+
       .label-chip[data-size='sm'] .label-chip-name {
         max-width: 6.5rem;
       }
 
       /* Selected/active: solid label-color pill, glyph straight on the fill. */
       .label-chip-selected .label-chip-body {
-        background: var(--label-color);
+        background: var(--label-strong);
         color: var(--label-on-strong);
         box-shadow: none;
       }

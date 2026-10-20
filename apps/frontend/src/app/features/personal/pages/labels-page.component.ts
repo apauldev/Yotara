@@ -188,9 +188,6 @@ export class LabelsPageComponent {
     this.rowMenuLabelId.set(null);
     this.editorLabel.set(label);
     this.labelEditorOpen.set(true);
-    if (label.id !== this.selectedLabelId()) {
-      void this.selectLabelId(label.id);
-    }
   }
 
   // ---- create / edit ----------------------------------------------------
@@ -204,12 +201,20 @@ export class LabelsPageComponent {
     this.labelEditorOpen.set(false);
   }
 
-  /** Creating selects the new label; a rename refreshes the already-selected pane. */
+  /** Creating selects the new label; an edit leaves the pane and its tasks untouched. */
   protected onLabelSaved(saved: Label) {
-    this.labelRefresh.update((value) => value + 1);
-    if (!this.selectedLabel()) {
+    if (this.editorLabel() === null) {
       void this.selectLabelId(saved.id);
     }
+  }
+
+  /** Duplicate-name path from the editor: jump to the label that already exists. */
+  protected openExistingLabel(labelId: string) {
+    this.closeLabelEditor();
+    if (!this.labels().some((label) => label.id === labelId)) {
+      this.labelService.refresh();
+    }
+    void this.selectLabelId(labelId);
   }
 
   // ---- delete -----------------------------------------------------------

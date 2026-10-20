@@ -255,16 +255,12 @@
         <span class="field-label" id="task-labels-label">Labels</span>
         <div class="label-chip-grid" role="group" aria-labelledby="task-labels-label">
           @for (label of labels(); track label.id) {
-            <button
-              type="button"
-              class="label-chip"
-              [class.label-chip-active]="labelSelected(label)"
-              [attr.aria-pressed]="labelSelected(label)"
-              (click)="toggleLabel(label)"
-            >
-              <span class="label-chip-dot" [style.background]="label.color"></span>
-              <span>{{ label.name }}</span>
-            </button>
+            <app-label-chip
+              [label]="label"
+              [interactive]="true"
+              [selected]="labelSelected(label)"
+              (select)="toggleLabel($event)"
+            />
           }
         </div>
 
@@ -273,7 +269,7 @@
             type="text"
             placeholder="New label"
             [ngModel]="newLabelName()"
-            (ngModelChange)="newLabelName.set($event)"
+            (ngModelChange)="newLabelName.set($event); newLabelError.set(null)"
           />
           <div class="palette-row" aria-label="Label color presets">
             @for (color of palette; track color) {
@@ -290,6 +286,9 @@
           <button type="button" class="create-inline-button" (click)="createInlineLabel()">
             Create label
           </button>
+          @if (newLabelError()) {
+            <p class="inline-create-error" role="alert">{{ newLabelError() }}</p>
+          }
         </div>
       </div>
 

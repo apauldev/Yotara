@@ -75,10 +75,11 @@ product keeps them distinct:
 - **Project** — a container with a finish line. It holds tasks, belongs to a
   user, and completes when its work is done; scoping a task to one project is
   the primary structural relationship.
-- **Bucket** — a local grouping used inside a single view (for example a date
-  grouping on the calendar), not a saved category a task carries around.
+- **Bucket** — an area of life or mode of work with no finish line, such as
+  `Health`, `Home`, or `Deep work`. It groups tasks by context but is not a
+  project that completes.
 - **Label** — a cross-cutting condition of work (for example `Errand`,
-  `Deep focus`). Labels ignore project boundaries: a task can carry several,
+  `Waiting`). Labels ignore project boundaries: a task can carry several,
   and a healthy system keeps the set small and meaningful (roughly 3–8 per
   user) instead of a sprawl of near-duplicates. Labels describe how the work
   feels or what it requires; they are never "where the task lives".

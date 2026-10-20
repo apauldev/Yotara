@@ -46,15 +46,6 @@ function normalizeHexColor(value: string, context: string): string {
 }
 
 /**
- * Colors stored before validation existed may be arbitrary strings; the UI
- * falls back to the accent color for them (see LabelChipComponent). Unchanged
- * legacy values are never rejected on update.
- */
-export function isRenderableLabelColor(value: string | null | undefined): value is string {
-  return typeof value === 'string' && HEX_COLOR_PATTERN.test(value.trim());
-}
-
-/**
  * Idempotent under both the (user_id, lower(trim(name))) unique index and
  * repeated onboarding calls: existing labels short-circuit, and a double
  * request that races past that check hits ON CONFLICT DO NOTHING instead of

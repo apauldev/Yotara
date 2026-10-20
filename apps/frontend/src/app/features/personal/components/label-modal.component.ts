@@ -15,6 +15,7 @@ import { Label } from '@yotara/shared';
 import { LabelService } from '../../../core/services/label.service';
 import { ModalComponent } from '../../../shared/ui/modal/modal.component';
 import { LogService } from '../../../core/services/log.service';
+import { existingLabelFromConflict } from '../../../shared/utils/label-conflict';
 
 /** Matches the practical input length the API trims before persisting. */
 const LABEL_NAME_MAX_LENGTH = 60;
@@ -45,7 +46,12 @@ const LABEL_NAME_MAX_LENGTH = 60;
             [maxlength]="nameMaxLength"
             [class.field-invalid]="!!nameError()"
             [ngModel]="draftName()"
-            (ngModelChange)="draftName.set($event); nameError.set(null)"
+            (ngModelChange)="
+              draftName.set($event);
+              nameError.set(null);
+              requestError.set(null);
+              existingLabel.set(null)
+            "
             [attr.aria-invalid]="nameError() ? 'true' : null"
             [attr.aria-describedby]="nameError() ? 'label-name-error' : null"
             placeholder="Errand"
@@ -79,6 +85,16 @@ const LABEL_NAME_MAX_LENGTH = 60;
 
         @if (requestError()) {
           <p class="field-error" role="alert">{{ requestError() }}</p>
+        }
+
+        @if (existingLabel(); as existing) {
+          <button
+            type="button"
+            class="existing-label-link"
+            (click)="openExisting.emit(existing.id)"
+          >
+            Open “{{ existing.name }}”
+          </button>
         }
 
         <div class="editor-actions">
@@ -144,6 +160,20 @@ const LABEL_NAME_MAX_LENGTH = 60;
       .field-error {
         color: var(--status-overdue);
         font-size: 0.88rem;
+      }
+
+      .existing-label-link {
+        justify-self: start;
+        appearance: none;
+        border: 0;
+        background: transparent;
+        color: var(--primary-solid);
+        font: inherit;
+        font-size: 0.88rem;
+        font-weight: 700;
+        padding: 0;
+        text-decoration: underline;
+        cursor: pointer;
       }
 
       .palette-grid {
@@ -219,11 +249,14 @@ export class LabelModalComponent implements OnChanges {
   @Output() readonly close = new EventEmitter<void>();
   /** Emitted after a successful create or update; the page reflows itself. */
   @Output() readonly saved = new EventEmitter<Label>();
+  /** Duplicate-name conflict: the id of the label that already exists. */
+  @Output() readonly openExisting = new EventEmitter<string>();
 
   protected readonly draftName = signal('');
   protected readonly draftColor = signal('');
   protected readonly nameError = signal<string | null>(null);
   protected readonly requestError = signal<string | null>(null);
+  protected readonly existingLabel = signal<{ id: string; name: string } | null>(null);
   protected readonly saving = signal(false);
   protected readonly nameMaxLength = LABEL_NAME_MAX_LENGTH;
   protected readonly palette = [
@@ -250,6 +283,7 @@ export class LabelModalComponent implements OnChanges {
 
     this.nameError.set(null);
     this.requestError.set(null);
+    this.existingLabel.set(null);
     this.draftName.set(this.label?.name ?? '');
     this.draftColor.set(this.label?.color || this.palette[0]);
   }
@@ -274,7 +308,13 @@ export class LabelModalComponent implements OnChanges {
       this.saved.emit(saved);
       this.close.emit();
     } catch (error) {
-      this.requestError.set(describeLabelError(error, name));
+      const existing = existingLabelFromConflict(error);
+      this.existingLabel.set(existing);
+      this.requestError.set(
+        existing
+          ? `A label named “${existing.name}” already exists.`
+          : describeLabelError(error, name),
+      );
       this.logService.warn('Label save failed', error);
     } finally {
       this.saving.set(false);

@@ -8,7 +8,7 @@
       </div>
     </app-page-header>
 
-    @if (labelService.loading()) {
+    @if (labelService.loading() && !hasLabels()) {
       <p class="status-copy" role="status">Loading labels…</p>
     } @else if (labelService.error()) {
       <p class="status-copy">{{ labelService.error() }}</p>
@@ -119,10 +119,19 @@
               <p class="status-copy">{{ paneError() }}</p>
             } @else if (paneTasks().length === 0) {
               <app-empty-state
-                title="No open tasks"
+                [title]="'No open tasks in ' + (selectedLabel()?.name ?? 'this label')"
                 description="Nothing open here right now. Add a task and it will carry this label automatically."
                 [icon]="faInbox"
-              />
+              >
+                <button
+                  empty-state-actions
+                  type="button"
+                  class="add-task-button"
+                  (click)="addTaskToSelection()"
+                >
+                  + Add task
+                </button>
+              </app-empty-state>
             } @else {
               <div class="task-stack">
                 @for (task of paneTasks(); track task.id) {
@@ -147,6 +156,7 @@
     [label]="editorLabel()"
     (close)="closeLabelEditor()"
     (saved)="onLabelSaved($event)"
+    (openExisting)="openExistingLabel($event)"
   />
 
   <app-confirm-dialog

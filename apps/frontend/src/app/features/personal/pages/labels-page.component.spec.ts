@@ -13,6 +13,7 @@ interface StubLabel {
   id: string;
   name: string;
   color: string;
+  userId: string;
   openTaskCount: number;
   completedTaskCount: number;
   totalTaskCount: number;
@@ -26,6 +27,7 @@ describe('LabelsPageComponent', () => {
       id: 'finance',
       name: 'Finance',
       color: '#f1c582',
+      userId: 'user-1',
       openTaskCount: 2,
       completedTaskCount: 1,
       totalTaskCount: 3,
@@ -35,6 +37,7 @@ describe('LabelsPageComponent', () => {
       id: 'focus',
       name: 'Focus',
       color: '#81d7e8',
+      userId: 'user-1',
       openTaskCount: 1,
       completedTaskCount: 0,
       totalTaskCount: 1,
@@ -44,6 +47,7 @@ describe('LabelsPageComponent', () => {
       id: 'writing',
       name: 'Writing',
       color: '#82d7a9',
+      userId: 'user-1',
       openTaskCount: 3,
       completedTaskCount: 4,
       totalTaskCount: 7,
@@ -248,8 +252,9 @@ describe('LabelsPageComponent', () => {
     queryParams$.next(convertToParamMap({ label: 'ghost' }));
     fixture.detectChanges();
 
-    // While loading, neither the directory nor the not-found state flashes.
-    expect(fixture.nativeElement.querySelector('.label-directory')).toBeNull();
+    // While refreshing, the last loaded labels stay on screen and the
+    // not-found state waits for the request to settle.
+    expect(fixture.nativeElement.querySelector('.label-directory')).not.toBeNull();
     expect(fixture.nativeElement.textContent).not.toContain('Label not found');
 
     loadingSignal.set(false);
@@ -257,6 +262,59 @@ describe('LabelsPageComponent', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Label not found');
     expect(fixture.nativeElement.textContent).toContain('Back to all labels');
+  }));
+
+  it('shows the selected label in the empty state with an Add task action', fakeAsync(() => {
+    const fixture = createFixture();
+
+    queryParams$.next(convertToParamMap({ label: 'finance' }));
+    fixture.detectChanges();
+    tick();
+    fixture.detectChanges();
+
+    const empty = fixture.debugElement.query(By.css('.task-pane app-empty-state'));
+    expect(empty.nativeElement.textContent).toContain('No open tasks in Finance');
+    expect(empty.query(By.css('button.add-task-button'))).toBeTruthy();
+  }));
+
+  it('selects a newly created label but leaves the pane unchanged when editing', fakeAsync(() => {
+    const fixture = createFixture();
+    const component = fixture.componentInstance;
+
+    queryParams$.next(convertToParamMap({ label: 'writing' }));
+    fixture.detectChanges();
+    tick();
+    fixture.detectChanges();
+
+    const newLabel = {
+      id: 'errands',
+      name: 'Errands',
+      color: '#f1c582',
+      userId: 'user-1',
+      openTaskCount: 0,
+      completedTaskCount: 0,
+      totalTaskCount: 0,
+      taskCount: 0,
+    };
+    labelsSignal.update((current) => [...current, newLabel]);
+
+    component['editorLabel'].set(null);
+    component['onLabelSaved'](newLabel);
+    tick();
+
+    expect(queryParams$.getValue().get('label')).toBe('errands');
+
+    queryParams$.next(convertToParamMap({ label: 'writing' }));
+    fixture.detectChanges();
+    tick();
+    fixture.detectChanges();
+
+    component['editorLabel'].set(labels[0]);
+    component['onLabelSaved'](labels[0]);
+    tick();
+
+    // Editing Finance must not move the pane away from Writing.
+    expect(queryParams$.getValue().get('label')).toBe('writing');
   }));
 
   it('opens the editor modal for the row label via the overflow menu', () => {

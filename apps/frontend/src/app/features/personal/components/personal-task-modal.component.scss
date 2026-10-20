@@ -314,40 +314,8 @@ textarea {
   gap: 0.4rem;
 }
 
-.label-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  border-radius: 999px;
-  border: 0;
-  background: var(--accent-soft);
-  padding: 0.45rem 0.7rem;
-  color: var(--on-surface-muted);
-  font-weight: 650;
-  box-shadow: inset 0 0 0 1px var(--outline-variant);
-  transition: all 150ms ease;
-  cursor: pointer;
-}
-
-.label-chip:hover {
-  background: color-mix(in srgb, var(--accent-soft) 80%, var(--accent-strong) 20%);
-  transform: translateY(-1px);
-}
-
-.label-chip:active {
-  transform: scale(0.96);
-}
-
-.label-chip-active {
-  background: var(--primary-soft);
-  color: var(--primary-solid);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary-solid) 25%, transparent);
-}
-
-.label-chip-dot {
-  width: 0.62rem;
-  height: 0.62rem;
-  border-radius: 999px;
+.label-chip-grid app-label-chip {
+  max-width: 100%;
 }
 
 .inline-create {
@@ -397,6 +365,12 @@ textarea {
 .create-inline-button:hover {
   opacity: 0.9;
   transform: translateY(-1px);
+}
+
+.inline-create-error {
+  margin: 0;
+  color: var(--status-overdue);
+  font-size: 0.82rem;
 }
 
 /* ── Repeat section ── */

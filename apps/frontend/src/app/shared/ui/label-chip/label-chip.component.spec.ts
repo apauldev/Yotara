@@ -41,7 +41,7 @@ describe('LabelChipComponent', () => {
     const interactive = createComponent({ label: redLabel, interactive: true });
     const button = interactive.debugElement.query(By.css('button.label-chip-control'))
       .nativeElement as HTMLButtonElement;
-    expect(button.getAttribute('aria-pressed')).toBeNull();
+    expect(button.getAttribute('aria-pressed')).toBe('false');
 
     const selected = createComponent({ label: redLabel, interactive: true, selected: true });
     expect(

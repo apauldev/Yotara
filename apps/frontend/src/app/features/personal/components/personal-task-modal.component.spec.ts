@@ -1060,7 +1060,7 @@ describe('PersonalTaskModalComponent', () => {
       const group = fixture.debugElement.query(By.css('.label-chip-grid'));
       expect(group.nativeElement.getAttribute('role')).toBe('group');
 
-      const chip = fixture.debugElement.query(By.css('.label-chip'));
+      const chip = fixture.debugElement.query(By.css('.label-chip-grid .label-chip-control'));
       expect(chip.nativeElement.getAttribute('aria-pressed')).toBe('false');
 
       component['toggleLabel'](testLabel);

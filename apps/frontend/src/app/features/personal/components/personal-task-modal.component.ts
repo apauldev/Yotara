@@ -31,9 +31,11 @@ import {
 import { LabelService } from '../../../core/services/label.service';
 import { TaskService } from '../../../core/services/task.service';
 import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
+import { LabelChipComponent } from '../../../shared/ui/label-chip/label-chip.component';
 import { MarkdownEditorComponent } from '../../../shared/ui/markdown-editor/markdown-editor.component';
 import { ModalComponent } from '../../../shared/ui/modal/modal.component';
 import { formatTimeLabel, parseCalendarDate, startOfToday } from '../../../shared/utils/timestamps';
+import { existingLabelFromConflict } from '../../../shared/utils/label-conflict';
 import { tryGetUserTimezone } from '../../../shared/utils/timezone';
 import { timedTaskTimezoneNotice } from '../utils/timezone-notices';
 import { parseTaskCommand } from '../utils/task-command-parser';
@@ -51,6 +53,7 @@ type SavePayload =
     CommonModule,
     DatePickerComponent,
     FormsModule,
+    LabelChipComponent,
     MarkdownEditorComponent,
     ModalComponent,
   ],
@@ -98,6 +101,7 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
   protected readonly draftCompleted = signal(false);
   protected readonly draftLabels = signal<string[]>([]);
   protected readonly newLabelName = signal('');
+  protected readonly newLabelError = signal<string | null>(null);
   protected readonly draftRecurrenceFrequency = signal<RecurrenceFrequency | null>(null);
   protected readonly draftRecurrenceInterval = signal(1);
   protected readonly draftRecurrenceEndDate = signal('');
@@ -717,13 +721,31 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const created = await this.labelService.createLabel({
-      name,
-      color: this.newLabelColor(),
-    });
-    this.draftLabels.set([...this.draftLabels(), created.id]);
-    this.newLabelName.set('');
-    this.newLabelColor.set(this.palette[0]);
+    this.newLabelError.set(null);
+    try {
+      const created = await this.labelService.createLabel({
+        name,
+        color: this.newLabelColor(),
+      });
+      this.draftLabels.set([...new Set([...this.draftLabels(), created.id])]);
+      this.newLabelName.set('');
+      this.newLabelColor.set(this.palette[0]);
+    } catch (error) {
+      const existing = existingLabelFromConflict(error);
+      if (existing) {
+        // Duplicate names are rejected server-side now; select what exists
+        // instead of leaving the user at a dead end.
+        if (!this.labels().some((label) => label.id === existing.id)) {
+          this.labelService.refresh();
+        }
+        this.draftLabels.set([...new Set([...this.draftLabels(), existing.id])]);
+        this.newLabelName.set('');
+        this.newLabelColor.set(this.palette[0]);
+        this.newLabelError.set(`“${existing.name}” already exists and is now selected.`);
+        return;
+      }
+      this.newLabelError.set('Could not create the label. Try again.');
+    }
   }
 
   protected onModalOpened() {
@@ -823,6 +845,7 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
     this.draftRecurrenceEndDate.set(this.task?.recurrenceRule?.endDate ?? '');
     this.draftRecurrenceDaysOfWeek.set(this.task?.recurrenceRule?.daysOfWeek ?? []);
     this.newLabelName.set('');
+    this.newLabelError.set(null);
     this.newLabelColor.set(this.palette[0]);
     this.subtaskEntryMode.set(false);
     this.draftSubtasks.set([]);
