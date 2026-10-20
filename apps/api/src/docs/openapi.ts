@@ -394,6 +394,17 @@ const apiErrorSchema = {
   required: ['message'],
   properties: {
     message: { type: 'string' },
+    // Present on duplicate-label 409s: points the caller at the conflicting
+    // label so the UI can offer a path to it instead of a dead-end error.
+    existingLabel: {
+      type: 'object',
+      nullable: true,
+      required: ['id', 'name'],
+      properties: {
+        id: { type: 'string', format: 'uuid' },
+        name: { type: 'string' },
+      },
+    },
   },
 } as const;
 

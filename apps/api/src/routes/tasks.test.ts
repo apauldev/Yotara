@@ -1521,3 +1521,80 @@ test('a due-date-only PATCH schedules a simple-mode task', async () => {
     await ctx.cleanup();
   }
 });
+
+test('tasks list filters by labelIds with ownership checks and validation', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`label-filter-${randomUUID()}@example.com`);
+
+    const createLabel = async (name: string) => {
+      const response = await ctx.app.inject({
+        method: 'POST',
+        url: '/labels',
+        headers: { cookie },
+        payload: { name },
+      });
+      assert.equal(response.statusCode, 201);
+      return response.json().id as string;
+    };
+    const labelAId = await createLabel('Writing');
+    const labelBId = await createLabel('Errand');
+
+    const createTask = async (title: string, labels: string[]) => {
+      const response = await ctx.app.inject({
+        method: 'POST',
+        url: '/tasks',
+        headers: { cookie },
+        payload: { title, labels },
+      });
+      assert.equal(response.statusCode, 201);
+      return response.json();
+    };
+    await createTask('Draft essay', [labelAId]);
+    await createTask('Buy milk', [labelBId]);
+    await createTask('Review draft, buy envelope', [labelAId, labelBId]);
+
+    const titlesFor = async (ids?: string) => {
+      const response = await ctx.app.inject({
+        method: 'GET',
+        url: ids ? `/tasks?labelIds=${ids}&includeSubtasks=true` : '/tasks',
+        headers: { cookie },
+      });
+      assert.equal(response.statusCode, 200);
+      return response.json().data.map((t: { title: string }) => t.title) as string[];
+    };
+
+    // A single label returns every task carrying it.
+    const onlyA = await titlesFor(labelAId);
+    assert.deepEqual(new Set(onlyA), new Set(['Draft essay', 'Review draft, buy envelope']));
+
+    // Multiple ids compose with OR semantics.
+    const both = await titlesFor(`${labelAId},${labelBId}`);
+    assert.equal(both.length, 3);
+
+    // The filter narrows relative to an unfiltered list of the same view.
+    const without = await titlesFor();
+    assert.equal(without.length, 3);
+
+    // A well-formed foreign id cannot match anything (ownership in SQL).
+    const foreign = await titlesFor(randomUUID());
+    assert.equal(foreign.length, 0);
+
+    const malformed = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?labelIds=not-a-uuid',
+      headers: { cookie },
+    });
+    assert.equal(malformed.statusCode, 400);
+
+    const tooMany = await ctx.app.inject({
+      method: 'GET',
+      url: `/tasks?labelIds=${Array.from({ length: 11 }, () => randomUUID()).join(',')}`,
+      headers: { cookie },
+    });
+    assert.equal(tooMany.statusCode, 400);
+  } finally {
+    await ctx.cleanup();
+  }
+});
