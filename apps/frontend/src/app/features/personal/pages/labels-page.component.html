@@ -9,104 +9,129 @@
     </app-page-header>
 
     @if (labelService.loading()) {
-      <p class="status-copy">Loading your focus areas...</p>
+      <p class="status-copy" role="status">Loading labels…</p>
     } @else if (labelService.error()) {
       <p class="status-copy">{{ labelService.error() }}</p>
+    } @else if (!hasLabels()) {
+      <section class="no-labels-state" aria-label="No labels yet">
+        <app-empty-state
+          title="No labels yet"
+          description="Create your first label to group related tasks across projects. Labels are conditions of work, not places — they cross-cut projects."
+          [icon]="faTag"
+        />
+        <button type="button" class="new-label-button" (click)="openCreateLabel()">
+          Create your first label
+        </button>
+      </section>
+    } @else if (showNotFound()) {
+      <section class="no-labels-state" aria-label="Label not found">
+        <app-empty-state
+          title="Label not found"
+          description="This label no longer exists. It may have been deleted from another session."
+          [icon]="faInbox"
+        />
+        <button type="button" class="new-label-button" (click)="selectLabelId(null)">
+          Back to all labels
+        </button>
+      </section>
     } @else {
       <div class="label-browser">
-        <section class="labels-table-container" role="table" aria-label="Labels Directory">
-          <div class="table-header" role="rowgroup">
-            <div class="table-row-header" role="row">
-              <div class="col-identification" role="columnheader">Label</div>
-              <div class="col-count" role="columnheader">Tasks</div>
-              <div class="col-actions" role="columnheader">
-                <span class="sr-only">Actions</span>
-              </div>
-            </div>
-          </div>
+        <section class="labels-table-container" aria-labelledby="labels-directory-heading">
+          <h2 id="labels-directory-heading" class="sr-only">Labels directory</h2>
 
-          <div class="table-rows" role="rowgroup">
+          <ul
+            class="label-directory"
+            aria-label="Labels"
+            (click)="closeRowMenus()"
+            (keydown.escape)="closeRowMenus()"
+          >
             @for (label of labels(); track label.id) {
-              <div
-                class="table-row"
-                [class.table-row-active]="selectedLabelId() === label.id"
-                role="row"
-                (click)="selectLabel(label)"
-                tabindex="0"
-                (keydown.enter)="selectLabel(label)"
-                (keydown.space)="$event.preventDefault(); selectLabel(label)"
-              >
-                <div class="col-identification" role="cell">
-                  <div class="label-identifier">
-                    <div
-                      class="label-color-dot"
-                      [style.background]="label.color"
-                      [attr.aria-label]="'Color: ' + label.color"
-                      role="img"
-                    ></div>
-                    <div class="label-info">
-                      <h3>{{ label.name }}</h3>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-count" role="cell">
-                  <span class="count-badge">
-                    {{ label.taskCount ?? 0 }}
-                  </span>
-                </div>
-                <div class="col-actions" role="cell">
-                  <div class="action-group">
+              <li class="label-row" [class.label-row-active]="selectedLabelId() === label.id">
+                <button
+                  type="button"
+                  class="label-row-link"
+                  (click)="selectLabel(label)"
+                  [attr.aria-current]="selectedLabelId() === label.id ? 'true' : null"
+                >
+                  <app-label-chip [label]="label" />
+                </button>
+
+                <span class="count-badge" [attr.aria-label]="label.openTaskCount + ' open tasks'">
+                  {{ label.openTaskCount }}
+                </span>
+
+                <button
+                  type="button"
+                  class="row-menu-trigger"
+                  [attr.aria-label]="'More actions for ' + label.name"
+                  [attr.aria-expanded]="rowMenuLabelId() === label.id"
+                  [attr.aria-haspopup]="'menu'"
+                  (click)="toggleRowMenu(label, $event)"
+                >
+                  <fa-icon [icon]="faEllipsisVertical" aria-hidden="true"></fa-icon>
+                </button>
+
+                @if (rowMenuLabelId() === label.id) {
+                  <div class="row-menu" role="menu" [attr.aria-label]="'Actions for ' + label.name">
+                    <button type="button" role="menuitem" (click)="openEditLabel(label, $event)">
+                      Edit
+                    </button>
                     <button
                       type="button"
-                      class="action-button-edit"
-                      (click)="openEditLabel(label, $event)"
-                      [attr.aria-label]="'Edit label ' + label.name"
-                      title="Edit label"
+                      role="menuitem"
+                      class="row-menu-danger"
+                      (click)="askDeleteLabel(label, $event)"
                     >
-                      <fa-icon [icon]="faEdit"></fa-icon>
+                      Delete
                     </button>
-                    <span class="action-icon-go" aria-hidden="true">→</span>
                   </div>
-                </div>
-              </div>
+                }
+              </li>
             }
-          </div>
+          </ul>
         </section>
 
         <aside #taskPane class="task-pane" aria-labelledby="task-pane-title">
           <header class="task-pane-header">
             <div>
-              <h2 id="task-pane-title">{{ selectedLabel()?.name || 'Select a Label' }}</h2>
-              <p class="task-pane-subtitle">
-                @if (selectedLabel()) {
-                  {{ filteredTasks().length }} active tasks tagged with this focus area.
-                } @else {
-                  Choose a focus area from the directory to view associated tasks.
-                }
-              </p>
+              <h2 id="task-pane-title">{{ selectedLabel()?.name }}</h2>
+              @if (selectedLabel(); as selected) {
+                <p class="task-pane-subtitle">
+                  {{ selected.openTaskCount }} open · {{ selected.completedTaskCount }} completed ·
+                  {{ selected.totalTaskCount }} total
+                </p>
+              }
             </div>
+            <button
+              type="button"
+              class="add-task-button"
+              (click)="addTaskToSelection()"
+              [disabled]="!selectedLabel()"
+            >
+              + Add task
+            </button>
           </header>
 
           <div class="task-pane-content">
-            @if (!selectedLabel()) {
+            @if (paneLoading()) {
+              <p class="status-copy" role="status">Loading tasks…</p>
+            } @else if (paneError()) {
+              <p class="status-copy">{{ paneError() }}</p>
+            } @else if (paneTasks().length === 0) {
               <app-empty-state
-                title="Master your focus"
-                description="Select a label to filter your workspace and concentrate on a specific category of work."
-                [icon]="faTag"
-              />
-            } @else if (filteredTasks().length === 0) {
-              <app-empty-state
-                title="Clear Focus"
-                description="There are no active tasks for this label. You're all caught up here!"
+                title="No open tasks"
+                description="Nothing open here right now. Add a task and it will carry this label automatically."
                 [icon]="faInbox"
               />
             } @else {
               <div class="task-stack">
-                @for (task of filteredTasks(); track task.id) {
+                @for (task of paneTasks(); track task.id) {
                   <app-personal-task-card
                     [task]="task"
                     [interactive]="true"
-                    (select)="workspace.editTask(task)"
+                    [showContextMetadata]="false"
+                    [suppressLabelId]="selectedLabelId() ?? null"
+                    (select)="editTask(task)"
                   />
                 }
               </div>
@@ -118,14 +143,21 @@
   </section>
 
   <app-label-modal
-    [open]="labelModalOpen()"
-    [labels]="labels()"
-    [selectedLabelId]="selectedLabelId()"
-    [mode]="labelModalMode()"
-    [taskCountForSelected]="selectedLabel()?.taskCount ?? 0"
-    (close)="closeLabelModal()"
-    (saved)="onLabelSaved()"
-    (deleted)="onLabelDeleted()"
-    (selectedLabelIdChange)="selectLabelById($event)"
+    [open]="labelEditorOpen()"
+    [label]="editorLabel()"
+    (close)="closeLabelEditor()"
+    (saved)="onLabelSaved($event)"
+  />
+
+  <app-confirm-dialog
+    [open]="deleteConfirmOpen()"
+    [title]="'Delete ' + (deleteTarget()?.name ?? 'this label') + '?'"
+    [description]="deleteCopy"
+    confirmLabel="Delete label"
+    cancelLabel="Keep label"
+    [danger]="true"
+    (confirm)="confirmDelete()"
+    (cancel)="closeDeleteConfirm()"
+    (close)="closeDeleteConfirm()"
   />
 </app-personal-task-workspace>

@@ -1006,7 +1006,9 @@ export class SettingsPageComponent {
         { key: 'id', label: 'ID' },
         { key: 'name', label: 'Name' },
         { key: 'color', label: 'Color' },
-        { key: 'taskCount', label: 'Tasks' },
+        { key: 'openTaskCount', label: 'Open Tasks' },
+        { key: 'completedTaskCount', label: 'Completed Tasks' },
+        { key: 'totalTaskCount', label: 'Total Tasks' },
         { key: 'createdAt', label: 'Created At' },
         { key: 'updatedAt', label: 'Updated At' },
       ];
@@ -1016,7 +1018,9 @@ export class SettingsPageComponent {
         id: l.id,
         name: l.name,
         color: l.color ?? null,
-        taskCount: l.taskCount ?? 0,
+        openTaskCount: l.openTaskCount ?? 0,
+        completedTaskCount: l.completedTaskCount ?? 0,
+        totalTaskCount: l.totalTaskCount ?? 0,
         createdAt: l.createdAt,
         updatedAt: l.updatedAt,
       }));

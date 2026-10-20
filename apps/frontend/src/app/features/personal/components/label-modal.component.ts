@@ -3,142 +3,97 @@ import {
   Component,
   EventEmitter,
   Input,
+  OnChanges,
   Output,
   inject,
   signal,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Label } from '@yotara/shared';
 import { LabelService } from '../../../core/services/label.service';
 import { ModalComponent } from '../../../shared/ui/modal/modal.component';
-import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
+import { LogService } from '../../../core/services/log.service';
 
-type LabelModalMode = 'create' | 'edit';
+/** Matches the practical input length the API trims before persisting. */
+const LABEL_NAME_MAX_LENGTH = 60;
 
+/**
+ * The one create/edit form for a single label. The Labels page owns the
+ * directory, delete, and selection — this modal never lists labels (the
+ * duplicate manager rail was removed in the Phase 1 redesign).
+ */
 @Component({
   selector: 'app-label-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, ModalComponent, ConfirmDialogComponent],
+  imports: [CommonModule, FormsModule, ModalComponent],
   template: `
-    <app-modal
-      [open]="open"
-      [title]="mode === 'create' ? 'Create Label' : 'Edit Label'"
-      size="lg"
-      [showFooter]="false"
-      (close)="close.emit()"
-    >
-      <div class="label-modal-shell">
-        <aside class="label-list">
-          <div class="label-list-header">
-            <h3>Manage Labels</h3>
-            <p>Organize your flow with custom tags.</p>
-          </div>
+    <app-modal [open]="open" title="Label" size="sm" [showFooter]="false" (close)="close.emit()">
+      <form class="label-editor" (ngSubmit)="save()">
+        <h3 class="editor-heading">
+          {{ label ? 'Edit label' : 'Create label' }}
+        </h3>
 
-          <button type="button" class="create-card" (click)="startCreate()">
-            <span class="plus">+</span>
-            <span>Create New Label</span>
-          </button>
+        <label class="field">
+          <span class="field-label">Name</span>
+          <input
+            #nameInput
+            type="text"
+            name="labelName"
+            autocomplete="off"
+            [maxlength]="nameMaxLength"
+            [class.field-invalid]="!!nameError()"
+            [ngModel]="draftName()"
+            (ngModelChange)="draftName.set($event); nameError.set(null)"
+            [attr.aria-invalid]="nameError() ? 'true' : null"
+            [attr.aria-describedby]="nameError() ? 'label-name-error' : null"
+            placeholder="Errand"
+            (keydown.enter)="save(); $event.preventDefault()"
+          />
+          @if (nameError()) {
+            <span id="label-name-error" class="field-error" role="alert">{{ nameError() }}</span>
+          }
+        </label>
 
-          <div class="label-rail">
-            @for (label of labels; track label.id) {
+        <div class="field">
+          <span class="field-label">Color</span>
+          <div class="palette-grid">
+            @for (color of palette; track color) {
               <button
                 type="button"
-                class="label-rail-item"
-                [class.label-rail-item-active]="selectedLabelId === label.id"
-                (click)="selectLabel(label)"
+                class="palette-tile"
+                [class.palette-tile-active]="draftColor() === color"
+                [style.background]="color"
+                [attr.aria-pressed]="draftColor() === color"
+                [attr.aria-label]="'Use color ' + color"
+                (click)="draftColor.set(color)"
               >
-                <span class="label-rail-dot" [style.background]="label.color"></span>
-                <span class="label-rail-name">{{ label.name }}</span>
-                <span class="label-rail-count">{{ label.taskCount ?? 0 }}</span>
+                @if (draftColor() === color) {
+                  <span class="check" aria-hidden="true">✓</span>
+                }
               </button>
             }
           </div>
-        </aside>
+        </div>
 
-        <section class="label-editor">
-          <div class="editor-header">
-            <div>
-              <h3>{{ mode === 'create' ? 'Add Label' : 'Edit Label' }}</h3>
-              <p>
-                {{
-                  mode === 'create'
-                    ? 'Create a new label and save it immediately.'
-                    : 'Refine how you identify your focus areas.'
-                }}
-              </p>
-            </div>
+        @if (requestError()) {
+          <p class="field-error" role="alert">{{ requestError() }}</p>
+        }
 
-            @if (mode === 'edit') {
-              <button
-                type="button"
-                class="icon-button"
-                aria-label="Delete label"
-                (click)="askDelete()"
-              >
-                ×
-              </button>
-            }
-          </div>
-
-          <label class="field">
-            <span class="field-label">Label Name</span>
-            <input
-              type="text"
-              [ngModel]="draftName()"
-              (ngModelChange)="draftName.set($event)"
-              placeholder="Creative"
-            />
-          </label>
-
-          <div class="field">
-            <span class="field-label">Color Theme</span>
-            <div class="palette-grid">
-              @for (color of palette; track color) {
-                <button
-                  type="button"
-                  class="palette-tile"
-                  [class.palette-tile-active]="draftColor() === color"
-                  [style.background]="color"
-                  (click)="draftColor.set(color)"
-                >
-                  @if (draftColor() === color) {
-                    <span class="check">✓</span>
-                  }
-                </button>
-              }
-            </div>
-          </div>
-
-          <div class="editor-actions">
-            <button type="button" class="secondary-button" (click)="close.emit()">Cancel</button>
-            <button type="button" class="primary-button" (click)="save()">
-              {{ mode === 'create' ? 'Create Label' : 'Save Changes' }}
-            </button>
-          </div>
-
+        <div class="editor-actions">
+          <button type="button" class="secondary-button" (click)="close.emit()">Cancel</button>
           <button
-            type="button"
-            class="text-action"
-            (click)="mode === 'create' ? saveAndContinue() : startCreate()"
+            type="submit"
+            class="primary-button"
+            [disabled]="saveLabelDisabled()"
+            [attr.aria-busy]="saving()"
           >
-            {{ mode === 'create' ? 'Create and keep editing' : 'Add another label' }}
+            {{ saving() ? 'Saving…' : label ? 'Save changes' : 'Create label' }}
           </button>
-        </section>
-      </div>
+        </div>
+      </form>
     </app-modal>
-
-    <app-confirm-dialog
-      [open]="deleteConfirmOpen()"
-      [title]="'Delete label ' + (draftName() || 'this label') + '?'"
-      description="This will remove it from all tasks. This action is permanent and cannot be undone."
-      confirmLabel="Delete"
-      cancelLabel="Cancel"
-      [danger]="true"
-      (confirm)="deleteLabel()"
-      (cancel)="deleteConfirmOpen.set(false)"
-      (close)="deleteConfirmOpen.set(false)"
-    />
   `,
   changeDetection: ChangeDetectionStrategy.Eager,
   styles: [
@@ -147,107 +102,15 @@ type LabelModalMode = 'create' | 'edit';
         display: contents;
       }
 
-      .label-modal-shell {
-        display: grid;
-        grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr);
-        min-height: 31rem;
-        background: var(--surface-container-low);
-        border-radius: 1.35rem;
-        overflow: hidden;
-      }
-
-      .label-list {
-        padding: 1.2rem 0;
-        background: var(--surface-overlay);
-        box-shadow: inset -1px 0 0 var(--outline-variant);
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-      }
-
-      .label-list-header {
-        padding: 0 1.05rem;
-        flex: 0 0 auto;
-      }
-
-      .create-card {
-        margin: 0.85rem 1.05rem 0;
-        min-height: 4rem;
-        border-radius: 0.95rem;
-        border: 1px dashed var(--outline-variant);
-        background: var(--surface-overlay);
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 0 1rem;
-        color: var(--on-surface-muted);
-        font-weight: 700;
-        cursor: pointer;
-      }
-
-      .label-rail {
-        display: grid;
-        gap: 0.55rem;
-        padding: 0.85rem 1.05rem;
-      }
-
-      .label-rail-item {
-        display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 0.6rem;
-        min-height: 3.15rem;
-        border-radius: 0.95rem;
-        padding: 0 0.8rem;
-        background: transparent;
-        color: var(--on-surface-muted);
-        text-align: left;
-      }
-
-      .label-rail-item-active {
-        background: var(--surface-container-high);
-        color: var(--on-surface);
-      }
-
-      .label-rail-dot {
-        width: 0.75rem;
-        height: 0.75rem;
-        border-radius: 999px;
-        box-shadow: inset 0 0 0 1px var(--surface-dim);
-      }
-
-      .label-rail-name {
-        font-weight: 700;
-      }
-
-      .label-rail-count {
-        min-width: 1.75rem;
-        text-align: right;
-        font-size: 0.8rem;
-        color: var(--on-surface-subtle);
-      }
-
       .label-editor {
-        padding: 1.6rem 1.6rem 1.25rem;
-        background: var(--surface-container-lowest);
         display: grid;
-        align-content: start;
-        gap: 1rem;
+        gap: 1.05rem;
       }
 
-      .editor-header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 0.85rem;
-      }
-
-      .icon-button {
-        border: 0;
-        background: transparent;
-        font-size: 1.8rem;
-        color: var(--on-surface-muted);
-        line-height: 1;
+      .editor-heading {
+        margin: 0;
+        font-size: 1.02rem;
+        color: var(--on-surface-subtle);
       }
 
       .field {
@@ -259,7 +122,7 @@ type LabelModalMode = 'create' | 'edit';
         color: var(--on-surface-subtle);
         text-transform: uppercase;
         letter-spacing: 0.14em;
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         font-weight: 800;
       }
 
@@ -272,6 +135,15 @@ type LabelModalMode = 'create' | 'edit';
         padding: 0 1rem;
         font: inherit;
         color: var(--on-surface);
+      }
+
+      .field-invalid {
+        box-shadow: inset 0 0 0 1px var(--status-overdue);
+      }
+
+      .field-error {
+        color: var(--status-overdue);
+        font-size: 0.88rem;
       }
 
       .palette-grid {
@@ -324,50 +196,36 @@ type LabelModalMode = 'create' | 'edit';
         color: hsl(var(--primary-foreground));
       }
 
+      .primary-button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
       .secondary-button {
         background: var(--surface-container-high);
         color: var(--on-surface-muted);
       }
-
-      .text-action {
-        justify-self: start;
-        border: 0;
-        background: transparent;
-        color: var(--primary-solid);
-        font-weight: 700;
-        padding: 0;
-        font-size: 0.95rem;
-        cursor: pointer;
-      }
-
-      @media (max-width: 900px) {
-        .label-modal-shell {
-          grid-template-columns: 1fr;
-        }
-
-        .label-list {
-          box-shadow: inset 0 -1px 0 var(--outline-variant);
-        }
-      }
     `,
   ],
 })
-export class LabelModalComponent {
+export class LabelModalComponent implements OnChanges {
   private readonly labelService = inject(LabelService);
+  private readonly logService = inject(LogService);
 
+  /** The label to edit, or null to create one. */
+  @Input() label: Label | null = null;
   @Input() open = false;
-  @Input() labels: Label[] = [];
-  @Input() selectedLabelId: string | null = null;
-  @Input() mode: LabelModalMode = 'create';
-  @Input() taskCountForSelected = 0;
+
   @Output() readonly close = new EventEmitter<void>();
-  @Output() readonly saved = new EventEmitter<void>();
-  @Output() readonly deleted = new EventEmitter<void>();
-  @Output() readonly selectedLabelIdChange = new EventEmitter<string | null>();
+  /** Emitted after a successful create or update; the page reflows itself. */
+  @Output() readonly saved = new EventEmitter<Label>();
 
   protected readonly draftName = signal('');
   protected readonly draftColor = signal('');
-  protected readonly deleteConfirmOpen = signal(false);
+  protected readonly nameError = signal<string | null>(null);
+  protected readonly requestError = signal<string | null>(null);
+  protected readonly saving = signal(false);
+  protected readonly nameMaxLength = LABEL_NAME_MAX_LENGTH;
   protected readonly palette = [
     '#2b7c55',
     '#2c7680',
@@ -381,88 +239,61 @@ export class LabelModalComponent {
     '#b7a3e7',
   ];
 
+  protected saveLabelDisabled() {
+    return this.saving() || !this.draftName().trim();
+  }
+
   ngOnChanges() {
-    const selected = this.labels.find((label) => label.id === this.selectedLabelId) ?? null;
-    if (this.mode === 'edit' && selected) {
-      this.hydrate(selected);
+    if (!this.open) {
       return;
     }
 
-    if (this.mode === 'create') {
-      this.draftName.set('');
-      this.draftColor.set(this.palette[0]);
-      return;
-    }
-
-    if (!selected && this.labels.length > 0) {
-      this.selectLabel(this.labels[0]);
-    }
-  }
-
-  protected selectLabel(label: Label) {
-    this.selectedLabelIdChange.emit(label.id);
-    this.hydrate(label);
-    this.mode = 'edit';
-  }
-
-  protected startCreate() {
-    this.mode = 'create';
-    this.selectedLabelIdChange.emit(null);
-    this.draftName.set('');
-    this.draftColor.set(this.palette[0]);
+    this.nameError.set(null);
+    this.requestError.set(null);
+    this.draftName.set(this.label?.name ?? '');
+    this.draftColor.set(this.label?.color || this.palette[0]);
   }
 
   protected async save() {
     const name = this.draftName().trim();
     if (!name) {
+      this.nameError.set('A label name is required.');
       return;
     }
 
-    if (this.mode === 'create') {
-      const created = await this.labelService.createLabel({
-        name,
-        color: this.draftColor(),
-      });
-      this.selectedLabelIdChange.emit(created.id);
-      this.saved.emit();
-      this.mode = 'edit';
+    if (this.saving()) {
       return;
     }
 
-    if (!this.selectedLabelId) {
-      return;
+    this.saving.set(true);
+    this.requestError.set(null);
+    try {
+      const saved = this.label
+        ? await this.labelService.updateLabel(this.label.id, { name, color: this.draftColor() })
+        : await this.labelService.createLabel({ name, color: this.draftColor() });
+      this.saved.emit(saved);
+      this.close.emit();
+    } catch (error) {
+      this.requestError.set(describeLabelError(error, name));
+      this.logService.warn('Label save failed', error);
+    } finally {
+      this.saving.set(false);
     }
-
-    await this.labelService.updateLabel(this.selectedLabelId, {
-      name,
-      color: this.draftColor(),
-    });
-    this.saved.emit();
-    this.close.emit();
   }
+}
 
-  protected async saveAndContinue() {
-    await this.save();
-    this.startCreate();
-  }
-
-  protected askDelete() {
-    this.deleteConfirmOpen.set(true);
-  }
-
-  protected async deleteLabel() {
-    if (!this.selectedLabelId) {
-      return;
+/** Inline, human-readable errors for create/update failures (409 etc.). */
+function describeLabelError(error: unknown, name: string): string {
+  if (error instanceof HttpErrorResponse) {
+    if (error.status === 409) {
+      return `A label named “${name}” already exists.`;
     }
-
-    await this.labelService.deleteLabel(this.selectedLabelId);
-    this.deleteConfirmOpen.set(false);
-    this.deleted.emit();
-    this.startCreate();
+    if (error.status === 400) {
+      return typeof error.error?.message === 'string'
+        ? error.error.message
+        : 'Check the label name and color, then try again.';
+    }
+    return 'Could not save the label right now. Try again.';
   }
-
-  private hydrate(label: Label) {
-    this.draftName.set(label.name);
-    this.draftColor.set(label.color);
-  }
+  return 'Could not save the label right now. Try again.';
 }

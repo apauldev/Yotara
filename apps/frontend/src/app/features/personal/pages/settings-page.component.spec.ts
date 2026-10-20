@@ -37,8 +37,26 @@ const mockProjects: Project[] = [
 ];
 
 const mockLabels: Label[] = [
-  { id: 'lbl-1', name: 'urgent', color: '#ff0000', userId: 'user-1' },
-  { id: 'lbl-2', name: 'design', color: '#00ff00', userId: 'user-1' },
+  {
+    id: 'lbl-1',
+    name: 'urgent',
+    color: '#ff0000',
+    userId: 'user-1',
+    openTaskCount: 2,
+    completedTaskCount: 1,
+    totalTaskCount: 3,
+    taskCount: 3,
+  },
+  {
+    id: 'lbl-2',
+    name: 'design',
+    color: '#00ff00',
+    userId: 'user-1',
+    openTaskCount: 1,
+    completedTaskCount: 0,
+    totalTaskCount: 1,
+    taskCount: 1,
+  },
 ];
 
 const mockTasks: Task[] = [
@@ -391,7 +409,9 @@ describe('SettingsPageComponent', () => {
       expect(content).toContain('Name');
       expect(content).toContain('urgent');
       expect(content).toContain('design');
-      expect(content).toContain('Tasks');
+      expect(content).toContain('Open Tasks');
+      expect(content).toContain('Completed Tasks');
+      expect(content).toContain('Total Tasks');
     });
   });
 
@@ -759,6 +779,9 @@ describe('SettingsPageComponent', () => {
       expect(json.length).toBe(2);
       expect(json[0].name).toBe('urgent');
       expect(json[0].color).toBe('#ff0000');
+      expect(json[0].openTaskCount).toBe(2);
+      expect(json[0].completedTaskCount).toBe(1);
+      expect(json[0].totalTaskCount).toBe(3);
     });
   });
 

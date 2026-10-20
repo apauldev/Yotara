@@ -25,6 +25,7 @@ import { HighlightPipe } from '../../../../shared/pipes/highlight.pipe';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { firstValueFrom, map, switchMap } from 'rxjs';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { LabelChipComponent } from '../../../../shared/ui/label-chip/label-chip.component';
 import { faPlus, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 
 export type TaskSortOption = 'date' | 'alpha';
@@ -44,6 +45,7 @@ export type TaskSortOption = 'date' | 'alpha';
     EmptyStateComponent,
     HighlightPipe,
     FontAwesomeModule,
+    LabelChipComponent,
   ],
   templateUrl: './search-page.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

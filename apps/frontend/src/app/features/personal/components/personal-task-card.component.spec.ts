@@ -1,11 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import { signal } from '@angular/core';
 import { provideMarkdown } from 'ngx-markdown';
 import { PersonalTaskCardComponent } from './personal-task-card.component';
 import { Task } from '@yotara/shared';
 import { TaskService } from '../../../core/services/task.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { StatusService } from '../../../core/services/status.service';
+import { LabelService } from '../../../core/services/label.service';
 import { NotificationService } from '../../../core/services/notification.service';
 
 describe('PersonalTaskCardComponent', () => {
@@ -31,6 +33,17 @@ describe('PersonalTaskCardComponent', () => {
     simpleMode: true,
   };
 
+  const mockLabels = [
+    { id: 'label-1', name: 'Urgent', color: '#d44d3c', userId: 'user-1' },
+    { id: 'label-2', name: 'Errand', color: '#f1c582', userId: 'user-1' },
+    { id: 'label-3', name: 'Idea', color: '#82d7a9', userId: 'user-1' },
+    { id: 'label-deleted', name: 'Ghost', color: '#82d7a9', userId: 'user-1' },
+  ];
+  let labelServiceStub: {
+    labels: ReturnType<typeof signal>;
+    labelById: () => Map<string, unknown>;
+  };
+
   beforeEach(async () => {
     taskServiceSpy = jasmine.createSpyObj<TaskService>('TaskService', ['updateTask']);
     statusServiceSpy = jasmine.createSpyObj<StatusService>('StatusService', [
@@ -43,6 +56,10 @@ describe('PersonalTaskCardComponent', () => {
       'showBrowserNotification',
     ]);
     localStorage.clear();
+    labelServiceStub = {
+      labels: signal(mockLabels),
+      labelById: () => new Map(mockLabels.map((label) => [label.id, label])),
+    };
 
     await TestBed.configureTestingModule({
       imports: [PersonalTaskCardComponent],
@@ -50,6 +67,7 @@ describe('PersonalTaskCardComponent', () => {
         { provide: TaskService, useValue: taskServiceSpy },
         { provide: StatusService, useValue: statusServiceSpy },
         { provide: NotificationService, useValue: notificationServiceSpy },
+        { provide: LabelService, useValue: labelServiceStub },
         provideMarkdown(),
       ],
     }).compileComponents();
@@ -794,6 +812,94 @@ describe('PersonalTaskCardComponent', () => {
     it('keeps full metadata in the DOM for modal use', () => {
       expect(fixture.debugElement.query(By.css('.meta-pill-bucket'))).toBeTruthy();
       expect(fixture.debugElement.query(By.css('.meta-pill-simple'))).toBeTruthy();
+    });
+  });
+
+  describe('Label chips', () => {
+    type ChipOverrides = Partial<Task> & {
+      suppressLabelId?: string | null;
+      showContextMetadata?: boolean;
+    };
+
+    function setup({ suppressLabelId, showContextMetadata, ...taskOverrides }: ChipOverrides) {
+      component.task = { ...mockTask, ...taskOverrides } as unknown as Task;
+      component.suppressLabelId = suppressLabelId ?? null;
+      component.showContextMetadata = showContextMetadata ?? true;
+      fixture.detectChanges();
+      return fixture;
+    }
+
+    it('caps inline chips at two and moves the rest behind +N', () => {
+      setup({ labels: ['label-1', 'label-2', 'label-3'] });
+      expect(
+        fixture.debugElement.queryAll(By.css('.task-badges-labels app-label-chip')).length,
+      ).toBe(2);
+      const overflow = fixture.debugElement.query(By.css('.task-label-overflow'));
+      expect(overflow).toBeTruthy();
+      expect(overflow.nativeElement.textContent.trim()).toBe('+1');
+    });
+
+    it('renders no chips for unknown label IDs', () => {
+      setup({ labels: ['label-deleted', 'label-missing'] });
+      expect(
+        fixture.debugElement.queryAll(By.css('.task-badges-labels app-label-chip')).length,
+      ).toBe(1);
+    });
+
+    it('suppresses the label being viewed via suppressLabelId', () => {
+      setup({ labels: ['label-1', 'label-2'], suppressLabelId: 'label-1' });
+      const chipNames = fixture.debugElement
+        .queryAll(By.css('.task-badges-labels app-label-chip .label-chip-name'))
+        .map((chip) => chip.nativeElement.textContent.trim());
+      expect(chipNames).toEqual(['Errand']);
+    });
+
+    it('toggles a popover that lists every label name', () => {
+      setup({ labels: ['label-1', 'label-2', 'label-3'] });
+      expect(fixture.debugElement.query(By.css('.task-label-overflow-menu'))).toBeNull();
+
+      const overflow = fixture.debugElement.query(By.css('.task-label-overflow'));
+      overflow.nativeElement.click();
+      fixture.detectChanges();
+
+      const menu = fixture.debugElement.query(By.css('.task-label-overflow-menu'));
+      expect(menu).toBeTruthy();
+      const names = menu
+        .queryAll(By.css('app-label-chip .label-chip-name'))
+        .map((chip) => chip.nativeElement.textContent.trim());
+      expect(names).toEqual(['Urgent', 'Errand', 'Idea']);
+    });
+
+    it('keeps the overflow click from opening the task card', () => {
+      setup({ labels: ['label-1', 'label-2', 'label-3'] });
+      spyOn(component.select, 'emit');
+
+      // A real click event bubbles up to the card's select handler unless the
+      // button stops propagation.
+      fixture.debugElement.query(By.css('.task-label-overflow')).nativeElement.click();
+      fixture.detectChanges();
+
+      expect(component.select.emit).not.toHaveBeenCalled();
+    });
+
+    it('handlers: closeLabelOverflow hides the popover', () => {
+      setup({ labels: ['label-1', 'label-2', 'label-3'] });
+      fixture.debugElement.query(By.css('.task-label-overflow')).nativeElement.click();
+      fixture.detectChanges();
+      expect(fixture.debugElement.query(By.css('.task-label-overflow-menu'))).toBeTruthy();
+
+      (component as unknown as { closeLabelOverflow(): void }).closeLabelOverflow();
+      fixture.detectChanges();
+      expect(fixture.debugElement.query(By.css('.task-label-overflow-menu'))).toBeNull();
+    });
+
+    it('showContextMetadata=false hides status, bucket, and simple-mode pills', () => {
+      setup({ showContextMetadata: false });
+      expect(fixture.debugElement.query(By.css('.meta-pill-muted'))).toBeNull();
+      expect(fixture.debugElement.query(By.css('.meta-pill-bucket'))).toBeNull();
+      expect(fixture.debugElement.query(By.css('.meta-pill-simple'))).toBeNull();
+      // Non-ambient metadata stays.
+      expect(fixture.debugElement.query(By.css('.priority-chip'))).toBeTruthy();
     });
   });
 });

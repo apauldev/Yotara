@@ -10,6 +10,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { Task } from '@yotara/shared';
+import type { Label } from '@yotara/shared';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faBoxArchive, faRotate, faRotateLeft, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { MarkdownComponent } from 'ngx-markdown';
@@ -17,6 +18,7 @@ import { LabelService } from '../../../core/services/label.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { StatusService } from '../../../core/services/status.service';
 import { TaskService } from '../../../core/services/task.service';
+import { LabelChipComponent } from '../../../shared/ui/label-chip/label-chip.component';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 import { formatTimeLabel, parseCalendarDate } from '../../../shared/utils/timestamps';
 import { notifyTaskCompleted } from '../utils/task-completion-notice';
@@ -24,7 +26,19 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
 @Component({
   selector: 'app-personal-task-card',
   standalone: true,
-  imports: [CommonModule, ConfirmDialogComponent, FontAwesomeModule, MarkdownComponent],
+  imports: [
+    CommonModule,
+    ConfirmDialogComponent,
+    FontAwesomeModule,
+    LabelChipComponent,
+    MarkdownComponent,
+  ],
+  host: {
+    // The +N overflow popover listens for outside interactions; the toggle
+    // button stops its events so this never closes what it just opened.
+    '(document:click)': 'closeLabelOverflow()',
+    '(document:keydown.escape)': 'closeLabelOverflow()',
+  },
   template: `
     <article
       class="task-card"
@@ -65,10 +79,43 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
         <div class="task-title-row">
           <h3 [class.h3-compact]="mode === 'compact'">{{ task.title }}</h3>
 
-          @if (task.labels?.length) {
+          @if (taskLabelChips().length) {
             <div class="task-badges-labels">
-              @for (labelId of task.labels; track labelId) {
-                <span class="meta-pill meta-pill-label">{{ labelName(labelId) }}</span>
+              @for (chip of visibleLabelChips(); track chip.id) {
+                <app-label-chip [label]="chip" size="sm" />
+              }
+              @if (overflowLabelChips().length) {
+                <span class="task-label-overflow-wrap">
+                  <button
+                    type="button"
+                    class="task-label-overflow"
+                    [attr.aria-expanded]="overflowOpen()"
+                    [attr.aria-label]="
+                      '+ ' + overflowLabelChips().length + ' more labels for ' + task.title
+                    "
+                    (click)="toggleLabelOverflow($event)"
+                    (keydown)="$event.stopPropagation()"
+                  >
+                    +{{ overflowLabelChips().length }}
+                  </button>
+                  @if (overflowOpen()) {
+                    <span
+                      class="task-label-overflow-menu"
+                      role="group"
+                      [attr.aria-label]="'Labels for ' + task.title"
+                      (click)="$event.stopPropagation()"
+                      (keydown)="$event.stopPropagation()"
+                    >
+                      @for (chip of taskLabelChips(); track chip.id) {
+                        <app-label-chip
+                          [label]="chip"
+                          size="sm"
+                          [selected]="suppressLabelId === chip.id"
+                        />
+                      }
+                    </span>
+                  }
+                </span>
               }
             </div>
           }
@@ -85,16 +132,21 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
                 </span>
               }
 
-              <span class="meta-pill meta-pill-muted">{{ statusLabel() }}</span>
+              <!-- Ambient context (status/bucket/simple mode) is suppressed on
+                   surfaces where label context is the primary story (Labels
+                   page), so those pills do not compete with the label chips. -->
+              @if (showContextMetadata) {
+                <span class="meta-pill meta-pill-muted">{{ statusLabel() }}</span>
+              }
               <span class="priority-chip priority-chip-{{ task.priority }}">{{
                 priorityLabel()
               }}</span>
 
-              @if (task.bucket) {
+              @if (showContextMetadata && task.bucket) {
                 <span class="meta-pill meta-pill-bucket">{{ bucketLabel() }}</span>
               }
 
-              @if (task.simpleMode) {
+              @if (showContextMetadata && task.simpleMode) {
                 <span class="meta-pill meta-pill-simple">Simple mode</span>
               }
 
@@ -331,6 +383,58 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
         min-width: 0;
       }
 
+      .task-label-overflow-wrap {
+        position: relative;
+        display: inline-flex;
+      }
+
+      .task-label-overflow {
+        appearance: none;
+        border: 0;
+        border-radius: 999px;
+        background: var(--surface-container-low);
+        color: var(--on-surface-muted);
+        font-family: inherit;
+        font-size: 0.66rem;
+        font-weight: 700;
+        line-height: 1;
+        padding: 0.3rem 0.42rem;
+        cursor: pointer;
+        min-height: 1.55rem;
+      }
+
+      .task-label-overflow:hover {
+        background: var(--surface-container-high);
+        color: var(--on-surface);
+      }
+
+      .task-label-overflow:focus-visible {
+        outline: 2px solid var(--primary-solid);
+        outline-offset: 1px;
+      }
+
+      .task-label-overflow-menu {
+        position: absolute;
+        top: calc(100% + 0.35rem);
+        right: 0;
+        z-index: 30;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.3rem;
+        max-width: min(16rem, 72vw);
+        padding: 0.55rem 0.65rem;
+        border-radius: 0.6rem;
+        background: var(--surface-card);
+        box-shadow:
+          0 8px 24px var(--surface-dim),
+          inset 0 0 0 1px var(--outline-variant);
+      }
+
+      .task-label-overflow-menu app-label-chip {
+        max-width: 100%;
+      }
+
       .task-badges {
         margin-left: auto;
         display: flex;
@@ -464,11 +568,6 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
       .meta-pill-muted {
         background: var(--surface-container-low);
         color: var(--on-surface-subtle);
-      }
-
-      .meta-pill-label {
-        background: var(--accent-soft);
-        color: var(--accent-strong);
       }
 
       .meta-pill-date {
@@ -633,9 +732,33 @@ export class PersonalTaskCardComponent {
   @Input() showCompletionState = false;
   @Input() showArchiveActions = false;
   @Input() interactive = false;
+  /**
+   * Hides ambient task metadata (status / bucket / simple-mode pills). The
+   * Labels page sets false so the chips tell the label story uncluttered.
+   */
+  @Input() showContextMetadata = true;
+  /** Label ID to hide from the chip row — the Labels page suppresses the label being viewed. */
+  @Input() suppressLabelId: string | null = null;
   @Output() readonly select = new EventEmitter<void>();
   @Output() readonly togglePermanentArchive = new EventEmitter<void>();
   @Output() readonly deleteForever = new EventEmitter<void>();
+
+  /**
+   * Live labels in task order, skipping IDs that no longer exist (deleted mid
+   * session) and the suppressed one. Two chips render inline; the rest move
+   * behind a +N button with a popover that lists every label name.
+   */
+  protected readonly taskLabelChips = computed<Label[]>(() => {
+    const labelsById = this.labelService.labelById();
+    const suppress = this.suppressLabelId;
+    return (this.task.labels ?? [])
+      .map((labelId) => labelsById.get(labelId))
+      .filter((label): label is Label => label !== undefined && label.id !== suppress);
+  });
+
+  protected readonly visibleLabelChips = computed(() => this.taskLabelChips().slice(0, 2));
+  protected readonly overflowLabelChips = computed(() => this.taskLabelChips().slice(2));
+  protected readonly overflowOpen = signal(false);
 
   protected priorityLabel() {
     return `${this.task.priority} priority`;
@@ -676,10 +799,6 @@ export class PersonalTaskCardComponent {
 
     // The time appears only when the task actually carries one.
     return formattedTime ? `${formattedDate}, ${formattedTime}` : formattedDate;
-  }
-
-  protected labelName(labelId: string) {
-    return this.labelService.labels().find((label) => label.id === labelId)?.name ?? labelId;
   }
 
   protected bucketLabel() {
@@ -750,6 +869,19 @@ export class PersonalTaskCardComponent {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       this.select.emit();
+    }
+  }
+
+  protected toggleLabelOverflow(event: MouseEvent) {
+    // Never reach the card's select handler or the document close listener —
+    // otherwise the popover closes in the same click that opened it.
+    event.stopPropagation();
+    this.overflowOpen.set(!this.overflowOpen());
+  }
+
+  protected closeLabelOverflow() {
+    if (this.overflowOpen()) {
+      this.overflowOpen.set(false);
     }
   }
 

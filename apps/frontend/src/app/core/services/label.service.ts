@@ -62,6 +62,9 @@ export class LabelService {
   readonly count = computed(() => this.labels().length);
   readonly version = this.refreshState.asReadonly();
 
+  /** Live label-ID → Label map; consumers skip unknown labels instead of rendering raw IDs. */
+  readonly labelById = computed(() => new Map(this.labels().map((label) => [label.id, label])));
+
   refresh() {
     this.refreshState.update((value) => value + 1);
   }
@@ -91,5 +94,18 @@ export class LabelService {
       }),
     );
     this.refresh();
+  }
+
+  /**
+   * Deletes a label and resolves with the label list fetched after the delete,
+   * so the caller can pick the "next" label from server truth rather than the
+   * locally stale signal (see the Labels page delete flow). The signal itself
+   * refreshes in parallel via the regular refresh() bump.
+   */
+  async deleteLabelAndList(labelId: string): Promise<Label[]> {
+    await this.deleteLabel(labelId);
+    return await firstValueFrom(
+      this.http.get<Label[]>(`${this.baseUrl}/labels`, { withCredentials: true }),
+    );
   }
 }

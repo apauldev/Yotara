@@ -67,6 +67,22 @@ filtering it in the browser. Search is also server-side via
 bounded task collection used for subtasks and label assignment is intentional;
 it is not the former unbounded expand-loop design.
 
+### Categorization model
+
+Projects, buckets, and labels answer different questions about a task, and the
+product keeps them distinct:
+
+- **Project** — a container with a finish line. It holds tasks, belongs to a
+  user, and completes when its work is done; scoping a task to one project is
+  the primary structural relationship.
+- **Bucket** — a local grouping used inside a single view (for example a date
+  grouping on the calendar), not a saved category a task carries around.
+- **Label** — a cross-cutting condition of work (for example `Errand`,
+  `Deep focus`). Labels ignore project boundaries: a task can carry several,
+  and a healthy system keeps the set small and meaningful (roughly 3–8 per
+  user) instead of a sprawl of near-duplicates. Labels describe how the work
+  feels or what it requires; they are never "where the task lives".
+
 ### API
 
 `apps/api` keeps route handlers thin. Routes authenticate and validate input,
@@ -96,8 +112,11 @@ capture, focus, planning, completion, or self-hosting.
 ### Server-side filtering
 
 The server filters by status, completion, due date, archive state, search
-query, and timezone. The frontend may group or decorate already-filtered
-results, but it should not recreate API filtering in computed signals.
+query, timezone, and label IDs (`/tasks?labelIds=…`). The frontend may group or
+decorate already-filtered results, but it should not recreate API filtering in
+computed signals — the Labels page pane, for instance, queries
+`labelIds` per selected label rather than client-filtering the active-task
+collection.
 
 ### SQLite first
 

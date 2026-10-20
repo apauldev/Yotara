@@ -270,16 +270,19 @@
 
               <div class="project-grid">
                 @for (labelResult of labelResults(); track labelResult.label.id) {
-                  <article class="project-card">
+                  <a
+                    class="project-card"
+                    [routerLink]="['/labels']"
+                    [queryParams]="{ label: labelResult.label.id }"
+                  >
                     <div class="project-topline">
-                      <h3 [innerHTML]="labelResult.label.name | highlight: searchQuery()"></h3>
-                      <span>{{ labelResult.label.taskCount ?? 0 }} tasks</span>
+                      <app-label-chip [label]="labelResult.label" size="sm" />
+                      <span>{{ labelResult.label.openTaskCount }} open</span>
                     </div>
-                    <p>{{ labelResult.label.color }}</p>
                     <div class="project-meta">
                       <span>Match: label name</span>
                     </div>
-                  </article>
+                  </a>
                 }
               </div>
             </section>

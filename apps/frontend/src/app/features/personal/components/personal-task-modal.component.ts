@@ -74,6 +74,8 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
   @Input() initialTitle = '';
   @Input() initialDueDateDraft: DueDateDraft | null = null;
   @Input() initialProjectId: string | null = null;
+  /** Labels applied to NEW tasks (Labels page pane); ignored when editing. */
+  @Input() initialLabelIds: string[] = [];
   @Input() projects: Project[] = [];
   @Input() error: string | null = null;
   @Output() readonly close = new EventEmitter<void>();
@@ -758,7 +760,9 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
 
   private hydrateDraft() {
     const rawTitle = this.task?.title ?? this.initialTitle;
-    const { title, priority, labelNames } = parseTaskCommand(rawTitle);
+    const { title, priority, labelNames } = parseTaskCommand(rawTitle, {
+      knownLabelNames: this.labelService.labels().map((l) => l.name),
+    });
 
     // If editing, use raw title. If creating from initialTitle, use cleaned title.
     this.draftTitle.set(this.task ? rawTitle : title);
@@ -773,10 +777,12 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
         .filter((l) => labelNames.some((name) => name.toLowerCase() === l.name.toLowerCase()))
         .map((l) => l.id);
 
-      this.draftLabels.set(parsedLabelIds);
+      // Pane-seeded labels (initialLabelIds) apply on top of parsed ones only
+      // when creating a fresh task.
+      this.draftLabels.set([...new Set([...parsedLabelIds, ...this.initialLabelIds])]);
     } else {
       this.draftPriority.set(this.task?.priority ?? 'medium');
-      this.draftLabels.set(this.task?.labels ?? []);
+      this.draftLabels.set(this.task?.labels ?? [...this.initialLabelIds]);
     }
 
     const initialDraft = this.task ? null : this.initialDueDateDraft;

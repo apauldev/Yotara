@@ -88,6 +88,7 @@ describe('ProjectDetailPageComponent', () => {
 
     const labelServiceStub = {
       labels: signal([]),
+      labelById: () => new Map(),
     };
 
     await TestBed.configureTestingModule({

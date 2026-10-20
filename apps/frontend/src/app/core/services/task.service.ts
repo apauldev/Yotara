@@ -189,6 +189,20 @@ export class TaskService {
       .pipe(map((response) => response.data));
   }
 
+  /**
+   * Fetch the open tasks carrying one label (the Labels page pane). Runs
+   * server-side via the labelIds filter so the pane matches the flat,
+   * non-deleted count scope the label list reports — the Labels page must not
+   * client-filter allActiveTasks.
+   */
+  fetchTasksByLabel$(labelId: string) {
+    return this.http
+      .get<
+        PaginatedResponse<Task[]>
+      >(`${this.baseUrl}/tasks?labelIds=${labelId}&completed=false&includeSubtasks=true&page=1&pageSize=${TASKS_PAGE_SIZE}`, { withCredentials: true })
+      .pipe(map((response) => response.data));
+  }
+
   /** Fetch active tasks without a due date (the calendar's No date list). */
   fetchUndatedTasks$() {
     const tz = getUserTimezone();

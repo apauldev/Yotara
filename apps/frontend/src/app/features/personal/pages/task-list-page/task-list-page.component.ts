@@ -255,7 +255,11 @@ export class TaskListPageComponent implements OnInit {
         return;
       }
 
-      const { title, priority, labelNames } = parseTaskCommand(rawValue);
+      // Pass the live label names so unknown #tags stay in the title instead
+      // of disappearing (they may become labels in Phase 3).
+      const { title, priority, labelNames } = parseTaskCommand(rawValue, {
+        knownLabelNames: this.labelService.labels().map((l) => l.name),
+      });
       const dueDateDraft = bar.getDueDateDraft();
 
       const resolvedLabels = this.labelService

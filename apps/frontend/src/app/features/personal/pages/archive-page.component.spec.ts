@@ -85,6 +85,7 @@ describe('ArchivePageComponent', () => {
 
     const labelServiceStub = {
       labels: signal([]),
+      labelById: () => new Map(),
     };
 
     await TestBed.configureTestingModule({

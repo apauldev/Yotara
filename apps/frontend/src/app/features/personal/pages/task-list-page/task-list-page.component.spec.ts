@@ -52,6 +52,7 @@ describe('TaskListPageComponent', () => {
 
     mockLabelService = {
       labels: signal([]),
+      labelById: () => new Map(),
     };
 
     mockAuthStateService = {
