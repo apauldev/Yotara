@@ -270,24 +270,20 @@ describe('PersonalTaskCardComponent', () => {
       expect(component.select.emit).toHaveBeenCalledWith();
     });
 
-    it('should be keyboard activatable when interactive is true', () => {
+    it('gives keyboard users a title button instead of a role=button card', () => {
       component.interactive = true;
       fixture.detectChanges();
       spyOn(component.select, 'emit');
 
       const card = fixture.debugElement.query(By.css('.task-card'));
-      card.nativeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+      expect(card.nativeElement.getAttribute('role')).toBeNull();
+      expect(card.nativeElement.getAttribute('tabindex')).toBeNull();
 
-      expect(component.select.emit).toHaveBeenCalledWith();
-    });
+      const titleButton = fixture.debugElement.query(By.css('.task-title-button'));
+      expect(titleButton).toBeTruthy();
+      titleButton.nativeElement.click();
 
-    it('should expose button semantics when interactive is true', () => {
-      component.interactive = true;
-      fixture.detectChanges();
-
-      const card = fixture.debugElement.query(By.css('.task-card'));
-      expect(card.nativeElement.getAttribute('role')).toBe('button');
-      expect(card.nativeElement.getAttribute('tabindex')).toBe('0');
+      expect(component.select.emit).toHaveBeenCalledTimes(1);
     });
 
     it('should complete the task when the check button is clicked', () => {
@@ -774,17 +770,69 @@ describe('PersonalTaskCardComponent', () => {
     });
   });
 
-  describe('onKeydown when not interactive', () => {
-    it('does nothing when not interactive', () => {
+  describe('non-interactive cards', () => {
+    it('renders the title as text without a keyboard control', () => {
       component.task = mockTask;
       component.interactive = false;
       fixture.detectChanges();
+
+      expect(fixture.debugElement.query(By.css('.task-title-button'))).toBeNull();
+    });
+  });
+
+  describe('label chip filtering', () => {
+    it('emits labelSelect from a chip without opening the card', () => {
+      component.task = { ...mockTask, labels: ['label-1'] };
+      fixture.detectChanges();
+      spyOn(component.labelSelect, 'emit');
       spyOn(component.select, 'emit');
 
-      const event = new KeyboardEvent('keydown', { key: 'Enter' });
-      (component as any).onKeydown(event);
+      const chipButton = fixture.debugElement.query(
+        By.css('.task-badges-labels app-label-chip button'),
+      );
+      chipButton.nativeElement.click();
 
+      expect(component.labelSelect.emit).toHaveBeenCalledTimes(1);
+      expect(component.labelSelect.emit).toHaveBeenCalledWith(
+        jasmine.objectContaining({ id: 'label-1' }),
+      );
       expect(component.select.emit).not.toHaveBeenCalled();
+    });
+
+    it('uses compact icon chips and a reveal control when names are off', () => {
+      preferences.setShowLabelNames(false);
+      component.task = { ...mockTask, labels: ['label-1', 'label-2'] };
+      fixture.detectChanges();
+
+      const chips = fixture.debugElement.queryAll(By.css('.task-badges-labels app-label-chip'));
+      expect(chips.length).toBe(2);
+      expect(chips[0].componentInstance.mode).toBe('compact');
+      expect(chips[0].nativeElement.textContent).toContain('Label: Urgent');
+
+      const reveal = fixture.debugElement.query(By.css('.task-label-reveal'));
+      expect(reveal).toBeTruthy();
+      expect(reveal.nativeElement.getAttribute('aria-label')).toContain('Show all 2 labels');
+    });
+
+    it('fills chips with the label color when color-first is on', () => {
+      preferences.setColorFirstLabels(true);
+      component.task = { ...mockTask, labels: ['label-1'] };
+      fixture.detectChanges();
+
+      const chip = fixture.debugElement.query(By.css('.task-badges-labels app-label-chip'));
+      expect(chip.componentInstance.colorFirst).toBeTrue();
+      expect(chip.nativeElement.classList).toContain('label-chip-color-first');
+    });
+
+    it('suppresses every active filter label', () => {
+      component.task = { ...mockTask, labels: ['label-1', 'label-2', 'label-3'] };
+      component.suppressLabelIds = ['label-1', 'label-3'];
+      fixture.detectChanges();
+
+      const names = fixture.debugElement
+        .queryAll(By.css('.task-badges-labels app-label-chip .label-chip-name'))
+        .map((chip) => chip.nativeElement.textContent.trim());
+      expect(names).toEqual(['Errand']);
     });
   });
 

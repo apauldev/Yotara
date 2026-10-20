@@ -276,7 +276,11 @@
                     [queryParams]="{ label: labelResult.label.id }"
                   >
                     <div class="project-topline">
-                      <app-label-chip [label]="labelResult.label" size="sm" />
+                      <app-label-chip
+                        [label]="labelResult.label"
+                        size="sm"
+                        [colorFirst]="preferences.colorFirstLabels()"
+                      />
                       <span>{{ labelResult.label.openTaskCount }} open</span>
                     </div>
                     <div class="project-meta">

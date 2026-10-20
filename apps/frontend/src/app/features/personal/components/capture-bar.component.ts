@@ -25,6 +25,8 @@ import { tryGetUserTimezone } from '../../../shared/utils/timezone';
 import { timedTaskTimezoneNotice } from '../utils/timezone-notices';
 import { LabelService } from '../../../core/services/label.service';
 import { highlightInlineCommands } from '../../../shared/utils/html-helpers';
+import { existingLabelFromConflict } from '../../../shared/utils/label-conflict';
+import { suggestLabelIcon } from '../../../shared/utils/label-icons';
 import {
   createClearedDueDateDraft,
   createEmptyDueDateDraft,
@@ -61,7 +63,7 @@ import { parseTaskDueDate, type TaskDueDateParseResult } from '../utils/task-due
             (keydown.enter)="lastSubmissionType = 'default'"
           />
 
-          @if (activeTagSearch() !== null && tagSuggestions().length > 0) {
+          @if (activeTagSearch() !== null && suggestionCount() > 0) {
             <ul class="tag-suggestions" role="listbox">
               @for (suggestion of tagSuggestions(); track suggestion.id; let i = $index) {
                 <li
@@ -70,6 +72,16 @@ import { parseTaskDueDate, type TaskDueDateParseResult } from '../utils/task-due
                   role="option"
                 >
                   <span class="suggestion-hash">#</span>{{ suggestion.name }}
+                </li>
+              }
+              @if (createTagName(); as createName) {
+                <li
+                  class="suggestion-create"
+                  [class.suggestion-active]="selectedSuggestionIndex() === tagSuggestions().length"
+                  (click)="createTagFromSearch()"
+                  role="option"
+                >
+                  <span class="suggestion-hash">+</span>Create “{{ createName }}”
                 </li>
               }
             </ul>
@@ -313,6 +325,11 @@ import { parseTaskDueDate, type TaskDueDateParseResult } from '../utils/task-due
           color: var(--primary-solid);
         }
 
+        &.suggestion-create {
+          border-top: 1px solid var(--outline-variant);
+          color: var(--primary-solid);
+        }
+
         .suggestion-hash {
           opacity: 0.6;
         }
@@ -540,6 +557,8 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
 
   protected readonly activeTagSearch = signal<string | null>(null);
   protected readonly selectedSuggestionIndex = signal(0);
+  /** Labels created from this capture, exposed so the submit path applies them. */
+  private readonly createdLabels = signal<Array<{ id: string; name: string }>>([]);
 
   private readonly labelService = inject(LabelService);
   private readonly ngZone = inject(NgZone);
@@ -558,6 +577,22 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
       .filter((l) => l.name.toLowerCase().includes(search.toLowerCase()))
       .slice(0, 5);
   });
+
+  /** The typed name when no existing label matches exactly. */
+  protected readonly createTagName = computed(() => {
+    const search = this.activeTagSearch()?.trim();
+    if (!search) {
+      return null;
+    }
+    const exists = this.labelService
+      .labels()
+      .some((label) => label.name.toLowerCase() === search.toLowerCase());
+    return exists ? null : search;
+  });
+
+  protected readonly suggestionCount = computed(
+    () => this.tagSuggestions().length + (this.createTagName() ? 1 : 0),
+  );
 
   protected readonly highlightedTitle = computed(() => {
     const text = this.title();
@@ -656,6 +691,7 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
     this.clearTitle();
     this.clearError();
     this.resetSubmissionType();
+    this.createdLabels.set([]);
   }
 
   setError(value: string) {
@@ -680,6 +716,11 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
 
   getDueDateDraft(): DueDateDraft {
     return { ...this.dueDateDraft() };
+  }
+
+  /** Labels created from this capture; the submit path resolves them to ids. */
+  getCreatedLabels(): Array<{ id: string; name: string }> {
+    return this.createdLabels();
   }
 
   getParserResult(): TaskDueDateParseResult | null {
@@ -913,44 +954,99 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
   }
 
   protected onCaptureKeyDown(event: KeyboardEvent) {
-    if (this.activeTagSearch() !== null && this.tagSuggestions().length > 0) {
+    const count = this.suggestionCount();
+    if (this.activeTagSearch() !== null && count > 0) {
       if (event.key === 'ArrowDown') {
         event.preventDefault();
-        this.selectedSuggestionIndex.update((i) => (i + 1) % this.tagSuggestions().length);
+        this.selectedSuggestionIndex.update((i) => (i + 1) % count);
       } else if (event.key === 'ArrowUp') {
         event.preventDefault();
-        this.selectedSuggestionIndex.update(
-          (i) => (i - 1 + this.tagSuggestions().length) % this.tagSuggestions().length,
-        );
+        this.selectedSuggestionIndex.update((i) => (i - 1 + count) % count);
       } else if (event.key === 'Enter' || event.key === 'Tab') {
         event.preventDefault();
-        this.selectSuggestion(this.tagSuggestions()[this.selectedSuggestionIndex()].name);
+        void this.activateTagSuggestion();
       } else if (event.key === 'Escape') {
         this.activeTagSearch.set(null);
       }
     }
   }
 
-  protected selectSuggestion(labelName: string) {
-    const input = this.captureInput()?.nativeElement;
-    if (!input) return;
-
-    const value = input.value;
-    const pos = input.selectionStart || 0;
-    const lastHash = value.lastIndexOf('#', pos - 1);
-
-    if (lastHash !== -1) {
-      const newValue = value.substring(0, lastHash) + '#' + labelName + ' ' + value.substring(pos);
-      const newPos = lastHash + labelName.length + 2;
-      this.updateTitle(newValue);
-      this.activeTagSearch.set(null);
-
-      requestAnimationFrame(() => {
-        const el = this.captureInput()?.nativeElement;
-        if (!el) return;
-        el.setSelectionRange(newPos, newPos);
-        el.focus();
-      });
+  private async activateTagSuggestion() {
+    const index = this.selectedSuggestionIndex();
+    const suggestions = this.tagSuggestions();
+    if (index < suggestions.length) {
+      this.selectSuggestion(suggestions[index].name);
+      return;
     }
+    await this.createTagFromSearch();
+  }
+
+  protected selectSuggestion(labelName: string) {
+    this.insertLabelToken(labelName);
+  }
+
+  /**
+   * Create the typed label with the suggested icon and auto-assigned color,
+   * then insert its token so the submit path resolves it like any other tag.
+   */
+  protected async createTagFromSearch() {
+    const name = this.createTagName();
+    if (!name) {
+      return;
+    }
+
+    this.clearError();
+    try {
+      const created = await this.labelService.createLabel({
+        name,
+        icon: suggestLabelIcon(name),
+      });
+      this.createdLabels.update((labels) => [...labels, { id: created.id, name: created.name }]);
+      this.insertLabelToken(created.name);
+    } catch (error) {
+      const existing = existingLabelFromConflict(error);
+      if (existing) {
+        this.createdLabels.update((labels) => [...labels, existing]);
+        this.labelService.refresh();
+        this.insertLabelToken(existing.name);
+        return;
+      }
+      this.setError('Could not create that label. Try again.');
+    }
+  }
+
+  private insertLabelToken(labelName: string) {
+    const input = this.captureInput()?.nativeElement;
+    // The DOM value is the freshest during a keystroke; the signal is the
+    // fallback when an async creation outlived a re-render.
+    const value = input?.value || this.title();
+    const search = this.activeTagSearch();
+    const token = search ? `#${search}` : null;
+
+    let hashIndex = token ? value.lastIndexOf(token) : -1;
+    let tokenEnd: number;
+    if (hashIndex !== -1 && token) {
+      tokenEnd = hashIndex + token.length;
+    } else {
+      // Fall back to the cursor position when the signal and DOM disagree.
+      const pos = input?.selectionStart ?? value.length;
+      hashIndex = value.lastIndexOf('#', pos - 1);
+      tokenEnd = pos;
+    }
+
+    if (hashIndex === -1) return;
+
+    const newValue =
+      value.substring(0, hashIndex) + '#' + labelName + ' ' + value.substring(tokenEnd);
+    const newPos = hashIndex + labelName.length + 2;
+    this.updateTitle(newValue);
+    this.activeTagSearch.set(null);
+
+    requestAnimationFrame(() => {
+      const el = this.captureInput()?.nativeElement;
+      if (!el) return;
+      el.setSelectionRange(newPos, newPos);
+      el.focus();
+    });
   }
 }

@@ -113,11 +113,19 @@ capture, focus, planning, completion, or self-hosting.
 ### Server-side filtering
 
 The server filters by status, completion, due date, archive state, search
-query, timezone, and label IDs (`/tasks?labelIds=…`). The frontend may group or
-decorate already-filtered results, but it should not recreate API filtering in
-computed signals — the Labels page pane, for instance, queries
-`labelIds` per selected label rather than client-filtering the active-task
-collection.
+query, timezone, and label IDs (`/tasks?labelIds=…`). Multiple label IDs match
+with OR by default and with AND via `labelMode=all`; the task list persists its
+label filter in `?labels=id1,id2` (plus `labelMode`) so refresh and back/forward
+navigation restore it. The frontend may group or decorate already-filtered
+results, but it should not recreate API filtering in computed signals — the
+Labels page pane, for instance, queries `labelIds` per selected label rather
+than client-filtering the active-task collection.
+
+Label management is one surface: the Labels page owns creation, editing,
+pinning, merging, and deletion, while the task modal and capture bar only apply
+or quick-create labels through the same API. Merging `POST /labels/:id/merge`
+moves all `task_labels` associations to the target (deduplicating joins) and
+deletes the source without deleting tasks.
 
 ### SQLite first
 

@@ -106,6 +106,31 @@ describe('LabelEditorComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Open “Writing”');
   });
 
+  it('offers to merge the edited label when the new name exists', async () => {
+    openWith(existingLabel);
+    updateLabelSpy.and.rejectWith(
+      new HttpErrorResponse({
+        status: 409,
+        error: { existingLabel: { id: 'finance', name: 'Finance' } },
+      }),
+    );
+    const mergeSpy = jasmine.createSpy('mergeRequest');
+    component.mergeRequest.subscribe(mergeSpy);
+
+    component['onNameChange']('Finance');
+    await component['save']();
+    fixture.detectChanges();
+
+    const mergeLink = fixture.debugElement.query(By.css('.merge-link'));
+    expect(mergeLink.nativeElement.textContent).toContain('Merge into “Finance”');
+    mergeLink.nativeElement.click();
+
+    expect(mergeSpy).toHaveBeenCalledWith({
+      source: existingLabel,
+      target: { id: 'finance', name: 'Finance' },
+    });
+  });
+
   it('keeps a legacy color visible and sanitizes an unknown icon on edit', () => {
     openWith({ ...existingLabel, color: 'rebeccapurple', icon: 'not-real' as never });
 

@@ -28,6 +28,7 @@ import { LabelIconComponent } from '../label-icon/label-icon.component';
   imports: [LabelIconComponent],
   host: {
     '[class.label-chip-neutral]': 'neutral',
+    '[class.label-chip-color-first]': 'colorFirst',
     '[style.--label-color]': 'tokens.color',
     '[style.--label-on-strong]': 'tokens.onColor',
   },
@@ -45,7 +46,7 @@ import { LabelIconComponent } from '../label-icon/label-icon.component';
             [icon]="label.icon"
             [color]="label.color"
             [size]="size === 'sm' ? 'xs' : 'sm'"
-            [flat]="selected"
+            [flat]="selected || colorFirst"
           />
           @if (mode === 'full') {
             <span class="label-chip-name">{{ label.name }}</span>
@@ -64,7 +65,7 @@ import { LabelIconComponent } from '../label-icon/label-icon.component';
             [icon]="label.icon"
             [color]="label.color"
             [size]="size === 'sm' ? 'xs' : 'sm'"
-            [flat]="selected"
+            [flat]="selected || colorFirst"
           />
           @if (mode === 'full') {
             <span class="label-chip-name">{{ label.name }}</span>
@@ -125,6 +126,14 @@ import { LabelIconComponent } from '../label-icon/label-icon.component';
          hairline of the label color so the chip's identity survives. */
       :host(.label-chip-neutral) .label-chip-body {
         box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--label-strong) 55%, transparent);
+      }
+
+      /* Opt-in color-first mode: a solid label-color pill, icon and name
+         switching to the contrast-safe on-color. */
+      :host(.label-chip-color-first) .label-chip-body {
+        background: var(--label-strong);
+        color: var(--label-on-strong);
+        box-shadow: none;
       }
 
       .label-chip-control {
@@ -213,6 +222,8 @@ export class LabelChipComponent {
   @Input() removable = false;
   @Input() interactive = false;
   @Input() size: 'sm' | 'md' = 'md';
+  /** Opt-in preference: fill the whole chip with the label color. */
+  @Input() colorFirst = false;
 
   @Output() readonly select = new EventEmitter<Label>();
   @Output() readonly remove = new EventEmitter<Label>();

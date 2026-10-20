@@ -26,6 +26,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { firstValueFrom, map, switchMap } from 'rxjs';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { LabelChipComponent } from '../../../../shared/ui/label-chip/label-chip.component';
+import { PreferencesStore } from '../../../../core/services/preferences-store.service';
 import { faPlus, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 
 export type TaskSortOption = 'date' | 'alpha';
@@ -58,6 +59,7 @@ export class SearchPageComponent {
   private readonly logService = inject(LogService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  protected readonly preferences = inject(PreferencesStore);
 
   protected readonly workspace = viewChild(PersonalTaskWorkspaceComponent);
   protected readonly faPlus = faPlus;

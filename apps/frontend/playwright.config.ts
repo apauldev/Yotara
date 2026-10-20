@@ -28,9 +28,9 @@ export default defineConfig({
     {
       name: 'e2e',
       testDir: './e2e/specs/authenticated',
-      // The mobile task-modal spec and destructive logout run in isolated
-      // projects below.
-      testIgnore: ['task-modal.mobile.spec.ts', 'zzz-logout.spec.ts'],
+      // The mobile task-modal and labels specs and destructive logout run in
+      // isolated projects below.
+      testIgnore: ['task-modal.mobile.spec.ts', 'labels.mobile.spec.ts', 'zzz-logout.spec.ts'],
       use: {
         storageState: './e2e/.auth/user.json',
       },
@@ -46,7 +46,7 @@ export default defineConfig({
     {
       name: 'mobile',
       testDir: './e2e/specs/authenticated',
-      testMatch: 'task-modal.mobile.spec.ts',
+      testMatch: ['task-modal.mobile.spec.ts', 'labels.mobile.spec.ts'],
       use: {
         ...devices['Pixel 7'],
         storageState: './e2e/.auth/user.json',

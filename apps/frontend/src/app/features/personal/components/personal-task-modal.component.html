@@ -260,6 +260,7 @@
               <app-label-chip
                 [label]="label"
                 size="sm"
+                [colorFirst]="preferences.colorFirstLabels()"
                 [removable]="true"
                 (remove)="removeLabel($event)"
               />
@@ -269,6 +270,7 @@
 
         <div class="label-picker">
           <input
+            #labelSearchInput
             class="label-picker-search"
             type="text"
             role="combobox"

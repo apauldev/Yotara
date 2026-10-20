@@ -364,3 +364,113 @@ test('label counts split open and completed and exclude deleted tasks', async ()
     await ctx.cleanup();
   }
 });
+
+test('merging a label moves every association, dedupes, and deletes the source', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`label-merge-${randomUUID()}@example.com`);
+
+    const createLabel = async (name: string) => {
+      const response = await ctx.app.inject({
+        method: 'POST',
+        url: '/labels',
+        headers: { cookie },
+        payload: { name },
+      });
+      assert.equal(response.statusCode, 201);
+      return response.json().id as string;
+    };
+    const sourceId = await createLabel('Writing');
+    const targetId = await createLabel('Docs');
+    const untouchedId = await createLabel('Errand');
+
+    const createTask = async (title: string, labels: string[]) => {
+      const response = await ctx.app.inject({
+        method: 'POST',
+        url: '/tasks',
+        headers: { cookie },
+        payload: { title, labels },
+      });
+      assert.equal(response.statusCode, 201);
+      return response.json();
+    };
+    await createTask('Only source', [sourceId]);
+    await createTask('Source and target', [sourceId, targetId]);
+    await createTask('Only target', [targetId]);
+    await createTask('Untouched', [untouchedId]);
+
+    const merge = await ctx.app.inject({
+      method: 'POST',
+      url: `/labels/${sourceId}/merge`,
+      headers: { cookie },
+      payload: { targetId },
+    });
+    assert.equal(merge.statusCode, 200);
+    // Two source associations moved; the task that already had the target is
+    // deduplicated rather than duplicated.
+    assert.equal(merge.json().movedTaskCount, 2);
+
+    const labels = await ctx.app.inject({ method: 'GET', url: '/labels', headers: { cookie } });
+    assert.equal(labels.statusCode, 200);
+    const names = labels.json().map((label: { name: string }) => label.name);
+    assert.ok(!names.includes('Writing'));
+    assert.ok(names.includes('Docs'));
+    assert.ok(names.includes('Errand'));
+
+    const targetTasks = await ctx.app.inject({
+      method: 'GET',
+      url: `/tasks?labelIds=${targetId}&includeSubtasks=true`,
+      headers: { cookie },
+    });
+    assert.equal(targetTasks.statusCode, 200);
+    const titles = targetTasks.json().data.map((task: { title: string }) => task.title);
+    assert.deepEqual(new Set(titles), new Set(['Only source', 'Source and target', 'Only target']));
+
+    const selfMerge = await ctx.app.inject({
+      method: 'POST',
+      url: `/labels/${targetId}/merge`,
+      headers: { cookie },
+      payload: { targetId },
+    });
+    assert.equal(selfMerge.statusCode, 400);
+
+    const missingSource = await ctx.app.inject({
+      method: 'POST',
+      url: `/labels/${randomUUID()}/merge`,
+      headers: { cookie },
+      payload: { targetId },
+    });
+    assert.equal(missingSource.statusCode, 404);
+
+    const missingTarget = await ctx.app.inject({
+      method: 'POST',
+      url: `/labels/${targetId}/merge`,
+      headers: { cookie },
+      payload: { targetId: randomUUID() },
+    });
+    assert.equal(missingTarget.statusCode, 404);
+
+    // A target owned by somebody else is not visible and cannot be merged into.
+    const otherCookie = await signUpAndGetCookie(`label-merge-other-${randomUUID()}@example.com`);
+    const foreignTarget = await ctx.app.inject({
+      method: 'POST',
+      url: '/labels',
+      headers: { cookie: otherCookie },
+      payload: { name: 'Foreign target' },
+    });
+    assert.equal(foreignTarget.statusCode, 201);
+    const foreignMerge = await ctx.app.inject({
+      method: 'POST',
+      url: `/labels/${untouchedId}/merge`,
+      headers: { cookie },
+      payload: { targetId: foreignTarget.json().id },
+    });
+    assert.equal(foreignMerge.statusCode, 404);
+
+    const stillThere = await ctx.app.inject({ method: 'GET', url: '/labels', headers: { cookie } });
+    assert.ok(stillThere.json().some((label: { id: string }) => label.id === untouchedId));
+  } finally {
+    await ctx.cleanup();
+  }
+});

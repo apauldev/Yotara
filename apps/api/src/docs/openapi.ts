@@ -235,6 +235,25 @@ const updateLabelSchema = {
   additionalProperties: false,
 } as const;
 
+const mergeLabelSchema = {
+  $id: 'MergeLabelDto',
+  type: 'object',
+  required: ['targetId'],
+  properties: {
+    targetId: { type: 'string', format: 'uuid' },
+  },
+  additionalProperties: false,
+} as const;
+
+const labelMergeResultSchema = {
+  $id: 'LabelMergeResult',
+  type: 'object',
+  required: ['movedTaskCount'],
+  properties: {
+    movedTaskCount: { type: 'integer', minimum: 0 },
+  },
+} as const;
+
 const projectColorSchema = {
   $id: 'ProjectColor',
   type: 'string',
@@ -591,6 +610,8 @@ const sharedSchemas = [
   labelSchema,
   createLabelSchema,
   updateLabelSchema,
+  mergeLabelSchema,
+  labelMergeResultSchema,
   projectColorSchema,
   projectSchema,
   appUserSchema,

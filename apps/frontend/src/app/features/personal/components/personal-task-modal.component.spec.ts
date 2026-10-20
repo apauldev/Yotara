@@ -1,5 +1,5 @@
 import { signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, flushMicrotasks } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { By } from '@angular/platform-browser';
 import { provideMarkdown } from 'ngx-markdown';
@@ -375,6 +375,36 @@ describe('PersonalTaskModalComponent', () => {
 
       expect(closeSpy).not.toHaveBeenCalled();
     });
+
+    it('opens and focuses the label picker with the L shortcut', fakeAsync(() => {
+      component.open = true;
+      fixture.detectChanges();
+
+      fixture.nativeElement.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'l', bubbles: true }),
+      );
+      flushMicrotasks();
+      fixture.detectChanges();
+
+      const labelSearch = fixture.debugElement.query(By.css('.label-picker-search'));
+      expect(labelSearch).toBeTruthy();
+      expect(document.activeElement).toBe(labelSearch.nativeElement);
+    }));
+
+    it('does not hijack L while typing in a text field', fakeAsync(() => {
+      component.open = true;
+      fixture.detectChanges();
+
+      const titleInput = fixture.debugElement.query(By.css('input[name="taskTitle"]'));
+      titleInput.nativeElement.focus();
+      titleInput.nativeElement.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'l', bubbles: true }),
+      );
+      flushMicrotasks();
+      fixture.detectChanges();
+
+      expect(document.activeElement).toBe(titleInput.nativeElement);
+    }));
   });
 
   describe('Field labeling', () => {

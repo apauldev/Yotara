@@ -56,6 +56,34 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
               <option value="deep-trench">Deep Trench</option>
             </select>
           </div>
+
+          <label class="settings-item settings-toggle">
+            <div class="settings-item-copy">
+              <strong>Show label names in task lists</strong>
+              <span>When off, cards use compact icon chips and a labels sheet.</span>
+            </div>
+            <input
+              type="checkbox"
+              class="toggle-input"
+              [checked]="showLabelNames()"
+              (change)="onShowLabelNamesChange($event)"
+              aria-label="Toggle label names in task lists"
+            />
+          </label>
+
+          <label class="settings-item settings-toggle">
+            <div class="settings-item-copy">
+              <strong>Color-first labels</strong>
+              <span>Fill full label chips with their label color instead of a soft tint.</span>
+            </div>
+            <input
+              type="checkbox"
+              class="toggle-input"
+              [checked]="colorFirstLabels()"
+              (change)="onColorFirstLabelsChange($event)"
+              aria-label="Toggle color-first labels"
+            />
+          </label>
         </div>
 
         <div class="settings-section">
@@ -840,6 +868,8 @@ export class SettingsPageComponent {
   protected readonly skipCompleteConfirm = this.preferences.skipCompleteConfirm;
   protected readonly actionNotifications = this.preferences.actionNotifications;
   protected readonly desktopNotifications = this.preferences.desktopNotifications;
+  protected readonly showLabelNames = this.preferences.showLabelNames;
+  protected readonly colorFirstLabels = this.preferences.colorFirstLabels;
 
   protected readonly showInsights = computed(() => !this.preferences.insightDismissed());
 
@@ -1073,6 +1103,14 @@ export class SettingsPageComponent {
 
   protected onSkipCompleteConfirmChange(event: Event) {
     this.preferences.setSkipCompleteConfirm((event.target as HTMLInputElement).checked);
+  }
+
+  protected onShowLabelNamesChange(event: Event) {
+    this.preferences.setShowLabelNames((event.target as HTMLInputElement).checked);
+  }
+
+  protected onColorFirstLabelsChange(event: Event) {
+    this.preferences.setColorFirstLabels((event.target as HTMLInputElement).checked);
   }
 
   protected onActionNotificationsChange(event: Event) {

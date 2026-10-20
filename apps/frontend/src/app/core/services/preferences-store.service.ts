@@ -13,6 +13,8 @@ export class PreferencesStore {
   private static readonly LOGIN_TIP_DISMISSED_KEY = 'yotara_loginTipDismissed';
   private static readonly ONBOARDING_COMPLETED_KEY = 'onboardingCompleted';
   private static readonly WORKSPACE_TYPE_KEY = 'workspaceType';
+  private static readonly SHOW_LABEL_NAMES_KEY = 'yotara_showLabelNames';
+  private static readonly COLOR_FIRST_LABELS_KEY = 'yotara_colorFirstLabels';
 
   readonly skipCompleteConfirm = signal(
     localStorage.getItem(PreferencesStore.SKIP_COMPLETE_KEY) === 'true',
@@ -40,6 +42,12 @@ export class PreferencesStore {
     localStorage.getItem(PreferencesStore.ONBOARDING_COMPLETED_KEY) === 'true',
   );
   readonly workspaceType = signal(localStorage.getItem(PreferencesStore.WORKSPACE_TYPE_KEY) ?? '');
+  readonly showLabelNames = signal(
+    localStorage.getItem(PreferencesStore.SHOW_LABEL_NAMES_KEY) !== 'false',
+  );
+  readonly colorFirstLabels = signal(
+    localStorage.getItem(PreferencesStore.COLOR_FIRST_LABELS_KEY) === 'true',
+  );
 
   setSkipCompleteConfirm(value: boolean): void {
     this.skipCompleteConfirm.set(value);
@@ -90,5 +98,15 @@ export class PreferencesStore {
   setWorkspaceType(value: string): void {
     this.workspaceType.set(value);
     localStorage.setItem(PreferencesStore.WORKSPACE_TYPE_KEY, value);
+  }
+
+  setShowLabelNames(value: boolean): void {
+    this.showLabelNames.set(value);
+    localStorage.setItem(PreferencesStore.SHOW_LABEL_NAMES_KEY, value ? 'true' : 'false');
+  }
+
+  setColorFirstLabels(value: boolean): void {
+    this.colorFirstLabels.set(value);
+    localStorage.setItem(PreferencesStore.COLOR_FIRST_LABELS_KEY, value ? 'true' : 'false');
   }
 }

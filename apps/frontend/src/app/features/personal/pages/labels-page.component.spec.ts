@@ -100,11 +100,13 @@ describe('LabelsPageComponent', () => {
     updateLabel: jasmine.Spy;
     deleteLabel: jasmine.Spy;
     deleteLabelAndList: jasmine.Spy;
+    mergeLabel: jasmine.Spy;
     refresh: jasmine.Spy;
   };
   let fetchTasksByLabel$: jasmine.Spy;
 
   beforeEach(async () => {
+    localStorage.removeItem('yotara_labelDirectorySort');
     queryParams$ = new BehaviorSubject(convertToParamMap({}));
     labelsSignal = signal(labels);
     loadingSignal = signal(false);
@@ -127,6 +129,7 @@ describe('LabelsPageComponent', () => {
           labelsSignal.set(remaining);
           return remaining;
         }),
+      mergeLabel: jasmine.createSpy('mergeLabel').and.resolveTo({ movedTaskCount: 2 }),
       refresh: jasmine.createSpy('refresh'),
     };
 
@@ -241,6 +244,62 @@ describe('LabelsPageComponent', () => {
       .queryAll(By.css('.label-row-name'))
       .map((name) => name.nativeElement.textContent.trim());
     expect(names).toEqual(['Writing']);
+  }));
+
+  it('sorts the directory by pinned, most used, or name', fakeAsync(() => {
+    const fixture = createFixture();
+    tick();
+
+    const visibleNames = () =>
+      fixture.debugElement
+        .queryAll(By.css('.label-directory .label-row-name'))
+        .map((name) => name.nativeElement.textContent.trim());
+
+    expect(visibleNames()).toEqual(['Finance', 'Focus', 'Writing']);
+
+    fixture.componentInstance['setDirectorySort']('most-used');
+    fixture.detectChanges();
+    expect(visibleNames()).toEqual(['Writing', 'Finance', 'Focus']);
+
+    fixture.componentInstance['setDirectorySort']('alpha');
+    fixture.detectChanges();
+    expect(visibleNames()).toEqual(['Finance', 'Focus', 'Writing']);
+    expect(fixture.debugElement.query(By.css('.label-sort'))).toBeTruthy();
+
+    // The choice survives a reload instead of resetting to Pinned.
+    const reloaded = createFixture();
+    tick();
+    expect(reloaded.componentInstance['directorySort']()).toBe('alpha');
+  }));
+
+  it('merges a duplicate into an existing label after confirmation', fakeAsync(() => {
+    const fixture = createFixture();
+    queryParams$.next(convertToParamMap({ label: 'writing' }));
+    fixture.detectChanges();
+    tick();
+
+    const component = fixture.componentInstance as any;
+    component.askMergeLabel({
+      source: labels[2],
+      target: { id: labels[0].id, name: labels[0].name },
+    });
+    fixture.detectChanges();
+
+    const dialog = fixture.debugElement
+      .queryAll(By.css('app-confirm-dialog'))
+      .find((candidate) => candidate.componentInstance.open);
+    expect(dialog).toBeTruthy();
+    expect(dialog!.componentInstance.title).toContain('Merge Writing into Finance?');
+    expect(dialog!.componentInstance.description).toContain('tasks are never deleted');
+
+    component.confirmMerge();
+    tick();
+    fixture.detectChanges();
+
+    expect(labelServiceStub.mergeLabel).toHaveBeenCalledWith('writing', 'finance');
+    // The merged-away label was selected, so the pane follows the target.
+    expect(queryParams$.getValue().get('label')).toBe('finance');
+    expect(component.mergeConfirmOpen()).toBeFalse();
   }));
 
   it('pins a label from the row overflow menu', fakeAsync(() => {
@@ -444,7 +503,14 @@ describe('LabelsPageComponent', () => {
     deleteItem.nativeElement.click();
     fixture.detectChanges();
 
-    const dialog = fixture.debugElement.query(By.css('app-confirm-dialog'));
+    // The merge and delete dialogs are siblings; select the one that opened.
+    const dialog = fixture.debugElement
+      .queryAll(By.css('app-confirm-dialog'))
+      .find((candidate) => candidate.componentInstance.open);
+    if (!dialog) {
+      fail('No open delete dialog after clicking Delete');
+      return;
+    }
     expect(dialog.componentInstance.title).toContain('Delete Finance?');
     expect(dialog.componentInstance.description).toContain('2 open and 1 completed tasks');
   }));

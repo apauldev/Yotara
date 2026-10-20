@@ -2,6 +2,18 @@
   <section class="page">
     <app-page-header title="Labels">
       <div page-header-actions class="header-actions">
+        <label class="sort-shell">
+          <span class="sr-only">Sort labels</span>
+          <select
+            class="label-sort"
+            [ngModel]="directorySort()"
+            (ngModelChange)="setDirectorySort($event)"
+          >
+            <option value="pinned">Pinned</option>
+            <option value="most-used">Most used</option>
+            <option value="alpha">A–Z</option>
+          </select>
+        </label>
         <label class="label-search-shell">
           <span class="sr-only">Search labels</span>
           <input
@@ -267,6 +279,7 @@
                     [showContextMetadata]="false"
                     [suppressLabelId]="selectedLabelId() ?? null"
                     (select)="editTask(task)"
+                    (labelSelect)="selectLabel($event)"
                   />
                 }
               </div>
@@ -283,7 +296,27 @@
     (close)="closeLabelEditor()"
     (saved)="onLabelSaved($event)"
     (openExisting)="openExistingLabel($event)"
+    (mergeRequest)="askMergeLabel($event)"
     (deleteRequest)="askDeleteFromEditor($event)"
+  />
+
+  <app-confirm-dialog
+    [open]="mergeConfirmOpen()"
+    [title]="
+      'Merge ' +
+      (mergeTarget()?.source?.name ?? 'label') +
+      ' into ' +
+      (mergeTarget()?.targetName ?? 'another label') +
+      '?'
+    "
+    [description]="mergeCopy"
+    confirmLabel="Merge labels"
+    cancelLabel="Keep both"
+    [danger]="true"
+    [loading]="merging()"
+    (confirm)="confirmMerge()"
+    (cancel)="closeMergeConfirm()"
+    (close)="closeMergeConfirm()"
   />
 
   <app-confirm-dialog

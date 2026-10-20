@@ -38,6 +38,8 @@ import { TaskService } from '../../../core/services/task.service';
 import { existingLabelFromConflict } from '../../../shared/utils/label-conflict';
 
 type PaneFilter = 'open' | 'completed' | 'all';
+type DirectorySort = 'pinned' | 'most-used' | 'alpha';
+const DIRECTORY_SORT_KEY = 'yotara_labelDirectorySort';
 
 interface DirectorySection {
   id: 'pinned' | 'all';
@@ -116,7 +118,15 @@ export class LabelsPageComponent {
   protected readonly actionError = signal<string | null>(null);
   protected readonly labelSearch = signal('');
   protected readonly paneFilter = signal<PaneFilter>('open');
+  protected readonly directorySort = signal<DirectorySort>(readDirectorySort());
   protected readonly creatingStarter = signal<string | null>(null);
+  protected readonly mergeTarget = signal<{
+    source: Label;
+    targetId: string;
+    targetName: string;
+  } | null>(null);
+  protected readonly mergeConfirmOpen = signal(false);
+  protected readonly merging = signal(false);
   protected readonly starters = STARTER_LABELS;
   /** Mobile drill-in: the list is replaced by the detail until Back. */
   protected readonly drillInOpen = signal(false);
@@ -134,12 +144,35 @@ export class LabelsPageComponent {
   protected readonly filteredLabels = computed(() => {
     const query = this.labelSearch().trim().toLowerCase();
     const labels = this.labels();
-    return query ? labels.filter((label) => label.name.toLowerCase().includes(query)) : labels;
+    const filtered = query
+      ? labels.filter((label) => label.name.toLowerCase().includes(query))
+      : [...labels];
+
+    switch (this.directorySort()) {
+      case 'alpha':
+        return filtered.sort((left, right) => left.name.localeCompare(right.name));
+      case 'most-used':
+        return filtered.sort(
+          (left, right) =>
+            (right.openTaskCount ?? 0) - (left.openTaskCount ?? 0) ||
+            left.name.localeCompare(right.name),
+        );
+      default:
+        return filtered.sort(
+          (left, right) =>
+            Number(right.pinned) - Number(left.pinned) || left.name.localeCompare(right.name),
+        );
+    }
   });
 
   /** Pinned labels get their own directory section before the A–Z remainder. */
   protected readonly directorySections = computed<DirectorySection[]>(() => {
     const labels = this.filteredLabels();
+
+    if (this.directorySort() !== 'pinned') {
+      return labels.length > 0 ? [{ id: 'all', title: 'All labels', labels }] : [];
+    }
+
     const pinned = labels.filter((label) => label.pinned);
     const rest = labels.filter((label) => !label.pinned);
     const sections: DirectorySection[] = [];
@@ -287,6 +320,16 @@ export class LabelsPageComponent {
     this.paneFilter.set(filter);
   }
 
+  protected setDirectorySort(value: string) {
+    const sort: DirectorySort = value === 'most-used' || value === 'alpha' ? value : 'pinned';
+    this.directorySort.set(sort);
+    try {
+      localStorage.setItem(DIRECTORY_SORT_KEY, sort);
+    } catch {
+      // Private-mode storage can reject writes; sorting still works in memory.
+    }
+  }
+
   // ---- directory row menu -----------------------------------------------
 
   protected toggleRowMenu(label: Label, event: MouseEvent) {
@@ -385,6 +428,46 @@ export class LabelsPageComponent {
     void this.selectLabelId(labelId);
   }
 
+  // ---- merge ------------------------------------------------------------
+
+  protected askMergeLabel(event: { source: Label; target: { id: string; name: string } }) {
+    this.closeLabelEditor();
+    this.mergeTarget.set({
+      source: event.source,
+      targetId: event.target.id,
+      targetName: event.target.name,
+    });
+    this.mergeConfirmOpen.set(true);
+  }
+
+  protected closeMergeConfirm() {
+    this.mergeConfirmOpen.set(false);
+    this.mergeTarget.set(null);
+  }
+
+  protected async confirmMerge() {
+    const target = this.mergeTarget();
+    if (!target || this.merging()) {
+      return;
+    }
+
+    this.merging.set(true);
+    this.actionError.set(null);
+    try {
+      await this.labelService.mergeLabel(target.source.id, target.targetId);
+      this.mergeConfirmOpen.set(false);
+      this.mergeTarget.set(null);
+      if (this.selectedLabelId() === target.source.id) {
+        await this.selectLabelId(target.targetId);
+      }
+      this.labelRefresh.update((value) => value + 1);
+    } catch {
+      this.actionError.set('Could not merge the labels right now. Try again.');
+    } finally {
+      this.merging.set(false);
+    }
+  }
+
   // ---- delete -----------------------------------------------------------
 
   protected askDeleteLabel(label: Label, event?: MouseEvent) {
@@ -412,6 +495,14 @@ export class LabelsPageComponent {
       return '';
     }
     return `It is on ${label.openTaskCount} open and ${label.completedTaskCount} completed tasks. The tasks will stay; the label will be removed.`;
+  }
+
+  protected get mergeCopy(): string {
+    const target = this.mergeTarget();
+    if (!target) {
+      return '';
+    }
+    return `Every task labeled “${target.source.name}” will move to “${target.targetName}”. “${target.source.name}” will be deleted; tasks are never deleted.`;
   }
 
   /**
@@ -477,4 +568,16 @@ function completedForFilter(filter: PaneFilter): boolean | undefined {
     return true;
   }
   return undefined;
+}
+
+function readDirectorySort(): DirectorySort {
+  try {
+    const stored = localStorage.getItem(DIRECTORY_SORT_KEY);
+    if (stored === 'most-used' || stored === 'alpha' || stored === 'pinned') {
+      return stored;
+    }
+  } catch {
+    // Storage can be unavailable (private mode); fall back to pinned.
+  }
+  return 'pinned';
 }

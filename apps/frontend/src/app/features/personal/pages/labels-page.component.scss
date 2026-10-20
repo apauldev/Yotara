@@ -17,6 +17,27 @@
   min-width: 0;
 }
 
+.sort-shell {
+  display: inline-flex;
+}
+
+.label-sort {
+  min-height: 2.75rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.75rem;
+  background: var(--surface-card);
+  color: var(--on-surface);
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0 0.7rem;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-solid);
+    outline-offset: 1px;
+  }
+}
+
 .label-search {
   min-height: 2.75rem;
   width: 14rem;

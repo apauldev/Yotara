@@ -37,7 +37,7 @@ type SavePayload =
       [initialProjectId]="
         draftProjectId() || initialProjectId || projectService.projects()[0]?.id || null
       "
-      [initialTitle]="initialTitle"
+      [initialTitle]="draftInitialTitle() || initialTitle"
       [initialDueDateDraft]="draftDueDateDraft()"
       [initialLabelIds]="draftInitialLabelIds()"
       [error]="modalError()"
@@ -62,12 +62,14 @@ export class PersonalTaskWorkspaceComponent {
   protected readonly draftProjectId = signal<string | null>(null);
   protected readonly draftDueDateDraft = signal<DueDateDraft | null>(null);
   protected readonly draftInitialLabelIds = signal<string[]>([]);
+  protected readonly draftInitialTitle = signal('');
   protected readonly modalError = signal<string | null>(null);
 
   openCreateTaskModal(
     projectId?: string | null,
     dueDateDraft: DueDateDraft | null = this.initialDueDateDraft,
     initialLabelIds: string[] = [],
+    initialTitle = '',
   ) {
     this.modalError.set(null);
     this.selectedTask.set(null);
@@ -76,6 +78,7 @@ export class PersonalTaskWorkspaceComponent {
     );
     this.draftDueDateDraft.set(dueDateDraft);
     this.draftInitialLabelIds.set(initialLabelIds);
+    this.draftInitialTitle.set(initialTitle);
     this.modalOpen.set(true);
   }
 
@@ -84,6 +87,7 @@ export class PersonalTaskWorkspaceComponent {
     this.selectedTask.set(task);
     this.draftDueDateDraft.set(null);
     this.draftInitialLabelIds.set([]);
+    this.draftInitialTitle.set('');
     this.modalOpen.set(true);
   }
 
@@ -93,6 +97,7 @@ export class PersonalTaskWorkspaceComponent {
     this.draftProjectId.set(null);
     this.draftDueDateDraft.set(null);
     this.draftInitialLabelIds.set([]);
+    this.draftInitialTitle.set('');
     this.modalOpen.set(false);
   }
 

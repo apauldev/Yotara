@@ -483,6 +483,39 @@ describe('SettingsPageComponent', () => {
     return null;
   }
 
+  describe('Label display toggles', () => {
+    function labelToggle(name: string): HTMLInputElement | null {
+      const toggles = fixture.debugElement.queryAll(By.css('.settings-toggle'));
+      for (const toggle of toggles) {
+        const strong = toggle.query(By.css('.settings-item-copy strong'));
+        if (strong?.nativeElement.textContent.includes(name)) {
+          return toggle.query(By.css('input[type="checkbox"]'))?.nativeElement ?? null;
+        }
+      }
+      return null;
+    }
+
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it('defaults to label names on and color-first off', () => {
+      expect(labelToggle('Show label names')?.checked).toBeTrue();
+      expect(labelToggle('Color-first labels')?.checked).toBeFalse();
+    });
+
+    it('persists both label preferences', () => {
+      labelToggle('Show label names')?.click();
+      labelToggle('Color-first labels')?.click();
+      fixture.detectChanges();
+
+      expect(preferences.showLabelNames()).toBeFalse();
+      expect(preferences.colorFirstLabels()).toBeTrue();
+      expect(localStorage.getItem('yotara_showLabelNames')).toBe('false');
+      expect(localStorage.getItem('yotara_colorFirstLabels')).toBe('true');
+    });
+  });
+
   describe('Complete task confirmation toggle', () => {
     beforeEach(() => {
       localStorage.clear();

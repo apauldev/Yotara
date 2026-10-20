@@ -29,6 +29,7 @@ import {
   UpdateTaskDto,
 } from '@yotara/shared';
 import { LabelService } from '../../../core/services/label.service';
+import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { TaskService } from '../../../core/services/task.service';
 import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
 import { LabelChipComponent } from '../../../shared/ui/label-chip/label-chip.component';
@@ -63,14 +64,19 @@ type SavePayload =
   templateUrl: './personal-task-modal.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './personal-task-modal.component.scss',
+  host: {
+    '(keydown)': 'onModalKeydown($event)',
+  },
 })
 export class PersonalTaskModalComponent implements OnInit, OnDestroy {
   private readonly labelService = inject(LabelService);
+  protected readonly preferences = inject(PreferencesStore);
   private readonly taskService = inject(TaskService);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly ngZone = inject(NgZone);
   private readonly titleInput = viewChild<ElementRef<HTMLInputElement>>('titleInput');
+  private readonly labelSearchInput = viewChild<ElementRef<HTMLInputElement>>('labelSearchInput');
   private readonly subtaskInput = viewChild<ElementRef<HTMLInputElement>>('subtaskInput');
   private readonly addSubtaskButton = viewChild<ElementRef<HTMLButtonElement>>('addSubtaskButton');
   private readonly scheduleDatePicker = viewChild<DatePickerComponent>('scheduleDatePicker');
@@ -829,6 +835,26 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
 
   protected onModalOpened() {
     this.titleInput()?.nativeElement.focus();
+  }
+
+  /** `L` jumps to the label picker, unless focus is in a text field. */
+  protected onModalKeydown(event: KeyboardEvent) {
+    if (event.key.toLowerCase() !== 'l' || event.metaKey || event.ctrlKey || event.altKey) {
+      return;
+    }
+
+    const target = event.target;
+    if (
+      target instanceof HTMLElement &&
+      target.closest('input, textarea, select, [contenteditable="true"]')
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    this.showAdvanced.set(true);
+    this.cdr.detectChanges();
+    queueMicrotask(() => this.labelSearchInput()?.nativeElement.focus());
   }
 
   private focusFirstInvalid() {

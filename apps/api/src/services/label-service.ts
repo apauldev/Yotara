@@ -307,6 +307,64 @@ export function deleteLabelForOwner(ownerId: string, labelId: string, tx?: Datab
   return tx ? run(tx) : db.transaction(run, { behavior: 'immediate' });
 }
 
+/**
+ * Merge `sourceId` into `targetId`: every task association moves to the
+ * target (deduplicating tasks that already had it), then the source label is
+ * deleted. The whole operation is one immediate transaction so a failure can
+ * never orphan associations. Returns the number of source associations, or
+ * null when either label is missing for this owner.
+ */
+export function mergeLabelForOwner(
+  ownerId: string,
+  sourceId: string,
+  targetId: string,
+): { movedTaskCount: number } | null {
+  if (sourceId === targetId) {
+    throw new BadRequestError('A label cannot be merged into itself');
+  }
+
+  return db.transaction(
+    (client) => {
+      const source = getLabelForOwner(sourceId, ownerId, client);
+      const target = getLabelForOwner(targetId, ownerId, client);
+      if (!source || !target) {
+        return null;
+      }
+
+      const sourceRows = client
+        .select({ taskId: taskLabels.taskId })
+        .from(taskLabels)
+        .where(eq(taskLabels.labelId, sourceId))
+        .all();
+      const targetTaskIds = new Set(
+        client
+          .select({ taskId: taskLabels.taskId })
+          .from(taskLabels)
+          .where(eq(taskLabels.labelId, targetId))
+          .all()
+          .map((row) => row.taskId),
+      );
+
+      const toMove = sourceRows.filter((row) => !targetTaskIds.has(row.taskId));
+      if (toMove.length > 0) {
+        client
+          .insert(taskLabels)
+          .values(toMove.map((row) => ({ taskId: row.taskId, labelId: targetId })))
+          .run();
+      }
+
+      client.delete(taskLabels).where(eq(taskLabels.labelId, sourceId)).run();
+      client
+        .delete(labels)
+        .where(and(eq(labels.id, sourceId), eq(labels.userId, ownerId)))
+        .run();
+
+      return { movedTaskCount: sourceRows.length };
+    },
+    { behavior: 'immediate' },
+  );
+}
+
 export function syncTaskLabels(
   ownerId: string,
   taskId: string,

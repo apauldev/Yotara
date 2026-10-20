@@ -34,7 +34,8 @@ The Angular application contains:
 - Team shell with a dashboard
 - Task detail modal for create and edit, including subtasks and recurrence
 - Recurring tasks (daily, weekly, monthly, yearly) with month-end and leap-year handling
-- Multi-label assignment per task
+- Icon-first labels with a single management surface, pinned labels, merge, and quick-create from capture or the task modal
+- Multi-label assignment and server-side task-list filtering (`?labels=id1,id2`, Any/All)
 - 7 color themes with dark mode
 - Markdown descriptions with a format toolbar and sanitized preview
 - Full-text search across tasks, projects, and labels

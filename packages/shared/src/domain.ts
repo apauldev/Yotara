@@ -167,6 +167,17 @@ export interface UpdateLabelDto {
   pinned?: boolean;
 }
 
+export interface MergeLabelDto {
+  targetId: string;
+}
+
+export interface LabelMergeResult {
+  /** Task associations that pointed at the source label before the merge. */
+  movedTaskCount: number;
+}
+
+export type LabelFilterMode = 'any' | 'all';
+
 export interface CreateProjectDto {
   name: string;
   description?: string;

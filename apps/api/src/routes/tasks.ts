@@ -33,7 +33,7 @@ import {
  */
 const MAX_PAGE_SIZE = 3000;
 
-/** Bounds the labelIds filter against absurd query strings (v1: single id). */
+/** Bounds the labelIds filter against absurd query strings. */
 const MAX_LABEL_FILTER_IDS = 10;
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -96,6 +96,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       view?: 'today' | 'inbox' | 'upcoming';
       completedSince?: string;
       labelIds?: string;
+      labelMode?: 'any' | 'all';
     };
     Reply: PaginatedResponse<Task[]> | { message: string };
   }>(
@@ -125,7 +126,13 @@ export default async function taskRoutes(fastify: FastifyInstance) {
             labelIds: {
               type: 'string',
               description:
-                'Comma-separated label ids; returns tasks carrying at least one listed label',
+                'Comma-separated label ids; returns tasks carrying any listed label, or every label when labelMode=all',
+            },
+            labelMode: {
+              type: 'string',
+              enum: ['any', 'all'],
+              default: 'any',
+              description: 'With multiple labelIds: any (OR) or all (AND) must match',
             },
           },
         },
@@ -166,6 +173,8 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         throw error;
       }
 
+      const labelMode: 'any' | 'all' = request.query.labelMode === 'all' ? 'all' : 'any';
+
       const filters = {
         status: request.query.status,
         completed:
@@ -187,6 +196,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         view: request.query.view,
         completedSince: request.query.completedSince,
         labelIds,
+        labelMode,
       };
 
       return listTasksForOwner(userId, page, pageSize, includeSubtasks, parentId, filters);

@@ -46,11 +46,7 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
       [class.task-card-complete]="task.completed"
       [class.task-card-interactive]="interactive"
       [class.task-card-compact]="mode === 'compact'"
-      [attr.role]="interactive ? 'button' : null"
-      [attr.tabindex]="interactive ? 0 : null"
-      [attr.aria-label]="interactive ? 'Open task details for ' + task.title : null"
       (click)="select.emit()"
-      (keydown)="onKeydown($event)"
     >
       <button
         type="button"
@@ -77,26 +73,48 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
 
       <div class="task-copy">
         <div class="task-title-row">
-          <h3 [class.h3-compact]="mode === 'compact'">{{ task.title }}</h3>
+          <h3 [class.h3-compact]="mode === 'compact'">
+            @if (interactive) {
+              <button type="button" class="task-title-button" (click)="selectFromTitle($event)">
+                {{ task.title }}
+              </button>
+            } @else {
+              {{ task.title }}
+            }
+          </h3>
 
           @if (taskLabelChips().length) {
             <div class="task-badges-labels">
               @for (chip of visibleLabelChips(); track chip.id) {
-                <app-label-chip [label]="chip" size="sm" />
+                <app-label-chip
+                  [label]="chip"
+                  size="sm"
+                  [mode]="showLabelNames() ? 'full' : 'compact'"
+                  [colorFirst]="colorFirstLabels()"
+                  [interactive]="true"
+                  (select)="selectLabel(chip)"
+                />
               }
-              @if (overflowLabelChips().length) {
+              @if (overflowLabelChips().length || !showLabelNames()) {
                 <span class="task-label-overflow-wrap">
                   <button
                     type="button"
                     class="task-label-overflow"
+                    [class.task-label-reveal]="!showLabelNames()"
                     [attr.aria-expanded]="overflowOpen()"
                     [attr.aria-label]="
-                      '+ ' + overflowLabelChips().length + ' more labels for ' + task.title
+                      showLabelNames()
+                        ? '+ ' + overflowLabelChips().length + ' more labels for ' + task.title
+                        : 'Show all ' + taskLabelChips().length + ' labels for ' + task.title
                     "
                     (click)="toggleLabelOverflow($event)"
                     (keydown)="$event.stopPropagation()"
                   >
-                    +{{ overflowLabelChips().length }}
+                    @if (showLabelNames()) {
+                      +{{ overflowLabelChips().length }}
+                    } @else {
+                      <span aria-hidden="true">⋯</span>
+                    }
                   </button>
                   @if (overflowOpen()) {
                     <span
@@ -110,7 +128,9 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
                         <app-label-chip
                           [label]="chip"
                           size="sm"
-                          [selected]="suppressLabelId === chip.id"
+                          [colorFirst]="colorFirstLabels()"
+                          [interactive]="true"
+                          (select)="selectLabel(chip)"
                         />
                       }
                     </span>
@@ -413,6 +433,12 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
         outline-offset: 1px;
       }
 
+      .task-label-reveal {
+        min-width: 1.55rem;
+        font-size: 0.9rem;
+        letter-spacing: 0.05em;
+      }
+
       .task-label-overflow-menu {
         position: absolute;
         top: calc(100% + 0.35rem);
@@ -525,6 +551,25 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
         color: var(--on-surface);
         font-weight: 600;
         overflow-wrap: anywhere;
+      }
+
+      .task-title-button {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        padding: 0;
+        margin: 0;
+        font: inherit;
+        color: inherit;
+        text-align: left;
+        overflow-wrap: anywhere;
+        cursor: pointer;
+      }
+
+      .task-title-button:focus-visible {
+        outline: 2px solid var(--primary-solid);
+        outline-offset: 2px;
+        border-radius: 0.3rem;
       }
 
       .h3-compact {
@@ -719,6 +764,9 @@ export class PersonalTaskCardComponent {
 
   protected readonly completeConfirmOpen = signal(false);
   protected readonly completing = signal(false);
+  /** Task-list density preferences shared across cards. */
+  protected readonly showLabelNames = this.preferences.showLabelNames;
+  protected readonly colorFirstLabels = this.preferences.colorFirstLabels;
   protected dontShowAgain = false;
   protected readonly faRotate = faRotate;
   protected readonly faRotateLeft = faRotateLeft;
@@ -739,7 +787,10 @@ export class PersonalTaskCardComponent {
   @Input() showContextMetadata = true;
   /** Label ID to hide from the chip row — the Labels page suppresses the label being viewed. */
   @Input() suppressLabelId: string | null = null;
+  /** Multiple active filter labels to suppress on the card. */
+  @Input() suppressLabelIds: string[] = [];
   @Output() readonly select = new EventEmitter<void>();
+  @Output() readonly labelSelect = new EventEmitter<Label>();
   @Output() readonly togglePermanentArchive = new EventEmitter<void>();
   @Output() readonly deleteForever = new EventEmitter<void>();
 
@@ -750,10 +801,13 @@ export class PersonalTaskCardComponent {
    */
   protected readonly taskLabelChips = computed<Label[]>(() => {
     const labelsById = this.labelService.labelById();
-    const suppress = this.suppressLabelId;
+    const suppressed = new Set([
+      ...(this.suppressLabelIds ?? []),
+      ...(this.suppressLabelId ? [this.suppressLabelId] : []),
+    ]);
     return (this.task.labels ?? [])
       .map((labelId) => labelsById.get(labelId))
-      .filter((label): label is Label => label !== undefined && label.id !== suppress);
+      .filter((label): label is Label => label !== undefined && !suppressed.has(label.id));
   });
 
   protected readonly visibleLabelChips = computed(() => this.taskLabelChips().slice(0, 2));
@@ -861,15 +915,14 @@ export class PersonalTaskCardComponent {
     this.completeConfirmOpen.set(true);
   }
 
-  onKeydown(event: KeyboardEvent) {
-    if (!this.interactive) {
-      return;
-    }
+  selectFromTitle(event: MouseEvent) {
+    event.stopPropagation();
+    this.select.emit();
+  }
 
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      this.select.emit();
-    }
+  selectLabel(label: Label) {
+    this.overflowOpen.set(false);
+    this.labelSelect.emit(label);
   }
 
   protected toggleLabelOverflow(event: MouseEvent) {

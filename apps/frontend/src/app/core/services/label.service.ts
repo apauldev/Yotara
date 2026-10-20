@@ -1,7 +1,7 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { CreateLabelDto, Label, UpdateLabelDto } from '@yotara/shared';
+import { CreateLabelDto, Label, LabelMergeResult, UpdateLabelDto } from '@yotara/shared';
 import {
   catchError,
   combineLatest,
@@ -99,6 +99,22 @@ export class LabelService {
       }),
     );
     this.refresh();
+  }
+
+  /**
+   * Move every task association from one label to another and delete the
+   * source. The API returns how many source associations were moved.
+   */
+  async mergeLabel(sourceId: string, targetId: string): Promise<LabelMergeResult> {
+    const result = await firstValueFrom(
+      this.http.post<LabelMergeResult>(
+        `${this.baseUrl}/labels/${sourceId}/merge`,
+        { targetId },
+        { withCredentials: true },
+      ),
+    );
+    this.refresh();
+    return result;
   }
 
   /**

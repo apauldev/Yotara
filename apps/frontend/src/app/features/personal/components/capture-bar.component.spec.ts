@@ -1,4 +1,5 @@
 import { signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { DateTime } from 'luxon';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
@@ -45,6 +46,8 @@ describe('CaptureBarComponent', () => {
   beforeEach(async () => {
     mockLabelService = {
       labels: signal(mockLabels),
+      createLabel: jasmine.createSpy('createLabel'),
+      refresh: jasmine.createSpy('refresh'),
     };
 
     await TestBed.configureTestingModule({
@@ -77,10 +80,11 @@ describe('CaptureBarComponent', () => {
       const dropdown = fixture.debugElement.query(By.css('.tag-suggestions'));
       expect(dropdown).toBeTruthy();
 
-      // Both 'work' and 'work-project' match 'wo'
+      // Both 'work' and 'work-project' match 'wo', plus the create option.
       const items = dropdown.queryAll(By.css('li'));
-      expect(items.length).toBe(2);
+      expect(items.length).toBe(3);
       expect(items[0].nativeElement.textContent).toContain('work');
+      expect(items[2].nativeElement.textContent).toContain('Create');
     });
 
     it('shows multiple matching suggestions', () => {
@@ -91,20 +95,82 @@ describe('CaptureBarComponent', () => {
       fixture.detectChanges();
 
       const items = fixture.debugElement.queryAll(By.css('.tag-suggestions li'));
-      expect(items.length).toBe(2);
+      expect(items.length).toBe(3);
       expect(items[0].nativeElement.textContent).toContain('work');
       expect(items[1].nativeElement.textContent).toContain('work-project');
     });
 
-    it('hides the dropdown when no tags match', () => {
+    it('offers to create a label when no tags match', () => {
       const fixture = createFixture();
       const input = fixture.debugElement.query(By.css('input'));
       input.nativeElement.value = '#zzz';
       input.nativeElement.dispatchEvent(new Event('input'));
       fixture.detectChanges();
 
-      const dropdown = fixture.debugElement.query(By.css('.tag-suggestions'));
-      expect(dropdown).toBeNull();
+      const create = fixture.debugElement.query(By.css('.tag-suggestions .suggestion-create'));
+      expect(create).toBeTruthy();
+      expect(create.nativeElement.textContent).toContain('Create “zzz”');
+    });
+
+    it('creates the typed label with its suggested icon and inserts the tag', async () => {
+      mockLabelService.createLabel.and.resolveTo({
+        id: 'new-label',
+        name: 'writing',
+        color: '#82d7a9',
+        icon: 'pen',
+        pinned: false,
+        userId: 'user-1',
+      });
+      const fixture = createFixture();
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = 'focus time #writing';
+      input.nativeElement.selectionStart = input.nativeElement.value.length;
+      input.nativeElement.selectionEnd = input.nativeElement.value.length;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.componentInstance.setTitle('focus time #writing');
+      fixture.detectChanges();
+
+      const create = fixture.debugElement.query(By.css('.suggestion-create'));
+      create.nativeElement.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(mockLabelService.createLabel).toHaveBeenCalledWith({
+        name: 'writing',
+        icon: 'pen',
+      });
+      expect(fixture.componentInstance.getTitle()).toBe('focus time #writing ');
+      expect(fixture.componentInstance.getCreatedLabels()).toEqual([
+        { id: 'new-label', name: 'writing' },
+      ]);
+    });
+
+    it('selects the existing label when capture creation hits a 409', async () => {
+      mockLabelService.createLabel.and.rejectWith(
+        new HttpErrorResponse({
+          status: 409,
+          error: { existingLabel: { id: 'existing-label', name: 'hidden' } },
+        }),
+      );
+      const fixture = createFixture();
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = '#hidden';
+      input.nativeElement.selectionStart = 7;
+      input.nativeElement.selectionEnd = 7;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.componentInstance.setTitle('#hidden');
+      fixture.detectChanges();
+
+      const create = fixture.debugElement.query(By.css('.suggestion-create'));
+      create.nativeElement.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(mockLabelService.refresh).toHaveBeenCalled();
+      expect(fixture.componentInstance.getCreatedLabels()).toEqual([
+        { id: 'existing-label', name: 'hidden' },
+      ]);
+      expect(fixture.componentInstance.getTitle()).toBe('#hidden ');
     });
 
     it('hides the dropdown when space follows the hash term', () => {
@@ -206,7 +272,8 @@ describe('CaptureBarComponent', () => {
       fixture.detectChanges();
 
       const items = fixture.debugElement.queryAll(By.css('.tag-suggestions li'));
-      expect(items.length).toBe(1);
+      expect(items.length).toBe(2);
+      expect(items[0].nativeElement.textContent).toContain('health');
       items[0].nativeElement.click();
       fixture.detectChanges();
 

@@ -23,6 +23,7 @@ import {
 } from '@yotara/shared';
 import { LabelService } from '../../../core/services/label.service';
 import { LogService } from '../../../core/services/log.service';
+import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { LabelChipComponent } from '../../../shared/ui/label-chip/label-chip.component';
 import { LabelIconPickerComponent } from '../../../shared/ui/label-icon-picker/label-icon-picker.component';
 import { ModalComponent } from '../../../shared/ui/modal/modal.component';
@@ -61,7 +62,7 @@ const LABEL_NAME_MAX_LENGTH = 60;
       <form class="label-editor" (ngSubmit)="save()">
         <section class="preview" aria-label="Label preview">
           <span class="field-label">Preview</span>
-          <app-label-chip [label]="previewLabel()" />
+          <app-label-chip [label]="previewLabel()" [colorFirst]="preferences.colorFirstLabels()" />
         </section>
 
         <label class="field">
@@ -133,13 +134,24 @@ const LABEL_NAME_MAX_LENGTH = 60;
         }
 
         @if (existingLabel(); as existing) {
-          <button
-            type="button"
-            class="existing-label-link"
-            (click)="openExisting.emit(existing.id)"
-          >
-            Open “{{ existing.name }}”
-          </button>
+          <div class="conflict-actions">
+            <button
+              type="button"
+              class="existing-label-link"
+              (click)="openExisting.emit(existing.id)"
+            >
+              Open “{{ existing.name }}”
+            </button>
+            @if (label; as source) {
+              <button
+                type="button"
+                class="existing-label-link merge-link"
+                (click)="mergeRequest.emit({ source, target: existing })"
+              >
+                Merge into “{{ existing.name }}”
+              </button>
+            }
+          </div>
         }
 
         @if (label; as editing) {
@@ -264,6 +276,16 @@ const LABEL_NAME_MAX_LENGTH = 60;
         cursor: pointer;
       }
 
+      .conflict-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 1rem;
+      }
+
+      .merge-link {
+        color: var(--on-surface-muted);
+      }
+
       .danger-zone {
         display: grid;
         gap: 0.4rem;
@@ -336,6 +358,7 @@ const LABEL_NAME_MAX_LENGTH = 60;
 export class LabelEditorComponent implements OnChanges {
   private readonly labelService = inject(LabelService);
   private readonly logService = inject(LogService);
+  protected readonly preferences = inject(PreferencesStore);
 
   /** The label to edit, or null to create one. */
   @Input() label: Label | null = null;
@@ -346,6 +369,11 @@ export class LabelEditorComponent implements OnChanges {
   @Output() readonly saved = new EventEmitter<Label>();
   /** Duplicate-name conflict: the id of the label that already exists. */
   @Output() readonly openExisting = new EventEmitter<string>();
+  /** Duplicate-name conflict while editing: offer to merge this label away. */
+  @Output() readonly mergeRequest = new EventEmitter<{
+    source: Label;
+    target: { id: string; name: string };
+  }>();
   /** The page owns the confirmation dialog for this request. */
   @Output() readonly deleteRequest = new EventEmitter<Label>();
 
