@@ -1,6 +1,14 @@
 import { randomUUID } from 'node:crypto';
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
-import type { CreateLabelDto, Label, UpdateLabelDto } from '@yotara/shared';
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import {
+  DEFAULT_LABEL_ICON,
+  isLabelIcon,
+  pickLabelColorForName,
+  type CreateLabelDto,
+  type Label,
+  type LabelIcon,
+  type UpdateLabelDto,
+} from '@yotara/shared';
 import { db, type Database } from '../db/client.js';
 import { labels, taskLabels, tasks } from '../db/schema.js';
 import { nowIsoTimestamp } from '../lib/timestamps.js';
@@ -11,16 +19,15 @@ import { BadRequestError, ConflictError } from '../lib/app-error.js';
  * never life areas — bucket names such as "Health" or "Home" must not appear
  * here (see the categorization model in docs/ARCHITECTURE.md). Seeding happens
  * once, during onboarding (PATCH /me), so deleting every label stays deleted.
- * Icon keys for these labels arrive with the icon migration in Phase 2.
  */
 const DEFAULT_LABELS = [
-  { name: 'Urgent', color: '#d44d3c' },
-  { name: 'Waiting', color: '#a5d3e1' },
-  { name: 'Planning', color: '#b9a3f4' },
-  { name: 'Errand', color: '#f1c582' },
-  { name: 'Review', color: '#c7e9b3' },
-  { name: 'Idea', color: '#82d7a9' },
-] satisfies Array<{ name: string; color: string }>;
+  { name: 'Urgent', color: '#d44d3c', icon: 'flame' },
+  { name: 'Waiting', color: '#a5d3e1', icon: 'hourglass' },
+  { name: 'Planning', color: '#b9a3f4', icon: 'calendar-days' },
+  { name: 'Errand', color: '#f1c582', icon: 'basket-shopping' },
+  { name: 'Review', color: '#c7e9b3', icon: 'check-double' },
+  { name: 'Idea', color: '#82d7a9', icon: 'lightbulb' },
+] satisfies Array<{ name: string; color: string; icon: LabelIcon }>;
 
 /** Matches a normalized 3- or 6-digit hex color. */
 const HEX_COLOR_PATTERN = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
@@ -43,6 +50,17 @@ function normalizeHexColor(value: string, context: string): string {
     return `#${r}${r}${g}${g}${b}${b}`;
   }
   return hex;
+}
+
+/** Validates a picked icon against the shared allowlist. */
+function normalizeLabelIcon(value: string | undefined): LabelIcon {
+  if (value === undefined) {
+    return DEFAULT_LABEL_ICON;
+  }
+  if (!isLabelIcon(value)) {
+    throw new BadRequestError(`Unknown label icon "${value}"`);
+  }
+  return value;
 }
 
 /**
@@ -70,6 +88,8 @@ export async function seedDefaultLabelsForOwner(ownerId: string) {
         userId: ownerId,
         name: label.name,
         color: label.color,
+        icon: label.icon,
+        pinned: false,
         createdAt: now,
         updatedAt: now,
       })),
@@ -93,6 +113,8 @@ export async function listLabelsForOwner(ownerId: string): Promise<Label[]> {
       userId: labels.userId,
       name: labels.name,
       color: labels.color,
+      icon: labels.icon,
+      pinned: labels.pinned,
       createdAt: labels.createdAt,
       updatedAt: labels.updatedAt,
       openTaskCount: sql<number>`coalesce(sum(case when ${tasks.completed} = 0 then 1 else 0 end), 0)`,
@@ -108,15 +130,19 @@ export async function listLabelsForOwner(ownerId: string): Promise<Label[]> {
       labels.userId,
       labels.name,
       labels.color,
+      labels.icon,
+      labels.pinned,
       labels.createdAt,
       labels.updatedAt,
     )
-    .orderBy(asc(labels.name));
+    .orderBy(desc(labels.pinned), asc(labels.name));
 
   return rows.map((row) => ({
     id: row.id,
     name: row.name,
     color: row.color,
+    icon: row.icon as LabelIcon,
+    pinned: row.pinned,
     userId: row.userId,
     openTaskCount: row.openTaskCount,
     completedTaskCount: row.completedTaskCount,
@@ -179,6 +205,8 @@ export async function createLabelForOwner(ownerId: string, body: CreateLabelDto)
   }
 
   const color = body.color?.trim() ? normalizeHexColor(body.color, 'Color') : pickLabelColor(name);
+  const icon = normalizeLabelIcon(body.icon);
+  const pinned = body.pinned ?? false;
 
   const now = nowIsoTimestamp();
   const id = randomUUID();
@@ -188,6 +216,8 @@ export async function createLabelForOwner(ownerId: string, body: CreateLabelDto)
       userId: ownerId,
       name,
       color,
+      icon,
+      pinned,
       createdAt: now,
       updatedAt: now,
     });
@@ -231,6 +261,8 @@ export async function updateLabelForOwner(ownerId: string, labelId: string, body
     body.color !== undefined && body.color.trim() !== current.color
       ? normalizeHexColor(body.color, 'Color')
       : current.color;
+  const icon = body.icon !== undefined ? normalizeLabelIcon(body.icon) : current.icon;
+  const pinned = body.pinned !== undefined ? body.pinned : current.pinned;
 
   try {
     await db
@@ -238,6 +270,8 @@ export async function updateLabelForOwner(ownerId: string, labelId: string, body
       .set({
         name,
         color,
+        icon,
+        pinned,
         updatedAt: nowIsoTimestamp(),
       })
       .where(and(eq(labels.id, labelId), eq(labels.userId, ownerId)));
@@ -320,13 +354,15 @@ export function getTaskLabels(taskId: string, tx?: Database) {
       userId: labels.userId,
       name: labels.name,
       color: labels.color,
+      icon: labels.icon,
+      pinned: labels.pinned,
       createdAt: labels.createdAt,
       updatedAt: labels.updatedAt,
     })
     .from(taskLabels)
     .innerJoin(labels, eq(taskLabels.labelId, labels.id))
     .where(eq(taskLabels.taskId, taskId))
-    .orderBy(asc(labels.name))
+    .orderBy(desc(labels.pinned), asc(labels.name))
     .all();
 
   return rows.map((row) => ({
@@ -367,15 +403,6 @@ export async function getLabelsForTasks(taskIds: string[]): Promise<Map<string, 
 }
 
 /** Same palette the label editor offers; deterministic per name hash. */
-const LABEL_COLOR_PALETTE = ['#82d7a9', '#81d7e8', '#f1c582', '#c7e9b3', '#a5d3e1', '#bcd0fb'];
-
 export function pickLabelColor(name: string) {
-  const index =
-    Math.abs(
-      name
-        .toLowerCase()
-        .split('')
-        .reduce((sum, ch) => sum + ch.charCodeAt(0), 0),
-    ) % LABEL_COLOR_PALETTE.length;
-  return LABEL_COLOR_PALETTE[index];
+  return pickLabelColorForName(name);
 }

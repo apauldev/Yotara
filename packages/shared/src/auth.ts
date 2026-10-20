@@ -1,5 +1,5 @@
 import { createAuthClient } from 'better-auth/client';
-import type { WorkspaceMode } from './index';
+import type { WorkspaceMode } from './domain.js';
 
 let apiBaseUrl = '';
 

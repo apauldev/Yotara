@@ -201,6 +201,32 @@ test('label routes reject empty names, invalid colors, and normalize short hex',
       payload: { name: 'Short', color: 'rebeccapurple' },
     });
     assert.equal(invalidUpdate.statusCode, 400);
+
+    const invalidIcon = await ctx.app.inject({
+      method: 'POST',
+      url: '/labels',
+      headers: { cookie },
+      payload: { name: 'Bad icon', icon: 'not-a-real-icon' },
+    });
+    assert.equal(invalidIcon.statusCode, 400);
+
+    const iconPinned = await ctx.app.inject({
+      method: 'POST',
+      url: '/labels',
+      headers: { cookie },
+      payload: { name: 'Icon pinned', icon: 'flame', pinned: true },
+    });
+    assert.equal(iconPinned.statusCode, 201);
+    assert.equal(iconPinned.json().icon, 'flame');
+    assert.equal(iconPinned.json().pinned, true);
+
+    const invalidIconUpdate = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/labels/${iconPinned.json().id}`,
+      headers: { cookie },
+      payload: { icon: 'not-a-real-icon' },
+    });
+    assert.equal(invalidIconUpdate.statusCode, 400);
   } finally {
     await ctx.cleanup();
   }

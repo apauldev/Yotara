@@ -1,6 +1,7 @@
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import type { FastifyInstance, FastifySchema, RouteOptions } from 'fastify';
+import { LABEL_ICON_KEYS } from '@yotara/shared';
 
 type OpenApiJsonContent = {
   example?: unknown;
@@ -192,11 +193,13 @@ const updateTaskSchema = {
 const labelSchema = {
   $id: 'Label',
   type: 'object',
-  required: ['id', 'name', 'color', 'userId'],
+  required: ['id', 'name', 'color', 'icon', 'pinned', 'userId'],
   properties: {
     id: { type: 'string', format: 'uuid' },
     name: { type: 'string' },
     color: { type: 'string' },
+    icon: { type: 'string', enum: [...LABEL_ICON_KEYS] },
+    pinned: { type: 'boolean' },
     userId: { type: 'string' },
     taskCount: { type: 'integer', minimum: 0 },
     openTaskCount: { type: 'integer', minimum: 0 },
@@ -214,6 +217,8 @@ const createLabelSchema = {
   properties: {
     name: nonEmptyTextSchema,
     color: { type: 'string' },
+    icon: { type: 'string', enum: [...LABEL_ICON_KEYS] },
+    pinned: { type: 'boolean' },
   },
   additionalProperties: false,
 } as const;
@@ -224,6 +229,8 @@ const updateLabelSchema = {
   properties: {
     name: nonEmptyTextSchema,
     color: { type: 'string' },
+    icon: { type: 'string', enum: [...LABEL_ICON_KEYS] },
+    pinned: { type: 'boolean' },
   },
   additionalProperties: false,
 } as const;
@@ -842,6 +849,8 @@ export const examples = {
           id: 'label_456',
           name: 'enhancement',
           color: '#3b82f6',
+          icon: 'lightbulb',
+          pinned: false,
           userId: 'user_123',
           taskCount: 3,
         },

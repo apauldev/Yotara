@@ -12,9 +12,30 @@ describe('LabelChipComponent', () => {
     return fixture;
   }
 
-  const redLabel = { id: 'l1', name: 'Urgent', color: '#d44d3c', userId: 'u1' };
-  const neutralLabel = { id: 'l2', name: 'Ice', color: '#dee0d8', userId: 'u1' };
-  const legacyLabel = { id: 'l3', name: 'Legacy', color: 'rebeccapurple', userId: 'u1' };
+  const redLabel = {
+    id: 'l1',
+    name: 'Urgent',
+    color: '#d44d3c',
+    icon: 'flame',
+    pinned: false,
+    userId: 'u1',
+  };
+  const neutralLabel = {
+    id: 'l2',
+    name: 'Ice',
+    color: '#dee0d8',
+    icon: 'tag',
+    pinned: false,
+    userId: 'u1',
+  };
+  const legacyLabel = {
+    id: 'l3',
+    name: 'Legacy',
+    color: 'rebeccapurple',
+    icon: 'tag',
+    pinned: false,
+    userId: 'u1',
+  };
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({

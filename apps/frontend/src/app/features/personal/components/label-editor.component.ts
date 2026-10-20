@@ -1,57 +1,80 @@
 import { CommonModule } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   EventEmitter,
   Input,
   OnChanges,
   Output,
+  computed,
   inject,
   signal,
-  ChangeDetectionStrategy,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Label } from '@yotara/shared';
+import {
+  DEFAULT_LABEL_ICON,
+  LABEL_COLORS,
+  isLabelIcon,
+  pickLabelColorForName,
+  type Label,
+  type LabelColor,
+  type LabelIcon,
+} from '@yotara/shared';
 import { LabelService } from '../../../core/services/label.service';
-import { ModalComponent } from '../../../shared/ui/modal/modal.component';
 import { LogService } from '../../../core/services/log.service';
+import { LabelChipComponent } from '../../../shared/ui/label-chip/label-chip.component';
+import { LabelIconPickerComponent } from '../../../shared/ui/label-icon-picker/label-icon-picker.component';
+import { ModalComponent } from '../../../shared/ui/modal/modal.component';
 import { existingLabelFromConflict } from '../../../shared/utils/label-conflict';
+import { suggestLabelIcon } from '../../../shared/utils/label-icons';
 
 /** Matches the practical input length the API trims before persisting. */
 const LABEL_NAME_MAX_LENGTH = 60;
 
 /**
- * The one create/edit form for a single label. The Labels page owns the
- * directory, delete, and selection — this modal never lists labels (the
- * duplicate manager rail was removed in the Phase 1 redesign).
+ * The one label create/edit surface. It opens as a right-side drawer on
+ * desktop and a full-height sheet on mobile, shows a live chip preview, and
+ * owns name, color, icon, validation, and the duplicate-name path. Delete is a
+ * labeled danger action here and in the directory menu; the page owns the
+ * confirmation dialog.
  */
 @Component({
-  selector: 'app-label-modal',
+  selector: 'app-label-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule, ModalComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    LabelChipComponent,
+    LabelIconPickerComponent,
+    ModalComponent,
+  ],
   template: `
-    <app-modal [open]="open" title="Label" size="sm" [showFooter]="false" (close)="close.emit()">
+    <app-modal
+      [open]="open"
+      [title]="label ? 'Edit label' : 'New label'"
+      size="md"
+      layout="drawer"
+      [showFooter]="false"
+      (close)="close.emit()"
+    >
       <form class="label-editor" (ngSubmit)="save()">
-        <h3 class="editor-heading">
-          {{ label ? 'Edit label' : 'Create label' }}
-        </h3>
+        <section class="preview" aria-label="Label preview">
+          <span class="field-label">Preview</span>
+          <app-label-chip [label]="previewLabel()" />
+        </section>
 
         <label class="field">
           <span class="field-label">Name</span>
           <input
-            #nameInput
             type="text"
             name="labelName"
             autocomplete="off"
+            autofocus
             [maxlength]="nameMaxLength"
             [class.field-invalid]="!!nameError()"
             [ngModel]="draftName()"
-            (ngModelChange)="
-              draftName.set($event);
-              nameError.set(null);
-              requestError.set(null);
-              existingLabel.set(null)
-            "
+            (ngModelChange)="onNameChange($event)"
             [attr.aria-invalid]="nameError() ? 'true' : null"
             [attr.aria-describedby]="nameError() ? 'label-name-error' : null"
             placeholder="Errand"
@@ -64,7 +87,19 @@ const LABEL_NAME_MAX_LENGTH = 60;
 
         <div class="field">
           <span class="field-label">Color</span>
-          <div class="palette-grid">
+          <div class="palette-grid" role="group" aria-label="Label color">
+            @if (customSwatch(); as custom) {
+              <button
+                type="button"
+                class="palette-tile palette-tile-active"
+                [style.background]="custom"
+                [attr.aria-pressed]="true"
+                [attr.aria-label]="'Current color ' + custom"
+                [title]="custom"
+              >
+                <span class="check" aria-hidden="true">✓</span>
+              </button>
+            }
             @for (color of palette; track color) {
               <button
                 type="button"
@@ -73,7 +108,7 @@ const LABEL_NAME_MAX_LENGTH = 60;
                 [style.background]="color"
                 [attr.aria-pressed]="draftColor() === color"
                 [attr.aria-label]="'Use color ' + color"
-                (click)="draftColor.set(color)"
+                (click)="chooseColor(color)"
               >
                 @if (draftColor() === color) {
                   <span class="check" aria-hidden="true">✓</span>
@@ -81,6 +116,16 @@ const LABEL_NAME_MAX_LENGTH = 60;
               </button>
             }
           </div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">Icon</span>
+          <app-label-icon-picker
+            [icon]="draftIcon()"
+            [color]="draftColor()"
+            [suggested]="suggestedIcon()"
+            (iconChange)="chooseIcon($event)"
+          />
         </div>
 
         @if (requestError()) {
@@ -97,12 +142,26 @@ const LABEL_NAME_MAX_LENGTH = 60;
           </button>
         }
 
+        @if (label; as editing) {
+          <section class="danger-zone" aria-label="Delete label">
+            <strong>Delete {{ editing.name }}</strong>
+            <p>
+              It is on {{ editing.openTaskCount ?? 0 }} open and
+              {{ editing.completedTaskCount ?? 0 }} completed tasks. The tasks will stay; the label
+              will be removed.
+            </p>
+            <button type="button" class="danger-button" (click)="deleteRequest.emit(editing)">
+              Delete label
+            </button>
+          </section>
+        }
+
         <div class="editor-actions">
           <button type="button" class="secondary-button" (click)="close.emit()">Cancel</button>
           <button
             type="submit"
             class="primary-button"
-            [disabled]="saveLabelDisabled()"
+            [disabled]="saveDisabled()"
             [attr.aria-busy]="saving()"
           >
             {{ saving() ? 'Saving…' : label ? 'Save changes' : 'Create label' }}
@@ -111,7 +170,6 @@ const LABEL_NAME_MAX_LENGTH = 60;
       </form>
     </app-modal>
   `,
-  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [
     `
       :host {
@@ -123,10 +181,12 @@ const LABEL_NAME_MAX_LENGTH = 60;
         gap: 1.05rem;
       }
 
-      .editor-heading {
-        margin: 0;
-        font-size: 1.02rem;
-        color: var(--on-surface-subtle);
+      .preview {
+        display: grid;
+        gap: 0.4rem;
+        padding: 0.85rem;
+        border-radius: 0.9rem;
+        background: var(--surface-container-low);
       }
 
       .field {
@@ -162,6 +222,34 @@ const LABEL_NAME_MAX_LENGTH = 60;
         font-size: 0.88rem;
       }
 
+      .palette-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(2.2rem, 1fr));
+        gap: 0.65rem;
+      }
+
+      .palette-tile {
+        aspect-ratio: 1;
+        border: 0;
+        border-radius: 0.85rem;
+        box-shadow: inset 0 0 0 1px var(--surface-dim);
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+      }
+
+      .palette-tile-active {
+        box-shadow:
+          inset 0 0 0 2px color-mix(in srgb, hsl(var(--primary-foreground)) 80%, transparent),
+          0 8px 22px var(--surface-dim-strong);
+      }
+
+      .check {
+        color: white;
+        font-weight: 800;
+        text-shadow: 0 1px 1px var(--surface-dim-strong);
+      }
+
       .existing-label-link {
         justify-self: start;
         appearance: none;
@@ -176,31 +264,37 @@ const LABEL_NAME_MAX_LENGTH = 60;
         cursor: pointer;
       }
 
-      .palette-grid {
+      .danger-zone {
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 0.7rem;
+        gap: 0.4rem;
+        padding: 0.85rem;
+        border-radius: 0.9rem;
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--status-overdue) 35%, transparent);
       }
 
-      .palette-tile {
-        aspect-ratio: 1;
-        border-radius: 0.95rem;
+      .danger-zone strong {
+        color: var(--on-surface);
+        font-size: 0.92rem;
+      }
+
+      .danger-zone p {
+        margin: 0;
+        color: var(--on-surface-muted);
+        font-size: 0.82rem;
+        line-height: 1.4;
+      }
+
+      .danger-button {
+        justify-self: start;
+        min-height: 2.6rem;
         border: 0;
-        box-shadow: inset 0 0 0 1px var(--surface-dim);
-        display: grid;
-        place-items: center;
-      }
-
-      .palette-tile-active {
-        box-shadow:
-          inset 0 0 0 2px color-mix(in srgb, hsl(var(--primary-foreground)) 80%, transparent),
-          0 8px 22px var(--surface-dim-strong);
-      }
-
-      .check {
-        color: white;
-        font-weight: 800;
-        text-shadow: 0 1px 1px var(--surface-dim-strong);
+        border-radius: 0.8rem;
+        padding: 0 0.9rem;
+        background: var(--error-soft);
+        color: var(--status-overdue);
+        font: inherit;
+        font-weight: 750;
+        cursor: pointer;
       }
 
       .editor-actions {
@@ -237,8 +331,9 @@ const LABEL_NAME_MAX_LENGTH = 60;
       }
     `,
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
 })
-export class LabelModalComponent implements OnChanges {
+export class LabelEditorComponent implements OnChanges {
   private readonly labelService = inject(LabelService);
   private readonly logService = inject(LogService);
 
@@ -251,30 +346,39 @@ export class LabelModalComponent implements OnChanges {
   @Output() readonly saved = new EventEmitter<Label>();
   /** Duplicate-name conflict: the id of the label that already exists. */
   @Output() readonly openExisting = new EventEmitter<string>();
+  /** The page owns the confirmation dialog for this request. */
+  @Output() readonly deleteRequest = new EventEmitter<Label>();
 
   protected readonly draftName = signal('');
-  protected readonly draftColor = signal('');
+  protected readonly draftColor = signal<string>(LABEL_COLORS[0]);
+  protected readonly draftIcon = signal<LabelIcon>(DEFAULT_LABEL_ICON);
   protected readonly nameError = signal<string | null>(null);
   protected readonly requestError = signal<string | null>(null);
   protected readonly existingLabel = signal<{ id: string; name: string } | null>(null);
   protected readonly saving = signal(false);
   protected readonly nameMaxLength = LABEL_NAME_MAX_LENGTH;
-  protected readonly palette = [
-    '#2b7c55',
-    '#2c7680',
-    '#7b8d73',
-    '#d19b92',
-    '#86b8ff',
-    '#f1c582',
-    '#b6c4ae',
-    '#dee0d8',
-    '#8dd0d6',
-    '#b7a3e7',
-  ];
+  protected readonly palette = LABEL_COLORS;
+  private readonly iconTouched = signal(false);
+  private readonly colorTouched = signal(false);
 
-  protected saveLabelDisabled() {
-    return this.saving() || !this.draftName().trim();
-  }
+  protected readonly suggestedIcon = computed(() => suggestLabelIcon(this.draftName()));
+
+  /** A legacy color outside the palette stays visible so saving never recolors it. */
+  protected readonly customSwatch = computed(() => {
+    const color = this.draftColor();
+    return color && !(LABEL_COLORS as readonly string[]).includes(color) ? color : null;
+  });
+
+  protected readonly previewLabel = computed<Label>(() => ({
+    id: this.label?.id ?? 'preview',
+    userId: this.label?.userId ?? '',
+    name: this.draftName().trim() || 'Label name',
+    color: this.draftColor(),
+    icon: this.draftIcon(),
+    pinned: this.label?.pinned ?? false,
+  }));
+
+  protected readonly saveDisabled = computed(() => this.saving() || !this.draftName().trim());
 
   ngOnChanges() {
     if (!this.open) {
@@ -285,7 +389,38 @@ export class LabelModalComponent implements OnChanges {
     this.requestError.set(null);
     this.existingLabel.set(null);
     this.draftName.set(this.label?.name ?? '');
-    this.draftColor.set(this.label?.color || this.palette[0]);
+    this.draftColor.set(this.label?.color || pickLabelColorForName(this.label?.name ?? ''));
+    this.draftIcon.set(
+      this.label && isLabelIcon(this.label.icon) ? this.label.icon : suggestLabelIcon(''),
+    );
+    // Editing keeps the label's identity; creating follows suggestions until
+    // the user makes an explicit choice.
+    this.iconTouched.set(this.label !== null);
+    this.colorTouched.set(this.label !== null);
+  }
+
+  protected onNameChange(value: string) {
+    this.draftName.set(value);
+    this.nameError.set(null);
+    this.requestError.set(null);
+    this.existingLabel.set(null);
+
+    if (!this.iconTouched()) {
+      this.draftIcon.set(suggestLabelIcon(value));
+    }
+    if (!this.colorTouched()) {
+      this.draftColor.set(pickLabelColorForName(value));
+    }
+  }
+
+  protected chooseIcon(icon: LabelIcon) {
+    this.iconTouched.set(true);
+    this.draftIcon.set(icon);
+  }
+
+  protected chooseColor(color: LabelColor) {
+    this.colorTouched.set(true);
+    this.draftColor.set(color);
   }
 
   protected async save() {
@@ -301,10 +436,12 @@ export class LabelModalComponent implements OnChanges {
 
     this.saving.set(true);
     this.requestError.set(null);
+    this.existingLabel.set(null);
     try {
+      const payload = { name, color: this.draftColor(), icon: this.draftIcon() };
       const saved = this.label
-        ? await this.labelService.updateLabel(this.label.id, { name, color: this.draftColor() })
-        : await this.labelService.createLabel({ name, color: this.draftColor() });
+        ? await this.labelService.updateLabel(this.label.id, payload)
+        : await this.labelService.createLabel(payload);
       this.saved.emit(saved);
       this.close.emit();
     } catch (error) {

@@ -53,6 +53,14 @@ test('Label Service', async (t) => {
       assert.ok(names.includes('Errand'));
       assert.ok(names.includes('Review'));
       assert.ok(names.includes('Idea'));
+
+      const icons = new Map(labels.map((label) => [label.name, label.icon]));
+      assert.equal(icons.get('Urgent'), 'flame');
+      assert.equal(icons.get('Waiting'), 'hourglass');
+      assert.equal(icons.get('Planning'), 'calendar-days');
+      assert.equal(icons.get('Errand'), 'basket-shopping');
+      assert.equal(icons.get('Review'), 'check-double');
+      assert.equal(icons.get('Idea'), 'lightbulb');
     });
 
     await t.test('seeds default labels only once', async () => {
@@ -71,6 +79,8 @@ test('Label Service', async (t) => {
       assert.equal(label.name, 'My Label');
       assert.equal(label.userId, ownerId);
       assert.ok(label.color);
+      assert.equal(label.icon, 'tag');
+      assert.equal(label.pinned, false);
       assert.ok(label.id);
       assert.ok(label.createdAt);
       assert.ok(label.updatedAt);
@@ -90,6 +100,63 @@ test('Label Service', async (t) => {
       assert.ok(label);
       assert.equal(label.name, 'Colored Label');
       assert.equal(label.color, '#ff0000');
+    });
+
+    await t.test('creates and updates icon and pinned', async () => {
+      const created = await ctx.labelService.createLabelForOwner(ownerId, {
+        name: 'Pinned Icon Label',
+        icon: 'flame',
+        pinned: true,
+      });
+      assert.ok(created);
+      assert.equal(created.icon, 'flame');
+      assert.equal(created.pinned, true);
+
+      const updated = await ctx.labelService.updateLabelForOwner(ownerId, created.id, {
+        icon: 'lightbulb',
+        pinned: false,
+      });
+      assert.ok(updated);
+      assert.equal(updated.icon, 'lightbulb');
+      assert.equal(updated.pinned, false);
+
+      const listed = await ctx.labelService.listLabelsForOwner(ownerId);
+      const listedRow = listed.find((label) => label.id === created.id);
+      assert.equal(listedRow?.icon, 'lightbulb');
+      assert.equal(listedRow?.pinned, false);
+    });
+
+    await t.test('lists pinned labels before alphabetical labels', async () => {
+      const pinned = await ctx.labelService.createLabelForOwner(ownerId, {
+        name: 'ZZZ Pinned Last Alphabetically',
+        pinned: true,
+      });
+      assert.ok(pinned);
+
+      const labels = await ctx.labelService.listLabelsForOwner(ownerId);
+      assert.equal(labels[0]?.id, pinned.id, 'the pinned label should lead the list');
+    });
+
+    await t.test('rejects an unknown icon key', async () => {
+      await assert.rejects(
+        () =>
+          ctx.labelService.createLabelForOwner(ownerId, {
+            name: 'Bad Icon',
+            // @ts-expect-error — exercising the runtime allowlist
+            icon: 'not-a-real-icon',
+          }),
+        (error: { statusCode?: number }) => error.statusCode === 400,
+      );
+
+      const existing = await ctx.labelService.createLabelForOwner(ownerId, { name: 'Valid Icon' });
+      await assert.rejects(
+        () =>
+          ctx.labelService.updateLabelForOwner(ownerId, existing!.id, {
+            // @ts-expect-error — exercising the runtime allowlist
+            icon: 'not-a-real-icon',
+          }),
+        (error: { statusCode?: number }) => error.statusCode === 400,
+      );
     });
 
     await t.test('gets a label by id', async () => {

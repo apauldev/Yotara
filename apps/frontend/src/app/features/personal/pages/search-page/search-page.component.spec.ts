@@ -49,8 +49,24 @@ describe('SearchPageComponent', () => {
   ]);
 
   const mockLabels = signal([
-    { id: 'label-1', name: 'bug', color: '#ef4444', taskCount: 2 },
-    { id: 'label-2', name: 'enhancement', color: '#3b82f6', taskCount: 1 },
+    {
+      id: 'label-1',
+      name: 'bug',
+      color: '#ef4444',
+      icon: 'flame',
+      pinned: false,
+      userId: 'user-1',
+      taskCount: 2,
+    },
+    {
+      id: 'label-2',
+      name: 'enhancement',
+      color: '#3b82f6',
+      icon: 'lightbulb',
+      pinned: false,
+      userId: 'user-1',
+      taskCount: 1,
+    },
   ]);
 
   const mockSearchResults: SearchResponse = {
@@ -111,6 +127,8 @@ describe('SearchPageComponent', () => {
           name: 'bug',
           color: '#ef4444',
           userId: 'user-1',
+          icon: 'lightbulb',
+          pinned: false,
           openTaskCount: 2,
           completedTaskCount: 1,
           totalTaskCount: 3,

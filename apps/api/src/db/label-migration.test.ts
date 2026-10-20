@@ -220,8 +220,44 @@ test('a fresh bootstrap creates the uniqueness and join indexes', () => {
     ).map((row) => row.name);
     assert.ok(indexes.includes('idx_labels_user_name_unique'));
     assert.ok(indexes.includes('idx_task_labels_label_id'));
+
+    const columns = sqlite.prepare(`PRAGMA table_info('labels')`).all() as Array<{
+      name: string;
+    }>;
+    const names = columns.map((column) => column.name);
+    assert.ok(names.includes('icon'));
+    assert.ok(names.includes('pinned'));
   } finally {
     sqlite.close();
+  }
+});
+
+test('startup migration backfills icon and pinned on legacy label rows', () => {
+  const dir = join(tmpdir(), `yotara-labels-icons-${randomUUID()}`);
+  mkdirSync(dir, { recursive: true });
+  const dbFile = join(dir, 'labels.db');
+
+  try {
+    const seed = seedLegacyDb(dbFile);
+    const { sqlite } = createDbClient(dbFile);
+    try {
+      const columns = sqlite.prepare(`PRAGMA table_info('labels')`).all() as Array<{
+        name: string;
+      }>;
+      const names = columns.map((column) => column.name);
+      assert.ok(names.includes('icon'));
+      assert.ok(names.includes('pinned'));
+
+      const row = sqlite
+        .prepare(`SELECT icon, pinned FROM labels WHERE id = ?`)
+        .get(seed.canonical) as { icon: string; pinned: number };
+      assert.equal(row.icon, 'tag');
+      assert.equal(row.pinned, 0);
+    } finally {
+      sqlite.close();
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });
 

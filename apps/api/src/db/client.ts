@@ -108,6 +108,8 @@ const SQLITE_BOOTSTRAP_SQL = `
     user_id TEXT NOT NULL,
     name TEXT NOT NULL,
     color TEXT NOT NULL,
+    icon TEXT NOT NULL DEFAULT 'tag',
+    pinned INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
@@ -393,6 +395,8 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
       user_id TEXT NOT NULL,
       name TEXT NOT NULL,
       color TEXT NOT NULL,
+      icon TEXT NOT NULL DEFAULT 'tag',
+      pinned INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
@@ -403,6 +407,12 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
       }
       if (!labelColumnNames.has('updated_at')) {
         sqlite.exec(`ALTER TABLE labels ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''`);
+      }
+      if (!labelColumnNames.has('icon')) {
+        sqlite.exec(`ALTER TABLE labels ADD COLUMN icon TEXT NOT NULL DEFAULT 'tag'`);
+      }
+      if (!labelColumnNames.has('pinned')) {
+        sqlite.exec(`ALTER TABLE labels ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0`);
       }
     }
 

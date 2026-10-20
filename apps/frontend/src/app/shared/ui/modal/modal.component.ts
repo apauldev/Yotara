@@ -16,7 +16,7 @@ import {
 
 type ModalSize = 'sm' | 'md' | 'lg';
 
-export type ModalLayout = 'default' | 'full-height';
+export type ModalLayout = 'default' | 'full-height' | 'drawer';
 
 @Component({
   selector: 'app-modal',

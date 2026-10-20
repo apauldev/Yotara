@@ -3,6 +3,7 @@ import { signal, WritableSignal } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { BehaviorSubject, of } from 'rxjs';
+import { LabelIcon } from '@yotara/shared';
 import { LabelsPageComponent } from './labels-page.component';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
 import { LabelService } from '../../../core/services/label.service';
@@ -13,6 +14,8 @@ interface StubLabel {
   id: string;
   name: string;
   color: string;
+  icon: LabelIcon;
+  pinned: boolean;
   userId: string;
   openTaskCount: number;
   completedTaskCount: number;
@@ -27,6 +30,8 @@ describe('LabelsPageComponent', () => {
       id: 'finance',
       name: 'Finance',
       color: '#f1c582',
+      icon: 'tag',
+      pinned: false,
       userId: 'user-1',
       openTaskCount: 2,
       completedTaskCount: 1,
@@ -37,6 +42,8 @@ describe('LabelsPageComponent', () => {
       id: 'focus',
       name: 'Focus',
       color: '#81d7e8',
+      icon: 'tag',
+      pinned: false,
       userId: 'user-1',
       openTaskCount: 1,
       completedTaskCount: 0,
@@ -47,6 +54,8 @@ describe('LabelsPageComponent', () => {
       id: 'writing',
       name: 'Writing',
       color: '#82d7a9',
+      icon: 'tag',
+      pinned: false,
       userId: 'user-1',
       openTaskCount: 3,
       completedTaskCount: 4,
@@ -173,8 +182,8 @@ describe('LabelsPageComponent', () => {
     const rows = fixture.debugElement.queryAll(By.css('.label-row'));
     expect(rows.length).toBe(3);
     const names = fixture.debugElement
-      .queryAll(By.css('.label-directory app-label-chip .label-chip-name'))
-      .map((chip) => chip.nativeElement.textContent.trim());
+      .queryAll(By.css('.label-directory .label-row-name'))
+      .map((name) => name.nativeElement.textContent.trim());
     expect(names).toEqual(['Finance', 'Focus', 'Writing']);
   });
 
@@ -186,11 +195,94 @@ describe('LabelsPageComponent', () => {
     expect(queryParams$.getValue().get('label')).toBe('finance');
   }));
 
+  it('selects the first pinned label before alphabetical labels', fakeAsync(() => {
+    labelsSignal.set(
+      labels.map((label) => (label.id === 'writing' ? { ...label, pinned: true } : label)),
+    );
+    const fixture = TestBed.createComponent(LabelsPageComponent);
+    fixture.detectChanges();
+    tick();
+
+    expect(queryParams$.getValue().get('label')).toBe('writing');
+    const sections = fixture.debugElement
+      .queryAll(By.css('.directory-heading'))
+      .map((heading) => heading.nativeElement.textContent.trim());
+    expect(sections).toEqual(['Pinned', 'All labels']);
+  }));
+
+  it('refetches the pane for the Open, Completed, and All tabs', fakeAsync(() => {
+    const fixture = createFixture();
+    tick();
+
+    expect(fetchTasksByLabel$).toHaveBeenCalledWith('finance', false);
+
+    const clickTab = (index: number) => {
+      fixture.debugElement.queryAll(By.css('[role="tab"]'))[index].nativeElement.click();
+      fixture.detectChanges();
+      tick();
+      fixture.detectChanges();
+    };
+
+    clickTab(1);
+    expect(fetchTasksByLabel$).toHaveBeenCalledWith('finance', true);
+
+    clickTab(2);
+    expect(fetchTasksByLabel$).toHaveBeenCalledWith('finance', undefined);
+  }));
+
+  it('filters the directory by name', fakeAsync(() => {
+    const fixture = createFixture();
+    tick();
+
+    fixture.componentInstance['labelSearch'].set('wri');
+    fixture.detectChanges();
+
+    const names = fixture.debugElement
+      .queryAll(By.css('.label-row-name'))
+      .map((name) => name.nativeElement.textContent.trim());
+    expect(names).toEqual(['Writing']);
+  }));
+
+  it('pins a label from the row overflow menu', fakeAsync(() => {
+    const fixture = createFixture();
+    tick();
+
+    const trigger = fixture.debugElement.queryAll(By.css('.row-menu-trigger'))[0];
+    trigger.nativeElement.click();
+    fixture.detectChanges();
+
+    const pinItem = fixture.debugElement.queryAll(By.css('.row-menu [role="menuitem"]'))[1];
+    expect(pinItem.nativeElement.textContent.trim()).toBe('Pin');
+    pinItem.nativeElement.click();
+    tick();
+
+    expect(labelServiceStub.updateLabel).toHaveBeenCalledWith('finance', { pinned: true });
+  }));
+
+  it('drills into a label and returns to the directory', fakeAsync(() => {
+    const fixture = createFixture();
+    tick();
+    const component = fixture.componentInstance;
+
+    const writingRow = fixture.debugElement
+      .queryAll(By.css('.label-row-link'))
+      .find((link) => link.nativeElement.textContent.includes('Writing'));
+    writingRow!.nativeElement.click();
+    fixture.detectChanges();
+    tick();
+
+    expect(component['drillInOpen']()).toBeTrue();
+
+    component['closeDrillIn']();
+    expect(component['drillInOpen']()).toBeFalse();
+    tick();
+  }));
+
   it('queries the task API for the selected label instead of client-filtering', fakeAsync(() => {
     const fixture = TestBed.createComponent(LabelsPageComponent);
     fixture.detectChanges();
     tick();
-    expect(fetchTasksByLabel$).toHaveBeenCalledWith('finance');
+    expect(fetchTasksByLabel$).toHaveBeenCalledWith('finance', false);
 
     // Simulate selecting Writing (row click pushes the param through the router stub).
     const writingRow = fixture.debugElement
@@ -201,7 +293,7 @@ describe('LabelsPageComponent', () => {
     tick();
     fixture.detectChanges();
 
-    expect(fetchTasksByLabel$).toHaveBeenCalledWith('writing');
+    expect(fetchTasksByLabel$).toHaveBeenCalledWith('writing', false);
     const titles = fixture.debugElement
       .queryAll(By.css('.task-pane h3'))
       .map((card) => card.nativeElement.textContent.trim());
@@ -286,10 +378,12 @@ describe('LabelsPageComponent', () => {
     tick();
     fixture.detectChanges();
 
-    const newLabel = {
+    const newLabel: StubLabel = {
       id: 'errands',
       name: 'Errands',
       color: '#f1c582',
+      icon: 'tag',
+      pinned: false,
       userId: 'user-1',
       openTaskCount: 0,
       completedTaskCount: 0,
@@ -345,7 +439,7 @@ describe('LabelsPageComponent', () => {
     trigger.nativeElement.click();
     fixture.detectChanges();
 
-    const deleteItem = fixture.debugElement.queryAll(By.css('.row-menu [role="menuitem"]'))[1];
+    const deleteItem = fixture.debugElement.queryAll(By.css('.row-menu [role="menuitem"]'))[2];
     expect(deleteItem.nativeElement.textContent.trim()).toBe('Delete');
     deleteItem.nativeElement.click();
     fixture.detectChanges();
@@ -368,7 +462,7 @@ describe('LabelsPageComponent', () => {
     trigger.nativeElement.click();
     fixture.detectChanges();
 
-    const deleteItem = fixture.debugElement.queryAll(By.css('.row-menu [role="menuitem"]'))[1];
+    const deleteItem = fixture.debugElement.queryAll(By.css('.row-menu [role="menuitem"]'))[2];
     deleteItem.nativeElement.click();
     fixture.detectChanges();
 
@@ -405,5 +499,32 @@ describe('LabelsPageComponent', () => {
 
     void fixture.componentInstance;
     tick();
+  }));
+
+  it('creates a curated starter label from the empty-state gallery', fakeAsync(() => {
+    labelsSignal.set([]);
+    labelServiceStub.createLabel.and.resolveTo({
+      id: 'urgent-id',
+      name: 'Urgent',
+      color: '#d44d3c',
+      icon: 'flame',
+      pinned: false,
+      userId: 'user-1',
+    });
+
+    const fixture = TestBed.createComponent(LabelsPageComponent);
+    fixture.detectChanges();
+
+    const starter = fixture.debugElement.queryAll(By.css('.starter-card'))[0];
+    expect(starter.nativeElement.textContent).toContain('Urgent');
+    starter.nativeElement.click();
+    tick();
+
+    expect(labelServiceStub.createLabel).toHaveBeenCalledWith({
+      name: 'Urgent',
+      icon: 'flame',
+      color: '#d44d3c',
+    });
+    expect(queryParams$.getValue().get('label')).toBe('urgent-id');
   }));
 });

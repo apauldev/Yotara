@@ -190,16 +190,26 @@ export class TaskService {
   }
 
   /**
-   * Fetch the open tasks carrying one label (the Labels page pane). Runs
-   * server-side via the labelIds filter so the pane matches the flat,
-   * non-deleted count scope the label list reports — the Labels page must not
-   * client-filter allActiveTasks.
+   * Fetch tasks carrying one label (the Labels page pane). Runs server-side
+   * via the labelIds filter so the pane matches the flat, non-deleted count
+   * scope the label list reports. `completed` maps the Open/Completed/All
+   * pane tabs; undefined asks for both.
    */
-  fetchTasksByLabel$(labelId: string) {
+  fetchTasksByLabel$(labelId: string, completed?: boolean) {
+    const params = new URLSearchParams({
+      labelIds: labelId,
+      includeSubtasks: 'true',
+      page: '1',
+      pageSize: String(TASKS_PAGE_SIZE),
+    });
+    if (completed !== undefined) {
+      params.set('completed', String(completed));
+    }
+
     return this.http
-      .get<
-        PaginatedResponse<Task[]>
-      >(`${this.baseUrl}/tasks?labelIds=${labelId}&completed=false&includeSubtasks=true&page=1&pageSize=${TASKS_PAGE_SIZE}`, { withCredentials: true })
+      .get<PaginatedResponse<Task[]>>(`${this.baseUrl}/tasks?${params.toString()}`, {
+        withCredentials: true,
+      })
       .pipe(map((response) => response.data));
   }
 

@@ -52,7 +52,12 @@ export class LabelService {
           finalize(() => this.loadingState.set(false)),
         );
       }),
-      map((labels) => [...labels].sort((left, right) => left.name.localeCompare(right.name))),
+      map((labels) =>
+        [...labels].sort(
+          (left, right) =>
+            Number(right.pinned) - Number(left.pinned) || left.name.localeCompare(right.name),
+        ),
+      ),
     ),
     { initialValue: [] as Label[] },
   );

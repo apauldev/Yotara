@@ -14,11 +14,32 @@ describe('CaptureBarComponent', () => {
   const referenceDate = DateTime.fromObject({ year: 2026, month: 9, day: 28 }, { zone: 'UTC' });
 
   const mockLabels: Label[] = [
-    { id: '1', name: 'work', color: '#ff0000', userId: 'user-1' },
-    { id: '2', name: 'personal', color: '#00ff00', userId: 'user-1' },
-    { id: '3', name: 'health', color: '#0000ff', userId: 'user-1' },
-    { id: '4', name: 'work-project', color: '#ff8800', userId: 'user-1' },
-    { id: '5', name: 'ideas', color: '#8800ff', userId: 'user-1' },
+    { id: '1', name: 'work', color: '#ff0000', icon: 'briefcase', pinned: false, userId: 'user-1' },
+    { id: '2', name: 'personal', color: '#00ff00', icon: 'heart', pinned: false, userId: 'user-1' },
+    {
+      id: '3',
+      name: 'health',
+      color: '#0000ff',
+      icon: 'dumbbell',
+      pinned: false,
+      userId: 'user-1',
+    },
+    {
+      id: '4',
+      name: 'work-project',
+      color: '#ff8800',
+      icon: 'laptop-code',
+      pinned: false,
+      userId: 'user-1',
+    },
+    {
+      id: '5',
+      name: 'ideas',
+      color: '#8800ff',
+      icon: 'lightbulb',
+      pinned: false,
+      userId: 'user-1',
+    },
   ];
 
   beforeEach(async () => {

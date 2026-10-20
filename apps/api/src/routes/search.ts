@@ -54,6 +54,8 @@ interface LabelSearchRow {
   id: string;
   name: string;
   color: string;
+  icon: string;
+  pinned: number;
   user_id: string;
   task_count: number;
   open_task_count: number;
@@ -156,6 +158,8 @@ function toLabel(row: LabelSearchRow): Label {
     id: row.id,
     name: row.name,
     color: row.color,
+    icon: row.icon as Label['icon'],
+    pinned: !!row.pinned,
     userId: row.user_id,
     openTaskCount: row.open_task_count,
     completedTaskCount: row.completed_task_count,

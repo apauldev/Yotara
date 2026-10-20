@@ -107,7 +107,7 @@ class FooterHostComponent {
   `,
 })
 class LayoutHostComponent {
-  layout: 'default' | 'full-height' = 'default';
+  layout: 'default' | 'full-height' | 'drawer' = 'default';
 }
 
 describe('ModalComponent', () => {
@@ -196,6 +196,18 @@ describe('ModalComponent', () => {
     expect(card.classList.contains('modal-card-full-height')).toBe(true);
     expect(hostFixture.nativeElement.querySelector('.modal-body-scroll')).toBeTruthy();
     expect(hostFixture.nativeElement.querySelector('.modal-footer')).toBeTruthy();
+  });
+
+  it('anchors the drawer layout to the edge with the same scrollable body', () => {
+    const hostFixture = TestBed.createComponent(LayoutHostComponent);
+    hostFixture.componentInstance.layout = 'drawer';
+    hostFixture.detectChanges();
+
+    const shell = hostFixture.nativeElement.querySelector('.modal-shell');
+    const card = hostFixture.nativeElement.querySelector('.modal-card');
+    expect(shell.classList.contains('modal-shell-drawer')).toBe(true);
+    expect(card.classList.contains('modal-card-drawer')).toBe(true);
+    expect(hostFixture.nativeElement.querySelector('.modal-body-scroll')).toBeTruthy();
   });
 
   it('prefers an element marked autofocus over the first focusable element', () => {

@@ -4,7 +4,7 @@
     "noEmit": true,
     "types": ["node"],
     "paths": {
-      "@yotara/shared": ["./node_modules/@yotara/shared/src/index.ts"],
+      "@yotara/shared": ["./node_modules/@yotara/shared/src/frontend.ts"],
       "@yotara/ui/button": ["./src/app/shared/ui/button/src/index.ts"],
       "@yotara/ui/utils": ["./src/app/shared/ui/utils/src/index.ts"]
     }

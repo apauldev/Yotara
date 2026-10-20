@@ -2,11 +2,26 @@
   <section class="page">
     <app-page-header title="Labels">
       <div page-header-actions class="header-actions">
+        <label class="label-search-shell">
+          <span class="sr-only">Search labels</span>
+          <input
+            class="label-search"
+            type="search"
+            placeholder="Search labels"
+            autocomplete="off"
+            [ngModel]="labelSearch()"
+            (ngModelChange)="labelSearch.set($event)"
+          />
+        </label>
         <button type="button" class="new-label-button" (click)="openCreateLabel()">
           + New Label
         </button>
       </div>
     </app-page-header>
+
+    @if (actionError()) {
+      <p class="status-copy status-error" role="alert">{{ actionError() }}</p>
+    }
 
     @if (labelService.loading() && !hasLabels()) {
       <p class="status-copy" role="status">Loading labels…</p>
@@ -16,9 +31,27 @@
       <section class="no-labels-state" aria-label="No labels yet">
         <app-empty-state
           title="No labels yet"
-          description="Create your first label to group related tasks across projects. Labels are conditions of work, not places — they cross-cut projects."
+          description="Start with a curated context label, or create your own. Labels are conditions of work, not places — they cross-cut projects."
           [icon]="faTag"
         />
+
+        <div class="starter-gallery" aria-label="Starter labels">
+          @for (starter of starters; track starter.name) {
+            <button
+              type="button"
+              class="starter-card"
+              [disabled]="creatingStarter() !== null"
+              (click)="createStarter(starter)"
+            >
+              <app-label-icon [icon]="starter.icon" [color]="starter.color" size="md" />
+              <span>{{ starter.name }}</span>
+              @if (creatingStarter() === starter.name) {
+                <span class="starter-busy">Adding…</span>
+              }
+            </button>
+          }
+        </div>
+
         <button type="button" class="new-label-button" (click)="openCreateLabel()">
           Create your first label
         </button>
@@ -35,92 +68,185 @@
         </button>
       </section>
     } @else {
-      <div class="label-browser">
+      <div class="label-browser" [class.label-browser-detail]="drillInOpen()">
         <section class="labels-table-container" aria-labelledby="labels-directory-heading">
           <h2 id="labels-directory-heading" class="sr-only">Labels directory</h2>
 
-          <ul
-            class="label-directory"
-            aria-label="Labels"
-            (click)="closeRowMenus()"
-            (keydown.escape)="closeRowMenus()"
-          >
-            @for (label of labels(); track label.id) {
-              <li class="label-row" [class.label-row-active]="selectedLabelId() === label.id">
-                <button
-                  type="button"
-                  class="label-row-link"
-                  (click)="selectLabel(label)"
-                  [attr.aria-current]="selectedLabelId() === label.id ? 'true' : null"
-                >
-                  <app-label-chip [label]="label" />
-                </button>
+          @if (directorySections().length === 0) {
+            <p class="status-copy directory-empty" role="status">
+              No labels match “{{ labelSearch() }}”.
+            </p>
+          }
 
-                <span class="count-badge" [attr.aria-label]="label.openTaskCount + ' open tasks'">
-                  {{ label.openTaskCount }}
-                </span>
+          @for (section of directorySections(); track section.id) {
+            <section class="directory-section" [attr.aria-labelledby]="'directory-' + section.id">
+              <h3 [id]="'directory-' + section.id" class="directory-heading">
+                {{ section.title }}
+              </h3>
 
-                <button
-                  type="button"
-                  class="row-menu-trigger"
-                  [attr.aria-label]="'More actions for ' + label.name"
-                  [attr.aria-expanded]="rowMenuLabelId() === label.id"
-                  [attr.aria-haspopup]="'menu'"
-                  (click)="toggleRowMenu(label, $event)"
-                >
-                  <fa-icon [icon]="faEllipsisVertical" aria-hidden="true"></fa-icon>
-                </button>
-
-                @if (rowMenuLabelId() === label.id) {
-                  <div class="row-menu" role="menu" [attr.aria-label]="'Actions for ' + label.name">
-                    <button type="button" role="menuitem" (click)="openEditLabel(label, $event)">
-                      Edit
+              <ul class="label-directory" [attr.aria-label]="section.title">
+                @for (label of section.labels; track label.id) {
+                  <li class="label-row" [class.label-row-active]="selectedLabelId() === label.id">
+                    <button
+                      #labelRowLink
+                      type="button"
+                      class="label-row-link"
+                      [attr.data-label-id]="label.id"
+                      (click)="selectLabel(label)"
+                      [attr.aria-current]="selectedLabelId() === label.id ? 'true' : null"
+                    >
+                      <app-label-icon [icon]="label.icon" [color]="label.color" size="md" />
+                      <span class="label-row-name">{{ label.name }}</span>
                     </button>
+
+                    <span
+                      class="count-badge"
+                      [attr.aria-label]="label.openTaskCount + ' open tasks'"
+                    >
+                      {{ label.openTaskCount }}
+                    </span>
+
                     <button
                       type="button"
-                      role="menuitem"
-                      class="row-menu-danger"
-                      (click)="askDeleteLabel(label, $event)"
+                      class="row-menu-trigger"
+                      [attr.aria-label]="'More actions for ' + label.name"
+                      [attr.aria-expanded]="rowMenuLabelId() === label.id"
+                      [attr.aria-haspopup]="'menu'"
+                      (click)="toggleRowMenu(label, $event)"
                     >
-                      Delete
+                      <fa-icon [icon]="faEllipsisVertical" aria-hidden="true"></fa-icon>
                     </button>
-                  </div>
+
+                    @if (rowMenuLabelId() === label.id) {
+                      <div
+                        class="row-menu"
+                        role="menu"
+                        [attr.aria-label]="'Actions for ' + label.name"
+                      >
+                        <button
+                          type="button"
+                          role="menuitem"
+                          (click)="openEditLabel(label, $event)"
+                        >
+                          Edit
+                        </button>
+                        <button type="button" role="menuitem" (click)="togglePinned(label, $event)">
+                          {{ label.pinned ? 'Unpin' : 'Pin' }}
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          class="row-menu-danger"
+                          (click)="askDeleteLabel(label, $event)"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    }
+                  </li>
                 }
-              </li>
-            }
-          </ul>
+              </ul>
+            </section>
+          }
         </section>
 
-        <aside #taskPane class="task-pane" aria-labelledby="task-pane-title">
+        <aside class="task-pane" aria-labelledby="task-pane-title">
           <header class="task-pane-header">
-            <div>
-              <h2 id="task-pane-title">{{ selectedLabel()?.name }}</h2>
+            <button
+              type="button"
+              class="pane-back"
+              aria-label="Back to labels"
+              (click)="closeDrillIn()"
+            >
+              <fa-icon [icon]="faArrowLeft" aria-hidden="true"></fa-icon>
+            </button>
+
+            <app-label-icon
+              [icon]="selectedLabel()?.icon ?? 'tag'"
+              [color]="selectedLabel()?.color"
+              size="lg"
+            />
+
+            <div class="pane-heading-copy">
+              <h2 #paneHeading id="task-pane-title" tabindex="-1">
+                {{ selectedLabel()?.name }}
+              </h2>
               @if (selectedLabel(); as selected) {
-                <p class="task-pane-subtitle">
+                <p class="task-pane-subtitle" aria-live="polite">
                   {{ selected.openTaskCount }} open · {{ selected.completedTaskCount }} completed ·
                   {{ selected.totalTaskCount }} total
                 </p>
               }
             </div>
-            <button
-              type="button"
-              class="add-task-button"
-              (click)="addTaskToSelection()"
-              [disabled]="!selectedLabel()"
-            >
-              + Add task
-            </button>
+
+            <div class="pane-actions">
+              <button
+                type="button"
+                class="add-task-button"
+                (click)="addTaskToSelection()"
+                [disabled]="!selectedLabel()"
+              >
+                + Add task
+              </button>
+              <button
+                type="button"
+                class="pane-menu-trigger"
+                [attr.aria-label]="'More actions for ' + (selectedLabel()?.name ?? 'this label')"
+                [attr.aria-expanded]="paneMenuOpen()"
+                [attr.aria-haspopup]="'menu'"
+                (click)="togglePaneMenu($event)"
+              >
+                <fa-icon [icon]="faEllipsisVertical" aria-hidden="true"></fa-icon>
+              </button>
+            </div>
+
+            @if (paneMenuOpen() && selectedLabel(); as selected) {
+              <div class="pane-menu" role="menu" [attr.aria-label]="'Actions for ' + selected.name">
+                <button type="button" role="menuitem" (click)="openEditLabel(selected, $event)">
+                  Edit
+                </button>
+                <button type="button" role="menuitem" (click)="togglePinned(selected, $event)">
+                  {{ selected.pinned ? 'Unpin' : 'Pin' }}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="row-menu-danger"
+                  (click)="askDeleteLabel(selected, $event)"
+                >
+                  Delete
+                </button>
+              </div>
+            }
           </header>
 
-          <div class="task-pane-content">
+          @if (selectedLabel()) {
+            <div class="pane-filters" role="tablist" aria-label="Task status">
+              @for (option of paneFilterOptions(); track option.id) {
+                <button
+                  type="button"
+                  role="tab"
+                  class="pane-filter"
+                  [class.pane-filter-active]="paneFilter() === option.id"
+                  [attr.aria-selected]="paneFilter() === option.id"
+                  (click)="setPaneFilter(option.id)"
+                >
+                  {{ option.label }}
+                  <span class="pane-filter-count">{{ option.count }}</span>
+                </button>
+              }
+            </div>
+          }
+
+          <div class="task-pane-content" role="tabpanel" [attr.aria-label]="paneFilter()">
             @if (paneLoading()) {
               <p class="status-copy" role="status">Loading tasks…</p>
             } @else if (paneError()) {
               <p class="status-copy">{{ paneError() }}</p>
             } @else if (paneTasks().length === 0) {
               <app-empty-state
-                [title]="'No open tasks in ' + (selectedLabel()?.name ?? 'this label')"
-                description="Nothing open here right now. Add a task and it will carry this label automatically."
+                [title]="paneEmptyTitle()"
+                description="Nothing here right now. Add a task and it will carry this label automatically."
                 [icon]="faInbox"
               >
                 <button
@@ -151,12 +277,13 @@
     }
   </section>
 
-  <app-label-modal
+  <app-label-editor
     [open]="labelEditorOpen()"
     [label]="editorLabel()"
     (close)="closeLabelEditor()"
     (saved)="onLabelSaved($event)"
     (openExisting)="openExistingLabel($event)"
+    (deleteRequest)="askDeleteFromEditor($event)"
   />
 
   <app-confirm-dialog

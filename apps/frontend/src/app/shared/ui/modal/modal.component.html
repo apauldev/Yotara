@@ -1,5 +1,5 @@
 @if (open) {
-  <div class="modal-shell">
+  <div class="modal-shell" [class.modal-shell-drawer]="layout === 'drawer'">
     <button
       type="button"
       class="backdrop"
@@ -11,6 +11,7 @@
       #dialog
       class="modal-card modal-card-{{ size }}"
       [class.modal-card-full-height]="layout === 'full-height'"
+      [class.modal-card-drawer]="layout === 'drawer'"
       role="dialog"
       aria-modal="true"
       [attr.aria-labelledby]="titleId"
@@ -34,7 +35,7 @@
         </button>
       </header>
 
-      <div class="modal-body" [class.modal-body-scroll]="layout === 'full-height'">
+      <div class="modal-body" [class.modal-body-scroll]="layout !== 'default'">
         <ng-content />
       </div>
 

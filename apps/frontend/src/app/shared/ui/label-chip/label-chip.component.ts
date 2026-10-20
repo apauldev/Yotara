@@ -1,14 +1,12 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
-import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faTag } from '@fortawesome/free-solid-svg-icons';
 import { Label } from '@yotara/shared';
 import { isHexColor, isNearNeutralColor, pickOnColor } from '../../utils/color-contrast';
+import { LabelIconComponent } from '../label-icon/label-icon.component';
 
 /**
- * The one shared label chip component. Phase 1 carries no per-label icon data
- * yet — the icon tile renders the generic tag glyph in the label's color, and
- * Phase 2 swaps in per-label icon keys without changing the surrounding
- * surfaces.
+ * The one shared label chip component. The icon tile renders the label's
+ * curated icon key through LabelIconComponent; legacy keys fall back to the
+ * generic tag without breaking the surface.
  *
  * Recipes by surface:
  *   task card / search results — static (interactive=false), full mode
@@ -27,7 +25,7 @@ import { isHexColor, isNearNeutralColor, pickOnColor } from '../../utils/color-c
 @Component({
   selector: 'app-label-chip',
   standalone: true,
-  imports: [FontAwesomeModule],
+  imports: [LabelIconComponent],
   host: {
     '[class.label-chip-neutral]': 'neutral',
     '[style.--label-color]': 'tokens.color',
@@ -43,7 +41,12 @@ import { isHexColor, isNearNeutralColor, pickOnColor } from '../../utils/color-c
           [attr.title]="label.name"
           (click)="handleSelect($event)"
         >
-          <fa-icon class="label-chip-icon" [icon]="faTag" aria-hidden="true" />
+          <app-label-icon
+            [icon]="label.icon"
+            [color]="label.color"
+            [size]="size === 'sm' ? 'xs' : 'sm'"
+            [flat]="selected"
+          />
           @if (mode === 'full') {
             <span class="label-chip-name">{{ label.name }}</span>
           } @else {
@@ -57,7 +60,12 @@ import { isHexColor, isNearNeutralColor, pickOnColor } from '../../utils/color-c
           [attr.aria-label]="'Label: ' + label.name"
           [attr.title]="label.name"
         >
-          <fa-icon class="label-chip-icon" [icon]="faTag" aria-hidden="true" />
+          <app-label-icon
+            [icon]="label.icon"
+            [color]="label.color"
+            [size]="size === 'sm' ? 'xs' : 'sm'"
+            [flat]="selected"
+          />
           @if (mode === 'full') {
             <span class="label-chip-name">{{ label.name }}</span>
           }
@@ -124,18 +132,6 @@ import { isHexColor, isNearNeutralColor, pickOnColor } from '../../utils/color-c
         text-align: left;
       }
 
-      .label-chip-icon {
-        display: inline-grid;
-        place-items: center;
-        width: 1.25rem;
-        height: 1.25rem;
-        border-radius: 0.45rem;
-        background: var(--label-strong);
-        color: var(--label-on-strong);
-        font-size: 0.62rem;
-        flex: 0 0 auto;
-      }
-
       .label-chip-name {
         font-size: 0.72rem;
         font-weight: 600;
@@ -150,12 +146,6 @@ import { isHexColor, isNearNeutralColor, pickOnColor } from '../../utils/color-c
         min-height: 1.35rem;
       }
 
-      .label-chip[data-size='sm'] .label-chip-icon {
-        width: 1.05rem;
-        height: 1.05rem;
-        font-size: 0.55rem;
-      }
-
       .label-chip[data-size='sm'] .label-chip-name {
         max-width: 6.5rem;
       }
@@ -165,12 +155,6 @@ import { isHexColor, isNearNeutralColor, pickOnColor } from '../../utils/color-c
         background: var(--label-strong);
         color: var(--label-on-strong);
         box-shadow: none;
-      }
-
-      .label-chip-selected .label-chip-icon {
-        background: transparent;
-        color: var(--label-on-strong);
-        width: auto;
       }
 
       .label-chip-control:focus-visible,
@@ -223,8 +207,6 @@ import { isHexColor, isNearNeutralColor, pickOnColor } from '../../utils/color-c
   changeDetection: ChangeDetectionStrategy.Eager,
 })
 export class LabelChipComponent {
-  protected readonly faTag = faTag;
-
   @Input({ required: true }) label!: Label;
   @Input() mode: 'full' | 'compact' = 'full';
   @Input() selected = false;
