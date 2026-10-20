@@ -87,7 +87,9 @@ export async function buildApp() {
 
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof AppError) {
-      return reply.code(error.statusCode).send({ message: error.message });
+      return reply
+        .code(error.statusCode)
+        .send({ ...(error.details ?? {}), message: error.message });
     }
 
     // Fastify validation errors and other known error shapes

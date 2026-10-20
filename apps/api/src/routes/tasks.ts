@@ -12,8 +12,8 @@ import {
   idParamSchema,
   withJsonResponse,
 } from '../docs/openapi.js';
-import { UnauthorizedError } from '../lib/app-error.js';
-import { sendNotFound } from '../lib/api-errors.js';
+import { UnauthorizedError, BadRequestError } from '../lib/app-error.js';
+import { sendBadRequest, sendNotFound } from '../lib/api-errors.js';
 import requireAuthenticatedUser from '../plugins/auth-required.js';
 import { getProjectForOwner } from '../services/project-service.js';
 import {
@@ -32,6 +32,39 @@ import {
  * flags truncation to the user when a window returns more than it can hold.
  */
 const MAX_PAGE_SIZE = 3000;
+
+/** Bounds the labelIds filter against absurd query strings (v1: single id). */
+const MAX_LABEL_FILTER_IDS = 10;
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Parses the comma-separated labelIds query parameter. Any malformed id or an
+ * over-limit list is a client error rather than silently ignored input, so
+ * callers never see a filtered result that does not match their request.
+ */
+export function parseLabelIdsParam(value: string | undefined): string[] | undefined {
+  if (value === undefined || value.trim() === '') {
+    return undefined;
+  }
+
+  const ids = [
+    ...new Set(
+      value
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean),
+    ),
+  ];
+  if (ids.length > MAX_LABEL_FILTER_IDS) {
+    throw new BadRequestError(`At most ${MAX_LABEL_FILTER_IDS} label ids may be filtered by`);
+  }
+  const invalid = ids.filter((id) => !UUID_PATTERN.test(id));
+  if (invalid.length > 0) {
+    throw new BadRequestError('labelIds must be a comma-separated list of label ids');
+  }
+  return ids;
+}
 
 /**
  * Tasks routes backed by SQLite via Drizzle.
@@ -62,6 +95,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       tz?: string;
       view?: 'today' | 'inbox' | 'upcoming';
       completedSince?: string;
+      labelIds?: string;
     };
     Reply: PaginatedResponse<Task[]> | { message: string };
   }>(
@@ -88,6 +122,11 @@ export default async function taskRoutes(fastify: FastifyInstance) {
             tz: { type: 'string' },
             view: { type: 'string', enum: ['today', 'inbox', 'upcoming'] },
             completedSince: { type: 'string', format: 'date' },
+            labelIds: {
+              type: 'string',
+              description:
+                'Comma-separated label ids; returns tasks carrying at least one listed label',
+            },
           },
         },
         response: {
@@ -95,11 +134,15 @@ export default async function taskRoutes(fastify: FastifyInstance) {
             description: 'Tasks for the authenticated user',
             $ref: 'PaginatedTasksResponse#',
           },
+          400: errorResponseSchema(
+            'labelIds must be comma-separated label ids (max 10)',
+            'Bad request',
+          ),
           401: errorResponseSchema('Authentication required', 'Unauthorized'),
         },
       }),
     },
-    async (request) => {
+    async (request, reply) => {
       if (!request.userId) {
         throw new UnauthorizedError();
       }
@@ -112,6 +155,16 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         : Math.min(MAX_PAGE_SIZE, Math.max(1, request.query.pageSize ?? 50));
       const includeSubtasks = isExport ? true : String(request.query.includeSubtasks) === 'true';
       const parentId = request.query.parentId;
+
+      let labelIds: string[] | undefined;
+      try {
+        labelIds = parseLabelIdsParam(request.query.labelIds);
+      } catch (error) {
+        if (error instanceof BadRequestError) {
+          return sendBadRequest(reply, error.message);
+        }
+        throw error;
+      }
 
       const filters = {
         status: request.query.status,
@@ -133,6 +186,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         tz: request.query.tz,
         view: request.query.view,
         completedSince: request.query.completedSince,
+        labelIds,
       };
 
       return listTasksForOwner(userId, page, pageSize, includeSubtasks, parentId, filters);

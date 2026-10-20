@@ -419,6 +419,105 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
     )`);
     }
 
+    // Label identity hygiene: case/whitespace-insensitive name uniqueness.
+    // The dedupe MUST run before the unique index below — a database that
+    // still contains duplicates would fail index creation. Per label group
+    // keyed by (user_id, lower(trim(name))) with more than one row:
+    //   1. pick the canonical label (earliest non-empty created_at, then lowest id)
+    //   2. re-point task_labels rows to the canonical label (INSERT OR IGNORE
+    //      dedupes against the join table's (task_id, label_id) primary key)
+    //   3. delete join rows that still point at duplicates
+    //   4. delete the duplicate label rows
+    // Tasks are never deleted. Idempotent: once the index exists, groups have a
+    // single row, so the pre-check finds nothing and nothing runs.
+    // NOTE: SQLite's lower() is ASCII-only, so this dedupe does not catch
+    // non-ASCII case pairs (e.g. "Étude"/"étude") — acceptable for v1.
+    const duplicateLabelGroups = sqlite
+      .prepare(
+        `SELECT COUNT(*) AS groups, COALESCE(SUM(rows - 1), 0) AS extra
+         FROM (
+           SELECT COUNT(*) AS rows
+           FROM labels
+           GROUP BY user_id, lower(trim(name))
+           HAVING COUNT(*) > 1
+         )`,
+      )
+      .get() as { groups: number; extra: number };
+    if (duplicateLabelGroups.groups > 0) {
+      const repointJoins = sqlite
+        .prepare(
+          `WITH ranked AS (
+             SELECT id, user_id,
+                    lower(trim(name)) AS name_key,
+                    ROW_NUMBER() OVER (
+                      PARTITION BY user_id, lower(trim(name))
+                      ORDER BY
+                        CASE WHEN created_at IS NULL OR trim(created_at) = '' THEN 1 ELSE 0 END,
+                        created_at, id
+                    ) AS rn
+             FROM labels
+           )
+           INSERT OR IGNORE INTO task_labels (task_id, label_id)
+           SELECT tl.task_id, c.id
+           FROM task_labels tl
+           JOIN ranked d ON tl.label_id = d.id AND d.rn > 1
+           JOIN ranked c
+             ON c.user_id = d.user_id AND c.name_key = d.name_key AND c.rn = 1
+           WHERE tl.label_id <> c.id`,
+        )
+        .run();
+
+      sqlite
+        .prepare(
+          `DELETE FROM task_labels
+           WHERE label_id IN (
+             SELECT id FROM (
+               SELECT id, ROW_NUMBER() OVER (
+                        PARTITION BY user_id, lower(trim(name))
+                        ORDER BY
+                          CASE WHEN created_at IS NULL OR trim(created_at) = '' THEN 1 ELSE 0 END,
+                          created_at, id
+                      ) AS rn
+               FROM labels
+             ) WHERE rn > 1
+           )`,
+        )
+        .run();
+
+      const removedLabels = sqlite
+        .prepare(
+          `DELETE FROM labels
+           WHERE id IN (
+             SELECT id FROM (
+               SELECT id, ROW_NUMBER() OVER (
+                        PARTITION BY user_id, lower(trim(name))
+                        ORDER BY
+                          CASE WHEN created_at IS NULL OR trim(created_at) = '' THEN 1 ELSE 0 END,
+                          created_at, id
+                      ) AS rn
+               FROM labels
+             ) WHERE rn > 1
+           )`,
+        )
+        .run();
+
+      console.log(
+        `[schema] merged duplicate labels: ${duplicateLabelGroups.groups} groups ` +
+          `(${removedLabels.changes} labels deleted, ${repointJoins.changes} task ` +
+          `associations re-pointed)`,
+      );
+    }
+
+    // Created AFTER dedupe on purpose (see above). Expression index over
+    // lower(trim(name)); SQLite applies trim/lower to stored values, so it also
+    // holds for new writes in any case/whitespace form.
+    sqlite.exec(
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_labels_user_name_unique
+       ON labels(user_id, lower(trim(name)))`,
+    );
+    // Counts and label filters scan task_labels by label_id.
+    sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_task_labels_label_id ON task_labels(label_id)`);
+
     // Migrate login_attempts to a composite (ip, email) primary key. The old shape
     // keyed only by email, which allowed a single attacker to lock any victim's
     // account. The table holds only transient failed-login counters, so dropping

@@ -46,7 +46,14 @@ export interface Label {
   name: string;
   color: string;
   userId: string;
+  /** Legacy alias of totalTaskCount, kept for older API consumers. */
   taskCount?: number;
+  /** Attached tasks that are open (not completed, not deleted). */
+  openTaskCount?: number;
+  /** Attached tasks that are completed and not deleted. */
+  completedTaskCount?: number;
+  /** Attached tasks that are not deleted (open + completed). */
+  totalTaskCount?: number;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { eq, sql } from 'drizzle-orm';
 
 async function setupTestDb() {
   const dbFile = join(tmpdir(), `yotara-label-service-test-${randomUUID()}.db`);
@@ -43,12 +44,15 @@ test('Label Service', async (t) => {
       await ctx.labelService.seedDefaultLabelsForOwner(ownerId);
       const labels = await ctx.labelService.listLabelsForOwner(ownerId);
 
-      // Should include 8 default labels
-      assert.ok(labels.length >= 8);
+      // Should include the six default context labels
+      assert.ok(labels.length >= 6);
       const names = labels.map((l) => l.name);
       assert.ok(names.includes('Urgent'));
       assert.ok(names.includes('Waiting'));
       assert.ok(names.includes('Planning'));
+      assert.ok(names.includes('Errand'));
+      assert.ok(names.includes('Review'));
+      assert.ok(names.includes('Idea'));
     });
 
     await t.test('seeds default labels only once', async () => {
@@ -58,7 +62,7 @@ test('Label Service', async (t) => {
       assert.equal(urgentCount, 1, 'Urgent should only exist once');
     });
 
-    await t.test('creates a label with default color', async () => {
+    await t.test('creating a label with default color', async () => {
       const label = await ctx.labelService.createLabelForOwner(ownerId, {
         name: 'My Label',
       });
@@ -73,7 +77,7 @@ test('Label Service', async (t) => {
 
       // listing should now include the new label + defaults
       const labels = await ctx.labelService.listLabelsForOwner(ownerId);
-      assert.ok(labels.length >= 9);
+      assert.ok(labels.length >= 7);
       assert.ok(labels.some((l) => l.name === 'My Label'));
     });
 
@@ -232,6 +236,123 @@ test('Label Service', async (t) => {
       // Label should still exist for the real owner
       const stillThere = await ctx.labelService.getLabelForOwner(label.id, ownerId);
       assert.ok(stillThere);
+    });
+
+    await t.test('create rejects a case-insensitive duplicate name with 409 details', async () => {
+      const original = await ctx.labelService.createLabelForOwner(ownerId, {
+        name: 'Writing',
+        color: '#82d7a9',
+      });
+
+      await assert.rejects(
+        () => ctx.labelService.createLabelForOwner(ownerId, { name: ' writing ' }),
+        (error: { statusCode?: number; details?: { existingLabel?: { id?: string } } }) => {
+          assert.equal(error.statusCode, 409);
+          assert.equal(error.details?.existingLabel?.id, original?.id);
+          return true;
+        },
+      );
+    });
+
+    await t.test(
+      'update rejects renaming into an existing label but keeps unchanged writes',
+      async () => {
+        const a = await ctx.labelService.createLabelForOwner(ownerId, { name: 'Errands' });
+        const b = await ctx.labelService.createLabelForOwner(ownerId, { name: 'Calls' });
+        assert.ok(a && b);
+
+        await assert.rejects(
+          () => ctx.labelService.updateLabelForOwner(ownerId, b!.id, { name: 'ERRANDS' }),
+          (error: { statusCode?: number }) => {
+            assert.equal(error.statusCode, 409);
+            return true;
+          },
+        );
+
+        // Saving a label with its own current name stays a 200 path.
+        const ok = await ctx.labelService.updateLabelForOwner(ownerId, b!.id, { name: 'Calls' });
+        assert.ok(ok);
+        assert.equal(ok.name, 'Calls');
+      },
+    );
+
+    await t.test('create rejects empty names and invalid colors', async () => {
+      await assert.rejects(
+        () => ctx.labelService.createLabelForOwner(ownerId, { name: '   ' }),
+        (error: { statusCode?: number }) => error.statusCode === 400,
+      );
+      await assert.rejects(
+        () => ctx.labelService.createLabelForOwner(ownerId, { name: 'Valid', color: 'blue' }),
+        (error: { statusCode?: number }) => error.statusCode === 400,
+      );
+    });
+
+    await t.test('create normalizes 3-digit hex colors', async () => {
+      const label = await ctx.labelService.createLabelForOwner(ownerId, {
+        name: 'Trio',
+        color: '#ABC',
+      });
+      assert.ok(label);
+      assert.equal(label.color, '#aabbcc');
+    });
+
+    await t.test(
+      'update keeps unchanged legacy color and rejects changed invalid color',
+      async () => {
+        const { labels } = await import('../db/schema.js');
+        // Simulate a legacy row with a non-hex color written before validation.
+        const legacy = await ctx.labelService.createLabelForOwner(ownerId, { name: 'Legacy' });
+        await ctx.db
+          .update(labels)
+          .set({ color: 'rebeccapurple' })
+          .where(eq(labels.id, legacy!.id));
+
+        // Unchanged color passes (no color field sent).
+        const kept = await ctx.labelService.updateLabelForOwner(ownerId, legacy!.id, {
+          name: 'Legacy Renamed',
+        });
+        assert.ok(kept);
+        assert.equal(kept.color, 'rebeccapurple');
+
+        // An explicit invalid color is rejected.
+        await assert.rejects(
+          () =>
+            ctx.labelService.updateLabelForOwner(ownerId, legacy!.id, {
+              name: 'Legacy Renamed',
+              color: 'oops',
+            }),
+          (error: { statusCode?: number }) => error.statusCode === 400,
+        );
+      },
+    );
+
+    await t.test('counts split open/completed and exclude deleted tasks', async () => {
+      const label = await ctx.labelService.createLabelForOwner(ownerId, { name: 'Counted' });
+      assert.ok(label);
+
+      const { createTaskForOwner, updateTaskForOwner } = await import('./task-service.js');
+      const open = await createTaskForOwner(ownerId, { title: 'Counted open' });
+      const done = await createTaskForOwner(ownerId, { title: 'Counted done' });
+      const gone = await createTaskForOwner(ownerId, { title: 'Counted deleted' });
+      assert.ok(open && done && gone);
+
+      await ctx.labelService.syncTaskLabels(ownerId, open!.id, [label.id]);
+      await ctx.labelService.syncTaskLabels(ownerId, done!.id, [label.id]);
+      await ctx.labelService.syncTaskLabels(ownerId, gone!.id, [label.id]);
+      await updateTaskForOwner(ownerId, done!.id, { completed: true });
+      await updateTaskForOwner(ownerId, gone!.id, { completed: true });
+      // deleteTaskForOwner is a hard delete; emulate the soft-delete path instead.
+      await ctx.db.run(
+        sql`UPDATE tasks SET deleted_at = '2026-10-20T10:00:00.000Z' WHERE id = ${gone!.id} AND user_id = ${ownerId}`,
+      );
+
+      const labels = await ctx.labelService.listLabelsForOwner(ownerId);
+      const counted = labels.find((l) => l.id === label.id);
+      assert.ok(counted);
+      assert.equal(counted.openTaskCount, 1);
+      assert.equal(counted.completedTaskCount, 1);
+      assert.equal(counted.totalTaskCount, 2);
+      assert.equal(counted.taskCount, 2, 'legacy alias mirrors totalTaskCount');
     });
   } finally {
     ctx.cleanup();
