@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import {
+  DEFAULT_LABELS,
   DEFAULT_LABEL_ICON,
   isLabelIcon,
   pickLabelColorForName,
@@ -13,21 +14,6 @@ import { db, type Database } from '../db/client.js';
 import { labels, taskLabels, tasks } from '../db/schema.js';
 import { nowIsoTimestamp } from '../lib/timestamps.js';
 import { BadRequestError, ConflictError } from '../lib/app-error.js';
-
-/**
- * Six context labels for brand-new users. They are cross-cutting *conditions*,
- * never life areas — bucket names such as "Health" or "Home" must not appear
- * here (see the categorization model in docs/ARCHITECTURE.md). Seeding happens
- * once, during onboarding (PATCH /me), so deleting every label stays deleted.
- */
-const DEFAULT_LABELS = [
-  { name: 'Urgent', color: '#d44d3c', icon: 'flame' },
-  { name: 'Waiting', color: '#a5d3e1', icon: 'hourglass' },
-  { name: 'Planning', color: '#b9a3f4', icon: 'calendar-days' },
-  { name: 'Errand', color: '#f1c582', icon: 'basket-shopping' },
-  { name: 'Review', color: '#c7e9b3', icon: 'check-double' },
-  { name: 'Idea', color: '#82d7a9', icon: 'lightbulb' },
-] satisfies Array<{ name: string; color: string; icon: LabelIcon }>;
 
 /** Matches a normalized 3- or 6-digit hex color. */
 const HEX_COLOR_PATTERN = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;

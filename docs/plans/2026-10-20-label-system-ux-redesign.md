@@ -508,9 +508,10 @@ duplicates the bootstrap), `packages/shared/src/index.ts`, `label-service.ts`,
 - Include icon/pinned in list, create, update, `getTaskLabels`, the raw
   `LabelSearchRow`/`toLabel` in `apps/api/src/routes/search.ts`, and the settings
   label export (CSV and JSON). Order label lists by `pinned DESC, name ASC`.
-- Seed new users with six context labels and their icons:
-  Urgent → `flame`, Waiting → `hourglass`, Planning → `calendar-days`,
-  Errand → `basket-shopping`, Review → `check-double`, Idea → `lightbulb`.
+- Seed new users with six context labels, colors, and icons:
+  Urgent (red) → `flame`, Waiting (amber) → `hourglass`, Planning (blue) →
+  `calendar-days`, Errand (green) → `basket-shopping`, Review (purple) →
+  `check-double`, Idea (mint) → `lightbulb`.
   Existing users keep their labels.
 - Update the OpenAPI schema and its test.
 
@@ -924,9 +925,9 @@ are listed so the plan can proceed without blocking.
 5. **Multi-label filter semantics:** OR (any selected label) by default; explicit
    AND toggle later. *Recommended.*
 6. **Default labels:** replace the current eight with six context labels
-   (Urgent, Waiting, Planning, Errand, Review, Idea), with the icons in §2.1.
-   Seed them only during onboarding so deleting all labels sticks. Existing
-   users keep their labels. *Recommended.*
+   (Urgent, Waiting, Planning, Errand, Review, Idea), with the colors and icons
+   in §2.1. Seed them only during onboarding so deleting all labels sticks.
+   Existing users keep their labels. *Recommended.*
 7. **Merge endpoint shape:** `POST /labels/:id/merge` with `{ targetId }`.
    *Recommended; if a generic bulk action is preferred later, it can wrap this.*
 8. **Color treatment:** default to a soft chip with a solid label-color icon

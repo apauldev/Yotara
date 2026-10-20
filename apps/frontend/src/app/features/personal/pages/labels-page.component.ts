@@ -24,8 +24,7 @@ import {
 } from 'rxjs';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faArrowLeft, faEllipsisVertical, faInbox, faTag } from '@fortawesome/free-solid-svg-icons';
-import { Label, Task } from '@yotara/shared';
-import type { LabelIcon } from '@yotara/shared';
+import { DEFAULT_LABELS, Label, Task, type DefaultLabel } from '@yotara/shared';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { LabelIconComponent } from '../../../shared/ui/label-icon/label-icon.component';
 import { LabelEditorComponent } from '../components/label-editor.component';
@@ -46,21 +45,6 @@ interface DirectorySection {
   title: string;
   labels: Label[];
 }
-
-interface StarterLabel {
-  name: string;
-  icon: LabelIcon;
-  color: string;
-}
-
-const STARTER_LABELS: StarterLabel[] = [
-  { name: 'Urgent', icon: 'flame', color: '#d44d3c' },
-  { name: 'Waiting', icon: 'hourglass', color: '#a5d3e1' },
-  { name: 'Planning', icon: 'calendar-days', color: '#b9a3f4' },
-  { name: 'Errand', icon: 'basket-shopping', color: '#f1c582' },
-  { name: 'Review', icon: 'check-double', color: '#c7e9b3' },
-  { name: 'Idea', icon: 'lightbulb', color: '#82d7a9' },
-];
 
 /**
  * The single management surface for labels. The directory selects the filter
@@ -127,7 +111,7 @@ export class LabelsPageComponent {
   } | null>(null);
   protected readonly mergeConfirmOpen = signal(false);
   protected readonly merging = signal(false);
-  protected readonly starters = STARTER_LABELS;
+  protected readonly starters = DEFAULT_LABELS;
   /** Mobile drill-in: the list is replaced by the detail until Back. */
   protected readonly drillInOpen = signal(false);
   /** Bumped when label mutations need the pane to refetch its tasks. */
@@ -381,7 +365,7 @@ export class LabelsPageComponent {
   }
 
   /** The starter gallery creates one curated label directly, no editor needed. */
-  protected async createStarter(starter: StarterLabel) {
+  protected async createStarter(starter: DefaultLabel) {
     if (this.creatingStarter()) {
       return;
     }

@@ -61,6 +61,14 @@ test('Label Service', async (t) => {
       assert.equal(icons.get('Errand'), 'basket-shopping');
       assert.equal(icons.get('Review'), 'check-double');
       assert.equal(icons.get('Idea'), 'lightbulb');
+
+      const colors = new Map(labels.map((label) => [label.name, label.color]));
+      assert.equal(colors.get('Urgent'), '#d44d3c');
+      assert.equal(colors.get('Waiting'), '#f1c582');
+      assert.equal(colors.get('Planning'), '#bcd0fb');
+      assert.equal(colors.get('Errand'), '#c7e9b3');
+      assert.equal(colors.get('Review'), '#b9a3f4');
+      assert.equal(colors.get('Idea'), '#82d7a9');
     });
 
     await t.test('seeds default labels only once', async () => {
