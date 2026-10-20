@@ -75,7 +75,12 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
         <div class="task-title-row">
           <h3 [class.h3-compact]="mode === 'compact'">
             @if (interactive) {
-              <button type="button" class="task-title-button" (click)="selectFromTitle($event)">
+              <button
+                type="button"
+                class="task-title-button"
+                [attr.aria-label]="'Open task details for ' + task.title"
+                (click)="selectFromTitle($event)"
+              >
                 {{ task.title }}
               </button>
             } @else {

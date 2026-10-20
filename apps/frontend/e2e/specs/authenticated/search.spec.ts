@@ -152,7 +152,7 @@ test.describe('Search', () => {
     await page.getByRole('button', { name: '+ New Label' }).click();
     const nameInput = page.locator('.label-editor input').first();
     await nameInput.fill(labelName);
-    await page.getByRole('button', { name: 'Create Label', exact: true }).click();
+    await page.getByRole('button', { name: 'Create label', exact: true }).click();
     await page.waitForTimeout(1000);
     await page.waitForLoadState('networkidle');
 
