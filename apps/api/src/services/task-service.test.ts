@@ -871,6 +871,21 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       });
       assert.equal(result, null);
     });
+
+    await t.test('all-mode label filtering tolerates duplicate ids', async () => {
+      const task = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Duplicate label filter',
+        labels: [rollbackLabelId],
+      });
+      assert.ok(task);
+
+      const result = await ctx.taskService.listTasksForOwner(ownerId, 1, 50, true, undefined, {
+        labelIds: [rollbackLabelId, rollbackLabelId],
+        labelMode: 'all',
+      });
+
+      assert.ok(result.data.some((candidate) => candidate.id === task.id));
+    });
   } finally {
     ctx.cleanup();
   }

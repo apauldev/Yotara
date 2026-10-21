@@ -259,7 +259,10 @@ export async function listTasksForOwner(
       // EXISTS over task_labels joined to labels so only labels owned by this
       // user (the owner of the task row being tested) can match. Ownership is
       // enforced in SQL, not trusted from the caller's id list.
-      const labelList = sql.join(filters.labelIds, sql`, `);
+      // COUNT(DISTINCT) requires the unique-id count; the route deduplicates,
+      // but direct service callers must not turn valid matches into zero rows.
+      const uniqueLabelIds = [...new Set(filters.labelIds)];
+      const labelList = sql.join(uniqueLabelIds, sql`, `);
       if (filters.labelMode === 'all') {
         // AND semantics: the task must carry every requested owned label.
         whereClause = and(
@@ -271,7 +274,7 @@ export async function listTasksForOwner(
             WHERE tl.task_id = ${tasks.id}
               AND l.user_id = ${ownerId}
               AND tl.label_id IN (${labelList})
-          ) = ${filters.labelIds.length}`,
+          ) = ${uniqueLabelIds.length}`,
         );
       } else {
         whereClause = and(
