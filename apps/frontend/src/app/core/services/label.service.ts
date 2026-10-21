@@ -6,15 +6,22 @@ import {
   catchError,
   combineLatest,
   distinctUntilChanged,
+  filter,
   finalize,
   firstValueFrom,
   map,
   of,
+  Subject,
   switchMap,
 } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthStateService } from './auth-state.service';
 import { LogService } from './log.service';
+
+interface LabelRefreshEvent {
+  version: number;
+  labels: Label[];
+}
 
 @Injectable({ providedIn: 'root' })
 export class LabelService {
@@ -23,6 +30,7 @@ export class LabelService {
   private readonly logService = inject(LogService);
   private readonly baseUrl = environment.apiBaseUrl;
   private readonly refreshState = signal(0);
+  private readonly refreshCompleted = new Subject<LabelRefreshEvent>();
   private readonly loadingState = signal(false);
   private readonly errorState = signal<string | null>(null);
 
@@ -31,33 +39,36 @@ export class LabelService {
       toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
       toObservable(this.refreshState),
     ]).pipe(
-      switchMap(([userId]) => {
+      switchMap(([userId, version]) => {
         if (!userId) {
           this.errorState.set(null);
-          return of([] as Label[]);
+          return of({ version, labels: [] as Label[] });
         }
 
         this.loadingState.set(true);
         this.errorState.set(null);
         return this.http.get<Label[]>(`${this.baseUrl}/labels`, { withCredentials: true }).pipe(
+          map((labels) => ({ version, labels })),
           catchError((error: unknown) => {
             if (error instanceof HttpErrorResponse && error.status === 401) {
-              return of([] as Label[]);
+              return of({ version, labels: [] as Label[] });
             }
 
             this.logService.error('Failed to load labels', error, 'LabelService');
             this.errorState.set('Could not load labels right now.');
-            return of([] as Label[]);
+            return of({ version, labels: [] as Label[] });
           }),
           finalize(() => this.loadingState.set(false)),
         );
       }),
-      map((labels) =>
-        [...labels].sort(
+      map(({ version, labels }) => {
+        const sorted = [...labels].sort(
           (left, right) =>
             Number(right.pinned) - Number(left.pinned) || left.name.localeCompare(right.name),
-        ),
-      ),
+        );
+        this.refreshCompleted.next({ version, labels: sorted });
+        return sorted;
+      }),
     ),
     { initialValue: [] as Label[] },
   );
@@ -72,6 +83,23 @@ export class LabelService {
 
   refresh() {
     this.refreshState.update((value) => value + 1);
+  }
+
+  /**
+   * Requests a refresh and resolves with the label list from the resulting
+   * request. Use when the next step depends on the refreshed list, such as
+   * selecting a label returned by a duplicate-name conflict.
+   */
+  async refreshAndWait(): Promise<Label[]> {
+    const targetVersion = this.refreshState() + 1;
+    const refreshed = firstValueFrom(
+      this.refreshCompleted.pipe(
+        filter((event) => event.version >= targetVersion),
+        map((event) => event.labels),
+      ),
+    );
+    this.refresh();
+    return refreshed;
   }
 
   async createLabel(payload: CreateLabelDto) {

@@ -382,7 +382,7 @@ export class LabelsPageComponent {
     } catch (error) {
       const existing = existingLabelFromConflict(error);
       if (existing) {
-        this.labelService.refresh();
+        await this.labelService.refreshAndWait();
         await this.selectLabelId(existing.id);
       } else {
         this.actionError.set('Could not create the starter label. Try again.');
@@ -404,12 +404,12 @@ export class LabelsPageComponent {
   }
 
   /** Duplicate-name path from the editor: jump to the label that already exists. */
-  protected openExistingLabel(labelId: string) {
+  protected async openExistingLabel(labelId: string) {
     this.closeLabelEditor();
     if (!this.labels().some((label) => label.id === labelId)) {
-      this.labelService.refresh();
+      await this.labelService.refreshAndWait();
     }
-    void this.selectLabelId(labelId);
+    await this.selectLabelId(labelId);
   }
 
   // ---- merge ------------------------------------------------------------

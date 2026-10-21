@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
 import { By } from '@angular/platform-browser';
@@ -63,6 +64,18 @@ describe('LabelsPageComponent', () => {
       taskCount: 7,
     },
   ];
+  const urgentLabel: StubLabel = {
+    id: 'urgent-id',
+    name: 'Urgent',
+    color: '#d44d3c',
+    icon: 'flame',
+    pinned: false,
+    userId: 'user-1',
+    openTaskCount: 0,
+    completedTaskCount: 0,
+    totalTaskCount: 0,
+    taskCount: 0,
+  };
   const writingTasks = [
     {
       id: 'task-1',
@@ -101,7 +114,7 @@ describe('LabelsPageComponent', () => {
     deleteLabel: jasmine.Spy;
     deleteLabelAndList: jasmine.Spy;
     mergeLabel: jasmine.Spy;
-    refresh: jasmine.Spy;
+    refreshAndWait: jasmine.Spy;
   };
   let fetchTasksByLabel$: jasmine.Spy;
 
@@ -130,7 +143,7 @@ describe('LabelsPageComponent', () => {
           return remaining;
         }),
       mergeLabel: jasmine.createSpy('mergeLabel').and.resolveTo({ movedTaskCount: 2 }),
-      refresh: jasmine.createSpy('refresh'),
+      refreshAndWait: jasmine.createSpy('refreshAndWait').and.callFake(async () => labelsSignal()),
     };
 
     await TestBed.configureTestingModule({
@@ -177,6 +190,14 @@ describe('LabelsPageComponent', () => {
     const fixture = TestBed.createComponent(LabelsPageComponent);
     fixture.detectChanges();
     return fixture;
+  }
+
+  function deferred<T>() {
+    let resolve!: (value: T) => void;
+    const promise = new Promise<T>((done) => {
+      resolve = done;
+    });
+    return { promise, resolve };
   }
 
   it('renders every label as a directory row with a chip', () => {
@@ -592,5 +613,63 @@ describe('LabelsPageComponent', () => {
       color: '#d44d3c',
     });
     expect(queryParams$.getValue().get('label')).toBe('urgent-id');
+  }));
+
+  it('waits for a refreshed list before opening a label from a conflict', fakeAsync(() => {
+    const fixture = createFixture();
+    tick();
+    fixture.detectChanges();
+
+    expect(queryParams$.getValue().get('label')).toBe('finance');
+    const refresh = deferred<StubLabel[]>();
+    labelServiceStub.refreshAndWait.and.returnValue(refresh.promise);
+
+    void fixture.componentInstance['openExistingLabel']('urgent-id');
+    tick();
+    fixture.detectChanges();
+
+    expect(labelServiceStub.refreshAndWait).toHaveBeenCalled();
+    expect(queryParams$.getValue().get('label')).toBe('finance');
+    expect(fixture.nativeElement.textContent).not.toContain('Label not found');
+
+    labelsSignal.update((current) => [...current, urgentLabel]);
+    refresh.resolve(labelsSignal());
+    tick();
+    fixture.detectChanges();
+
+    expect(queryParams$.getValue().get('label')).toBe('urgent-id');
+    expect(fixture.nativeElement.textContent).not.toContain('Label not found');
+  }));
+
+  it('waits for a refreshed list before selecting an existing starter label', fakeAsync(() => {
+    labelsSignal.set([]);
+    labelServiceStub.createLabel.and.rejectWith(
+      new HttpErrorResponse({
+        status: 409,
+        error: { existingLabel: { id: 'urgent-id', name: 'Urgent' } },
+      }),
+    );
+    const refresh = deferred<StubLabel[]>();
+    labelServiceStub.refreshAndWait.and.returnValue(refresh.promise);
+
+    const fixture = TestBed.createComponent(LabelsPageComponent);
+    fixture.detectChanges();
+
+    fixture.debugElement.queryAll(By.css('.starter-card'))[0].nativeElement.click();
+    tick();
+    fixture.detectChanges();
+
+    expect(labelServiceStub.createLabel).toHaveBeenCalled();
+    expect(labelServiceStub.refreshAndWait).toHaveBeenCalled();
+    expect(queryParams$.getValue().get('label')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Label not found');
+
+    labelsSignal.set([urgentLabel]);
+    refresh.resolve([urgentLabel]);
+    tick();
+    fixture.detectChanges();
+
+    expect(queryParams$.getValue().get('label')).toBe('urgent-id');
+    expect(fixture.nativeElement.textContent).not.toContain('Label not found');
   }));
 });
