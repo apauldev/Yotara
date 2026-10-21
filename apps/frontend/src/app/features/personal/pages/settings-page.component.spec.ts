@@ -354,7 +354,6 @@ describe('SettingsPageComponent', () => {
       expect(header).toContain('Due Date');
       expect(header).toContain('Project');
       expect(header).toContain('Labels');
-      expect(header).toContain('Bucket');
       expect(header).toContain('Parent Task ID');
       expect(header).toContain('Subtasks');
       expect(header).toContain('Subtasks Done');

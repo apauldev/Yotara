@@ -63,10 +63,6 @@ const taskSchema = {
     dueDate: { type: 'string', format: 'date' },
     dueTime: timeOfDaySchema,
     simpleMode: { type: 'boolean' },
-    bucket: {
-      type: 'string',
-      enum: ['personal-sanctuary', 'deep-work', 'home', 'health'],
-    },
     projectId: { type: 'string', format: 'uuid' },
     parentId: { type: 'string' },
     recurrenceRule: { $ref: 'RecurrenceRule#' },
@@ -103,10 +99,6 @@ const createTaskSchema = {
     dueDate: { type: 'string', format: 'date' },
     dueTime: timeOfDaySchema,
     simpleMode: { type: 'boolean' },
-    bucket: {
-      type: 'string',
-      enum: ['personal-sanctuary', 'deep-work', 'home', 'health'],
-    },
     projectId: { type: 'string', format: 'uuid' },
     parentId: { type: 'string' },
     recurrenceRule: { $ref: 'RecurrenceRule#' },
@@ -153,10 +145,6 @@ const updateTaskSchema = {
       anyOf: [timeOfDaySchema, { type: 'null' }],
     },
     simpleMode: { type: 'boolean' },
-    bucket: {
-      type: 'string',
-      enum: ['personal-sanctuary', 'deep-work', 'home', 'health'],
-    },
     projectId: {
       anyOf: [{ type: 'string', format: 'uuid' }, { type: 'null' }],
     },

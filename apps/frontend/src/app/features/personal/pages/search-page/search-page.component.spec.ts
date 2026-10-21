@@ -24,7 +24,6 @@ describe('SearchPageComponent', () => {
       completed: false,
       dueDate: '2026-04-24',
       simpleMode: false,
-      bucket: 'deep-work' as const,
       projectId: 'project-1',
       parentId: null,
       order: 0,

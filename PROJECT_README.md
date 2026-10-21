@@ -121,8 +121,7 @@ curl -X POST http://localhost:3000/tasks \
   -d '{
     "title": "Write docs",
     "status": "today",
-    "priority": "high",
-    "bucket": "deep-work"
+    "priority": "high"
   }'
 ```
 

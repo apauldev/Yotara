@@ -69,15 +69,12 @@ it is not the former unbounded expand-loop design.
 
 ### Categorization model
 
-Projects, buckets, and labels answer different questions about a task, and the
-product keeps them distinct:
+Projects and labels answer different questions about a task, and the product
+keeps them distinct:
 
 - **Project** — a container with a finish line. It holds tasks, belongs to a
   user, and completes when its work is done; scoping a task to one project is
   the primary structural relationship.
-- **Bucket** — an area of life or mode of work with no finish line, such as
-  `Health`, `Home`, or `Deep work`. It groups tasks by context but is not a
-  project that completes.
 - **Label** — a cross-cutting condition of work (for example `Errand`,
   `Waiting`). Labels ignore project boundaries: a task can carry several,
   and a healthy system keeps the set small and meaningful (roughly 3–8 per
@@ -203,7 +200,7 @@ compatible with this setup and needs no schema changes.
 ### Explicit timezone handling
 
 Calendar dates are user-facing dates, not implicit UTC instants. API calls that
-interpret “today”, “upcoming”, or restoration buckets carry the user's
+interpret “today”, “upcoming”, or restoration windows carry the user's
 timezone. Shared timestamp/calendar helpers should be used instead of ad-hoc
 date parsing or raw UTC assumptions.
 
@@ -330,7 +327,7 @@ Issues rather than here, so this document cannot drift out of sync with them.
 | API boundary quality | Keep auth bridging, CORS, validation, and structured errors centralized and tested at the boundary. |
 | Query and data scalability | Prefer SQL filtering, sorting, batching, and bounded pagination; protect the request/response contract with per-view integration tests. |
 | Deployment and observability | Keep releases reproducible and make coverage, image risk, bundle growth, and production request context visible. |
-| Product model and UX | Document the meaning of `done`, `archived`, `simpleMode`, buckets, and search results before adding more workflow concepts. |
+| Product model and UX | Document the meaning of `done`, `archived`, `simpleMode`, and search results before adding more workflow concepts. |
 | Team-mode boundary | Preserve workspace-scoped seams in new code, while keeping personal mode the supported center of gravity. |
 
 Future features such as calendar, import/export, task duplication, bulk

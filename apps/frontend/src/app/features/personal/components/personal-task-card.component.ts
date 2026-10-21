@@ -158,7 +158,7 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
                 </span>
               }
 
-              <!-- Ambient context (status/bucket/simple mode) is suppressed on
+              <!-- Ambient context (status/simple mode) is suppressed on
                    surfaces where label context is the primary story (Labels
                    page), so those pills do not compete with the label chips. -->
               @if (showContextMetadata) {
@@ -167,10 +167,6 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
               <span class="priority-chip priority-chip-{{ task().priority }}">{{
                 priorityLabel()
               }}</span>
-
-              @if (showContextMetadata && task().bucket) {
-                <span class="meta-pill meta-pill-bucket">{{ bucketLabel() }}</span>
-              }
 
               @if (showContextMetadata && task().simpleMode) {
                 <span class="meta-pill meta-pill-simple">Simple mode</span>
@@ -713,7 +709,6 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
 
         /* Reduce low-value metadata pressure on narrow cards; the full
            detail set remains available in the task modal. */
-        .meta-pill-bucket,
         .meta-pill-simple {
           display: none;
         }
@@ -789,8 +784,8 @@ export class PersonalTaskCardComponent {
   @Input() showArchiveActions = false;
   @Input() interactive = false;
   /**
-   * Hides ambient task metadata (status / bucket / simple-mode pills). The
-   * Labels page sets false so the chips tell the label story uncluttered.
+   * Hides ambient task metadata (status / simple-mode pills). The Labels page
+   * sets false so the chips tell the label story uncluttered.
    */
   @Input() showContextMetadata = true;
   /** Label ID to hide from the chip row — the Labels page suppresses the label being viewed. */
@@ -862,21 +857,6 @@ export class PersonalTaskCardComponent {
 
     // The time appears only when the task actually carries one.
     return formattedTime ? `${formattedDate}, ${formattedTime}` : formattedDate;
-  }
-
-  protected bucketLabel() {
-    switch (this.task().bucket) {
-      case 'personal-sanctuary':
-        return 'Personal Sanctuary';
-      case 'deep-work':
-        return 'Deep Work';
-      case 'home':
-        return 'Home';
-      case 'health':
-        return 'Health';
-      default:
-        return this.task().bucket || '';
-    }
   }
 
   protected subtaskCount = computed(() => this.task().subtaskCount ?? 0);

@@ -33,7 +33,6 @@ describe('PersonalTaskCardComponent', () => {
     updatedAt: '2026-04-17T10:00:00Z',
     order: 0,
     dueDate: '2026-04-20T00:00:00Z',
-    bucket: 'personal-sanctuary',
     simpleMode: true,
   };
 
@@ -132,11 +131,6 @@ describe('PersonalTaskCardComponent', () => {
       expect(description).toBeNull();
     });
 
-    it('should render bucket meta pill', () => {
-      const bucketPill = fixture.debugElement.query(By.css('.meta-pill-bucket'));
-      expect(bucketPill.nativeElement.textContent).toContain('Personal Sanctuary');
-    });
-
     it('should render due date meta pill', () => {
       const datePills = fixture.debugElement.queryAll(By.css('.meta-pill'));
       const datePill = datePills.find((el) => el.nativeElement.textContent.includes('Apr'));
@@ -176,14 +170,6 @@ describe('PersonalTaskCardComponent', () => {
       fixture.detectChanges();
       const completePill = fixture.debugElement.query(By.css('.meta-pill-complete'));
       expect(completePill.nativeElement.textContent).toContain('Done');
-    });
-
-    it('should not render bucket pill when bucket is not provided', () => {
-      const { bucket, ...taskWithoutBucket } = mockTask;
-      setTask(taskWithoutBucket as Task);
-      fixture.detectChanges();
-      const bucketPill = fixture.debugElement.query(By.css('.meta-pill-bucket'));
-      expect(bucketPill).toBeNull();
     });
 
     it('should not render due date when dueDate is not provided', () => {
@@ -499,37 +485,6 @@ describe('PersonalTaskCardComponent', () => {
       setTask(taskWithoutDate as Task);
       fixture.detectChanges();
       expect(component['dateLabel']()).toBe('');
-    });
-
-    it('should format bucket label for personal-sanctuary', () => {
-      setTask({ ...mockTask, bucket: 'personal-sanctuary' });
-      fixture.detectChanges();
-      expect(component['bucketLabel']()).toBe('Personal Sanctuary');
-    });
-
-    it('should format bucket label for deep-work', () => {
-      setTask({ ...mockTask, bucket: 'deep-work' });
-      fixture.detectChanges();
-      expect(component['bucketLabel']()).toBe('Deep Work');
-    });
-
-    it('should format bucket label for home', () => {
-      setTask({ ...mockTask, bucket: 'home' });
-      fixture.detectChanges();
-      expect(component['bucketLabel']()).toBe('Home');
-    });
-
-    it('should format bucket label for health', () => {
-      setTask({ ...mockTask, bucket: 'health' });
-      fixture.detectChanges();
-      expect(component['bucketLabel']()).toBe('Health');
-    });
-
-    it('should return empty string when bucket is not provided', () => {
-      const { bucket, ...taskWithoutBucket } = mockTask;
-      setTask(taskWithoutBucket as Task);
-      fixture.detectChanges();
-      expect(component['bucketLabel']()).toBe('');
     });
   });
 
@@ -908,7 +863,6 @@ describe('PersonalTaskCardComponent', () => {
     });
 
     it('keeps full metadata in the DOM for modal use', () => {
-      expect(fixture.debugElement.query(By.css('.meta-pill-bucket'))).toBeTruthy();
       expect(fixture.debugElement.query(By.css('.meta-pill-simple'))).toBeTruthy();
     });
   });
@@ -991,10 +945,9 @@ describe('PersonalTaskCardComponent', () => {
       expect(fixture.debugElement.query(By.css('.task-label-overflow-menu'))).toBeNull();
     });
 
-    it('showContextMetadata=false hides status, bucket, and simple-mode pills', () => {
+    it('showContextMetadata=false hides status and simple-mode pills', () => {
       setup({ showContextMetadata: false });
       expect(fixture.debugElement.query(By.css('.meta-pill-muted'))).toBeNull();
-      expect(fixture.debugElement.query(By.css('.meta-pill-bucket'))).toBeNull();
       expect(fixture.debugElement.query(By.css('.meta-pill-simple'))).toBeNull();
       // Non-ambient metadata stays.
       expect(fixture.debugElement.query(By.css('.priority-chip'))).toBeTruthy();

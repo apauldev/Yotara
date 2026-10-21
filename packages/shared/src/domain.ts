@@ -3,7 +3,6 @@ import type { LabelIcon } from './label-icons.js';
 export type Priority = 'low' | 'medium' | 'high';
 export type TaskStatus = 'inbox' | 'today' | 'upcoming' | 'done' | 'archived';
 export type WorkspaceMode = 'personal' | 'team';
-export type TaskBucket = 'personal-sanctuary' | 'deep-work' | 'home' | 'health';
 export type ProjectColor = 'sage' | 'teal' | 'olive' | 'clay' | 'forest' | 'deep-ocean';
 export type RecurrenceFrequency = 'daily' | 'weekdays' | 'weekly' | 'monthly' | 'yearly';
 
@@ -69,7 +68,6 @@ export interface Task {
   dueDate?: string; // ISO 8601 date string
   dueTime?: string; // 'HH:mm' local wall-clock time
   simpleMode?: boolean;
-  bucket?: TaskBucket;
   projectId?: string;
   parentId?: string;
   recurrenceRule?: RecurrenceRule;
@@ -125,7 +123,6 @@ export interface CreateTaskDto {
   dueDate?: string;
   dueTime?: string; // 'HH:mm'; requires a dueDate
   simpleMode?: boolean;
-  bucket?: TaskBucket;
   projectId?: string;
   parentId?: string;
   recurrenceRule?: RecurrenceRule;
@@ -142,7 +139,6 @@ export interface UpdateTaskDto {
   dueDate?: string | null; // null clears a persisted date; undefined leaves it unchanged
   dueTime?: string | null; // null clears a persisted time; undefined leaves it unchanged
   simpleMode?: boolean;
-  bucket?: TaskBucket;
   projectId?: string | null;
   parentId?: string | null;
   recurrenceRule?: RecurrenceRule | null;

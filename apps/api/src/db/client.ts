@@ -89,7 +89,6 @@ const SQLITE_BOOTSTRAP_SQL = `
     due_date TEXT,
     due_time TEXT,
     simple_mode INTEGER NOT NULL DEFAULT 0,
-    bucket TEXT DEFAULT 'personal-sanctuary',
     project_id TEXT,
     parent_id TEXT REFERENCES tasks(id) ON DELETE SET NULL,
     recurrence_rule TEXT,
@@ -333,10 +332,6 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
 
     if (!taskColumnNames.has('simple_mode')) {
       sqlite.exec(`ALTER TABLE tasks ADD COLUMN simple_mode INTEGER NOT NULL DEFAULT 0`);
-    }
-
-    if (!taskColumnNames.has('bucket')) {
-      sqlite.exec(`ALTER TABLE tasks ADD COLUMN bucket TEXT DEFAULT 'personal-sanctuary'`);
     }
 
     if (!taskColumnNames.has('deleted_at')) {

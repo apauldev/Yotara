@@ -15,7 +15,6 @@ interface TaskSearchRow {
   completed: number;
   due_date: string | null;
   simple_mode: number;
-  bucket: string | null;
   project_id: string | null;
   parent_id: string | null;
   recurrence_rule: string | null;
@@ -122,7 +121,6 @@ function toTask(row: TaskSearchRow, labelIds: string[]): Task {
     completed: !!row.completed,
     dueDate: row.due_date ?? undefined,
     simpleMode: !!row.simple_mode,
-    bucket: (row.bucket as Task['bucket']) ?? undefined,
     projectId: row.project_id ?? undefined,
     parentId: row.parent_id ?? undefined,
     recurrenceRule: row.recurrence_rule

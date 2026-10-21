@@ -52,7 +52,6 @@ describe('PersonalTaskWorkspaceComponent', () => {
     updatedAt: '2026-04-18T08:00:00.000Z',
     order: 1,
     simpleMode: true,
-    bucket: 'deep-work',
     projectId: 'project-1',
   };
 
@@ -254,7 +253,6 @@ describe('PersonalTaskWorkspaceComponent', () => {
         priority: 'medium',
         dueDate: undefined,
         simpleMode: true,
-        bucket: 'personal-sanctuary',
         projectId: undefined,
       },
     });
@@ -287,7 +285,6 @@ describe('PersonalTaskWorkspaceComponent', () => {
         priority: 'medium',
         dueDate: undefined,
         simpleMode: true,
-        bucket: 'personal-sanctuary',
         projectId: 'project-1',
       },
     });
@@ -311,7 +308,6 @@ describe('PersonalTaskWorkspaceComponent', () => {
         dueDate: '2026-10-02',
         dueTime: '15:00',
         simpleMode: false,
-        bucket: 'personal-sanctuary',
         projectId: 'project-1',
       },
     });
@@ -321,7 +317,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
     );
   });
 
-  it('names the bucket when the task lands outside the default project', async () => {
+  it('names the project when the task lands outside the default project', async () => {
     fixture.componentInstance.initialProjectId = 'project-2';
     fixture.detectChanges();
 
@@ -337,7 +333,6 @@ describe('PersonalTaskWorkspaceComponent', () => {
         priority: 'medium',
         dueDate: undefined,
         simpleMode: true,
-        bucket: 'personal-sanctuary',
         projectId: 'project-1',
       },
     });
@@ -363,7 +358,6 @@ describe('PersonalTaskWorkspaceComponent', () => {
         priority: 'high',
         dueDate: '2026-10-02',
         simpleMode: true,
-        bucket: 'deep-work',
         projectId: 'project-1',
       } as UpdateTaskDto,
     });
@@ -388,7 +382,6 @@ describe('PersonalTaskWorkspaceComponent', () => {
         priority: 'high',
         dueDate: undefined,
         simpleMode: true,
-        bucket: 'deep-work',
         projectId: 'project-1',
         completed: true,
       } as UpdateTaskDto,
@@ -425,7 +418,6 @@ describe('PersonalTaskWorkspaceComponent', () => {
         priority: 'medium',
         dueDate: undefined,
         simpleMode: true,
-        bucket: 'personal-sanctuary',
         projectId: undefined,
       } as CreateTaskDto,
     });

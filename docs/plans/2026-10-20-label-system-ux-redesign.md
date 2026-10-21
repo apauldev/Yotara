@@ -21,7 +21,7 @@ scanning tool.
 | Problem | Current behavior |
 |:---|:---|
 | **Color is discarded** | `personal-task-card.component.ts` renders `.meta-pill-label` with `--accent-soft` / `--accent-strong`, so every label looks the same in task lists. The color chosen in the label editor only appears on the Labels page and in the task modal. |
-| **Badge fatigue** | A task card can show labels, due date, status, priority, bucket, simple mode, subtask progress, recurrence, and completion state at once. Labels compete with transient metadata instead of helping users scan. |
+| **Badge fatigue** | A task card can show labels, due date, status, priority, simple mode, subtask progress, recurrence, and completion state at once. Labels compete with transient metadata instead of helping users scan. |
 | **Two management surfaces** | The Labels page is a master-detail layout. Editing opens a modal that contains a *second* label rail, editor, and create flow. There are two selection models and two places to manage the same data. |
 | **Duplicate labels** | There is no case-insensitive uniqueness constraint, so “Writing” and “writing” can both exist. Cleanup requires manual deletion. |
 | **Counts are ambiguous** | `label.taskCount` counts every `task_labels` row, including completed, archived, and soft-deleted tasks, while the Labels page displays “active tasks.” The two numbers can disagree. |
@@ -30,7 +30,7 @@ scanning tool.
 | **Capture loses tags** | `#newtag` is always stripped from the title by `parseTaskCommand`, but only resolved against existing labels. An unknown tag disappears silently and the task saves without it. |
 | **Search is a dead end** | The label tab in search renders the raw hex color as text and the result card is not clickable. |
 | **Seeding resurrects deleted labels** | `GET /labels` calls `seedDefaultLabelsForOwner`, so deleting every label and reloading the page recreates the defaults. |
-| **Identity is unclear** | Projects, buckets, and labels all present as colored/text pills. Users have no rule for whether “Finance” should be a project, a bucket, or a label. |
+| **Identity is unclear** | Projects and labels both present as colored/text pills. Users have no rule for whether “Finance” should be a project or a label. |
 
 **Code check (2026-10-20).** These constraints were verified against the current
 implementation and are the assumptions this plan depends on:
@@ -64,23 +64,20 @@ implementation and are the assumptions this plan depends on:
 
 ### 1.2 Product model (decision)
 
-Yotara has three categorization layers. This plan does **not** redesign projects
-or buckets, but it locks the rule that labels must follow:
+Yotara has two categorization layers. This plan does **not** redesign projects,
+but it locks the rule that labels must follow:
 
 | Layer | Rule | Examples |
 |:---|:---|:---|
 | **Project** | Has a finish line and contains tasks. | “Taxes 2026”, “Website relaunch” |
-| **Bucket** | An area of life or mode with no finish line. | “Health”, “Home”, “Deep work” |
 | **Label** | A cross-cutting condition or context that applies across projects. | “Waiting”, “Phone”, “Errand”, “Review”, “15 min” |
 
-Three consequences:
+Two consequences:
 
-1. Do not seed bucket names as labels. “Health” and “Home” are buckets, not
-   labels.
-2. Labels are curated focus areas. Aim for **3–8 active labels** per user, not
+1. Labels are curated focus areas. Aim for **3–8 active labels** per user, not
    an unbounded tag cloud. The UI should guide toward that range without
    enforcing a hard cap.
-3. Labels can apply to subtasks. Counts and label-filtered views use one flat
+2. Labels can apply to subtasks. Counts and label-filtered views use one flat
    scope: all non-deleted tasks, including subtasks. The unfiltered task list
    keeps its nested layout. This keeps the directory count, pane count, and
    filtered result list in agreement.
@@ -136,8 +133,8 @@ have a reference.
 
 **Out of scope**
 
-- Redesigning projects or buckets. This plan clarifies the taxonomy and hides
-  bucket/simple-mode pills on the Labels page via `showContextMetadata`; it
+- Redesigning projects. This plan clarifies the taxonomy and hides
+  status/simple-mode pills on the Labels page via `showContextMetadata`; it
   does not change their global treatment.
 - Label filtering or label icons in the calendar view.
 - Team/shared labels.
@@ -175,8 +172,8 @@ about counts.
 modal templates, task modal, search copy.
 
 - Add a “Categorization model” subsection to `docs/ARCHITECTURE.md` with the
-  project/bucket/label rule from §1.2. Add labels to the server-side filtering
-  list in the frontend architecture section.
+  project/label rule from §1.2. Add labels to the server-side filtering list in
+  the frontend architecture section.
 - Use **Labels** as the object name in navigation and headings. Use “focus
   areas” at most as explanatory copy; never use “tags” and “focus areas”
   interchangeably in the same surface.
@@ -188,9 +185,9 @@ modal templates, task modal, search copy.
   the new unique index (`onConflictDoNothing` or a caught constraint), so a
   double onboarding request cannot 500.
 
-**Acceptance:** a new contributor can explain the difference between a project,
-bucket, and label using only the architecture doc and UI copy; deleting all
-labels and reloading leaves the label list empty.
+**Acceptance:** a new contributor can explain the difference between a project
+and a label using only the architecture doc and UI copy; deleting all labels and
+reloading leaves the label list empty.
 
 ### 1.2 Build the shared `LabelChipComponent`
 
@@ -278,9 +275,9 @@ dark themes.
   repeat the active label on every card. If suppression leaves no labels, hide
   the label group entirely.
 - Add a `showContextMetadata` input. The Labels page sets it to `false` so
-  “Inbox”, bucket, and simple-mode pills do not compete with the label context.
-  The normal task list keeps current behavior in this phase; do not remove
-  bucket/simple-mode pills globally as part of this label plan.
+  “Inbox” and simple-mode pills do not compete with the label context. The
+  normal task list keeps current behavior in this phase; do not remove
+  status/simple-mode pills globally as part of this label plan.
 - Skip unknown label IDs (see 1.2) rather than showing a raw UUID.
 
 **Acceptance:** a card with five labels does not wrap; the first two names are
@@ -558,8 +555,7 @@ Rules:
 Family → heart, Moving → house, Writing → pen, Call → phone, Waiting →
 hourglass, Urgent → flame, Review → check-double, Idea/Ideas → lightbulb,
 Finance → credit-card, Reading → book. Show the top suggestion selected but
-always changeable. Do not use bucket names (Home, Health, Deep Work) as examples
-or defaults.
+always changeable.
 
 **Acceptance:** every key maps to a rendered icon; suggestions are deterministic;
 the picker displays all keys without missing icons.
@@ -899,7 +895,7 @@ pnpm docs:check
 | Counts and filtered lists disagree because subtasks are handled differently | Use the flat all-non-deleted-task scope from §1.2 for counts, the Labels pane, and label-filtered task lists. |
 | Adding a chip button inside a card that is already `role="button"` breaks keyboard/screen-reader behavior | Audit the card semantics in Phase 1 (the `+N` overflow) and again in Phase 3 (actionable chips); refactor the card to a non-button container or place chip actions outside its click target. |
 | A right-side drawer is assumed but `ModalComponent` has no side layout | Extend the modal (or add a drawer) in Phase 2 with the same focus trap, Escape handling, and mobile sheet behavior. |
-| Scope creep into projects/buckets | The plan only clarifies the taxonomy and hides contextual pills on the Labels page. Global bucket redesign is explicitly out of scope. |
+| Scope creep into project management | The plan only clarifies the taxonomy and hides contextual pills on the Labels page. Project redesign is explicitly out of scope. |
 | Contrast fails in dark themes | Use tinted backgrounds plus `--on-surface` text, not raw label color for small text; validate the solid icon tile and color-first mode in every theme. |
 | Existing labels all render as generic tags | Accept `tag` as the backfill; offer a “Set icons for existing labels” pass in the editor; do not block the release on manual curation. |
 | The picker becomes another form to fill out | Auto-suggest icon and color; make both optional; keep name as the only required field. |
@@ -914,34 +910,30 @@ are listed so the plan can proceed without blocking.
 
 1. **Visible name:** keep **Labels** in navigation, use “focus areas” only as
    explanatory copy. *Recommended.*
-2. **Buckets on task cards:** hide them on the Labels page via
-   `showContextMetadata`; leave their global treatment unchanged in this plan.
-   *Recommended; a global bucket decision is a separate scope.*
-3. **Icon style:** curated Font Awesome subset vs. a custom line-icon set.
+2. **Icon style:** curated Font Awesome subset vs. a custom line-icon set.
    *Recommended for v1: Font Awesome subset, because it is already a dependency
    and can be tree-shaken; revisit if visual QA finds the glyphs too heavy.*
-4. **Icon-only preference:** default off; offer “Show label names in task lists”
+3. **Icon-only preference:** default off; offer “Show label names in task lists”
    in Phase 3. *Recommended.*
-5. **Multi-label filter semantics:** OR (any selected label) by default; explicit
+4. **Multi-label filter semantics:** OR (any selected label) by default; explicit
    AND toggle later. *Recommended.*
-6. **Default labels:** replace the current eight with six context labels
+5. **Default labels:** replace the current eight with six context labels
    (Urgent, Waiting, Planning, Errand, Review, Idea), with the colors and icons
    in §2.1. Seed them only during onboarding so deleting all labels sticks.
    Existing users keep their labels. *Recommended.*
-7. **Merge endpoint shape:** `POST /labels/:id/merge` with `{ targetId }`.
+6. **Merge endpoint shape:** `POST /labels/:id/merge` with `{ targetId }`.
    *Recommended; if a generic bulk action is preferred later, it can wrap this.*
-8. **Color treatment:** default to a soft chip with a solid label-color icon
+7. **Color treatment:** default to a soft chip with a solid label-color icon
    tile; use full solid pills only for selected/active state and an opt-in
    “Color-first labels” mode. *Recommended; avoid filling every pill by default.*
-9. **Count scope:** counts and label-filtered views include subtasks in one flat
+8. **Count scope:** counts and label-filtered views include subtasks in one flat
    list. *Recommended; it keeps counts and results in agreement.*
 
 ---
 
 ## 10. Out of Scope
 
-- Redesigning projects, buckets, or the task detail modal beyond the label
-  picker.
+- Redesigning projects or the task detail modal beyond the label picker.
 - Label filtering or label icons in the calendar view.
 - Team labels, shared label permissions, or workspace-level labels.
 - Label groups/nesting, descriptions, or a custom color picker. Existing labels

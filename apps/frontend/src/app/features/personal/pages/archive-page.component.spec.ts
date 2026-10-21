@@ -22,7 +22,6 @@ const archivedTask = (overrides?: Partial<Task>): Task =>
     permanentArchive: false,
     dueDate: null,
     simpleMode: false,
-    bucket: 'personal-sanctuary' as const,
     projectId: 'project-1',
     parentId: null,
     labels: [],
