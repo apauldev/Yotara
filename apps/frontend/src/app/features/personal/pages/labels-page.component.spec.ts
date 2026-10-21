@@ -392,7 +392,7 @@ describe('LabelsPageComponent', () => {
     const cards = fixture.debugElement.queryAll(By.directive(PersonalTaskCardComponent));
     expect(cards.length).toBe(2);
     for (const card of cards) {
-      expect(card.componentInstance.suppressLabelId).toBe('writing');
+      expect(card.componentInstance.suppressLabelId()).toBe('writing');
       expect(card.componentInstance.showContextMetadata).toBe(false);
     }
   }));

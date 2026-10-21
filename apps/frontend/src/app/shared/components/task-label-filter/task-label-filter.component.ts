@@ -3,9 +3,9 @@ import {
   Component,
   ElementRef,
   EventEmitter,
-  Input,
   Output,
   computed,
+  input,
   signal,
   viewChild,
 } from '@angular/core';
@@ -35,14 +35,14 @@ import { LabelIconComponent } from '../../ui/label-icon/label-icon.component';
         #trigger
         type="button"
         class="filter-trigger"
-        [class.filter-trigger-active]="selectedIds.length > 0"
+        [class.filter-trigger-active]="selectedIds().length > 0"
         [attr.aria-expanded]="open()"
         aria-haspopup="dialog"
         aria-controls="task-label-filter-panel"
         (click)="toggle()"
       >
         <fa-icon [icon]="faFilter" aria-hidden="true"></fa-icon>
-        <span>{{ selectedIds.length ? selectedIds.length + ' labels' : 'Labels' }}</span>
+        <span>{{ selectedIds().length ? selectedIds().length + ' labels' : 'Labels' }}</span>
       </button>
 
       @if (open()) {
@@ -85,13 +85,13 @@ import { LabelIconComponent } from '../../ui/label-icon/label-icon.component';
             }
           </div>
 
-          @if (selectedIds.length > 1) {
+          @if (selectedIds().length > 1) {
             <div class="filter-mode" role="group" aria-label="Match mode">
               <button
                 type="button"
                 class="mode-pill"
-                [class.mode-pill-active]="mode === 'any'"
-                [attr.aria-pressed]="mode === 'any'"
+                [class.mode-pill-active]="mode() === 'any'"
+                [attr.aria-pressed]="mode() === 'any'"
                 (click)="modeChange.emit('any')"
               >
                 Any
@@ -99,8 +99,8 @@ import { LabelIconComponent } from '../../ui/label-icon/label-icon.component';
               <button
                 type="button"
                 class="mode-pill"
-                [class.mode-pill-active]="mode === 'all'"
-                [attr.aria-pressed]="mode === 'all'"
+                [class.mode-pill-active]="mode() === 'all'"
+                [attr.aria-pressed]="mode() === 'all'"
                 (click)="modeChange.emit('all')"
               >
                 All
@@ -308,9 +308,16 @@ import { LabelIconComponent } from '../../ui/label-icon/label-icon.component';
 export class TaskLabelFilterComponent {
   protected readonly faFilter = faFilter;
 
-  @Input() labels: Label[] = [];
-  @Input() selectedIds: string[] = [];
-  @Input() mode: 'any' | 'all' = 'any';
+  /**
+   * Signal inputs, not plain properties: `filteredLabels` is a computed, and a
+   * computed only tracks signal reads. With a plain `@Input() labels` the
+   * computed cached the first array it saw and never re-ran when the label
+   * list changed — the dropdown stayed blank (or stale) until the user typed
+   * in the search box, which is the only thing that invalidated the computed.
+   */
+  readonly labels = input<Label[]>([]);
+  readonly selectedIds = input<string[]>([]);
+  readonly mode = input<'any' | 'all'>('any');
 
   @Output() readonly selectionChange = new EventEmitter<string[]>();
   @Output() readonly modeChange = new EventEmitter<'any' | 'all'>();
@@ -322,9 +329,8 @@ export class TaskLabelFilterComponent {
 
   protected readonly filteredLabels = computed(() => {
     const query = this.search().trim().toLowerCase();
-    return query
-      ? this.labels.filter((label) => label.name.toLowerCase().includes(query))
-      : this.labels;
+    const list = this.labels();
+    return query ? list.filter((label) => label.name.toLowerCase().includes(query)) : list;
   });
 
   protected toggle() {
@@ -353,13 +359,14 @@ export class TaskLabelFilterComponent {
   }
 
   protected isSelected(labelId: string) {
-    return this.selectedIds.includes(labelId);
+    return this.selectedIds().includes(labelId);
   }
 
   protected toggleLabel(label: Label) {
+    const current = this.selectedIds();
     const next = this.isSelected(label.id)
-      ? this.selectedIds.filter((id) => id !== label.id)
-      : [...this.selectedIds, label.id];
+      ? current.filter((id) => id !== label.id)
+      : [...current, label.id];
     this.selectionChange.emit(next);
   }
 

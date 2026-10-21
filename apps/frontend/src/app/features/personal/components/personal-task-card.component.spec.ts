@@ -18,6 +18,10 @@ describe('PersonalTaskCardComponent', () => {
   let notificationServiceSpy: jasmine.SpyObj<NotificationService>;
   let preferences: PreferencesStore;
 
+  function setTask(task: Task) {
+    fixture.componentRef.setInput('task', task);
+  }
+
   const mockTask: Task = {
     id: 'task-1',
     title: 'Write morning pages',
@@ -98,7 +102,7 @@ describe('PersonalTaskCardComponent', () => {
 
   describe('Task rendering', () => {
     beforeEach(() => {
-      component.task = mockTask;
+      setTask(mockTask);
       fixture.detectChanges();
     });
 
@@ -152,14 +156,14 @@ describe('PersonalTaskCardComponent', () => {
     });
 
     it('should not render simple mode pill when simpleMode is false', () => {
-      component.task = { ...mockTask, simpleMode: false };
+      setTask({ ...mockTask, simpleMode: false });
       fixture.detectChanges();
       const simpleModePill = fixture.debugElement.query(By.css('.meta-pill-simple'));
       expect(simpleModePill).toBeNull();
     });
 
     it('should not render completion pill when showCompletionState is false and task is complete', () => {
-      component.task = { ...mockTask, completed: true };
+      setTask({ ...mockTask, completed: true });
       component.showCompletionState = false;
       fixture.detectChanges();
       const completePill = fixture.debugElement.query(By.css('.meta-pill-complete'));
@@ -167,7 +171,7 @@ describe('PersonalTaskCardComponent', () => {
     });
 
     it('should render completion pill when showCompletionState is true and task is complete', () => {
-      component.task = { ...mockTask, completed: true };
+      setTask({ ...mockTask, completed: true });
       component.showCompletionState = true;
       fixture.detectChanges();
       const completePill = fixture.debugElement.query(By.css('.meta-pill-complete'));
@@ -176,7 +180,7 @@ describe('PersonalTaskCardComponent', () => {
 
     it('should not render bucket pill when bucket is not provided', () => {
       const { bucket, ...taskWithoutBucket } = mockTask;
-      component.task = taskWithoutBucket as Task;
+      setTask(taskWithoutBucket as Task);
       fixture.detectChanges();
       const bucketPill = fixture.debugElement.query(By.css('.meta-pill-bucket'));
       expect(bucketPill).toBeNull();
@@ -184,7 +188,7 @@ describe('PersonalTaskCardComponent', () => {
 
     it('should not render due date when dueDate is not provided', () => {
       const { dueDate, ...taskWithoutDate } = mockTask;
-      component.task = taskWithoutDate as Task;
+      setTask(taskWithoutDate as Task);
       fixture.detectChanges();
       const datePills = fixture.debugElement.queryAll(By.css('.meta-pill'));
       const hasDatePill = datePills.some((el) => el.nativeElement.textContent.includes('Apr'));
@@ -194,7 +198,7 @@ describe('PersonalTaskCardComponent', () => {
 
   describe('Visual classes and styling', () => {
     beforeEach(() => {
-      component.task = mockTask;
+      setTask(mockTask);
     });
 
     it('should add overdue class when tone is overdue', () => {
@@ -212,7 +216,7 @@ describe('PersonalTaskCardComponent', () => {
     });
 
     it('should add complete class when task is completed', () => {
-      component.task = { ...mockTask, completed: true };
+      setTask({ ...mockTask, completed: true });
       fixture.detectChanges();
       const card = fixture.debugElement.query(By.css('.task-card'));
       expect(card.nativeElement.classList.contains('task-card-complete')).toBe(true);
@@ -226,7 +230,7 @@ describe('PersonalTaskCardComponent', () => {
     });
 
     it('should show checkmark when task is completed', () => {
-      component.task = { ...mockTask, completed: true };
+      setTask({ ...mockTask, completed: true });
       fixture.detectChanges();
       const box = fixture.debugElement.query(By.css('.task-check-box'));
       expect(box).toBeTruthy();
@@ -234,14 +238,14 @@ describe('PersonalTaskCardComponent', () => {
     });
 
     it('should add complete class to checkbox when task is completed', () => {
-      component.task = { ...mockTask, completed: true };
+      setTask({ ...mockTask, completed: true });
       fixture.detectChanges();
       const checkbox = fixture.debugElement.query(By.css('.task-check'));
       expect(checkbox.nativeElement.classList.contains('task-check-complete')).toBe(true);
     });
 
     it('should add strikethrough to title when task is completed', () => {
-      component.task = { ...mockTask, completed: true };
+      setTask({ ...mockTask, completed: true });
       fixture.detectChanges();
       const title = fixture.debugElement.query(By.css('h3'));
       const styles = window.getComputedStyle(title.nativeElement);
@@ -259,7 +263,7 @@ describe('PersonalTaskCardComponent', () => {
 
   describe('Events', () => {
     beforeEach(() => {
-      component.task = mockTask;
+      setTask(mockTask);
       fixture.detectChanges();
     });
 
@@ -287,7 +291,7 @@ describe('PersonalTaskCardComponent', () => {
     });
 
     it('should complete the task when the check button is clicked', () => {
-      component.task = mockTask;
+      setTask(mockTask);
       fixture.detectChanges();
 
       const checkButton = fixture.debugElement.query(By.css('.task-check'));
@@ -298,7 +302,7 @@ describe('PersonalTaskCardComponent', () => {
     });
 
     it('should complete the task after confirming in the modal', async () => {
-      component.task = mockTask;
+      setTask(mockTask);
       fixture.detectChanges();
 
       const checkButton = fixture.debugElement.query(By.css('.task-check'));
@@ -313,7 +317,7 @@ describe('PersonalTaskCardComponent', () => {
     });
 
     it('should open the restore modal when the completed checkmark is clicked', () => {
-      component.task = { ...mockTask, completed: true };
+      setTask({ ...mockTask, completed: true });
       fixture.detectChanges();
 
       const checkButton = fixture.debugElement.query(By.css('.task-check'));
@@ -324,7 +328,7 @@ describe('PersonalTaskCardComponent', () => {
     });
 
     it('should not bubble the check click to the card', () => {
-      component.task = mockTask;
+      setTask(mockTask);
       fixture.detectChanges();
 
       spyOn(component.select, 'emit');
@@ -345,7 +349,7 @@ describe('PersonalTaskCardComponent', () => {
 
     it('should skip the confirm dialog when localStorage skip flag is set', async () => {
       preferences.setSkipCompleteConfirm(true);
-      component.task = mockTask;
+      setTask(mockTask);
       fixture.detectChanges();
 
       const checkButton = fixture.debugElement.query(By.css('.task-check'));
@@ -358,7 +362,7 @@ describe('PersonalTaskCardComponent', () => {
 
     it('shows a completion notification when a task is completed', async () => {
       preferences.setSkipCompleteConfirm(true);
-      component.task = mockTask;
+      setTask(mockTask);
       fixture.detectChanges();
 
       await component.completeTask();
@@ -369,7 +373,7 @@ describe('PersonalTaskCardComponent', () => {
     it('does not show a completion notification when action notifications are disabled', async () => {
       preferences.setSkipCompleteConfirm(true);
       preferences.setActionNotifications(false);
-      component.task = mockTask;
+      setTask(mockTask);
       fixture.detectChanges();
 
       await component.completeTask();
@@ -379,7 +383,7 @@ describe('PersonalTaskCardComponent', () => {
 
     it('should save skip preference to localStorage when checkbox is checked and confirmed', async () => {
       preferences.setSkipCompleteConfirm(false);
-      component.task = mockTask;
+      setTask(mockTask);
       fixture.detectChanges();
 
       const checkButton = fixture.debugElement.query(By.css('.task-check'));
@@ -402,7 +406,7 @@ describe('PersonalTaskCardComponent', () => {
 
     it('should not save skip preference when checkbox is unchecked and confirmed', async () => {
       preferences.setSkipCompleteConfirm(false);
-      component.task = mockTask;
+      setTask(mockTask);
       fixture.detectChanges();
 
       const checkButton = fixture.debugElement.query(By.css('.task-check'));
@@ -419,54 +423,54 @@ describe('PersonalTaskCardComponent', () => {
 
   describe('Label formatting', () => {
     beforeEach(() => {
-      component.task = mockTask;
+      setTask(mockTask);
     });
 
     it('should format priority label correctly', () => {
-      component.task = { ...mockTask, priority: 'high' };
+      setTask({ ...mockTask, priority: 'high' });
       fixture.detectChanges();
       expect(component['priorityLabel']()).toBe('high priority');
     });
 
     it('should format status label for inbox', () => {
-      component.task = { ...mockTask, status: 'inbox' };
+      setTask({ ...mockTask, status: 'inbox' });
       fixture.detectChanges();
       expect(component['statusLabel']()).toBe('Inbox');
     });
 
     it('should format status label for today', () => {
-      component.task = { ...mockTask, status: 'today' };
+      setTask({ ...mockTask, status: 'today' });
       fixture.detectChanges();
       expect(component['statusLabel']()).toBe('Today');
     });
 
     it('should format status label for upcoming', () => {
-      component.task = { ...mockTask, status: 'upcoming' };
+      setTask({ ...mockTask, status: 'upcoming' });
       fixture.detectChanges();
       expect(component['statusLabel']()).toBe('Upcoming');
     });
 
     it('should format status label for done', () => {
-      component.task = { ...mockTask, status: 'done' };
+      setTask({ ...mockTask, status: 'done' });
       fixture.detectChanges();
       expect(component['statusLabel']()).toBe('Complete');
     });
 
     it('should format status label for archived', () => {
-      component.task = { ...mockTask, status: 'archived' };
+      setTask({ ...mockTask, status: 'archived' });
       fixture.detectChanges();
       expect(component['statusLabel']()).toBe('Archived');
     });
 
     it('should format status label as overdue when rendered in overdue tone', () => {
       component.tone = 'overdue';
-      component.task = { ...mockTask, status: 'today' };
+      setTask({ ...mockTask, status: 'today' });
       fixture.detectChanges();
       expect(component['statusLabel']()).toBe('Overdue');
     });
 
     it('should format date label correctly', () => {
-      component.task = { ...mockTask, dueDate: '2026-04-20T00:00:00Z' };
+      setTask({ ...mockTask, dueDate: '2026-04-20T00:00:00Z' });
       fixture.detectChanges();
       const dateLabel = component['dateLabel']();
       expect(dateLabel).toContain('Apr');
@@ -474,56 +478,56 @@ describe('PersonalTaskCardComponent', () => {
     });
 
     it('should show the due time only when one is set', () => {
-      component.task = { ...mockTask, dueDate: '2026-04-20', dueTime: '15:30' };
+      setTask({ ...mockTask, dueDate: '2026-04-20', dueTime: '15:30' });
       fixture.detectChanges();
       expect(component['dateLabel']()).toContain('Apr');
       expect(component['dateLabel']()).toContain('3:30 PM');
 
-      component.task = { ...mockTask, dueDate: '2026-04-20' };
+      setTask({ ...mockTask, dueDate: '2026-04-20' });
       fixture.detectChanges();
       expect(component['dateLabel']()).not.toContain('PM');
     });
 
     it('should return empty string for invalid date', () => {
-      component.task = { ...mockTask, dueDate: 'invalid-date' };
+      setTask({ ...mockTask, dueDate: 'invalid-date' });
       fixture.detectChanges();
       expect(component['dateLabel']()).toBe('');
     });
 
     it('should return empty string when dueDate is not provided', () => {
       const { dueDate, ...taskWithoutDate } = mockTask;
-      component.task = taskWithoutDate as Task;
+      setTask(taskWithoutDate as Task);
       fixture.detectChanges();
       expect(component['dateLabel']()).toBe('');
     });
 
     it('should format bucket label for personal-sanctuary', () => {
-      component.task = { ...mockTask, bucket: 'personal-sanctuary' };
+      setTask({ ...mockTask, bucket: 'personal-sanctuary' });
       fixture.detectChanges();
       expect(component['bucketLabel']()).toBe('Personal Sanctuary');
     });
 
     it('should format bucket label for deep-work', () => {
-      component.task = { ...mockTask, bucket: 'deep-work' };
+      setTask({ ...mockTask, bucket: 'deep-work' });
       fixture.detectChanges();
       expect(component['bucketLabel']()).toBe('Deep Work');
     });
 
     it('should format bucket label for home', () => {
-      component.task = { ...mockTask, bucket: 'home' };
+      setTask({ ...mockTask, bucket: 'home' });
       fixture.detectChanges();
       expect(component['bucketLabel']()).toBe('Home');
     });
 
     it('should format bucket label for health', () => {
-      component.task = { ...mockTask, bucket: 'health' };
+      setTask({ ...mockTask, bucket: 'health' });
       fixture.detectChanges();
       expect(component['bucketLabel']()).toBe('Health');
     });
 
     it('should return empty string when bucket is not provided', () => {
       const { bucket, ...taskWithoutBucket } = mockTask;
-      component.task = taskWithoutBucket as Task;
+      setTask(taskWithoutBucket as Task);
       fixture.detectChanges();
       expect(component['bucketLabel']()).toBe('');
     });
@@ -531,25 +535,25 @@ describe('PersonalTaskCardComponent', () => {
 
   describe('Priority chip styling', () => {
     beforeEach(() => {
-      component.task = mockTask;
+      setTask(mockTask);
     });
 
     it('should apply high priority class', () => {
-      component.task = { ...mockTask, priority: 'high' };
+      setTask({ ...mockTask, priority: 'high' });
       fixture.detectChanges();
       const chip = fixture.debugElement.query(By.css('.priority-chip'));
       expect(chip.nativeElement.classList.contains('priority-chip-high')).toBe(true);
     });
 
     it('should apply medium priority class', () => {
-      component.task = { ...mockTask, priority: 'medium' };
+      setTask({ ...mockTask, priority: 'medium' });
       fixture.detectChanges();
       const chip = fixture.debugElement.query(By.css('.priority-chip'));
       expect(chip.nativeElement.classList.contains('priority-chip-medium')).toBe(true);
     });
 
     it('should apply low priority class', () => {
-      component.task = { ...mockTask, priority: 'low' };
+      setTask({ ...mockTask, priority: 'low' });
       fixture.detectChanges();
       const chip = fixture.debugElement.query(By.css('.priority-chip'));
       expect(chip.nativeElement.classList.contains('priority-chip-low')).toBe(true);
@@ -558,29 +562,29 @@ describe('PersonalTaskCardComponent', () => {
 
   describe('Different task statuses', () => {
     beforeEach(() => {
-      component.task = mockTask;
+      setTask(mockTask);
     });
 
     it('should render task with status today', () => {
-      component.task = { ...mockTask, status: 'today' };
+      setTask({ ...mockTask, status: 'today' });
       fixture.detectChanges();
       expect(fixture.debugElement.query(By.css('.task-card'))).toBeTruthy();
     });
 
     it('should render task with status upcoming', () => {
-      component.task = { ...mockTask, status: 'upcoming' };
+      setTask({ ...mockTask, status: 'upcoming' });
       fixture.detectChanges();
       expect(fixture.debugElement.query(By.css('.task-card'))).toBeTruthy();
     });
 
     it('should render task with status done', () => {
-      component.task = { ...mockTask, status: 'done' };
+      setTask({ ...mockTask, status: 'done' });
       fixture.detectChanges();
       expect(fixture.debugElement.query(By.css('.task-card'))).toBeTruthy();
     });
 
     it('should render task with status archived', () => {
-      component.task = { ...mockTask, status: 'archived' };
+      setTask({ ...mockTask, status: 'archived' });
       fixture.detectChanges();
       expect(fixture.debugElement.query(By.css('.task-card'))).toBeTruthy();
     });
@@ -589,21 +593,21 @@ describe('PersonalTaskCardComponent', () => {
   describe('Edge cases', () => {
     it('should render task with no description', () => {
       const { description, ...taskWithoutDescription } = mockTask;
-      component.task = taskWithoutDescription as Task;
+      setTask(taskWithoutDescription as Task);
       fixture.detectChanges();
       const descElement = fixture.debugElement.query(By.css('.task-description'));
       expect(descElement).toBeNull();
     });
 
     it('should handle task title with special characters', () => {
-      component.task = { ...mockTask, title: 'Task & "special" <characters>' };
+      setTask({ ...mockTask, title: 'Task & "special" <characters>' });
       fixture.detectChanges();
       const title = fixture.debugElement.query(By.css('h3'));
       expect(title.nativeElement.textContent).toContain('Task & "special" <characters>');
     });
 
     it('should render task with all optional fields populated', () => {
-      component.task = mockTask;
+      setTask(mockTask);
       component.showDescription = true;
       component.showCompletionState = true;
       component.interactive = true;
@@ -624,7 +628,7 @@ describe('PersonalTaskCardComponent', () => {
         order: 1,
         simpleMode: false,
       };
-      component.task = minimalTask;
+      setTask(minimalTask);
       fixture.detectChanges();
       expect(fixture.debugElement.query(By.css('.task-card'))).toBeTruthy();
       expect(fixture.debugElement.query(By.css('h3')).nativeElement.textContent).toContain(
@@ -634,7 +638,7 @@ describe('PersonalTaskCardComponent', () => {
   });
 
   it('announces a completion with a toast but no browser notification', async () => {
-    component.task = { ...mockTask };
+    setTask({ ...mockTask });
     component.interactive = true;
     preferences.setSkipCompleteConfirm(true);
     taskServiceSpy.updateTask.and.resolveTo({ ...mockTask, completed: true });
@@ -648,56 +652,56 @@ describe('PersonalTaskCardComponent', () => {
 
   describe('Recurrence labels', () => {
     beforeEach(() => {
-      component.task = mockTask;
+      setTask(mockTask);
     });
 
     it('returns empty string when no recurrence rule', () => {
-      component.task = { ...mockTask, recurrenceRule: undefined };
+      setTask({ ...mockTask, recurrenceRule: undefined });
       fixture.detectChanges();
       expect((component as any).recurrenceLabel()).toBe('');
     });
 
     it('returns Weekdays for weekday frequency', () => {
-      component.task = {
+      setTask({
         ...mockTask,
         recurrenceRule: { frequency: 'weekdays', interval: 1, daysOfWeek: undefined },
-      };
+      });
       fixture.detectChanges();
       expect((component as any).recurrenceLabel()).toBe('Weekdays');
     });
 
     it('returns weekly day names with interval 1', () => {
-      component.task = {
+      setTask({
         ...mockTask,
         recurrenceRule: { frequency: 'weekly', interval: 1, daysOfWeek: [1, 3, 5] },
-      };
+      });
       fixture.detectChanges();
       expect((component as any).recurrenceLabel()).toBe('Mon, Wed, Fri');
     });
 
     it('returns weekly with interval > 1', () => {
-      component.task = {
+      setTask({
         ...mockTask,
         recurrenceRule: { frequency: 'weekly', interval: 2, daysOfWeek: [1, 3] },
-      };
+      });
       fixture.detectChanges();
       expect((component as any).recurrenceLabel()).toBe('Every 2 weeks (Mon, Wed)');
     });
 
     it('returns capitalized frequency for non-weekly', () => {
-      component.task = {
+      setTask({
         ...mockTask,
         recurrenceRule: { frequency: 'daily', interval: 1, daysOfWeek: undefined },
-      };
+      });
       fixture.detectChanges();
       expect((component as any).recurrenceLabel()).toBe('Daily');
     });
 
     it('returns Every N frequency for non-weekly with interval > 1', () => {
-      component.task = {
+      setTask({
         ...mockTask,
         recurrenceRule: { frequency: 'monthly', interval: 3, daysOfWeek: undefined },
-      };
+      });
       fixture.detectChanges();
       expect((component as any).recurrenceLabel()).toBe('Every 3 monthly');
     });
@@ -705,18 +709,18 @@ describe('PersonalTaskCardComponent', () => {
 
   describe('Truncated description', () => {
     beforeEach(() => {
-      component.task = mockTask;
+      setTask(mockTask);
     });
 
     it('returns short description as-is', () => {
-      component.task = { ...mockTask, description: 'Short desc' };
+      setTask({ ...mockTask, description: 'Short desc' });
       fixture.detectChanges();
       expect((component as any).truncatedDescription()).toBe('Short desc');
     });
 
     it('truncates description longer than 500 chars', () => {
       const longDesc = 'A'.repeat(600);
-      component.task = { ...mockTask, description: longDesc };
+      setTask({ ...mockTask, description: longDesc });
       fixture.detectChanges();
       const result = (component as any).truncatedDescription();
       expect(result.length).toBe(500);
@@ -725,7 +729,7 @@ describe('PersonalTaskCardComponent', () => {
 
     it('returns undefined when no description', () => {
       const { description, ...taskNoDesc } = mockTask;
-      component.task = taskNoDesc as Task;
+      setTask(taskNoDesc as Task);
       fixture.detectChanges();
       expect((component as any).truncatedDescription()).toBeUndefined();
     });
@@ -733,35 +737,49 @@ describe('PersonalTaskCardComponent', () => {
 
   describe('Subtask computed', () => {
     it('subtaskAllDone is true when all subtasks are complete', () => {
-      component.task = {
+      setTask({
         ...mockTask,
         subtaskCount: 3,
         subtaskCompletedCount: 3,
-      };
+      });
       fixture.detectChanges();
       expect((component as any).subtaskAllDone()).toBeTrue();
     });
 
     it('subtaskAllDone is false when some subtasks are incomplete', () => {
-      component.task = {
+      setTask({
         ...mockTask,
         subtaskCount: 3,
         subtaskCompletedCount: 1,
-      };
+      });
       fixture.detectChanges();
       expect((component as any).subtaskAllDone()).toBeFalse();
     });
 
     it('subtaskAllDone is false when there are no subtasks', () => {
-      component.task = { ...mockTask };
+      setTask({ ...mockTask });
       fixture.detectChanges();
       expect((component as any).subtaskAllDone()).toBeFalse();
+    });
+
+    it('updates the subtask counts when the task input changes', () => {
+      setTask({ ...mockTask, subtaskCount: 3, subtaskCompletedCount: 1 });
+      fixture.detectChanges();
+      expect(
+        fixture.debugElement.query(By.css('.subtask-pill-partial')).nativeElement.textContent,
+      ).toContain('1 / 3');
+
+      setTask({ ...mockTask, subtaskCount: 3, subtaskCompletedCount: 3 });
+      fixture.detectChanges();
+      expect(
+        fixture.debugElement.query(By.css('.subtask-pill-done')).nativeElement.textContent,
+      ).toContain('3 / 3');
     });
   });
 
   describe('closeCompleteConfirm', () => {
     it('closes the confirm dialog', () => {
-      component.task = mockTask;
+      setTask(mockTask);
       fixture.detectChanges();
 
       (component as any).completeConfirmOpen.set(true);
@@ -772,7 +790,7 @@ describe('PersonalTaskCardComponent', () => {
 
   describe('non-interactive cards', () => {
     it('renders the title as text without a keyboard control', () => {
-      component.task = mockTask;
+      setTask(mockTask);
       component.interactive = false;
       fixture.detectChanges();
 
@@ -782,7 +800,7 @@ describe('PersonalTaskCardComponent', () => {
 
   describe('label chip filtering', () => {
     it('emits labelSelect from a chip without opening the card', () => {
-      component.task = { ...mockTask, labels: ['label-1'] };
+      setTask({ ...mockTask, labels: ['label-1'] });
       fixture.detectChanges();
       spyOn(component.labelSelect, 'emit');
       spyOn(component.select, 'emit');
@@ -801,7 +819,7 @@ describe('PersonalTaskCardComponent', () => {
 
     it('uses compact icon chips and a reveal control when names are off', () => {
       preferences.setShowLabelNames(false);
-      component.task = { ...mockTask, labels: ['label-1', 'label-2'] };
+      setTask({ ...mockTask, labels: ['label-1', 'label-2'] });
       fixture.detectChanges();
 
       const chips = fixture.debugElement.queryAll(By.css('.task-badges-labels app-label-chip'));
@@ -816,7 +834,7 @@ describe('PersonalTaskCardComponent', () => {
 
     it('fills chips with the label color when color-first is on', () => {
       preferences.setColorFirstLabels(true);
-      component.task = { ...mockTask, labels: ['label-1'] };
+      setTask({ ...mockTask, labels: ['label-1'] });
       fixture.detectChanges();
 
       const chip = fixture.debugElement.query(By.css('.task-badges-labels app-label-chip'));
@@ -825,10 +843,42 @@ describe('PersonalTaskCardComponent', () => {
     });
 
     it('suppresses every active filter label', () => {
-      component.task = { ...mockTask, labels: ['label-1', 'label-2', 'label-3'] };
-      component.suppressLabelIds = ['label-1', 'label-3'];
+      setTask({ ...mockTask, labels: ['label-1', 'label-2', 'label-3'] });
+      fixture.componentRef.setInput('suppressLabelIds', ['label-1', 'label-3']);
       fixture.detectChanges();
 
+      const names = fixture.debugElement
+        .queryAll(By.css('.task-badges-labels app-label-chip .label-chip-name'))
+        .map((chip) => chip.nativeElement.textContent.trim());
+      expect(names).toEqual(['Errand']);
+    });
+
+    it('re-renders chips when the task input changes', () => {
+      setTask({ ...mockTask, labels: [] });
+      fixture.detectChanges();
+      expect(
+        fixture.debugElement.queryAll(By.css('.task-badges-labels app-label-chip')).length,
+      ).toBe(0);
+
+      setTask({ ...mockTask, labels: ['label-1'] });
+      fixture.detectChanges();
+      const names = fixture.debugElement
+        .queryAll(By.css('.task-badges-labels app-label-chip .label-chip-name'))
+        .map((chip) => chip.nativeElement.textContent.trim());
+      expect(names).toEqual(['Urgent']);
+    });
+
+    it('re-renders chips when the suppression input changes', () => {
+      setTask({ ...mockTask, labels: ['label-1', 'label-2'] });
+      fixture.detectChanges();
+      expect(
+        fixture.debugElement
+          .queryAll(By.css('.task-badges-labels app-label-chip .label-chip-name'))
+          .map((chip) => chip.nativeElement.textContent.trim()),
+      ).toEqual(['Urgent', 'Errand']);
+
+      fixture.componentRef.setInput('suppressLabelIds', ['label-1']);
+      fixture.detectChanges();
       const names = fixture.debugElement
         .queryAll(By.css('.task-badges-labels app-label-chip .label-chip-name'))
         .map((chip) => chip.nativeElement.textContent.trim());
@@ -838,11 +888,11 @@ describe('PersonalTaskCardComponent', () => {
 
   describe('Narrow-card wrapping', () => {
     beforeEach(() => {
-      component.task = {
+      setTask({
         ...mockTask,
         title: 'A very long task title without any spaces whatsoeverjustkeepsgoingandgoing',
         labels: ['label-1'],
-      };
+      });
       fixture.detectChanges();
     });
 
@@ -870,8 +920,8 @@ describe('PersonalTaskCardComponent', () => {
     };
 
     function setup({ suppressLabelId, showContextMetadata, ...taskOverrides }: ChipOverrides) {
-      component.task = { ...mockTask, ...taskOverrides } as unknown as Task;
-      component.suppressLabelId = suppressLabelId ?? null;
+      setTask({ ...mockTask, ...taskOverrides } as unknown as Task);
+      fixture.componentRef.setInput('suppressLabelId', suppressLabelId ?? null);
       component.showContextMetadata = showContextMetadata ?? true;
       fixture.detectChanges();
       return fixture;

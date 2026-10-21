@@ -108,4 +108,29 @@ describe('TaskLabelFilterComponent', () => {
     fixture.detectChanges();
     expect(fixture.debugElement.query(By.css('.filter-panel'))).toBeNull();
   });
+
+  // Regression: `labels` was a plain @Input while `filteredLabels` is a
+  // computed. A computed only tracks signal reads, so the option list was
+  // frozen at whatever the array held the first time the panel rendered.
+  it('re-renders the option list when the labels input changes', () => {
+    fixture.componentRef.setInput('labels', [] as Label[]);
+    fixture.detectChanges();
+
+    fixture.debugElement.query(By.css('.filter-trigger')).nativeElement.click();
+    fixture.detectChanges();
+    expect(fixture.debugElement.queryAll(By.css('.filter-option')).length).toBe(0);
+
+    // The label list arrives after the panel was already opened.
+    fixture.componentRef.setInput('labels', labels);
+    fixture.detectChanges();
+    expect(fixture.debugElement.queryAll(By.css('.filter-option')).length).toBe(2);
+
+    // And a rename that lands while the panel is open is reflected too.
+    fixture.componentRef.setInput('labels', [{ ...labels[0], name: 'Errand Renamed' }, labels[1]]);
+    fixture.detectChanges();
+    const names = fixture.debugElement
+      .queryAll(By.css('.filter-option-name'))
+      .map((name) => name.nativeElement.textContent.trim());
+    expect(names).toEqual(['Errand Renamed', 'Writing']);
+  });
 });

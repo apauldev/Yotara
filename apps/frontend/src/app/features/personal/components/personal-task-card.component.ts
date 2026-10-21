@@ -6,6 +6,7 @@ import {
   Output,
   computed,
   inject,
+  input,
   signal,
   ChangeDetectionStrategy,
 } from '@angular/core';
@@ -43,7 +44,7 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
     <article
       class="task-card"
       [class.task-card-overdue]="tone === 'overdue'"
-      [class.task-card-complete]="task.completed"
+      [class.task-card-complete]="task().completed"
       [class.task-card-interactive]="interactive"
       [class.task-card-compact]="mode === 'compact'"
       (click)="select.emit()"
@@ -51,9 +52,9 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
       <button
         type="button"
         class="task-check"
-        [class.task-check-complete]="task.completed"
+        [class.task-check-complete]="task().completed"
         [class.task-check-compact]="mode === 'compact'"
-        [attr.aria-label]="task.completed ? 'Task completed' : 'Mark task complete'"
+        [attr.aria-label]="task().completed ? 'Task completed' : 'Mark task complete'"
         (click)="requestComplete($event)"
         (keydown)="$event.stopPropagation()"
       >
@@ -62,7 +63,7 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
           aria-hidden="true"
           [class.task-check-box-compact]="mode === 'compact'"
         >
-          @if (task.completed) {
+          @if (task().completed) {
             <span
               class="task-check-mark"
               [class.task-check-mark-compact]="mode === 'compact'"
@@ -78,13 +79,13 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
               <button
                 type="button"
                 class="task-title-button"
-                [attr.aria-label]="'Open task details for ' + task.title"
+                [attr.aria-label]="'Open task details for ' + task().title"
                 (click)="selectFromTitle($event)"
               >
-                {{ task.title }}
+                {{ task().title }}
               </button>
             } @else {
-              {{ task.title }}
+              {{ task().title }}
             }
           </h3>
 
@@ -109,8 +110,8 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
                     [attr.aria-expanded]="overflowOpen()"
                     [attr.aria-label]="
                       showLabelNames()
-                        ? '+ ' + overflowLabelChips().length + ' more labels for ' + task.title
-                        : 'Show all ' + taskLabelChips().length + ' labels for ' + task.title
+                        ? '+ ' + overflowLabelChips().length + ' more labels for ' + task().title
+                        : 'Show all ' + taskLabelChips().length + ' labels for ' + task().title
                     "
                     (click)="toggleLabelOverflow($event)"
                     (keydown)="$event.stopPropagation()"
@@ -125,7 +126,7 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
                     <span
                       class="task-label-overflow-menu"
                       role="group"
-                      [attr.aria-label]="'Labels for ' + task.title"
+                      [attr.aria-label]="'Labels for ' + task().title"
                       (click)="$event.stopPropagation()"
                       (keydown)="$event.stopPropagation()"
                     >
@@ -145,13 +146,13 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
             </div>
           }
 
-          @if (task.parentId && mode === 'compact') {
+          @if (task().parentId && mode === 'compact') {
             <span class="meta-pill meta-pill-subtask">Subtask</span>
           }
 
           @if (mode === 'default') {
             <div class="task-badges">
-              @if (task.dueDate) {
+              @if (task().dueDate) {
                 <span class="meta-pill meta-pill-date">
                   {{ dateLabel() }}
                 </span>
@@ -163,19 +164,19 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
               @if (showContextMetadata) {
                 <span class="meta-pill meta-pill-muted">{{ statusLabel() }}</span>
               }
-              <span class="priority-chip priority-chip-{{ task.priority }}">{{
+              <span class="priority-chip priority-chip-{{ task().priority }}">{{
                 priorityLabel()
               }}</span>
 
-              @if (showContextMetadata && task.bucket) {
+              @if (showContextMetadata && task().bucket) {
                 <span class="meta-pill meta-pill-bucket">{{ bucketLabel() }}</span>
               }
 
-              @if (showContextMetadata && task.simpleMode) {
+              @if (showContextMetadata && task().simpleMode) {
                 <span class="meta-pill meta-pill-simple">Simple mode</span>
               }
 
-              @if (task.parentId) {
+              @if (task().parentId) {
                 <span class="meta-pill meta-pill-subtask">Subtask</span>
               }
 
@@ -189,20 +190,20 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
                 </span>
               }
 
-              @if (task.recurrenceRule) {
+              @if (task().recurrenceRule) {
                 <span class="meta-pill meta-pill-recurring" [attr.title]="recurrenceLabel()">
                   <fa-icon [icon]="faRotate" class="recurring-icon" />
                   {{ recurrenceLabel() }}
                 </span>
               }
 
-              @if (showCompletionState && task.completed) {
+              @if (showCompletionState && task().completed) {
                 <span class="meta-pill meta-pill-complete">Done</span>
               }
             </div>
           }
 
-          @if (task.completed && mode === 'default') {
+          @if (task().completed && mode === 'default') {
             <div class="completion-group">
               <span class="completion-chip completion-chip-complete">Completed</span>
               <button
@@ -220,17 +221,19 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
                 <button
                   type="button"
                   class="restore-pill archive-pill"
-                  [class.archive-pill-active]="task.permanentArchive"
+                  [class.archive-pill-active]="task().permanentArchive"
                   (click)="$event.stopPropagation(); togglePermanentArchive.emit()"
                   (keydown)="$event.stopPropagation()"
                   [attr.aria-label]="
-                    task.permanentArchive
+                    task().permanentArchive
                       ? 'Remove permanent archive tag'
                       : 'Mark permanent archive'
                   "
                 >
                   <fa-icon [icon]="faBoxArchive" class="restore-icon"></fa-icon>
-                  <span>{{ task.permanentArchive ? 'Permanent archive' : 'Make permanent' }}</span>
+                  <span>{{
+                    task().permanentArchive ? 'Permanent archive' : 'Make permanent'
+                  }}</span>
                 </button>
 
                 <button
@@ -248,7 +251,7 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
           }
         </div>
 
-        @if (mode === 'default' && showDescription && task.description) {
+        @if (mode === 'default' && showDescription && task().description) {
           <markdown class="task-description" [data]="truncatedDescription()"></markdown>
         }
       </div>
@@ -256,21 +259,21 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
 
     <app-confirm-dialog
       [open]="completeConfirmOpen()"
-      [title]="task.completed ? 'Move task back to doing?' : 'Complete task?'"
+      [title]="task().completed ? 'Move task back to doing?' : 'Complete task?'"
       [description]="
-        task.completed
+        task().completed
           ? 'This will return the task to your active work list.'
           : 'This will move the task into completed and archive it.'
       "
-      [confirmLabel]="task.completed ? 'Put back into doing' : 'Mark complete'"
+      [confirmLabel]="task().completed ? 'Put back into doing' : 'Mark complete'"
       cancelLabel="Keep as is"
       [loading]="completing()"
-      [loadingLabel]="task.completed ? 'Restoring...' : 'Completing...'"
+      [loadingLabel]="task().completed ? 'Restoring...' : 'Completing...'"
       (confirm)="completeTask()"
       (cancel)="closeCompleteConfirm()"
       (close)="closeCompleteConfirm()"
     >
-      @if (!task.completed) {
+      @if (!task().completed) {
         <label confirm-extra class="skip-confirm-label">
           <input type="checkbox" #dontShowCheck (change)="dontShowAgain = dontShowCheck.checked" />
           Don&#39;t show this again
@@ -778,7 +781,7 @@ export class PersonalTaskCardComponent {
   protected readonly faBoxArchive = faBoxArchive;
   protected readonly faTrash = faTrash;
 
-  @Input({ required: true }) task!: Task;
+  readonly task = input.required<Task>();
   @Input() mode: 'default' | 'compact' = 'default';
   @Input() tone: 'default' | 'overdue' = 'default';
   @Input() showDescription = true;
@@ -791,9 +794,9 @@ export class PersonalTaskCardComponent {
    */
   @Input() showContextMetadata = true;
   /** Label ID to hide from the chip row — the Labels page suppresses the label being viewed. */
-  @Input() suppressLabelId: string | null = null;
+  readonly suppressLabelId = input<string | null>(null);
   /** Multiple active filter labels to suppress on the card. */
-  @Input() suppressLabelIds: string[] = [];
+  readonly suppressLabelIds = input<string[]>([]);
   @Output() readonly select = new EventEmitter<void>();
   @Output() readonly labelSelect = new EventEmitter<Label>();
   @Output() readonly togglePermanentArchive = new EventEmitter<void>();
@@ -806,11 +809,12 @@ export class PersonalTaskCardComponent {
    */
   protected readonly taskLabelChips = computed<Label[]>(() => {
     const labelsById = this.labelService.labelById();
-    const suppressed = new Set([
-      ...(this.suppressLabelIds ?? []),
-      ...(this.suppressLabelId ? [this.suppressLabelId] : []),
-    ]);
-    return (this.task.labels ?? [])
+    const suppressed = new Set(this.suppressLabelIds());
+    const singleSuppressedLabelId = this.suppressLabelId();
+    if (singleSuppressedLabelId) {
+      suppressed.add(singleSuppressedLabelId);
+    }
+    return (this.task().labels ?? [])
       .map((labelId) => labelsById.get(labelId))
       .filter((label): label is Label => label !== undefined && !suppressed.has(label.id));
   });
@@ -820,7 +824,7 @@ export class PersonalTaskCardComponent {
   protected readonly overflowOpen = signal(false);
 
   protected priorityLabel() {
-    return `${this.task.priority} priority`;
+    return `${this.task().priority} priority`;
   }
 
   protected statusLabel() {
@@ -828,7 +832,7 @@ export class PersonalTaskCardComponent {
       return 'Overdue';
     }
 
-    switch (this.task.status) {
+    switch (this.task().status) {
       case 'today':
         return 'Today';
       case 'upcoming':
@@ -843,7 +847,7 @@ export class PersonalTaskCardComponent {
   }
 
   protected dateLabel() {
-    const parsed = parseCalendarDate(this.task.dueDate);
+    const parsed = parseCalendarDate(this.task().dueDate);
 
     if (!parsed) {
       return '';
@@ -854,14 +858,14 @@ export class PersonalTaskCardComponent {
       day: 'numeric',
       year: 'numeric',
     }).format(parsed.toJSDate());
-    const formattedTime = formatTimeLabel(this.task.dueTime);
+    const formattedTime = formatTimeLabel(this.task().dueTime);
 
     // The time appears only when the task actually carries one.
     return formattedTime ? `${formattedDate}, ${formattedTime}` : formattedDate;
   }
 
   protected bucketLabel() {
-    switch (this.task.bucket) {
+    switch (this.task().bucket) {
       case 'personal-sanctuary':
         return 'Personal Sanctuary';
       case 'deep-work':
@@ -871,12 +875,12 @@ export class PersonalTaskCardComponent {
       case 'health':
         return 'Health';
       default:
-        return this.task.bucket || '';
+        return this.task().bucket || '';
     }
   }
 
-  protected subtaskCount = computed(() => this.task.subtaskCount ?? 0);
-  protected subtaskDoneCount = computed(() => this.task.subtaskCompletedCount ?? 0);
+  protected subtaskCount = computed(() => this.task().subtaskCount ?? 0);
+  protected subtaskDoneCount = computed(() => this.task().subtaskCompletedCount ?? 0);
   protected subtaskAllDone = computed(
     () => this.subtaskCount() > 0 && this.subtaskDoneCount() === this.subtaskCount(),
   );
@@ -884,13 +888,13 @@ export class PersonalTaskCardComponent {
   /** Truncate description at 500 chars to avoid perf issues with markdown parser on card preview.
    *  CSS line-clamp handles visual truncation; this prevents processing very long strings. */
   protected truncatedDescription() {
-    const desc = this.task?.description;
+    const desc = this.task()?.description;
     if (!desc || desc.length <= 500) return desc;
     return desc.slice(0, 497) + '...';
   }
 
   protected recurrenceLabel() {
-    const rule = this.task.recurrenceRule;
+    const rule = this.task().recurrenceRule;
     if (!rule) return '';
 
     const { frequency, interval, daysOfWeek } = rule;
@@ -949,10 +953,10 @@ export class PersonalTaskCardComponent {
 
   async completeTask() {
     this.completing.set(true);
-    const wasCompleted = this.task.completed;
+    const wasCompleted = this.task().completed;
 
     try {
-      await this.taskService.updateTask(this.task.id, { completed: !wasCompleted });
+      await this.taskService.updateTask(this.task().id, { completed: !wasCompleted });
       this.completeConfirmOpen.set(false);
 
       if (!wasCompleted) {
