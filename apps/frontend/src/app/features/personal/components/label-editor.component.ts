@@ -34,11 +34,11 @@ import { suggestLabelIcon } from '../../../shared/utils/label-icons';
 const LABEL_NAME_MAX_LENGTH = 60;
 
 /**
- * The one label create/edit surface. It opens as a right-side drawer on
- * desktop and a full-height sheet on mobile, shows a live chip preview, and
- * owns name, color, icon, validation, and the duplicate-name path. Delete is a
- * labeled danger action here and in the directory menu; the page owns the
- * confirmation dialog.
+ * The one label create/edit surface. New labels open as a wide full-height
+ * modal; editing an existing label opens as a right-side drawer. It shows an
+ * oversized live chip preview and owns name, color, icon, validation, and the
+ * duplicate-name path. Delete is a labeled danger action here and in the
+ * directory menu; the page owns the confirmation dialog.
  */
 @Component({
   selector: 'app-label-editor',
@@ -54,15 +54,21 @@ const LABEL_NAME_MAX_LENGTH = 60;
     <app-modal
       [open]="open"
       [title]="label ? 'Edit label' : 'New label'"
-      size="md"
-      layout="drawer"
+      [size]="label ? 'md' : 'lg'"
+      [layout]="label ? 'drawer' : 'full-height'"
       [showFooter]="false"
       (close)="close.emit()"
     >
       <form class="label-editor" (ngSubmit)="save()">
         <section class="preview" aria-label="Label preview">
           <span class="field-label">Preview</span>
-          <app-label-chip [label]="previewLabel()" [colorFirst]="preferences.colorFirstLabels()" />
+          <div class="preview-stage">
+            <app-label-chip
+              [label]="previewLabel()"
+              [colorFirst]="preferences.colorFirstLabels()"
+              size="lg"
+            />
+          </div>
         </section>
 
         <label class="field">
@@ -121,12 +127,7 @@ const LABEL_NAME_MAX_LENGTH = 60;
 
         <div class="field">
           <span class="field-label">Icon</span>
-          <app-label-icon-picker
-            [icon]="draftIcon()"
-            [color]="draftColor()"
-            [suggested]="suggestedIcon()"
-            (iconChange)="chooseIcon($event)"
-          />
+          <app-label-icon-picker [icon]="draftIcon()" (iconChange)="chooseIcon($event)" />
         </div>
 
         @if (requestError()) {
@@ -190,15 +191,28 @@ const LABEL_NAME_MAX_LENGTH = 60;
 
       .label-editor {
         display: grid;
+        grid-template-columns: minmax(0, 1fr);
         gap: 1.05rem;
       }
 
       .preview {
         display: grid;
+        min-width: 0;
         gap: 0.4rem;
-        padding: 0.85rem;
-        border-radius: 0.9rem;
-        background: var(--surface-container-low);
+        padding-bottom: 0.35rem;
+      }
+
+      .preview-stage {
+        display: grid;
+        place-items: center;
+        min-width: 0;
+        min-height: 5.5rem;
+        padding: 0.85rem 0.75rem;
+      }
+
+      .preview-stage app-label-chip {
+        max-width: 100%;
+        min-width: 0;
       }
 
       .field {
@@ -388,8 +402,6 @@ export class LabelEditorComponent implements OnChanges {
   protected readonly palette = LABEL_COLORS;
   private readonly iconTouched = signal(false);
   private readonly colorTouched = signal(false);
-
-  protected readonly suggestedIcon = computed(() => suggestLabelIcon(this.draftName()));
 
   /** A legacy color outside the palette stays visible so saving never recolors it. */
   protected readonly customSwatch = computed(() => {

@@ -3,12 +3,12 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { isHexColor, pickOnColor } from '../../utils/color-contrast';
 import { labelIconDefinition } from '../../utils/label-icons';
 
-export type LabelIconSize = 'xs' | 'sm' | 'md' | 'lg';
+export type LabelIconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 /**
- * The solid label-color icon tile shared by chips, the Labels directory, the
- * pane header, the icon picker, and the editor preview. The glyph color is
- * computed from the tile color so light label colors stay readable.
+ * The shared label glyph. It renders as a solid label-color tile by default,
+ * or as a flat glyph for selected chips and the icon picker. The glyph color
+ * is computed from the tile color so light label colors stay readable.
  *
  * The tile is decorative: callers render the label name next to it or supply
  * an accessible name on the surrounding control.
@@ -68,6 +68,13 @@ export type LabelIconSize = 'xs' | 'sm' | 'md' | 'lg';
         height: 2.5rem;
         border-radius: 0.75rem;
         font-size: 1.05rem;
+      }
+
+      :host([data-size='xl']) .label-icon {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 0.9rem;
+        font-size: 1.3rem;
       }
 
       .label-icon-flat {

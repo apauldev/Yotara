@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { LABEL_ICON_KEYS } from '@yotara/shared';
+import { LabelIconComponent } from '../label-icon/label-icon.component';
 import { LabelIconPickerComponent } from './label-icon-picker.component';
 
 describe('LabelIconPickerComponent', () => {
@@ -65,20 +66,12 @@ describe('LabelIconPickerComponent', () => {
     expect(radios[1].nativeElement.getAttribute('tabindex')).toBe('-1');
   });
 
-  it('offers the suggested icon as a shortcut outside the radio group', () => {
-    fixture.componentRef.setInput('suggested', 'pen');
-    fixture.detectChanges();
-
-    const emitted: string[] = [];
-    component.iconChange.subscribe((icon) => emitted.push(icon));
-
-    const suggestion = fixture.debugElement.query(By.css('.suggested-option'));
-    expect(suggestion.nativeElement.getAttribute('aria-pressed')).toBe('false');
-    suggestion.nativeElement.click();
-
-    expect(emitted).toEqual(['pen']);
-    expect(fixture.debugElement.queryAll(By.css('[role="radio"]')).length).toBe(
-      LABEL_ICON_KEYS.length,
-    );
+  it('renders every shared icon as a large flat glyph with no suggested shortcut', () => {
+    const icons = fixture.debugElement.queryAll(By.directive(LabelIconComponent));
+    expect(icons.length).toBe(LABEL_ICON_KEYS.length);
+    expect(icons.every((icon) => icon.componentInstance.flat)).toBeTrue();
+    expect(icons.every((icon) => icon.componentInstance.size === 'xl')).toBeTrue();
+    expect(fixture.debugElement.query(By.css('.suggested-row'))).toBeNull();
+    expect(fixture.debugElement.query(By.css('.suggested-option'))).toBeNull();
   });
 });

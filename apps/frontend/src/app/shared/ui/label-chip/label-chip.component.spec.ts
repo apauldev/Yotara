@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import { LabelIconComponent } from '../label-icon/label-icon.component';
 import { LabelChipComponent } from './label-chip.component';
 
 describe('LabelChipComponent', () => {
@@ -88,6 +89,23 @@ describe('LabelChipComponent', () => {
       .triggerEventHandler('click', event);
     expect(selectSpy).toHaveBeenCalledWith(redLabel);
     expect(propagated).toBe(false);
+  });
+
+  it('scales the glyph with each chip size', () => {
+    const small = createComponent({ label: redLabel, size: 'sm' });
+    expect(small.debugElement.query(By.directive(LabelIconComponent)).componentInstance.size).toBe(
+      'xs',
+    );
+
+    const medium = createComponent({ label: redLabel });
+    expect(medium.debugElement.query(By.directive(LabelIconComponent)).componentInstance.size).toBe(
+      'sm',
+    );
+
+    const large = createComponent({ label: redLabel, size: 'lg' });
+    expect(large.debugElement.query(By.directive(LabelIconComponent)).componentInstance.size).toBe(
+      'xl',
+    );
   });
 
   it('renders a sibling remove button, never nested inside the control', () => {

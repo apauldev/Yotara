@@ -15,8 +15,8 @@ import { LabelIconComponent } from '../label-icon/label-icon.component';
 /**
  * The curated icon picker. The 24 options are a real radio group with roving
  * tabindex: one option is tabbable, arrows move focus inside the grid, and
- * Enter/Space pick the focused glyph natively. The optional suggestion row is
- * a shortcut outside the radio group, so it never creates a duplicate radio.
+ * Enter/Space pick the focused glyph natively. Icons render as large glyphs
+ * without tiles so the preview above the picker carries the selected color.
  */
 @Component({
   selector: 'app-label-icon-picker',
@@ -24,23 +24,6 @@ import { LabelIconComponent } from '../label-icon/label-icon.component';
   imports: [LabelIconComponent],
   template: `
     <div class="icon-picker">
-      @if (suggested) {
-        <div class="suggested-row">
-          <span class="group-label">Suggested</span>
-          <button
-            type="button"
-            class="suggested-option"
-            [class.suggested-option-active]="icon === suggested"
-            [attr.aria-pressed]="icon === suggested"
-            [attr.title]="'Use the suggested ' + iconLabel(suggested) + ' icon'"
-            (click)="choose(suggested)"
-          >
-            <app-label-icon [icon]="suggested" [color]="color" size="sm" />
-            <span>{{ iconLabel(suggested) }}</span>
-          </button>
-        </div>
-      }
-
       <div
         class="icon-groups"
         role="radiogroup"
@@ -64,7 +47,7 @@ import { LabelIconComponent } from '../label-icon/label-icon.component';
                   (focus)="activeIndex.set(optionIndex(key))"
                   (click)="choose(key)"
                 >
-                  <app-label-icon [icon]="key" [color]="color" size="sm" />
+                  <app-label-icon [icon]="key" size="xl" [flat]="true" />
                 </button>
               }
             </div>
@@ -94,38 +77,16 @@ import { LabelIconComponent } from '../label-icon/label-icon.component';
         text-transform: uppercase;
       }
 
-      .suggested-option {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.45rem;
-        border: 0;
-        border-radius: 999px;
-        background: var(--surface-container-low);
-        color: var(--on-surface);
-        font: inherit;
-        font-size: 0.8rem;
-        font-weight: 650;
-        padding: 0.3rem 0.6rem 0.3rem 0.35rem;
-        cursor: pointer;
-      }
-
-      .suggested-option:hover {
-        background: var(--surface-container-high);
-      }
-
-      .suggested-option-active {
-        box-shadow: inset 0 0 0 1px var(--primary-solid);
-      }
-
       .icon-groups {
         display: grid;
-        gap: 0.8rem;
+        grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+        gap: 1rem 1.5rem;
       }
 
       .icon-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(2.35rem, 1fr));
-        gap: 0.4rem;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 0.25rem;
       }
 
       .icon-option {
@@ -133,24 +94,29 @@ import { LabelIconComponent } from '../label-icon/label-icon.component';
         border: 0;
         display: grid;
         place-items: center;
-        min-width: 2.35rem;
-        min-height: 2.35rem;
+        width: 100%;
+        min-width: 0;
+        min-height: 2.75rem;
         padding: 0.15rem;
-        border-radius: 0.7rem;
+        border-radius: 0.75rem;
         background: transparent;
+        color: var(--on-surface-muted);
         cursor: pointer;
+        transition:
+          color 120ms ease,
+          box-shadow 120ms ease;
       }
 
       .icon-option:hover {
-        background: var(--surface-container-low);
+        color: var(--on-surface);
       }
 
+      /* Selection is a glyph color and outline, not a filled tile. */
       .icon-option[aria-checked='true'] {
-        background: var(--primary-soft);
-        box-shadow: inset 0 0 0 1px var(--primary-solid);
+        color: var(--primary-solid);
+        box-shadow: inset 0 0 0 1.5px var(--primary-solid);
       }
 
-      .suggested-option:focus-visible,
       .icon-option:focus-visible {
         outline: 2px solid var(--primary-solid);
         outline-offset: 1px;
@@ -158,12 +124,11 @@ import { LabelIconComponent } from '../label-icon/label-icon.component';
 
       @media (pointer: coarse) {
         .icon-grid {
-          grid-template-columns: repeat(auto-fill, minmax(2.75rem, 1fr));
+          grid-template-columns: repeat(6, minmax(0, 1fr));
         }
 
         .icon-option {
-          min-width: 2.75rem;
-          min-height: 2.75rem;
+          min-height: 3rem;
         }
       }
     `,
@@ -172,8 +137,6 @@ import { LabelIconComponent } from '../label-icon/label-icon.component';
 })
 export class LabelIconPickerComponent implements OnChanges {
   @Input() icon = 'tag';
-  @Input() color: string | null = null;
-  @Input() suggested: LabelIcon | null = null;
 
   @Output() readonly iconChange = new EventEmitter<LabelIcon>();
 

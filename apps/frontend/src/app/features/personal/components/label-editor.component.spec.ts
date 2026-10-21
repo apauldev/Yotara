@@ -54,17 +54,27 @@ describe('LabelEditorComponent', () => {
     fixture.detectChanges();
   }
 
-  it('opens in the drawer layout with a live chip preview', () => {
+  it('opens new labels in the wide scrollable modal layout with a live chip preview', () => {
     const modal = fixture.debugElement.query(By.directive(ModalComponent));
-    expect(modal.componentInstance.layout).toBe('drawer');
+    expect(modal.componentInstance.layout).toBe('full-height');
+    expect(modal.componentInstance.size).toBe('lg');
 
     component['onNameChange']('Writing');
     fixture.detectChanges();
 
     const preview = fixture.debugElement.query(By.css('.preview app-label-chip'));
+    expect(preview.componentInstance.size).toBe('lg');
     expect(preview.componentInstance.label.name).toBe('Writing');
     expect(preview.componentInstance.label.icon).toBe('pen');
     expect(preview.componentInstance.label.color).toBe(pickLabelColorForName('Writing'));
+  });
+
+  it('keeps the drawer layout when editing an existing label', () => {
+    openWith(existingLabel);
+
+    const modal = fixture.debugElement.query(By.directive(ModalComponent));
+    expect(modal.componentInstance.layout).toBe('drawer');
+    expect(modal.componentInstance.size).toBe('md');
   });
 
   it('keeps a manually chosen icon while the name changes', () => {

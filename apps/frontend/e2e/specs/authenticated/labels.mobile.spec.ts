@@ -9,6 +9,17 @@ async function createLabel(page: Page, name: string) {
   await dismissTip(page);
 
   await page.getByRole('button', { name: '+ New Label' }).click();
+  const dialog = page.getByRole('dialog', { name: 'New label' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).not.toHaveClass(/modal-card-drawer/);
+
+  const viewport = page.viewportSize();
+  const dialogBox = await dialog.boundingBox();
+  expect(viewport).not.toBeNull();
+  expect(dialogBox).not.toBeNull();
+  expect(dialogBox!.x).toBe(0);
+  expect(dialogBox!.width).toBe(viewport!.width);
+
   const nameInput = page.locator('.label-editor input').first();
   await nameInput.fill(name);
   await page.getByRole('button', { name: 'Create label', exact: true }).click();

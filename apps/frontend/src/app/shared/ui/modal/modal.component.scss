@@ -125,6 +125,13 @@ h2 {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  /*
+   * Reserve room for focus rings on full-width controls. The negative margins
+   * keep the content aligned with the modal header while the padding extends
+   * the scrollport into the card's own padding.
+   */
+  padding: 0.35rem;
+  margin: calc(1rem - 0.35rem) -0.35rem -0.35rem;
 }
 
 .modal-footer {

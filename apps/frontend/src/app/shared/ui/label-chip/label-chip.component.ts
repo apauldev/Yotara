@@ -14,6 +14,7 @@ import { LabelIconComponent } from '../label-icon/label-icon.component';
  *   removable anywhere         — removable=true (never inside another button)
  *   compact/icon-only          — mode="compact"; an accessible name is always
  *                                present and `title` is only a hover extra
+ *   editor preview             — size="lg"; larger than the chip used in-app
  *
  * Color tokens (host):
  *   --label-color     the label's own color (accent fallback for legacy rows
@@ -45,7 +46,7 @@ import { LabelIconComponent } from '../label-icon/label-icon.component';
           <app-label-icon
             [icon]="label.icon"
             [color]="label.color"
-            [size]="size === 'sm' ? 'xs' : 'sm'"
+            [size]="iconSize"
             [flat]="selected || colorFirst"
           />
           @if (mode === 'full') {
@@ -64,7 +65,7 @@ import { LabelIconComponent } from '../label-icon/label-icon.component';
           <app-label-icon
             [icon]="label.icon"
             [color]="label.color"
-            [size]="size === 'sm' ? 'xs' : 'sm'"
+            [size]="iconSize"
             [flat]="selected || colorFirst"
           />
           @if (mode === 'full') {
@@ -104,6 +105,7 @@ import { LabelIconComponent } from '../label-icon/label-icon.component';
         align-items: center;
         gap: 0.05rem;
         min-width: 0;
+        max-width: 100%;
       }
 
       .label-chip-body {
@@ -114,6 +116,8 @@ import { LabelIconComponent } from '../label-icon/label-icon.component';
         display: inline-flex;
         align-items: center;
         gap: 0.3rem;
+        min-width: 0;
+        max-width: 100%;
         min-height: 1.55rem;
         border-radius: 999px;
         padding: 0.1rem 0.5rem 0.1rem 0.22rem;
@@ -142,6 +146,7 @@ import { LabelIconComponent } from '../label-icon/label-icon.component';
       }
 
       .label-chip-name {
+        min-width: 0;
         font-size: 0.72rem;
         font-weight: 600;
         letter-spacing: 0.01em;
@@ -157,6 +162,17 @@ import { LabelIconComponent } from '../label-icon/label-icon.component';
 
       .label-chip[data-size='sm'] .label-chip-name {
         max-width: 6.5rem;
+      }
+
+      .label-chip[data-size='lg'] .label-chip-body {
+        min-height: 3.25rem;
+        gap: 0.55rem;
+        padding: 0.25rem 1rem 0.25rem 0.3rem;
+      }
+
+      .label-chip[data-size='lg'] .label-chip-name {
+        max-width: 20rem;
+        font-size: 1.05rem;
       }
 
       /* Selected/active: solid label-color pill, glyph straight on the fill. */
@@ -221,12 +237,16 @@ export class LabelChipComponent {
   @Input() selected = false;
   @Input() removable = false;
   @Input() interactive = false;
-  @Input() size: 'sm' | 'md' = 'md';
+  @Input() size: 'sm' | 'md' | 'lg' = 'md';
   /** Opt-in preference: fill the whole chip with the label color. */
   @Input() colorFirst = false;
 
   @Output() readonly select = new EventEmitter<Label>();
   @Output() readonly remove = new EventEmitter<Label>();
+
+  protected get iconSize(): 'xs' | 'sm' | 'xl' {
+    return this.size === 'sm' ? 'xs' : this.size === 'lg' ? 'xl' : 'sm';
+  }
 
   /** Near-neutral colors need the chip's subtle border (see CSS). */
   protected get neutral(): boolean {
