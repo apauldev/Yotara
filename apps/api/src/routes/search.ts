@@ -15,7 +15,6 @@ interface TaskSearchRow {
   completed: number;
   due_date: string | null;
   simple_mode: number;
-  bucket: string | null;
   project_id: string | null;
   parent_id: string | null;
   recurrence_rule: string | null;
@@ -54,8 +53,12 @@ interface LabelSearchRow {
   id: string;
   name: string;
   color: string;
+  icon: string;
+  pinned: number;
   user_id: string;
   task_count: number;
+  open_task_count: number;
+  completed_task_count: number;
   created_at: string | null;
   updated_at: string | null;
   score: number;
@@ -118,7 +121,6 @@ function toTask(row: TaskSearchRow, labelIds: string[]): Task {
     completed: !!row.completed,
     dueDate: row.due_date ?? undefined,
     simpleMode: !!row.simple_mode,
-    bucket: (row.bucket as Task['bucket']) ?? undefined,
     projectId: row.project_id ?? undefined,
     parentId: row.parent_id ?? undefined,
     recurrenceRule: row.recurrence_rule
@@ -154,7 +156,13 @@ function toLabel(row: LabelSearchRow): Label {
     id: row.id,
     name: row.name,
     color: row.color,
+    icon: row.icon as Label['icon'],
+    pinned: !!row.pinned,
     userId: row.user_id,
+    openTaskCount: row.open_task_count,
+    completedTaskCount: row.completed_task_count,
+    totalTaskCount: row.task_count,
+    // Legacy alias so search consumers can keep reading taskCount.
     taskCount: row.task_count,
     createdAt: row.created_at ?? undefined,
     updatedAt: row.updated_at ?? undefined,
@@ -346,13 +354,18 @@ export default async function searchRoutes(fastify: FastifyInstance) {
           SELECT
             l.*,
             COALESCE(lc.task_count, 0) AS task_count,
+            COALESCE(lc.open_task_count, 0) AS open_task_count,
+            COALESCE(lc.completed_task_count, 0) AS completed_task_count,
             CASE WHEN LOWER(l.name) = ${normalizedQ} THEN 120
                  WHEN LOWER(l.name) LIKE ${startsWithQuery} ESCAPE '\\' THEN 100
                  WHEN LOWER(l.name) LIKE ${likeQuery} ESCAPE '\\' THEN 80
                  ELSE 0 END AS score
           FROM labels l
           LEFT JOIN (
-            SELECT tl.label_id, COUNT(*) AS task_count
+            SELECT tl.label_id,
+                   COUNT(*) AS task_count,
+                   SUM(CASE WHEN t.completed = 0 THEN 1 ELSE 0 END) AS open_task_count,
+                   SUM(CASE WHEN t.completed = 1 THEN 1 ELSE 0 END) AS completed_task_count
             FROM task_labels tl
             JOIN tasks t ON t.id = tl.task_id
             WHERE t.deleted_at IS NULL

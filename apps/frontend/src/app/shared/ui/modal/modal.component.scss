@@ -11,6 +11,35 @@
   padding: 1.5rem;
 }
 
+/* Side drawer: same focus trap and backdrop, anchored right. */
+.modal-shell-drawer {
+  place-items: stretch end;
+  padding: 0;
+}
+
+.modal-card.modal-card-drawer {
+  width: min(100%, 32rem);
+  height: 100dvh;
+  max-height: 100dvh;
+  border-radius: 1.4rem 0 0 1.4rem;
+  display: flex;
+  flex-direction: column;
+  animation: modal-drawer-in 180ms ease-out;
+}
+
+@keyframes modal-drawer-in {
+  from {
+    opacity: 0;
+    transform: translateX(1.5rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-card.modal-card-drawer {
+    animation: none;
+  }
+}
+
 .backdrop {
   position: absolute;
   inset: 0;
@@ -90,11 +119,19 @@ h2 {
   overflow: hidden;
 }
 
-.modal-card-full-height .modal-body-scroll {
+.modal-card-full-height .modal-body-scroll,
+.modal-card-drawer .modal-body-scroll {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  /*
+   * Reserve room for focus rings on full-width controls. The negative margins
+   * keep the content aligned with the modal header while the padding extends
+   * the scrollport into the card's own padding.
+   */
+  padding: 0.35rem;
+  margin: calc(1rem - 0.35rem) -0.35rem -0.35rem;
 }
 
 .modal-footer {
@@ -111,6 +148,19 @@ h2 {
     padding: 0;
     padding-top: env(safe-area-inset-top, 0px);
     place-items: end center;
+  }
+
+  .modal-shell-drawer {
+    place-items: stretch center;
+  }
+
+  .modal-card.modal-card-drawer {
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    animation: none;
+    padding-bottom: calc(1.35rem + env(safe-area-inset-bottom, 0px));
   }
 
   .close-button {

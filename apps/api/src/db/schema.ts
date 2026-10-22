@@ -1,12 +1,5 @@
 import { integer, sqliteTable, text, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
-import type { ProjectColor, TaskBucket } from '@yotara/shared';
-
-const TASK_BUCKET_VALUES = [
-  'personal-sanctuary',
-  'deep-work',
-  'home',
-  'health',
-] as const satisfies readonly TaskBucket[];
+import type { ProjectColor } from '@yotara/shared';
 
 const PROJECT_COLOR_VALUES = [
   'sage',
@@ -110,9 +103,6 @@ export const tasks = sqliteTable('tasks', {
   dueDate: text('due_date'),
   dueTime: text('due_time'),
   simpleMode: integer('simple_mode', { mode: 'boolean' }).notNull().default(false),
-  bucket: text('bucket', {
-    enum: TASK_BUCKET_VALUES,
-  }).default('personal-sanctuary'),
   projectId: text('project_id').references(() => projects.id, { onDelete: 'set null' }),
   parentId: text('parent_id').references((): AnySQLiteColumn => tasks.id),
   recurrenceRule: text('recurrence_rule'),
@@ -130,7 +120,10 @@ export const labels = sqliteTable('labels', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
+  nameNorm: text('name_norm').notNull(),
   color: text('color').notNull(),
+  icon: text('icon').notNull().default('tag'),
+  pinned: integer('pinned', { mode: 'boolean' }).notNull().default(false),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });

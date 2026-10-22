@@ -159,4 +159,37 @@ describe('LabelService', () => {
     service.refresh();
     expect(service.version()).toBe(3);
   }));
+
+  it('resolves refreshAndWait with the labels from the refresh request', fakeAsync(() => {
+    const service = TestBed.inject(LabelService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    http.expectOne('http://localhost:3000/labels').flush([]);
+    tick();
+
+    const refreshedLabel: Label = {
+      id: 'label-1',
+      name: 'Bug',
+      color: 'tomato',
+      icon: 'tag',
+      pinned: false,
+      userId: 'user-1',
+    };
+
+    let refreshed: Label[] | undefined;
+    void service.refreshAndWait().then((labels) => {
+      refreshed = labels;
+    });
+    tick();
+
+    http.expectOne('http://localhost:3000/labels').flush([refreshedLabel]);
+    tick();
+
+    expect(refreshed?.map((label) => label.id)).toEqual(['label-1']);
+  }));
 });

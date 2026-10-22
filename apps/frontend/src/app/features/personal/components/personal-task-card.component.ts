@@ -6,10 +6,12 @@ import {
   Output,
   computed,
   inject,
+  input,
   signal,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { Task } from '@yotara/shared';
+import type { Label } from '@yotara/shared';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faBoxArchive, faRotate, faRotateLeft, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { MarkdownComponent } from 'ngx-markdown';
@@ -17,6 +19,7 @@ import { LabelService } from '../../../core/services/label.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { StatusService } from '../../../core/services/status.service';
 import { TaskService } from '../../../core/services/task.service';
+import { LabelChipComponent } from '../../../shared/ui/label-chip/label-chip.component';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 import { formatTimeLabel, parseCalendarDate } from '../../../shared/utils/timestamps';
 import { notifyTaskCompleted } from '../utils/task-completion-notice';
@@ -24,26 +27,34 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
 @Component({
   selector: 'app-personal-task-card',
   standalone: true,
-  imports: [CommonModule, ConfirmDialogComponent, FontAwesomeModule, MarkdownComponent],
+  imports: [
+    CommonModule,
+    ConfirmDialogComponent,
+    FontAwesomeModule,
+    LabelChipComponent,
+    MarkdownComponent,
+  ],
+  host: {
+    // The +N overflow popover listens for outside interactions; the toggle
+    // button stops its events so this never closes what it just opened.
+    '(document:click)': 'closeLabelOverflow()',
+    '(document:keydown.escape)': 'closeLabelOverflow()',
+  },
   template: `
     <article
       class="task-card"
       [class.task-card-overdue]="tone === 'overdue'"
-      [class.task-card-complete]="task.completed"
+      [class.task-card-complete]="task().completed"
       [class.task-card-interactive]="interactive"
       [class.task-card-compact]="mode === 'compact'"
-      [attr.role]="interactive ? 'button' : null"
-      [attr.tabindex]="interactive ? 0 : null"
-      [attr.aria-label]="interactive ? 'Open task details for ' + task.title : null"
       (click)="select.emit()"
-      (keydown)="onKeydown($event)"
     >
       <button
         type="button"
         class="task-check"
-        [class.task-check-complete]="task.completed"
+        [class.task-check-complete]="task().completed"
         [class.task-check-compact]="mode === 'compact'"
-        [attr.aria-label]="task.completed ? 'Task completed' : 'Mark task complete'"
+        [attr.aria-label]="task().completed ? 'Task completed' : 'Mark task complete'"
         (click)="requestComplete($event)"
         (keydown)="$event.stopPropagation()"
       >
@@ -52,7 +63,7 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
           aria-hidden="true"
           [class.task-check-box-compact]="mode === 'compact'"
         >
-          @if (task.completed) {
+          @if (task().completed) {
             <span
               class="task-check-mark"
               [class.task-check-mark-compact]="mode === 'compact'"
@@ -63,42 +74,105 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
 
       <div class="task-copy">
         <div class="task-title-row">
-          <h3 [class.h3-compact]="mode === 'compact'">{{ task.title }}</h3>
+          <h3 [class.h3-compact]="mode === 'compact'">
+            @if (interactive) {
+              <button
+                type="button"
+                class="task-title-button"
+                [attr.aria-label]="'Open task details for ' + task().title"
+                (click)="selectFromTitle($event)"
+              >
+                {{ task().title }}
+              </button>
+            } @else {
+              {{ task().title }}
+            }
+          </h3>
 
-          @if (task.labels?.length) {
+          @if (taskLabelChips().length) {
             <div class="task-badges-labels">
-              @for (labelId of task.labels; track labelId) {
-                <span class="meta-pill meta-pill-label">{{ labelName(labelId) }}</span>
+              @for (chip of visibleLabelChips(); track chip.id) {
+                <app-label-chip
+                  [label]="chip"
+                  size="sm"
+                  [mode]="showLabelNames() ? 'full' : 'compact'"
+                  [colorFirst]="colorFirstLabels()"
+                  [interactive]="true"
+                  (select)="selectLabel(chip)"
+                />
+              }
+              @if (overflowLabelChips().length || !showLabelNames()) {
+                <span class="task-label-overflow-wrap">
+                  <button
+                    type="button"
+                    class="task-label-overflow"
+                    [class.task-label-reveal]="!showLabelNames()"
+                    [attr.aria-expanded]="overflowOpen()"
+                    [attr.aria-label]="
+                      showLabelNames()
+                        ? '+ ' + overflowLabelChips().length + ' more labels for ' + task().title
+                        : 'Show all ' + taskLabelChips().length + ' labels for ' + task().title
+                    "
+                    (click)="toggleLabelOverflow($event)"
+                    (keydown)="$event.stopPropagation()"
+                  >
+                    @if (showLabelNames()) {
+                      +{{ overflowLabelChips().length }}
+                    } @else {
+                      <span aria-hidden="true">⋯</span>
+                    }
+                  </button>
+                  @if (overflowOpen()) {
+                    <span
+                      class="task-label-overflow-menu"
+                      role="group"
+                      [attr.aria-label]="'Labels for ' + task().title"
+                      (click)="$event.stopPropagation()"
+                      (keydown)="$event.stopPropagation()"
+                    >
+                      @for (chip of taskLabelChips(); track chip.id) {
+                        <app-label-chip
+                          [label]="chip"
+                          size="sm"
+                          [colorFirst]="colorFirstLabels()"
+                          [interactive]="true"
+                          (select)="selectLabel(chip)"
+                        />
+                      }
+                    </span>
+                  }
+                </span>
               }
             </div>
           }
 
-          @if (task.parentId && mode === 'compact') {
+          @if (task().parentId && mode === 'compact') {
             <span class="meta-pill meta-pill-subtask">Subtask</span>
           }
 
           @if (mode === 'default') {
             <div class="task-badges">
-              @if (task.dueDate) {
+              @if (task().dueDate) {
                 <span class="meta-pill meta-pill-date">
                   {{ dateLabel() }}
                 </span>
               }
 
-              <span class="meta-pill meta-pill-muted">{{ statusLabel() }}</span>
-              <span class="priority-chip priority-chip-{{ task.priority }}">{{
+              <!-- Ambient context (status/simple mode) is suppressed on
+                   surfaces where label context is the primary story (Labels
+                   page), so those pills do not compete with the label chips. -->
+              @if (showContextMetadata) {
+                <span class="meta-pill meta-pill-muted">{{ statusLabel() }}</span>
+              }
+              <span class="priority-chip priority-chip-{{ task().priority }}">{{
                 priorityLabel()
               }}</span>
 
-              @if (task.bucket) {
-                <span class="meta-pill meta-pill-bucket">{{ bucketLabel() }}</span>
-              }
-
-              @if (task.simpleMode) {
+              @if (showContextMetadata && task().simpleMode) {
                 <span class="meta-pill meta-pill-simple">Simple mode</span>
               }
 
-              @if (task.parentId) {
+              @if (task().parentId) {
                 <span class="meta-pill meta-pill-subtask">Subtask</span>
               }
 
@@ -112,20 +186,20 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
                 </span>
               }
 
-              @if (task.recurrenceRule) {
+              @if (task().recurrenceRule) {
                 <span class="meta-pill meta-pill-recurring" [attr.title]="recurrenceLabel()">
                   <fa-icon [icon]="faRotate" class="recurring-icon" />
                   {{ recurrenceLabel() }}
                 </span>
               }
 
-              @if (showCompletionState && task.completed) {
+              @if (showCompletionState && task().completed) {
                 <span class="meta-pill meta-pill-complete">Done</span>
               }
             </div>
           }
 
-          @if (task.completed && mode === 'default') {
+          @if (task().completed && mode === 'default') {
             <div class="completion-group">
               <span class="completion-chip completion-chip-complete">Completed</span>
               <button
@@ -143,17 +217,19 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
                 <button
                   type="button"
                   class="restore-pill archive-pill"
-                  [class.archive-pill-active]="task.permanentArchive"
+                  [class.archive-pill-active]="task().permanentArchive"
                   (click)="$event.stopPropagation(); togglePermanentArchive.emit()"
                   (keydown)="$event.stopPropagation()"
                   [attr.aria-label]="
-                    task.permanentArchive
+                    task().permanentArchive
                       ? 'Remove permanent archive tag'
                       : 'Mark permanent archive'
                   "
                 >
                   <fa-icon [icon]="faBoxArchive" class="restore-icon"></fa-icon>
-                  <span>{{ task.permanentArchive ? 'Permanent archive' : 'Make permanent' }}</span>
+                  <span>{{
+                    task().permanentArchive ? 'Permanent archive' : 'Make permanent'
+                  }}</span>
                 </button>
 
                 <button
@@ -171,7 +247,7 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
           }
         </div>
 
-        @if (mode === 'default' && showDescription && task.description) {
+        @if (mode === 'default' && showDescription && task().description) {
           <markdown class="task-description" [data]="truncatedDescription()"></markdown>
         }
       </div>
@@ -179,21 +255,21 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
 
     <app-confirm-dialog
       [open]="completeConfirmOpen()"
-      [title]="task.completed ? 'Move task back to doing?' : 'Complete task?'"
+      [title]="task().completed ? 'Move task back to doing?' : 'Complete task?'"
       [description]="
-        task.completed
+        task().completed
           ? 'This will return the task to your active work list.'
           : 'This will move the task into completed and archive it.'
       "
-      [confirmLabel]="task.completed ? 'Put back into doing' : 'Mark complete'"
+      [confirmLabel]="task().completed ? 'Put back into doing' : 'Mark complete'"
       cancelLabel="Keep as is"
       [loading]="completing()"
-      [loadingLabel]="task.completed ? 'Restoring...' : 'Completing...'"
+      [loadingLabel]="task().completed ? 'Restoring...' : 'Completing...'"
       (confirm)="completeTask()"
       (cancel)="closeCompleteConfirm()"
       (close)="closeCompleteConfirm()"
     >
-      @if (!task.completed) {
+      @if (!task().completed) {
         <label confirm-extra class="skip-confirm-label">
           <input type="checkbox" #dontShowCheck (change)="dontShowAgain = dontShowCheck.checked" />
           Don&#39;t show this again
@@ -331,6 +407,64 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
         min-width: 0;
       }
 
+      .task-label-overflow-wrap {
+        position: relative;
+        display: inline-flex;
+      }
+
+      .task-label-overflow {
+        appearance: none;
+        border: 0;
+        border-radius: 999px;
+        background: var(--surface-container-low);
+        color: var(--on-surface-muted);
+        font-family: inherit;
+        font-size: 0.66rem;
+        font-weight: 700;
+        line-height: 1;
+        padding: 0.3rem 0.42rem;
+        cursor: pointer;
+        min-height: 1.55rem;
+      }
+
+      .task-label-overflow:hover {
+        background: var(--surface-container-high);
+        color: var(--on-surface);
+      }
+
+      .task-label-overflow:focus-visible {
+        outline: 2px solid var(--primary-solid);
+        outline-offset: 1px;
+      }
+
+      .task-label-reveal {
+        min-width: 1.55rem;
+        font-size: 0.9rem;
+        letter-spacing: 0.05em;
+      }
+
+      .task-label-overflow-menu {
+        position: absolute;
+        top: calc(100% + 0.35rem);
+        right: 0;
+        z-index: 30;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.3rem;
+        max-width: min(16rem, 72vw);
+        padding: 0.55rem 0.65rem;
+        border-radius: 0.6rem;
+        background: var(--surface-card);
+        box-shadow:
+          0 8px 24px var(--surface-dim),
+          inset 0 0 0 1px var(--outline-variant);
+      }
+
+      .task-label-overflow-menu app-label-chip {
+        max-width: 100%;
+      }
+
       .task-badges {
         margin-left: auto;
         display: flex;
@@ -423,6 +557,25 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
         overflow-wrap: anywhere;
       }
 
+      .task-title-button {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        padding: 0;
+        margin: 0;
+        font: inherit;
+        color: inherit;
+        text-align: left;
+        overflow-wrap: anywhere;
+        cursor: pointer;
+      }
+
+      .task-title-button:focus-visible {
+        outline: 2px solid var(--primary-solid);
+        outline-offset: 2px;
+        border-radius: 0.3rem;
+      }
+
       .h3-compact {
         font-size: 0.9rem;
         font-weight: 600;
@@ -464,11 +617,6 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
       .meta-pill-muted {
         background: var(--surface-container-low);
         color: var(--on-surface-subtle);
-      }
-
-      .meta-pill-label {
-        background: var(--accent-soft);
-        color: var(--accent-strong);
       }
 
       .meta-pill-date {
@@ -561,7 +709,6 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
 
         /* Reduce low-value metadata pressure on narrow cards; the full
            detail set remains available in the task modal. */
-        .meta-pill-bucket,
         .meta-pill-simple {
           display: none;
         }
@@ -620,25 +767,59 @@ export class PersonalTaskCardComponent {
 
   protected readonly completeConfirmOpen = signal(false);
   protected readonly completing = signal(false);
+  /** Task-list density preferences shared across cards. */
+  protected readonly showLabelNames = this.preferences.showLabelNames;
+  protected readonly colorFirstLabels = this.preferences.colorFirstLabels;
   protected dontShowAgain = false;
   protected readonly faRotate = faRotate;
   protected readonly faRotateLeft = faRotateLeft;
   protected readonly faBoxArchive = faBoxArchive;
   protected readonly faTrash = faTrash;
 
-  @Input({ required: true }) task!: Task;
+  readonly task = input.required<Task>();
   @Input() mode: 'default' | 'compact' = 'default';
   @Input() tone: 'default' | 'overdue' = 'default';
   @Input() showDescription = true;
   @Input() showCompletionState = false;
   @Input() showArchiveActions = false;
   @Input() interactive = false;
+  /**
+   * Hides ambient task metadata (status / simple-mode pills). The Labels page
+   * sets false so the chips tell the label story uncluttered.
+   */
+  @Input() showContextMetadata = true;
+  /** Label ID to hide from the chip row — the Labels page suppresses the label being viewed. */
+  readonly suppressLabelId = input<string | null>(null);
+  /** Multiple active filter labels to suppress on the card. */
+  readonly suppressLabelIds = input<string[]>([]);
   @Output() readonly select = new EventEmitter<void>();
+  @Output() readonly labelSelect = new EventEmitter<Label>();
   @Output() readonly togglePermanentArchive = new EventEmitter<void>();
   @Output() readonly deleteForever = new EventEmitter<void>();
 
+  /**
+   * Live labels in task order, skipping IDs that no longer exist (deleted mid
+   * session) and the suppressed one. Two chips render inline; the rest move
+   * behind a +N button with a popover that lists every label name.
+   */
+  protected readonly taskLabelChips = computed<Label[]>(() => {
+    const labelsById = this.labelService.labelById();
+    const suppressed = new Set(this.suppressLabelIds());
+    const singleSuppressedLabelId = this.suppressLabelId();
+    if (singleSuppressedLabelId) {
+      suppressed.add(singleSuppressedLabelId);
+    }
+    return (this.task().labels ?? [])
+      .map((labelId) => labelsById.get(labelId))
+      .filter((label): label is Label => label !== undefined && !suppressed.has(label.id));
+  });
+
+  protected readonly visibleLabelChips = computed(() => this.taskLabelChips().slice(0, 2));
+  protected readonly overflowLabelChips = computed(() => this.taskLabelChips().slice(2));
+  protected readonly overflowOpen = signal(false);
+
   protected priorityLabel() {
-    return `${this.task.priority} priority`;
+    return `${this.task().priority} priority`;
   }
 
   protected statusLabel() {
@@ -646,7 +827,7 @@ export class PersonalTaskCardComponent {
       return 'Overdue';
     }
 
-    switch (this.task.status) {
+    switch (this.task().status) {
       case 'today':
         return 'Today';
       case 'upcoming':
@@ -661,7 +842,7 @@ export class PersonalTaskCardComponent {
   }
 
   protected dateLabel() {
-    const parsed = parseCalendarDate(this.task.dueDate);
+    const parsed = parseCalendarDate(this.task().dueDate);
 
     if (!parsed) {
       return '';
@@ -672,33 +853,14 @@ export class PersonalTaskCardComponent {
       day: 'numeric',
       year: 'numeric',
     }).format(parsed.toJSDate());
-    const formattedTime = formatTimeLabel(this.task.dueTime);
+    const formattedTime = formatTimeLabel(this.task().dueTime);
 
     // The time appears only when the task actually carries one.
     return formattedTime ? `${formattedDate}, ${formattedTime}` : formattedDate;
   }
 
-  protected labelName(labelId: string) {
-    return this.labelService.labels().find((label) => label.id === labelId)?.name ?? labelId;
-  }
-
-  protected bucketLabel() {
-    switch (this.task.bucket) {
-      case 'personal-sanctuary':
-        return 'Personal Sanctuary';
-      case 'deep-work':
-        return 'Deep Work';
-      case 'home':
-        return 'Home';
-      case 'health':
-        return 'Health';
-      default:
-        return this.task.bucket || '';
-    }
-  }
-
-  protected subtaskCount = computed(() => this.task.subtaskCount ?? 0);
-  protected subtaskDoneCount = computed(() => this.task.subtaskCompletedCount ?? 0);
+  protected subtaskCount = computed(() => this.task().subtaskCount ?? 0);
+  protected subtaskDoneCount = computed(() => this.task().subtaskCompletedCount ?? 0);
   protected subtaskAllDone = computed(
     () => this.subtaskCount() > 0 && this.subtaskDoneCount() === this.subtaskCount(),
   );
@@ -706,13 +868,13 @@ export class PersonalTaskCardComponent {
   /** Truncate description at 500 chars to avoid perf issues with markdown parser on card preview.
    *  CSS line-clamp handles visual truncation; this prevents processing very long strings. */
   protected truncatedDescription() {
-    const desc = this.task?.description;
+    const desc = this.task()?.description;
     if (!desc || desc.length <= 500) return desc;
     return desc.slice(0, 497) + '...';
   }
 
   protected recurrenceLabel() {
-    const rule = this.task.recurrenceRule;
+    const rule = this.task().recurrenceRule;
     if (!rule) return '';
 
     const { frequency, interval, daysOfWeek } = rule;
@@ -742,14 +904,26 @@ export class PersonalTaskCardComponent {
     this.completeConfirmOpen.set(true);
   }
 
-  onKeydown(event: KeyboardEvent) {
-    if (!this.interactive) {
-      return;
-    }
+  selectFromTitle(event: MouseEvent) {
+    event.stopPropagation();
+    this.select.emit();
+  }
 
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      this.select.emit();
+  selectLabel(label: Label) {
+    this.overflowOpen.set(false);
+    this.labelSelect.emit(label);
+  }
+
+  protected toggleLabelOverflow(event: MouseEvent) {
+    // Never reach the card's select handler or the document close listener —
+    // otherwise the popover closes in the same click that opened it.
+    event.stopPropagation();
+    this.overflowOpen.set(!this.overflowOpen());
+  }
+
+  protected closeLabelOverflow() {
+    if (this.overflowOpen()) {
+      this.overflowOpen.set(false);
     }
   }
 
@@ -759,10 +933,10 @@ export class PersonalTaskCardComponent {
 
   async completeTask() {
     this.completing.set(true);
-    const wasCompleted = this.task.completed;
+    const wasCompleted = this.task().completed;
 
     try {
-      await this.taskService.updateTask(this.task.id, { completed: !wasCompleted });
+      await this.taskService.updateTask(this.task().id, { completed: !wasCompleted });
       this.completeConfirmOpen.set(false);
 
       if (!wasCompleted) {

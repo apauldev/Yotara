@@ -1,5 +1,6 @@
 import { signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, flushMicrotasks } from '@angular/core/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import { By } from '@angular/platform-browser';
 import { provideMarkdown } from 'ngx-markdown';
 import { DateTime } from 'luxon';
@@ -13,6 +14,8 @@ const testLabel: Label = {
   id: 'label-1',
   name: 'Urgent',
   color: '#d44d3c',
+  icon: 'flame',
+  pinned: false,
   userId: 'user-1',
 };
 
@@ -28,13 +31,27 @@ const inferredDateDraft: DueDateDraft = {
 describe('PersonalTaskModalComponent', () => {
   let component: PersonalTaskModalComponent;
   let fixture: ComponentFixture<PersonalTaskModalComponent>;
+  let createLabelSpy: jasmine.Spy;
+  let refreshLabelsSpy: jasmine.Spy;
 
   beforeEach(async () => {
+    createLabelSpy = jasmine.createSpy('createLabel');
+    refreshLabelsSpy = jasmine.createSpy('refresh');
+    const labelsSignal = signal([testLabel]);
+
     await TestBed.configureTestingModule({
       imports: [PersonalTaskModalComponent],
       providers: [
         provideMarkdown(),
-        { provide: LabelService, useValue: { labels: signal([testLabel]) } },
+        {
+          provide: LabelService,
+          useValue: {
+            labels: labelsSignal,
+            labelById: () => new Map(labelsSignal().map((label) => [label.id, label])),
+            createLabel: createLabelSpy,
+            refresh: refreshLabelsSpy,
+          },
+        },
       ],
     }).compileComponents();
 
@@ -247,7 +264,6 @@ describe('PersonalTaskModalComponent', () => {
         priority: 'medium',
         completed: false,
         simpleMode: true,
-        bucket: 'personal-sanctuary',
         order: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -358,6 +374,36 @@ describe('PersonalTaskModalComponent', () => {
 
       expect(closeSpy).not.toHaveBeenCalled();
     });
+
+    it('opens and focuses the label picker with the L shortcut', fakeAsync(() => {
+      component.open = true;
+      fixture.detectChanges();
+
+      fixture.nativeElement.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'l', bubbles: true }),
+      );
+      flushMicrotasks();
+      fixture.detectChanges();
+
+      const labelSearch = fixture.debugElement.query(By.css('.label-picker-search'));
+      expect(labelSearch).toBeTruthy();
+      expect(document.activeElement).toBe(labelSearch.nativeElement);
+    }));
+
+    it('does not hijack L while typing in a text field', fakeAsync(() => {
+      component.open = true;
+      fixture.detectChanges();
+
+      const titleInput = fixture.debugElement.query(By.css('input[name="taskTitle"]'));
+      titleInput.nativeElement.focus();
+      titleInput.nativeElement.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'l', bubbles: true }),
+      );
+      flushMicrotasks();
+      fixture.detectChanges();
+
+      expect(document.activeElement).toBe(titleInput.nativeElement);
+    }));
   });
 
   describe('Field labeling', () => {
@@ -540,7 +586,6 @@ describe('PersonalTaskModalComponent', () => {
         priority: 'medium',
         completed: false,
         simpleMode: false,
-        bucket: 'personal-sanctuary',
         dueDate: '2020-01-01',
         order: 0,
         createdAt: '2026-04-18T08:00:00.000Z',
@@ -650,7 +695,6 @@ describe('PersonalTaskModalComponent', () => {
         priority: 'medium',
         completed: false,
         simpleMode: true,
-        bucket: 'personal-sanctuary',
         order: 0,
         createdAt: '2026-04-18T08:00:00.000Z',
         updatedAt: '2026-04-18T08:00:00.000Z',
@@ -774,7 +818,6 @@ describe('PersonalTaskModalComponent', () => {
         priority: 'medium',
         completed: false,
         simpleMode: false,
-        bucket: 'personal-sanctuary',
         dueDate,
         dueTime,
         order: 0,
@@ -1005,7 +1048,6 @@ describe('PersonalTaskModalComponent', () => {
         dueDate: '2025-12-25',
         completed: false,
         simpleMode: false,
-        bucket: 'personal-sanctuary',
         order: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -1024,7 +1066,6 @@ describe('PersonalTaskModalComponent', () => {
         priority: 'medium',
         completed: false,
         simpleMode: true,
-        bucket: 'personal-sanctuary',
         order: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -1052,21 +1093,93 @@ describe('PersonalTaskModalComponent', () => {
   });
 
   describe('Selected-state semantics', () => {
-    it('exposes aria-pressed on label choices within a labeled group', () => {
+    it('exposes a labeled combobox whose options reflect selection', () => {
       component.open = true;
       component['showAdvanced'].set(true);
       fixture.detectChanges();
 
-      const group = fixture.debugElement.query(By.css('.label-chip-grid'));
-      expect(group.nativeElement.getAttribute('role')).toBe('group');
+      const combobox = fixture.debugElement.query(By.css('input[role="combobox"]'));
+      expect(combobox.nativeElement.getAttribute('aria-labelledby')).toBe('task-labels-label');
+      expect(combobox.nativeElement.getAttribute('aria-expanded')).toBe('true');
 
-      const chip = fixture.debugElement.query(By.css('.label-chip'));
-      expect(chip.nativeElement.getAttribute('aria-pressed')).toBe('false');
+      const listbox = fixture.debugElement.query(By.css('#task-label-options'));
+      expect(listbox.nativeElement.getAttribute('role')).toBe('listbox');
+
+      const option = fixture.debugElement.query(By.css('#task-label-options [role="option"]'));
+      expect(option.nativeElement.getAttribute('aria-selected')).toBe('false');
 
       component['toggleLabel'](testLabel);
       fixture.detectChanges();
 
-      expect(chip.nativeElement.getAttribute('aria-pressed')).toBe('true');
+      const selected = fixture.debugElement.query(By.css('#task-label-options [role="option"]'));
+      expect(selected.nativeElement.getAttribute('aria-selected')).toBe('true');
+    });
+
+    it('filters label options as the user types', () => {
+      component.open = true;
+      component['showAdvanced'].set(true);
+      component['onLabelSearchChange']('urgent');
+      fixture.detectChanges();
+
+      const options = fixture.debugElement.queryAll(By.css('#task-label-options [role="option"]'));
+      expect(options.length).toBe(1);
+      expect(options[0].nativeElement.textContent).toContain('Urgent');
+    });
+
+    it('toggles the active label with Enter', () => {
+      component.open = true;
+      component['showAdvanced'].set(true);
+      component['onLabelSearchChange']('urgent');
+      fixture.detectChanges();
+
+      const input = fixture.debugElement.query(By.css('input[role="combobox"]'));
+      input.nativeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+      fixture.detectChanges();
+
+      expect(component['draftLabels']()).toContain(testLabel.id);
+      expect(component['labelSearch']()).toBe('');
+    });
+
+    it('offers to create an unknown name with its suggested icon', async () => {
+      createLabelSpy.and.resolveTo({
+        ...testLabel,
+        id: 'new-label',
+        name: 'Writing',
+        icon: 'pen',
+      });
+      component.open = true;
+      component['showAdvanced'].set(true);
+      component['onLabelSearchChange']('Writing');
+      fixture.detectChanges();
+
+      const createOption = fixture.debugElement.query(By.css('#task-label-create-option'));
+      expect(createOption.nativeElement.textContent).toContain('Create “Writing”');
+
+      await component['createLabelFromSearch']();
+      fixture.detectChanges();
+
+      expect(createLabelSpy).toHaveBeenCalledWith({ name: 'Writing', icon: 'pen' });
+      expect(component['draftLabels']()).toContain('new-label');
+      expect(component['labelSearch']()).toBe('');
+    });
+
+    it('selects the existing label when creation hits a duplicate 409', async () => {
+      createLabelSpy.and.rejectWith(
+        new HttpErrorResponse({
+          status: 409,
+          error: { existingLabel: { id: 'existing-label', name: 'Writing' } },
+        }),
+      );
+      component.open = true;
+      component['showAdvanced'].set(true);
+      component['onLabelSearchChange']('Writing');
+
+      await component['createLabelFromSearch']();
+      fixture.detectChanges();
+
+      expect(component['draftLabels']()).toContain('existing-label');
+      expect(refreshLabelsSpy).toHaveBeenCalled();
+      expect(component['labelPickerError']()).toBeNull();
     });
 
     it('exposes aria-pressed on priority choices within a labeled group', () => {

@@ -222,10 +222,9 @@ test('PATCH /me seeds default projects and labels when onboarding is completed',
       .select({ value: sql<number>`count(*)` })
       .from(labels)
       .where(eq(labels.userId, userId));
-    assert.ok(labelCount.value >= 8, 'PATCH should seed at least 8 labels');
+    assert.ok(labelCount.value >= 6, 'PATCH should seed the six default labels');
 
-    // Route-level assertions (side-effecting — seed on read, so these don't
-    // prove the PATCH seeded, but verify the full request/response chain.)
+    // Route-level assertions (these verify the full request/response chain.)
     const projectsResponse = await ctx.app.inject({
       method: 'GET',
       url: '/projects',
@@ -243,7 +242,7 @@ test('PATCH /me seeds default projects and labels when onboarding is completed',
     });
     assert.equal(labelsResponse.statusCode, 200);
     const labelsList = labelsResponse.json();
-    assert.ok(labelsList.length >= 8);
+    assert.ok(labelsList.length >= 6);
     assert.ok(labelsList.some((l: { name: string }) => l.name === 'Urgent'));
 
     const patchIdempotent = await ctx.app.inject({

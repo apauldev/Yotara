@@ -1,5 +1,11 @@
 import type { FastifyInstance } from 'fastify';
-import type { CreateLabelDto, Label, UpdateLabelDto } from '@yotara/shared';
+import type {
+  CreateLabelDto,
+  Label,
+  LabelMergeResult,
+  MergeLabelDto,
+  UpdateLabelDto,
+} from '@yotara/shared';
 import { authCookieSecurity, errorResponseSchema, withJsonResponse } from '../docs/openapi.js';
 import { UnauthorizedError } from '../lib/app-error.js';
 import { sendNotFound } from '../lib/api-errors.js';
@@ -8,7 +14,7 @@ import {
   createLabelForOwner,
   deleteLabelForOwner,
   listLabelsForOwner,
-  seedDefaultLabelsForOwner,
+  mergeLabelForOwner,
   updateLabelForOwner,
 } from '../services/label-service.js';
 
@@ -37,7 +43,9 @@ export default async function labelRoutes(fastify: FastifyInstance) {
       if (!userId) {
         throw new UnauthorizedError();
       }
-      await seedDefaultLabelsForOwner(userId);
+      // No default seeding here: GET /labels is a plain read. Deleting every
+      // label must stay deleted on the next page load; new users get defaults
+      // during onboarding (PATCH /me) only.
       return listLabelsForOwner(userId);
     },
   );
@@ -54,7 +62,9 @@ export default async function labelRoutes(fastify: FastifyInstance) {
         },
         response: {
           201: { description: 'Label created', $ref: 'Label#' },
+          400: errorResponseSchema('Label name is required or color is invalid', 'Bad request'),
           401: errorResponseSchema('Authentication required', 'Unauthorized'),
+          409: errorResponseSchema('A label with the same name already exists', 'Duplicate label'),
         },
       }),
     },
@@ -83,8 +93,10 @@ export default async function labelRoutes(fastify: FastifyInstance) {
         body: { $ref: 'UpdateLabelDto#' },
         response: {
           200: { description: 'Label updated', $ref: 'Label#' },
+          400: errorResponseSchema('Label name is required or color is invalid', 'Bad request'),
           401: errorResponseSchema('Authentication required', 'Unauthorized'),
           404: errorResponseSchema('Label was not found', 'Label not found'),
+          409: errorResponseSchema('A label with the same name already exists', 'Duplicate label'),
         },
       }),
     },
@@ -99,6 +111,44 @@ export default async function labelRoutes(fastify: FastifyInstance) {
       }
 
       return updated as Label;
+    },
+  );
+
+  fastify.post<{
+    Params: { id: string };
+    Body: MergeLabelDto;
+    Reply: LabelMergeResult | { message: string };
+  }>(
+    '/labels/:id/merge',
+    {
+      schema: withJsonResponse({
+        tags: ['labels'],
+        summary: 'Merge a label into another',
+        description:
+          'Moves every task association from this label to the target label, then deletes this label. Tasks are never deleted.',
+        security: authCookieSecurity,
+        params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
+        body: { $ref: 'MergeLabelDto#' },
+        response: {
+          200: { description: 'Label merged', $ref: 'LabelMergeResult#' },
+          400: errorResponseSchema('A label cannot be merged into itself', 'Bad request'),
+          401: errorResponseSchema('Authentication required', 'Unauthorized'),
+          404: errorResponseSchema('Label was not found', 'Label not found'),
+        },
+      }),
+    },
+    async (request, reply) => {
+      const userId = request.userId;
+      if (!userId) {
+        throw new UnauthorizedError();
+      }
+
+      const result = mergeLabelForOwner(userId, request.params.id, request.body.targetId);
+      if (!result) {
+        return sendNotFound(reply, 'Label not found');
+      }
+
+      return result;
     },
   );
 

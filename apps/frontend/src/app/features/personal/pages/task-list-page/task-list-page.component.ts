@@ -9,7 +9,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Task } from '@yotara/shared';
+import { Label, Task } from '@yotara/shared';
 import { PreferencesStore } from '../../../../core/services/preferences-store.service';
 import { ProjectService } from '../../../../core/services/project.service';
 import {
@@ -28,9 +28,10 @@ import { SectionHeaderComponent } from '../../../../shared/components/section-he
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { PaginationComponent } from '../../../../shared/components/pagination/pagination.component';
 import { TaskViewControlsComponent } from '../../../../shared/components/task-view-controls/task-view-controls.component';
+import { TaskLabelFilterComponent } from '../../../../shared/components/task-label-filter/task-label-filter.component';
 import { TaskStackComponent } from '../../../../shared/components/task-stack/task-stack.component';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faPlus, faSun, faCalendarDay, faCloud } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faSun, faCalendarDay, faCloud, faTag } from '@fortawesome/free-solid-svg-icons';
 import { parseTaskCommand } from '../../utils/task-command-parser';
 import { taskCreationNotification } from '../../utils/task-creation-notification';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
@@ -56,6 +57,7 @@ import { map } from 'rxjs';
     PageHeaderComponent,
     PaginationComponent,
     TaskViewControlsComponent,
+    TaskLabelFilterComponent,
     FontAwesomeModule,
     EmptyStateComponent,
     TaskStackComponent,
@@ -77,6 +79,7 @@ export class TaskListPageComponent implements OnInit {
   protected readonly faSun = faSun;
   protected readonly faCalendarDay = faCalendarDay;
   protected readonly faCloud = faCloud;
+  protected readonly faTag = faTag;
 
   private readonly workspace = viewChild(PersonalTaskWorkspaceComponent);
   protected readonly captureBar = viewChild(CaptureBarComponent);
@@ -103,6 +106,46 @@ export class TaskListPageComponent implements OnInit {
     if (path.endsWith('/upcoming')) return 'upcoming';
     return null;
   }
+
+  // --- Label filter (persisted in ?labels=id1,id2) ---
+  protected readonly labels = this.labelService.labels;
+  protected readonly selectedLabelIds = toSignal(
+    this.route.queryParamMap.pipe(
+      map((params) =>
+        (params.get('labels') ?? '')
+          .split(',')
+          .map((id) => id.trim())
+          .filter(Boolean),
+      ),
+    ),
+    { initialValue: [] as string[] },
+  );
+  protected readonly labelFilterMode = toSignal(
+    this.route.queryParamMap.pipe(
+      map((params) => (params.get('labelMode') === 'all' ? ('all' as const) : ('any' as const))),
+    ),
+    { initialValue: 'any' as const },
+  );
+  protected readonly hasLabelFilter = computed(() => this.selectedLabelIds().length > 0);
+  protected readonly labelFilteredTasks = this.taskService.labelFilteredTasks;
+  protected readonly processedLabelTasks = computed(() =>
+    sortAndPaginate(
+      this.taskService.labelFilteredTasks(),
+      this.sortOption(),
+      this.currentPage(),
+      this.pageSize(),
+    ),
+  );
+  protected readonly labelFilterTitle = computed(() => {
+    const labelsById = this.labelService.labelById();
+    const names = this.selectedLabelIds()
+      .map((id) => labelsById.get(id)?.name)
+      .filter((name): name is string => Boolean(name));
+    return names.length > 0 ? `Labeled: ${names.join(' + ')}` : 'Labeled tasks';
+  });
+  protected readonly labelFilterCount = computed(() =>
+    this.taskService.labelFilterPending() ? '…' : `${this.labelFilteredTasks().length} tasks`,
+  );
 
   // --- Header Data ---
   protected readonly pageTitle = computed(() => {
@@ -190,6 +233,9 @@ export class TaskListPageComponent implements OnInit {
   });
 
   protected readonly totalTasksCount = computed(() => {
+    if (this.hasLabelFilter()) {
+      return this.taskService.labelFilteredTasks().length;
+    }
     switch (this.viewMode()) {
       case 'inbox':
         return this.taskService.inboxTasks().length;
@@ -208,6 +254,9 @@ export class TaskListPageComponent implements OnInit {
 
   /** True when the list behind the current view hit the API's page cap. */
   protected readonly limitExceeded = computed(() => {
+    if (this.hasLabelFilter()) {
+      return this.taskService.labelFilterTruncated() && !this.taskService.labelFilterPending();
+    }
     switch (this.viewMode()) {
       case 'today':
         return this.taskService.todayTruncated() || this.taskService.overdueTruncated();
@@ -255,13 +304,27 @@ export class TaskListPageComponent implements OnInit {
         return;
       }
 
-      const { title, priority, labelNames } = parseTaskCommand(rawValue);
+      // Merge labels created from this capture with the live list so a tag
+      // created in the combobox resolves even before the refresh lands.
+      const availableLabels = new Map<string, { id: string; name: string }>();
+      for (const label of this.labelService.labels()) {
+        availableLabels.set(label.id, { id: label.id, name: label.name });
+      }
+      for (const label of bar.getCreatedLabels()) {
+        availableLabels.set(label.id, label);
+      }
+      const labelCandidates = [...availableLabels.values()];
+
+      const { title, priority, labelNames } = parseTaskCommand(rawValue, {
+        knownLabelNames: labelCandidates.map((label) => label.name),
+      });
       const dueDateDraft = bar.getDueDateDraft();
 
-      const resolvedLabels = this.labelService
-        .labels()
-        .filter((l) => labelNames.some((name) => name.toLowerCase() === l.name.toLowerCase()))
-        .map((l) => l.id);
+      const resolvedLabels = labelCandidates
+        .filter((label) =>
+          labelNames.some((name) => name.toLowerCase() === label.name.toLowerCase()),
+        )
+        .map((label) => label.id);
 
       const behavior =
         bar.getLastSubmissionType() === 'default'
@@ -304,6 +367,8 @@ export class TaskListPageComponent implements OnInit {
         this.workspace()?.openCreateTaskModal(
           bar.getProjectId() || this.defaultCaptureProjectId() || null,
           dueDateDraft,
+          resolvedLabels,
+          title,
         );
         bar.resetSubmissionType();
       }
@@ -354,6 +419,41 @@ export class TaskListPageComponent implements OnInit {
       this.totalTasksCount();
       this.currentPage.set(1);
     });
+
+    // Keep the service query in sync with the URL-owned filter.
+    effect(() => {
+      this.taskService.setLabelFilter(this.selectedLabelIds(), this.labelFilterMode());
+      this.currentPage.set(1);
+    });
+  }
+
+  // --- Label filter events ---
+  protected onLabelFilterChange(ids: string[]) {
+    const mode = ids.length > 1 ? this.labelFilterMode() : 'any';
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        labels: ids.length > 0 ? ids.join(',') : null,
+        labelMode: mode === 'all' ? 'all' : null,
+      },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  protected onLabelFilterModeChange(mode: 'any' | 'all') {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { labelMode: mode === 'all' ? 'all' : null },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  protected filterByLabel(label: Label) {
+    const selected = this.selectedLabelIds();
+    const next = selected.includes(label.id)
+      ? selected.filter((id) => id !== label.id)
+      : [...selected, label.id];
+    this.onLabelFilterChange(next);
   }
 
   // --- Sorting & Pagination Events ---

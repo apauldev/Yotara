@@ -1,6 +1,7 @@
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import type { FastifyInstance, FastifySchema, RouteOptions } from 'fastify';
+import { LABEL_ICON_KEYS } from '@yotara/shared';
 
 type OpenApiJsonContent = {
   example?: unknown;
@@ -62,10 +63,6 @@ const taskSchema = {
     dueDate: { type: 'string', format: 'date' },
     dueTime: timeOfDaySchema,
     simpleMode: { type: 'boolean' },
-    bucket: {
-      type: 'string',
-      enum: ['personal-sanctuary', 'deep-work', 'home', 'health'],
-    },
     projectId: { type: 'string', format: 'uuid' },
     parentId: { type: 'string' },
     recurrenceRule: { $ref: 'RecurrenceRule#' },
@@ -102,10 +99,6 @@ const createTaskSchema = {
     dueDate: { type: 'string', format: 'date' },
     dueTime: timeOfDaySchema,
     simpleMode: { type: 'boolean' },
-    bucket: {
-      type: 'string',
-      enum: ['personal-sanctuary', 'deep-work', 'home', 'health'],
-    },
     projectId: { type: 'string', format: 'uuid' },
     parentId: { type: 'string' },
     recurrenceRule: { $ref: 'RecurrenceRule#' },
@@ -152,10 +145,6 @@ const updateTaskSchema = {
       anyOf: [timeOfDaySchema, { type: 'null' }],
     },
     simpleMode: { type: 'boolean' },
-    bucket: {
-      type: 'string',
-      enum: ['personal-sanctuary', 'deep-work', 'home', 'health'],
-    },
     projectId: {
       anyOf: [{ type: 'string', format: 'uuid' }, { type: 'null' }],
     },
@@ -192,13 +181,18 @@ const updateTaskSchema = {
 const labelSchema = {
   $id: 'Label',
   type: 'object',
-  required: ['id', 'name', 'color', 'userId'],
+  required: ['id', 'name', 'color', 'icon', 'pinned', 'userId'],
   properties: {
     id: { type: 'string', format: 'uuid' },
     name: { type: 'string' },
     color: { type: 'string' },
+    icon: { type: 'string', enum: [...LABEL_ICON_KEYS] },
+    pinned: { type: 'boolean' },
     userId: { type: 'string' },
     taskCount: { type: 'integer', minimum: 0 },
+    openTaskCount: { type: 'integer', minimum: 0 },
+    completedTaskCount: { type: 'integer', minimum: 0 },
+    totalTaskCount: { type: 'integer', minimum: 0 },
     createdAt: dateTimeSchema,
     updatedAt: dateTimeSchema,
   },
@@ -211,6 +205,8 @@ const createLabelSchema = {
   properties: {
     name: nonEmptyTextSchema,
     color: { type: 'string' },
+    icon: { type: 'string', enum: [...LABEL_ICON_KEYS] },
+    pinned: { type: 'boolean' },
   },
   additionalProperties: false,
 } as const;
@@ -221,8 +217,29 @@ const updateLabelSchema = {
   properties: {
     name: nonEmptyTextSchema,
     color: { type: 'string' },
+    icon: { type: 'string', enum: [...LABEL_ICON_KEYS] },
+    pinned: { type: 'boolean' },
   },
   additionalProperties: false,
+} as const;
+
+const mergeLabelSchema = {
+  $id: 'MergeLabelDto',
+  type: 'object',
+  required: ['targetId'],
+  properties: {
+    targetId: { type: 'string', format: 'uuid' },
+  },
+  additionalProperties: false,
+} as const;
+
+const labelMergeResultSchema = {
+  $id: 'LabelMergeResult',
+  type: 'object',
+  required: ['movedTaskCount'],
+  properties: {
+    movedTaskCount: { type: 'integer', minimum: 0 },
+  },
 } as const;
 
 const projectColorSchema = {
@@ -391,6 +408,17 @@ const apiErrorSchema = {
   required: ['message'],
   properties: {
     message: { type: 'string' },
+    // Present on duplicate-label 409s: points the caller at the conflicting
+    // label so the UI can offer a path to it instead of a dead-end error.
+    existingLabel: {
+      type: 'object',
+      nullable: true,
+      required: ['id', 'name'],
+      properties: {
+        id: { type: 'string', format: 'uuid' },
+        name: { type: 'string' },
+      },
+    },
   },
 } as const;
 
@@ -570,6 +598,8 @@ const sharedSchemas = [
   labelSchema,
   createLabelSchema,
   updateLabelSchema,
+  mergeLabelSchema,
+  labelMergeResultSchema,
   projectColorSchema,
   projectSchema,
   appUserSchema,
@@ -828,6 +858,8 @@ export const examples = {
           id: 'label_456',
           name: 'enhancement',
           color: '#3b82f6',
+          icon: 'lightbulb',
+          pinned: false,
           userId: 'user_123',
           taskCount: 3,
         },

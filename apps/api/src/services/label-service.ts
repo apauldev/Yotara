@@ -1,35 +1,61 @@
 import { randomUUID } from 'node:crypto';
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
-import type { CreateLabelDto, Label, UpdateLabelDto } from '@yotara/shared';
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import {
+  DEFAULT_LABELS,
+  DEFAULT_LABEL_ICON,
+  isLabelIcon,
+  pickLabelColorForName,
+  type CreateLabelDto,
+  type Label,
+  type LabelIcon,
+  type UpdateLabelDto,
+} from '@yotara/shared';
 import { db, type Database } from '../db/client.js';
-import { labels, taskLabels } from '../db/schema.js';
+import { labels, taskLabels, tasks } from '../db/schema.js';
+import { labelNameKey } from '../lib/label-name.js';
 import { nowIsoTimestamp } from '../lib/timestamps.js';
+import { BadRequestError, ConflictError } from '../lib/app-error.js';
 
-const DEFAULT_LABELS = [
-  { name: 'Urgent', color: '#d44d3c' },
-  { name: 'Waiting', color: '#a5d3e1' },
-  { name: 'Planning', color: '#b9a3f4' },
-  { name: 'Reference', color: '#9fb18c' },
-  { name: 'Meeting', color: '#81d7e8' },
-  { name: 'Call', color: '#f1c582' },
-  { name: 'Review', color: '#c7e9b3' },
-  { name: 'Ideas', color: '#82d7a9' },
-] satisfies Array<{ name: string; color: string }>;
+/** Matches a normalized 3- or 6-digit hex color. */
+const HEX_COLOR_PATTERN = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 
-type LabelRow = typeof labels.$inferSelect;
-
-function toLabel(row: LabelRow & { taskCount?: number }): Label {
-  return {
-    id: row.id,
-    name: row.name,
-    color: row.color,
-    userId: row.userId,
-    taskCount: row.taskCount ?? 0,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-  };
+/**
+ * Validates and normalizes a label color sent by a client. Accepts 3- or
+ * 6-digit hex; 3-digit forms expand to 6. Anything else is rejected so broken
+ * CSS colors never reach the browser. Legacy stored values that fail this
+ * check are tolerated on read (toLabel) but never pass through unchanged
+ * writes.
+ */
+function normalizeHexColor(value: string, context: string): string {
+  const raw = value.trim();
+  if (!HEX_COLOR_PATTERN.test(raw)) {
+    throw new BadRequestError(`${context} must be a 3- or 6-digit hex color, e.g. #82d7a9`);
+  }
+  const hex = raw.toLowerCase();
+  if (hex.length === 4) {
+    const [, r, g, b] = hex;
+    return `#${r}${r}${g}${g}${b}${b}`;
+  }
+  return hex;
 }
 
+/** Validates a picked icon against the shared allowlist. */
+function normalizeLabelIcon(value: string | undefined): LabelIcon {
+  if (value === undefined) {
+    return DEFAULT_LABEL_ICON;
+  }
+  if (!isLabelIcon(value)) {
+    throw new BadRequestError(`Unknown label icon "${value}"`);
+  }
+  return value;
+}
+
+/**
+ * Idempotent under both the (user_id, name_norm) unique index and
+ * repeated onboarding calls: existing labels short-circuit, and a double
+ * request that races past that check hits ON CONFLICT DO NOTHING instead of
+ * surfacing a constraint failure as a 500.
+ */
 export async function seedDefaultLabelsForOwner(ownerId: string) {
   const existing = await db
     .select({ id: labels.id })
@@ -41,18 +67,33 @@ export async function seedDefaultLabelsForOwner(ownerId: string) {
   }
 
   const now = nowIsoTimestamp();
-  await db.insert(labels).values(
-    DEFAULT_LABELS.map((label) => ({
-      id: randomUUID(),
-      userId: ownerId,
-      name: label.name,
-      color: label.color,
-      createdAt: now,
-      updatedAt: now,
-    })),
-  );
+  await db
+    .insert(labels)
+    .values(
+      DEFAULT_LABELS.map((label) => ({
+        id: randomUUID(),
+        userId: ownerId,
+        name: label.name,
+        nameNorm: labelNameKey(label.name),
+        color: label.color,
+        icon: label.icon,
+        pinned: false,
+        createdAt: now,
+        updatedAt: now,
+      })),
+    )
+    .onConflictDoNothing();
 }
 
+/**
+ * Label list with truthful counts: one row per label, joined to tasks once.
+ *   openTaskCount      — attached tasks that are not completed and not deleted
+ *   completedTaskCount — attached, completed, not deleted
+ *   totalTaskCount     — attached, not deleted (open + completed)
+ *   taskCount          — legacy alias of totalTaskCount kept for older clients
+ * Subtasks are included: the flat all-non-deleted-task scope keeps the
+ * directory count, pane counts, and filtered lists in agreement.
+ */
 export async function listLabelsForOwner(ownerId: string): Promise<Label[]> {
   const rows = await db
     .select({
@@ -60,17 +101,44 @@ export async function listLabelsForOwner(ownerId: string): Promise<Label[]> {
       userId: labels.userId,
       name: labels.name,
       color: labels.color,
+      icon: labels.icon,
+      pinned: labels.pinned,
       createdAt: labels.createdAt,
       updatedAt: labels.updatedAt,
-      taskCount: sql<number>`coalesce(count(${taskLabels.taskId}), 0)`,
+      openTaskCount: sql<number>`coalesce(sum(case when ${tasks.completed} = 0 then 1 else 0 end), 0)`,
+      completedTaskCount: sql<number>`coalesce(sum(case when ${tasks.completed} = 1 then 1 else 0 end), 0)`,
+      totalTaskCount: sql<number>`coalesce(count(${tasks.id}), 0)`,
     })
     .from(labels)
     .leftJoin(taskLabels, eq(taskLabels.labelId, labels.id))
+    .leftJoin(tasks, and(eq(taskLabels.taskId, tasks.id), sql`${tasks.deletedAt} IS NULL`))
     .where(eq(labels.userId, ownerId))
-    .groupBy(labels.id)
-    .orderBy(asc(labels.name));
+    .groupBy(
+      labels.id,
+      labels.userId,
+      labels.name,
+      labels.color,
+      labels.icon,
+      labels.pinned,
+      labels.createdAt,
+      labels.updatedAt,
+    )
+    .orderBy(desc(labels.pinned), asc(labels.name));
 
-  return rows.map(toLabel);
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    color: row.color,
+    icon: row.icon as LabelIcon,
+    pinned: row.pinned,
+    userId: row.userId,
+    openTaskCount: row.openTaskCount,
+    completedTaskCount: row.completedTaskCount,
+    totalTaskCount: row.totalTaskCount,
+    taskCount: row.totalTaskCount,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  }));
 }
 
 export function getLabelForOwner(labelId: string, ownerId: string, tx?: Database) {
@@ -84,20 +152,86 @@ export function getLabelForOwner(labelId: string, ownerId: string, tx?: Database
   return row ?? null;
 }
 
+/** Unicode case/whitespace-insensitive duplicate lookup within one owner's labels. */
+function findLabelByNameForOwner(ownerId: string, name: string, tx?: Database) {
+  const client = tx ?? db;
+  const [row] = client
+    .select({ id: labels.id, name: labels.name })
+    .from(labels)
+    .where(and(eq(labels.userId, ownerId), eq(labels.nameNorm, labelNameKey(name))))
+    .limit(1)
+    .all();
+  return row ?? null;
+}
+
+/**
+ * Re-throws the pre-insert constraint race as a 409. The startup migration
+ * adds UNIQUE INDEX labels(user_id, name_norm), so two rapid
+ * create/open-combos cannot both succeed; one loser gets this error.
+ */
+function isLabelUniqueConstraintError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null || !('code' in error)) {
+    return false;
+  }
+
+  const code = (error as { code?: string }).code;
+  if (code === 'SQLITE_CONSTRAINT_UNIQUE') {
+    return true;
+  }
+  if (code !== 'SQLITE_CONSTRAINT') {
+    return false;
+  }
+
+  // Older SQLite/better-sqlite3 combinations only expose the base constraint
+  // code. In that case the message is the only safe way to distinguish this
+  // index from an unrelated FK/CHECK failure.
+  const message = (error as { message?: string }).message ?? '';
+  return (
+    /UNIQUE constraint failed/i.test(message) &&
+    /idx_labels_user_name_unique|labels\./i.test(message)
+  );
+}
+
 export async function createLabelForOwner(ownerId: string, body: CreateLabelDto) {
+  const name = body.name.trim();
+  if (!name) {
+    throw new BadRequestError('A label name is required');
+  }
+
+  const match = findLabelByNameForOwner(ownerId, name);
+  if (match) {
+    throw new ConflictError(`A label named "${match.name}" already exists`, {
+      existingLabel: match,
+    });
+  }
+
+  const color = body.color?.trim() ? normalizeHexColor(body.color, 'Color') : pickLabelColor(name);
+  const icon = normalizeLabelIcon(body.icon);
+  const pinned = body.pinned ?? false;
+
   const now = nowIsoTimestamp();
   const id = randomUUID();
-  const name = body.name.trim();
-  const color = body.color?.trim() || pickLabelColor(name);
-
-  await db.insert(labels).values({
-    id,
-    userId: ownerId,
-    name,
-    color,
-    createdAt: now,
-    updatedAt: now,
-  });
+  try {
+    await db.insert(labels).values({
+      id,
+      userId: ownerId,
+      name,
+      nameNorm: labelNameKey(name),
+      color,
+      icon,
+      pinned,
+      createdAt: now,
+      updatedAt: now,
+    });
+  } catch (error) {
+    if (isLabelUniqueConstraintError(error)) {
+      const winner = findLabelByNameForOwner(ownerId, name);
+      throw new ConflictError(`A label named "${winner?.name ?? name}" already exists`, {
+        existingLabel: winner ?? null,
+      });
+    }
+    throw error;
+  }
 
   const [label] = await db.select().from(labels).where(eq(labels.id, id)).limit(1);
   return label ?? null;
@@ -109,17 +243,50 @@ export async function updateLabelForOwner(ownerId: string, labelId: string, body
     return null;
   }
 
-  const name = body.name?.trim() || current.name;
-  const color = body.color?.trim() || current.color;
+  const name = body.name !== undefined ? body.name.trim() : current.name;
+  if (name === '' && body.name !== undefined) {
+    throw new BadRequestError('A label name is required');
+  }
 
-  await db
-    .update(labels)
-    .set({
-      name,
-      color,
-      updatedAt: nowIsoTimestamp(),
-    })
-    .where(and(eq(labels.id, labelId), eq(labels.userId, ownerId)));
+  // Renaming may collide with another of the owner's labels. Unchanged names
+  // (and unchanged legacy colors) are never re-validated.
+  if (body.name !== undefined && name !== current.name) {
+    const match = findLabelByNameForOwner(ownerId, name);
+    if (match && match.id !== current.id) {
+      throw new ConflictError(`A label named "${match.name}" already exists`, {
+        existingLabel: match,
+      });
+    }
+  }
+
+  const color =
+    body.color !== undefined && body.color.trim() !== current.color
+      ? normalizeHexColor(body.color, 'Color')
+      : current.color;
+  const icon = body.icon !== undefined ? normalizeLabelIcon(body.icon) : current.icon;
+  const pinned = body.pinned !== undefined ? body.pinned : current.pinned;
+
+  try {
+    await db
+      .update(labels)
+      .set({
+        name,
+        nameNorm: labelNameKey(name),
+        color,
+        icon,
+        pinned,
+        updatedAt: nowIsoTimestamp(),
+      })
+      .where(and(eq(labels.id, labelId), eq(labels.userId, ownerId)));
+  } catch (error) {
+    if (isLabelUniqueConstraintError(error)) {
+      const winner = findLabelByNameForOwner(ownerId, name);
+      throw new ConflictError(`A label named "${winner?.name ?? name}" already exists`, {
+        existingLabel: winner ?? null,
+      });
+    }
+    throw error;
+  }
 
   const [label] = await db.select().from(labels).where(eq(labels.id, labelId)).limit(1);
   return label ?? null;
@@ -141,6 +308,65 @@ export function deleteLabelForOwner(ownerId: string, labelId: string, tx?: Datab
   };
 
   return tx ? run(tx) : db.transaction(run, { behavior: 'immediate' });
+}
+
+/**
+ * Merge `sourceId` into `targetId`: every task association moves to the
+ * target (deduplicating tasks that already had it), then the source label is
+ * deleted. The whole operation is one immediate transaction so a failure can
+ * never orphan associations. Returns the number of associations actually
+ * moved (source associations already on the target are deduplicated, not
+ * counted), or null when either label is missing for this owner.
+ */
+export function mergeLabelForOwner(
+  ownerId: string,
+  sourceId: string,
+  targetId: string,
+): { movedTaskCount: number } | null {
+  if (sourceId === targetId) {
+    throw new BadRequestError('A label cannot be merged into itself');
+  }
+
+  return db.transaction(
+    (client) => {
+      const source = getLabelForOwner(sourceId, ownerId, client);
+      const target = getLabelForOwner(targetId, ownerId, client);
+      if (!source || !target) {
+        return null;
+      }
+
+      const sourceRows = client
+        .select({ taskId: taskLabels.taskId })
+        .from(taskLabels)
+        .where(eq(taskLabels.labelId, sourceId))
+        .all();
+      const targetTaskIds = new Set(
+        client
+          .select({ taskId: taskLabels.taskId })
+          .from(taskLabels)
+          .where(eq(taskLabels.labelId, targetId))
+          .all()
+          .map((row) => row.taskId),
+      );
+
+      const toMove = sourceRows.filter((row) => !targetTaskIds.has(row.taskId));
+      if (toMove.length > 0) {
+        client
+          .insert(taskLabels)
+          .values(toMove.map((row) => ({ taskId: row.taskId, labelId: targetId })))
+          .run();
+      }
+
+      client.delete(taskLabels).where(eq(taskLabels.labelId, sourceId)).run();
+      client
+        .delete(labels)
+        .where(and(eq(labels.id, sourceId), eq(labels.userId, ownerId)))
+        .run();
+
+      return { movedTaskCount: toMove.length };
+    },
+    { behavior: 'immediate' },
+  );
 }
 
 export function syncTaskLabels(
@@ -190,16 +416,21 @@ export function getTaskLabels(taskId: string, tx?: Database) {
       userId: labels.userId,
       name: labels.name,
       color: labels.color,
+      icon: labels.icon,
+      pinned: labels.pinned,
       createdAt: labels.createdAt,
       updatedAt: labels.updatedAt,
     })
     .from(taskLabels)
     .innerJoin(labels, eq(taskLabels.labelId, labels.id))
     .where(eq(taskLabels.taskId, taskId))
-    .orderBy(asc(labels.name))
+    .orderBy(desc(labels.pinned), asc(labels.name))
     .all();
 
-  return rows.map((row) => toLabel({ ...row, taskCount: 0 }));
+  return rows.map((row) => ({
+    ...row,
+    taskCount: 0,
+  }));
 }
 
 /**
@@ -233,14 +464,7 @@ export async function getLabelsForTasks(taskIds: string[]): Promise<Map<string, 
   return map;
 }
 
-function pickLabelColor(name: string) {
-  const palette = ['#82d7a9', '#81d7e8', '#f1c582', '#c7e9b3', '#a5d3e1', '#bcd0fb'];
-  const index =
-    Math.abs(
-      name
-        .toLowerCase()
-        .split('')
-        .reduce((sum, ch) => sum + ch.charCodeAt(0), 0),
-    ) % palette.length;
-  return palette[index];
+/** Same palette the label editor offers; deterministic per name hash. */
+export function pickLabelColor(name: string) {
+  return pickLabelColorForName(name);
 }

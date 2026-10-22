@@ -5,6 +5,7 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import type { ExtractTablesWithRelations } from 'drizzle-orm';
 import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
 import * as schema from './schema.js';
+import { labelNameKey } from '../lib/label-name.js';
 import { nowIsoTimestamp, toIsoTimestamp } from '../lib/timestamps.js';
 
 const DEFAULT_DATABASE_URL = './data/yotara.db';
@@ -89,7 +90,6 @@ const SQLITE_BOOTSTRAP_SQL = `
     due_date TEXT,
     due_time TEXT,
     simple_mode INTEGER NOT NULL DEFAULT 0,
-    bucket TEXT DEFAULT 'personal-sanctuary',
     project_id TEXT,
     parent_id TEXT REFERENCES tasks(id) ON DELETE SET NULL,
     recurrence_rule TEXT,
@@ -107,7 +107,10 @@ const SQLITE_BOOTSTRAP_SQL = `
     id TEXT PRIMARY KEY NOT NULL,
     user_id TEXT NOT NULL,
     name TEXT NOT NULL,
+    name_norm TEXT NOT NULL,
     color TEXT NOT NULL,
+    icon TEXT NOT NULL DEFAULT 'tag',
+    pinned INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
@@ -333,10 +336,6 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
       sqlite.exec(`ALTER TABLE tasks ADD COLUMN simple_mode INTEGER NOT NULL DEFAULT 0`);
     }
 
-    if (!taskColumnNames.has('bucket')) {
-      sqlite.exec(`ALTER TABLE tasks ADD COLUMN bucket TEXT DEFAULT 'personal-sanctuary'`);
-    }
-
     if (!taskColumnNames.has('deleted_at')) {
       sqlite.exec(`ALTER TABLE tasks ADD COLUMN deleted_at TEXT`);
     }
@@ -392,7 +391,10 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
       id TEXT PRIMARY KEY NOT NULL,
       user_id TEXT NOT NULL,
       name TEXT NOT NULL,
+      name_norm TEXT NOT NULL,
       color TEXT NOT NULL,
+      icon TEXT NOT NULL DEFAULT 'tag',
+      pinned INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
@@ -403,6 +405,15 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
       }
       if (!labelColumnNames.has('updated_at')) {
         sqlite.exec(`ALTER TABLE labels ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''`);
+      }
+      if (!labelColumnNames.has('icon')) {
+        sqlite.exec(`ALTER TABLE labels ADD COLUMN icon TEXT NOT NULL DEFAULT 'tag'`);
+      }
+      if (!labelColumnNames.has('pinned')) {
+        sqlite.exec(`ALTER TABLE labels ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0`);
+      }
+      if (!labelColumnNames.has('name_norm')) {
+        sqlite.exec(`ALTER TABLE labels ADD COLUMN name_norm TEXT NOT NULL DEFAULT ''`);
       }
     }
 
@@ -418,6 +429,120 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
       FOREIGN KEY (label_id) REFERENCES labels(id) ON DELETE CASCADE
     )`);
     }
+
+    // Label identity hygiene: Unicode case/whitespace-insensitive uniqueness.
+    // name_norm is computed in application code (NFKC + trim + lowercase)
+    // because SQLite's lower() is ASCII-only. Drop and rebuild the index so an
+    // older expression-based index is upgraded in place and normalization
+    // changes can be applied safely. The dedupe MUST run before recreating the
+    // unique index — a database that still contains duplicates would fail index
+    // creation. Per label group keyed by (user_id, name_norm) with more than one
+    // row:
+    //   1. pick the canonical label (earliest non-empty created_at, then lowest id)
+    //   2. re-point task_labels rows to the canonical label (INSERT OR IGNORE
+    //      dedupes against the join table's (task_id, label_id) primary key)
+    //   3. delete join rows that still point at duplicates
+    //   4. delete the duplicate label rows
+    // Tasks are never deleted. Idempotent: once the index exists, groups have a
+    // single row, so the pre-check finds nothing and nothing runs.
+    sqlite.exec(`DROP INDEX IF EXISTS idx_labels_user_name_unique`);
+
+    const labelRows = sqlite.prepare(`SELECT id, name, name_norm FROM labels`).all() as Array<{
+      id: string;
+      name: string;
+      name_norm: string | null;
+    }>;
+    const updateLabelNameNorm = sqlite.prepare(`UPDATE labels SET name_norm = ? WHERE id = ?`);
+    for (const row of labelRows) {
+      const nameNorm = labelNameKey(row.name);
+      if (row.name_norm !== nameNorm) {
+        updateLabelNameNorm.run(nameNorm, row.id);
+      }
+    }
+
+    const duplicateLabelGroups = sqlite
+      .prepare(
+        `SELECT COUNT(*) AS groups
+         FROM (
+           SELECT COUNT(*) AS rows
+           FROM labels
+           GROUP BY user_id, name_norm
+           HAVING COUNT(*) > 1
+         )`,
+      )
+      .get() as { groups: number };
+    if (duplicateLabelGroups.groups > 0) {
+      const repointJoins = sqlite
+        .prepare(
+          `WITH ranked AS (
+             SELECT id, user_id, name_norm,
+                    ROW_NUMBER() OVER (
+                      PARTITION BY user_id, name_norm
+                      ORDER BY
+                        CASE WHEN created_at IS NULL OR trim(created_at) = '' THEN 1 ELSE 0 END,
+                        created_at, id
+                    ) AS rn
+             FROM labels
+           )
+           INSERT OR IGNORE INTO task_labels (task_id, label_id)
+           SELECT tl.task_id, c.id
+           FROM task_labels tl
+           JOIN ranked d ON tl.label_id = d.id AND d.rn > 1
+           JOIN ranked c
+             ON c.user_id = d.user_id AND c.name_norm = d.name_norm AND c.rn = 1
+           WHERE tl.label_id <> c.id`,
+        )
+        .run();
+
+      sqlite
+        .prepare(
+          `DELETE FROM task_labels
+           WHERE label_id IN (
+             SELECT id FROM (
+               SELECT id, ROW_NUMBER() OVER (
+                        PARTITION BY user_id, name_norm
+                        ORDER BY
+                          CASE WHEN created_at IS NULL OR trim(created_at) = '' THEN 1 ELSE 0 END,
+                          created_at, id
+                      ) AS rn
+               FROM labels
+             ) WHERE rn > 1
+           )`,
+        )
+        .run();
+
+      const removedLabels = sqlite
+        .prepare(
+          `DELETE FROM labels
+           WHERE id IN (
+             SELECT id FROM (
+               SELECT id, ROW_NUMBER() OVER (
+                        PARTITION BY user_id, name_norm
+                        ORDER BY
+                          CASE WHEN created_at IS NULL OR trim(created_at) = '' THEN 1 ELSE 0 END,
+                          created_at, id
+                      ) AS rn
+               FROM labels
+             ) WHERE rn > 1
+           )`,
+        )
+        .run();
+
+      console.log(
+        `[schema] merged duplicate labels: ${duplicateLabelGroups.groups} groups ` +
+          `(${removedLabels.changes} labels deleted, ${repointJoins.changes} task ` +
+          `associations re-pointed)`,
+      );
+    }
+
+    // Created AFTER dedupe on purpose (see above). The normalized key is stored
+    // directly, so new writes are constrained even for non-ASCII case pairs.
+    sqlite.exec(
+      `CREATE UNIQUE INDEX idx_labels_user_name_unique
+       ON labels(user_id, name_norm)`,
+    );
+    // Counts and label filters scan task_labels by label_id.
+    sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_task_labels_label_id ON task_labels(label_id)`);
 
     // Migrate login_attempts to a composite (ip, email) primary key. The old shape
     // keyed only by email, which allowed a single attacker to lock any victim's

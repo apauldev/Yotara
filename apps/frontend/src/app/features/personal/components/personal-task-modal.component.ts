@@ -29,11 +29,16 @@ import {
   UpdateTaskDto,
 } from '@yotara/shared';
 import { LabelService } from '../../../core/services/label.service';
+import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { TaskService } from '../../../core/services/task.service';
 import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
+import { LabelChipComponent } from '../../../shared/ui/label-chip/label-chip.component';
+import { LabelIconComponent } from '../../../shared/ui/label-icon/label-icon.component';
 import { MarkdownEditorComponent } from '../../../shared/ui/markdown-editor/markdown-editor.component';
 import { ModalComponent } from '../../../shared/ui/modal/modal.component';
 import { formatTimeLabel, parseCalendarDate, startOfToday } from '../../../shared/utils/timestamps';
+import { existingLabelFromConflict } from '../../../shared/utils/label-conflict';
+import { suggestLabelIcon } from '../../../shared/utils/label-icons';
 import { tryGetUserTimezone } from '../../../shared/utils/timezone';
 import { timedTaskTimezoneNotice } from '../utils/timezone-notices';
 import { parseTaskCommand } from '../utils/task-command-parser';
@@ -51,20 +56,27 @@ type SavePayload =
     CommonModule,
     DatePickerComponent,
     FormsModule,
+    LabelChipComponent,
+    LabelIconComponent,
     MarkdownEditorComponent,
     ModalComponent,
   ],
   templateUrl: './personal-task-modal.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './personal-task-modal.component.scss',
+  host: {
+    '(keydown)': 'onModalKeydown($event)',
+  },
 })
 export class PersonalTaskModalComponent implements OnInit, OnDestroy {
   private readonly labelService = inject(LabelService);
+  protected readonly preferences = inject(PreferencesStore);
   private readonly taskService = inject(TaskService);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly ngZone = inject(NgZone);
   private readonly titleInput = viewChild<ElementRef<HTMLInputElement>>('titleInput');
+  private readonly labelSearchInput = viewChild<ElementRef<HTMLInputElement>>('labelSearchInput');
   private readonly subtaskInput = viewChild<ElementRef<HTMLInputElement>>('subtaskInput');
   private readonly addSubtaskButton = viewChild<ElementRef<HTMLButtonElement>>('addSubtaskButton');
   private readonly scheduleDatePicker = viewChild<DatePickerComponent>('scheduleDatePicker');
@@ -74,6 +86,8 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
   @Input() initialTitle = '';
   @Input() initialDueDateDraft: DueDateDraft | null = null;
   @Input() initialProjectId: string | null = null;
+  /** Labels applied to NEW tasks (Labels page pane); ignored when editing. */
+  @Input() initialLabelIds: string[] = [];
   @Input() projects: Project[] = [];
   @Input() error: string | null = null;
   @Output() readonly close = new EventEmitter<void>();
@@ -95,7 +109,9 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
   protected readonly draftProjectId = signal('');
   protected readonly draftCompleted = signal(false);
   protected readonly draftLabels = signal<string[]>([]);
-  protected readonly newLabelName = signal('');
+  protected readonly labelSearch = signal('');
+  protected readonly activeLabelOption = signal(0);
+  protected readonly labelPickerError = signal<string | null>(null);
   protected readonly draftRecurrenceFrequency = signal<RecurrenceFrequency | null>(null);
   protected readonly draftRecurrenceInterval = signal(1);
   protected readonly draftRecurrenceEndDate = signal('');
@@ -110,19 +126,31 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
     'yearly',
   ];
   protected readonly labels = this.labelService.labels;
-  protected readonly palette = [
-    '#82d7a9',
-    '#81d7e8',
-    '#f1c582',
-    '#c7e9b3',
-    '#a5d3e1',
-    '#bcd0fb',
-    '#d9a13d',
-    '#d44d3c',
-    '#9fb18c',
-    '#b9a3f4',
-  ];
-  protected readonly newLabelColor = signal(this.palette[0]);
+  protected readonly selectedLabels = computed<Label[]>(() => {
+    const selected = new Set(this.draftLabels());
+    return this.labels().filter((label) => selected.has(label.id));
+  });
+  protected readonly filteredLabels = computed(() => {
+    const query = this.labelSearch().trim().toLowerCase();
+    const labels = this.labels();
+    return query ? labels.filter((label) => label.name.toLowerCase().includes(query)) : labels;
+  });
+  /** Creating is offered only when the typed name has no exact match. */
+  protected readonly canCreateLabel = computed(() => {
+    const query = this.labelSearch().trim().toLowerCase();
+    return query.length > 0 && !this.labels().some((label) => label.name.toLowerCase() === query);
+  });
+  protected readonly labelOptionCount = computed(
+    () => this.filteredLabels().length + (this.canCreateLabel() ? 1 : 0),
+  );
+  protected readonly activeLabelDescendant = computed(() => {
+    const index = this.activeLabelOption();
+    const labels = this.filteredLabels();
+    if (index < labels.length) {
+      return `task-label-option-${labels[index].id}`;
+    }
+    return this.canCreateLabel() ? 'task-label-create-option' : null;
+  });
 
   // Subtask state
   protected readonly subtasks = signal<Task[]>([]);
@@ -707,25 +735,126 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
     this.draftLabels.set(
       current.includes(label.id) ? current.filter((id) => id !== label.id) : [...current, label.id],
     );
+    this.labelPickerError.set(null);
   }
 
-  protected async createInlineLabel() {
-    const name = this.newLabelName().trim();
+  protected removeLabel(label: Label) {
+    this.draftLabels.set(this.draftLabels().filter((id) => id !== label.id));
+  }
+
+  protected onLabelSearchChange(value: string) {
+    this.labelSearch.set(value);
+    this.activeLabelOption.set(0);
+    this.labelPickerError.set(null);
+  }
+
+  /**
+   * ARIA combobox keys: arrows move the active option, Enter applies it, and
+   * Escape clears the query before the modal-level Escape can close.
+   */
+  protected onLabelSearchKeydown(event: KeyboardEvent) {
+    const count = this.labelOptionCount();
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        this.activeLabelOption.set(count === 0 ? 0 : (this.activeLabelOption() + 1) % count);
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        this.activeLabelOption.set(
+          count === 0 ? 0 : (this.activeLabelOption() - 1 + count) % count,
+        );
+        break;
+      case 'Enter':
+        event.preventDefault();
+        void this.selectActiveLabelOption();
+        break;
+      case 'Escape':
+        if (this.labelSearch()) {
+          event.preventDefault();
+          event.stopPropagation();
+          this.labelSearch.set('');
+          this.activeLabelOption.set(0);
+        }
+        break;
+    }
+  }
+
+  private async selectActiveLabelOption() {
+    const labels = this.filteredLabels();
+    const index = this.activeLabelOption();
+    if (index < labels.length) {
+      this.toggleLabel(labels[index]);
+      this.labelSearch.set('');
+      this.activeLabelOption.set(0);
+      return;
+    }
+    if (this.canCreateLabel()) {
+      await this.createLabelFromSearch();
+    }
+  }
+
+  protected async createLabelFromSearch() {
+    const name = this.labelSearch().trim();
     if (!name) {
       return;
     }
 
-    const created = await this.labelService.createLabel({
-      name,
-      color: this.newLabelColor(),
-    });
-    this.draftLabels.set([...this.draftLabels(), created.id]);
-    this.newLabelName.set('');
-    this.newLabelColor.set(this.palette[0]);
+    this.labelPickerError.set(null);
+    try {
+      const created = await this.labelService.createLabel({
+        name,
+        icon: suggestLabelIcon(name),
+      });
+      this.applyLabelId(created.id);
+      this.labelSearch.set('');
+      this.activeLabelOption.set(0);
+    } catch (error) {
+      const existing = existingLabelFromConflict(error);
+      if (existing) {
+        // Duplicate names are rejected server-side; select what exists
+        // instead of leaving the user at a dead end.
+        if (!this.labels().some((label) => label.id === existing.id)) {
+          this.labelService.refresh();
+        }
+        this.applyLabelId(existing.id);
+        this.labelSearch.set('');
+        this.activeLabelOption.set(0);
+        return;
+      }
+      this.labelPickerError.set('Could not create the label. Try again.');
+    }
+  }
+
+  private applyLabelId(labelId: string) {
+    if (!this.draftLabels().includes(labelId)) {
+      this.draftLabels.set([...this.draftLabels(), labelId]);
+    }
   }
 
   protected onModalOpened() {
     this.titleInput()?.nativeElement.focus();
+  }
+
+  /** `L` jumps to the label picker, unless focus is in a text field. */
+  protected onModalKeydown(event: KeyboardEvent) {
+    if (event.key.toLowerCase() !== 'l' || event.metaKey || event.ctrlKey || event.altKey) {
+      return;
+    }
+
+    const target = event.target;
+    if (
+      target instanceof HTMLElement &&
+      target.closest('input, textarea, select, [contenteditable="true"]')
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    this.showAdvanced.set(true);
+    this.cdr.detectChanges();
+    queueMicrotask(() => this.labelSearchInput()?.nativeElement.focus());
   }
 
   private focusFirstInvalid() {
@@ -758,7 +887,9 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
 
   private hydrateDraft() {
     const rawTitle = this.task?.title ?? this.initialTitle;
-    const { title, priority, labelNames } = parseTaskCommand(rawTitle);
+    const { title, priority, labelNames } = parseTaskCommand(rawTitle, {
+      knownLabelNames: this.labelService.labels().map((l) => l.name),
+    });
 
     // If editing, use raw title. If creating from initialTitle, use cleaned title.
     this.draftTitle.set(this.task ? rawTitle : title);
@@ -773,10 +904,12 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
         .filter((l) => labelNames.some((name) => name.toLowerCase() === l.name.toLowerCase()))
         .map((l) => l.id);
 
-      this.draftLabels.set(parsedLabelIds);
+      // Pane-seeded labels (initialLabelIds) apply on top of parsed ones only
+      // when creating a fresh task.
+      this.draftLabels.set([...new Set([...parsedLabelIds, ...this.initialLabelIds])]);
     } else {
       this.draftPriority.set(this.task?.priority ?? 'medium');
-      this.draftLabels.set(this.task?.labels ?? []);
+      this.draftLabels.set(this.task?.labels ?? [...this.initialLabelIds]);
     }
 
     const initialDraft = this.task ? null : this.initialDueDateDraft;
@@ -816,8 +949,9 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
     this.draftRecurrenceInterval.set(this.task?.recurrenceRule?.interval ?? 1);
     this.draftRecurrenceEndDate.set(this.task?.recurrenceRule?.endDate ?? '');
     this.draftRecurrenceDaysOfWeek.set(this.task?.recurrenceRule?.daysOfWeek ?? []);
-    this.newLabelName.set('');
-    this.newLabelColor.set(this.palette[0]);
+    this.labelSearch.set('');
+    this.activeLabelOption.set(0);
+    this.labelPickerError.set(null);
     this.subtaskEntryMode.set(false);
     this.draftSubtasks.set([]);
     // Clear validation errors when modal opens

@@ -136,6 +136,10 @@ export interface TaskFilters {
   tz?: string;
   view?: 'today' | 'inbox' | 'upcoming';
   completedSince?: string;
+  /** Tasks carrying at least one of these labels. Ownership is re-checked in SQL. */
+  labelIds?: string[];
+  /** With multiple ids: `any` (OR) or `all` (AND). */
+  labelMode?: 'any' | 'all';
 }
 
 const CALENDAR_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -250,6 +254,41 @@ export async function listTasksForOwner(
         eq(tasks.completed, true),
         sql`${tasks.archivedAt} >= ${startOfTodayUtc}`,
       );
+    }
+    if (filters.labelIds && filters.labelIds.length > 0) {
+      // EXISTS over task_labels joined to labels so only labels owned by this
+      // user (the owner of the task row being tested) can match. Ownership is
+      // enforced in SQL, not trusted from the caller's id list.
+      // COUNT(DISTINCT) requires the unique-id count; the route deduplicates,
+      // but direct service callers must not turn valid matches into zero rows.
+      const uniqueLabelIds = [...new Set(filters.labelIds)];
+      const labelList = sql.join(uniqueLabelIds, sql`, `);
+      if (filters.labelMode === 'all') {
+        // AND semantics: the task must carry every requested owned label.
+        whereClause = and(
+          whereClause,
+          sql`(
+            SELECT COUNT(DISTINCT tl.label_id)
+            FROM task_labels tl
+            JOIN labels l ON l.id = tl.label_id
+            WHERE tl.task_id = ${tasks.id}
+              AND l.user_id = ${ownerId}
+              AND tl.label_id IN (${labelList})
+          ) = ${uniqueLabelIds.length}`,
+        );
+      } else {
+        whereClause = and(
+          whereClause,
+          sql`EXISTS (
+            SELECT 1
+            FROM task_labels tl
+            JOIN labels l ON l.id = tl.label_id
+            WHERE tl.task_id = ${tasks.id}
+              AND l.user_id = ${ownerId}
+              AND tl.label_id IN (${labelList})
+          )`,
+        );
+      }
     }
   }
 

@@ -1521,3 +1521,154 @@ test('a due-date-only PATCH schedules a simple-mode task', async () => {
     await ctx.cleanup();
   }
 });
+
+test('tasks list filters by labelIds with ownership checks and validation', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`label-filter-${randomUUID()}@example.com`);
+
+    const createLabel = async (name: string) => {
+      const response = await ctx.app.inject({
+        method: 'POST',
+        url: '/labels',
+        headers: { cookie },
+        payload: { name },
+      });
+      assert.equal(response.statusCode, 201);
+      return response.json().id as string;
+    };
+    const labelAId = await createLabel('Writing');
+    const labelBId = await createLabel('Errand');
+
+    const createTask = async (title: string, labels: string[]) => {
+      const response = await ctx.app.inject({
+        method: 'POST',
+        url: '/tasks',
+        headers: { cookie },
+        payload: { title, labels },
+      });
+      assert.equal(response.statusCode, 201);
+      return response.json();
+    };
+    await createTask('Draft essay', [labelAId]);
+    await createTask('Buy milk', [labelBId]);
+    await createTask('Review draft, buy envelope', [labelAId, labelBId]);
+
+    const titlesFor = async (ids?: string, mode?: 'any' | 'all', completed?: string) => {
+      const query = new URLSearchParams({ includeSubtasks: 'true' });
+      if (ids) query.set('labelIds', ids);
+      if (mode) query.set('labelMode', mode);
+      if (completed) query.set('completed', completed);
+      const response = await ctx.app.inject({
+        method: 'GET',
+        url: `/tasks?${query.toString()}`,
+        headers: { cookie },
+      });
+      assert.equal(response.statusCode, 200);
+      return response.json().data.map((t: { title: string }) => t.title) as string[];
+    };
+
+    // A single label returns every task carrying it.
+    const onlyA = await titlesFor(labelAId);
+    assert.deepEqual(new Set(onlyA), new Set(['Draft essay', 'Review draft, buy envelope']));
+
+    // Multiple ids compose with OR semantics.
+    const both = await titlesFor(`${labelAId},${labelBId}`);
+    assert.equal(both.length, 3);
+
+    // AND semantics only returns the task carrying every requested label.
+    const everyLabel = await titlesFor(`${labelAId},${labelBId}`, 'all');
+    assert.deepEqual(everyLabel, ['Review draft, buy envelope']);
+
+    // An unowned id in an AND query can never be satisfied.
+    const everyLabelWithForeign = await titlesFor(`${labelAId},${randomUUID()}`, 'all');
+    assert.equal(everyLabelWithForeign.length, 0);
+
+    // The filter narrows relative to an unfiltered list of the same view.
+    const without = await titlesFor();
+    assert.equal(without.length, 3);
+
+    // A well-formed foreign id cannot match anything (ownership in SQL).
+    const foreign = await titlesFor(randomUUID());
+    assert.equal(foreign.length, 0);
+
+    // Completion and deletion narrow the labeled set as they do elsewhere.
+    const completedTask = await createTask('Completed labeled task', [labelAId]);
+    await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${completedTask.id}`,
+      headers: { cookie },
+      payload: { completed: true },
+    });
+    const openA = await titlesFor(labelAId, undefined, 'false');
+    assert.ok(!openA.includes('Completed labeled task'));
+    const doneA = await titlesFor(labelAId, undefined, 'true');
+    assert.ok(doneA.includes('Completed labeled task'));
+
+    const deletedTask = await createTask('Deleted labeled task', [labelAId]);
+    await ctx.app.inject({
+      method: 'DELETE',
+      url: `/tasks/${deletedTask.id}`,
+      headers: { cookie },
+    });
+    const afterDelete = await titlesFor(labelAId);
+    assert.ok(!afterDelete.includes('Deleted labeled task'));
+
+    // The flat scope makes a labeled subtask discoverable in the filter.
+    const parent = await createTask('Parent of labeled subtask', [labelAId]);
+    await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Labeled subtask', labels: [labelBId], parentId: parent.id },
+    });
+    const labelBTitles = await titlesFor(labelBId);
+    assert.ok(labelBTitles.includes('Labeled subtask'));
+
+    // Pagination composes with the label filter instead of returning the whole set.
+    const firstPage = await ctx.app.inject({
+      method: 'GET',
+      url: `/tasks?labelIds=${labelAId}&includeSubtasks=true&completed=false&page=1&pageSize=2`,
+      headers: { cookie },
+    });
+    assert.equal(firstPage.statusCode, 200);
+    const firstPageBody = firstPage.json();
+    assert.equal(firstPageBody.data.length, 2);
+    assert.equal(firstPageBody.meta.total, 3);
+    assert.equal(firstPageBody.meta.hasNextPage, true);
+
+    const lastPage = await ctx.app.inject({
+      method: 'GET',
+      url: `/tasks?labelIds=${labelAId}&includeSubtasks=true&completed=false&page=2&pageSize=2`,
+      headers: { cookie },
+    });
+    assert.equal(lastPage.statusCode, 200);
+    const lastPageBody = lastPage.json();
+    assert.equal(lastPageBody.data.length, 1);
+    assert.equal(lastPageBody.meta.hasNextPage, false);
+
+    const malformed = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?labelIds=not-a-uuid',
+      headers: { cookie },
+    });
+    assert.equal(malformed.statusCode, 400);
+
+    const invalidMode = await ctx.app.inject({
+      method: 'GET',
+      url: `/tasks?labelIds=${labelAId}&labelMode=some`,
+      headers: { cookie },
+    });
+    assert.equal(invalidMode.statusCode, 400);
+
+    const tooMany = await ctx.app.inject({
+      method: 'GET',
+      url: `/tasks?labelIds=${Array.from({ length: 11 }, () => randomUUID()).join(',')}`,
+      headers: { cookie },
+    });
+    assert.equal(tooMany.statusCode, 400);
+  } finally {
+    await ctx.cleanup();
+  }
+});

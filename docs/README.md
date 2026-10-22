@@ -29,6 +29,12 @@ not sure where something belongs, this table is the answer.
 | [archive/](./archive/README.md) | Superseded plans and historical snapshots, kept for context | Anyone asking "why?" | **Historical — never current** |
 | [assets/](./assets) | Logo, banner, and documentation images | — | Assets |
 
+## Active plans
+
+| Plan | Owns | Audience |
+|:---|:---|:---|
+| [2026-10-20-label-system-ux-redesign.md](./plans/2026-10-20-label-system-ux-redesign.md) | Three-phase label system UX redesign: taxonomy, shared chips, icon identity, one Labels surface, and server-side filtering | Contributors, designers |
+
 ## At the repository root
 
 | Document | Owns | Audience |

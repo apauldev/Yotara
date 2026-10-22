@@ -253,43 +253,83 @@
 
       <div class="sidebar-section">
         <span class="field-label" id="task-labels-label">Labels</span>
-        <div class="label-chip-grid" role="group" aria-labelledby="task-labels-label">
-          @for (label of labels(); track label.id) {
-            <button
-              type="button"
-              class="label-chip"
-              [class.label-chip-active]="labelSelected(label)"
-              [attr.aria-pressed]="labelSelected(label)"
-              (click)="toggleLabel(label)"
-            >
-              <span class="label-chip-dot" [style.background]="label.color"></span>
-              <span>{{ label.name }}</span>
-            </button>
-          }
-        </div>
 
-        <div class="inline-create">
-          <input
-            type="text"
-            placeholder="New label"
-            [ngModel]="newLabelName()"
-            (ngModelChange)="newLabelName.set($event)"
-          />
-          <div class="palette-row" aria-label="Label color presets">
-            @for (color of palette; track color) {
-              <button
-                type="button"
-                class="palette-swatch"
-                [class.palette-swatch-active]="newLabelColor() === color"
-                [style.background]="color"
-                [attr.aria-label]="'Choose color ' + color"
-                (click)="newLabelColor.set(color)"
-              ></button>
+        @if (selectedLabels().length) {
+          <div class="selected-labels" aria-label="Selected labels">
+            @for (label of selectedLabels(); track label.id) {
+              <app-label-chip
+                [label]="label"
+                size="sm"
+                [colorFirst]="preferences.colorFirstLabels()"
+                [removable]="true"
+                (remove)="removeLabel($event)"
+              />
             }
           </div>
-          <button type="button" class="create-inline-button" (click)="createInlineLabel()">
-            Create label
-          </button>
+        }
+
+        <div class="label-picker">
+          <!-- The listbox below is always rendered, so aria-expanded is static. -->
+          <input
+            #labelSearchInput
+            class="label-picker-search"
+            type="text"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded="true"
+            aria-controls="task-label-options"
+            aria-labelledby="task-labels-label"
+            [attr.aria-activedescendant]="activeLabelDescendant()"
+            placeholder="Search or create a label"
+            autocomplete="off"
+            [ngModel]="labelSearch()"
+            (ngModelChange)="onLabelSearchChange($event)"
+            (keydown)="onLabelSearchKeydown($event)"
+          />
+
+          <ul
+            id="task-label-options"
+            class="label-options"
+            role="listbox"
+            aria-labelledby="task-labels-label"
+          >
+            @for (label of filteredLabels(); track label.id; let index = $index) {
+              <li
+                [id]="'task-label-option-' + label.id"
+                role="option"
+                class="label-option"
+                [class.label-option-active]="index === activeLabelOption()"
+                [attr.aria-selected]="labelSelected(label)"
+                (click)="toggleLabel(label)"
+                (mouseenter)="activeLabelOption.set(index)"
+              >
+                <app-label-icon [icon]="label.icon" [color]="label.color" size="sm" />
+                <span class="label-option-name">{{ label.name }}</span>
+                @if (labelSelected(label)) {
+                  <span class="label-option-check" aria-hidden="true">✓</span>
+                }
+              </li>
+            }
+
+            @if (canCreateLabel()) {
+              <li
+                id="task-label-create-option"
+                role="option"
+                class="label-option label-option-create"
+                [class.label-option-active]="activeLabelOption() === filteredLabels().length"
+                [attr.aria-selected]="false"
+                (click)="createLabelFromSearch()"
+                (mouseenter)="activeLabelOption.set(filteredLabels().length)"
+              >
+                <span class="label-option-plus" aria-hidden="true">+</span>
+                <span class="label-option-name">Create “{{ labelSearch().trim() }}”</span>
+              </li>
+            }
+          </ul>
+
+          @if (labelPickerError()) {
+            <p class="inline-create-error" role="alert">{{ labelPickerError() }}</p>
+          }
         </div>
       </div>
 

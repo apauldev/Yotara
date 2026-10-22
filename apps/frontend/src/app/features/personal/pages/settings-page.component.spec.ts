@@ -37,8 +37,30 @@ const mockProjects: Project[] = [
 ];
 
 const mockLabels: Label[] = [
-  { id: 'lbl-1', name: 'urgent', color: '#ff0000', userId: 'user-1' },
-  { id: 'lbl-2', name: 'design', color: '#00ff00', userId: 'user-1' },
+  {
+    id: 'lbl-1',
+    name: 'urgent',
+    color: '#ff0000',
+    icon: 'flame',
+    pinned: false,
+    userId: 'user-1',
+    openTaskCount: 2,
+    completedTaskCount: 1,
+    totalTaskCount: 3,
+    taskCount: 3,
+  },
+  {
+    id: 'lbl-2',
+    name: 'design',
+    color: '#00ff00',
+    icon: 'pen',
+    pinned: false,
+    userId: 'user-1',
+    openTaskCount: 1,
+    completedTaskCount: 0,
+    totalTaskCount: 1,
+    taskCount: 1,
+  },
 ];
 
 const mockTasks: Task[] = [
@@ -332,7 +354,6 @@ describe('SettingsPageComponent', () => {
       expect(header).toContain('Due Date');
       expect(header).toContain('Project');
       expect(header).toContain('Labels');
-      expect(header).toContain('Bucket');
       expect(header).toContain('Parent Task ID');
       expect(header).toContain('Subtasks');
       expect(header).toContain('Subtasks Done');
@@ -391,7 +412,9 @@ describe('SettingsPageComponent', () => {
       expect(content).toContain('Name');
       expect(content).toContain('urgent');
       expect(content).toContain('design');
-      expect(content).toContain('Tasks');
+      expect(content).toContain('Open Tasks');
+      expect(content).toContain('Completed Tasks');
+      expect(content).toContain('Total Tasks');
     });
   });
 
@@ -458,6 +481,39 @@ describe('SettingsPageComponent', () => {
     }
     return null;
   }
+
+  describe('Label display toggles', () => {
+    function labelToggle(name: string): HTMLInputElement | null {
+      const toggles = fixture.debugElement.queryAll(By.css('.settings-toggle'));
+      for (const toggle of toggles) {
+        const strong = toggle.query(By.css('.settings-item-copy strong'));
+        if (strong?.nativeElement.textContent.includes(name)) {
+          return toggle.query(By.css('input[type="checkbox"]'))?.nativeElement ?? null;
+        }
+      }
+      return null;
+    }
+
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it('defaults to label names on and color-first off', () => {
+      expect(labelToggle('Show label names')?.checked).toBeTrue();
+      expect(labelToggle('Color-first labels')?.checked).toBeFalse();
+    });
+
+    it('persists both label preferences', () => {
+      labelToggle('Show label names')?.click();
+      labelToggle('Color-first labels')?.click();
+      fixture.detectChanges();
+
+      expect(preferences.showLabelNames()).toBeFalse();
+      expect(preferences.colorFirstLabels()).toBeTrue();
+      expect(localStorage.getItem('yotara_showLabelNames')).toBe('false');
+      expect(localStorage.getItem('yotara_colorFirstLabels')).toBe('true');
+    });
+  });
 
   describe('Complete task confirmation toggle', () => {
     beforeEach(() => {
@@ -759,6 +815,9 @@ describe('SettingsPageComponent', () => {
       expect(json.length).toBe(2);
       expect(json[0].name).toBe('urgent');
       expect(json[0].color).toBe('#ff0000');
+      expect(json[0].openTaskCount).toBe(2);
+      expect(json[0].completedTaskCount).toBe(1);
+      expect(json[0].totalTaskCount).toBe(3);
     });
   });
 

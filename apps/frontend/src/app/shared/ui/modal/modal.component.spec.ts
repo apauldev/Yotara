@@ -107,8 +107,40 @@ class FooterHostComponent {
   `,
 })
 class LayoutHostComponent {
-  layout: 'default' | 'full-height' = 'default';
+  layout: 'default' | 'full-height' | 'drawer' = 'default';
 }
+
+@Component({
+  selector: 'app-modal-focus-ring-host',
+  standalone: true,
+  imports: [ModalComponent],
+  template: `
+    <app-modal [open]="true" title="Focus ring modal" layout="full-height">
+      <input class="edge-control" autofocus placeholder="Name" />
+      <div class="scroll-filler"></div>
+      <button type="button" class="edge-control last-control">Create</button>
+    </app-modal>
+  `,
+  styles: [
+    `
+      .edge-control {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .edge-control:focus {
+        outline: 2px solid #000;
+        outline-offset: 2px;
+      }
+
+      .scroll-filler {
+        height: 2000px;
+      }
+    `,
+  ],
+})
+class FocusRingHostComponent {}
 
 describe('ModalComponent', () => {
   let fixture: ComponentFixture<ModalComponent>;
@@ -125,6 +157,7 @@ describe('ModalComponent', () => {
         HiddenTrapHostComponent,
         FooterHostComponent,
         LayoutHostComponent,
+        FocusRingHostComponent,
       ],
     }).compileComponents();
 
@@ -196,6 +229,42 @@ describe('ModalComponent', () => {
     expect(card.classList.contains('modal-card-full-height')).toBe(true);
     expect(hostFixture.nativeElement.querySelector('.modal-body-scroll')).toBeTruthy();
     expect(hostFixture.nativeElement.querySelector('.modal-footer')).toBeTruthy();
+  });
+
+  it('anchors the drawer layout to the edge with the same scrollable body', () => {
+    const hostFixture = TestBed.createComponent(LayoutHostComponent);
+    hostFixture.componentInstance.layout = 'drawer';
+    hostFixture.detectChanges();
+
+    const shell = hostFixture.nativeElement.querySelector('.modal-shell');
+    const card = hostFixture.nativeElement.querySelector('.modal-card');
+    expect(shell.classList.contains('modal-shell-drawer')).toBe(true);
+    expect(card.classList.contains('modal-card-drawer')).toBe(true);
+    expect(hostFixture.nativeElement.querySelector('.modal-body-scroll')).toBeTruthy();
+  });
+
+  it('reserves space for focus rings around full-width controls in the scroll body', () => {
+    const hostFixture = TestBed.createComponent(FocusRingHostComponent);
+    hostFixture.detectChanges();
+
+    const scroll = hostFixture.nativeElement.querySelector('.modal-body-scroll') as HTMLElement;
+    const first = hostFixture.nativeElement.querySelector('input') as HTMLInputElement;
+    const last = hostFixture.nativeElement.querySelector('.last-control') as HTMLButtonElement;
+    const scrollRect = scroll.getBoundingClientRect();
+
+    first.focus();
+    const style = getComputedStyle(first);
+    const ring = parseFloat(style.outlineWidth) + parseFloat(style.outlineOffset);
+    const firstRect = first.getBoundingClientRect();
+    expect(firstRect.left - ring).toBeGreaterThanOrEqual(scrollRect.left - 0.5);
+    expect(firstRect.right + ring).toBeLessThanOrEqual(scrollRect.right + 0.5);
+
+    scroll.scrollTop = scroll.scrollHeight;
+    last.focus();
+    const lastRect = last.getBoundingClientRect();
+    expect(lastRect.left - ring).toBeGreaterThanOrEqual(scrollRect.left - 0.5);
+    expect(lastRect.right + ring).toBeLessThanOrEqual(scrollRect.right + 0.5);
+    expect(lastRect.bottom + ring).toBeLessThanOrEqual(scrollRect.bottom + 0.5);
   });
 
   it('prefers an element marked autofocus over the first focusable element', () => {

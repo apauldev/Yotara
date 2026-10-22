@@ -24,7 +24,7 @@ describe('task creation notifications', () => {
     expect(getTaskViewDestination(undefined, 'upcoming', reference)).toBe('upcoming');
   });
 
-  it('names the task, the view, the bucket, and the due date', () => {
+  it('names the task, the view, the project, and the due date', () => {
     expect(
       taskCreationNotification({
         title: 'Plan the garden',
@@ -62,13 +62,13 @@ describe('task creation notifications', () => {
     ).toBe('"Plan the garden" added to Today (Home) · due Fri, Sep 25, 2026');
   });
 
-  it('reports the destination and bucket without a due date', () => {
+  it('reports the destination and project without a due date', () => {
     expect(
       taskCreationNotification({ title: 'Buy milk', projectId: 'home-1', projects, reference }),
     ).toBe('"Buy milk" added to Inbox (Home)');
   });
 
-  it('omits the bucket when no project was resolved', () => {
+  it('omits the project when no project was resolved', () => {
     expect(taskCreationNotification({ title: 'Buy milk', reference })).toBe(
       '"Buy milk" added to Inbox',
     );
@@ -77,13 +77,13 @@ describe('task creation notifications', () => {
     ).toBe('"Buy milk" added to Inbox');
   });
 
-  it('does not repeat a bucket that matches the destination label', () => {
+  it('does not repeat a project that matches the destination label', () => {
     expect(
       taskCreationNotification({ title: 'Buy milk', projectId: 'inbox-1', projects, reference }),
     ).toBe('"Buy milk" added to Inbox');
   });
 
-  it('omits the bucket when the task lands in the default project', () => {
+  it('omits the project when the task lands in the default project', () => {
     // A default project named "Inbox" would otherwise read as the destination
     // view on a dated task that actually lands in Upcoming.
     expect(
@@ -122,7 +122,7 @@ describe('task creation notifications', () => {
     expect(message).toBe('"Renew the passport and ship the quarter…" added to Inbox (Home)');
   });
 
-  it('resolves a bucket name from the project list', () => {
+  it('resolves a project name from the project list', () => {
     expect(resolveProjectName(projects, 'home-1')).toBe('Home');
     expect(resolveProjectName(projects, 'inbox-1')).toBe('Inbox');
     expect(resolveProjectName(projects, 'nope')).toBeNull();

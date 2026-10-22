@@ -24,13 +24,13 @@ export interface TaskCreationNotice {
   dueDate?: string | null;
   dueTime?: string | null;
   status?: TaskStatus;
-  /** The projects the user can choose from, used to name the bucket. */
+  /** The projects the user can choose from, used to resolve the destination. */
   projects?: ProjectOption[];
   projectId?: string | null;
   /**
    * The project the UI offered by default. When the task lands there, the
-   * bucket is omitted: naming the default adds noise, and a default project
-   * named "Inbox" reads as the destination view rather than the bucket.
+   * project is omitted: naming the default adds noise, and a default project
+   * named "Inbox" reads as the destination view rather than the project.
    */
   defaultProjectId?: string | null;
   reference?: DateTime;
@@ -68,7 +68,7 @@ export function resolveProjectName(
 
 /**
  * Describes a created task: what was set, which view it landed in, which
- * bucket it went into, and the date it resolved to.
+ * project it went into, and the date it resolved to.
  */
 export function taskCreationNotification(notice: TaskCreationNotice): string {
   const {
@@ -88,14 +88,14 @@ export function taskCreationNotification(notice: TaskCreationNotice): string {
   const formattedDueDate = parseCalendarDate(dueDate)?.toFormat('EEE, LLL d, yyyy');
   const formattedDueTime = formatTimeLabel(dueTime);
 
-  // Name the bucket only when it tells the user something: an explicitly
+  // Name the project only when it tells the user something: an explicitly
   // chosen (or contextual) project. The default project is omitted, since a
   // default named "Inbox" would read as the destination view — e.g. a dated
-  // task "added to Upcoming (Inbox)" looks like it went to Inbox. A bucket
+  // task "added to Upcoming (Inbox)" looks like it went to Inbox. A project
   // that repeats the destination label is likewise dropped as a stutter.
-  const showBucket = !!projectName && projectId !== defaultProjectId && projectName !== label;
-  const bucket = showBucket ? ` (${projectName})` : '';
-  const head = `"${truncateTitle(title)}" added to ${label}${bucket}`;
+  const showProject = !!projectName && projectId !== defaultProjectId && projectName !== label;
+  const projectSuffix = showProject ? ` (${projectName})` : '';
+  const head = `"${truncateTitle(title)}" added to ${label}${projectSuffix}`;
 
   // The time is only ever shown when one was set; a date-only task stays
   // date-only in the confirmation.

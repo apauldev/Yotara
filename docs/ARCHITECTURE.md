@@ -67,6 +67,20 @@ filtering it in the browser. Search is also server-side via
 bounded task collection used for subtasks and label assignment is intentional;
 it is not the former unbounded expand-loop design.
 
+### Categorization model
+
+Projects and labels answer different questions about a task, and the product
+keeps them distinct:
+
+- **Project** — a container with a finish line. It holds tasks, belongs to a
+  user, and completes when its work is done; scoping a task to one project is
+  the primary structural relationship.
+- **Label** — a cross-cutting condition of work (for example `Errand`,
+  `Waiting`). Labels ignore project boundaries: a task can carry several,
+  and a healthy system keeps the set small and meaningful (roughly 3–8 per
+  user) instead of a sprawl of near-duplicates. Labels describe how the work
+  feels or what it requires; they are never "where the task lives".
+
 ### API
 
 `apps/api` keeps route handlers thin. Routes authenticate and validate input,
@@ -96,8 +110,19 @@ capture, focus, planning, completion, or self-hosting.
 ### Server-side filtering
 
 The server filters by status, completion, due date, archive state, search
-query, and timezone. The frontend may group or decorate already-filtered
-results, but it should not recreate API filtering in computed signals.
+query, timezone, and label IDs (`/tasks?labelIds=…`). Multiple label IDs match
+with OR by default and with AND via `labelMode=all`; the task list persists its
+label filter in `?labels=id1,id2` (plus `labelMode`) so refresh and back/forward
+navigation restore it. The frontend may group or decorate already-filtered
+results, but it should not recreate API filtering in computed signals — the
+Labels page pane, for instance, queries `labelIds` per selected label rather
+than client-filtering the active-task collection.
+
+Label management is one surface: the Labels page owns creation, editing,
+pinning, merging, and deletion, while the task modal and capture bar only apply
+or quick-create labels through the same API. Merging `POST /labels/:id/merge`
+moves all `task_labels` associations to the target (deduplicating joins) and
+deletes the source without deleting tasks.
 
 ### SQLite first
 
@@ -175,7 +200,7 @@ compatible with this setup and needs no schema changes.
 ### Explicit timezone handling
 
 Calendar dates are user-facing dates, not implicit UTC instants. API calls that
-interpret “today”, “upcoming”, or restoration buckets carry the user's
+interpret “today”, “upcoming”, or restoration windows carry the user's
 timezone. Shared timestamp/calendar helpers should be used instead of ad-hoc
 date parsing or raw UTC assumptions.
 
@@ -302,7 +327,7 @@ Issues rather than here, so this document cannot drift out of sync with them.
 | API boundary quality | Keep auth bridging, CORS, validation, and structured errors centralized and tested at the boundary. |
 | Query and data scalability | Prefer SQL filtering, sorting, batching, and bounded pagination; protect the request/response contract with per-view integration tests. |
 | Deployment and observability | Keep releases reproducible and make coverage, image risk, bundle growth, and production request context visible. |
-| Product model and UX | Document the meaning of `done`, `archived`, `simpleMode`, buckets, and search results before adding more workflow concepts. |
+| Product model and UX | Document the meaning of `done`, `archived`, `simpleMode`, and search results before adding more workflow concepts. |
 | Team-mode boundary | Preserve workspace-scoped seams in new code, while keeping personal mode the supported center of gravity. |
 
 Future features such as calendar, import/export, task duplication, bulk

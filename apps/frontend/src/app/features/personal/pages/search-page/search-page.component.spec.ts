@@ -1,5 +1,6 @@
 import { signal } from '@angular/core';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 import { provideMarkdown } from 'ngx-markdown';
 import { BehaviorSubject, of } from 'rxjs';
@@ -23,7 +24,6 @@ describe('SearchPageComponent', () => {
       completed: false,
       dueDate: '2026-04-24',
       simpleMode: false,
-      bucket: 'deep-work' as const,
       projectId: 'project-1',
       parentId: null,
       order: 0,
@@ -48,8 +48,24 @@ describe('SearchPageComponent', () => {
   ]);
 
   const mockLabels = signal([
-    { id: 'label-1', name: 'bug', color: '#ef4444', taskCount: 2 },
-    { id: 'label-2', name: 'enhancement', color: '#3b82f6', taskCount: 1 },
+    {
+      id: 'label-1',
+      name: 'bug',
+      color: '#ef4444',
+      icon: 'flame',
+      pinned: false,
+      userId: 'user-1',
+      taskCount: 2,
+    },
+    {
+      id: 'label-2',
+      name: 'enhancement',
+      color: '#3b82f6',
+      icon: 'lightbulb',
+      pinned: false,
+      userId: 'user-1',
+      taskCount: 1,
+    },
   ]);
 
   const mockSearchResults: SearchResponse = {
@@ -105,7 +121,18 @@ describe('SearchPageComponent', () => {
     ],
     labels: [
       {
-        label: { id: 'label-1', name: 'bug', color: '#ef4444', userId: 'user-1', taskCount: 2 },
+        label: {
+          id: 'label-1',
+          name: 'bug',
+          color: '#ef4444',
+          userId: 'user-1',
+          icon: 'lightbulb',
+          pinned: false,
+          openTaskCount: 2,
+          completedTaskCount: 1,
+          totalTaskCount: 3,
+          taskCount: 3,
+        },
         score: 80,
         matchReasons: ['label'],
       },
@@ -174,6 +201,7 @@ describe('SearchPageComponent', () => {
           provide: LabelService,
           useValue: {
             labels: mockLabels,
+            labelById: () => new Map(),
           },
         },
         { provide: SearchService, useValue: searchServiceSpy },
@@ -281,6 +309,23 @@ describe('SearchPageComponent', () => {
 
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('bug');
+  }));
+
+  it('label results link to the label pane with the open count and no raw hex', fakeAsync(() => {
+    queryParams$.next(convertToParamMap({ q: 'bug', tab: 'labels' }));
+    const fixture = TestBed.createComponent(SearchPageComponent);
+    fixture.detectChanges();
+    tick();
+    fixture.detectChanges();
+
+    const labelCard = fixture.debugElement.query(By.css('a.project-card'))?.nativeElement as
+      | HTMLAnchorElement
+      | undefined;
+    expect(labelCard).toBeTruthy();
+    expect(labelCard!.getAttribute('href')).toContain('/labels?label=label-1');
+    // Truthful open count from the API, never the stored color.
+    expect(labelCard!.textContent).toContain('2 open');
+    expect(labelCard!.textContent).not.toContain('#ef4444');
   }));
 
   it('toggles sort option via pill buttons', fakeAsync(() => {

@@ -44,6 +44,11 @@ describe('TaskListPageComponent', () => {
       upcomingTaskGroups: signal([]),
       upcomingBucketForTask: jasmine.createSpy().and.returnValue('Later'),
       createTask: jasmine.createSpy().and.returnValue(Promise.resolve({})),
+      labelFilteredTasks: signal([]),
+      labelFilterLoading: signal(false),
+      labelFilterPending: signal(false),
+      labelFilterTruncated: signal(false),
+      setLabelFilter: jasmine.createSpy('setLabelFilter'),
     };
 
     mockProjectService = {
@@ -52,6 +57,7 @@ describe('TaskListPageComponent', () => {
 
     mockLabelService = {
       labels: signal([]),
+      labelById: () => new Map(),
     };
 
     mockAuthStateService = {
@@ -160,6 +166,154 @@ describe('TaskListPageComponent', () => {
     });
   });
 
+  describe('Label filter', () => {
+    const writingLabel = {
+      id: 'label-writing',
+      name: 'Writing',
+      color: '#82d7a9',
+      icon: 'pen' as const,
+      pinned: false,
+      userId: 'user-1',
+      openTaskCount: 1,
+      completedTaskCount: 0,
+      totalTaskCount: 1,
+    };
+    const filteredTask = {
+      id: 'task-labeled',
+      title: 'Draft essay',
+      description: '',
+      status: 'inbox',
+      priority: 'medium',
+      completed: false,
+      createdAt: '2026-04-17T10:00:00Z',
+      updatedAt: '2026-04-17T10:00:00Z',
+      order: 0,
+      labels: [writingLabel.id],
+    } as Task;
+
+    it('renders the server-filtered result set and syncs the service query', () => {
+      mockLabelService.labels.set([writingLabel]);
+      mockLabelService.labelById = () => new Map([[writingLabel.id, writingLabel]]);
+      mockTaskService.labelFilteredTasks.set([filteredTask]);
+      mockActivatedRoute.queryParamMap = of(
+        new Map([
+          ['view', 'inbox'],
+          ['labels', writingLabel.id],
+        ]),
+      );
+
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      expect(mockTaskService.setLabelFilter).toHaveBeenCalledWith([writingLabel.id], 'any');
+      expect(fixture.nativeElement.textContent).toContain('Labeled: Writing');
+      expect(fixture.nativeElement.textContent).toContain('Draft essay');
+      // The normal inbox stack and capture bar do not double-render.
+      expect(fixture.debugElement.query(By.css('app-capture-bar'))).toBeTruthy();
+    });
+
+    it('hides the previous result set while a new label filter is pending', () => {
+      mockLabelService.labels.set([writingLabel]);
+      mockLabelService.labelById = () => new Map([[writingLabel.id, writingLabel]]);
+      mockTaskService.labelFilteredTasks.set([filteredTask]);
+      mockTaskService.labelFilterPending.set(true);
+      mockActivatedRoute.queryParamMap = of(
+        new Map([
+          ['view', 'inbox'],
+          ['labels', writingLabel.id],
+        ]),
+      );
+
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).toContain('Loading labeled tasks...');
+      expect(fixture.nativeElement.textContent).not.toContain('Draft essay');
+    });
+
+    it('surfaces the label result cap instead of truncating silently', () => {
+      mockLabelService.labels.set([writingLabel]);
+      mockTaskService.labelFilterTruncated.set(true);
+      mockActivatedRoute.queryParamMap = of(
+        new Map([
+          ['view', 'inbox'],
+          ['labels', writingLabel.id],
+        ]),
+      );
+
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).toContain(
+        "Task limit exceeded. Some tasks aren't shown.",
+      );
+    });
+
+    it('persists the selected ids and AND mode in the URL', () => {
+      mockLabelService.labels.set([writingLabel]);
+      mockActivatedRoute.queryParamMap = of(
+        new Map([
+          ['view', 'upcoming'],
+          ['labels', `${writingLabel.id},label-second`],
+          ['labelMode', 'all'],
+        ]),
+      );
+
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      expect(mockTaskService.setLabelFilter).toHaveBeenCalledWith(
+        [writingLabel.id, 'label-second'],
+        'all',
+      );
+
+      (fixture.componentInstance as any).onLabelFilterChange(['label-third']);
+      expect(mockRouter.navigate).toHaveBeenCalledWith([], {
+        relativeTo: mockActivatedRoute,
+        queryParams: { labels: 'label-third', labelMode: null },
+        queryParamsHandling: 'merge',
+      });
+
+      (fixture.componentInstance as any).onLabelFilterModeChange('all');
+      expect(mockRouter.navigate).toHaveBeenCalledWith([], {
+        relativeTo: mockActivatedRoute,
+        queryParams: { labelMode: 'all' },
+        queryParamsHandling: 'merge',
+      });
+    });
+
+    it('toggles a chip label filter on and off', () => {
+      mockLabelService.labels.set([writingLabel]);
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      const page = fixture.componentInstance as any;
+      page.filterByLabel(writingLabel);
+      expect(mockRouter.navigate).toHaveBeenCalledWith([], {
+        relativeTo: mockActivatedRoute,
+        queryParams: { labels: writingLabel.id, labelMode: null },
+        queryParamsHandling: 'merge',
+      });
+
+      mockRouter.navigate.calls.reset();
+      mockActivatedRoute.queryParamMap = of(
+        new Map([
+          ['view', 'inbox'],
+          ['labels', writingLabel.id],
+        ]),
+      );
+      const filteredFixture = TestBed.createComponent(TaskListPageComponent);
+      filteredFixture.detectChanges();
+      (filteredFixture.componentInstance as any).filterByLabel(writingLabel);
+      expect(mockRouter.navigate).toHaveBeenCalledWith([], {
+        relativeTo: mockActivatedRoute,
+        queryParams: { labels: null, labelMode: null },
+        queryParamsHandling: 'merge',
+      });
+    });
+  });
+
   describe('Inbox Capture', () => {
     it('quick captures a task when behavior is quick', async () => {
       mockAuthStateService.user.set({ id: 'user-1', captureBehavior: 'quick' });
@@ -176,6 +330,24 @@ describe('TaskListPageComponent', () => {
       const args = mockTaskService.createTask.calls.mostRecent().args[0];
       expect(args.title).toBe('Quick task');
       expect(mockStatusService.success).toHaveBeenCalledWith('"Quick task" added to Inbox');
+    });
+
+    it('applies a label created in the capture combobox to the saved task', async () => {
+      mockAuthStateService.user.set({ id: 'user-1', captureBehavior: 'quick' });
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      const captureBar = fixture.debugElement.query(By.directive(CaptureBarComponent))
+        .componentInstance as CaptureBarComponent;
+      spyOn(captureBar, 'getCreatedLabels').and.returnValue([{ id: 'new-label', name: 'Writing' }]);
+      captureBar.setTitle('Draft essay #Writing');
+
+      await (fixture.componentInstance as any).handleCapture();
+
+      const payload = mockTaskService.createTask.calls.mostRecent().args[0];
+      expect(payload.title).toBe('Draft essay');
+      expect(payload.labels).toEqual(['new-label']);
     });
 
     it('includes an inferred due date in the quick-create payload', async () => {
@@ -198,7 +370,7 @@ describe('TaskListPageComponent', () => {
       expect('dueTime' in payload).toBeFalse();
       expect(payload.simpleMode).toBeFalse();
       expect(mockStatusService.success).toHaveBeenCalledWith(
-        // The default project is never named as a bucket: a default project
+        // The default project is never named in the toast: a default project
         // called "Inbox" would otherwise read as the destination view on a
         // dated task that actually lands in Today/Upcoming/Overdue.
         jasmine.stringMatching(/^"Quick task Friday" added to (Today|Upcoming|Overdue) · due /),
@@ -304,6 +476,8 @@ describe('TaskListPageComponent', () => {
           source: 'inferred',
           matchedText: 'Friday',
         }),
+        [],
+        'Capture task Friday',
       );
       expect(captureBar.getTitle()).toBe('Capture task Friday');
     });
@@ -336,6 +510,8 @@ describe('TaskListPageComponent', () => {
           source: 'inferred',
           matchedText: 'Friday at 3pm',
         }),
+        [],
+        'Capture task Friday at 3pm',
       );
       expect(captureBar.getTitle()).toBe('Capture task Friday at 3pm');
     });

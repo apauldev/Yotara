@@ -319,12 +319,17 @@ test.describe('Task modal on mobile', () => {
     await openCreateModal(page, { width: 390, height: 844 });
     await expandDetails(page);
 
+    // Typing a unique name reveals the create option, so the label controls
+    // are measured even when the test runs without seeded labels.
+    await page.getByPlaceholder('Search or create a label').fill(`touch-label-${Date.now()}`);
+    await expect(page.locator('.label-option-create')).toBeVisible();
+
     const targetSelectors = [
       '.modal-card .close-button',
       '.details-toggle',
       '.priority-dot',
-      '.label-chip',
-      '.palette-swatch',
+      '.label-picker-search',
+      '.label-option-create',
       '.date-picker-trigger',
       '.checkbox-control',
       '.add-subtask-button',
@@ -391,7 +396,8 @@ test.describe('Task modal on mobile', () => {
     expect(removeBox?.width ?? 0).toBeGreaterThanOrEqual(44);
     expect(removeBox?.height ?? 0).toBeGreaterThanOrEqual(44);
 
-    const inlineTargets = await measureTouchTargets(page, ['.create-inline-button']);
+    await page.getByPlaceholder('Search or create a label').fill(`inline-label-${Date.now()}`);
+    const inlineTargets = await measureTouchTargets(page, ['.label-option-create']);
     expect(inlineTargets[0].width).toBeGreaterThanOrEqual(44);
     expect(inlineTargets[0].height).toBeGreaterThanOrEqual(44);
   });
@@ -405,11 +411,16 @@ test.describe('Task modal on mobile', () => {
     await page.getByRole('textbox', { name: 'Description' }).fill('Narrow-screen details');
     await expandDetails(page);
 
-    const label = page.locator('.label-chip').first();
-    await expect(label).toBeVisible();
-    const labelName = await label.innerText();
-    await label.click();
-    await expect(label).toHaveAttribute('aria-pressed', 'true');
+    const labelName = `Advanced Label ${Date.now()}`;
+    await page.getByPlaceholder('Search or create a label').fill(labelName);
+    const createLabelOption = page.locator('.label-option-create').filter({ hasText: labelName });
+    await expect(createLabelOption).toBeVisible();
+    await createLabelOption.click();
+
+    const selectedLabel = page
+      .locator('.selected-labels .label-chip')
+      .filter({ hasText: labelName });
+    await expect(selectedLabel).toBeVisible({ timeout: 5_000 });
 
     const repeatSection = page
       .locator('.task-details .sidebar-section')
@@ -457,10 +468,9 @@ test.describe('Task modal on mobile', () => {
     await page.locator('article.task-card').filter({ hasText: name }).first().click();
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
     await expandDetails(page);
-    await expect(page.locator('.label-chip').filter({ hasText: labelName })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    await expect(
+      page.locator('.selected-labels .label-chip').filter({ hasText: labelName }),
+    ).toBeVisible();
     const reopenedRepeatSection = page
       .locator('.task-details .sidebar-section')
       .filter({ hasText: 'Repeat' });
@@ -566,31 +576,36 @@ test.describe('Task modal on mobile', () => {
     await page.getByPlaceholder(titlePlaceholder).fill(name);
     await expandDetails(page);
 
-    await page.getByPlaceholder('New label').fill(labelName);
-    await page.locator('.palette-swatch').first().click();
-    await page.getByRole('button', { name: 'Create label' }).click();
-    const newChip = page.locator('.label-chip').filter({ hasText: labelName });
+    await page.getByPlaceholder('Search or create a label').fill(labelName);
+    const createOption = page.locator('.label-option-create').filter({ hasText: labelName });
+    await expect(createOption).toBeVisible();
+    await createOption.click();
+    const newChip = page.locator('.selected-labels .label-chip').filter({ hasText: labelName });
     await expect(newChip).toBeVisible({ timeout: 5_000 });
-    await expect(newChip).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: `Remove ${labelName}` })).toBeVisible();
 
-    const gridOverflow = await page.locator('.label-chip-grid').evaluate((element) => ({
+    const pickerOverflow = await page.locator('.label-options').evaluate((element) => ({
       scrollWidth: element.scrollWidth,
       clientWidth: element.clientWidth,
     }));
-    expect(gridOverflow.scrollWidth).toBeLessThanOrEqual(gridOverflow.clientWidth + 1);
+    expect(pickerOverflow.scrollWidth).toBeLessThanOrEqual(pickerOverflow.clientWidth + 1);
 
     await page.getByRole('button', { name: 'Create Task' }).click();
     await expect(page.locator('article.task-card').filter({ hasText: name }).first()).toBeVisible({
       timeout: 10_000,
     });
 
-    await page.locator('article.task-card').filter({ hasText: name }).first().click();
+    await page
+      .locator('article.task-card')
+      .filter({ hasText: name })
+      .first()
+      .locator('.task-title-button')
+      .click();
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
     await expandDetails(page);
-    await expect(page.locator('.label-chip').filter({ hasText: labelName })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    await expect(
+      page.locator('.selected-labels .label-chip').filter({ hasText: labelName }),
+    ).toBeVisible();
     await page.locator('footer').getByRole('button', { name: 'Cancel' }).click();
     await expect(page.getByRole('dialog')).not.toBeVisible();
   });

@@ -37,8 +37,9 @@ type SavePayload =
       [initialProjectId]="
         draftProjectId() || initialProjectId || projectService.projects()[0]?.id || null
       "
-      [initialTitle]="initialTitle"
+      [initialTitle]="draftInitialTitle() || initialTitle"
       [initialDueDateDraft]="draftDueDateDraft()"
+      [initialLabelIds]="draftInitialLabelIds()"
       [error]="modalError()"
       (close)="closeTaskModal()"
       (save)="saveTask($event)"
@@ -60,11 +61,15 @@ export class PersonalTaskWorkspaceComponent {
   protected readonly selectedTask = signal<Task | null>(null);
   protected readonly draftProjectId = signal<string | null>(null);
   protected readonly draftDueDateDraft = signal<DueDateDraft | null>(null);
+  protected readonly draftInitialLabelIds = signal<string[]>([]);
+  protected readonly draftInitialTitle = signal('');
   protected readonly modalError = signal<string | null>(null);
 
   openCreateTaskModal(
     projectId?: string | null,
     dueDateDraft: DueDateDraft | null = this.initialDueDateDraft,
+    initialLabelIds: string[] = [],
+    initialTitle = '',
   ) {
     this.modalError.set(null);
     this.selectedTask.set(null);
@@ -72,6 +77,8 @@ export class PersonalTaskWorkspaceComponent {
       projectId ?? this.initialProjectId ?? this.projectService.projects()[0]?.id ?? null,
     );
     this.draftDueDateDraft.set(dueDateDraft);
+    this.draftInitialLabelIds.set(initialLabelIds);
+    this.draftInitialTitle.set(initialTitle);
     this.modalOpen.set(true);
   }
 
@@ -79,6 +86,8 @@ export class PersonalTaskWorkspaceComponent {
     this.modalError.set(null);
     this.selectedTask.set(task);
     this.draftDueDateDraft.set(null);
+    this.draftInitialLabelIds.set([]);
+    this.draftInitialTitle.set('');
     this.modalOpen.set(true);
   }
 
@@ -87,6 +96,8 @@ export class PersonalTaskWorkspaceComponent {
     this.selectedTask.set(null);
     this.draftProjectId.set(null);
     this.draftDueDateDraft.set(null);
+    this.draftInitialLabelIds.set([]);
+    this.draftInitialTitle.set('');
     this.modalOpen.set(false);
   }
 

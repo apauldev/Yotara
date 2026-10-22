@@ -43,7 +43,6 @@ describe('ProjectDetailPageComponent', () => {
     order: 0,
     dueDate: null,
     simpleMode: false,
-    bucket: 'personal-sanctuary' as const,
     projectId: 'project-1',
     deletedAt: null,
     createdAt: '2026-04-02T10:00:00.000Z',
@@ -88,6 +87,7 @@ describe('ProjectDetailPageComponent', () => {
 
     const labelServiceStub = {
       labels: signal([]),
+      labelById: () => new Map(),
     };
 
     await TestBed.configureTestingModule({

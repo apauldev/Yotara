@@ -15,7 +15,7 @@ import { Task } from '@yotara/shared';
             *ngTemplateOutlet="taskCard; context: { $implicit: task, compact: false }"
           />
 
-          @if (subtasksByParent?.get(task.id); as subtasks) {
+          @if (!flat && subtasksByParent?.get(task.id); as subtasks) {
             <div class="subtask-nested-list">
               @for (subtask of subtasks; track subtask.id) {
                 <div class="subtask-item-wrapper" @taskSlide>
@@ -72,5 +72,7 @@ import { Task } from '@yotara/shared';
 export class TaskStackComponent {
   @Input({ required: true }) tasks: Task[] = [];
   @Input() subtasksByParent: Map<string, Task[]> | null = null;
+  /** Filtered label results are flat: subtasks are not re-nested under parents. */
+  @Input() flat = false;
   @Input({ required: true }) taskCard!: TemplateRef<{ $implicit: Task; compact: boolean }>;
 }

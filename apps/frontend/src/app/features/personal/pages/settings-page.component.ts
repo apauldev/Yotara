@@ -56,6 +56,34 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
               <option value="deep-trench">Deep Trench</option>
             </select>
           </div>
+
+          <label class="settings-item settings-toggle">
+            <div class="settings-item-copy">
+              <strong>Show label names in task lists</strong>
+              <span>When off, cards use compact icon chips and a labels sheet.</span>
+            </div>
+            <input
+              type="checkbox"
+              class="toggle-input"
+              [checked]="showLabelNames()"
+              (change)="onShowLabelNamesChange($event)"
+              aria-label="Toggle label names in task lists"
+            />
+          </label>
+
+          <label class="settings-item settings-toggle">
+            <div class="settings-item-copy">
+              <strong>Color-first labels</strong>
+              <span>Fill full label chips with their label color instead of a soft tint.</span>
+            </div>
+            <input
+              type="checkbox"
+              class="toggle-input"
+              [checked]="colorFirstLabels()"
+              (change)="onColorFirstLabelsChange($event)"
+              aria-label="Toggle color-first labels"
+            />
+          </label>
         </div>
 
         <div class="settings-section">
@@ -840,6 +868,8 @@ export class SettingsPageComponent {
   protected readonly skipCompleteConfirm = this.preferences.skipCompleteConfirm;
   protected readonly actionNotifications = this.preferences.actionNotifications;
   protected readonly desktopNotifications = this.preferences.desktopNotifications;
+  protected readonly showLabelNames = this.preferences.showLabelNames;
+  protected readonly colorFirstLabels = this.preferences.colorFirstLabels;
 
   protected readonly showInsights = computed(() => !this.preferences.insightDismissed());
 
@@ -911,7 +941,6 @@ export class SettingsPageComponent {
             label: 'Labels',
             format: (row: Task) => (row.labels ?? []).map((id) => labels.get(id) ?? id).join('; '),
           },
-          { key: 'bucket', label: 'Bucket' },
           { key: 'parentId', label: 'Parent Task ID' },
           { key: 'subtaskCount', label: 'Subtasks' },
           { key: 'subtaskCompletedCount', label: 'Subtasks Done' },
@@ -944,7 +973,6 @@ export class SettingsPageComponent {
           dueDate: task.dueDate ?? null,
           project: projectMap.get(task.projectId ?? '') ?? null,
           labels: (task.labels ?? []).map((id) => labels.get(id) ?? id),
-          bucket: task.bucket ?? null,
           parentId: task.parentId ?? null,
           subtaskCount: task.subtaskCount ?? 0,
           subtaskCompletedCount: task.subtaskCompletedCount ?? 0,
@@ -1006,7 +1034,11 @@ export class SettingsPageComponent {
         { key: 'id', label: 'ID' },
         { key: 'name', label: 'Name' },
         { key: 'color', label: 'Color' },
-        { key: 'taskCount', label: 'Tasks' },
+        { key: 'icon', label: 'Icon' },
+        { key: 'pinned', label: 'Pinned' },
+        { key: 'openTaskCount', label: 'Open Tasks' },
+        { key: 'completedTaskCount', label: 'Completed Tasks' },
+        { key: 'totalTaskCount', label: 'Total Tasks' },
         { key: 'createdAt', label: 'Created At' },
         { key: 'updatedAt', label: 'Updated At' },
       ];
@@ -1016,7 +1048,11 @@ export class SettingsPageComponent {
         id: l.id,
         name: l.name,
         color: l.color ?? null,
-        taskCount: l.taskCount ?? 0,
+        icon: l.icon,
+        pinned: l.pinned,
+        openTaskCount: l.openTaskCount ?? 0,
+        completedTaskCount: l.completedTaskCount ?? 0,
+        totalTaskCount: l.totalTaskCount ?? 0,
         createdAt: l.createdAt,
         updatedAt: l.updatedAt,
       }));
@@ -1065,6 +1101,14 @@ export class SettingsPageComponent {
 
   protected onSkipCompleteConfirmChange(event: Event) {
     this.preferences.setSkipCompleteConfirm((event.target as HTMLInputElement).checked);
+  }
+
+  protected onShowLabelNamesChange(event: Event) {
+    this.preferences.setShowLabelNames((event.target as HTMLInputElement).checked);
+  }
+
+  protected onColorFirstLabelsChange(event: Event) {
+    this.preferences.setColorFirstLabels((event.target as HTMLInputElement).checked);
   }
 
   protected onActionNotificationsChange(event: Event) {
