@@ -4,7 +4,9 @@ export type Theme =
   | 'dark-forest'
   | 'coastal-calm'
   | 'minimal-slate'
+  | 'floral-blossoms'
   | 'midnight-amethyst'
+  | 'ember-hearth'
   | 'golden-hour'
   | 'deep-trench';
 
@@ -27,7 +29,9 @@ export class ThemeService {
         'dark-forest',
         'coastal-calm',
         'minimal-slate',
+        'floral-blossoms',
         'midnight-amethyst',
+        'ember-hearth',
         'golden-hour',
         'deep-trench',
       ];
@@ -57,7 +61,9 @@ export class ThemeService {
         'dark-forest',
         'coastal-calm',
         'minimal-slate',
+        'floral-blossoms',
         'midnight-amethyst',
+        'ember-hearth',
         'golden-hour',
         'deep-trench',
       ];
@@ -71,7 +77,7 @@ export class ThemeService {
   }
 
   private isThemeDark(theme: Theme): boolean {
-    return ['dark-forest', 'midnight-amethyst', 'deep-trench'].includes(theme);
+    return ['dark-forest', 'midnight-amethyst', 'ember-hearth', 'deep-trench'].includes(theme);
   }
 
   private resolveInitialTheme(): Theme {
@@ -82,7 +88,9 @@ export class ThemeService {
         'dark-forest',
         'coastal-calm',
         'minimal-slate',
+        'floral-blossoms',
         'midnight-amethyst',
+        'ember-hearth',
         'golden-hour',
         'deep-trench',
       ].includes(storedTheme)

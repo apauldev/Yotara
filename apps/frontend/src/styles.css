@@ -518,6 +518,140 @@
   --priority-low: var(--primary-solid);
 }
 
+/*
+ * Floral Blossoms — the rose-light theme. Blush paper surfaces with rose
+ * chrome; the label palette's warm tints (amber, salmon) stay differentiated
+ * by the desaturated containers, and its cool tints (sky, lilac) pop against
+ * the warm neutral. Chip body text holds ≥4.5 AA for every curated label
+ * color (worst 12.6:1), and primary-solid keeps an 8.4:1 text ratio when it
+ * doubles as status/priority text.
+ */
+.theme-floral-blossoms {
+  color-scheme: light;
+
+  --background: 338 42% 97%;
+  --foreground: 338 25% 12%;
+  --card: 338 32% 95%;
+  --card-foreground: 338 25% 12%;
+  --popover: 338 32% 95%;
+  --popover-foreground: 338 25% 12%;
+  --primary: 340 50% 37%;
+  --primary-foreground: 338 42% 97%;
+  --secondary: 338 30% 92%;
+  --secondary-foreground: 338 25% 13%;
+  --muted: 338 25% 90%;
+  --muted-foreground: 338 10% 36%;
+  --accent: 340 45% 44%;
+  --accent-foreground: 338 42% 97%;
+  --destructive: 0 84.2% 45%;
+  --destructive-foreground: 338 42% 97%;
+  --border: 338 16% 83%;
+  --input: 338 32% 95%;
+  --ring: 340 50% 37%;
+  --surface: #fbf5f7;
+  --surface-container-lowest: #fff;
+  --surface-container-low: #f6eef1;
+  --surface-container-high: #efe0e6;
+  --surface-container-highest: #e8d7de;
+  --outline-variant: rgb(58 30 40 / 12%);
+  --on-surface: #2a1a22;
+  --on-surface-muted: #6b5760;
+  --on-surface-subtle: #7f6b72;
+  --surface-overlay: color-mix(in srgb, var(--surface-container-low) 88%, transparent);
+  --surface-card: color-mix(in srgb, var(--surface-container-low) 92%, transparent);
+  --surface-card-strong: color-mix(in srgb, var(--surface-container-highest) 88%, white);
+  --surface-dim: rgb(58 30 40 / 6%);
+  --surface-dim-strong: rgb(58 30 40 / 10%);
+  --backdrop-overlay: color-mix(in srgb, var(--on-surface) 18%, transparent);
+  --scrim-strong: color-mix(in srgb, var(--on-surface) 30%, transparent);
+  --primary-gradient: linear-gradient(135deg, #7c2c4e 0%, #a53e66 100%);
+  --primary-action-gradient: linear-gradient(135deg, #a53e66 0%, #c05b82 100%);
+  --primary-solid: #7c2c4e;
+  --brand-mark: #a53e66;
+  --primary-soft: #f9ebf1;
+  --primary-soft-strong: #f3dce6;
+  --accent-soft: #faeef3;
+  --accent-strong: #a53e66;
+  --danger-soft: #fbe8ec;
+  --warning-soft: #f6edd8;
+  --info-soft: #edf0f5;
+  --success-soft: #e6f3ea;
+  --success-strong: #2a6b3f;
+  --status-overdue: #8c4b3a;
+  --status-complete: #7c2c4e;
+  --status-pending: #804a24;
+  --priority-high: #c44d3c;
+  --priority-medium: #d9a13d;
+  --priority-low: var(--primary-solid);
+}
+
+/*
+ * Ember Hearth — the warm dark theme. Ember-tinted charcoal surfaces
+ * (saturation kept low so they read as warm neutrals, not brown) with
+ * burnished amber chrome. The label palette's light tints (mint, sky, lilac)
+ * reach their strongest silhouette contrast of the dark themes here, and the
+ * warm status/priority colors are tuned per-theme instead of shared.
+ * Chip body text holds ≥4.5 AA for every curated label color (worst 9.2:1).
+ */
+.theme-ember-hearth {
+  color-scheme: dark;
+
+  --background: 18 24% 9%;
+  --foreground: 26 28% 95%;
+  --card: 18 20% 14%;
+  --card-foreground: 26 28% 90%;
+  --popover: 18 20% 14%;
+  --popover-foreground: 26 28% 90%;
+  --primary: 35 70% 66%;
+  --primary-foreground: 18 24% 9%;
+  --secondary: 22 16% 17%;
+  --secondary-foreground: 26 28% 90%;
+  --muted: 22 16% 17%;
+  --muted-foreground: 24 16% 70%;
+  --accent: 30 70% 62%;
+  --accent-foreground: 18 24% 9%;
+  --destructive: 0 62.8% 55%;
+  --destructive-foreground: 26 28% 90%;
+  --border: 20 16% 26%;
+  --input: 22 16% 17%;
+  --ring: 35 70% 66%;
+  --surface: #1c1410;
+  --surface-container-lowest: #1c1410;
+  --surface-container-low: #241a15;
+  --surface-container-high: #2e221a;
+  --surface-container-highest: #352a21;
+  --outline-variant: rgb(235 210 190 / 12%);
+  --on-surface: #ead9cb;
+  --on-surface-muted: #b6a598;
+  --on-surface-subtle: #a59487;
+  --surface-overlay: color-mix(in srgb, var(--surface-container-lowest) 88%, transparent);
+  --surface-card: color-mix(in srgb, var(--surface-container-lowest) 92%, transparent);
+  --surface-card-strong: color-mix(in srgb, var(--surface-container-highest) 90%, black);
+  --surface-dim: rgb(235 210 190 / 6%);
+  --surface-dim-strong: rgb(235 210 190 / 10%);
+  --backdrop-overlay: color-mix(in srgb, var(--on-surface) 18%, transparent);
+  --scrim-strong: color-mix(in srgb, var(--on-surface) 30%, transparent);
+  --primary-gradient: linear-gradient(135deg, #c47a3d 0%, #e29a52 100%);
+  --primary-action-gradient: linear-gradient(135deg, #e29a52 0%, #f0b26e 100%);
+  --primary-solid: #d98e4a;
+  --brand-mark: #e29a52;
+  --primary-soft: rgb(217 142 74 / 22%);
+  --primary-soft-strong: rgb(217 142 74 / 30%);
+  --accent-soft: rgb(217 142 74 / 18%);
+  --accent-strong: #f0b26e;
+  --danger-soft: rgb(186 109 87 / 22%);
+  --warning-soft: rgb(232 184 58 / 20%);
+  --info-soft: rgb(109 118 144 / 20%);
+  --success-soft: rgb(148 209 124 / 22%);
+  --success-strong: #94d17c;
+  --status-overdue: #f0a58a;
+  --status-complete: #d98e4a;
+  --status-pending: #f2c284;
+  --priority-high: #ff8a7a;
+  --priority-medium: #e8b84a;
+  --priority-low: var(--primary-solid);
+}
+
 @layer base {
   * {
     @apply border-border;
