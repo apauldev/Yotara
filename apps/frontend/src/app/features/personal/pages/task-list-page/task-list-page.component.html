@@ -43,11 +43,7 @@
 
     @if (hasLabelFilter()) {
       <section class="task-section">
-        <app-section-header
-          [title]="labelFilterTitle()"
-          [count]="labelFilteredTasks().length + ' tasks'"
-          size="md"
-        >
+        <app-section-header [title]="labelFilterTitle()" [count]="labelFilterCount()" size="md">
           <app-task-view-controls
             section-header-actions
             [sortOption]="sortOption()"
@@ -58,7 +54,10 @@
         </app-section-header>
 
         <div aria-live="polite">
-          @if (taskService.labelFilterLoading() && labelFilteredTasks().length === 0) {
+          @if (
+            taskService.labelFilterPending() ||
+            (taskService.labelFilterLoading() && labelFilteredTasks().length === 0)
+          ) {
             <p class="status-copy">Loading labeled tasks...</p>
           } @else if (labelFilteredTasks().length === 0) {
             @if (taskService.error()) {

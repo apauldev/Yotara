@@ -13,6 +13,7 @@ import {
   map,
   of,
   switchMap,
+  tap,
 } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthStateService } from './auth-state.service';
@@ -44,6 +45,11 @@ export interface CalendarRangeRequest {
 interface LabelFilterState {
   ids: string[];
   mode: 'any' | 'all';
+}
+
+/** Stable identity for a label filter, independent of selection order. */
+function labelFilterKey(filter: LabelFilterState): string {
+  return `${[...filter.ids].sort().join(',')}:${filter.mode}`;
 }
 
 /** Normalized fetch state: focus windows the grid covers collapse to `null`. */
@@ -89,6 +95,9 @@ export class TaskService {
   private calendarRangeState = signal<CalendarRangeState | null>(null);
   private labelFilterState = signal<LabelFilterState>({ ids: [], mode: 'any' });
   private labelFilterLoadingState = signal(false);
+  private labelFilterResolvedKeyState = signal('');
+  private labelFilterTruncatedState = signal(false);
+  private labelPaneTruncatedState = signal(false);
   private calendarRangeLoadingState = signal(false);
   private calendarRangeLoadedState = signal(false);
   private calendarRangeTruncatedState = signal(false);
@@ -217,7 +226,14 @@ export class TaskService {
       .get<PaginatedResponse<Task[]>>(`${this.baseUrl}/tasks?${params.toString()}`, {
         withCredentials: true,
       })
-      .pipe(map((response) => response.data));
+      .pipe(
+        tap({
+          next: (response) =>
+            this.labelPaneTruncatedState.set(response.meta.total > response.data.length),
+          error: () => this.labelPaneTruncatedState.set(false),
+        }),
+        map((response) => response.data),
+      );
   }
 
   /**
@@ -246,12 +262,21 @@ export class TaskService {
       toObservable(this.labelFilterState),
     ]).pipe(
       switchMap(([initialized, currentUserId, , filter]) => {
+        const key = labelFilterKey(filter);
         if (!initialized || !currentUserId || filter.ids.length === 0) {
           this.labelFilterLoadingState.set(false);
+          this.labelFilterTruncatedState.set(false);
+          if (filter.ids.length === 0) {
+            this.labelFilterResolvedKeyState.set(key);
+          }
           return of([] as Task[]);
         }
         this.labelFilterLoadingState.set(true);
         return this.fetchTasksByLabels$(filter.ids, filter.mode).pipe(
+          tap({
+            next: () => this.labelFilterResolvedKeyState.set(key),
+            error: () => this.labelFilterResolvedKeyState.set(key),
+          }),
           finalize(() => this.labelFilterLoadingState.set(false)),
           catchError(this.handleLoadError('labeled tasks')),
         );
@@ -261,6 +286,13 @@ export class TaskService {
   );
 
   readonly labelFilterLoading = this.labelFilterLoadingState.asReadonly();
+  /** True while a newly selected label filter has no result set yet. */
+  readonly labelFilterPending = computed(() => {
+    const filter = this.labelFilterState();
+    return filter.ids.length > 0 && this.labelFilterResolvedKeyState() !== labelFilterKey(filter);
+  });
+  readonly labelFilterTruncated = this.labelFilterTruncatedState.asReadonly();
+  readonly labelPaneTruncated = this.labelPaneTruncatedState.asReadonly();
 
   private fetchTasksByLabels$(ids: string[], mode: 'any' | 'all') {
     const params = new URLSearchParams({
@@ -275,7 +307,14 @@ export class TaskService {
       .get<PaginatedResponse<Task[]>>(`${this.baseUrl}/tasks?${params.toString()}`, {
         withCredentials: true,
       })
-      .pipe(map((response) => response.data));
+      .pipe(
+        tap({
+          next: (response) =>
+            this.labelFilterTruncatedState.set(response.meta.total > response.data.length),
+          error: () => this.labelFilterTruncatedState.set(false),
+        }),
+        map((response) => response.data),
+      );
   }
 
   /** Fetch active tasks without a due date (the calendar's No date list). */

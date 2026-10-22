@@ -1548,4 +1548,42 @@ describe('TaskService', () => {
 
     expect(service.todayTruncated()).toBe(false);
   }));
+
+  it('flags a new label filter as pending and surfaces label truncation', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+    flushDefaultViews(http);
+    tick();
+
+    expect(service.labelFilterPending()).toBeFalse();
+
+    service.setLabelFilter(['label-1']);
+    tick();
+
+    expect(service.labelFilterPending()).toBeTrue();
+
+    const labeledTask: Task = {
+      id: 'labeled-1',
+      title: 'Labeled task',
+      status: 'inbox',
+      priority: 'medium',
+      completed: false,
+      createdAt: dayOffset(0),
+      updatedAt: dayOffset(0),
+      order: 0,
+    };
+    http
+      .expectOne((request) => request.url.includes('labelIds=label-1'))
+      .flush(paginated([labeledTask], { total: 5000 }));
+    tick();
+
+    expect(service.labelFilterPending()).toBeFalse();
+    expect(service.labelFilterTruncated()).toBeTrue();
+    expect(service.labelFilteredTasks().map((task) => task.id)).toEqual(['labeled-1']);
+  }));
 });

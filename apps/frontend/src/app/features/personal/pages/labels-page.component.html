@@ -251,6 +251,9 @@
           }
 
           <div class="task-pane-content" role="tabpanel" [attr.aria-label]="paneFilter()">
+            @if (paneTruncated() && !paneLoading()) {
+              <p class="status-copy" role="status">Task limit exceeded. Some tasks aren't shown.</p>
+            }
             @if (paneLoading()) {
               <p class="status-copy" role="status">Loading tasks…</p>
             } @else if (paneError()) {

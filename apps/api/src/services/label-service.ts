@@ -168,12 +168,25 @@ function findLabelByNameForOwner(ownerId: string, name: string, tx?: Database) {
  * create/open-combos cannot both succeed; one loser gets this error.
  */
 function isLabelUniqueConstraintError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null || !('code' in error)) {
+    return false;
+  }
+
+  const code = (error as { code?: string }).code;
+  if (code === 'SQLITE_CONSTRAINT_UNIQUE') {
+    return true;
+  }
+  if (code !== 'SQLITE_CONSTRAINT') {
+    return false;
+  }
+
+  // Older SQLite/better-sqlite3 combinations only expose the base constraint
+  // code. In that case the message is the only safe way to distinguish this
+  // index from an unrelated FK/CHECK failure.
+  const message = (error as { message?: string }).message ?? '';
   return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    ((error as { code?: string }).code === 'SQLITE_CONSTRAINT_UNIQUE' ||
-      (error as { code?: string }).code === 'SQLITE_CONSTRAINT')
+    /UNIQUE constraint failed/i.test(message) &&
+    /idx_labels_user_name_unique|labels\./i.test(message)
   );
 }
 
@@ -297,8 +310,9 @@ export function deleteLabelForOwner(ownerId: string, labelId: string, tx?: Datab
  * Merge `sourceId` into `targetId`: every task association moves to the
  * target (deduplicating tasks that already had it), then the source label is
  * deleted. The whole operation is one immediate transaction so a failure can
- * never orphan associations. Returns the number of source associations, or
- * null when either label is missing for this owner.
+ * never orphan associations. Returns the number of associations actually
+ * moved (source associations already on the target are deduplicated, not
+ * counted), or null when either label is missing for this owner.
  */
 export function mergeLabelForOwner(
   ownerId: string,
@@ -345,7 +359,7 @@ export function mergeLabelForOwner(
         .where(and(eq(labels.id, sourceId), eq(labels.userId, ownerId)))
         .run();
 
-      return { movedTaskCount: sourceRows.length };
+      return { movedTaskCount: toMove.length };
     },
     { behavior: 'immediate' },
   );

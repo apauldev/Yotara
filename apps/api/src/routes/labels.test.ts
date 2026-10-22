@@ -407,9 +407,9 @@ test('merging a label moves every association, dedupes, and deletes the source',
       payload: { targetId },
     });
     assert.equal(merge.statusCode, 200);
-    // Two source associations moved; the task that already had the target is
-    // deduplicated rather than duplicated.
-    assert.equal(merge.json().movedTaskCount, 2);
+    // One source association moved; the task that already had the target is
+    // deduplicated rather than moved or duplicated.
+    assert.equal(merge.json().movedTaskCount, 1);
 
     const labels = await ctx.app.inject({ method: 'GET', url: '/labels', headers: { cookie } });
     assert.equal(labels.statusCode, 200);

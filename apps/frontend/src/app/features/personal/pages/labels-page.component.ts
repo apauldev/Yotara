@@ -99,6 +99,7 @@ export class LabelsPageComponent {
   protected readonly deleting = signal(false);
   protected readonly paneError = signal<string | null>(null);
   protected readonly paneLoading = signal(false);
+  protected readonly paneTruncated = this.taskService.labelPaneTruncated;
   protected readonly actionError = signal<string | null>(null);
   protected readonly labelSearch = signal('');
   protected readonly paneFilter = signal<PaneFilter>('open');
@@ -211,12 +212,15 @@ export class LabelsPageComponent {
    * Server-side filter: the pane runs one GET /tasks?labelIds=… request per
    * selected label and pane filter (includeSubtasks=true matches the flat
    * count scope), so the visible list and the directory counts agree.
+   * taskService.version also refreshes the pane after any task write, including
+   * card completion and edits that the workspace never emits through taskSaved.
    */
   protected readonly paneTasks = toSignal(
     combineLatest([
       toObservable(computed(() => this.fetchableLabelId())).pipe(distinctUntilChanged()),
       toObservable(this.paneFilter),
       toObservable(this.labelRefresh),
+      toObservable(this.taskService.version),
     ]).pipe(
       switchMap(([labelId, filter]) => {
         if (!labelId) {

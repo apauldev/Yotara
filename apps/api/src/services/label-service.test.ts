@@ -362,6 +362,22 @@ test('Label Service', async (t) => {
       );
     });
 
+    await t.test('does not report unrelated constraint failures as duplicate labels', async () => {
+      // A non-existent owner trips the labels.user_id foreign key. That must
+      // surface as the original constraint error, not a misleading 409.
+      await assert.rejects(
+        () =>
+          ctx.labelService.createLabelForOwner(randomUUID(), {
+            name: 'Orphaned label',
+          }),
+        (error: { statusCode?: number; code?: string }) => {
+          assert.notEqual(error.statusCode, 409);
+          assert.equal(error.code, 'SQLITE_CONSTRAINT_FOREIGNKEY');
+          return true;
+        },
+      );
+    });
+
     await t.test('create normalizes 3-digit hex colors', async () => {
       const label = await ctx.labelService.createLabelForOwner(ownerId, {
         name: 'Trio',

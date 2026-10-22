@@ -143,6 +143,9 @@ export class TaskListPageComponent implements OnInit {
       .filter((name): name is string => Boolean(name));
     return names.length > 0 ? `Labeled: ${names.join(' + ')}` : 'Labeled tasks';
   });
+  protected readonly labelFilterCount = computed(() =>
+    this.taskService.labelFilterPending() ? '…' : `${this.labelFilteredTasks().length} tasks`,
+  );
 
   // --- Header Data ---
   protected readonly pageTitle = computed(() => {
@@ -251,6 +254,9 @@ export class TaskListPageComponent implements OnInit {
 
   /** True when the list behind the current view hit the API's page cap. */
   protected readonly limitExceeded = computed(() => {
+    if (this.hasLabelFilter()) {
+      return this.taskService.labelFilterTruncated() && !this.taskService.labelFilterPending();
+    }
     switch (this.viewMode()) {
       case 'today':
         return this.taskService.todayTruncated() || this.taskService.overdueTruncated();
@@ -443,10 +449,11 @@ export class TaskListPageComponent implements OnInit {
   }
 
   protected filterByLabel(label: Label) {
-    if (this.selectedLabelIds().includes(label.id)) {
-      return;
-    }
-    this.onLabelFilterChange([...this.selectedLabelIds(), label.id]);
+    const selected = this.selectedLabelIds();
+    const next = selected.includes(label.id)
+      ? selected.filter((id) => id !== label.id)
+      : [...selected, label.id];
+    this.onLabelFilterChange(next);
   }
 
   // --- Sorting & Pagination Events ---

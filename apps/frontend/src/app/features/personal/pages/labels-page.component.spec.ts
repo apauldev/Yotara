@@ -104,6 +104,8 @@ describe('LabelsPageComponent', () => {
   let queryParams$: BehaviorSubject<ReturnType<typeof convertToParamMap>>;
   let labelsSignal: WritableSignal<StubLabel[]>;
   let loadingSignal: WritableSignal<boolean>;
+  let taskVersion: WritableSignal<number>;
+  let paneTruncated: WritableSignal<boolean>;
   let labelServiceStub: {
     labels: WritableSignal<StubLabel[]>;
     loading: WritableSignal<boolean>;
@@ -123,6 +125,8 @@ describe('LabelsPageComponent', () => {
     queryParams$ = new BehaviorSubject(convertToParamMap({}));
     labelsSignal = signal(labels);
     loadingSignal = signal(false);
+    taskVersion = signal(0);
+    paneTruncated = signal(false);
     fetchTasksByLabel$ = jasmine
       .createSpy('fetchTasksByLabel$')
       .and.callFake((labelId: string) => of(labelId === 'writing' ? writingTasks : []));
@@ -180,7 +184,14 @@ describe('LabelsPageComponent', () => {
           },
         },
         { provide: LabelService, useValue: labelServiceStub },
-        { provide: TaskService, useValue: { fetchTasksByLabel$ } },
+        {
+          provide: TaskService,
+          useValue: {
+            fetchTasksByLabel$,
+            version: taskVersion,
+            labelPaneTruncated: paneTruncated,
+          },
+        },
         { provide: ProjectService, useValue: { projects: signal([]) } },
       ],
     }).compileComponents();
@@ -252,6 +263,31 @@ describe('LabelsPageComponent', () => {
 
     clickTab(2);
     expect(fetchTasksByLabel$).toHaveBeenCalledWith('finance', undefined);
+  }));
+
+  it('refetches the pane after a task mutation', fakeAsync(() => {
+    const fixture = createFixture();
+    tick();
+
+    const initialCalls = fetchTasksByLabel$.calls.count();
+
+    taskVersion.update((value) => value + 1);
+    fixture.detectChanges();
+    tick();
+
+    expect(fetchTasksByLabel$.calls.count()).toBeGreaterThan(initialCalls);
+  }));
+
+  it('shows a truncation notice when the pane hits the page cap', fakeAsync(() => {
+    const fixture = createFixture();
+    tick();
+
+    paneTruncated.set(true);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain(
+      "Task limit exceeded. Some tasks aren't shown.",
+    );
   }));
 
   it('filters the directory by name', fakeAsync(() => {

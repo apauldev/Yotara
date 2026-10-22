@@ -982,7 +982,7 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
   }
 
   protected selectSuggestion(labelName: string) {
-    this.insertLabelToken(labelName);
+    this.insertLabelToken(labelName, this.activeTagSearch());
   }
 
   /**
@@ -990,6 +990,7 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
    * then insert its token so the submit path resolves it like any other tag.
    */
   protected async createTagFromSearch() {
+    const search = this.activeTagSearch();
     const name = this.createTagName();
     if (!name) {
       return;
@@ -1002,28 +1003,39 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
         icon: suggestLabelIcon(name),
       });
       this.createdLabels.update((labels) => [...labels, { id: created.id, name: created.name }]);
-      this.insertLabelToken(created.name);
+      this.insertLabelToken(created.name, search);
     } catch (error) {
       const existing = existingLabelFromConflict(error);
       if (existing) {
         this.createdLabels.update((labels) => [...labels, existing]);
         this.labelService.refresh();
-        this.insertLabelToken(existing.name);
+        this.insertLabelToken(existing.name, search);
         return;
       }
       this.setError('Could not create that label. Try again.');
     }
   }
 
-  private insertLabelToken(labelName: string) {
+  /**
+   * Replace the typed tag with its canonical label name.
+   *
+   * `search` is captured before an async label creation: if the user keeps
+   * typing while the request is in flight (#tea -> #teal), the old token is
+   * only a prefix of the new one. Refuse to replace unless the token ends at a
+   * word boundary so the extra characters are never mangled.
+   */
+  private insertLabelToken(labelName: string, search: string | null = this.activeTagSearch()) {
     const input = this.captureInput()?.nativeElement;
     // The DOM value is the freshest during a keystroke; the signal is the
     // fallback when an async creation outlived a re-render.
     const value = input?.value || this.title();
-    const search = this.activeTagSearch();
     const token = search ? `#${search}` : null;
 
     let hashIndex = token ? value.lastIndexOf(token) : -1;
+    if (token && hashIndex === -1) {
+      return;
+    }
+
     let tokenEnd: number;
     if (hashIndex !== -1 && token) {
       tokenEnd = hashIndex + token.length;
@@ -1036,9 +1048,18 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
 
     if (hashIndex === -1) return;
 
+    if (token) {
+      const nextChar = value[tokenEnd];
+      if (nextChar !== undefined && !/\s/.test(nextChar)) {
+        return;
+      }
+    }
+
+    const suffix = value.substring(tokenEnd);
+    const needsSpace = suffix.length === 0 || !/^\s/.test(suffix);
     const newValue =
-      value.substring(0, hashIndex) + '#' + labelName + ' ' + value.substring(tokenEnd);
-    const newPos = hashIndex + labelName.length + 2;
+      value.substring(0, hashIndex) + '#' + labelName + (needsSpace ? ' ' : '') + suffix;
+    const newPos = hashIndex + labelName.length + 1 + (needsSpace ? 1 : 0);
     this.updateTitle(newValue);
     this.activeTagSearch.set(null);
 

@@ -173,6 +173,48 @@ describe('CaptureBarComponent', () => {
       expect(fixture.componentInstance.getTitle()).toBe('#hidden ');
     });
 
+    it('does not mangle a token that grows while creation is in flight', async () => {
+      let resolveCreate!: (label: Label) => void;
+      mockLabelService.createLabel.and.returnValue(
+        new Promise<Label>((resolve) => {
+          resolveCreate = resolve;
+        }),
+      );
+      const fixture = createFixture();
+      const input = fixture.debugElement.query(By.css('input'));
+
+      input.nativeElement.value = '#tea';
+      input.nativeElement.selectionStart = 4;
+      input.nativeElement.selectionEnd = 4;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.componentInstance.setTitle('#tea');
+      fixture.detectChanges();
+
+      const create = fixture.debugElement.query(By.css('.suggestion-create'));
+      create.nativeElement.click();
+
+      // The user keeps typing while the label request is still pending.
+      input.nativeElement.value = '#teal';
+      input.nativeElement.selectionStart = 5;
+      input.nativeElement.selectionEnd = 5;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.componentInstance.setTitle('#teal');
+      fixture.detectChanges();
+
+      resolveCreate({
+        id: 'new-label',
+        name: 'tea',
+        color: '#82d7a9',
+        icon: 'tag',
+        pinned: false,
+        userId: 'user-1',
+      });
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.getTitle()).toBe('#teal');
+    });
+
     it('hides the dropdown when space follows the hash term', () => {
       const fixture = createFixture();
       const input = fixture.debugElement.query(By.css('input'));
