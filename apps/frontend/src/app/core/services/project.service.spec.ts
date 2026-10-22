@@ -9,11 +9,13 @@ describe('ProjectService', () => {
   const initialized = signal(false);
   const isAuthenticated = signal(false);
   const currentUserId = signal<string | null>(null);
+  const onboardingCompleted = signal(false);
 
   beforeEach(() => {
     initialized.set(false);
     isAuthenticated.set(false);
     currentUserId.set(null);
+    onboardingCompleted.set(false);
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
@@ -25,6 +27,7 @@ describe('ProjectService', () => {
             initialized,
             isAuthenticated,
             currentUserId,
+            onboardingCompleted,
           },
         },
       ],
@@ -39,11 +42,31 @@ describe('ProjectService', () => {
   it('does not request projects before auth initialization completes', fakeAsync(() => {
     const service = TestBed.inject(ProjectService);
     const http = TestBed.inject(HttpTestingController);
+    onboardingCompleted.set(true);
 
     tick();
 
     expect(service.projects()).toEqual([]);
     http.expectNone('http://localhost:3000/projects');
+  }));
+
+  it('waits for onboarding to complete before loading projects', fakeAsync(() => {
+    const service = TestBed.inject(ProjectService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    expect(service.projects()).toEqual([]);
+    http.expectNone('http://localhost:3000/projects');
+
+    onboardingCompleted.set(true);
+    tick();
+
+    http.expectOne('http://localhost:3000/projects').flush([]);
+    tick();
   }));
 
   it('loads projects for authenticated users', fakeAsync(() => {
@@ -53,6 +76,7 @@ describe('ProjectService', () => {
     initialized.set(true);
     isAuthenticated.set(true);
     currentUserId.set('user-1');
+    onboardingCompleted.set(true);
     tick();
 
     const projects: Project[] = [
@@ -86,6 +110,7 @@ describe('ProjectService', () => {
     initialized.set(true);
     isAuthenticated.set(true);
     currentUserId.set('user-1');
+    onboardingCompleted.set(true);
     tick();
 
     http.expectOne('http://localhost:3000/projects').flush([
@@ -143,6 +168,7 @@ describe('ProjectService', () => {
     initialized.set(true);
     isAuthenticated.set(true);
     currentUserId.set('user-1');
+    onboardingCompleted.set(true);
     tick();
 
     http.expectOne('http://localhost:3000/projects').flush([]);

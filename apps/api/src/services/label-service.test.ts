@@ -49,26 +49,26 @@ test('Label Service', async (t) => {
       const names = labels.map((l) => l.name);
       assert.ok(names.includes('Urgent'));
       assert.ok(names.includes('Waiting'));
-      assert.ok(names.includes('Planning'));
-      assert.ok(names.includes('Errand'));
+      assert.ok(names.includes('Errands'));
       assert.ok(names.includes('Review'));
-      assert.ok(names.includes('Idea'));
+      assert.ok(names.includes('Someday'));
+      assert.ok(names.includes('Focus'));
 
       const icons = new Map(labels.map((label) => [label.name, label.icon]));
       assert.equal(icons.get('Urgent'), 'flame');
       assert.equal(icons.get('Waiting'), 'hourglass');
-      assert.equal(icons.get('Planning'), 'calendar-days');
-      assert.equal(icons.get('Errand'), 'basket-shopping');
+      assert.equal(icons.get('Errands'), 'basket-shopping');
       assert.equal(icons.get('Review'), 'check-double');
-      assert.equal(icons.get('Idea'), 'lightbulb');
+      assert.equal(icons.get('Someday'), 'calendar-days');
+      assert.equal(icons.get('Focus'), 'leaf');
 
       const colors = new Map(labels.map((label) => [label.name, label.color]));
       assert.equal(colors.get('Urgent'), '#d44d3c');
       assert.equal(colors.get('Waiting'), '#f1c582');
-      assert.equal(colors.get('Planning'), '#bcd0fb');
-      assert.equal(colors.get('Errand'), '#c7e9b3');
+      assert.equal(colors.get('Errands'), '#c7e9b3');
       assert.equal(colors.get('Review'), '#b9a3f4');
-      assert.equal(colors.get('Idea'), '#82d7a9');
+      assert.equal(colors.get('Someday'), '#bcd0fb');
+      assert.equal(colors.get('Focus'), '#82d7a9');
     });
 
     await t.test('seeds default labels only once', async () => {
@@ -76,6 +76,26 @@ test('Label Service', async (t) => {
       const labels = await ctx.labelService.listLabelsForOwner(ownerId);
       const urgentCount = labels.filter((l) => l.name === 'Urgent').length;
       assert.equal(urgentCount, 1, 'Urgent should only exist once');
+    });
+
+    await t.test('does not add defaults to an account that already has labels', async () => {
+      const existingOwnerId = randomUUID();
+      await ctx.db.insert(users).values({
+        id: existingOwnerId,
+        name: 'Existing User',
+        email: `${existingOwnerId}@example.com`,
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      await ctx.labelService.createLabelForOwner(existingOwnerId, { name: 'Calls' });
+      await ctx.labelService.seedDefaultLabelsForOwner(existingOwnerId);
+
+      const labels = await ctx.labelService.listLabelsForOwner(existingOwnerId);
+      assert.deepEqual(
+        labels.map((label) => label.name),
+        ['Calls'],
+      );
     });
 
     await t.test('creating a label with default color', async () => {
@@ -357,12 +377,12 @@ test('Label Service', async (t) => {
     await t.test(
       'update rejects renaming into an existing label but keeps unchanged writes',
       async () => {
-        const a = await ctx.labelService.createLabelForOwner(ownerId, { name: 'Errands' });
-        const b = await ctx.labelService.createLabelForOwner(ownerId, { name: 'Calls' });
+        const a = await ctx.labelService.createLabelForOwner(ownerId, { name: 'Calls' });
+        const b = await ctx.labelService.createLabelForOwner(ownerId, { name: 'Emails' });
         assert.ok(a && b);
 
         await assert.rejects(
-          () => ctx.labelService.updateLabelForOwner(ownerId, b!.id, { name: 'ERRANDS' }),
+          () => ctx.labelService.updateLabelForOwner(ownerId, b!.id, { name: 'CALLS' }),
           (error: { statusCode?: number }) => {
             assert.equal(error.statusCode, 409);
             return true;
@@ -370,9 +390,9 @@ test('Label Service', async (t) => {
         );
 
         // Saving a label with its own current name stays a 200 path.
-        const ok = await ctx.labelService.updateLabelForOwner(ownerId, b!.id, { name: 'Calls' });
+        const ok = await ctx.labelService.updateLabelForOwner(ownerId, b!.id, { name: 'Emails' });
         assert.ok(ok);
-        assert.equal(ok.name, 'Calls');
+        assert.equal(ok.name, 'Emails');
       },
     );
 

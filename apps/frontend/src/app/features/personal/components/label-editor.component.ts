@@ -84,7 +84,7 @@ const LABEL_NAME_MAX_LENGTH = 60;
             (ngModelChange)="onNameChange($event)"
             [attr.aria-invalid]="nameError() ? 'true' : null"
             [attr.aria-describedby]="nameError() ? 'label-name-error' : null"
-            placeholder="Errand"
+            placeholder="Errands"
             (keydown.enter)="save(); $event.preventDefault()"
           />
           @if (nameError()) {

@@ -9,11 +9,13 @@ describe('LabelService', () => {
   const initialized = signal(false);
   const isAuthenticated = signal(false);
   const currentUserId = signal<string | null>(null);
+  const onboardingCompleted = signal(false);
 
   beforeEach(() => {
     initialized.set(false);
     isAuthenticated.set(false);
     currentUserId.set(null);
+    onboardingCompleted.set(false);
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
@@ -25,6 +27,7 @@ describe('LabelService', () => {
             initialized,
             isAuthenticated,
             currentUserId,
+            onboardingCompleted,
           },
         },
       ],
@@ -48,6 +51,40 @@ describe('LabelService', () => {
     expect(service.version()).toBe(2);
   }));
 
+  it('loads labels only after onboarding completes', fakeAsync(() => {
+    const service = TestBed.inject(LabelService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    http.expectNone('http://localhost:3000/labels');
+    expect(service.labels()).toEqual([]);
+
+    onboardingCompleted.set(true);
+    tick();
+
+    http.expectOne('http://localhost:3000/labels').flush([
+      {
+        id: 'label-1',
+        name: 'Urgent',
+        color: '#d44d3c',
+        icon: 'flame',
+        pinned: false,
+        userId: 'user-1',
+        openTaskCount: 0,
+        completedTaskCount: 0,
+        totalTaskCount: 0,
+        taskCount: 0,
+      },
+    ]);
+    tick();
+
+    expect(service.labels().map((label) => label.name)).toEqual(['Urgent']);
+  }));
+
   it('calls refresh after creating a label', fakeAsync(() => {
     const service = TestBed.inject(LabelService);
     const http = TestBed.inject(HttpTestingController);
@@ -55,6 +92,7 @@ describe('LabelService', () => {
     initialized.set(true);
     isAuthenticated.set(true);
     currentUserId.set('user-1');
+    onboardingCompleted.set(true);
     tick();
 
     http.expectOne('http://localhost:3000/labels').flush([]);
@@ -93,6 +131,7 @@ describe('LabelService', () => {
     initialized.set(true);
     isAuthenticated.set(true);
     currentUserId.set('user-1');
+    onboardingCompleted.set(true);
     tick();
 
     http.expectOne('http://localhost:3000/labels').flush([]);
@@ -131,6 +170,7 @@ describe('LabelService', () => {
     initialized.set(true);
     isAuthenticated.set(true);
     currentUserId.set('user-1');
+    onboardingCompleted.set(true);
     tick();
 
     http.expectOne('http://localhost:3000/labels').flush([]);
@@ -167,6 +207,7 @@ describe('LabelService', () => {
     initialized.set(true);
     isAuthenticated.set(true);
     currentUserId.set('user-1');
+    onboardingCompleted.set(true);
     tick();
 
     http.expectOne('http://localhost:3000/labels').flush([]);

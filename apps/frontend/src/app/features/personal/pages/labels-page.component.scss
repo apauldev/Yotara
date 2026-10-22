@@ -92,7 +92,9 @@
 .labels-table-container {
   background: color-mix(in srgb, var(--primary-soft) 20%, var(--surface));
   border-radius: 0.85rem;
-  overflow: hidden;
+  /* Row menus are absolutely positioned. Clipping here cuts them off when the
+     directory is short, so only the rows round their own backgrounds. */
+  overflow: visible;
   border: 1px solid var(--outline-variant);
   box-shadow: 0 10px 30px var(--surface-dim);
 }
@@ -135,6 +137,10 @@
   &:hover {
     background: color-mix(in srgb, var(--primary-solid) 4%, var(--surface-container-high));
   }
+}
+
+.directory-section:last-of-type .label-row:last-child {
+  border-radius: 0 0 0.85rem 0.85rem;
 }
 
 .label-row-active {
@@ -270,49 +276,6 @@
   justify-items: center;
   gap: 1rem;
   text-align: center;
-}
-
-.starter-gallery {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.6rem;
-  max-width: 42rem;
-}
-
-.starter-card {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 2.75rem;
-  padding: 0.35rem 0.8rem 0.35rem 0.45rem;
-  border: 1px solid var(--outline-variant);
-  border-radius: 999px;
-  background: var(--surface-card);
-  color: var(--on-surface);
-  font: inherit;
-  font-size: 0.88rem;
-  font-weight: 650;
-  cursor: pointer;
-
-  &:hover:not(:disabled) {
-    background: var(--surface-container-high);
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: progress;
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--primary-solid);
-    outline-offset: 2px;
-  }
-}
-
-.starter-busy {
-  color: var(--on-surface-muted);
-  font-size: 0.78rem;
 }
 
 .directory-empty {

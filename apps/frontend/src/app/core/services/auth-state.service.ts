@@ -33,6 +33,7 @@ export class AuthStateService {
   readonly needsOnboarding = computed(
     () => this.isAuthenticated() && !this.userState()?.onboardingCompleted,
   );
+  readonly onboardingCompleted = computed(() => this.userState()?.onboardingCompleted ?? false);
 
   async initialize() {
     if (this.initializedState() && this.configLoadedState()) {

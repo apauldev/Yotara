@@ -1,4 +1,3 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
 import { By } from '@angular/platform-browser';
@@ -611,44 +610,19 @@ describe('LabelsPageComponent', () => {
     expect(queryParams$.getValue().get('label')).toBe('focus');
   }));
 
-  it('shows the create-first-label CTA when the user deletes everything', fakeAsync(() => {
+  it('shows a simple empty state when the user has no labels', fakeAsync(() => {
     const fixture = createFixture();
 
     labelsSignal.set([]);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Create your first label');
+    expect(fixture.nativeElement.textContent).toContain('No labels yet');
+    expect(fixture.nativeElement.textContent).not.toContain('Create your first label');
+    expect(fixture.debugElement.queryAll(By.css('.starter-card')).length).toBe(0);
     expect(fixture.debugElement.queryAll(By.css('.label-row')).length).toBe(0);
 
     void fixture.componentInstance;
     tick();
-  }));
-
-  it('creates a curated starter label from the empty-state gallery', fakeAsync(() => {
-    labelsSignal.set([]);
-    labelServiceStub.createLabel.and.resolveTo({
-      id: 'urgent-id',
-      name: 'Urgent',
-      color: '#d44d3c',
-      icon: 'flame',
-      pinned: false,
-      userId: 'user-1',
-    });
-
-    const fixture = TestBed.createComponent(LabelsPageComponent);
-    fixture.detectChanges();
-
-    const starter = fixture.debugElement.queryAll(By.css('.starter-card'))[0];
-    expect(starter.nativeElement.textContent).toContain('Urgent');
-    starter.nativeElement.click();
-    tick();
-
-    expect(labelServiceStub.createLabel).toHaveBeenCalledWith({
-      name: 'Urgent',
-      icon: 'flame',
-      color: '#d44d3c',
-    });
-    expect(queryParams$.getValue().get('label')).toBe('urgent-id');
   }));
 
   it('waits for a refreshed list before opening a label from a conflict', fakeAsync(() => {
@@ -670,38 +644,6 @@ describe('LabelsPageComponent', () => {
 
     labelsSignal.update((current) => [...current, urgentLabel]);
     refresh.resolve(labelsSignal());
-    tick();
-    fixture.detectChanges();
-
-    expect(queryParams$.getValue().get('label')).toBe('urgent-id');
-    expect(fixture.nativeElement.textContent).not.toContain('Label not found');
-  }));
-
-  it('waits for a refreshed list before selecting an existing starter label', fakeAsync(() => {
-    labelsSignal.set([]);
-    labelServiceStub.createLabel.and.rejectWith(
-      new HttpErrorResponse({
-        status: 409,
-        error: { existingLabel: { id: 'urgent-id', name: 'Urgent' } },
-      }),
-    );
-    const refresh = deferred<StubLabel[]>();
-    labelServiceStub.refreshAndWait.and.returnValue(refresh.promise);
-
-    const fixture = TestBed.createComponent(LabelsPageComponent);
-    fixture.detectChanges();
-
-    fixture.debugElement.queryAll(By.css('.starter-card'))[0].nativeElement.click();
-    tick();
-    fixture.detectChanges();
-
-    expect(labelServiceStub.createLabel).toHaveBeenCalled();
-    expect(labelServiceStub.refreshAndWait).toHaveBeenCalled();
-    expect(queryParams$.getValue().get('label')).toBeNull();
-    expect(fixture.nativeElement.textContent).not.toContain('Label not found');
-
-    labelsSignal.set([urgentLabel]);
-    refresh.resolve([urgentLabel]);
     tick();
     fixture.detectChanges();
 

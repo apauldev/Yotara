@@ -24,7 +24,7 @@ import {
 } from 'rxjs';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faArrowLeft, faEllipsisVertical, faInbox, faTag } from '@fortawesome/free-solid-svg-icons';
-import { DEFAULT_LABELS, Label, Task, type DefaultLabel } from '@yotara/shared';
+import { Label, Task } from '@yotara/shared';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { LabelIconComponent } from '../../../shared/ui/label-icon/label-icon.component';
 import { LabelEditorComponent } from '../components/label-editor.component';
@@ -34,7 +34,6 @@ import { PersonalTaskWorkspaceComponent } from '../components/personal-task-work
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 import { LabelService } from '../../../core/services/label.service';
 import { TaskService } from '../../../core/services/task.service';
-import { existingLabelFromConflict } from '../../../shared/utils/label-conflict';
 
 type PaneFilter = 'open' | 'completed' | 'all';
 type DirectorySort = 'pinned' | 'most-used' | 'alpha';
@@ -104,7 +103,6 @@ export class LabelsPageComponent {
   protected readonly labelSearch = signal('');
   protected readonly paneFilter = signal<PaneFilter>('open');
   protected readonly directorySort = signal<DirectorySort>(readDirectorySort());
-  protected readonly creatingStarter = signal<string | null>(null);
   protected readonly mergeTarget = signal<{
     source: Label;
     targetId: string;
@@ -112,7 +110,6 @@ export class LabelsPageComponent {
   } | null>(null);
   protected readonly mergeConfirmOpen = signal(false);
   protected readonly merging = signal(false);
-  protected readonly starters = DEFAULT_LABELS;
   /** Mobile drill-in: the list is replaced by the detail until Back. */
   protected readonly drillInOpen = signal(false);
   /** Bumped when label mutations need the pane to refetch its tasks. */
@@ -366,34 +363,6 @@ export class LabelsPageComponent {
   protected openCreateLabel() {
     this.editorLabel.set(null);
     this.labelEditorOpen.set(true);
-  }
-
-  /** The starter gallery creates one curated label directly, no editor needed. */
-  protected async createStarter(starter: DefaultLabel) {
-    if (this.creatingStarter()) {
-      return;
-    }
-
-    this.creatingStarter.set(starter.name);
-    this.actionError.set(null);
-    try {
-      const created = await this.labelService.createLabel({
-        name: starter.name,
-        icon: starter.icon,
-        color: starter.color,
-      });
-      await this.selectLabelId(created.id);
-    } catch (error) {
-      const existing = existingLabelFromConflict(error);
-      if (existing) {
-        await this.labelService.refreshAndWait();
-        await this.selectLabelId(existing.id);
-      } else {
-        this.actionError.set('Could not create the starter label. Try again.');
-      }
-    } finally {
-      this.creatingStarter.set(null);
-    }
   }
 
   protected closeLabelEditor() {

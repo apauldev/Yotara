@@ -43,11 +43,18 @@ test('Project Service', async (t) => {
     await t.test('lists projects for owner (includes defaults)', async () => {
       const projects = await ctx.projectService.listProjectsForOwner(ownerId);
 
-      // Should include 8 default projects
+      // Should include the 8 default projects
       assert.ok(projects.length >= 8);
       const names = projects.map((p) => p.name);
       assert.ok(names.includes('Inbox'));
-      assert.ok(names.includes('Focus'));
+      assert.ok(names.includes('Work'));
+      assert.ok(names.includes('Personal'));
+      assert.ok(names.includes('Home'));
+      assert.ok(names.includes('Health'));
+      assert.ok(names.includes('Finance'));
+      assert.ok(names.includes('Learning'));
+      assert.ok(names.includes('Side Projects'));
+      assert.ok(!names.includes('Focus'));
     });
 
     await t.test('seeds default projects only once', async () => {
@@ -55,6 +62,25 @@ test('Project Service', async (t) => {
       const projects = await ctx.projectService.listProjectsForOwner(ownerId);
       const inboxCount = projects.filter((p) => p.name === 'Inbox').length;
       assert.equal(inboxCount, 1, 'Inbox should only exist once');
+    });
+
+    await t.test('does not add the new starters to an existing account', async () => {
+      const existingOwnerId = randomUUID();
+      await ctx.db.insert(users).values({
+        id: existingOwnerId,
+        name: 'Existing User',
+        email: `${existingOwnerId}@example.com`,
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      await ctx.projectService.createProjectForOwner(existingOwnerId, {
+        name: 'Only Project',
+      });
+
+      const projects = await ctx.projectService.listProjectsForOwner(existingOwnerId);
+      const names = projects.map((project) => project.name).sort();
+      assert.deepEqual(names, ['Inbox', 'Only Project']);
     });
 
     await t.test('creates a project with default fields', async () => {

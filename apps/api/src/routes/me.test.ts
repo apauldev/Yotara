@@ -206,8 +206,8 @@ test('PATCH /me seeds default projects and labels when onboarding is completed',
     assertIsoTimestamp(patchResponse.json().user.createdAt);
     assertIsoTimestamp(patchResponse.json().user.updatedAt);
 
-    // Verify seeding directly in the DB — GET /projects and GET /labels
-    // side-effect seed on read, so they'd mask a regression in the PATCH handler.
+    // Verify seeding directly in the DB. GET /projects seeds on read, so the
+    // route assertions below would mask a regression in the PATCH handler.
     const { db } = await import('../db/client.js');
     const { projects, labels } = await import('../db/schema.js');
     const { eq, sql } = await import('drizzle-orm');
@@ -234,6 +234,8 @@ test('PATCH /me seeds default projects and labels when onboarding is completed',
     const projectsList = projectsResponse.json();
     assert.ok(projectsList.length >= 8);
     assert.ok(projectsList.some((p: { name: string }) => p.name === 'Inbox'));
+    assert.ok(projectsList.some((p: { name: string }) => p.name === 'Work'));
+    assert.ok(projectsList.some((p: { name: string }) => p.name === 'Side Projects'));
 
     const labelsResponse = await ctx.app.inject({
       method: 'GET',
@@ -244,6 +246,8 @@ test('PATCH /me seeds default projects and labels when onboarding is completed',
     const labelsList = labelsResponse.json();
     assert.ok(labelsList.length >= 6);
     assert.ok(labelsList.some((l: { name: string }) => l.name === 'Urgent'));
+    assert.ok(labelsList.some((l: { name: string }) => l.name === 'Errands'));
+    assert.ok(labelsList.some((l: { name: string }) => l.name === 'Someday'));
 
     const patchIdempotent = await ctx.app.inject({
       method: 'PATCH',
