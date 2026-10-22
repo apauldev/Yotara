@@ -37,10 +37,13 @@ export class LabelService {
   readonly labels = toSignal(
     combineLatest([
       toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
+      toObservable(this.authState.onboardingCompleted).pipe(distinctUntilChanged()),
       toObservable(this.refreshState),
     ]).pipe(
-      switchMap(([userId, version]) => {
-        if (!userId) {
+      switchMap(([userId, onboardingCompleted, version]) => {
+        // Labels are seeded by the onboarding PATCH. Waiting for the flag
+        // avoids caching the empty pre-onboarding list for the whole session.
+        if (!userId || !onboardingCompleted) {
           this.errorState.set(null);
           return of({ version, labels: [] as Label[] });
         }

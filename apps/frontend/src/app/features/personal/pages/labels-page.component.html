@@ -43,30 +43,9 @@
       <section class="no-labels-state" aria-label="No labels yet">
         <app-empty-state
           title="No labels yet"
-          description="Start with a curated context label, or create your own. Labels are conditions of work, not places — they cross-cut projects."
+          description="Labels are conditions of work, not places — they cross-cut projects. Use New Label to add one."
           [icon]="faTag"
         />
-
-        <div class="starter-gallery" aria-label="Starter labels">
-          @for (starter of starters; track starter.name) {
-            <button
-              type="button"
-              class="starter-card"
-              [disabled]="creatingStarter() !== null"
-              (click)="createStarter(starter)"
-            >
-              <app-label-icon [icon]="starter.icon" [color]="starter.color" size="md" />
-              <span>{{ starter.name }}</span>
-              @if (creatingStarter() === starter.name) {
-                <span class="starter-busy">Adding…</span>
-              }
-            </button>
-          }
-        </div>
-
-        <button type="button" class="new-label-button" (click)="openCreateLabel()">
-          Create your first label
-        </button>
       </section>
     } @else if (showNotFound()) {
       <section class="no-labels-state" aria-label="Label not found">

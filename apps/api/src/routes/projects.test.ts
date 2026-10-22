@@ -105,7 +105,9 @@ test('projects routes require auth and scope project data to the current user', 
       headers: { cookie: firstUserCookie },
     });
     assert.equal(ownerList.statusCode, 200);
-    assert.equal(ownerList.json().length, 9);
+    // The custom project plus the Inbox fallback; existing accounts do not get
+    // the new starter projects backfilled.
+    assert.equal(ownerList.json().length, 2);
 
     const otherUserList = await ctx.app.inject({
       method: 'GET',

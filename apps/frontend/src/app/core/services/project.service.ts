@@ -31,10 +31,13 @@ export class ProjectService {
     combineLatest([
       toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
       toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
+      toObservable(this.authState.onboardingCompleted).pipe(distinctUntilChanged()),
       toObservable(this.refreshState),
     ]).pipe(
-      switchMap(([initialized, currentUserId]) => {
-        if (!initialized || !currentUserId) {
+      switchMap(([initialized, currentUserId, onboardingCompleted]) => {
+        // The onboarding PATCH seeds the starter projects. Loading before it
+        // finishes would cache a pre-seed list, so wait for the flag.
+        if (!initialized || !currentUserId || !onboardingCompleted) {
           this.errorState.set(null);
           return of([] as Project[]);
         }

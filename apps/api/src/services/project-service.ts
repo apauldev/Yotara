@@ -12,23 +12,23 @@ import {
 const DEFAULT_PROJECTS = [
   { name: 'Inbox', description: 'Default capture space for incoming tasks.', color: 'sage' },
   {
-    name: 'Focus',
-    description: 'High-focus work that needs uninterrupted attention.',
-    color: 'forest',
-  },
-  {
-    name: 'Deep Work',
-    description: 'Long-form thinking and concentrated execution.',
+    name: 'Work',
+    description: 'Job, clients, and professional commitments.',
     color: 'deep-ocean',
   },
-  { name: 'Writing', description: 'Drafts, notes, and editorial work.', color: 'olive' },
-  { name: 'Home', description: 'Household planning and personal upkeep.', color: 'clay' },
-  { name: 'Health', description: 'Fitness, recovery, and wellbeing.', color: 'teal' },
-  { name: 'Admin', description: 'Life admin, follow-ups, and maintenance.', color: 'sage' },
+  { name: 'Personal', description: 'Appointments, paperwork, and everyday life.', color: 'clay' },
+  { name: 'Home', description: 'Household tasks, maintenance, and upkeep.', color: 'olive' },
+  { name: 'Health', description: 'Fitness, medical care, and wellbeing.', color: 'teal' },
+  { name: 'Finance', description: 'Bills, budgets, and money admin.', color: 'forest' },
   {
-    name: 'Ideas',
-    description: 'Scratchpad for future experiments and concepts.',
-    color: 'forest',
+    name: 'Learning',
+    description: 'Courses, reading, and skill building.',
+    color: 'deep-ocean',
+  },
+  {
+    name: 'Side Projects',
+    description: 'Creative work and independent projects.',
+    color: 'clay',
   },
 ] as const;
 
@@ -61,6 +61,12 @@ async function loadProjectById(projectId: string, ownerId: string) {
   return project as ProjectWithCountsRow | undefined;
 }
 
+/**
+ * Seeds the full starter set for accounts with no projects. Existing accounts
+ * keep their projects, so changing the starter names cannot backfill them.
+ * The one exception is Inbox: it stays the default-project fallback until the
+ * Inbox work removes that concept.
+ */
 export function seedDefaultProjectsForOwner(ownerId: string, tx?: Database) {
   const client = tx ?? db;
   const existing = client
@@ -68,29 +74,47 @@ export function seedDefaultProjectsForOwner(ownerId: string, tx?: Database) {
     .from(projects)
     .where(eq(projects.ownerId, ownerId))
     .all();
-  const existingNames = new Set(existing.map((project) => project.name.toLowerCase()));
   const now = nowIsoTimestamp();
-  const missingProjects = DEFAULT_PROJECTS.filter(
-    (project) => !existingNames.has(project.name.toLowerCase()),
-  );
 
-  if (missingProjects.length === 0) {
+  if (existing.length === 0) {
+    client
+      .insert(projects)
+      .values(
+        DEFAULT_PROJECTS.map((project) => ({
+          id: randomUUID(),
+          ownerId,
+          name: project.name,
+          description: project.description,
+          color: project.color,
+          createdAt: now,
+          updatedAt: now,
+        })),
+      )
+      .run();
+    return;
+  }
+
+  const hasInbox = existing.some((project) => project.name.toLowerCase() === 'inbox');
+  if (hasInbox) {
+    return;
+  }
+
+  const inbox = DEFAULT_PROJECTS.find((project) => project.name === 'Inbox');
+  if (!inbox) {
     return;
   }
 
   client
     .insert(projects)
-    .values(
-      missingProjects.map((project) => ({
-        id: randomUUID(),
-        ownerId,
-        name: project.name,
-        description: project.description,
-        color: project.color,
-        createdAt: now,
-        updatedAt: now,
-      })),
-    )
+    .values({
+      id: randomUUID(),
+      ownerId,
+      name: inbox.name,
+      description: inbox.description,
+      color: inbox.color,
+      createdAt: now,
+      updatedAt: now,
+    })
     .run();
 }
 
