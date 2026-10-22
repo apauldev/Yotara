@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.83.0](https://github.com/apauldev/Yotara/compare/v0.82.1...v0.83.0) (2026-10-22)
+
+
+### Features
+
+* **themes:** add floral blossoms and ember hearth ([595301f](https://github.com/apauldev/Yotara/commit/595301f400b05886aa7962e4535645e90b695021))
+
+
+### Bug Fixes
+
+* **themes:** keep golden-hour muted copy at AA contrast ([d77259b](https://github.com/apauldev/Yotara/commit/d77259b0289cae4528279ea9256c121c1aa42502))
+
 ## [0.82.1](https://github.com/apauldev/Yotara/compare/v0.82.0...v0.82.1) (2026-10-22)
 
 
