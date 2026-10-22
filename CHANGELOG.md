@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.82.0](https://github.com/apauldev/Yotara/compare/v0.81.1...v0.82.0) (2026-10-22)
+
+
+### Features
+
+* **labels:** align default colors with label semantics ([edc6ec8](https://github.com/apauldev/Yotara/commit/edc6ec86b5c2e94c07b62b096e3d2895570a2b50))
+* **labels:** enforce uniqueness, truthful counts, and labelIds task filter ([9706274](https://github.com/apauldev/Yotara/commit/9706274274b39a8cc647d97a24267055f207c5af))
+* **labels:** filtering, capture creation, merge, and display preferences ([46d0d23](https://github.com/apauldev/Yotara/commit/46d0d2389c45f4dab570c9d621718c979e1d4ee5))
+* **labels:** icon identity, drawer editor, and pinned Labels browser ([b609c0d](https://github.com/apauldev/Yotara/commit/b609c0da31b2e10774a16718a4b2373ba4789ab0))
+* **labels:** refresh label editor icon picker and preview ([1d6f6af](https://github.com/apauldev/Yotara/commit/1d6f6afa070074ac1a6b22bf1370b340288ebd4b))
+* **labels:** shared chip, truthful Labels page, and honest capture ([4cc76c1](https://github.com/apauldev/Yotara/commit/4cc76c1045c0658b0a4760b396b0ff4f443fc565))
+
+
+### Bug Fixes
+
+* **labels:** await refresh before selecting conflicts ([d8e6099](https://github.com/apauldev/Yotara/commit/d8e6099d6641927753b73d65d70c60746cc2bc49))
+* **labels:** close Phase 1 gaps in chips, pane editing, and conflicts ([f6093ff](https://github.com/apauldev/Yotara/commit/f6093ff0433048f2dcb1f98b62246eaf48aa5c53))
+* **labels:** dedupe label filter ids ([d44d08e](https://github.com/apauldev/Yotara/commit/d44d08e04fcc6979282c253e392ff6ceffaadabf))
+* **labels:** enforce Unicode-aware name uniqueness ([3443994](https://github.com/apauldev/Yotara/commit/344399424ff64b1eaad65ecdb7df5357f75a0c75))
+* **labels:** keep label inputs reactive ([21b72ad](https://github.com/apauldev/Yotara/commit/21b72ad38d810a529e4bec06ee2d09ee17cc7cf7))
+* **labels:** resolve stale state and boundary issues ([81faa99](https://github.com/apauldev/Yotara/commit/81faa9973706f55fcc457152aaf83f783c13d6e2))
+
+
+### Chores
+
+* **tasks:** retire task buckets ([188abe6](https://github.com/apauldev/Yotara/commit/188abe6fbe9b3cacd756a01dcb345173c4fe52f8))
+
+
+### Tests
+
+* **labels:** align E2E coverage with the label redesign ([fe3880a](https://github.com/apauldev/Yotara/commit/fe3880a3faead39f1295388679be3cb21bf1b381))
+* **labels:** route coverage for duplicate conflicts, label validation, and the labelIds filter ([86dce70](https://github.com/apauldev/Yotara/commit/86dce70d94eb595e4baade7e3335bb34ce209a3c))
+
 ## [0.81.1](https://github.com/apauldev/Yotara/compare/v0.81.0...v0.81.1) (2026-10-19)
 
 
