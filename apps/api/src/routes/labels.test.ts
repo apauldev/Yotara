@@ -143,6 +143,22 @@ test('duplicate label names are rejected with a 409 and the existing label id', 
     assert.equal(caseDupe.statusCode, 409);
     assert.equal(caseDupe.json().existingLabel.id, original.id);
 
+    const accented = await ctx.app.inject({
+      method: 'POST',
+      url: '/labels',
+      headers: { cookie },
+      payload: { name: 'Étude' },
+    });
+    assert.equal(accented.statusCode, 201);
+    const unicodeDupe = await ctx.app.inject({
+      method: 'POST',
+      url: '/labels',
+      headers: { cookie },
+      payload: { name: 'étude' },
+    });
+    assert.equal(unicodeDupe.statusCode, 409);
+    assert.equal(unicodeDupe.json().existingLabel.id, accented.json().id);
+
     const second = await ctx.app.inject({
       method: 'POST',
       url: '/labels',

@@ -120,6 +120,7 @@ export const labels = sqliteTable('labels', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
+  nameNorm: text('name_norm').notNull(),
   color: text('color').notNull(),
   icon: text('icon').notNull().default('tag'),
   pinned: integer('pinned', { mode: 'boolean' }).notNull().default(false),

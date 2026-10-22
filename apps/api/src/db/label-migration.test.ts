@@ -28,9 +28,23 @@ function insertLegacyLabel(
   ).run(id, userId, name, createdAt, createdAt);
 }
 
+function insertLabelWithKey(
+  db: SqliteDatabase,
+  id: string,
+  userId: string,
+  name: string,
+  nameNorm: string,
+  createdAt: string,
+): void {
+  db.prepare(
+    `INSERT INTO labels (id, user_id, name, name_norm, color, created_at, updated_at)
+     VALUES (?, ?, ?, ?, '#82d7a9', ?, ?)`,
+  ).run(id, userId, name, nameNorm, createdAt, createdAt);
+}
+
 /**
  * Builds a legacy database that predates the label-uniqueness migration:
- * the labels table has no unique index per (user_id, lower(trim(name)))
+ * the labels table has no unique index per (user_id, name_norm)
  * and may therefore contain case/whitespace variants of the same name.
  * Running createDbClient on this file boots ensureSqliteSchema, which must
  * merge the duplicates without losing any task association.
@@ -150,11 +164,12 @@ test('startup migration merges duplicate labels without losing task associations
     const { sqlite } = createDbClient(dbFile);
     try {
       const labels = sqlite
-        .prepare(`SELECT id, name FROM labels WHERE user_id = ? ORDER BY id`)
-        .all(seed.userA) as Array<{ id: string; name: string }>;
+        .prepare(`SELECT id, name, name_norm FROM labels WHERE user_id = ? ORDER BY id`)
+        .all(seed.userA) as Array<{ id: string; name: string; name_norm: string }>;
       assert.equal(labels.length, 1, 'the three Writing variants collapse to one row');
       assert.equal(labels[0].id, seed.canonical, 'the earliest-created label survives');
       assert.equal(labels[0].name, 'Writing', 'the canonical name is kept as stored');
+      assert.equal(labels[0].name_norm, 'writing', 'the normalized key is backfilled');
 
       const otherUser = sqlite
         .prepare(`SELECT id FROM labels WHERE user_id = ?`)
@@ -176,10 +191,11 @@ test('startup migration merges duplicate labels without losing task associations
 
       const uniqueIndex = sqlite
         .prepare(
-          `SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_labels_user_name_unique'`,
+          `SELECT name, sql FROM sqlite_master WHERE type = 'index' AND name = 'idx_labels_user_name_unique'`,
         )
-        .get();
+        .get() as { name: string; sql: string } | undefined;
       assert.ok(uniqueIndex, 'the unique index exists after dedupe');
+      assert.match(uniqueIndex.sql, /\bname_norm\b/, 'the index uses the normalized key column');
 
       const joinIndex = sqlite
         .prepare(
@@ -207,26 +223,92 @@ test('startup migration merges duplicate labels without losing task associations
   }
 });
 
+test('startup migration merges non-ASCII case variants and backfills name_norm', () => {
+  const dir = join(tmpdir(), `yotara-labels-unicode-${randomUUID()}`);
+  mkdirSync(dir, { recursive: true });
+  const dbFile = join(dir, 'test.db');
+  const seed = seedLegacyDb(dbFile);
+  const accentCanonical = randomUUID();
+  const accentDupe = randomUUID();
+  const accentTask = randomUUID();
+
+  try {
+    const legacy = new Database(dbFile);
+    try {
+      insertLegacyLabel(legacy, accentCanonical, seed.userA, 'Étude', '2024-04-01T00:00:00Z');
+      insertLegacyLabel(legacy, accentDupe, seed.userA, 'étude', '2024-05-01T00:00:00Z');
+      legacy
+        .prepare(
+          `INSERT INTO tasks (id, user_id, title, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+        )
+        .run(accentTask, seed.userA, 'Accent task', '2024-04-02T00:00:00Z', '2024-04-02T00:00:00Z');
+      legacy
+        .prepare(`INSERT INTO task_labels (task_id, label_id) VALUES (?, ?)`)
+        .run(accentTask, accentDupe);
+    } finally {
+      legacy.close();
+    }
+
+    const { sqlite } = createDbClient(dbFile);
+    try {
+      const labels = sqlite
+        .prepare(`SELECT id, name, name_norm FROM labels WHERE user_id = ? ORDER BY name`)
+        .all(seed.userA) as Array<{ id: string; name: string; name_norm: string }>;
+      assert.equal(labels.length, 2, 'Writing and Étude remain');
+
+      const accent = labels.find((row) => row.name_norm === 'étude');
+      assert.ok(accent, 'the Unicode normalized key is backfilled');
+      assert.equal(accent.id, accentCanonical, 'the earliest Étude row survives');
+      assert.equal(accent.name, 'Étude', 'the canonical non-ASCII name is kept as stored');
+
+      const writing = labels.find((row) => row.name_norm === 'writing');
+      assert.ok(writing, 'the ASCII key is backfilled');
+      assert.equal(writing.id, seed.canonical);
+
+      const join = sqlite
+        .prepare(`SELECT label_id FROM task_labels WHERE task_id = ?`)
+        .get(accentTask) as { label_id: string };
+      assert.equal(
+        join.label_id,
+        accentCanonical,
+        'the task association moves to the canonical row',
+      );
+
+      const stale = sqlite
+        .prepare(`SELECT COUNT(*) AS n FROM task_labels WHERE label_id = ?`)
+        .get(accentDupe) as { n: number };
+      assert.equal(stale.n, 0, 'the duplicate label association is removed');
+    } finally {
+      sqlite.close();
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('a fresh bootstrap creates the uniqueness and join indexes', () => {
   const { sqlite } = createDbClient(':memory:');
   try {
-    const indexes = (
-      sqlite
-        .prepare(
-          `SELECT name FROM sqlite_master WHERE type = 'index' AND name IN
-           ('idx_labels_user_name_unique', 'idx_task_labels_label_id')`,
-        )
-        .all() as Array<{ name: string }>
-    ).map((row) => row.name);
-    assert.ok(indexes.includes('idx_labels_user_name_unique'));
-    assert.ok(indexes.includes('idx_task_labels_label_id'));
+    const indexes = sqlite
+      .prepare(
+        `SELECT name, sql FROM sqlite_master WHERE type = 'index' AND name IN
+         ('idx_labels_user_name_unique', 'idx_task_labels_label_id')`,
+      )
+      .all() as Array<{ name: string; sql: string }>;
+    const names = indexes.map((row) => row.name);
+    assert.ok(names.includes('idx_labels_user_name_unique'));
+    assert.ok(names.includes('idx_task_labels_label_id'));
+    const uniqueIndex = indexes.find((row) => row.name === 'idx_labels_user_name_unique');
+    assert.ok(uniqueIndex);
+    assert.match(uniqueIndex.sql, /\bname_norm\b/);
 
     const columns = sqlite.prepare(`PRAGMA table_info('labels')`).all() as Array<{
       name: string;
     }>;
-    const names = columns.map((column) => column.name);
-    assert.ok(names.includes('icon'));
-    assert.ok(names.includes('pinned'));
+    const columnNames = columns.map((column) => column.name);
+    assert.ok(columnNames.includes('icon'));
+    assert.ok(columnNames.includes('pinned'));
+    assert.ok(columnNames.includes('name_norm'));
   } finally {
     sqlite.close();
   }
@@ -261,32 +343,23 @@ test('startup migration backfills icon and pinned on legacy label rows', () => {
   }
 });
 
-test('the unique index rejects a duplicate name that differs only by case or whitespace', () => {
+test('the unique index rejects duplicate normalized names within an owner', () => {
   const { sqlite } = createDbClient(':memory:');
   try {
     seedUserRow(sqlite, 'u1', 'User A');
     seedUserRow(sqlite, 'u2', 'User B');
-    sqlite
-      .prepare(
-        `INSERT INTO labels (id, user_id, name, color, created_at, updated_at)
-         VALUES ('l1', 'u1', 'Writing', '#82d7a9', '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z')`,
-      )
-      .run();
+    insertLabelWithKey(sqlite, 'l1', 'u1', 'Writing', 'writing', '2024-01-01T00:00:00Z');
     assert.throws(() => {
-      sqlite
-        .prepare(
-          `INSERT INTO labels (id, user_id, name, color, created_at, updated_at)
-           VALUES ('l2', 'u1', '  writing  ', '#82d7a9', '2024-01-02T00:00:00Z', '2024-01-02T00:00:00Z')`,
-        )
-        .run();
+      insertLabelWithKey(sqlite, 'l2', 'u1', '  writing  ', 'writing', '2024-01-02T00:00:00Z');
     });
     // Different owners may reuse the name.
-    sqlite
-      .prepare(
-        `INSERT INTO labels (id, user_id, name, color, created_at, updated_at)
-         VALUES ('l3', 'u2', 'writing', '#82d7a9', '2024-01-02T00:00:00Z', '2024-01-02T00:00:00Z')`,
-      )
-      .run();
+    insertLabelWithKey(sqlite, 'l3', 'u2', 'writing', 'writing', '2024-01-02T00:00:00Z');
+
+    // The stored key is Unicode-normalized, so non-ASCII case variants collide too.
+    insertLabelWithKey(sqlite, 'l4', 'u1', 'Étude', 'étude', '2024-01-03T00:00:00Z');
+    assert.throws(() => {
+      insertLabelWithKey(sqlite, 'l5', 'u1', 'étude', 'étude', '2024-01-04T00:00:00Z');
+    });
   } finally {
     sqlite.close();
   }

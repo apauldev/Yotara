@@ -5,6 +5,7 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import type { ExtractTablesWithRelations } from 'drizzle-orm';
 import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
 import * as schema from './schema.js';
+import { labelNameKey } from '../lib/label-name.js';
 import { nowIsoTimestamp, toIsoTimestamp } from '../lib/timestamps.js';
 
 const DEFAULT_DATABASE_URL = './data/yotara.db';
@@ -106,6 +107,7 @@ const SQLITE_BOOTSTRAP_SQL = `
     id TEXT PRIMARY KEY NOT NULL,
     user_id TEXT NOT NULL,
     name TEXT NOT NULL,
+    name_norm TEXT NOT NULL,
     color TEXT NOT NULL,
     icon TEXT NOT NULL DEFAULT 'tag',
     pinned INTEGER NOT NULL DEFAULT 0,
@@ -389,6 +391,7 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
       id TEXT PRIMARY KEY NOT NULL,
       user_id TEXT NOT NULL,
       name TEXT NOT NULL,
+      name_norm TEXT NOT NULL,
       color TEXT NOT NULL,
       icon TEXT NOT NULL DEFAULT 'tag',
       pinned INTEGER NOT NULL DEFAULT 0,
@@ -409,6 +412,9 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
       if (!labelColumnNames.has('pinned')) {
         sqlite.exec(`ALTER TABLE labels ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0`);
       }
+      if (!labelColumnNames.has('name_norm')) {
+        sqlite.exec(`ALTER TABLE labels ADD COLUMN name_norm TEXT NOT NULL DEFAULT ''`);
+      }
     }
 
     const joinColumns = sqlite.prepare(`PRAGMA table_info('task_labels')`).all() as Array<{
@@ -424,10 +430,14 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
     )`);
     }
 
-    // Label identity hygiene: case/whitespace-insensitive name uniqueness.
-    // The dedupe MUST run before the unique index below — a database that
-    // still contains duplicates would fail index creation. Per label group
-    // keyed by (user_id, lower(trim(name))) with more than one row:
+    // Label identity hygiene: Unicode case/whitespace-insensitive uniqueness.
+    // name_norm is computed in application code (NFKC + trim + lowercase)
+    // because SQLite's lower() is ASCII-only. Drop and rebuild the index so an
+    // older expression-based index is upgraded in place and normalization
+    // changes can be applied safely. The dedupe MUST run before recreating the
+    // unique index — a database that still contains duplicates would fail index
+    // creation. Per label group keyed by (user_id, name_norm) with more than one
+    // row:
     //   1. pick the canonical label (earliest non-empty created_at, then lowest id)
     //   2. re-point task_labels rows to the canonical label (INSERT OR IGNORE
     //      dedupes against the join table's (task_id, label_id) primary key)
@@ -435,27 +445,39 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
     //   4. delete the duplicate label rows
     // Tasks are never deleted. Idempotent: once the index exists, groups have a
     // single row, so the pre-check finds nothing and nothing runs.
-    // NOTE: SQLite's lower() is ASCII-only, so this dedupe does not catch
-    // non-ASCII case pairs (e.g. "Étude"/"étude") — acceptable for v1.
+    sqlite.exec(`DROP INDEX IF EXISTS idx_labels_user_name_unique`);
+
+    const labelRows = sqlite.prepare(`SELECT id, name, name_norm FROM labels`).all() as Array<{
+      id: string;
+      name: string;
+      name_norm: string | null;
+    }>;
+    const updateLabelNameNorm = sqlite.prepare(`UPDATE labels SET name_norm = ? WHERE id = ?`);
+    for (const row of labelRows) {
+      const nameNorm = labelNameKey(row.name);
+      if (row.name_norm !== nameNorm) {
+        updateLabelNameNorm.run(nameNorm, row.id);
+      }
+    }
+
     const duplicateLabelGroups = sqlite
       .prepare(
-        `SELECT COUNT(*) AS groups, COALESCE(SUM(rows - 1), 0) AS extra
+        `SELECT COUNT(*) AS groups
          FROM (
            SELECT COUNT(*) AS rows
            FROM labels
-           GROUP BY user_id, lower(trim(name))
+           GROUP BY user_id, name_norm
            HAVING COUNT(*) > 1
          )`,
       )
-      .get() as { groups: number; extra: number };
+      .get() as { groups: number };
     if (duplicateLabelGroups.groups > 0) {
       const repointJoins = sqlite
         .prepare(
           `WITH ranked AS (
-             SELECT id, user_id,
-                    lower(trim(name)) AS name_key,
+             SELECT id, user_id, name_norm,
                     ROW_NUMBER() OVER (
-                      PARTITION BY user_id, lower(trim(name))
+                      PARTITION BY user_id, name_norm
                       ORDER BY
                         CASE WHEN created_at IS NULL OR trim(created_at) = '' THEN 1 ELSE 0 END,
                         created_at, id
@@ -467,7 +489,7 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
            FROM task_labels tl
            JOIN ranked d ON tl.label_id = d.id AND d.rn > 1
            JOIN ranked c
-             ON c.user_id = d.user_id AND c.name_key = d.name_key AND c.rn = 1
+             ON c.user_id = d.user_id AND c.name_norm = d.name_norm AND c.rn = 1
            WHERE tl.label_id <> c.id`,
         )
         .run();
@@ -478,7 +500,7 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
            WHERE label_id IN (
              SELECT id FROM (
                SELECT id, ROW_NUMBER() OVER (
-                        PARTITION BY user_id, lower(trim(name))
+                        PARTITION BY user_id, name_norm
                         ORDER BY
                           CASE WHEN created_at IS NULL OR trim(created_at) = '' THEN 1 ELSE 0 END,
                           created_at, id
@@ -495,7 +517,7 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
            WHERE id IN (
              SELECT id FROM (
                SELECT id, ROW_NUMBER() OVER (
-                        PARTITION BY user_id, lower(trim(name))
+                        PARTITION BY user_id, name_norm
                         ORDER BY
                           CASE WHEN created_at IS NULL OR trim(created_at) = '' THEN 1 ELSE 0 END,
                           created_at, id
@@ -513,12 +535,11 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
       );
     }
 
-    // Created AFTER dedupe on purpose (see above). Expression index over
-    // lower(trim(name)); SQLite applies trim/lower to stored values, so it also
-    // holds for new writes in any case/whitespace form.
+    // Created AFTER dedupe on purpose (see above). The normalized key is stored
+    // directly, so new writes are constrained even for non-ASCII case pairs.
     sqlite.exec(
-      `CREATE UNIQUE INDEX IF NOT EXISTS idx_labels_user_name_unique
-       ON labels(user_id, lower(trim(name)))`,
+      `CREATE UNIQUE INDEX idx_labels_user_name_unique
+       ON labels(user_id, name_norm)`,
     );
     // Counts and label filters scan task_labels by label_id.
     sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_task_labels_label_id ON task_labels(label_id)`);

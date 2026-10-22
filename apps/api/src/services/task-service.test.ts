@@ -657,6 +657,7 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       id: rollbackLabelId,
       userId: ownerId,
       name: 'Rollback Test Label',
+      nameNorm: 'rollback test label',
       color: '#999999',
       createdAt: now,
       updatedAt: now,

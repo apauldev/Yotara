@@ -12,6 +12,7 @@ import {
 } from '@yotara/shared';
 import { db, type Database } from '../db/client.js';
 import { labels, taskLabels, tasks } from '../db/schema.js';
+import { labelNameKey } from '../lib/label-name.js';
 import { nowIsoTimestamp } from '../lib/timestamps.js';
 import { BadRequestError, ConflictError } from '../lib/app-error.js';
 
@@ -50,7 +51,7 @@ function normalizeLabelIcon(value: string | undefined): LabelIcon {
 }
 
 /**
- * Idempotent under both the (user_id, lower(trim(name))) unique index and
+ * Idempotent under both the (user_id, name_norm) unique index and
  * repeated onboarding calls: existing labels short-circuit, and a double
  * request that races past that check hits ON CONFLICT DO NOTHING instead of
  * surfacing a constraint failure as a 500.
@@ -73,6 +74,7 @@ export async function seedDefaultLabelsForOwner(ownerId: string) {
         id: randomUUID(),
         userId: ownerId,
         name: label.name,
+        nameNorm: labelNameKey(label.name),
         color: label.color,
         icon: label.icon,
         pinned: false,
@@ -150,13 +152,13 @@ export function getLabelForOwner(labelId: string, ownerId: string, tx?: Database
   return row ?? null;
 }
 
-/** Case/whitespace-insensitive duplicate lookup within one owner's labels. */
+/** Unicode case/whitespace-insensitive duplicate lookup within one owner's labels. */
 function findLabelByNameForOwner(ownerId: string, name: string, tx?: Database) {
   const client = tx ?? db;
   const [row] = client
     .select({ id: labels.id, name: labels.name })
     .from(labels)
-    .where(and(eq(labels.userId, ownerId), sql`lower(trim(${labels.name})) = lower(trim(${name}))`))
+    .where(and(eq(labels.userId, ownerId), eq(labels.nameNorm, labelNameKey(name))))
     .limit(1)
     .all();
   return row ?? null;
@@ -164,7 +166,7 @@ function findLabelByNameForOwner(ownerId: string, name: string, tx?: Database) {
 
 /**
  * Re-throws the pre-insert constraint race as a 409. The startup migration
- * adds UNIQUE INDEX labels(user_id, lower(trim(name))), so two rapid
+ * adds UNIQUE INDEX labels(user_id, name_norm), so two rapid
  * create/open-combos cannot both succeed; one loser gets this error.
  */
 function isLabelUniqueConstraintError(error: unknown): boolean {
@@ -214,6 +216,7 @@ export async function createLabelForOwner(ownerId: string, body: CreateLabelDto)
       id,
       userId: ownerId,
       name,
+      nameNorm: labelNameKey(name),
       color,
       icon,
       pinned,
@@ -268,6 +271,7 @@ export async function updateLabelForOwner(ownerId: string, labelId: string, body
       .update(labels)
       .set({
         name,
+        nameNorm: labelNameKey(name),
         color,
         icon,
         pinned,

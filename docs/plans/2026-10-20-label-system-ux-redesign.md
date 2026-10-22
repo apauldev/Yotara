@@ -289,6 +289,8 @@ active label is hidden in its own pane; unknown label IDs are omitted.
 **Files:**
 
 - `apps/api/src/db/client.ts` (schema bootstrap/migration)
+- `apps/api/src/db/schema.ts` (`nameNorm` column)
+- `apps/api/src/lib/label-name.ts` and `label-name.test.ts` (normalized key)
 - `apps/api/drizzle/0007_*.sql` (optional schema snapshot; include the dedupe
   before the unique index if you add it, otherwise omit this file)
 - `apps/api/src/services/label-service.ts`
@@ -302,9 +304,11 @@ active label is hidden in its own pane; unknown label IDs are omitted.
 **Migration algorithm (inside `ensureSqliteSchema`, within its existing
 `BEGIN IMMEDIATE` transaction):**
 
-1. Group labels by `(user_id, lower(trim(name)))` where the group has more than
-   one row. Treat names that differ only by case or surrounding whitespace as
-   duplicates.
+1. Group labels by `(user_id, name_norm)` where the group has more than one row.
+   `name_norm` is computed in application code with NFKC normalization, trimming,
+   and lowercasing, so names that differ only by Unicode case, composition, or
+   surrounding whitespace are treated as duplicates. SQLite's `lower()` is
+   ASCII-only and cannot provide this key.
 2. Choose the canonical label: earliest non-empty `created_at`, then lowest
    `id`. The canonical label keeps its own color (and icon once Phase 2 adds it);
    duplicate metadata is discarded.
@@ -312,7 +316,7 @@ active label is hidden in its own pane; unknown label IDs are omitted.
    `INSERT OR IGNORE`, then delete the duplicate join rows.
 4. Delete the duplicate label rows.
 5. **After** deduplication, create
-   `CREATE UNIQUE INDEX IF NOT EXISTS idx_labels_user_name_unique ON labels(user_id, lower(trim(name)))`.
+   `CREATE UNIQUE INDEX idx_labels_user_name_unique ON labels(user_id, name_norm)`.
    Do not add this index to `SQLITE_BOOTSTRAP_SQL`: the bootstrap runs before
    dedupe and would fail on a database that still contains duplicates.
 6. Create
@@ -324,14 +328,13 @@ active label is hidden in its own pane; unknown label IDs are omitted.
 
 The migration must be idempotent and safe with `busy_timeout`. The Drizzle SQL
 file is optional; do not present it as a safe manual upgrade unless it includes
-the dedupe step. Startup behavior is governed by `ensureSqliteSchema`. No
-`schema.ts` change is needed for the expression index because the current Drizzle
-schema does not declare indexes; Phase 2 adds the new label columns.
+the dedupe step. Startup behavior is governed by `ensureSqliteSchema`.
+`schema.ts` declares `nameNorm` so Drizzle writes keep the key in sync; the
+unique index itself is created by the startup migration.
 
-SQLite's `lower()` is ASCII-only. That is acceptable for v1, but the plan should
-not claim full Unicode case-insensitivity: “Étude” and “étude” would not be
-caught by the expression index. If that matters, add a `name_norm` column
-normalized in application code and index `(user_id, name_norm)` instead.
+SQLite's `lower()` limitation is addressed by the stored `name_norm` key.
+Canonically equivalent forms such as `Étude`, `étude`, and `E` plus a combining
+accent all map to `étude`, and the unique index enforces that key.
 
 **API behavior:**
 
@@ -350,9 +353,9 @@ normalized in application code and index `(user_id, name_norm)` instead.
   label. The full merge action lands in Phase 3.
 
 **Acceptance:** creating “writing” when “Writing” exists returns 409 with the
-existing label; the startup migration merges existing duplicates without losing
-task associations; a second startup is a no-op; invalid colors and empty names
-are rejected.
+existing label; creating “étude” when “Étude” exists also returns 409; the startup
+migration merges existing duplicates without losing task associations; a second
+startup is a no-op; invalid colors and empty names are rejected.
 
 ### 1.5 Make counts truthful and add the single-label task query
 

@@ -329,6 +329,31 @@ test('Label Service', async (t) => {
       );
     });
 
+    await t.test('create and rename reject non-ASCII case duplicates', async () => {
+      const original = await ctx.labelService.createLabelForOwner(ownerId, { name: 'Étude' });
+
+      await assert.rejects(
+        () => ctx.labelService.createLabelForOwner(ownerId, { name: ' étude ' }),
+        (error: { statusCode?: number; details?: { existingLabel?: { id?: string } } }) => {
+          assert.equal(error.statusCode, 409);
+          assert.equal(error.details?.existingLabel?.id, original?.id);
+          return true;
+        },
+      );
+
+      await assert.rejects(
+        () => ctx.labelService.createLabelForOwner(ownerId, { name: 'E\u0301tude' }),
+        (error: { statusCode?: number }) => error.statusCode === 409,
+      );
+
+      const other = await ctx.labelService.createLabelForOwner(ownerId, { name: 'Notes' });
+      assert.ok(other);
+      await assert.rejects(
+        () => ctx.labelService.updateLabelForOwner(ownerId, other.id, { name: 'ÉTUDE' }),
+        (error: { statusCode?: number }) => error.statusCode === 409,
+      );
+    });
+
     await t.test(
       'update rejects renaming into an existing label but keeps unchanged writes',
       async () => {
