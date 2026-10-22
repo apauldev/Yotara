@@ -51,7 +51,9 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
               <option value="dark-forest">Dark Forest</option>
               <option value="coastal-calm">Coastal Calm</option>
               <option value="minimal-slate">Minimal Slate</option>
+              <option value="floral-blossoms">Floral Blossoms</option>
               <option value="midnight-amethyst">Midnight Amethyst</option>
+              <option value="ember-hearth">Ember Hearth</option>
               <option value="golden-hour">Golden Hour</option>
               <option value="deep-trench">Deep Trench</option>
             </select>

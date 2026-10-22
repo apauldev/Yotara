@@ -28,6 +28,29 @@ test.describe('Settings', () => {
     await expect(themeSelect).toHaveValue('dark-forest');
   });
 
+  test('applies the floral and ember themes', async ({ page }) => {
+    await page.goto('/settings');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    const themeSelect = page.locator('select.settings-select').first();
+    await expect(themeSelect).toBeVisible();
+
+    // Floral Blossoms is a light theme: theme class lands, dark does not.
+    await themeSelect.selectOption('floral-blossoms');
+    await expect(page.locator('html')).toHaveClass(/theme-floral-blossoms/);
+    await expect(page.locator('html')).not.toHaveClass(/dark/);
+
+    // Ember Hearth is a warm dark theme: theme class and dark mode both land.
+    await themeSelect.selectOption('ember-hearth');
+    await expect(page.locator('html')).toHaveClass(/theme-ember-hearth/);
+    await expect(page.locator('html')).toHaveClass(/dark/);
+
+    // Restore the default so later serial tests start from a known theme.
+    await themeSelect.selectOption('light-forest');
+    await expect(page.locator('html')).toHaveClass(/theme-light-forest/);
+  });
+
   test('toggles a preference setting', async ({ page }) => {
     await page.goto('/settings');
     await page.waitForLoadState('networkidle');

@@ -36,7 +36,7 @@ The Angular application contains:
 - Recurring tasks (daily, weekly, monthly, yearly) with month-end and leap-year handling
 - Icon-first labels with a single management surface, pinned labels, merge, and quick-create from capture or the task modal
 - Multi-label assignment and server-side task-list filtering (`?labels=id1,id2`, Any/All)
-- 7 color themes with dark mode
+- 9 color themes with dark mode (Floral Blossoms light, Ember Hearth warm dark)
 - Markdown descriptions with a format toolbar and sanitized preview
 - Full-text search across tasks, projects, and labels
 - Keyboard shortcuts for navigation
