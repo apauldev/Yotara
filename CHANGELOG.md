@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.83.1](https://github.com/apauldev/Yotara/compare/v0.83.0...v0.83.1) (2026-10-22)
+
+
+### Chores
+
+* **website:** advertise 9 handcrafted themes ([e5acd62](https://github.com/apauldev/Yotara/commit/e5acd62a28671ce810bc6a6f9e11b9e9cd34b4d6)), closes [#411](https://github.com/apauldev/Yotara/issues/411)
+
 ## [0.83.0](https://github.com/apauldev/Yotara/compare/v0.82.1...v0.83.0) (2026-10-22)
 
 
