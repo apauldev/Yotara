@@ -52,7 +52,10 @@ describe('TaskListPageComponent', () => {
     };
 
     mockProjectService = {
-      projects: signal([{ id: '1', name: 'Inbox' }]),
+      projects: signal([
+        { id: '1', name: 'Inbox' },
+        { id: '2', name: 'Work' },
+      ]),
     };
 
     mockLabelService = {
@@ -329,7 +332,28 @@ describe('TaskListPageComponent', () => {
       expect(mockTaskService.createTask).toHaveBeenCalled();
       const args = mockTaskService.createTask.calls.mostRecent().args[0];
       expect(args.title).toBe('Quick task');
+      expect(args.projectId).toBeNull();
+      expect(captureBar.getProjectId()).toBeNull();
       expect(mockStatusService.success).toHaveBeenCalledWith('"Quick task" added to Inbox');
+    });
+
+    it('quick captures into the selected project and resets the picker', async () => {
+      mockAuthStateService.user.set({ id: 'user-1', captureBehavior: 'quick' });
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      const captureBar = fixture.debugElement.query(By.directive(CaptureBarComponent))
+        .componentInstance as CaptureBarComponent;
+      captureBar.setTitle('Draft proposal');
+      captureBar['projectId'].set('2');
+
+      await (fixture.componentInstance as any).handleCapture();
+
+      const args = mockTaskService.createTask.calls.mostRecent().args[0];
+      expect(args.projectId).toBe('2');
+      expect(captureBar.getProjectId()).toBeNull();
+      expect(mockStatusService.success).toHaveBeenCalledWith('"Draft proposal" added to Work');
     });
 
     it('applies a label created in the capture combobox to the saved task', async () => {
@@ -469,7 +493,7 @@ describe('TaskListPageComponent', () => {
       await (fixture.componentInstance as any).handleCapture();
 
       expect(openSpy).toHaveBeenCalledWith(
-        '1',
+        null,
         jasmine.objectContaining({
           value: '2026-10-02',
           dueTime: null,
@@ -480,6 +504,32 @@ describe('TaskListPageComponent', () => {
         'Capture task Friday',
       );
       expect(captureBar.getTitle()).toBe('Capture task Friday');
+    });
+
+    it('passes the selected project through the details handoff', async () => {
+      mockAuthStateService.user.set({ id: 'user-1', captureBehavior: 'capture' });
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
+        .componentInstance as PersonalTaskWorkspaceComponent;
+      const openSpy = spyOn(workspace, 'openCreateTaskModal');
+      const captureBar = fixture.debugElement.query(By.directive(CaptureBarComponent))
+        .componentInstance as CaptureBarComponent;
+      captureBar.setTitle('Capture task');
+      captureBar['projectId'].set('2');
+      captureBar.setSubmissionType('capture');
+
+      await (fixture.componentInstance as any).handleCapture();
+
+      expect(openSpy).toHaveBeenCalledWith(
+        jasmine.anything(),
+        jasmine.anything(),
+        [],
+        'Capture task',
+      );
+      expect(openSpy.calls.mostRecent().args[0]).toBe('2');
     });
 
     it('passes the inferred time through the details handoff without reparsing', async () => {
@@ -503,7 +553,7 @@ describe('TaskListPageComponent', () => {
       await (fixture.componentInstance as any).handleCapture();
 
       expect(openSpy).toHaveBeenCalledWith(
-        '1',
+        null,
         jasmine.objectContaining({
           value: '2026-10-02',
           dueTime: '15:00',
@@ -593,16 +643,18 @@ describe('TaskListPageComponent', () => {
       expect(captureBar.getParserResult()).toBeNull();
     });
 
-    it('clears capture form after successful save', () => {
+    it('clears capture form and project selection after successful save', () => {
       const fixture = TestBed.createComponent(TaskListPageComponent);
       fixture.detectChanges();
 
       const captureBar = fixture.debugElement.query(By.directive(CaptureBarComponent))
         .componentInstance as CaptureBarComponent;
       captureBar.setTitle('Test task');
+      captureBar['projectId'].set('2');
       fixture.componentInstance['handleTaskSaved']('create');
 
       expect(captureBar.getTitle()).toBe('');
+      expect(captureBar.getProjectId()).toBeNull();
     });
 
     it('displays randomized insight prompts in inbox view', () => {

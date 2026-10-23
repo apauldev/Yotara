@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { signal } from '@angular/core';
+import { DateTime } from 'luxon';
 import { provideMarkdown } from 'ngx-markdown';
 import { PersonalTaskCardComponent } from './personal-task-card.component';
 import { Task } from '@yotara/shared';
@@ -452,6 +453,38 @@ describe('PersonalTaskCardComponent', () => {
       component.tone = 'overdue';
       setTask({ ...mockTask, status: 'today' });
       fixture.detectChanges();
+      expect(component['statusLabel']()).toBe('Overdue');
+    });
+
+    it('should present an undated filed task as Unscheduled instead of Inbox', () => {
+      setTask({ ...mockTask, status: 'inbox', projectId: 'project-1', dueDate: undefined });
+      fixture.detectChanges();
+      expect(component['statusLabel']()).toBe('Unscheduled');
+    });
+
+    it('should derive a filed task status from its date', () => {
+      setTask({
+        ...mockTask,
+        status: 'inbox',
+        projectId: 'project-1',
+        dueDate: DateTime.now().toISODate()!,
+      });
+      expect(component['statusLabel']()).toBe('Today');
+
+      setTask({
+        ...mockTask,
+        status: 'inbox',
+        projectId: 'project-1',
+        dueDate: DateTime.now().plus({ days: 2 }).toISODate()!,
+      });
+      expect(component['statusLabel']()).toBe('Upcoming');
+
+      setTask({
+        ...mockTask,
+        status: 'inbox',
+        projectId: 'project-1',
+        dueDate: DateTime.now().minus({ days: 2 }).toISODate()!,
+      });
       expect(component['statusLabel']()).toBe('Overdue');
     });
 

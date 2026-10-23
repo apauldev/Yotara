@@ -62,10 +62,10 @@ describe('task creation notifications', () => {
     ).toBe('"Plan the garden" added to Today (Home) · due Fri, Sep 25, 2026');
   });
 
-  it('reports the destination and project without a due date', () => {
+  it('reports the project as the destination without a due date', () => {
     expect(
       taskCreationNotification({ title: 'Buy milk', projectId: 'home-1', projects, reference }),
-    ).toBe('"Buy milk" added to Inbox (Home)');
+    ).toBe('"Buy milk" added to Home');
   });
 
   it('omits the project when no project was resolved', () => {
@@ -77,38 +77,34 @@ describe('task creation notifications', () => {
     ).toBe('"Buy milk" added to Inbox');
   });
 
-  it('does not repeat a project that matches the destination label', () => {
+  it('omits a project that repeats the destination label', () => {
     expect(
       taskCreationNotification({ title: 'Buy milk', projectId: 'inbox-1', projects, reference }),
     ).toBe('"Buy milk" added to Inbox');
   });
 
-  it('omits the project when the task lands in the default project', () => {
-    // A default project named "Inbox" would otherwise read as the destination
-    // view on a dated task that actually lands in Upcoming.
-    expect(
-      taskCreationNotification({
-        title: 'Pay rent in 15 days',
-        dueDate: '2026-10-10',
-        projectId: 'inbox-1',
-        defaultProjectId: 'inbox-1',
-        projects,
-        reference,
-      }),
-    ).toBe('"Pay rent in 15 days" added to Upcoming · due Sat, Oct 10, 2026');
-  });
-
-  it('still names a project chosen outside the default', () => {
+  it('names an explicitly chosen project for a dated task', () => {
     expect(
       taskCreationNotification({
         title: 'Pay rent in 15 days',
         dueDate: '2026-10-10',
         projectId: 'home-1',
-        defaultProjectId: 'inbox-1',
         projects,
         reference,
       }),
     ).toBe('"Pay rent in 15 days" added to Upcoming (Home) · due Sat, Oct 10, 2026');
+  });
+
+  it('names a dated project even when its name matches a task view', () => {
+    expect(
+      taskCreationNotification({
+        title: 'Pay rent in 15 days',
+        dueDate: '2026-10-10',
+        projectId: 'inbox-1',
+        projects,
+        reference,
+      }),
+    ).toBe('"Pay rent in 15 days" added to Upcoming (Inbox) · due Sat, Oct 10, 2026');
   });
 
   it('truncates a long title so the toast stays readable', () => {
@@ -119,7 +115,7 @@ describe('task creation notifications', () => {
       reference,
     });
 
-    expect(message).toBe('"Renew the passport and ship the quarter…" added to Inbox (Home)');
+    expect(message).toBe('"Renew the passport and ship the quarter…" added to Home');
   });
 
   it('resolves a project name from the project list', () => {

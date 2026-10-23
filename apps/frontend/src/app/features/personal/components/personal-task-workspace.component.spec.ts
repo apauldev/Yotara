@@ -139,6 +139,40 @@ describe('PersonalTaskWorkspaceComponent', () => {
     expect(modal.initialTitle).toBe('Captured from inbox');
   });
 
+  it('keeps an explicit No project selection over the contextual project', () => {
+    fixture.detectChanges();
+
+    const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
+      .componentInstance as PersonalTaskWorkspaceComponent;
+
+    workspace.openCreateTaskModal(null);
+    fixture.detectChanges();
+
+    const modal = fixture.debugElement.query(By.directive(PersonalTaskModalComponent))
+      .componentInstance as PersonalTaskModalComponent;
+
+    expect(modal.open).toBeTrue();
+    expect(modal.initialProjectId).toBeNull();
+    expect(modal['draftProjectId']()).toBeNull();
+  });
+
+  it('opens an unfiled task for editing without assigning the contextual project', () => {
+    fixture.detectChanges();
+
+    const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
+      .componentInstance as PersonalTaskWorkspaceComponent;
+
+    workspace.editTask({ ...task, projectId: undefined });
+    fixture.detectChanges();
+
+    const modal = fixture.debugElement.query(By.directive(PersonalTaskModalComponent))
+      .componentInstance as PersonalTaskModalComponent;
+
+    expect(modal.open).toBeTrue();
+    expect(modal.initialProjectId).toBeNull();
+    expect(modal['draftProjectId']()).toBeNull();
+  });
+
   it('does not show a stale service error in a new modal session', () => {
     fixture.detectChanges();
     const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
@@ -253,14 +287,14 @@ describe('PersonalTaskWorkspaceComponent', () => {
         priority: 'medium',
         dueDate: undefined,
         simpleMode: true,
-        projectId: undefined,
+        projectId: null,
       },
     });
 
     expect(taskService.createTask).toHaveBeenCalledWith(
       jasmine.objectContaining({
         title: 'New task',
-        projectId: 'project-1',
+        projectId: null,
       }),
     );
     expect(projectService.refresh).toHaveBeenCalled();
@@ -285,7 +319,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
         priority: 'medium',
         dueDate: undefined,
         simpleMode: true,
-        projectId: 'project-1',
+        projectId: null,
       },
     });
 
@@ -317,8 +351,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
     );
   });
 
-  it('names the project when the task lands outside the default project', async () => {
-    fixture.componentInstance.initialProjectId = 'project-2';
+  it('names the chosen project as the destination for an undated capture', async () => {
     fixture.detectChanges();
 
     const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
@@ -337,9 +370,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
       },
     });
 
-    expect(statusServiceSpy.success).toHaveBeenCalledWith(
-      '"Buy milk" added to Inbox (Launch Plan)',
-    );
+    expect(statusServiceSpy.success).toHaveBeenCalledWith('"Buy milk" added to Launch Plan');
   });
 
   it('does not announce a destination when updating an existing task', async () => {

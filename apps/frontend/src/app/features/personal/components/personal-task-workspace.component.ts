@@ -34,9 +34,7 @@ type SavePayload =
       [open]="modalOpen()"
       [task]="selectedTask()"
       [projects]="projectService.projects()"
-      [initialProjectId]="
-        draftProjectId() || initialProjectId || projectService.projects()[0]?.id || null
-      "
+      [initialProjectId]="draftProjectId()"
       [initialTitle]="draftInitialTitle() || initialTitle"
       [initialDueDateDraft]="draftDueDateDraft()"
       [initialLabelIds]="draftInitialLabelIds()"
@@ -73,9 +71,7 @@ export class PersonalTaskWorkspaceComponent {
   ) {
     this.modalError.set(null);
     this.selectedTask.set(null);
-    this.draftProjectId.set(
-      projectId ?? this.initialProjectId ?? this.projectService.projects()[0]?.id ?? null,
-    );
+    this.draftProjectId.set(projectId === undefined ? this.initialProjectId : projectId);
     this.draftDueDateDraft.set(dueDateDraft);
     this.draftInitialLabelIds.set(initialLabelIds);
     this.draftInitialTitle.set(initialTitle);
@@ -85,6 +81,7 @@ export class PersonalTaskWorkspaceComponent {
   editTask(task: Task) {
     this.modalError.set(null);
     this.selectedTask.set(task);
+    this.draftProjectId.set(task.projectId ?? null);
     this.draftDueDateDraft.set(null);
     this.draftInitialLabelIds.set([]);
     this.draftInitialTitle.set('');
@@ -104,17 +101,10 @@ export class PersonalTaskWorkspaceComponent {
   protected async saveTask(event: SavePayload) {
     const wasCompleted =
       event.mode === 'update' ? (this.selectedTask()?.completed ?? false) : false;
-    const createdProjectId =
-      event.mode === 'create'
-        ? (event.payload.projectId ?? this.initialProjectId ?? undefined)
-        : undefined;
 
     try {
       if (event.mode === 'create') {
-        await this.taskService.createTask({
-          ...event.payload,
-          projectId: createdProjectId,
-        });
+        await this.taskService.createTask(event.payload);
       } else {
         await this.taskService.updateTask(event.taskId, event.payload);
       }
@@ -127,8 +117,7 @@ export class PersonalTaskWorkspaceComponent {
             dueTime: event.payload.dueTime,
             status: event.payload.status ?? 'inbox',
             projects: this.projectService.projects(),
-            projectId: createdProjectId,
-            defaultProjectId: this.initialProjectId ?? undefined,
+            projectId: event.payload.projectId ?? null,
           }),
         );
       }

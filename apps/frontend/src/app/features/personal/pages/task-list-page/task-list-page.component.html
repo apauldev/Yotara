@@ -36,7 +36,6 @@
       <app-capture-bar
         [projects]="projectService.projects()"
         [creating]="taskService.creating()"
-        [defaultProjectId]="defaultCaptureProjectId()"
         (submit)="handleCapture()"
       />
     }

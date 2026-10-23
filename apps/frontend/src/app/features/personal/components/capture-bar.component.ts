@@ -143,13 +143,14 @@ import { parseTaskDueDate, type TaskDueDateParseResult } from '../utils/task-due
         <label class="capture-project">
           <span class="sr-only">Project</span>
           <select
-            [ngModel]="projectId() || defaultProjectId"
+            [ngModel]="projectId()"
             (ngModelChange)="projectId.set($event)"
             name="captureProjectId"
             aria-label="Choose project"
           >
+            <option [ngValue]="null">No project</option>
             @for (project of projects; track project.id) {
-              <option [value]="project.id">{{ project.name }}</option>
+              <option [ngValue]="project.id">{{ project.name }}</option>
             }
           </select>
         </label>
@@ -543,14 +544,13 @@ import { parseTaskDueDate, type TaskDueDateParseResult } from '../utils/task-due
 export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
   @Input({ required: true }) projects: { id: string; name: string }[] = [];
   @Input({ required: true }) creating = false;
-  @Input({ required: true }) defaultProjectId = '';
   @Input() referenceDate: DateTime | null = null;
   @Output() readonly submit = new EventEmitter<void>();
   private submitEmissionPending = false;
 
   protected readonly title = signal('');
   protected readonly error = signal('');
-  protected readonly projectId = signal('');
+  protected readonly projectId = signal<string | null>(null);
   protected readonly dueDateDraft = signal<DueDateDraft>(createEmptyDueDateDraft());
   protected readonly parserResult = signal<TaskDueDateParseResult | null>(null);
   protected lastSubmissionType: 'quick' | 'capture' | 'default' = 'default';
@@ -689,6 +689,7 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
 
   resetCapture() {
     this.clearTitle();
+    this.projectId.set(null);
     this.clearError();
     this.resetSubmissionType();
     this.createdLabels.set([]);
@@ -710,7 +711,7 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
     return this.error();
   }
 
-  getProjectId(): string {
+  getProjectId(): string | null {
     return this.projectId();
   }
 

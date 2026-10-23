@@ -22,6 +22,7 @@ import { TaskService } from '../../../core/services/task.service';
 import { LabelChipComponent } from '../../../shared/ui/label-chip/label-chip.component';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 import { formatTimeLabel, parseCalendarDate } from '../../../shared/utils/timestamps';
+import { getTaskViewDestination } from '../utils/task-creation-notification';
 import { notifyTaskCompleted } from '../utils/task-completion-notice';
 
 @Component({
@@ -827,7 +828,25 @@ export class PersonalTaskCardComponent {
       return 'Overdue';
     }
 
-    switch (this.task().status) {
+    const status = this.task().status;
+    if (this.task().projectId && status !== 'done' && status !== 'archived') {
+      if (!this.task().dueDate) {
+        return 'Unscheduled';
+      }
+
+      switch (getTaskViewDestination(this.task().dueDate, status)) {
+        case 'today':
+          return 'Today';
+        case 'upcoming':
+          return 'Upcoming';
+        case 'overdue':
+          return 'Overdue';
+        default:
+          return 'Unscheduled';
+      }
+    }
+
+    switch (status) {
       case 'today':
         return 'Today';
       case 'upcoming':

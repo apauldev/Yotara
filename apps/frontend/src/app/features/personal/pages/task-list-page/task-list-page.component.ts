@@ -269,11 +269,6 @@ export class TaskListPageComponent implements OnInit {
     }
   });
 
-  protected readonly defaultCaptureProjectId = computed(() => {
-    const inboxProject = this.projectService.projects().find((project) => project.name === 'Inbox');
-    return inboxProject?.id ?? this.projectService.projects()[0]?.id ?? '';
-  });
-
   // --- Insight Panel ---
   protected readonly dailyClarityPrompt = signal(pickRandomPrompt(DAILY_CLARITY_PROMPTS));
   protected readonly journalPrompt = signal(pickRandomPrompt(YOTARA_JOURNAL_PROMPTS));
@@ -337,7 +332,7 @@ export class TaskListPageComponent implements OnInit {
         try {
           const dueDate = dueDateDraft.source === 'cleared' ? '' : dueDateDraft.value;
           const dueTime = dueDateDraft.source === 'cleared' ? '' : (dueDateDraft.dueTime ?? '');
-          const projectId = bar.getProjectId() || this.defaultCaptureProjectId() || undefined;
+          const projectId = bar.getProjectId();
           await this.taskService.createTask({
             title,
             priority: priority || 'medium',
@@ -356,7 +351,6 @@ export class TaskListPageComponent implements OnInit {
               status: 'inbox',
               projects: this.projectService.projects(),
               projectId,
-              defaultProjectId: this.defaultCaptureProjectId() || undefined,
             }),
           );
           bar.resetCapture();
@@ -365,7 +359,7 @@ export class TaskListPageComponent implements OnInit {
         }
       } else {
         this.workspace()?.openCreateTaskModal(
-          bar.getProjectId() || this.defaultCaptureProjectId() || null,
+          bar.getProjectId(),
           dueDateDraft,
           resolvedLabels,
           title,
