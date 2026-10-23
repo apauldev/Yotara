@@ -304,6 +304,93 @@ test('PATCH /me seeds the seven starter projects and labels on the onboarding tr
   }
 });
 
+test('PATCH /me can retry onboarding after starter label seeding fails', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const email = `seed-retry-${randomUUID()}@example.com`;
+    const cookie = await signUpAndGetCookie(email);
+
+    const { db, sqlite } = await import('../db/client.js');
+    const { labels, projects, users } = await import('../db/schema.js');
+    const { eq, sql } = await import('drizzle-orm');
+
+    const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    assert.ok(user);
+
+    // Projects seed first, then labels. Fail the second seed to verify the
+    // completion marker is not persisted and the retry can finish provisioning
+    // without duplicating the already-seeded projects.
+    sqlite.exec(`
+      CREATE TRIGGER fail_starter_labels
+      BEFORE INSERT ON labels
+      WHEN NEW.user_id = '${user.id}'
+      BEGIN
+        SELECT RAISE(ABORT, 'forced starter label failure');
+      END;
+    `);
+
+    try {
+      const failed = await ctx.app.inject({
+        method: 'PATCH',
+        url: '/me',
+        headers: { cookie },
+        payload: { workspaceMode: 'personal', onboardingCompleted: true },
+      });
+      assert.equal(failed.statusCode, 500);
+
+      const profileAfterFailure = await ctx.app.inject({
+        method: 'GET',
+        url: '/me',
+        headers: { cookie },
+      });
+      assert.equal(profileAfterFailure.statusCode, 200);
+      assert.equal(
+        profileAfterFailure.json().user.onboardingCompleted,
+        false,
+        'A failed seed must leave onboarding retryable',
+      );
+
+      const [projectCountAfterFailure] = await db
+        .select({ value: sql<number>`count(*)` })
+        .from(projects)
+        .where(eq(projects.ownerId, user.id));
+      assert.equal(projectCountAfterFailure.value, 7);
+
+      const [labelCountAfterFailure] = await db
+        .select({ value: sql<number>`count(*)` })
+        .from(labels)
+        .where(eq(labels.userId, user.id));
+      assert.equal(labelCountAfterFailure.value, 0);
+    } finally {
+      sqlite.exec('DROP TRIGGER IF EXISTS fail_starter_labels');
+    }
+
+    const retry = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/me',
+      headers: { cookie },
+      payload: { workspaceMode: 'personal', onboardingCompleted: true },
+    });
+    assert.equal(retry.statusCode, 200);
+    assert.equal(retry.json().user.onboardingCompleted, true);
+
+    const [projectCount] = await db
+      .select({ value: sql<number>`count(*)` })
+      .from(projects)
+      .where(eq(projects.ownerId, user.id));
+    assert.equal(projectCount.value, 7, 'Retry must not duplicate seeded projects');
+
+    const [labelCount] = await db
+      .select({ value: sql<number>`count(*)` })
+      .from(labels)
+      .where(eq(labels.userId, user.id));
+    assert.ok(labelCount.value >= 6, 'Retry should finish seeding the default labels');
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
 test('PATCH /me returns 401 without authentication', async () => {
   const ctx = await createAuthedApp();
 

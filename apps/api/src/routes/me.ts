@@ -150,11 +150,13 @@ export default async function meRoutes(fastify: FastifyInstance) {
         updatedAt: new Date(),
       };
 
-      await db.update(users).set(profilePatch).where(eq(users.id, userId));
-
       // Seed starters only on the onboarding-incomplete → complete transition
       // for a personal workspace. Repeated profile saves must not recreate
       // projects or labels the user renamed or removed.
+      //
+      // Run the seeders before persisting the completion marker. If a seed
+      // fails, onboarding stays incomplete and the request can be retried;
+      // the seeders skip existing starter names and labels, so a retry is safe.
       const nextWorkspaceMode = request.body.workspaceMode ?? currentUser.workspaceMode;
       const onboardingJustCompleted =
         request.body.onboardingCompleted === true && !currentUser.onboardingCompleted;
@@ -162,6 +164,8 @@ export default async function meRoutes(fastify: FastifyInstance) {
         await seedDefaultProjectsForOwner(userId);
         await seedDefaultLabelsForOwner(userId);
       }
+
+      await db.update(users).set(profilePatch).where(eq(users.id, userId));
 
       const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       if (!user) {
