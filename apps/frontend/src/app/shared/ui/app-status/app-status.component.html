@@ -4,7 +4,18 @@
 
 <div class="toast-container" aria-live="polite">
   @for (toast of statusService.toasts(); track toast.id) {
-    <div class="toast toast-{{ toast.type }}" role="status" @toastAnimation>
+    <div
+      class="toast toast-{{ toast.type }}"
+      [class.toast-actionable]="toast.action"
+      [class.toast-reduced-motion]="reducedMotion"
+      role="status"
+      @toastAnimation
+      (@toastAnimation.done)="onToastAnimationDone(toast.id, $event)"
+      (mouseenter)="enterToast(toast.id)"
+      (mouseleave)="leaveToast(toast.id)"
+      (focusin)="focusToast(toast.id)"
+      (focusout)="blurToast(toast.id, $event)"
+    >
       <span class="toast-icon">
         @switch (toast.type) {
           @case ('success') {
@@ -25,6 +36,12 @@
       <div class="toast-content">
         {{ toast.message }}
       </div>
+
+      @if (toast.action; as action) {
+        <button type="button" class="toast-action" (click)="runAction(toast)">
+          {{ action.label }}
+        </button>
+      }
 
       @if (toast.dismissible) {
         <button

@@ -39,9 +39,13 @@ test.describe('Task CRUD', () => {
     await confirmBtn.waitFor({ state: 'visible', timeout: 5_000 });
     await confirmBtn.click();
 
-    await page.waitForTimeout(1000);
+    const movementToast = page
+      .locator('.toast')
+      .filter({ hasText: `"${name}" completed and moved to Archive` });
+    await expect(movementToast).toBeVisible({ timeout: 10_000 });
+    await movementToast.getByRole('button', { name: 'View' }).click();
 
-    await page.goto('/archive');
+    await expect(page).toHaveURL(/\/archive$/, { timeout: 10_000 });
     await page.waitForLoadState('networkidle');
     await expect(page.locator('article.task-card').filter({ hasText: name })).toBeVisible({
       timeout: 10_000,
@@ -97,6 +101,7 @@ test.describe('Task CRUD', () => {
     await page.getByPlaceholder('e.g. Morning Rituals').fill(projName);
     await page.getByRole('button', { name: 'Create Project' }).click();
     await page.waitForURL(/\/projects\/[a-zA-Z0-9-]+/, { timeout: 10_000 });
+    const projectUrl = page.url();
 
     // Go to tasks
     await page.goto('/tasks?view=inbox');
@@ -110,7 +115,56 @@ test.describe('Task CRUD', () => {
     await page.getByPlaceholder("What's on your mind today?").fill(name);
     await page.getByPlaceholder("What's on your mind today?").press('Enter');
 
-    // Task card should appear
+    // A filed task is not part of the Inbox view. The capture confirmation
+    // names the project and the task is visible on that project page.
+    await expect(
+      page.locator('.toast').filter({ hasText: `"${name}" added to ${projName}` }),
+    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('article.task-card').filter({ hasText: name })).toHaveCount(0);
+
+    await page.goto(projectUrl);
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('article.task-card').filter({ hasText: name })).toBeVisible({
+      timeout: 10_000,
+    });
+  });
+
+  test('announces filing an Inbox task and opens its project', async ({ page }) => {
+    const projName = `move-proj-${Date.now()}`;
+    await page.goto('/projects');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    await page.getByRole('button', { name: '+ New Project' }).click();
+    await page.getByPlaceholder('e.g. Morning Rituals').fill(projName);
+    await page.getByRole('button', { name: 'Create Project' }).click();
+    await page.waitForURL(/\/projects\/[a-zA-Z0-9-]+/, { timeout: 10_000 });
+    const projectUrl = page.url();
+
+    await page.goto('/tasks?view=inbox');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    const name = taskName('move');
+    await page.getByPlaceholder("What's on your mind today?").fill(name);
+    await page.getByPlaceholder("What's on your mind today?").press('Enter');
+    const card = page.locator('article.task-card').filter({ hasText: name });
+    await expect(card).toBeVisible({ timeout: 10_000 });
+
+    await card.click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible({ timeout: 5_000 });
+    await dialog.locator('#task-project').selectOption({ label: projName });
+    await dialog.getByRole('button', { name: 'Save Task' }).click();
+
+    const movementToast = page
+      .locator('.toast')
+      .filter({ hasText: `"${name}" moved to ${projName}` });
+    await expect(movementToast).toBeVisible({ timeout: 10_000 });
+    await expect(card).toHaveCount(0);
+
+    await movementToast.getByRole('button', { name: 'View' }).click();
+    await expect(page).toHaveURL(projectUrl, { timeout: 10_000 });
     await expect(page.locator('article.task-card').filter({ hasText: name })).toBeVisible({
       timeout: 10_000,
     });

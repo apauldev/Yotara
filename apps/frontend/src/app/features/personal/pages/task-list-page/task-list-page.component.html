@@ -1,5 +1,6 @@
 <app-personal-task-workspace
   #workspace
+  [fromInbox]="viewMode() === 'inbox'"
   [initialTitle]="viewMode() === 'inbox' ? (captureBar()?.getTitle() ?? '') : ''"
   [initialDueDateDraft]="viewMode() === 'inbox' ? (captureBar()?.getDueDateDraft() ?? null) : null"
   (taskSaved)="handleTaskSaved($event)"
@@ -258,6 +259,7 @@
     [task]="task"
     [mode]="compact ? 'compact' : 'default'"
     [interactive]="true"
+    [fromInbox]="viewMode() === 'inbox'"
     [suppressLabelIds]="selectedLabelIds()"
     (select)="editTask(task)"
     (labelSelect)="filterByLabel($event)"

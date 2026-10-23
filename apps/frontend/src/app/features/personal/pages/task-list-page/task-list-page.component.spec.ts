@@ -12,6 +12,7 @@ import { ProjectService } from '../../../../core/services/project.service';
 import { LabelService } from '../../../../core/services/label.service';
 import { AuthStateService } from '../../../../core/services/auth-state.service';
 import { PersonalTaskWorkspaceComponent } from '../../components/personal-task-workspace.component';
+import { PersonalTaskCardComponent } from '../../components/personal-task-card.component';
 import { CaptureBarComponent } from '../../components/capture-bar.component';
 import { Task } from '@yotara/shared';
 import { StatusService } from '../../../../core/services/status.service';
@@ -166,6 +167,51 @@ describe('TaskListPageComponent', () => {
       fixture.detectChanges();
       const panel = fixture.debugElement.query(By.css('.insight-panel'));
       expect(panel).toBeNull();
+    });
+
+    it('marks cards and the workspace as Inbox only in the inbox view', () => {
+      const inboxTask = {
+        id: 'task-inbox',
+        title: 'Inbox task',
+        status: 'inbox',
+        priority: 'medium',
+        completed: false,
+        createdAt: '2026-04-17T10:00:00Z',
+        updatedAt: '2026-04-17T10:00:00Z',
+        order: 0,
+      } as Task;
+
+      mockTaskService.inboxTasks.set([inboxTask]);
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
+      const inboxFixture = TestBed.createComponent(TaskListPageComponent);
+      inboxFixture.detectChanges();
+
+      const inboxCard = inboxFixture.debugElement.query(By.directive(PersonalTaskCardComponent))
+        .componentInstance as PersonalTaskCardComponent;
+      const inboxWorkspace = inboxFixture.debugElement.query(
+        By.directive(PersonalTaskWorkspaceComponent),
+      ).componentInstance as PersonalTaskWorkspaceComponent;
+      expect(inboxCard.fromInbox).toBeTrue();
+      expect(inboxWorkspace.fromInbox).toBeTrue();
+
+      mockTaskService.todayTasks.set([
+        {
+          ...inboxTask,
+          status: 'today',
+          dueDate: '2026-04-17',
+        },
+      ]);
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'today']]));
+      const todayFixture = TestBed.createComponent(TaskListPageComponent);
+      todayFixture.detectChanges();
+
+      const todayCard = todayFixture.debugElement.query(By.directive(PersonalTaskCardComponent))
+        .componentInstance as PersonalTaskCardComponent;
+      const todayWorkspace = todayFixture.debugElement.query(
+        By.directive(PersonalTaskWorkspaceComponent),
+      ).componentInstance as PersonalTaskWorkspaceComponent;
+      expect(todayCard.fromInbox).toBeFalse();
+      expect(todayWorkspace.fromInbox).toBeFalse();
     });
   });
 

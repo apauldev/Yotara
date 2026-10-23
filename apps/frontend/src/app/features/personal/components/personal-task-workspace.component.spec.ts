@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import { Router } from '@angular/router';
 import { signal } from '@angular/core';
 import { provideMarkdown } from 'ngx-markdown';
 import { CreateTaskDto, Task, UpdateTaskDto } from '@yotara/shared';
@@ -20,6 +21,7 @@ import type { DueDateDraft } from '../utils/due-date-draft';
     <app-personal-task-workspace
       [initialProjectId]="initialProjectId"
       [initialTitle]="initialTitle"
+      [fromInbox]="fromInbox"
     >
       <p class="projected-copy">Projected content</p>
     </app-personal-task-workspace>
@@ -28,6 +30,7 @@ import type { DueDateDraft } from '../utils/due-date-draft';
 class WorkspaceHostComponent {
   initialProjectId = 'project-1';
   initialTitle = 'Captured from inbox';
+  fromInbox = false;
 }
 
 describe('PersonalTaskWorkspaceComponent', () => {
@@ -104,6 +107,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
         { provide: TaskService, useValue: taskService },
         { provide: StatusService, useValue: statusServiceSpy },
         { provide: PreferencesStore, useValue: preferences },
+        { provide: Router, useValue: { navigate: jasmine.createSpy('navigate') } },
       ],
     }).compileComponents();
 
@@ -396,12 +400,52 @@ describe('PersonalTaskWorkspaceComponent', () => {
     expect(statusServiceSpy.success).not.toHaveBeenCalled();
   });
 
+  it('announces filing when the save happens inside the visible Inbox', async () => {
+    fixture.componentInstance.fromInbox = true;
+    fixture.detectChanges();
+
+    const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
+      .componentInstance as PersonalTaskWorkspaceComponent;
+    const inboxTask: Task = {
+      ...task,
+      status: 'inbox',
+      projectId: undefined,
+      dueDate: undefined,
+    };
+    taskService.updateTask.and.resolveTo({ ...inboxTask, projectId: 'project-1' });
+
+    workspace.editTask(inboxTask);
+    await workspace['saveTask']({
+      mode: 'update',
+      taskId: inboxTask.id,
+      payload: {
+        title: inboxTask.title,
+        description: '',
+        status: 'inbox',
+        priority: 'high',
+        dueDate: undefined,
+        simpleMode: true,
+        projectId: 'project-1',
+      } as UpdateTaskDto,
+    });
+
+    expect(statusServiceSpy.success).toHaveBeenCalledWith(
+      '"Draft release notes" moved to Launch Plan',
+      3000,
+      jasmine.objectContaining({
+        key: 'task-movement:task-1',
+        action: jasmine.objectContaining({ label: 'View' }),
+      }),
+    );
+  });
+
   it('updates a task and emits the update event', async () => {
     fixture.detectChanges();
 
     const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
       .componentInstance as PersonalTaskWorkspaceComponent;
     const savedSpy = spyOn(workspace.taskSaved, 'emit');
+    taskService.updateTask.and.resolveTo({ ...task, completed: true });
 
     await workspace['saveTask']({
       mode: 'update',

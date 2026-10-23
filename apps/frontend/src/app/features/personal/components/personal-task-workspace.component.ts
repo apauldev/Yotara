@@ -12,11 +12,10 @@ import { CreateTaskDto, Task, UpdateTaskDto } from '@yotara/shared';
 import { ProjectService } from '../../../core/services/project.service';
 import { StatusService } from '../../../core/services/status.service';
 import { TaskService } from '../../../core/services/task.service';
-import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { PersonalTaskModalComponent } from './personal-task-modal.component';
 import type { DueDateDraft } from '../utils/due-date-draft';
 import { taskCreationNotification } from '../utils/task-creation-notification';
-import { notifyTaskCompleted } from '../utils/task-completion-notice';
+import { TaskMovementNoticeService } from '../utils/task-movement-notice';
 
 type SavePayload =
   | { mode: 'create'; payload: CreateTaskDto }
@@ -48,13 +47,15 @@ export class PersonalTaskWorkspaceComponent {
   @Input() initialProjectId: string | null = null;
   @Input() initialTitle = '';
   @Input() initialDueDateDraft: DueDateDraft | null = null;
+  /** The workspace is hosted by the visible Inbox view. */
+  @Input() fromInbox = false;
   @Output() readonly taskSaved = new EventEmitter<'create' | 'update'>();
   @Output() readonly taskSaveFailed = new EventEmitter<string>();
 
   protected readonly projectService = inject(ProjectService);
   protected readonly taskService = inject(TaskService);
   private readonly statusService = inject(StatusService);
-  private readonly preferences = inject(PreferencesStore);
+  private readonly movementNotice = inject(TaskMovementNoticeService);
   protected readonly modalOpen = signal(false);
   protected readonly selectedTask = signal<Task | null>(null);
   protected readonly draftProjectId = signal<string | null>(null);
@@ -99,14 +100,15 @@ export class PersonalTaskWorkspaceComponent {
   }
 
   protected async saveTask(event: SavePayload) {
-    const wasCompleted =
-      event.mode === 'update' ? (this.selectedTask()?.completed ?? false) : false;
+    const before = event.mode === 'update' ? this.selectedTask() : null;
+    const wasCompleted = before?.completed ?? false;
 
     try {
+      let updated: Task | null = null;
       if (event.mode === 'create') {
         await this.taskService.createTask(event.payload);
       } else {
-        await this.taskService.updateTask(event.taskId, event.payload);
+        updated = await this.taskService.updateTask(event.taskId, event.payload);
       }
 
       if (event.mode === 'create') {
@@ -122,8 +124,13 @@ export class PersonalTaskWorkspaceComponent {
         );
       }
 
-      if (event.mode === 'update' && event.payload.completed === true && !wasCompleted) {
-        notifyTaskCompleted(this.statusService, this.preferences);
+      if (event.mode === 'update' && updated) {
+        const movementSubject = before ?? updated;
+        if (updated.completed && !wasCompleted) {
+          this.movementNotice.notifyCompleted(movementSubject, this.fromInbox);
+        } else if (before) {
+          this.movementNotice.notifyMoved(before, updated, this.fromInbox);
+        }
       }
 
       this.projectService.refresh();

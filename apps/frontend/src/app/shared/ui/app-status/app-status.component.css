@@ -39,7 +39,9 @@
 }
 
 .toast {
-  pointer-events: auto;
+  /* Informational toasts must not block the UI underneath them. Only toasts
+     with a View action capture hover so that action can pause its timer. */
+  pointer-events: none;
   width: 100%;
   padding: 0.85rem 1rem;
   border-radius: 0.85rem;
@@ -82,7 +84,12 @@
   padding-right: 0.5rem;
 }
 
+.toast-actionable {
+  pointer-events: auto;
+}
+
 .toast-close {
+  pointer-events: auto;
   flex: 0 0 auto;
   width: 1.75rem;
   height: 1.75rem;
@@ -100,6 +107,45 @@
 .toast-close:hover {
   background: var(--surface-container-high);
   color: var(--on-surface);
+}
+
+.toast-action {
+  pointer-events: auto;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--primary-solid);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.5;
+  padding: 0.15rem 0.35rem;
+  white-space: nowrap;
+  transition: background 150ms ease;
+}
+
+.toast-action:hover {
+  background: var(--primary-soft);
+}
+
+.toast-action:focus-visible,
+.toast-close:focus-visible {
+  outline: 2px solid var(--primary-solid);
+  outline-offset: 2px;
+}
+
+/* Keep the opacity state change but remove transform motion for users who ask
+   for reduced motion. The angular animation still owns enter/leave timing. */
+.toast-reduced-motion {
+  transform: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    transform: none !important;
+  }
 }
 
 /* Professional Color Palette */

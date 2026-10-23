@@ -17,13 +17,12 @@ import { faBoxArchive, faRotate, faRotateLeft, faTrash } from '@fortawesome/free
 import { MarkdownComponent } from 'ngx-markdown';
 import { LabelService } from '../../../core/services/label.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
-import { StatusService } from '../../../core/services/status.service';
 import { TaskService } from '../../../core/services/task.service';
 import { LabelChipComponent } from '../../../shared/ui/label-chip/label-chip.component';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 import { formatTimeLabel, parseCalendarDate } from '../../../shared/utils/timestamps';
 import { getTaskViewDestination } from '../utils/task-creation-notification';
-import { notifyTaskCompleted } from '../utils/task-completion-notice';
+import { TaskMovementNoticeService } from '../utils/task-movement-notice';
 
 @Component({
   selector: 'app-personal-task-card',
@@ -763,7 +762,7 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
 export class PersonalTaskCardComponent {
   private readonly taskService = inject(TaskService);
   private readonly labelService = inject(LabelService);
-  private readonly statusService = inject(StatusService);
+  private readonly movementNotice = inject(TaskMovementNoticeService);
   private readonly preferences = inject(PreferencesStore);
 
   protected readonly completeConfirmOpen = signal(false);
@@ -784,6 +783,8 @@ export class PersonalTaskCardComponent {
   @Input() showCompletionState = false;
   @Input() showArchiveActions = false;
   @Input() interactive = false;
+  /** The card is rendered inside the visible Inbox view. */
+  @Input() fromInbox = false;
   /**
    * Hides ambient task metadata (status / simple-mode pills). The Labels page
    * sets false so the chips tell the label story uncluttered.
@@ -959,7 +960,7 @@ export class PersonalTaskCardComponent {
       this.completeConfirmOpen.set(false);
 
       if (!wasCompleted) {
-        notifyTaskCompleted(this.statusService, this.preferences);
+        this.movementNotice.notifyCompleted(this.task(), this.fromInbox);
       }
 
       if (this.dontShowAgain) {

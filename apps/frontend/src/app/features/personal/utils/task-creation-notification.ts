@@ -4,7 +4,7 @@ import { formatTimeLabel, parseCalendarDate, startOfToday } from '../../../share
 
 export type TaskViewDestination = 'inbox' | 'today' | 'upcoming' | 'overdue';
 
-const DESTINATION_LABELS: Record<TaskViewDestination, string> = {
+export const TASK_VIEW_LABELS: Record<TaskViewDestination, string> = {
   inbox: 'Inbox',
   today: 'Today',
   upcoming: 'Upcoming',
@@ -68,7 +68,7 @@ export function taskCreationNotification(notice: TaskCreationNotice): string {
   const { title, dueDate, dueTime, status = 'inbox', projects = [], projectId, reference } = notice;
 
   const destination = getTaskViewDestination(dueDate, status, reference);
-  const label = DESTINATION_LABELS[destination];
+  const label = TASK_VIEW_LABELS[destination];
   const projectName = resolveProjectName(projects, projectId);
   const formattedDueDate = parseCalendarDate(dueDate)?.toFormat('EEE, LLL d, yyyy');
   const formattedDueTime = formatTimeLabel(dueTime);
@@ -77,14 +77,14 @@ export function taskCreationNotification(notice: TaskCreationNotice): string {
   // Inbox. Naming the project as the destination avoids the misleading
   // "added to Inbox (Project)" phrasing.
   if (projectName && !formattedDueDate) {
-    return `"${truncateTitle(title)}" added to ${projectName}`;
+    return `"${truncateTaskTitle(title)}" added to ${projectName}`;
   }
 
   // Dated tasks are announced by the view their date puts them in. Name the
   // project only when it adds information and does not repeat that view name.
   const showProject = !!projectName && projectName !== label;
   const projectSuffix = showProject ? ` (${projectName})` : '';
-  const head = `"${truncateTitle(title)}" added to ${label}${projectSuffix}`;
+  const head = `"${truncateTaskTitle(title)}" added to ${label}${projectSuffix}`;
 
   // The time is only ever shown when one was set; a date-only task stays
   // date-only in the confirmation.
@@ -95,7 +95,7 @@ export function taskCreationNotification(notice: TaskCreationNotice): string {
   return due ? `${head} · due ${due}` : head;
 }
 
-function truncateTitle(title: string): string {
+export function truncateTaskTitle(title: string): string {
   const trimmed = title.trim();
   if (trimmed.length <= MAX_TITLE_LENGTH) return trimmed;
 
