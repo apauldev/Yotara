@@ -41,12 +41,13 @@ test('Project Service', async (t) => {
     });
 
     await t.test('lists projects for owner (includes defaults)', async () => {
+      ctx.projectService.seedDefaultProjectsForOwner(ownerId);
       const projects = await ctx.projectService.listProjectsForOwner(ownerId);
 
-      // Should include the 8 default projects
-      assert.ok(projects.length >= 8);
+      // Should include the 7 non-Inbox default projects.
+      assert.equal(projects.length, 7);
       const names = projects.map((p) => p.name);
-      assert.ok(names.includes('Inbox'));
+      assert.ok(!names.includes('Inbox'));
       assert.ok(names.includes('Work'));
       assert.ok(names.includes('Personal'));
       assert.ok(names.includes('Home'));
@@ -57,14 +58,15 @@ test('Project Service', async (t) => {
       assert.ok(!names.includes('Focus'));
     });
 
-    await t.test('seeds default projects only once', async () => {
-      // Second call should not duplicate
+    await t.test('does not seed again on read', async () => {
+      // A read must not create or backfill defaults; only the explicit seeder does.
       const projects = await ctx.projectService.listProjectsForOwner(ownerId);
-      const inboxCount = projects.filter((p) => p.name === 'Inbox').length;
-      assert.equal(inboxCount, 1, 'Inbox should only exist once');
+      const workCount = projects.filter((p) => p.name === 'Work').length;
+      assert.equal(workCount, 1, 'Work should only exist once');
+      assert.equal(projects.length, 7);
     });
 
-    await t.test('does not add the new starters to an existing account', async () => {
+    await t.test('does not add starters to an existing account on read', async () => {
       const existingOwnerId = randomUUID();
       await ctx.db.insert(users).values({
         id: existingOwnerId,
@@ -80,7 +82,7 @@ test('Project Service', async (t) => {
 
       const projects = await ctx.projectService.listProjectsForOwner(existingOwnerId);
       const names = projects.map((project) => project.name).sort();
-      assert.deepEqual(names, ['Inbox', 'Only Project']);
+      assert.deepEqual(names, ['Only Project']);
     });
 
     await t.test('creates a project with default fields', async () => {
@@ -152,12 +154,6 @@ test('Project Service', async (t) => {
         name: 'Noop',
       });
       assert.equal(updated, null);
-    });
-
-    await t.test('gets default project (Inbox)', async () => {
-      const defaultProject = await ctx.projectService.getDefaultProjectForOwner(ownerId);
-      assert.ok(defaultProject);
-      assert.equal(defaultProject.name, 'Inbox');
     });
 
     await t.test('lists tasks for a project', async () => {

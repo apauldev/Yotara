@@ -304,7 +304,7 @@ export default async function searchRoutes(fastify: FastifyInstance) {
               + CASE WHEN LOWER(t.status) LIKE ${likeQuery} ESCAPE '\\' THEN 40 ELSE 0 END
             ) AS score
           FROM tasks t
-          LEFT JOIN projects p ON t.project_id = p.id
+          LEFT JOIN projects p ON t.project_id = p.id AND p.retired_at IS NULL
           LEFT JOIN task_labels tl ON t.id = tl.task_id
           LEFT JOIN labels l ON tl.label_id = l.id
           WHERE t.user_id = ${request.userId} AND ${taskWhereCompleted}
@@ -343,6 +343,7 @@ export default async function searchRoutes(fastify: FastifyInstance) {
             GROUP BY project_id
           ) tc ON p.id = tc.project_id
           WHERE p.owner_id = ${request.userId}
+            AND p.retired_at IS NULL
             AND (
               LOWER(p.name) LIKE ${likeQuery} ESCAPE '\\'
               OR LOWER(p.description) LIKE ${likeQuery} ESCAPE '\\'

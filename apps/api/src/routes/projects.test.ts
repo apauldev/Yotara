@@ -105,9 +105,8 @@ test('projects routes require auth and scope project data to the current user', 
       headers: { cookie: firstUserCookie },
     });
     assert.equal(ownerList.statusCode, 200);
-    // The custom project plus the Inbox fallback; existing accounts do not get
-    // the new starter projects backfilled.
-    assert.equal(ownerList.json().length, 2);
+    // Reads no longer seed a fallback project: only the custom project exists.
+    assert.equal(ownerList.json().length, 1);
 
     const otherUserList = await ctx.app.inject({
       method: 'GET',
@@ -115,7 +114,7 @@ test('projects routes require auth and scope project data to the current user', 
       headers: { cookie: secondUserCookie },
     });
     assert.equal(otherUserList.statusCode, 200);
-    assert.equal(otherUserList.json().length, 8);
+    assert.equal(otherUserList.json().length, 0);
 
     const otherUserFetch = await ctx.app.inject({
       method: 'GET',

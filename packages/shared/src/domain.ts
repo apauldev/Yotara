@@ -123,7 +123,7 @@ export interface CreateTaskDto {
   dueDate?: string;
   dueTime?: string; // 'HH:mm'; requires a dueDate
   simpleMode?: boolean;
-  projectId?: string;
+  projectId?: string | null;
   parentId?: string;
   recurrenceRule?: RecurrenceRule;
   baseTaskId?: string;

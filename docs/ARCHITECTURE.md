@@ -80,6 +80,9 @@ keeps them distinct:
   and a healthy system keeps the set small and meaningful (roughly 3–8 per
   user) instead of a sprawl of near-duplicates. Labels describe how the work
   feels or what it requires; they are never "where the task lives".
+- **Inbox** — a view of unfiled work, not a project row: incomplete, undated
+  tasks with `project_id IS NULL`. Filing, scheduling, or completing a task
+  takes it out of Inbox; clearing the project on an undated task brings it back.
 
 ### API
 
@@ -130,6 +133,23 @@ SQLite is the default because Yotara targets a self-hosted personal workload:
 one portable database, low operational overhead, simple backup, and no
 required database service. Any future team-mode storage change must be driven
 by measured requirements rather than premature abstraction.
+
+#### Schema upgrades and the retired Inbox project
+
+`ensureSqliteSchema` (`apps/api/src/db/client.ts`) is the only startup migration
+mechanism; the Drizzle snapshot chain is not applied at boot. It runs inside an
+immediate transaction, so a failed migration rolls back its DDL and data writes
+together.
+
+The Inbox refactor retires the legacy seeded `Inbox` project instead of deleting
+it: `projects.retired_at` is set and its tasks are detached (`project_id = NULL`)
+in the same transaction. Retired rows stay addressable for stale clients (task
+writes resolve them to `null`) but are hidden from listings and detail routes.
+Migration matches the exact original seed signature (`name = 'Inbox'` and
+`description = 'Default capture space for incoming tasks.'`). Legacy rows carry
+no seed-ownership marker, so an account-created project with that exact pair is
+indistinguishable and is retired too — an accepted one-time limitation. The
+match is intentionally not broadened to name alone.
 
 #### Concurrency model
 

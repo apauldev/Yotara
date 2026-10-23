@@ -129,6 +129,11 @@ export default async function meRoutes(fastify: FastifyInstance) {
         return sendUnauthorized(reply);
       }
 
+      const [currentUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!currentUser) {
+        return sendUnauthorized(reply);
+      }
+
       const profilePatch = {
         ...(request.body.workspaceMode !== undefined
           ? { workspaceMode: request.body.workspaceMode }
@@ -147,7 +152,13 @@ export default async function meRoutes(fastify: FastifyInstance) {
 
       await db.update(users).set(profilePatch).where(eq(users.id, userId));
 
-      if (request.body.workspaceMode === 'personal' && request.body.onboardingCompleted) {
+      // Seed starters only on the onboarding-incomplete → complete transition
+      // for a personal workspace. Repeated profile saves must not recreate
+      // projects or labels the user renamed or removed.
+      const nextWorkspaceMode = request.body.workspaceMode ?? currentUser.workspaceMode;
+      const onboardingJustCompleted =
+        request.body.onboardingCompleted === true && !currentUser.onboardingCompleted;
+      if (onboardingJustCompleted && nextWorkspaceMode === 'personal') {
         await seedDefaultProjectsForOwner(userId);
         await seedDefaultLabelsForOwner(userId);
       }

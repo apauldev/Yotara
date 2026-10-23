@@ -10,7 +10,6 @@ import {
 } from '../routes/project-utils.js';
 
 const DEFAULT_PROJECTS = [
-  { name: 'Inbox', description: 'Default capture space for incoming tasks.', color: 'sage' },
   {
     name: 'Work',
     description: 'Job, clients, and professional commitments.',
@@ -54,7 +53,9 @@ async function loadProjectById(projectId: string, ownerId: string) {
     })
     .from(projects)
     .leftJoin(tasks, and(eq(tasks.projectId, projects.id), isNull(tasks.deletedAt)))
-    .where(and(eq(projects.id, projectId), eq(projects.ownerId, ownerId)))
+    .where(
+      and(eq(projects.id, projectId), eq(projects.ownerId, ownerId), isNull(projects.retiredAt)),
+    )
     .groupBy(projects.id)
     .limit(1);
 
@@ -62,10 +63,9 @@ async function loadProjectById(projectId: string, ownerId: string) {
 }
 
 /**
- * Seeds the full starter set for accounts with no projects. Existing accounts
- * keep their projects, so changing the starter names cannot backfill them.
- * The one exception is Inbox: it stays the default-project fallback until the
- * Inbox work removes that concept.
+ * Seeds the starter set for accounts that have no projects. Callers must gate
+ * this on the onboarding-incomplete → complete transition; it is not a read-path
+ * fallback, so renamed or removed starter projects are never recreated.
  */
 export function seedDefaultProjectsForOwner(ownerId: string, tx?: Database) {
   const client = tx ?? db;
@@ -74,52 +74,29 @@ export function seedDefaultProjectsForOwner(ownerId: string, tx?: Database) {
     .from(projects)
     .where(eq(projects.ownerId, ownerId))
     .all();
+
+  if (existing.length > 0) {
+    return;
+  }
+
   const now = nowIsoTimestamp();
-
-  if (existing.length === 0) {
-    client
-      .insert(projects)
-      .values(
-        DEFAULT_PROJECTS.map((project) => ({
-          id: randomUUID(),
-          ownerId,
-          name: project.name,
-          description: project.description,
-          color: project.color,
-          createdAt: now,
-          updatedAt: now,
-        })),
-      )
-      .run();
-    return;
-  }
-
-  const hasInbox = existing.some((project) => project.name.toLowerCase() === 'inbox');
-  if (hasInbox) {
-    return;
-  }
-
-  const inbox = DEFAULT_PROJECTS.find((project) => project.name === 'Inbox');
-  if (!inbox) {
-    return;
-  }
-
   client
     .insert(projects)
-    .values({
-      id: randomUUID(),
-      ownerId,
-      name: inbox.name,
-      description: inbox.description,
-      color: inbox.color,
-      createdAt: now,
-      updatedAt: now,
-    })
+    .values(
+      DEFAULT_PROJECTS.map((project) => ({
+        id: randomUUID(),
+        ownerId,
+        name: project.name,
+        description: project.description,
+        color: project.color,
+        createdAt: now,
+        updatedAt: now,
+      })),
+    )
     .run();
 }
 
 export async function listProjectsForOwner(ownerId: string) {
-  await seedDefaultProjectsForOwner(ownerId);
   const rows = await db
     .select({
       id: projects.id,
@@ -135,7 +112,7 @@ export async function listProjectsForOwner(ownerId: string) {
     })
     .from(projects)
     .leftJoin(tasks, and(eq(tasks.projectId, projects.id), isNull(tasks.deletedAt)))
-    .where(eq(projects.ownerId, ownerId))
+    .where(and(eq(projects.ownerId, ownerId), isNull(projects.retiredAt)))
     .groupBy(projects.id)
     .orderBy(sql`${projects.updatedAt} desc`);
 
@@ -219,20 +196,30 @@ export async function listTasksForProject(projectId: string, ownerId: string) {
   return rows;
 }
 
-export function getDefaultProjectForOwner(ownerId: string, tx?: Database) {
-  seedDefaultProjectsForOwner(ownerId, tx);
+export type WritableProjectResolution = { ok: true; projectId: string | null } | { ok: false };
 
-  const client = tx ?? db;
-  const [project] = client
-    .select()
+/**
+ * Resolve a client-supplied project id for a task write. An owned project that
+ * has been retired resolves to `null` (unfiled) so stale clients keep working;
+ * a missing or unowned id stays a 404 at the route boundary.
+ */
+export async function resolveProjectIdForTaskWrite(
+  ownerId: string,
+  projectId: string | null | undefined,
+): Promise<WritableProjectResolution> {
+  if (projectId == null) {
+    return { ok: true, projectId: null };
+  }
+
+  const [row] = await db
+    .select({ id: projects.id, retiredAt: projects.retiredAt })
     .from(projects)
-    .where(eq(projects.ownerId, ownerId))
-    .orderBy(
-      sql`case when lower(${projects.name}) = 'inbox' then 0 else 1 end`,
-      sql`${projects.createdAt} asc`,
-    )
-    .limit(1)
-    .all();
+    .where(and(eq(projects.id, projectId), eq(projects.ownerId, ownerId)))
+    .limit(1);
 
-  return project ?? null;
+  if (!row) {
+    return { ok: false };
+  }
+
+  return { ok: true, projectId: row.retiredAt ? null : row.id };
 }

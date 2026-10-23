@@ -73,6 +73,7 @@ const SQLITE_BOOTSTRAP_SQL = `
     name TEXT NOT NULL,
     description TEXT,
     color TEXT,
+    retired_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY (owner_id) REFERENCES user(id) ON DELETE NO ACTION
@@ -381,6 +382,42 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
 
     sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_parent_id ON tasks(parent_id)`);
     sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_base_task_id ON tasks(base_task_id)`);
+
+    const projectColumns = sqlite.prepare(`PRAGMA table_info('projects')`).all() as Array<{
+      name: string;
+    }>;
+    const projectColumnNames = new Set(projectColumns.map((column) => column.name));
+    if (!projectColumnNames.has('description')) {
+      sqlite.exec(`ALTER TABLE projects ADD COLUMN description TEXT`);
+    }
+    if (!projectColumnNames.has('color')) {
+      sqlite.exec(`ALTER TABLE projects ADD COLUMN color TEXT`);
+    }
+    if (!projectColumnNames.has('retired_at')) {
+      sqlite.exec(`ALTER TABLE projects ADD COLUMN retired_at TEXT`);
+    }
+
+    // Retire the legacy seeded Inbox project rather than deleting it, so its
+    // id remains a stable (but hidden) tombstone for stale clients. The seed
+    // identity is the exact original name/description pair: legacy rows carry
+    // no seed-ownership marker, so an account-created project with that exact
+    // pair is indistinguishable and is retired too (accepted limitation).
+    // Detaching tasks and marking the project retired run in this schema
+    // transaction, so an interruption cannot leave only one half applied.
+    sqlite.exec(`
+      UPDATE tasks SET project_id = NULL
+      WHERE project_id IN (
+        SELECT id FROM projects
+        WHERE name = 'Inbox'
+          AND description = 'Default capture space for incoming tasks.'
+          AND retired_at IS NULL
+      );
+      UPDATE projects
+      SET retired_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+      WHERE name = 'Inbox'
+        AND description = 'Default capture space for incoming tasks.'
+        AND retired_at IS NULL;
+    `);
 
     const labelColumns = sqlite.prepare(`PRAGMA table_info('labels')`).all() as Array<{
       name: string;
