@@ -102,6 +102,10 @@ export class ProjectsPageComponent {
     return projectProgressPercent(project.openTaskCount, project.completedTaskCount);
   }
 
+  protected openTaskLabel(project: Project) {
+    return project.openTaskCount === 1 ? '1 open task' : `${project.openTaskCount} open tasks`;
+  }
+
   protected getProjectStatus(project: Project): string {
     if (project.openTaskCount === 0) {
       return 'inactive';

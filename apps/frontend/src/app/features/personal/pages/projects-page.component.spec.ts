@@ -1,12 +1,15 @@
-import { signal } from '@angular/core';
+import { signal, WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import type { Project } from '@yotara/shared';
 import { ProjectsPageComponent } from './projects-page.component';
 import { ProjectService } from '../../../core/services/project.service';
 
 describe('ProjectsPageComponent', () => {
+  let projects: WritableSignal<Project[]>;
+
   beforeEach(async () => {
-    const projects = signal([
+    projects = signal<Project[]>([
       {
         id: 'project-1',
         name: 'Launch Yotara MVP',
@@ -53,5 +56,27 @@ describe('ProjectsPageComponent', () => {
     // Check for edit button by aria-label since text 'Edit' is gone
     const editBtn = fixture.nativeElement.querySelector('[aria-label*="Edit project"]');
     expect(editBtn).toBeTruthy();
+  });
+
+  it('shows open task counts in the always-visible project cell', () => {
+    const fixture = TestBed.createComponent(ProjectsPageComponent);
+    fixture.detectChanges();
+
+    const badge = fixture.nativeElement.querySelector('.open-task-badge');
+    expect(badge).toBeTruthy();
+    expect(badge.textContent.trim()).toBe('7 open tasks');
+    expect(badge.closest('.col-identification')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('61%');
+  });
+
+  it('uses singular copy when one task is open', () => {
+    const [project] = projects();
+    projects.set([{ ...project, openTaskCount: 1 }]);
+
+    const fixture = TestBed.createComponent(ProjectsPageComponent);
+    fixture.detectChanges();
+
+    const badge = fixture.nativeElement.querySelector('.open-task-badge');
+    expect(badge.textContent.trim()).toBe('1 open task');
   });
 });
