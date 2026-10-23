@@ -77,7 +77,7 @@ openssl rand -base64 32  # canonical Base64
 
 | Variable | Default | Purpose |
 |:---|:---|:---|
-| `RATE_LIMIT_MAX` | `200` | Global requests allowed per IP per window. |
+| `RATE_LIMIT_MAX` | `200` | Global requests allowed per IP per window. Bypassed when dev mode is on (`DEV_MODE=true`). |
 | `RATE_LIMIT_WINDOW_MINUTES` | `1` | Length of the global rate-limit window, in minutes. |
 | `PASSWORD_LOCKOUT_ATTEMPTS` | `3` | Failed password attempts before lockout. Lockout is keyed by (IP, email). |
 | `PASSWORD_LOCKOUT_MINUTES` | `5` | Lockout duration, in minutes. |
@@ -97,7 +97,7 @@ openssl rand -base64 32  # canonical Base64
 
 | Variable | Default | Purpose |
 |:---|:---|:---|
-| `DEV_MODE` | `true` when started via `pnpm dev`, otherwise unset | The single switch for frictionless local work. Forces email verification off, logs emails to the console even when `RESEND_API_KEY` is set, and bypasses email rate limits, login lockout, and honeypot IP bans. |
+| `DEV_MODE` | `true` when started via `pnpm dev`, otherwise unset | The single switch for frictionless local work. Forces email verification off, logs emails to the console even when `RESEND_API_KEY` is set, and bypasses email rate limits, the global API rate limit, login lockout, and honeypot IP bans. |
 | `ALLOW_DEV_MODE_IN_PRODUCTION` | unset | Required double opt-in before `DEV_MODE` is honoured when `NODE_ENV=production`. Never enable either on a public instance. |
 
 `pnpm dev:email` runs the full email-first flow with real Resend delivery and
