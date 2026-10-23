@@ -97,6 +97,8 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       completedSince?: string;
       labelIds?: string;
       labelMode?: 'any' | 'all';
+      projectId?: string;
+      priority?: 'low' | 'medium' | 'high';
     };
     Reply: PaginatedResponse<Task[]> | { message: string };
   }>(
@@ -133,6 +135,15 @@ export default async function taskRoutes(fastify: FastifyInstance) {
               enum: ['any', 'all'],
               default: 'any',
               description: 'With multiple labelIds: any (OR) or all (AND) must match',
+            },
+            projectId: {
+              type: 'string',
+              description: 'Only tasks filed under this project',
+            },
+            priority: {
+              type: 'string',
+              enum: ['low', 'medium', 'high'],
+              description: 'Only tasks with this priority',
             },
           },
         },
@@ -175,6 +186,11 @@ export default async function taskRoutes(fastify: FastifyInstance) {
 
       const labelMode: 'any' | 'all' = request.query.labelMode === 'all' ? 'all' : 'any';
 
+      const projectId = request.query.projectId;
+      if (projectId !== undefined && !UUID_PATTERN.test(projectId)) {
+        return sendBadRequest(reply, 'projectId must be a project id');
+      }
+
       const filters = {
         status: request.query.status,
         completed:
@@ -197,6 +213,8 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         completedSince: request.query.completedSince,
         labelIds,
         labelMode,
+        projectId,
+        priority: request.query.priority,
       };
 
       return listTasksForOwner(userId, page, pageSize, includeSubtasks, parentId, filters);

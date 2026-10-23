@@ -6,7 +6,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 1rem;
+  row-gap: 0.65rem;
   margin-bottom: 1rem;
 }
 
@@ -50,6 +52,8 @@
   justify-content: flex-end;
   gap: 0.6rem;
   flex-wrap: wrap;
+  margin-left: auto;
+  max-width: 100%;
 }
 
 .section-header-count {
@@ -70,5 +74,8 @@
 .section-header-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 0.55rem;
+  max-width: 100%;
 }

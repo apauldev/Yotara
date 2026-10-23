@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { CreateTaskDto, PaginatedResponse, Task, UpdateTaskDto } from '@yotara/shared';
+import { CreateTaskDto, PaginatedResponse, Priority, Task, UpdateTaskDto } from '@yotara/shared';
 import { LogService } from './log.service';
 import {
   catchError,
@@ -42,14 +42,25 @@ export interface CalendarRangeRequest {
   focus: { from: string; to: string };
 }
 
-interface LabelFilterState {
-  ids: string[];
-  mode: 'any' | 'all';
+export interface TaskFilterState {
+  labelIds: string[];
+  labelMode: 'any' | 'all';
+  projectId: string | null;
+  priority: Priority | null;
 }
 
-/** Stable identity for a label filter, independent of selection order. */
-function labelFilterKey(filter: LabelFilterState): string {
-  return `${[...filter.ids].sort().join(',')}:${filter.mode}`;
+/** Stable identity for a filter combination, independent of label order. */
+function taskFilterKey(filter: TaskFilterState): string {
+  return [
+    [...filter.labelIds].sort().join(','),
+    filter.labelMode,
+    filter.projectId ?? '',
+    filter.priority ?? '',
+  ].join(':');
+}
+
+function hasActiveTaskFilters(filter: TaskFilterState): boolean {
+  return filter.labelIds.length > 0 || filter.projectId !== null || filter.priority !== null;
 }
 
 /** Normalized fetch state: focus windows the grid covers collapse to `null`. */
@@ -93,10 +104,15 @@ export class TaskService {
   private creatingState = signal(false);
   private errorState = signal<string | null>(null);
   private calendarRangeState = signal<CalendarRangeState | null>(null);
-  private labelFilterState = signal<LabelFilterState>({ ids: [], mode: 'any' });
-  private labelFilterLoadingState = signal(false);
-  private labelFilterResolvedKeyState = signal('');
-  private labelFilterTruncatedState = signal(false);
+  private filterState = signal<TaskFilterState>({
+    labelIds: [],
+    labelMode: 'any',
+    projectId: null,
+    priority: null,
+  });
+  private filterLoadingState = signal(false);
+  private filterResolvedKeyState = signal('');
+  private filterTruncatedState = signal(false);
   private labelPaneTruncatedState = signal(false);
   private calendarRangeLoadingState = signal(false);
   private calendarRangeLoadedState = signal(false);
@@ -237,72 +253,84 @@ export class TaskService {
   }
 
   /**
-   * Set the task-list label filter. `any` matches tasks carrying at least one
-   * selected label, `all` requires every selected label. Empty ids clear it.
+   * Set the task-list filter. Labels compose with project and priority; empty
+   * values clear their part of the filter.
    */
-  setLabelFilter(ids: string[], mode: 'any' | 'all' = 'any') {
-    const unique = [...new Set(ids.filter(Boolean))];
-    const current = this.labelFilterState();
-    if (current.mode === mode && current.ids.join(',') === unique.join(',')) {
+  setFilters(next: TaskFilterState) {
+    const normalized: TaskFilterState = {
+      labelIds: [...new Set(next.labelIds.filter(Boolean))],
+      labelMode: next.labelMode,
+      projectId: next.projectId || null,
+      priority: next.priority || null,
+    };
+    if (taskFilterKey(this.filterState()) === taskFilterKey(normalized)) {
       return;
     }
-    this.labelFilterState.set({ ids: unique, mode });
+    this.filterState.set(normalized);
   }
 
   /**
-   * Flat result set for the task-list label filter. It deliberately includes
+   * Flat result set for the task-list filters. It deliberately includes
    * subtasks and excludes completed tasks so the visible list matches the
-   * open label counts; the labels page pane uses its own completed tabs.
+   * open counts; the labels page pane uses its own completed tabs.
    */
-  readonly labelFilteredTasks = toSignal(
+  readonly filteredTasks = toSignal(
     combineLatest([
       toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
       toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
       toObservable(this.refreshState),
-      toObservable(this.labelFilterState),
+      toObservable(this.filterState),
     ]).pipe(
       switchMap(([initialized, currentUserId, , filter]) => {
-        const key = labelFilterKey(filter);
-        if (!initialized || !currentUserId || filter.ids.length === 0) {
-          this.labelFilterLoadingState.set(false);
-          this.labelFilterTruncatedState.set(false);
-          if (filter.ids.length === 0) {
-            this.labelFilterResolvedKeyState.set(key);
+        const key = taskFilterKey(filter);
+        if (!initialized || !currentUserId || !hasActiveTaskFilters(filter)) {
+          this.filterLoadingState.set(false);
+          this.filterTruncatedState.set(false);
+          if (!hasActiveTaskFilters(filter)) {
+            this.filterResolvedKeyState.set(key);
           }
           return of([] as Task[]);
         }
-        this.labelFilterLoadingState.set(true);
-        return this.fetchTasksByLabels$(filter.ids, filter.mode).pipe(
+        this.filterLoadingState.set(true);
+        return this.fetchTasksByFilters$(filter).pipe(
           tap({
-            next: () => this.labelFilterResolvedKeyState.set(key),
-            error: () => this.labelFilterResolvedKeyState.set(key),
+            next: () => this.filterResolvedKeyState.set(key),
+            error: () => this.filterResolvedKeyState.set(key),
           }),
-          finalize(() => this.labelFilterLoadingState.set(false)),
-          catchError(this.handleLoadError('labeled tasks')),
+          finalize(() => this.filterLoadingState.set(false)),
+          catchError(this.handleLoadError('filtered tasks')),
         );
       }),
     ),
     { initialValue: [] as Task[] },
   );
 
-  readonly labelFilterLoading = this.labelFilterLoadingState.asReadonly();
-  /** True while a newly selected label filter has no result set yet. */
-  readonly labelFilterPending = computed(() => {
-    const filter = this.labelFilterState();
-    return filter.ids.length > 0 && this.labelFilterResolvedKeyState() !== labelFilterKey(filter);
+  readonly filterLoading = this.filterLoadingState.asReadonly();
+  /** True while a newly selected filter has no result set yet. */
+  readonly filterPending = computed(() => {
+    const filter = this.filterState();
+    return hasActiveTaskFilters(filter) && this.filterResolvedKeyState() !== taskFilterKey(filter);
   });
-  readonly labelFilterTruncated = this.labelFilterTruncatedState.asReadonly();
+  readonly filterTruncated = this.filterTruncatedState.asReadonly();
   readonly labelPaneTruncated = this.labelPaneTruncatedState.asReadonly();
 
-  private fetchTasksByLabels$(ids: string[], mode: 'any' | 'all') {
+  private fetchTasksByFilters$(filter: TaskFilterState) {
     const params = new URLSearchParams({
-      labelIds: ids.join(','),
-      labelMode: mode,
       includeSubtasks: 'true',
       completed: 'false',
       page: '1',
       pageSize: String(TASKS_PAGE_SIZE),
     });
+    if (filter.labelIds.length > 0) {
+      params.set('labelIds', filter.labelIds.join(','));
+      params.set('labelMode', filter.labelMode);
+    }
+    if (filter.projectId) {
+      params.set('projectId', filter.projectId);
+    }
+    if (filter.priority) {
+      params.set('priority', filter.priority);
+    }
     return this.http
       .get<PaginatedResponse<Task[]>>(`${this.baseUrl}/tasks?${params.toString()}`, {
         withCredentials: true,
@@ -310,8 +338,8 @@ export class TaskService {
       .pipe(
         tap({
           next: (response) =>
-            this.labelFilterTruncatedState.set(response.meta.total > response.data.length),
-          error: () => this.labelFilterTruncatedState.set(false),
+            this.filterTruncatedState.set(response.meta.total > response.data.length),
+          error: () => this.filterTruncatedState.set(false),
         }),
         map((response) => response.data),
       );

@@ -45,11 +45,11 @@ describe('TaskListPageComponent', () => {
       upcomingTaskGroups: signal([]),
       upcomingBucketForTask: jasmine.createSpy().and.returnValue('Later'),
       createTask: jasmine.createSpy().and.returnValue(Promise.resolve({})),
-      labelFilteredTasks: signal([]),
-      labelFilterLoading: signal(false),
-      labelFilterPending: signal(false),
-      labelFilterTruncated: signal(false),
-      setLabelFilter: jasmine.createSpy('setLabelFilter'),
+      filteredTasks: signal([]),
+      filterLoading: signal(false),
+      filterPending: signal(false),
+      filterTruncated: signal(false),
+      setFilters: jasmine.createSpy('setFilters'),
     };
 
     mockProjectService = {
@@ -215,7 +215,7 @@ describe('TaskListPageComponent', () => {
     });
   });
 
-  describe('Label filter', () => {
+  describe('Task filters', () => {
     const writingLabel = {
       id: 'label-writing',
       name: 'Writing',
@@ -243,7 +243,7 @@ describe('TaskListPageComponent', () => {
     it('renders the server-filtered result set and syncs the service query', () => {
       mockLabelService.labels.set([writingLabel]);
       mockLabelService.labelById = () => new Map([[writingLabel.id, writingLabel]]);
-      mockTaskService.labelFilteredTasks.set([filteredTask]);
+      mockTaskService.filteredTasks.set([filteredTask]);
       mockActivatedRoute.queryParamMap = of(
         new Map([
           ['view', 'inbox'],
@@ -254,18 +254,23 @@ describe('TaskListPageComponent', () => {
       const fixture = TestBed.createComponent(TaskListPageComponent);
       fixture.detectChanges();
 
-      expect(mockTaskService.setLabelFilter).toHaveBeenCalledWith([writingLabel.id], 'any');
+      expect(mockTaskService.setFilters).toHaveBeenCalledWith({
+        labelIds: [writingLabel.id],
+        labelMode: 'any',
+        projectId: null,
+        priority: null,
+      });
       expect(fixture.nativeElement.textContent).toContain('Labeled: Writing');
       expect(fixture.nativeElement.textContent).toContain('Draft essay');
       // The normal inbox stack and capture bar do not double-render.
       expect(fixture.debugElement.query(By.css('app-capture-bar'))).toBeTruthy();
     });
 
-    it('hides the previous result set while a new label filter is pending', () => {
+    it('hides the previous result set while a new filter is pending', () => {
       mockLabelService.labels.set([writingLabel]);
       mockLabelService.labelById = () => new Map([[writingLabel.id, writingLabel]]);
-      mockTaskService.labelFilteredTasks.set([filteredTask]);
-      mockTaskService.labelFilterPending.set(true);
+      mockTaskService.filteredTasks.set([filteredTask]);
+      mockTaskService.filterPending.set(true);
       mockActivatedRoute.queryParamMap = of(
         new Map([
           ['view', 'inbox'],
@@ -276,13 +281,13 @@ describe('TaskListPageComponent', () => {
       const fixture = TestBed.createComponent(TaskListPageComponent);
       fixture.detectChanges();
 
-      expect(fixture.nativeElement.textContent).toContain('Loading labeled tasks...');
+      expect(fixture.nativeElement.textContent).toContain('Loading filtered tasks...');
       expect(fixture.nativeElement.textContent).not.toContain('Draft essay');
     });
 
-    it('surfaces the label result cap instead of truncating silently', () => {
+    it('surfaces the filter result cap instead of truncating silently', () => {
       mockLabelService.labels.set([writingLabel]);
-      mockTaskService.labelFilterTruncated.set(true);
+      mockTaskService.filterTruncated.set(true);
       mockActivatedRoute.queryParamMap = of(
         new Map([
           ['view', 'inbox'],
@@ -298,37 +303,72 @@ describe('TaskListPageComponent', () => {
       );
     });
 
-    it('persists the selected ids and AND mode in the URL', () => {
+    it('combines labels, project, and priority in the URL and filter summary', () => {
       mockLabelService.labels.set([writingLabel]);
+      mockLabelService.labelById = () => new Map([[writingLabel.id, writingLabel]]);
+      mockTaskService.filteredTasks.set([filteredTask]);
       mockActivatedRoute.queryParamMap = of(
         new Map([
           ['view', 'upcoming'],
           ['labels', `${writingLabel.id},label-second`],
           ['labelMode', 'all'],
+          ['projectId', '2'],
+          ['priority', 'high'],
         ]),
       );
 
       const fixture = TestBed.createComponent(TaskListPageComponent);
       fixture.detectChanges();
 
-      expect(mockTaskService.setLabelFilter).toHaveBeenCalledWith(
-        [writingLabel.id, 'label-second'],
-        'all',
+      expect(mockTaskService.setFilters).toHaveBeenCalledWith({
+        labelIds: [writingLabel.id, 'label-second'],
+        labelMode: 'all',
+        projectId: '2',
+        priority: 'high',
+      });
+      expect(fixture.nativeElement.textContent).toContain(
+        'Labeled: Writing · Project: Work · High priority',
+      );
+      expect(
+        fixture.debugElement.query(By.css('.filter-badge')).nativeElement.textContent,
+      ).toContain('4');
+
+      (fixture.componentInstance as any).onFiltersChange({
+        labelIds: ['label-third'],
+        labelMode: 'any',
+        projectId: '2',
+        priority: 'high',
+      });
+      expect(mockRouter.navigate).toHaveBeenCalledWith([], {
+        relativeTo: mockActivatedRoute,
+        queryParams: {
+          labels: 'label-third',
+          labelMode: null,
+          projectId: '2',
+          priority: 'high',
+        },
+        queryParamsHandling: 'merge',
+      });
+    });
+
+    it('filters by project and priority without any labels', () => {
+      mockTaskService.filteredTasks.set([filteredTask]);
+      mockActivatedRoute.queryParamMap = of(
+        new Map([
+          ['view', 'inbox'],
+          ['projectId', '2'],
+          ['priority', 'high'],
+        ]),
       );
 
-      (fixture.componentInstance as any).onLabelFilterChange(['label-third']);
-      expect(mockRouter.navigate).toHaveBeenCalledWith([], {
-        relativeTo: mockActivatedRoute,
-        queryParams: { labels: 'label-third', labelMode: null },
-        queryParamsHandling: 'merge',
-      });
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
 
-      (fixture.componentInstance as any).onLabelFilterModeChange('all');
-      expect(mockRouter.navigate).toHaveBeenCalledWith([], {
-        relativeTo: mockActivatedRoute,
-        queryParams: { labelMode: 'all' },
-        queryParamsHandling: 'merge',
-      });
+      expect(fixture.nativeElement.textContent).toContain('Project: Work · High priority');
+      expect(fixture.nativeElement.textContent).toContain('Draft essay');
+      expect(
+        fixture.debugElement.query(By.css('.filter-badge')).nativeElement.textContent,
+      ).toContain('2');
     });
 
     it('toggles a chip label filter on and off', () => {
@@ -341,7 +381,12 @@ describe('TaskListPageComponent', () => {
       page.filterByLabel(writingLabel);
       expect(mockRouter.navigate).toHaveBeenCalledWith([], {
         relativeTo: mockActivatedRoute,
-        queryParams: { labels: writingLabel.id, labelMode: null },
+        queryParams: {
+          labels: writingLabel.id,
+          labelMode: null,
+          projectId: null,
+          priority: null,
+        },
         queryParamsHandling: 'merge',
       });
 
@@ -357,7 +402,12 @@ describe('TaskListPageComponent', () => {
       (filteredFixture.componentInstance as any).filterByLabel(writingLabel);
       expect(mockRouter.navigate).toHaveBeenCalledWith([], {
         relativeTo: mockActivatedRoute,
-        queryParams: { labels: null, labelMode: null },
+        queryParams: {
+          labels: null,
+          labelMode: null,
+          projectId: null,
+          priority: null,
+        },
         queryParamsHandling: 'merge',
       });
     });

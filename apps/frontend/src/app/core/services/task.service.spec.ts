@@ -1549,7 +1549,7 @@ describe('TaskService', () => {
     expect(service.todayTruncated()).toBe(false);
   }));
 
-  it('flags a new label filter as pending and surfaces label truncation', fakeAsync(() => {
+  it('flags a new filter as pending and surfaces filter truncation', fakeAsync(() => {
     const service = TestBed.inject(TaskService);
     const http = TestBed.inject(HttpTestingController);
 
@@ -1560,12 +1560,17 @@ describe('TaskService', () => {
     flushDefaultViews(http);
     tick();
 
-    expect(service.labelFilterPending()).toBeFalse();
+    expect(service.filterPending()).toBeFalse();
 
-    service.setLabelFilter(['label-1']);
+    service.setFilters({
+      labelIds: ['label-1'],
+      labelMode: 'any',
+      projectId: null,
+      priority: null,
+    });
     tick();
 
-    expect(service.labelFilterPending()).toBeTrue();
+    expect(service.filterPending()).toBeTrue();
 
     const labeledTask: Task = {
       id: 'labeled-1',
@@ -1582,8 +1587,37 @@ describe('TaskService', () => {
       .flush(paginated([labeledTask], { total: 5000 }));
     tick();
 
-    expect(service.labelFilterPending()).toBeFalse();
-    expect(service.labelFilterTruncated()).toBeTrue();
-    expect(service.labelFilteredTasks().map((task) => task.id)).toEqual(['labeled-1']);
+    expect(service.filterPending()).toBeFalse();
+    expect(service.filterTruncated()).toBeTrue();
+    expect(service.filteredTasks().map((task) => task.id)).toEqual(['labeled-1']);
+  }));
+
+  it('sends project and priority alongside the label filter', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+    flushDefaultViews(http);
+    tick();
+
+    service.setFilters({
+      labelIds: ['label-1'],
+      labelMode: 'all',
+      projectId: 'project-1',
+      priority: 'high',
+    });
+    tick();
+
+    const request = http.expectOne((candidate) => candidate.url.includes('projectId=project-1'));
+    expect(request.request.url).toContain('labelIds=label-1');
+    expect(request.request.url).toContain('labelMode=all');
+    expect(request.request.url).toContain('priority=high');
+    request.flush(paginated([], { total: 0 }));
+    tick();
+
+    expect(service.filterPending()).toBeFalse();
   }));
 });

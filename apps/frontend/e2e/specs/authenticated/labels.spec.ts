@@ -107,8 +107,8 @@ test.describe('Labels CRUD', () => {
     const taskTitle = `task-${name}`;
     await captureTask(page, taskTitle, name);
 
-    await page.getByRole('button', { name: 'Labels', exact: true }).click();
-    const panel = page.locator('#task-label-filter-panel');
+    await page.getByRole('button', { name: 'Filters', exact: true }).click();
+    const panel = page.locator('#task-filter-panel');
     await panel.getByRole('button', { name: new RegExp(name) }).click();
     await panel.getByRole('button', { name: 'Done', exact: true }).click();
 
@@ -195,11 +195,11 @@ test.describe('Labels CRUD', () => {
     await createLabel(page, name);
     await openInbox(page);
 
-    const trigger = page.getByRole('button', { name: 'Labels', exact: true });
+    const trigger = page.getByRole('button', { name: 'Filters', exact: true });
     await trigger.focus();
     await page.keyboard.press('Enter');
 
-    const panel = page.locator('#task-label-filter-panel');
+    const panel = page.locator('#task-filter-panel');
     await expect(panel).toBeVisible();
     await expect(panel.getByRole('searchbox', { name: 'Search labels' })).toBeFocused();
 

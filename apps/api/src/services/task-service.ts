@@ -139,6 +139,10 @@ export interface TaskFilters {
   labelIds?: string[];
   /** With multiple ids: `any` (OR) or `all` (AND). */
   labelMode?: 'any' | 'all';
+  /** Only tasks filed under this project. */
+  projectId?: string;
+  /** Only tasks with this priority. */
+  priority?: Priority;
 }
 
 const CALENDAR_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -257,6 +261,12 @@ export async function listTasksForOwner(
         eq(tasks.completed, true),
         sql`${tasks.archivedAt} >= ${startOfTodayUtc}`,
       );
+    }
+    if (filters.projectId) {
+      whereClause = and(whereClause, eq(tasks.projectId, filters.projectId));
+    }
+    if (filters.priority) {
+      whereClause = and(whereClause, eq(tasks.priority, filters.priority));
     }
     if (filters.labelIds && filters.labelIds.length > 0) {
       // EXISTS over task_labels joined to labels so only labels owned by this
