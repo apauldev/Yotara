@@ -230,8 +230,9 @@
             [ngModel]="draftProjectId()"
             (ngModelChange)="draftProjectId.set($event)"
           >
+            <option [ngValue]="null">No project</option>
             @for (project of projects; track project.id) {
-              <option [value]="project.id">{{ project.name }}</option>
+              <option [ngValue]="project.id">{{ project.name }}</option>
             }
           </select>
         </label>
@@ -451,17 +452,29 @@
       </div>
 
       <div class="sidebar-section">
-        <label class="field-label" for="task-status">Status</label>
-        <select
-          id="task-status"
-          class="status-select"
-          [ngModel]="draftStatus()"
-          (ngModelChange)="draftStatus.set($event)"
-        >
-          <option value="inbox">Inbox</option>
-          <option value="today">Today</option>
-          <option value="upcoming">Upcoming</option>
-        </select>
+        @if (draftProjectId() !== null) {
+          <span class="field-label" id="task-status-readout-label">Status</span>
+          <p
+            class="project-helper"
+            data-testid="task-status-readout"
+            aria-labelledby="task-status-readout-label"
+            role="status"
+          >
+            {{ statusPresentation() }}
+          </p>
+        } @else {
+          <label class="field-label" for="task-status">Status</label>
+          <select
+            id="task-status"
+            class="status-select"
+            [ngModel]="draftStatus()"
+            (ngModelChange)="draftStatus.set($event)"
+          >
+            <option value="inbox">Inbox</option>
+            <option value="today">Today</option>
+            <option value="upcoming">Upcoming</option>
+          </select>
+        }
       </div>
 
       <div class="sidebar-section">

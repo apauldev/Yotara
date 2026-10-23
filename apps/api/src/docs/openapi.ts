@@ -99,7 +99,9 @@ const createTaskSchema = {
     dueDate: { type: 'string', format: 'date' },
     dueTime: timeOfDaySchema,
     simpleMode: { type: 'boolean' },
-    projectId: { type: 'string', format: 'uuid' },
+    projectId: {
+      anyOf: [{ type: 'string', format: 'uuid' }, { type: 'null' }],
+    },
     parentId: { type: 'string' },
     recurrenceRule: { $ref: 'RecurrenceRule#' },
     baseTaskId: { type: 'string' },

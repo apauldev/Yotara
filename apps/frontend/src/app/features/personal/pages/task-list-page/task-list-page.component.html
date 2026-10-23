@@ -1,5 +1,6 @@
 <app-personal-task-workspace
   #workspace
+  [fromInbox]="viewMode() === 'inbox'"
   [initialTitle]="viewMode() === 'inbox' ? (captureBar()?.getTitle() ?? '') : ''"
   [initialDueDateDraft]="viewMode() === 'inbox' ? (captureBar()?.getDueDateDraft() ?? null) : null"
   (taskSaved)="handleTaskSaved($event)"
@@ -36,7 +37,6 @@
       <app-capture-bar
         [projects]="projectService.projects()"
         [creating]="taskService.creating()"
-        [defaultProjectId]="defaultCaptureProjectId()"
         (submit)="handleCapture()"
       />
     }
@@ -259,6 +259,7 @@
     [task]="task"
     [mode]="compact ? 'compact' : 'default'"
     [interactive]="true"
+    [fromInbox]="viewMode() === 'inbox'"
     [suppressLabelIds]="selectedLabelIds()"
     (select)="editTask(task)"
     (labelSelect)="filterByLabel($event)"

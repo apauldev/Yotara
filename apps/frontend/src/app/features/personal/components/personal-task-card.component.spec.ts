@@ -1,10 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import { Router } from '@angular/router';
 import { signal } from '@angular/core';
+import { DateTime } from 'luxon';
 import { provideMarkdown } from 'ngx-markdown';
 import { PersonalTaskCardComponent } from './personal-task-card.component';
 import { Task } from '@yotara/shared';
 import { TaskService } from '../../../core/services/task.service';
+import { ProjectService } from '../../../core/services/project.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { StatusService } from '../../../core/services/status.service';
 import { LabelService } from '../../../core/services/label.service';
@@ -71,6 +74,8 @@ describe('PersonalTaskCardComponent', () => {
         { provide: StatusService, useValue: statusServiceSpy },
         { provide: NotificationService, useValue: notificationServiceSpy },
         { provide: LabelService, useValue: labelServiceStub },
+        { provide: ProjectService, useValue: { projects: signal([]) } },
+        { provide: Router, useValue: { navigate: jasmine.createSpy('navigate') } },
         provideMarkdown(),
       ],
     }).compileComponents();
@@ -356,6 +361,53 @@ describe('PersonalTaskCardComponent', () => {
       expect(statusServiceSpy.success).toHaveBeenCalledWith('Task completed');
     });
 
+    it('names Archive when an Inbox task is completed', async () => {
+      preferences.setSkipCompleteConfirm(true);
+      setTask({ ...mockTask, status: 'inbox', dueDate: undefined, projectId: undefined });
+      fixture.componentRef.setInput('fromInbox', true);
+      fixture.detectChanges();
+
+      await component.completeTask();
+
+      expect(statusServiceSpy.success).toHaveBeenCalledWith(
+        '"Write morning pages" completed and moved to Archive',
+        3000,
+        jasmine.objectContaining({
+          key: 'task-movement:task-1',
+          action: jasmine.objectContaining({ label: 'View' }),
+        }),
+      );
+    });
+
+    it('uses the pre-save task snapshot when completion refetches before notifying', async () => {
+      preferences.setSkipCompleteConfirm(true);
+      setTask({ ...mockTask, status: 'inbox', dueDate: undefined, projectId: undefined });
+      fixture.componentRef.setInput('fromInbox', true);
+      fixture.detectChanges();
+
+      taskServiceSpy.updateTask.and.callFake(async () => {
+        const refetched = {
+          ...mockTask,
+          title: 'Refetched title',
+          status: 'inbox' as const,
+          dueDate: undefined,
+          projectId: undefined,
+          completed: true,
+        };
+        setTask(refetched);
+        return refetched;
+      });
+
+      await component.completeTask();
+
+      expect(statusServiceSpy.success).toHaveBeenCalledTimes(1);
+      expect(statusServiceSpy.success).toHaveBeenCalledWith(
+        '"Write morning pages" completed and moved to Archive',
+        3000,
+        jasmine.objectContaining({ key: 'task-movement:task-1' }),
+      );
+    });
+
     it('does not show a completion notification when action notifications are disabled', async () => {
       preferences.setSkipCompleteConfirm(true);
       preferences.setActionNotifications(false);
@@ -452,6 +504,38 @@ describe('PersonalTaskCardComponent', () => {
       component.tone = 'overdue';
       setTask({ ...mockTask, status: 'today' });
       fixture.detectChanges();
+      expect(component['statusLabel']()).toBe('Overdue');
+    });
+
+    it('should present an undated filed task as Unscheduled instead of Inbox', () => {
+      setTask({ ...mockTask, status: 'inbox', projectId: 'project-1', dueDate: undefined });
+      fixture.detectChanges();
+      expect(component['statusLabel']()).toBe('Unscheduled');
+    });
+
+    it('should derive a filed task status from its date', () => {
+      setTask({
+        ...mockTask,
+        status: 'inbox',
+        projectId: 'project-1',
+        dueDate: DateTime.now().toISODate()!,
+      });
+      expect(component['statusLabel']()).toBe('Today');
+
+      setTask({
+        ...mockTask,
+        status: 'inbox',
+        projectId: 'project-1',
+        dueDate: DateTime.now().plus({ days: 2 }).toISODate()!,
+      });
+      expect(component['statusLabel']()).toBe('Upcoming');
+
+      setTask({
+        ...mockTask,
+        status: 'inbox',
+        projectId: 'project-1',
+        dueDate: DateTime.now().minus({ days: 2 }).toISODate()!,
+      });
       expect(component['statusLabel']()).toBe('Overdue');
     });
 

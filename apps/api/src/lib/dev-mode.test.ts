@@ -7,6 +7,7 @@ import '../db/test-db.js';
 import {
   DEFAULT_DEV_MODE_CONFIG,
   bypassEmailRateLimits,
+  bypassGlobalRateLimit,
   bypassIpBan,
   bypassLoginLockout,
   devMode,
@@ -21,6 +22,7 @@ test('parseDevModeConfig parses a full config', () => {
       enabled: true,
       emailToConsole: false,
       bypassEmailRateLimits: false,
+      bypassGlobalRateLimit: false,
       bypassLoginLockout: false,
       bypassIpBan: false,
     }),
@@ -29,6 +31,7 @@ test('parseDevModeConfig parses a full config', () => {
     enabled: true,
     emailToConsole: false,
     bypassEmailRateLimits: false,
+    bypassGlobalRateLimit: false,
     bypassLoginLockout: false,
     bypassIpBan: false,
   });
@@ -55,6 +58,7 @@ test('dev mode is off by default (committed dev-mode.json has enabled: false)', 
     assert.equal(devMode(), false);
     assert.equal(emailToConsole(), false);
     assert.equal(bypassEmailRateLimits(), false);
+    assert.equal(bypassGlobalRateLimit(), false);
     assert.equal(bypassLoginLockout(), false);
     assert.equal(bypassIpBan(), false);
   } finally {
@@ -74,6 +78,7 @@ test('DEV_MODE env override wins over the file', () => {
     // File options default to true, so all bypasses are active.
     assert.equal(emailToConsole(), true);
     assert.equal(bypassEmailRateLimits(), true);
+    assert.equal(bypassGlobalRateLimit(), true);
     assert.equal(bypassLoginLockout(), true);
     assert.equal(bypassIpBan(), true);
 
@@ -108,6 +113,7 @@ test('dev mode is refused in production without the explicit opt-in', () => {
     process.env['ALLOW_DEV_MODE_IN_PRODUCTION'] = 'true';
     assert.equal(devMode(), true);
     assert.equal(bypassEmailRateLimits(), true);
+    assert.equal(bypassGlobalRateLimit(), true);
 
     // Explicitly disabled dev mode never throws, even in production.
     process.env['DEV_MODE'] = 'false';

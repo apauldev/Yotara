@@ -4,7 +4,7 @@ import { formatTimeLabel, parseCalendarDate, startOfToday } from '../../../share
 
 export type TaskViewDestination = 'inbox' | 'today' | 'upcoming' | 'overdue';
 
-const DESTINATION_LABELS: Record<TaskViewDestination, string> = {
+export const TASK_VIEW_LABELS: Record<TaskViewDestination, string> = {
   inbox: 'Inbox',
   today: 'Today',
   upcoming: 'Upcoming',
@@ -27,12 +27,6 @@ export interface TaskCreationNotice {
   /** The projects the user can choose from, used to resolve the destination. */
   projects?: ProjectOption[];
   projectId?: string | null;
-  /**
-   * The project the UI offered by default. When the task lands there, the
-   * project is omitted: naming the default adds noise, and a default project
-   * named "Inbox" reads as the destination view rather than the project.
-   */
-  defaultProjectId?: string | null;
   reference?: DateTime;
 }
 
@@ -71,31 +65,27 @@ export function resolveProjectName(
  * project it went into, and the date it resolved to.
  */
 export function taskCreationNotification(notice: TaskCreationNotice): string {
-  const {
-    title,
-    dueDate,
-    dueTime,
-    status = 'inbox',
-    projects = [],
-    projectId,
-    defaultProjectId,
-    reference,
-  } = notice;
+  const { title, dueDate, dueTime, status = 'inbox', projects = [], projectId, reference } = notice;
 
   const destination = getTaskViewDestination(dueDate, status, reference);
-  const label = DESTINATION_LABELS[destination];
+  const label = TASK_VIEW_LABELS[destination];
   const projectName = resolveProjectName(projects, projectId);
   const formattedDueDate = parseCalendarDate(dueDate)?.toFormat('EEE, LLL d, yyyy');
   const formattedDueTime = formatTimeLabel(dueTime);
 
-  // Name the project only when it tells the user something: an explicitly
-  // chosen (or contextual) project. The default project is omitted, since a
-  // default named "Inbox" would read as the destination view — e.g. a dated
-  // task "added to Upcoming (Inbox)" looks like it went to Inbox. A project
-  // that repeats the destination label is likewise dropped as a stutter.
-  const showProject = !!projectName && projectId !== defaultProjectId && projectName !== label;
+  // An unfiled capture lands in Inbox. An undated capture filed into a project
+  // lands in that project, so naming the project as the destination avoids the
+  // misleading "added to Inbox (Project)" phrasing.
+  if (projectName && destination === 'inbox') {
+    return `"${truncateTaskTitle(title)}" added to ${projectName}`;
+  }
+
+  // Other captures are announced by the view their date or status puts them
+  // in. Name the project only when it adds information and does not repeat
+  // that view name.
+  const showProject = !!projectName && projectName !== label;
   const projectSuffix = showProject ? ` (${projectName})` : '';
-  const head = `"${truncateTitle(title)}" added to ${label}${projectSuffix}`;
+  const head = `"${truncateTaskTitle(title)}" added to ${label}${projectSuffix}`;
 
   // The time is only ever shown when one was set; a date-only task stays
   // date-only in the confirmation.
@@ -106,7 +96,7 @@ export function taskCreationNotification(notice: TaskCreationNotice): string {
   return due ? `${head} · due ${due}` : head;
 }
 
-function truncateTitle(title: string): string {
+export function truncateTaskTitle(title: string): string {
   const trimmed = title.trim();
   if (trimmed.length <= MAX_TITLE_LENGTH) return trimmed;
 

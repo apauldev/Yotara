@@ -797,21 +797,19 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       assert.equal(result, null);
     });
 
-    await t.test('updateTaskForOwner falls back to default project', async () => {
-      // Create task without specifying a project — createTaskForOwner assigns the default (Inbox)
+    await t.test('updateTaskForOwner keeps an unfiled task unfiled', async () => {
       const task = await ctx.taskService.createTaskForOwner(ownerId, {
         title: 'No Project Task',
       });
       assert.ok(task);
-      const originalProjectId = task.projectId;
-      assert.ok(originalProjectId);
+      assert.equal(task.projectId, null);
 
-      // Update without specifying projectId — should keep the default project
+      // Update without specifying projectId — must not assign a default project.
       const updated = await ctx.taskService.updateTaskForOwner(ownerId, task.id, {
         title: 'No Project Task Updated',
       });
       assert.ok(updated);
-      assert.ok(updated.projectId);
+      assert.equal(updated.projectId, null);
     });
 
     await t.test('updateTaskForOwner sets recurrence rule on existing task', async () => {

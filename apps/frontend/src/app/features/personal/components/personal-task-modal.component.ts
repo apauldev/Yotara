@@ -43,6 +43,7 @@ import { tryGetUserTimezone } from '../../../shared/utils/timezone';
 import { timedTaskTimezoneNotice } from '../utils/timezone-notices';
 import { parseTaskCommand } from '../utils/task-command-parser';
 import { parseTaskDueDate } from '../utils/task-due-date-parser';
+import { getTaskViewDestination } from '../utils/task-creation-notification';
 import type { DueDateDraft, DueDateDraftSource } from '../utils/due-date-draft';
 
 type SavePayload =
@@ -106,7 +107,7 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
   protected readonly dateDraftMatchEnd = signal<number | null>(null);
   protected readonly dateDraftSuppressed = signal(false);
   protected readonly draftSimpleMode = signal(true);
-  protected readonly draftProjectId = signal('');
+  protected readonly draftProjectId = signal<string | null>(null);
   protected readonly draftCompleted = signal(false);
   protected readonly draftLabels = signal<string[]>([]);
   protected readonly labelSearch = signal('');
@@ -288,7 +289,46 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
 
   protected selectedContextLabel() {
     const projectName = this.projects.find((project) => project.id === this.draftProjectId())?.name;
-    return projectName ?? 'Select a project';
+    return projectName ?? 'No project';
+  }
+
+  /**
+   * Filed tasks are presented through their project and date, not through the
+   * stored inbox fallback. The coarse status select remains available only for
+   * tasks that still belong to Inbox.
+   */
+  protected statusPresentation() {
+    if (this.draftProjectId() === null) {
+      switch (this.draftStatus()) {
+        case 'today':
+          return 'Today';
+        case 'upcoming':
+          return 'Upcoming';
+        case 'done':
+          return 'Complete';
+        case 'archived':
+          return 'Archived';
+        default:
+          return 'Inbox';
+      }
+    }
+
+    if (this.draftStatus() === 'done') return 'Complete';
+    if (this.draftStatus() === 'archived') return 'Archived';
+
+    const dueDate = this.draftSimpleMode() ? '' : this.draftDueDate();
+    if (!dueDate) return 'Unscheduled';
+
+    switch (getTaskViewDestination(dueDate, this.draftStatus())) {
+      case 'today':
+        return 'Today';
+      case 'upcoming':
+        return 'Upcoming';
+      case 'overdue':
+        return 'Overdue';
+      default:
+        return 'Unscheduled';
+    }
   }
 
   protected titleDescribedBy(): string | null {
@@ -477,8 +517,9 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
       this.draftPriority() !== 'medium' ||
       this.draftCompleted() ||
       // A project assignment only counts as meaningful when editing: new
-      // tasks default into the first project, which should not force expansion.
-      (this.task !== null && this.draftProjectId() !== '')
+      // tasks do not default into a project, so a contextual assignment should
+      // not force the advanced section open.
+      (this.task !== null && this.draftProjectId() !== null)
     );
   }
 
@@ -694,7 +735,7 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
       ...(dueDate ? { dueDate } : {}),
       ...(dueTime ? { dueTime } : {}),
       simpleMode: this.draftSimpleMode(),
-      projectId: this.draftProjectId() || undefined,
+      projectId: this.draftProjectId(),
       labels: this.draftLabels(),
       recurrenceRule: recurrenceRule ?? undefined,
       subtasks: this.draftSubtasks().length > 0 ? this.draftSubtasks() : undefined,
@@ -706,7 +747,7 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
         taskId: this.task.id,
         payload: {
           ...payload,
-          projectId: this.draftProjectId() || null,
+          projectId: this.draftProjectId(),
           completed: this.draftCompleted(),
           labels: this.draftLabels(),
           recurrenceRule: this.isRecurrenceDisabled() ? undefined : recurrenceRule,
@@ -942,7 +983,7 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
     );
     this.dateDraftSuppressed.set(initialDateSource === 'cleared');
     this.draftProjectId.set(
-      this.task?.projectId ?? this.initialProjectId ?? this.projects[0]?.id ?? '',
+      this.task ? (this.task.projectId ?? null) : (this.initialProjectId ?? null),
     );
     this.draftCompleted.set(this.task?.completed ?? false);
     this.draftRecurrenceFrequency.set(this.task?.recurrenceRule?.frequency ?? null);

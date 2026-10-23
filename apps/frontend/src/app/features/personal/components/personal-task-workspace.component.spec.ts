@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import { Router } from '@angular/router';
 import { signal } from '@angular/core';
 import { provideMarkdown } from 'ngx-markdown';
 import { CreateTaskDto, Task, UpdateTaskDto } from '@yotara/shared';
@@ -20,6 +21,7 @@ import type { DueDateDraft } from '../utils/due-date-draft';
     <app-personal-task-workspace
       [initialProjectId]="initialProjectId"
       [initialTitle]="initialTitle"
+      [fromInbox]="fromInbox"
     >
       <p class="projected-copy">Projected content</p>
     </app-personal-task-workspace>
@@ -28,6 +30,7 @@ import type { DueDateDraft } from '../utils/due-date-draft';
 class WorkspaceHostComponent {
   initialProjectId = 'project-1';
   initialTitle = 'Captured from inbox';
+  fromInbox = false;
 }
 
 describe('PersonalTaskWorkspaceComponent', () => {
@@ -104,6 +107,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
         { provide: TaskService, useValue: taskService },
         { provide: StatusService, useValue: statusServiceSpy },
         { provide: PreferencesStore, useValue: preferences },
+        { provide: Router, useValue: { navigate: jasmine.createSpy('navigate') } },
       ],
     }).compileComponents();
 
@@ -137,6 +141,40 @@ describe('PersonalTaskWorkspaceComponent', () => {
     expect(modal.task).toBeNull();
     expect(modal.initialProjectId).toBe('project-1');
     expect(modal.initialTitle).toBe('Captured from inbox');
+  });
+
+  it('keeps an explicit No project selection over the contextual project', () => {
+    fixture.detectChanges();
+
+    const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
+      .componentInstance as PersonalTaskWorkspaceComponent;
+
+    workspace.openCreateTaskModal(null);
+    fixture.detectChanges();
+
+    const modal = fixture.debugElement.query(By.directive(PersonalTaskModalComponent))
+      .componentInstance as PersonalTaskModalComponent;
+
+    expect(modal.open).toBeTrue();
+    expect(modal.initialProjectId).toBeNull();
+    expect(modal['draftProjectId']()).toBeNull();
+  });
+
+  it('opens an unfiled task for editing without assigning the contextual project', () => {
+    fixture.detectChanges();
+
+    const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
+      .componentInstance as PersonalTaskWorkspaceComponent;
+
+    workspace.editTask({ ...task, projectId: undefined });
+    fixture.detectChanges();
+
+    const modal = fixture.debugElement.query(By.directive(PersonalTaskModalComponent))
+      .componentInstance as PersonalTaskModalComponent;
+
+    expect(modal.open).toBeTrue();
+    expect(modal.initialProjectId).toBeNull();
+    expect(modal['draftProjectId']()).toBeNull();
   });
 
   it('does not show a stale service error in a new modal session', () => {
@@ -253,14 +291,14 @@ describe('PersonalTaskWorkspaceComponent', () => {
         priority: 'medium',
         dueDate: undefined,
         simpleMode: true,
-        projectId: undefined,
+        projectId: null,
       },
     });
 
     expect(taskService.createTask).toHaveBeenCalledWith(
       jasmine.objectContaining({
         title: 'New task',
-        projectId: 'project-1',
+        projectId: null,
       }),
     );
     expect(projectService.refresh).toHaveBeenCalled();
@@ -285,7 +323,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
         priority: 'medium',
         dueDate: undefined,
         simpleMode: true,
-        projectId: 'project-1',
+        projectId: null,
       },
     });
 
@@ -317,8 +355,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
     );
   });
 
-  it('names the project when the task lands outside the default project', async () => {
-    fixture.componentInstance.initialProjectId = 'project-2';
+  it('names the chosen project as the destination for an undated capture', async () => {
     fixture.detectChanges();
 
     const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
@@ -337,9 +374,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
       },
     });
 
-    expect(statusServiceSpy.success).toHaveBeenCalledWith(
-      '"Buy milk" added to Inbox (Launch Plan)',
-    );
+    expect(statusServiceSpy.success).toHaveBeenCalledWith('"Buy milk" added to Launch Plan');
   });
 
   it('does not announce a destination when updating an existing task', async () => {
@@ -365,12 +400,52 @@ describe('PersonalTaskWorkspaceComponent', () => {
     expect(statusServiceSpy.success).not.toHaveBeenCalled();
   });
 
+  it('announces filing when the save happens inside the visible Inbox', async () => {
+    fixture.componentInstance.fromInbox = true;
+    fixture.detectChanges();
+
+    const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
+      .componentInstance as PersonalTaskWorkspaceComponent;
+    const inboxTask: Task = {
+      ...task,
+      status: 'inbox',
+      projectId: undefined,
+      dueDate: undefined,
+    };
+    taskService.updateTask.and.resolveTo({ ...inboxTask, projectId: 'project-1' });
+
+    workspace.editTask(inboxTask);
+    await workspace['saveTask']({
+      mode: 'update',
+      taskId: inboxTask.id,
+      payload: {
+        title: inboxTask.title,
+        description: '',
+        status: 'inbox',
+        priority: 'high',
+        dueDate: undefined,
+        simpleMode: true,
+        projectId: 'project-1',
+      } as UpdateTaskDto,
+    });
+
+    expect(statusServiceSpy.success).toHaveBeenCalledWith(
+      '"Draft release notes" moved to Launch Plan',
+      3000,
+      jasmine.objectContaining({
+        key: 'task-movement:task-1',
+        action: jasmine.objectContaining({ label: 'View' }),
+      }),
+    );
+  });
+
   it('updates a task and emits the update event', async () => {
     fixture.detectChanges();
 
     const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
       .componentInstance as PersonalTaskWorkspaceComponent;
     const savedSpy = spyOn(workspace.taskSaved, 'emit');
+    taskService.updateTask.and.resolveTo({ ...task, completed: true });
 
     await workspace['saveTask']({
       mode: 'update',

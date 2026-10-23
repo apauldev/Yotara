@@ -438,6 +438,155 @@ describe('PersonalTaskModalComponent', () => {
     });
   });
 
+  describe('Project selection and filed status', () => {
+    const launchPlan = {
+      id: 'project-1',
+      name: 'Launch Plan',
+      ownerId: 'user-1',
+      taskCount: 0,
+      completedTaskCount: 0,
+      openTaskCount: 0,
+      createdAt: '2026-04-01T10:00:00.000Z',
+      updatedAt: '2026-04-01T10:00:00.000Z',
+    } as Project;
+    const personal = { ...launchPlan, id: 'project-2', name: 'Personal' };
+
+    function openCreateTask(initialProjectId: string | null) {
+      fixture.componentRef.setInput('projects', [launchPlan, personal]);
+      fixture.componentRef.setInput('initialProjectId', initialProjectId);
+      fixture.componentRef.setInput('open', true);
+      fixture.detectChanges();
+    }
+
+    it('starts a create draft with no project and offers an explicit No project option', () => {
+      openCreateTask(null);
+
+      expect(component['draftProjectId']()).toBeNull();
+      const options = fixture.debugElement.queryAll(By.css('#task-project option'));
+      expect(options[0].nativeElement.textContent).toContain('No project');
+    });
+
+    it('uses the contextual project for a create draft when one is supplied', () => {
+      openCreateTask('project-2');
+
+      expect(component['draftProjectId']()).toBe('project-2');
+    });
+
+    it('hydrates an edited task from its own project only', () => {
+      fixture.componentRef.setInput('projects', [launchPlan, personal]);
+      fixture.componentRef.setInput('initialProjectId', 'project-2');
+      fixture.componentRef.setInput('task', {
+        id: 'task-1',
+        title: 'Filed task',
+        description: '',
+        status: 'inbox',
+        priority: 'medium',
+        completed: false,
+        simpleMode: true,
+        order: 0,
+        createdAt: '2026-04-18T08:00:00.000Z',
+        updatedAt: '2026-04-18T08:00:00.000Z',
+        projectId: 'project-1',
+      } as Task);
+      fixture.componentRef.setInput('open', true);
+      fixture.detectChanges();
+
+      expect(component['draftProjectId']()).toBe('project-1');
+    });
+
+    it('preserves an explicit No project over the contextual project on create', () => {
+      openCreateTask('project-2');
+      const saveSpy = spyOn(component['save'], 'emit');
+      component['draftTitle'].set('Unfiled task');
+      component['draftProjectId'].set(null);
+
+      component['submit']();
+
+      expect(saveSpy).toHaveBeenCalledWith(
+        jasmine.objectContaining({
+          mode: 'create',
+          payload: jasmine.objectContaining({ projectId: null }),
+        }),
+      );
+    });
+
+    it('sends an explicit null when a project is cleared on update', () => {
+      fixture.componentRef.setInput('projects', [launchPlan, personal]);
+      fixture.componentRef.setInput('task', {
+        id: 'task-1',
+        title: 'Filed task',
+        description: '',
+        status: 'inbox',
+        priority: 'medium',
+        completed: false,
+        simpleMode: true,
+        order: 0,
+        createdAt: '2026-04-18T08:00:00.000Z',
+        updatedAt: '2026-04-18T08:00:00.000Z',
+        projectId: 'project-1',
+      } as Task);
+      fixture.componentRef.setInput('open', true);
+      fixture.detectChanges();
+      const saveSpy = spyOn(component['save'], 'emit');
+
+      component['draftProjectId'].set(null);
+      component['submit']();
+
+      expect(saveSpy).toHaveBeenCalledWith(
+        jasmine.objectContaining({
+          mode: 'update',
+          payload: jasmine.objectContaining({ projectId: null }),
+        }),
+      );
+    });
+
+    it('labels and announces the filed status readout', () => {
+      openCreateTask('project-2');
+      component['showAdvanced'].set(true);
+      fixture.detectChanges();
+
+      const label = fixture.debugElement.query(By.css('#task-status-readout-label'));
+      const readout = fixture.debugElement.query(By.css('[data-testid="task-status-readout"]'));
+
+      expect(label.nativeElement.textContent).toContain('Status');
+      expect(readout.nativeElement.getAttribute('aria-labelledby')).toBe(
+        'task-status-readout-label',
+      );
+      expect(readout.nativeElement.getAttribute('role')).toBe('status');
+    });
+
+    it('presents an undated filed task as Unscheduled instead of Inbox', () => {
+      openCreateTask('project-2');
+      component['showAdvanced'].set(true);
+      fixture.detectChanges();
+
+      expect(component['statusPresentation']()).toBe('Unscheduled');
+      expect(fixture.debugElement.query(By.css('#task-status'))).toBeNull();
+      const readout = fixture.debugElement.query(By.css('[data-testid="task-status-readout"]'));
+      expect(readout.nativeElement.textContent).toContain('Unscheduled');
+    });
+
+    it('presents a dated filed task from its date state', () => {
+      openCreateTask('project-2');
+      component['draftSimpleMode'].set(false);
+
+      component['draftDueDate'].set(DateTime.now().toISODate()!);
+      expect(component['statusPresentation']()).toBe('Today');
+
+      component['draftDueDate'].set(DateTime.now().plus({ days: 2 }).toISODate()!);
+      expect(component['statusPresentation']()).toBe('Upcoming');
+
+      component['draftDueDate'].set(DateTime.now().minus({ days: 2 }).toISODate()!);
+      expect(component['statusPresentation']()).toBe('Overdue');
+    });
+
+    it('keeps Inbox for an unfiled task', () => {
+      openCreateTask(null);
+
+      expect(component['statusPresentation']()).toBe('Inbox');
+    });
+  });
+
   describe('NLP date draft handoff', () => {
     function openNewTaskWithDateDraft(draft: DueDateDraft = inferredDateDraft, title?: string) {
       fixture.componentRef.setInput('initialTitle', title ?? 'Call Sam Friday');

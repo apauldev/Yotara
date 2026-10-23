@@ -81,6 +81,7 @@ export const projects = sqliteTable('projects', {
   color: text('color', {
     enum: PROJECT_COLOR_VALUES,
   }),
+  retiredAt: text('retired_at'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });

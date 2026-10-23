@@ -188,17 +188,36 @@ test('PATCH /me toggles captureBehavior', async () => {
   }
 });
 
-test('PATCH /me seeds default projects and labels when onboarding is completed', async () => {
+test('PATCH /me seeds the seven starter projects and labels on the onboarding transition', async () => {
   const ctx = await createAuthedApp();
 
   try {
     const cookie = await signUpAndGetCookie(`seed-${randomUUID()}@example.com`);
 
+    // Before onboarding completes, a profile save must not seed anything.
+    const preOnboarding = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/me',
+      headers: { cookie },
+      payload: { workspaceMode: 'personal' },
+    });
+    assert.equal(preOnboarding.statusCode, 200);
+
+    const { db } = await import('../db/client.js');
+    const { projects, labels } = await import('../db/schema.js');
+    const { and, eq, sql } = await import('drizzle-orm');
+
+    const [preCount] = await db
+      .select({ value: sql<number>`count(*)` })
+      .from(projects)
+      .where(eq(projects.ownerId, preOnboarding.json().user.id));
+    assert.equal(preCount.value, 0, 'Seeding waits for the onboarding transition');
+
     const patchResponse = await ctx.app.inject({
       method: 'PATCH',
       url: '/me',
       headers: { cookie },
-      payload: { workspaceMode: 'personal', onboardingCompleted: true },
+      payload: { onboardingCompleted: true },
     });
 
     assert.equal(patchResponse.statusCode, 200);
@@ -206,17 +225,19 @@ test('PATCH /me seeds default projects and labels when onboarding is completed',
     assertIsoTimestamp(patchResponse.json().user.createdAt);
     assertIsoTimestamp(patchResponse.json().user.updatedAt);
 
-    // Verify seeding directly in the DB. GET /projects seeds on read, so the
-    // route assertions below would mask a regression in the PATCH handler.
-    const { db } = await import('../db/client.js');
-    const { projects, labels } = await import('../db/schema.js');
-    const { eq, sql } = await import('drizzle-orm');
-
+    // Verify seeding directly in the DB. GET /projects no longer seeds on read,
+    // so a regression in the PATCH handler must show up here.
     const [projectCount] = await db
       .select({ value: sql<number>`count(*)` })
       .from(projects)
       .where(eq(projects.ownerId, userId));
-    assert.ok(projectCount.value >= 8, 'PATCH should seed at least 8 projects');
+    assert.equal(projectCount.value, 7, 'PATCH should seed the seven non-Inbox projects');
+
+    const [inboxCount] = await db
+      .select({ value: sql<number>`count(*)` })
+      .from(projects)
+      .where(and(eq(projects.ownerId, userId), eq(projects.name, 'Inbox')));
+    assert.equal(inboxCount.value, 0, 'Inbox is a view, not a seeded project');
 
     const [labelCount] = await db
       .select({ value: sql<number>`count(*)` })
@@ -232,8 +253,8 @@ test('PATCH /me seeds default projects and labels when onboarding is completed',
     });
     assert.equal(projectsResponse.statusCode, 200);
     const projectsList = projectsResponse.json();
-    assert.ok(projectsList.length >= 8);
-    assert.ok(projectsList.some((p: { name: string }) => p.name === 'Inbox'));
+    assert.equal(projectsList.length, 7);
+    assert.ok(!projectsList.some((p: { name: string }) => p.name === 'Inbox'));
     assert.ok(projectsList.some((p: { name: string }) => p.name === 'Work'));
     assert.ok(projectsList.some((p: { name: string }) => p.name === 'Side Projects'));
 
@@ -249,24 +270,122 @@ test('PATCH /me seeds default projects and labels when onboarding is completed',
     assert.ok(labelsList.some((l: { name: string }) => l.name === 'Errands'));
     assert.ok(labelsList.some((l: { name: string }) => l.name === 'Someday'));
 
-    const patchIdempotent = await ctx.app.inject({
+    // Rename and remove a starter, then save the profile again. Repeat saves must
+    // neither recreate a removed default nor resurrect a renamed one.
+    await db
+      .update(projects)
+      .set({ name: 'Renamed Work' })
+      .where(and(eq(projects.ownerId, userId), eq(projects.name, 'Work')));
+    await db
+      .delete(projects)
+      .where(and(eq(projects.ownerId, userId), eq(projects.name, 'Learning')));
+
+    const patchRepeat = await ctx.app.inject({
       method: 'PATCH',
       url: '/me',
       headers: { cookie },
       payload: { workspaceMode: 'personal', onboardingCompleted: true },
     });
-    assert.equal(patchIdempotent.statusCode, 200);
+    assert.equal(patchRepeat.statusCode, 200);
 
-    const projectsAfterSecond = await ctx.app.inject({
+    const projectsAfterRepeat = await ctx.app.inject({
       method: 'GET',
       url: '/projects',
       headers: { cookie },
     });
-    assert.equal(projectsAfterSecond.statusCode, 200);
-    const inboxCount = projectsAfterSecond
-      .json()
-      .filter((p: { name: string }) => p.name === 'Inbox').length;
-    assert.equal(inboxCount, 1, 'Seeding should be idempotent — no duplicate projects');
+    assert.equal(projectsAfterRepeat.statusCode, 200);
+    const namesAfterRepeat = projectsAfterRepeat.json().map((p: { name: string }) => p.name);
+    assert.equal(namesAfterRepeat.length, 6, 'Repeat saves must not recreate defaults');
+    assert.ok(namesAfterRepeat.includes('Renamed Work'));
+    assert.ok(!namesAfterRepeat.includes('Work'));
+    assert.ok(!namesAfterRepeat.includes('Learning'));
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('PATCH /me can retry onboarding after starter label seeding fails', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const email = `seed-retry-${randomUUID()}@example.com`;
+    const cookie = await signUpAndGetCookie(email);
+
+    const { db, sqlite } = await import('../db/client.js');
+    const { labels, projects, users } = await import('../db/schema.js');
+    const { eq, sql } = await import('drizzle-orm');
+
+    const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    assert.ok(user);
+
+    // Projects seed first, then labels. Fail the second seed to verify the
+    // completion marker is not persisted and the retry can finish provisioning
+    // without duplicating the already-seeded projects.
+    sqlite.exec(`
+      CREATE TRIGGER fail_starter_labels
+      BEFORE INSERT ON labels
+      WHEN NEW.user_id = '${user.id}'
+      BEGIN
+        SELECT RAISE(ABORT, 'forced starter label failure');
+      END;
+    `);
+
+    try {
+      const failed = await ctx.app.inject({
+        method: 'PATCH',
+        url: '/me',
+        headers: { cookie },
+        payload: { workspaceMode: 'personal', onboardingCompleted: true },
+      });
+      assert.equal(failed.statusCode, 500);
+
+      const profileAfterFailure = await ctx.app.inject({
+        method: 'GET',
+        url: '/me',
+        headers: { cookie },
+      });
+      assert.equal(profileAfterFailure.statusCode, 200);
+      assert.equal(
+        profileAfterFailure.json().user.onboardingCompleted,
+        false,
+        'A failed seed must leave onboarding retryable',
+      );
+
+      const [projectCountAfterFailure] = await db
+        .select({ value: sql<number>`count(*)` })
+        .from(projects)
+        .where(eq(projects.ownerId, user.id));
+      assert.equal(projectCountAfterFailure.value, 7);
+
+      const [labelCountAfterFailure] = await db
+        .select({ value: sql<number>`count(*)` })
+        .from(labels)
+        .where(eq(labels.userId, user.id));
+      assert.equal(labelCountAfterFailure.value, 0);
+    } finally {
+      sqlite.exec('DROP TRIGGER IF EXISTS fail_starter_labels');
+    }
+
+    const retry = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/me',
+      headers: { cookie },
+      payload: { workspaceMode: 'personal', onboardingCompleted: true },
+    });
+    assert.equal(retry.statusCode, 200);
+    assert.equal(retry.json().user.onboardingCompleted, true);
+
+    const [projectCount] = await db
+      .select({ value: sql<number>`count(*)` })
+      .from(projects)
+      .where(eq(projects.ownerId, user.id));
+    assert.equal(projectCount.value, 7, 'Retry must not duplicate seeded projects');
+
+    const [labelCount] = await db
+      .select({ value: sql<number>`count(*)` })
+      .from(labels)
+      .where(eq(labels.userId, user.id));
+    assert.ok(labelCount.value >= 6, 'Retry should finish seeding the default labels');
   } finally {
     await ctx.cleanup();
   }

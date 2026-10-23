@@ -250,6 +250,11 @@ pnpm --filter @yotara/frontend e2e:codegen  # Record a new spec
 The frontend (`:4200`) and API (`:3000`) must already be running. Override the
 targets with `E2E_BASE_URL` and `E2E_API_URL`.
 
+When the API runs with dev mode on (`pnpm dev` sets `DEV_MODE=true`), the global
+API rate limiter is bypassed so a full suite does not exhaust the per-IP budget.
+If you start the API without dev mode, raise `RATE_LIMIT_MAX` (CI uses
+`RATE_LIMIT_MAX=10000`) or the suite will see 429s.
+
 ### Projects
 
 `playwright.config.ts` defines five projects, each with its own storage state so

@@ -6,8 +6,9 @@ import { getAppBaseUrl, getFrontendBaseUrl } from './auth-origins.js';
  *
  * When enabled (via the `dev-mode.json` file and/or the `DEV_MODE` env var),
  * email verification is forced off, emails go to the console instead of
- * Resend, and the anti-abuse guards (email rate limits, login lockout, IP
- * ban) are bypassed — so signup/login never impede local work.
+ * Resend, and the anti-abuse guards (email rate limits, global API rate
+ * limiting, login lockout, IP ban) are bypassed — so local work and test runs
+ * never impede each other.
  *
  * Precedence: the `DEV_MODE` env var (true/false) overrides the file's
  * `enabled` field; the per-feature options always come from the file. The
@@ -26,6 +27,8 @@ export interface DevModeConfig {
   emailToConsole: boolean;
   /** Skip the email send rate limits (per-type, hourly, per-IP caps). */
   bypassEmailRateLimits: boolean;
+  /** Skip the global API rate limiter (dev traffic bursts from one IP). */
+  bypassGlobalRateLimit: boolean;
   /** Never lock an account after repeated failed sign-in attempts. */
   bypassLoginLockout: boolean;
   /** Do not enforce honeypot-triggered IP bans. */
@@ -36,6 +39,7 @@ export const DEFAULT_DEV_MODE_CONFIG: DevModeConfig = {
   enabled: false,
   emailToConsole: true,
   bypassEmailRateLimits: true,
+  bypassGlobalRateLimit: true,
   bypassLoginLockout: true,
   bypassIpBan: true,
 };
@@ -141,6 +145,11 @@ export function emailToConsole(): boolean {
 /** Email send rate limits are bypassed in dev mode. */
 export function bypassEmailRateLimits(): boolean {
   return devMode() && fileConfig().bypassEmailRateLimits;
+}
+
+/** The global API rate limiter is bypassed in dev mode. */
+export function bypassGlobalRateLimit(): boolean {
+  return devMode() && fileConfig().bypassGlobalRateLimit;
 }
 
 /** Login lockout is bypassed in dev mode. */

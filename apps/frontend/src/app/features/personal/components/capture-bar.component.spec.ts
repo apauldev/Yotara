@@ -63,7 +63,6 @@ describe('CaptureBarComponent', () => {
       { id: 'p2', name: 'Work' },
     ]);
     fixture.componentRef.setInput('creating', false);
-    fixture.componentRef.setInput('defaultProjectId', 'p1');
     fixture.componentRef.setInput('referenceDate', referenceDate);
     fixture.detectChanges();
     return fixture;
@@ -727,15 +726,17 @@ describe('CaptureBarComponent', () => {
       expect(fixture.componentInstance.getDueDateDraft().source).toBe('none');
     });
 
-    it('resets title, parser state, date draft, error, and submission mode', () => {
+    it('resets title, project, parser state, date draft, error, and submission mode', () => {
       const fixture = createFixture();
       fixture.componentInstance.setTitle('Call Sam Friday');
+      fixture.componentInstance['projectId'].set('p2');
       fixture.componentInstance.setError('Failed');
       fixture.componentInstance.setSubmissionType('quick');
 
       fixture.componentInstance.resetCapture();
 
       expect(fixture.componentInstance.getTitle()).toBe('');
+      expect(fixture.componentInstance.getProjectId()).toBeNull();
       expect(fixture.componentInstance.getDueDateDraft().source).toBe('none');
       expect(fixture.componentInstance.getParserResult()).toBeNull();
       expect(fixture.componentInstance.getError()).toBe('');
@@ -751,6 +752,34 @@ describe('CaptureBarComponent', () => {
       expect(input.nativeElement.getAttribute('aria-describedby')).toContain(
         'capture-date-preview',
       );
+    });
+  });
+
+  describe('Project selection', () => {
+    it('starts with no project and offers an explicit No project option', () => {
+      const fixture = createFixture();
+      const select = fixture.debugElement.query(By.css('select[name="captureProjectId"]'));
+
+      expect(fixture.componentInstance.getProjectId()).toBeNull();
+      expect(select.nativeElement.options[0].textContent).toContain('No project');
+    });
+
+    it('returns the selected project id', async () => {
+      const fixture = createFixture();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const select = fixture.debugElement.query(By.css('select[name="captureProjectId"]'))
+        .nativeElement as HTMLSelectElement;
+      const workOption = Array.from(select.options).find(
+        (option) => option.textContent?.trim() === 'Work',
+      );
+
+      select.selectedIndex = Array.from(select.options).indexOf(workOption!);
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.getProjectId()).toBe('p2');
     });
   });
 

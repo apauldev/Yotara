@@ -15,7 +15,7 @@ import {
 import { UnauthorizedError, BadRequestError } from '../lib/app-error.js';
 import { sendBadRequest, sendNotFound } from '../lib/api-errors.js';
 import requireAuthenticatedUser from '../plugins/auth-required.js';
-import { getProjectForOwner } from '../services/project-service.js';
+import { resolveProjectIdForTaskWrite } from '../services/project-service.js';
 import {
   createTaskForOwner,
   cleanupExpiredArchivedTasks,
@@ -279,11 +279,13 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       }
 
       const userId = request.userId;
-      if (request.body.projectId) {
-        const project = await getProjectForOwner(request.body.projectId, userId);
-        if (!project) {
+      if (request.body.projectId != null) {
+        const project = await resolveProjectIdForTaskWrite(userId, request.body.projectId);
+        if (!project.ok) {
           return sendNotFound(reply, 'Project not found');
         }
+        // An owned retired project becomes unfiled instead of breaking capture.
+        request.body.projectId = project.projectId;
       }
 
       const created = await createTaskForOwner(userId, request.body, request.query.tz);
@@ -340,11 +342,12 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         return sendNotFound(reply, 'Task not found');
       }
 
-      if (request.body.projectId) {
-        const project = await getProjectForOwner(request.body.projectId, userId);
-        if (!project) {
+      if (request.body.projectId != null) {
+        const project = await resolveProjectIdForTaskWrite(userId, request.body.projectId);
+        if (!project.ok) {
           return sendNotFound(reply, 'Project not found');
         }
+        request.body.projectId = project.projectId;
       }
 
       const updated = await updateTaskForOwner(

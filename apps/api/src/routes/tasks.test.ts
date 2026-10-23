@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { eq } from 'drizzle-orm';
-import { tasks } from '../db/schema.js';
+import { projects, tasks } from '../db/schema.js';
 import { DateTime } from 'luxon';
 
 async function createAuthedApp() {
@@ -89,7 +89,7 @@ test('tasks routes require auth and scope data to the current user', async () =>
     const created = createResponse.json();
     assert.equal(created.title, 'Write first task');
     assert.equal(created.completed, false);
-    assert.ok(created.projectId);
+    assert.equal(created.projectId, undefined);
     assert.equal(created.simpleMode, true);
     assert.equal(created.dueDate, undefined);
     assertIsoTimestamp(created.createdAt);
@@ -1668,6 +1668,218 @@ test('tasks list filters by labelIds with ownership checks and validation', asyn
       headers: { cookie },
     });
     assert.equal(tooMany.statusCode, 400);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('tasks can be created and updated without a project', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`unfiled-${randomUUID()}@example.com`);
+
+    const omitted = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Unfiled by omission' },
+    });
+    assert.equal(omitted.statusCode, 201);
+    assert.equal(omitted.json().projectId, undefined);
+
+    const explicitNull = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Unfiled by null', projectId: null },
+    });
+    assert.equal(explicitNull.statusCode, 201);
+    assert.equal(explicitNull.json().projectId, undefined);
+
+    const titleOnly = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${omitted.json().id}`,
+      headers: { cookie },
+      payload: { title: 'Still unfiled' },
+    });
+    assert.equal(titleOnly.statusCode, 200);
+    assert.equal(titleOnly.json().projectId, undefined);
+
+    const clear = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${explicitNull.json().id}`,
+      headers: { cookie },
+      payload: { projectId: null },
+    });
+    assert.equal(clear.statusCode, 200);
+    assert.equal(clear.json().projectId, undefined);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('Inbox view requires incomplete, undated, unfiled tasks', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`inbox-view-${randomUUID()}@example.com`);
+
+    const projectResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/projects',
+      headers: { cookie },
+      payload: { name: 'Inbox View Project' },
+    });
+    assert.equal(projectResponse.statusCode, 201);
+    const projectId = projectResponse.json().id as string;
+
+    const taskResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Inbox candidate', status: 'inbox' },
+    });
+    assert.equal(taskResponse.statusCode, 201);
+    const taskId = taskResponse.json().id as string;
+
+    const filedDirectly = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Filed while inbox-status', status: 'inbox', projectId },
+    });
+    assert.equal(filedDirectly.statusCode, 201);
+
+    const inbox = async () => {
+      const response = await ctx.app.inject({
+        method: 'GET',
+        url: '/tasks?view=inbox&tz=UTC',
+        headers: { cookie },
+      });
+      assert.equal(response.statusCode, 200);
+      return response.json().data as Array<{ id: string; title: string }>;
+    };
+
+    let rows = await inbox();
+    assert.ok(rows.some((task) => task.id === taskId));
+    assert.ok(!rows.some((task) => task.id === filedDirectly.json().id));
+
+    const fileTask = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}`,
+      headers: { cookie },
+      payload: { projectId },
+    });
+    assert.equal(fileTask.statusCode, 200);
+
+    rows = await inbox();
+    assert.ok(!rows.some((task) => task.id === taskId), 'filing removes a task from Inbox');
+
+    const unfileTask = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}`,
+      headers: { cookie },
+      payload: { projectId: null },
+    });
+    assert.equal(unfileTask.statusCode, 200);
+
+    rows = await inbox();
+    assert.ok(
+      rows.some((task) => task.id === taskId),
+      'clearing the project returns it to Inbox',
+    );
+
+    const schedule = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}`,
+      headers: { cookie },
+      payload: { dueDate: DateTime.now().toISODate() },
+    });
+    assert.equal(schedule.statusCode, 200);
+
+    rows = await inbox();
+    assert.ok(!rows.some((task) => task.id === taskId), 'scheduling removes a task from Inbox');
+
+    const complete = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${taskId}`,
+      headers: { cookie },
+      payload: { completed: true },
+    });
+    assert.equal(complete.statusCode, 200);
+
+    rows = await inbox();
+    assert.ok(!rows.some((task) => task.id === taskId), 'completing removes a task from Inbox');
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('retired projects resolve to unfiled on task writes and stay hidden', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`retired-${randomUUID()}@example.com`);
+
+    const createProject = await ctx.app.inject({
+      method: 'POST',
+      url: '/projects',
+      headers: { cookie },
+      payload: { name: 'Retired Project' },
+    });
+    assert.equal(createProject.statusCode, 201);
+    const retiredProjectId = createProject.json().id as string;
+
+    const { db } = await import('../db/client.js');
+    await db
+      .update(projects)
+      .set({ retiredAt: new Date().toISOString() })
+      .where(eq(projects.id, retiredProjectId));
+
+    const created = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Stale create', projectId: retiredProjectId },
+    });
+    assert.equal(created.statusCode, 201);
+    assert.equal(created.json().projectId, undefined);
+
+    const plainTask = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Stale update target' },
+    });
+    assert.equal(plainTask.statusCode, 201);
+
+    const updated = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/tasks/${plainTask.json().id}`,
+      headers: { cookie },
+      payload: { projectId: retiredProjectId },
+    });
+    assert.equal(updated.statusCode, 200);
+    assert.equal(updated.json().projectId, undefined);
+
+    const list = await ctx.app.inject({ method: 'GET', url: '/projects', headers: { cookie } });
+    assert.equal(list.statusCode, 200);
+    assert.ok(!list.json().some((project: { id: string }) => project.id === retiredProjectId));
+
+    const detail = await ctx.app.inject({
+      method: 'GET',
+      url: `/projects/${retiredProjectId}`,
+      headers: { cookie },
+    });
+    assert.equal(detail.statusCode, 404);
+
+    const projectTasks = await ctx.app.inject({
+      method: 'GET',
+      url: `/projects/${retiredProjectId}/tasks`,
+      headers: { cookie },
+    });
+    assert.equal(projectTasks.statusCode, 404);
   } finally {
     await ctx.cleanup();
   }

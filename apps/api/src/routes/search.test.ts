@@ -403,13 +403,13 @@ test('search returns project results with task counts', async () => {
   assert.equal(matched.project.completedTaskCount, 0);
 });
 
-test('search returns the Inbox project for tasks without a user-assigned project', async () => {
+test('search returns null project for tasks without a user-assigned project', async () => {
   const app = await getApp();
   const cookie = await signUpAndGetCookie(`noproj-${randomUUID()}@example.com`);
 
   await createTask(app, cookie, {
     title: 'Standalone task with no explicit project',
-    description: 'This task belongs to the default Inbox project',
+    description: 'This task is unfiled',
   });
 
   const res = await app.inject({
@@ -420,8 +420,7 @@ test('search returns the Inbox project for tasks without a user-assigned project
   assert.equal(res.statusCode, 200);
   assert.equal(res.json().tasks.length, 1);
   assert.equal(res.json().tasks[0].task.title, 'Standalone task with no explicit project');
-  assert.ok(res.json().tasks[0].project != null);
-  assert.equal(res.json().tasks[0].project.name, 'Inbox');
+  assert.equal(res.json().tasks[0].project, null);
 });
 
 test('search paginates and defaults to pageSize 50', async () => {

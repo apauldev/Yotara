@@ -63,7 +63,12 @@
                   role="img"
                 ></div>
                 <div class="project-info">
-                  <h3>{{ project.name }}</h3>
+                  <div class="project-title-row">
+                    <h3>{{ project.name }}</h3>
+                    <span class="open-task-badge" [class.is-empty]="project.openTaskCount === 0">
+                      {{ openTaskLabel(project) }}
+                    </span>
+                  </div>
                   <p class="description-line">
                     {{ project.description || 'A calm place for the work that belongs together.' }}
                   </p>

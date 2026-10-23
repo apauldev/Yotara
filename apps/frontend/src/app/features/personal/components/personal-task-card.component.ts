@@ -17,12 +17,12 @@ import { faBoxArchive, faRotate, faRotateLeft, faTrash } from '@fortawesome/free
 import { MarkdownComponent } from 'ngx-markdown';
 import { LabelService } from '../../../core/services/label.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
-import { StatusService } from '../../../core/services/status.service';
 import { TaskService } from '../../../core/services/task.service';
 import { LabelChipComponent } from '../../../shared/ui/label-chip/label-chip.component';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 import { formatTimeLabel, parseCalendarDate } from '../../../shared/utils/timestamps';
-import { notifyTaskCompleted } from '../utils/task-completion-notice';
+import { getTaskViewDestination } from '../utils/task-creation-notification';
+import { TaskMovementNoticeService } from '../utils/task-movement-notice';
 
 @Component({
   selector: 'app-personal-task-card',
@@ -762,7 +762,7 @@ import { notifyTaskCompleted } from '../utils/task-completion-notice';
 export class PersonalTaskCardComponent {
   private readonly taskService = inject(TaskService);
   private readonly labelService = inject(LabelService);
-  private readonly statusService = inject(StatusService);
+  private readonly movementNotice = inject(TaskMovementNoticeService);
   private readonly preferences = inject(PreferencesStore);
 
   protected readonly completeConfirmOpen = signal(false);
@@ -783,6 +783,8 @@ export class PersonalTaskCardComponent {
   @Input() showCompletionState = false;
   @Input() showArchiveActions = false;
   @Input() interactive = false;
+  /** The card is rendered inside the visible Inbox view. */
+  @Input() fromInbox = false;
   /**
    * Hides ambient task metadata (status / simple-mode pills). The Labels page
    * sets false so the chips tell the label story uncluttered.
@@ -827,7 +829,25 @@ export class PersonalTaskCardComponent {
       return 'Overdue';
     }
 
-    switch (this.task().status) {
+    const status = this.task().status;
+    if (this.task().projectId && status !== 'done' && status !== 'archived') {
+      if (!this.task().dueDate) {
+        return 'Unscheduled';
+      }
+
+      switch (getTaskViewDestination(this.task().dueDate, status)) {
+        case 'today':
+          return 'Today';
+        case 'upcoming':
+          return 'Upcoming';
+        case 'overdue':
+          return 'Overdue';
+        default:
+          return 'Unscheduled';
+      }
+    }
+
+    switch (status) {
       case 'today':
         return 'Today';
       case 'upcoming':
@@ -933,14 +953,15 @@ export class PersonalTaskCardComponent {
 
   async completeTask() {
     this.completing.set(true);
-    const wasCompleted = this.task().completed;
+    const task = this.task();
+    const wasCompleted = task.completed;
 
     try {
-      await this.taskService.updateTask(this.task().id, { completed: !wasCompleted });
+      await this.taskService.updateTask(task.id, { completed: !wasCompleted });
       this.completeConfirmOpen.set(false);
 
       if (!wasCompleted) {
-        notifyTaskCompleted(this.statusService, this.preferences);
+        this.movementNotice.notifyCompleted(task, this.fromInbox);
       }
 
       if (this.dontShowAgain) {

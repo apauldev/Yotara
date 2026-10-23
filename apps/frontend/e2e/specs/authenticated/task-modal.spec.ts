@@ -294,7 +294,8 @@ test.describe('Task Modal CRUD', () => {
     await page.getByRole('button', { name: '+ New Project' }).click();
     await page.getByPlaceholder('e.g. Morning Rituals').fill(projName);
     await page.getByRole('button', { name: 'Create Project' }).click();
-    await page.waitForTimeout(1000);
+    await page.waitForURL(/\/projects\/[a-zA-Z0-9-]+/, { timeout: 10_000 });
+    const projectUrl = page.url();
     await page.waitForLoadState('networkidle');
 
     // Go back to tasks
@@ -313,10 +314,15 @@ test.describe('Task Modal CRUD', () => {
 
     // Create task
     await page.getByRole('button', { name: 'Create Task' }).click();
-    await page.waitForTimeout(1000);
+    await expect(
+      page.locator('.toast').filter({ hasText: `"${name}" added to ${projName}` }),
+    ).toBeVisible({ timeout: 10_000 });
     await page.waitForLoadState('networkidle');
 
-    // Verify task card appears
+    // A filed task is not part of Inbox; it appears on the chosen project.
+    await expect(page.locator('article.task-card').filter({ hasText: name })).toHaveCount(0);
+    await page.goto(projectUrl);
+    await page.waitForLoadState('networkidle');
     await expect(page.locator('article.task-card').filter({ hasText: name }).first()).toBeVisible({
       timeout: 10_000,
     });

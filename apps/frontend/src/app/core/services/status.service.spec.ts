@@ -64,6 +64,83 @@ describe('StatusService', () => {
       expect(service.toasts().length).toBe(0);
     }));
 
+    it('pauses and resumes the remaining dismissal time', fakeAsync(() => {
+      const id = service.show('Pausable', 'info', 1000);
+
+      tick(400);
+      service.pause(id);
+      tick(2000);
+      expect(service.toasts().length).toBe(1);
+
+      service.resume(id);
+      tick(599);
+      expect(service.toasts().length).toBe(1);
+      tick(1);
+      expect(service.toasts().length).toBe(0);
+    }));
+
+    it('ignores duplicate pause and resume calls', fakeAsync(() => {
+      const id = service.show('Pausable', 'info', 1000);
+
+      tick(200);
+      service.pause(id);
+      service.pause(id);
+      service.resume(id);
+      service.resume(id);
+
+      tick(801);
+      expect(service.toasts().length).toBe(0);
+    }));
+
+    it('replaces an existing toast with the same key and cancels its timer', fakeAsync(() => {
+      service.show('First', 'info', 1000, { key: 'task-1' });
+      tick(500);
+
+      service.show('Second', 'success', 1000, { key: 'task-1' });
+      expect(service.toasts().length).toBe(1);
+      expect(service.toasts()[0].message).toBe('Second');
+
+      // The replaced toast's timer would have fired by now.
+      tick(600);
+      expect(service.toasts().length).toBe(1);
+      expect(service.toasts()[0].message).toBe('Second');
+
+      tick(400);
+      expect(service.toasts().length).toBe(0);
+    }));
+
+    it('cancels the dismissal timer when a toast is removed manually', fakeAsync(() => {
+      const id = service.show('Manual', 'info', 1000);
+      tick(500);
+      service.remove(id);
+
+      tick(1000);
+      expect(service.toasts().length).toBe(0);
+    }));
+
+    it('clears every toast and timer', fakeAsync(() => {
+      service.show('One', 'info', 1000);
+      service.show('Two', 'error', 1000);
+      service.clearAll();
+      expect(service.toasts()).toEqual([]);
+
+      tick(1000);
+      expect(service.toasts()).toEqual([]);
+    }));
+
+    it('retains optional actions and bypasses the timer for duration zero', fakeAsync(() => {
+      const callback = jasmine.createSpy('callback');
+      service.show('Actionable', 'success', 0, {
+        key: 'task-1',
+        action: { label: 'View', callback },
+      });
+
+      expect(service.toasts()[0].action?.label).toBe('View');
+      expect(service.toasts()[0].key).toBe('task-1');
+      tick(10_000);
+      expect(service.toasts().length).toBe(1);
+    }));
+
     it('should provide helper methods for success and error', () => {
       service.success('Success!');
       expect(service.toasts()[0].type).toBe('success');

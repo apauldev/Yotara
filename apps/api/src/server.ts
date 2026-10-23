@@ -19,7 +19,7 @@ import rootRoutes from './routes/root.js';
 import searchRoutes from './routes/search.js';
 import taskRoutes from './routes/tasks.js';
 import devRoutes from './routes/dev.js';
-import { isLocalDevMode } from './lib/dev-mode.js';
+import { isLocalDevMode, bypassGlobalRateLimit } from './lib/dev-mode.js';
 
 // Content-Security-Policy — single source of truth for the API and nginx.
 // nginx reads it via the CONTENT_SECURITY_POLICY env var (injected at container
@@ -61,13 +61,16 @@ export async function buildApp() {
 
   // Global rate limiting (read at registration time so tests can configure via env).
   // request.ip is derived from the socket address unless it comes through a
-  // configured trusted proxy.
+  // configured trusted proxy. Dev mode skips the limiter: local traffic shares
+  // one IP and legitimately bursts (page loads, Playwright, hot reload), which
+  // otherwise turns into 429s and stalled test runs.
   const rateLimitMax = Number(process.env['RATE_LIMIT_MAX'] ?? 200);
   const rateLimitWindowMs = Number(process.env['RATE_LIMIT_WINDOW_MINUTES'] ?? 1) * 60 * 1000;
   await app.register(rateLimit, {
     max: rateLimitMax,
     timeWindow: rateLimitWindowMs,
     keyGenerator: (request) => request.ip,
+    allowList: bypassGlobalRateLimit() ? () => true : undefined,
   });
   await app.register(authBridgePlugin);
   app.addHook('onRequest', async (request, reply) => {

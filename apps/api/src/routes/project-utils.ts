@@ -81,7 +81,9 @@ export async function getProjectById(projectId: string, ownerId: string) {
     })
     .from(projects)
     .leftJoin(tasks, and(eq(tasks.projectId, projects.id), isNull(tasks.deletedAt)))
-    .where(and(eq(projects.id, projectId), eq(projects.ownerId, ownerId)))
+    .where(
+      and(eq(projects.id, projectId), eq(projects.ownerId, ownerId), isNull(projects.retiredAt)),
+    )
     .groupBy(projects.id)
     .limit(1);
 
@@ -104,7 +106,7 @@ export async function getProjectsForOwner(ownerId: string) {
     })
     .from(projects)
     .leftJoin(tasks, and(eq(tasks.projectId, projects.id), isNull(tasks.deletedAt)))
-    .where(eq(projects.ownerId, ownerId))
+    .where(and(eq(projects.ownerId, ownerId), isNull(projects.retiredAt)))
     .groupBy(projects.id)
     .orderBy(sql`${projects.updatedAt} desc`);
 }

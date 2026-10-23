@@ -16,7 +16,6 @@ import { nowIsoTimestamp } from '../lib/timestamps.js';
 import { todayInTimezone, startOfDayInUtc } from '../lib/timezone.js';
 import { AppError, BadRequestError, NotFoundError } from '../lib/app-error.js';
 import { getLabelsForTasks, getTaskLabels, syncTaskLabels } from './label-service.js';
-import { getDefaultProjectForOwner } from './project-service.js';
 import {
   createDueNotificationIfNeeded,
   retireSupersededDueNotifications,
@@ -229,7 +228,11 @@ export async function listTasksForOwner(
           whereClause = and(
             whereClause,
             eq(tasks.completed, false),
-            and(eq(tasks.status, 'inbox'), or(isNull(tasks.dueDate), sql`${tasks.dueDate} = ''`)),
+            and(
+              eq(tasks.status, 'inbox'),
+              or(isNull(tasks.dueDate), sql`${tasks.dueDate} = ''`),
+              isNull(tasks.projectId),
+            ),
           );
           break;
         case 'upcoming':
@@ -436,8 +439,7 @@ function createTaskForOwnerSync(ownerId: string, body: CreateTaskDto, tz?: strin
       }
     }
 
-    const defaultProject = payload.projectId ? null : getDefaultProjectForOwner(ownerId, client);
-    const projectId = payload.projectId ?? defaultProject?.id ?? null;
+    const projectId = payload.projectId ?? null;
 
     client
       .insert(tasks)
@@ -561,12 +563,7 @@ function updateTaskForOwnerSync(
           ? (current.archivedAt ?? nowIsoTimestamp())
           : null;
     const nextProjectId =
-      body.projectId === null
-        ? null
-        : (body.projectId ??
-          current.projectId ??
-          getDefaultProjectForOwner(ownerId, client)?.id ??
-          null);
+      body.projectId === null ? null : (body.projectId ?? current.projectId ?? null);
     const nextParentId =
       body.parentId === null ? null : (body.parentId ?? current.parentId ?? undefined);
 
