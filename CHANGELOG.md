@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.84.0](https://github.com/apauldev/Yotara/compare/v0.83.1...v0.84.0) (2026-10-23)
+
+
+### Features
+
+* **api:** make Inbox an unfiled view ([2ec3846](https://github.com/apauldev/Yotara/commit/2ec384622253ef4d36aeceb04a4e3da554295c47))
+* **frontend:** add Inbox movement feedback ([9b6e4a9](https://github.com/apauldev/Yotara/commit/9b6e4a9ec7f4f63ffd03a2939ea5fa1091bd1444))
+* **frontend:** make capture project selection explicit ([540a784](https://github.com/apauldev/Yotara/commit/540a784ac9cc31b945ee0839107c8671478c8844))
+* **frontend:** show open task counts on projects ([e8d8029](https://github.com/apauldev/Yotara/commit/e8d80298c3086f7c83f7cbe5e71fffaa525b30d4))
+
+
+### Bug Fixes
+
+* **api:** bypass global rate limit in dev mode ([fa29e38](https://github.com/apauldev/Yotara/commit/fa29e38a0e86c587a4df551205e27b96a1a5e72e))
+* **api:** keep onboarding starter seeding retryable ([1c9dcf1](https://github.com/apauldev/Yotara/commit/1c9dcf110df6cc72e2f44c15a30e8dda7349d0ee))
+* **frontend:** align Inbox capture feedback ([e129bdd](https://github.com/apauldev/Yotara/commit/e129bdd281749eb149208ad7754adc1da05b1e73))
+* handle starter seeding and stale toast actions ([07bfa88](https://github.com/apauldev/Yotara/commit/07bfa880e5a6102f0d7b1c800a5433f00ce2edf1))
+
+
+### Documentation
+
+* **plans:** add Inbox quick capture plans ([6d92587](https://github.com/apauldev/Yotara/commit/6d925879424c81e4fa2779f82ad52c45e60ba4e5))
+
+
+### Chores
+
+* **deps:** consolidate dependency and security updates ([6498262](https://github.com/apauldev/Yotara/commit/6498262e42e1185ca079dd182e017c24a5a0a7c7))
+
 ## [0.83.1](https://github.com/apauldev/Yotara/compare/v0.83.0...v0.83.1) (2026-10-22)
 
 
