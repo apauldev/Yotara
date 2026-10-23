@@ -58,7 +58,7 @@ export class AppStatusComponent implements OnDestroy {
 
   private readonly hovered = new Set<string>();
   private readonly focused = new Set<string>();
-  private readonly pendingActions = new Map<string, () => void>();
+  private readonly pendingActions = new Map<string, { callback: () => void; key?: string }>();
 
   constructor() {
     effect(() => {
@@ -120,18 +120,22 @@ export class AppStatusComponent implements OnDestroy {
     if (!this.statusService.toasts().some((active) => active.id === toast.id)) return;
 
     this.statusService.pause(toast.id);
-    this.pendingActions.set(toast.id, action.callback);
-    this.statusService.remove(toast.id);
+    this.pendingActions.set(toast.id, { callback: action.callback, key: toast.key });
+    this.statusService.remove(toast.id, true);
   }
 
   protected onToastAnimationDone(id: string, event: AnimationEvent) {
     if (event.phaseName !== 'done' || event.toState !== 'void') return;
 
-    const callback = this.pendingActions.get(id);
-    if (!callback) return;
+    const pending = this.pendingActions.get(id);
+    if (!pending) return;
 
     this.pendingActions.delete(id);
-    callback();
+    const isCurrent = this.statusService.isCurrentKeyedToast(id, pending.key);
+    this.statusService.completeDismissal(id, pending.key);
+    if (isCurrent) {
+      pending.callback();
+    }
   }
 
   private resumeToast(id: string) {

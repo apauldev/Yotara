@@ -63,19 +63,23 @@ async function loadProjectById(projectId: string, ownerId: string) {
 }
 
 /**
- * Seeds the starter set for accounts that have no projects. Callers must gate
- * this on the onboarding-incomplete → complete transition; it is not a read-path
- * fallback, so renamed or removed starter projects are never recreated.
+ * Seeds missing starter projects. Callers must gate this on the
+ * onboarding-incomplete → complete transition; it is not a read-path fallback,
+ * so later profile saves cannot recreate renamed or removed starter projects.
  */
 export function seedDefaultProjectsForOwner(ownerId: string, tx?: Database) {
   const client = tx ?? db;
-  const existing = client
-    .select({ name: projects.name })
-    .from(projects)
-    .where(eq(projects.ownerId, ownerId))
-    .all();
+  const existingNames = new Set(
+    client
+      .select({ name: projects.name })
+      .from(projects)
+      .where(eq(projects.ownerId, ownerId))
+      .all()
+      .map((project) => project.name),
+  );
+  const missingProjects = DEFAULT_PROJECTS.filter((project) => !existingNames.has(project.name));
 
-  if (existing.length > 0) {
+  if (missingProjects.length === 0) {
     return;
   }
 
@@ -83,7 +87,7 @@ export function seedDefaultProjectsForOwner(ownerId: string, tx?: Database) {
   client
     .insert(projects)
     .values(
-      DEFAULT_PROJECTS.map((project) => ({
+      missingProjects.map((project) => ({
         id: randomUUID(),
         ownerId,
         name: project.name,

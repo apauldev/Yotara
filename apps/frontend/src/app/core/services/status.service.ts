@@ -40,6 +40,7 @@ export class StatusService {
   private readonly _toasts = signal<StatusMessage[]>([]);
   private readonly _loadingCount = signal(0);
   private readonly timers = new Map<string, StatusTimer>();
+  private readonly keyedToastIds = new Map<string, string>();
 
   /**
    * Currently active toasts.
@@ -65,9 +66,9 @@ export class StatusService {
     options: StatusOptions = {},
   ): string {
     if (options.key) {
-      const existing = this._toasts().find((toast) => toast.key === options.key);
-      if (existing) {
-        this.remove(existing.id);
+      const existingId = this.keyedToastIds.get(options.key);
+      if (existingId) {
+        this.remove(existingId);
       }
     }
 
@@ -83,6 +84,9 @@ export class StatusService {
     };
 
     this._toasts.update((current) => [...current, toast]);
+    if (options.key) {
+      this.keyedToastIds.set(options.key, id);
+    }
 
     if (duration > 0) {
       this.startTimer(id, duration);
@@ -135,10 +139,21 @@ export class StatusService {
     this.startTimer(id, timer.remaining, timer);
   }
 
+  isCurrentKeyedToast(id: string, key?: string): boolean {
+    return key ? this.keyedToastIds.get(key) === id : true;
+  }
+
+  completeDismissal(id: string, key?: string) {
+    if (key && this.keyedToastIds.get(key) === id) {
+      this.keyedToastIds.delete(key);
+    }
+  }
+
   /**
    * Remove a toast by its ID.
    */
-  remove(id: string) {
+  remove(id: string, preserveKey = false) {
+    const toast = this._toasts().find((message) => message.id === id);
     const timer = this.timers.get(id);
     if (timer) {
       if (timer.handle) {
@@ -146,8 +161,11 @@ export class StatusService {
       }
       this.timers.delete(id);
     }
+    if (!preserveKey && toast?.key && this.keyedToastIds.get(toast.key) === id) {
+      this.keyedToastIds.delete(toast.key);
+    }
 
-    this._toasts.update((current) => current.filter((toast) => toast.id !== id));
+    this._toasts.update((current) => current.filter((message) => message.id !== id));
   }
 
   /**
@@ -161,6 +179,7 @@ export class StatusService {
       }
     }
     this.timers.clear();
+    this.keyedToastIds.clear();
     this._toasts.set([]);
   }
 
@@ -184,8 +203,7 @@ export class StatusService {
     timer.remaining = duration;
     timer.startedAt = Date.now();
     timer.handle = setTimeout(() => {
-      this.timers.delete(id);
-      this._toasts.update((current) => current.filter((toast) => toast.id !== id));
+      this.remove(id);
     }, duration);
     this.timers.set(id, timer);
   }

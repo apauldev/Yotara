@@ -30,7 +30,7 @@ test('Project Service', async (t) => {
 
   try {
     // Create a user in the DB for FK constraints
-    const { users } = await import('../db/schema.js');
+    const { projects: projectsTable, users } = await import('../db/schema.js');
     await ctx.db.insert(users).values({
       id: ownerId,
       name: 'Test User',
@@ -83,6 +83,48 @@ test('Project Service', async (t) => {
       const projects = await ctx.projectService.listProjectsForOwner(existingOwnerId);
       const names = projects.map((project) => project.name).sort();
       assert.deepEqual(names, ['Only Project']);
+    });
+
+    await t.test('seeds missing starters alongside existing and retired projects', async () => {
+      const partialOwnerId = randomUUID();
+      await ctx.db.insert(users).values({
+        id: partialOwnerId,
+        name: 'Partial User',
+        email: `${partialOwnerId}@example.com`,
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      await ctx.projectService.createProjectForOwner(partialOwnerId, {
+        name: 'Custom Project',
+      });
+      await ctx.db.insert(projectsTable).values({
+        id: randomUUID(),
+        ownerId: partialOwnerId,
+        name: 'Inbox',
+        description: 'Default capture space for incoming tasks.',
+        color: null,
+        retiredAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      ctx.projectService.seedDefaultProjectsForOwner(partialOwnerId);
+      ctx.projectService.seedDefaultProjectsForOwner(partialOwnerId);
+
+      const projects = await ctx.projectService.listProjectsForOwner(partialOwnerId);
+      const names = projects.map((project) => project.name).sort();
+      assert.deepEqual(names, [
+        'Custom Project',
+        'Finance',
+        'Health',
+        'Home',
+        'Learning',
+        'Personal',
+        'Side Projects',
+        'Work',
+      ]);
     });
 
     await t.test('creates a project with default fields', async () => {

@@ -142,6 +142,34 @@ describe('AppStatusComponent', () => {
     expect(statusService.toasts().length).toBe(0);
   }));
 
+  it('does not run a dismissed action after a same-key replacement', () => {
+    createComponent();
+    const first = jasmine.createSpy('first');
+    const second = jasmine.createSpy('second');
+
+    const firstId = statusService.show('Moved to Today', 'success', 3000, {
+      key: 'task-movement:task-1',
+      action: { label: 'View', callback: first },
+    });
+    fixture.detectChanges();
+
+    fixture.debugElement.query(By.css('.toast-action')).nativeElement.click();
+    expect(statusService.toasts()).toEqual([]);
+
+    const secondId = statusService.show('Moved to Work', 'success', 3000, {
+      key: 'task-movement:task-1',
+      action: { label: 'View', callback: second },
+    });
+    fixture.detectChanges();
+
+    component['onToastAnimationDone'](firstId, animationDone('void'));
+    expect(first).not.toHaveBeenCalled();
+
+    fixture.debugElement.query(By.css('.toast-action')).nativeElement.click();
+    component['onToastAnimationDone'](secondId, animationDone('void'));
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
   it('replaces a task toast without keeping the old action alive', fakeAsync(() => {
     createComponent();
     const first = jasmine.createSpy('first');
