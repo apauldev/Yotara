@@ -37,13 +37,13 @@
     "@spartan-ng/brain": "0.0.1-alpha.646",
     "@types/luxon": "^3.7.5",
     "@yotara/shared": "workspace:*",
-    "better-auth": "^1.5.4",
+    "better-auth": "~1.6.22",
     "chrono-node": "2.10.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
-    "dompurify": "^3.4.8",
+    "dompurify": "^3.4.17",
     "luxon": "^3.7.2",
-    "marked": "^18.0.4",
+    "marked": "^18.1.1",
     "ngx-markdown": "^22.0.0",
     "rxjs": "~7.8.0",
     "tailwind-merge": "^3.6.0",
@@ -70,10 +70,10 @@
     "marked-katex-extension": "^5.1.10",
     "postcss": "^8.5.8",
     "postcss-scss": "^4.0.9",
-    "stylelint": "^17.14.0",
+    "stylelint": "^17.16.0",
     "stylelint-config-standard": "^40.0.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.3",
-    "wait-on": "^8.0.3"
+    "wait-on": "^9.5.1"
   }
 }
