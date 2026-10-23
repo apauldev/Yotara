@@ -379,6 +379,35 @@ describe('PersonalTaskCardComponent', () => {
       );
     });
 
+    it('uses the pre-save task snapshot when completion refetches before notifying', async () => {
+      preferences.setSkipCompleteConfirm(true);
+      setTask({ ...mockTask, status: 'inbox', dueDate: undefined, projectId: undefined });
+      fixture.componentRef.setInput('fromInbox', true);
+      fixture.detectChanges();
+
+      taskServiceSpy.updateTask.and.callFake(async () => {
+        const refetched = {
+          ...mockTask,
+          title: 'Refetched title',
+          status: 'inbox' as const,
+          dueDate: undefined,
+          projectId: undefined,
+          completed: true,
+        };
+        setTask(refetched);
+        return refetched;
+      });
+
+      await component.completeTask();
+
+      expect(statusServiceSpy.success).toHaveBeenCalledTimes(1);
+      expect(statusServiceSpy.success).toHaveBeenCalledWith(
+        '"Write morning pages" completed and moved to Archive',
+        3000,
+        jasmine.objectContaining({ key: 'task-movement:task-1' }),
+      );
+    });
+
     it('does not show a completion notification when action notifications are disabled', async () => {
       preferences.setSkipCompleteConfirm(true);
       preferences.setActionNotifications(false);

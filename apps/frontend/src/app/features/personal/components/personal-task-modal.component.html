@@ -453,8 +453,15 @@
 
       <div class="sidebar-section">
         @if (draftProjectId() !== null) {
-          <span class="field-label">Status</span>
-          <p class="project-helper" data-testid="task-status-readout">{{ statusPresentation() }}</p>
+          <span class="field-label" id="task-status-readout-label">Status</span>
+          <p
+            class="project-helper"
+            data-testid="task-status-readout"
+            aria-labelledby="task-status-readout-label"
+            role="status"
+          >
+            {{ statusPresentation() }}
+          </p>
         } @else {
           <label class="field-label" for="task-status">Status</label>
           <select

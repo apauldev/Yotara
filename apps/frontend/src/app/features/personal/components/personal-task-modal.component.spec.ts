@@ -540,6 +540,21 @@ describe('PersonalTaskModalComponent', () => {
       );
     });
 
+    it('labels and announces the filed status readout', () => {
+      openCreateTask('project-2');
+      component['showAdvanced'].set(true);
+      fixture.detectChanges();
+
+      const label = fixture.debugElement.query(By.css('#task-status-readout-label'));
+      const readout = fixture.debugElement.query(By.css('[data-testid="task-status-readout"]'));
+
+      expect(label.nativeElement.textContent).toContain('Status');
+      expect(readout.nativeElement.getAttribute('aria-labelledby')).toBe(
+        'task-status-readout-label',
+      );
+      expect(readout.nativeElement.getAttribute('role')).toBe('status');
+    });
+
     it('presents an undated filed task as Unscheduled instead of Inbox', () => {
       openCreateTask('project-2');
       component['showAdvanced'].set(true);

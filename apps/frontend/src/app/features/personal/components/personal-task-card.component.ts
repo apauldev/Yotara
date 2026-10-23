@@ -953,14 +953,15 @@ export class PersonalTaskCardComponent {
 
   async completeTask() {
     this.completing.set(true);
-    const wasCompleted = this.task().completed;
+    const task = this.task();
+    const wasCompleted = task.completed;
 
     try {
-      await this.taskService.updateTask(this.task().id, { completed: !wasCompleted });
+      await this.taskService.updateTask(task.id, { completed: !wasCompleted });
       this.completeConfirmOpen.set(false);
 
       if (!wasCompleted) {
-        this.movementNotice.notifyCompleted(this.task(), this.fromInbox);
+        this.movementNotice.notifyCompleted(task, this.fromInbox);
       }
 
       if (this.dontShowAgain) {

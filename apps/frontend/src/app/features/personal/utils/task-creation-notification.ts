@@ -73,15 +73,16 @@ export function taskCreationNotification(notice: TaskCreationNotice): string {
   const formattedDueDate = parseCalendarDate(dueDate)?.toFormat('EEE, LLL d, yyyy');
   const formattedDueTime = formatTimeLabel(dueTime);
 
-  // An undated capture filed into a project lands in that project, not in
-  // Inbox. Naming the project as the destination avoids the misleading
-  // "added to Inbox (Project)" phrasing.
-  if (projectName && !formattedDueDate) {
+  // An unfiled capture lands in Inbox. An undated capture filed into a project
+  // lands in that project, so naming the project as the destination avoids the
+  // misleading "added to Inbox (Project)" phrasing.
+  if (projectName && destination === 'inbox') {
     return `"${truncateTaskTitle(title)}" added to ${projectName}`;
   }
 
-  // Dated tasks are announced by the view their date puts them in. Name the
-  // project only when it adds information and does not repeat that view name.
+  // Other captures are announced by the view their date or status puts them
+  // in. Name the project only when it adds information and does not repeat
+  // that view name.
   const showProject = !!projectName && projectName !== label;
   const projectSuffix = showProject ? ` (${projectName})` : '';
   const head = `"${truncateTaskTitle(title)}" added to ${label}${projectSuffix}`;

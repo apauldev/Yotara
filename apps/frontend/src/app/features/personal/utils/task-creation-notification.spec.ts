@@ -68,6 +68,28 @@ describe('task creation notifications', () => {
     ).toBe('"Buy milk" added to Home');
   });
 
+  it('names the scheduled view and project when status is set without a due date', () => {
+    expect(
+      taskCreationNotification({
+        title: 'Buy milk',
+        status: 'today',
+        projectId: 'home-1',
+        projects,
+        reference,
+      }),
+    ).toBe('"Buy milk" added to Today (Home)');
+
+    expect(
+      taskCreationNotification({
+        title: 'Buy milk',
+        status: 'upcoming',
+        projectId: 'home-1',
+        projects,
+        reference,
+      }),
+    ).toBe('"Buy milk" added to Upcoming (Home)');
+  });
+
   it('omits the project when no project was resolved', () => {
     expect(taskCreationNotification({ title: 'Buy milk', reference })).toBe(
       '"Buy milk" added to Inbox',
