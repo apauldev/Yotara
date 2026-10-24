@@ -1673,6 +1673,98 @@ test('tasks list filters by labelIds with ownership checks and validation', asyn
   }
 });
 
+test('tasks list composes project, priority, and label filters', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`composed-filter-${randomUUID()}@example.com`);
+
+    const createProject = async (name: string) => {
+      const response = await ctx.app.inject({
+        method: 'POST',
+        url: '/projects',
+        headers: { cookie },
+        payload: { name },
+      });
+      assert.equal(response.statusCode, 201);
+      return response.json().id as string;
+    };
+    const workProjectId = await createProject('Work');
+    const homeProjectId = await createProject('Home');
+
+    const labelResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/labels',
+      headers: { cookie },
+      payload: { name: 'Focus' },
+    });
+    assert.equal(labelResponse.statusCode, 201);
+    const focusLabelId = labelResponse.json().id as string;
+
+    const createTask = async (
+      title: string,
+      priority: 'low' | 'medium' | 'high',
+      projectId?: string,
+      labels: string[] = [],
+    ) => {
+      const response = await ctx.app.inject({
+        method: 'POST',
+        url: '/tasks',
+        headers: { cookie },
+        payload: { title, priority, status: 'today', ...(projectId ? { projectId } : {}), labels },
+      });
+      assert.equal(response.statusCode, 201);
+    };
+    await createTask('Work high focus', 'high', workProjectId, [focusLabelId]);
+    await createTask('Work low', 'low', workProjectId);
+    await createTask('Home high focus', 'high', homeProjectId, [focusLabelId]);
+    await createTask('Unfiled high', 'high');
+
+    const titlesFor = async (query: Record<string, string>) => {
+      const response = await ctx.app.inject({
+        method: 'GET',
+        url: `/tasks?${new URLSearchParams({ includeSubtasks: 'true', completed: 'false', ...query }).toString()}`,
+        headers: { cookie },
+      });
+      assert.equal(response.statusCode, 200);
+      return response.json().data.map((task: { title: string }) => task.title) as string[];
+    };
+
+    assert.deepEqual(await titlesFor({ projectId: workProjectId }), [
+      'Work high focus',
+      'Work low',
+    ]);
+    assert.deepEqual(await titlesFor({ priority: 'high' }), [
+      'Work high focus',
+      'Home high focus',
+      'Unfiled high',
+    ]);
+    assert.deepEqual(
+      await titlesFor({ projectId: workProjectId, priority: 'high', labelIds: focusLabelId }),
+      ['Work high focus'],
+    );
+
+    const foreignProject = await titlesFor({ projectId: randomUUID() });
+    assert.equal(foreignProject.length, 0);
+
+    const badProject = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?projectId=not-a-project',
+      headers: { cookie },
+    });
+    assert.equal(badProject.statusCode, 400);
+
+    const badPriority = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?priority=urgent',
+      headers: { cookie },
+    });
+    assert.equal(badPriority.statusCode, 400);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
 test('tasks can be created and updated without a project', async () => {
   const ctx = await createAuthedApp();
 

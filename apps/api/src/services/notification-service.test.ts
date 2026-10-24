@@ -17,6 +17,7 @@ import {
   scanDueNotifications,
 } from './notification-service.js';
 import { notifications } from '../db/schema.js';
+import { todayInTimezone } from '../lib/timezone.js';
 
 function createTestDb(): {
   db: Database;
@@ -656,24 +657,49 @@ test('a timezone-less scan still calls a date-only task overdue', () => {
 
 test('createDueNotificationIfNeeded respects custom timezone', () => {
   const { db, userId, sqlite } = createTestDb();
-  const today = new Date().toISOString().slice(0, 10);
-  const taskId = randomUUID();
-  createTask(sqlite, taskId, userId, 'Timezone task');
+  // Pinned to 23:00 New York on Jan 15 (04:00Z Jan 16): an instant where UTC
+  // already sits on the next calendar date. A wall-clock-derived `dueDate`
+  // fails somewhere in the world every day (this test flaked for hours after
+  // each 00:00Z), so the due date is owned by the zone under test and the
+  // clock is injected, never read.
+  const now = DateTime.fromISO('2026-01-15T23:00:00', { zone: 'America/New_York' });
+  const utcTaskId = randomUUID();
+  const zoneTaskId = randomUUID();
+  createTask(sqlite, zoneTaskId, userId, 'Timezone task');
+  createTask(sqlite, utcTaskId, userId, 'UTC task');
 
   createDueNotificationIfNeeded(
     db,
     userId,
     {
-      id: taskId,
+      id: zoneTaskId,
       title: 'Timezone task',
-      dueDate: today,
+      dueDate: todayInTimezone('America/New_York', now),
       completed: false,
     },
     'America/New_York',
+    now,
+  );
+
+  // Same instant: UTC's today is New York's tomorrow, so a date derived from
+  // the UTC day must not fire ahead of the user's local day.
+  createDueNotificationIfNeeded(
+    db,
+    userId,
+    {
+      id: utcTaskId,
+      title: 'UTC task',
+      dueDate: todayInTimezone('UTC', now),
+      completed: false,
+    },
+    'America/New_York',
+    now,
   );
 
   const rows = getNotificationsForOwner(userId, 50, db);
   assert.equal(rows.length, 1);
+  assert.equal(rows[0].type, 'due_today');
+  assert.equal(rows[0].taskId, zoneTaskId);
 });
 
 test('scanDueNotifications creates notifications for due_today tasks', () => {

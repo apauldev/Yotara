@@ -9,7 +9,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Label, Task } from '@yotara/shared';
+import { Label, Priority, Task } from '@yotara/shared';
 import { PreferencesStore } from '../../../../core/services/preferences-store.service';
 import { ProjectService } from '../../../../core/services/project.service';
 import {
@@ -28,7 +28,10 @@ import { SectionHeaderComponent } from '../../../../shared/components/section-he
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { PaginationComponent } from '../../../../shared/components/pagination/pagination.component';
 import { TaskViewControlsComponent } from '../../../../shared/components/task-view-controls/task-view-controls.component';
-import { TaskLabelFilterComponent } from '../../../../shared/components/task-label-filter/task-label-filter.component';
+import {
+  TaskFilterBarComponent,
+  TaskFilterSelection,
+} from '../../../../shared/components/task-filter-bar/task-filter-bar.component';
 import { TaskStackComponent } from '../../../../shared/components/task-stack/task-stack.component';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faPlus, faSun, faCalendarDay, faCloud, faTag } from '@fortawesome/free-solid-svg-icons';
@@ -45,6 +48,10 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 
+function parsePriority(value: string | null): Priority | null {
+  return value === 'low' || value === 'medium' || value === 'high' ? value : null;
+}
+
 @Component({
   selector: 'app-task-list-page',
   standalone: true,
@@ -57,7 +64,7 @@ import { map } from 'rxjs';
     PageHeaderComponent,
     PaginationComponent,
     TaskViewControlsComponent,
-    TaskLabelFilterComponent,
+    TaskFilterBarComponent,
     FontAwesomeModule,
     EmptyStateComponent,
     TaskStackComponent,
@@ -107,7 +114,7 @@ export class TaskListPageComponent implements OnInit {
     return null;
   }
 
-  // --- Label filter (persisted in ?labels=id1,id2) ---
+  // --- Task filters (persisted in ?labels=…&projectId=…&priority=…) ---
   protected readonly labels = this.labelService.labels;
   protected readonly selectedLabelIds = toSignal(
     this.route.queryParamMap.pipe(
@@ -126,25 +133,82 @@ export class TaskListPageComponent implements OnInit {
     ),
     { initialValue: 'any' as const },
   );
-  protected readonly hasLabelFilter = computed(() => this.selectedLabelIds().length > 0);
-  protected readonly labelFilteredTasks = this.taskService.labelFilteredTasks;
-  protected readonly processedLabelTasks = computed(() =>
+  protected readonly selectedProjectId = toSignal(
+    this.route.queryParamMap.pipe(map((params) => params.get('projectId') || null)),
+    { initialValue: null as string | null },
+  );
+  protected readonly selectedPriority = toSignal(
+    this.route.queryParamMap.pipe(map((params) => parsePriority(params.get('priority')))),
+    { initialValue: null as Priority | null },
+  );
+  protected readonly hasTaskFilters = computed(
+    () =>
+      this.selectedLabelIds().length > 0 ||
+      this.selectedProjectId() !== null ||
+      this.selectedPriority() !== null,
+  );
+  protected readonly filteredTasks = this.taskService.filteredTasks;
+  protected readonly processedFilteredTasks = computed(() =>
     sortAndPaginate(
-      this.taskService.labelFilteredTasks(),
+      this.taskService.filteredTasks(),
       this.sortOption(),
       this.currentPage(),
       this.pageSize(),
     ),
   );
-  protected readonly labelFilterTitle = computed(() => {
+  protected readonly filterTitle = computed(() => {
+    const parts: string[] = [];
     const labelsById = this.labelService.labelById();
     const names = this.selectedLabelIds()
       .map((id) => labelsById.get(id)?.name)
       .filter((name): name is string => Boolean(name));
-    return names.length > 0 ? `Labeled: ${names.join(' + ')}` : 'Labeled tasks';
+    if (names.length > 0) {
+      parts.push(`Labeled: ${names.join(' + ')}`);
+    }
+
+    const project = this.projectService
+      .projects()
+      .find((candidate) => candidate.id === this.selectedProjectId());
+    if (project) {
+      parts.push(`Project: ${project.name}`);
+    } else if (this.selectedProjectId()) {
+      parts.push('Project');
+    }
+
+    const priority = this.selectedPriority();
+    if (priority) {
+      parts.push(`${priority.charAt(0).toUpperCase()}${priority.slice(1)} priority`);
+    }
+
+    return parts.length > 0 ? parts.join(' · ') : 'Filtered tasks';
   });
-  protected readonly labelFilterCount = computed(() =>
-    this.taskService.labelFilterPending() ? '…' : `${this.labelFilteredTasks().length} tasks`,
+  protected readonly filterCount = computed(() =>
+    this.taskService.filterPending() ? '…' : `${this.filteredTasks().length} tasks`,
+  );
+
+  protected readonly primarySectionTitle = computed(() => {
+    if (this.hasTaskFilters()) {
+      return this.filterTitle();
+    }
+    switch (this.viewMode()) {
+      case 'inbox':
+        return 'Task List';
+      case 'today':
+        return 'Due Today';
+      default:
+        return 'Planning Ahead';
+    }
+  });
+
+  protected readonly primarySectionCount = computed<string | null>(() => {
+    if (this.hasTaskFilters()) {
+      return this.filterCount();
+    }
+    return this.viewMode() === 'inbox' ? this.inboxCountLabel() : null;
+  });
+
+  protected readonly primarySectionSize = computed<'md' | 'lg'>(() =>
+    this.hasTaskFilters() || this.viewMode() === 'inbox' ? 'md' : 'lg',
   );
 
   // --- Header Data ---
@@ -233,8 +297,8 @@ export class TaskListPageComponent implements OnInit {
   });
 
   protected readonly totalTasksCount = computed(() => {
-    if (this.hasLabelFilter()) {
-      return this.taskService.labelFilteredTasks().length;
+    if (this.hasTaskFilters()) {
+      return this.taskService.filteredTasks().length;
     }
     switch (this.viewMode()) {
       case 'inbox':
@@ -254,8 +318,8 @@ export class TaskListPageComponent implements OnInit {
 
   /** True when the list behind the current view hit the API's page cap. */
   protected readonly limitExceeded = computed(() => {
-    if (this.hasLabelFilter()) {
-      return this.taskService.labelFilterTruncated() && !this.taskService.labelFilterPending();
+    if (this.hasTaskFilters()) {
+      return this.taskService.filterTruncated() && !this.taskService.filterPending();
     }
     switch (this.viewMode()) {
       case 'today':
@@ -414,30 +478,28 @@ export class TaskListPageComponent implements OnInit {
       this.currentPage.set(1);
     });
 
-    // Keep the service query in sync with the URL-owned filter.
+    // Keep the service query in sync with the URL-owned filters.
     effect(() => {
-      this.taskService.setLabelFilter(this.selectedLabelIds(), this.labelFilterMode());
+      this.taskService.setFilters({
+        labelIds: this.selectedLabelIds(),
+        labelMode: this.labelFilterMode(),
+        projectId: this.selectedProjectId(),
+        priority: this.selectedPriority(),
+      });
       this.currentPage.set(1);
     });
   }
 
-  // --- Label filter events ---
-  protected onLabelFilterChange(ids: string[]) {
-    const mode = ids.length > 1 ? this.labelFilterMode() : 'any';
+  // --- Filter events ---
+  protected onFiltersChange(selection: TaskFilterSelection) {
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {
-        labels: ids.length > 0 ? ids.join(',') : null,
-        labelMode: mode === 'all' ? 'all' : null,
+        labels: selection.labelIds.length > 0 ? selection.labelIds.join(',') : null,
+        labelMode: selection.labelIds.length > 1 && selection.labelMode === 'all' ? 'all' : null,
+        projectId: selection.projectId,
+        priority: selection.priority,
       },
-      queryParamsHandling: 'merge',
-    });
-  }
-
-  protected onLabelFilterModeChange(mode: 'any' | 'all') {
-    void this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { labelMode: mode === 'all' ? 'all' : null },
       queryParamsHandling: 'merge',
     });
   }
@@ -447,7 +509,12 @@ export class TaskListPageComponent implements OnInit {
     const next = selected.includes(label.id)
       ? selected.filter((id) => id !== label.id)
       : [...selected, label.id];
-    this.onLabelFilterChange(next);
+    this.onFiltersChange({
+      labelIds: next,
+      labelMode: next.length > 1 ? this.labelFilterMode() : 'any',
+      projectId: this.selectedProjectId(),
+      priority: this.selectedPriority(),
+    });
   }
 
   // --- Sorting & Pagination Events ---

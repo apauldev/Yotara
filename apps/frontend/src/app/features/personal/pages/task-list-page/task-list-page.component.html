@@ -8,14 +8,6 @@
   <section class="page" [attr.data-view]="viewMode()">
     <app-page-header [title]="pageTitle()" [subtitle]="pageSubtitle()">
       <div page-header-actions class="task-list-actions">
-        <app-task-label-filter
-          [labels]="labels()"
-          [selectedIds]="selectedLabelIds()"
-          [mode]="labelFilterMode()"
-          (selectionChange)="onLabelFilterChange($event)"
-          (modeChange)="onLabelFilterModeChange($event)"
-        />
-
         @if (
           insightPanelVisible() &&
           (viewMode() === 'inbox' || viewMode() === 'today' || viewMode() === 'upcoming')
@@ -41,65 +33,82 @@
       />
     }
 
-    @if (hasLabelFilter()) {
+    @if (!hasTaskFilters() && viewMode() === 'today' && taskService.overdueTasks().length > 0) {
       <section class="task-section">
-        <app-section-header [title]="labelFilterTitle()" [count]="labelFilterCount()" size="md">
-          <app-task-view-controls
-            section-header-actions
-            [sortOption]="sortOption()"
-            [pageSize]="pageSize()"
-            (sortOptionChange)="onSortOptionChange($event)"
-            (pageSizeChange)="onPageSizeChange($event)"
-          />
-        </app-section-header>
+        <app-section-header title="Overdue" size="lg" tone="accent" />
 
+        <app-task-stack
+          [tasks]="taskService.overdueTasks()"
+          [subtasksByParent]="subtasksByParent()"
+          [taskCard]="overdueTaskCardTpl"
+        />
+      </section>
+    }
+
+    <section class="task-section">
+      <app-section-header
+        [title]="primarySectionTitle()"
+        [count]="primarySectionCount()"
+        [size]="primarySectionSize()"
+      >
+        <div section-header-actions class="task-controls">
+          @if (hasTaskFilters() || viewMode() !== 'upcoming') {
+            <app-task-view-controls
+              [sortOption]="sortOption()"
+              [pageSize]="pageSize()"
+              (sortOptionChange)="onSortOptionChange($event)"
+              (pageSizeChange)="onPageSizeChange($event)"
+            />
+          }
+
+          <app-task-filter-bar
+            [labels]="labels()"
+            [projects]="projectService.projects()"
+            [selectedLabelIds]="selectedLabelIds()"
+            [labelMode]="labelFilterMode()"
+            [selectedProjectId]="selectedProjectId()"
+            [selectedPriority]="selectedPriority()"
+            (filtersChange)="onFiltersChange($event)"
+          />
+        </div>
+      </app-section-header>
+
+      @if (hasTaskFilters()) {
         <div aria-live="polite">
           @if (
-            taskService.labelFilterPending() ||
-            (taskService.labelFilterLoading() && labelFilteredTasks().length === 0)
+            taskService.filterPending() ||
+            (taskService.filterLoading() && filteredTasks().length === 0)
           ) {
-            <p class="status-copy">Loading labeled tasks...</p>
-          } @else if (labelFilteredTasks().length === 0) {
+            <p class="status-copy">Loading filtered tasks...</p>
+          } @else if (filteredTasks().length === 0) {
             @if (taskService.error()) {
               <p class="status-copy">{{ taskService.error() }}</p>
             } @else {
               <app-empty-state
-                title="No tasks match these labels"
-                description="Try another label combination, or clear the filter to return to this view."
+                title="No tasks match these filters"
+                description="Try different filter values, or clear the filters to return to this view."
                 [icon]="faTag"
               />
             }
           } @else {
             <app-task-stack
-              [tasks]="processedLabelTasks()"
+              [tasks]="processedFilteredTasks()"
               [subtasksByParent]="null"
               [flat]="true"
               [taskCard]="taskCardTpl"
             />
 
             <app-pagination
-              [totalItems]="labelFilteredTasks().length"
+              [totalItems]="filteredTasks().length"
               [pageSize]="pageSize()"
               [currentPage]="currentPage()"
               (pageChange)="onPageChange($event)"
             />
           }
         </div>
-      </section>
-    } @else {
-      @switch (viewMode()) {
-        @case ('inbox') {
-          <section class="task-section">
-            <app-section-header title="Task List" [count]="inboxCountLabel()" size="md">
-              <app-task-view-controls
-                section-header-actions
-                [sortOption]="sortOption()"
-                [pageSize]="pageSize()"
-                (sortOptionChange)="onSortOptionChange($event)"
-                (pageSizeChange)="onPageSizeChange($event)"
-              />
-            </app-section-header>
-
+      } @else {
+        @switch (viewMode()) {
+          @case ('inbox') {
             <div aria-live="polite">
               @if (showInitialLoading()) {
                 <p class="status-copy">Loading your inbox...</p>
@@ -128,33 +137,9 @@
                 />
               }
             </div>
-          </section>
-        }
-
-        @case ('today') {
-          @if (taskService.overdueTasks().length > 0) {
-            <section class="task-section">
-              <app-section-header title="Overdue" size="lg" tone="accent" />
-
-              <app-task-stack
-                [tasks]="taskService.overdueTasks()"
-                [subtasksByParent]="subtasksByParent()"
-                [taskCard]="overdueTaskCardTpl"
-              />
-            </section>
           }
 
-          <section class="task-section">
-            <app-section-header title="Due Today" size="lg">
-              <app-task-view-controls
-                section-header-actions
-                [sortOption]="sortOption()"
-                [pageSize]="pageSize()"
-                (sortOptionChange)="onSortOptionChange($event)"
-                (pageSizeChange)="onPageSizeChange($event)"
-              />
-            </app-section-header>
-
+          @case ('today') {
             <div aria-live="polite">
               @if (showInitialLoading()) {
                 <p class="status-copy">Loading your focused list...</p>
@@ -197,13 +182,9 @@
                 }
               }
             </div>
-          </section>
-        }
+          }
 
-        @case ('upcoming') {
-          <section class="task-section">
-            <app-section-header title="Planning Ahead" size="lg" />
-
+          @case ('upcoming') {
             <div aria-live="polite">
               @if (showInitialLoading()) {
                 <p class="status-copy">Loading your upcoming plans...</p>
@@ -235,10 +216,10 @@
                 </div>
               }
             </div>
-          </section>
+          }
         }
       }
-    }
+    </section>
 
     <!-- Shared FAB for all modes -->
     <button
