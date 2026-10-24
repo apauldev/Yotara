@@ -17,6 +17,7 @@ import { sendBadRequest, sendNotFound } from '../lib/api-errors.js';
 import requireAuthenticatedUser from '../plugins/auth-required.js';
 import { resolveProjectIdForTaskWrite } from '../services/project-service.js';
 import {
+  clearCompletedTasksForOwner,
   createTaskForOwner,
   cleanupExpiredArchivedTasks,
   deleteTaskForOwner,
@@ -312,6 +313,41 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       }
 
       return reply.code(201).send(toTask(created, created.labels));
+    },
+  );
+
+  fastify.delete<{
+    Reply: { ok: true; removed: number } | { message: string };
+  }>(
+    '/tasks/completed',
+    {
+      schema: withJsonResponse({
+        tags: ['tasks'],
+        summary: 'Clear completed tasks',
+        description:
+          'Removes every completed task that is not marked permanentArchive. Active work and kept tasks are untouched.',
+        security: authCookieSecurity,
+        response: {
+          200: {
+            description: 'Completed tasks cleared',
+            type: 'object',
+            required: ['ok', 'removed'],
+            properties: {
+              ok: { type: 'boolean' },
+              removed: { type: 'integer', minimum: 0 },
+            },
+          },
+          401: errorResponseSchema('Authentication required', 'Unauthorized'),
+        },
+      }),
+    },
+    async (request, _reply) => {
+      if (!request.userId) {
+        throw new UnauthorizedError();
+      }
+
+      const removed = await clearCompletedTasksForOwner(request.userId);
+      return { ok: true, removed };
     },
   );
 

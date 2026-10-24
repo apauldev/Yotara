@@ -146,7 +146,7 @@ test.describe('Calendar', () => {
     await expect(page.getByRole('button', { name: 'Next month' })).toBeVisible();
     await expect(page.getByRole('button', { name: new RegExp(name) })).toHaveCount(0);
 
-    await page.getByRole('link', { name: 'Archive' }).click();
+    await page.getByRole('link', { name: 'Completed' }).click();
     await expect(page.locator('article.task-card').filter({ hasText: name })).toBeVisible({
       timeout: 10_000,
     });

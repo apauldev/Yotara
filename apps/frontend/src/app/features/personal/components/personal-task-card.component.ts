@@ -221,15 +221,11 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
                   (click)="$event.stopPropagation(); togglePermanentArchive.emit()"
                   (keydown)="$event.stopPropagation()"
                   [attr.aria-label]="
-                    task().permanentArchive
-                      ? 'Remove permanent archive tag'
-                      : 'Mark permanent archive'
+                    task().permanentArchive ? 'Stop keeping this task' : 'Keep this task forever'
                   "
                 >
                   <fa-icon [icon]="faBoxArchive" class="restore-icon"></fa-icon>
-                  <span>{{
-                    task().permanentArchive ? 'Permanent archive' : 'Make permanent'
-                  }}</span>
+                  <span>{{ task().permanentArchive ? 'Kept' : 'Keep forever' }}</span>
                 </button>
 
                 <button
@@ -259,7 +255,7 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
       [description]="
         task().completed
           ? 'This will return the task to your active work list.'
-          : 'This will move the task into completed and archive it.'
+          : 'This will move the task into your completed history.'
       "
       [confirmLabel]="task().completed ? 'Put back into doing' : 'Mark complete'"
       cancelLabel="Keep as is"
@@ -855,7 +851,7 @@ export class PersonalTaskCardComponent {
       case 'done':
         return 'Complete';
       case 'archived':
-        return 'Archived';
+        return 'Completed';
       default:
         return 'Inbox';
     }

@@ -22,3 +22,5 @@ packages/shared/src/*.js.map
 reasonix.toml
 .commandcode/taste/workflow/taste.md
 .commandcode/settings.json
+
+.angular/

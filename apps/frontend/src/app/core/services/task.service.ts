@@ -171,6 +171,16 @@ export class TaskService {
       { withCredentials: true },
     );
   }
+
+  async clearCompletedTasks() {
+    const result = await firstValueFrom(
+      this.http.delete<{ ok: boolean; removed: number }>(`${this.baseUrl}/tasks/completed`, {
+        withCredentials: true,
+      }),
+    );
+    this.refreshState.update((value: number) => value + 1);
+    return result;
+  }
   fetchTodayTasks$() {
     const tz = getUserTimezone();
     return this.http.get<PaginatedResponse<Task[]>>(

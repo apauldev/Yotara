@@ -61,7 +61,7 @@
             @if (searchingArchive()) {
               <span>Searching...</span>
             } @else {
-              <span>Search Archive</span>
+              <span>Search Completed</span>
             }
           </button>
         </div>
@@ -295,13 +295,13 @@
           @if (archiveSearched() && archiveResults().length > 0) {
             <section class="result-group archive-results">
               <app-section-header
-                title="Archive Matches"
+                title="Completed Matches"
                 [count]="totalArchiveMatches() + ' matches'"
               />
 
               @if (archiveResultsTruncated()) {
                 <p class="archive-truncation-message">
-                  Top 100 archive results shown. Refine your search to see more.
+                  Top 100 completed tasks shown. Refine your search to see more.
                 </p>
               }
 
@@ -319,8 +319,10 @@
             </section>
           } @else if (archiveSearched() && archiveResults().length === 0) {
             <section class="result-group archive-results">
-              <app-section-header title="Archive Matches" count="No matches" />
-              <p class="no-results-copy">We couldn't find any matching tasks in your archive.</p>
+              <app-section-header title="Completed Matches" count="No matches" />
+              <p class="no-results-copy">
+                We couldn't find any matching tasks in your completed history.
+              </p>
             </section>
           }
         }

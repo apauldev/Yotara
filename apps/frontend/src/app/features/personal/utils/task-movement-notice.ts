@@ -50,7 +50,7 @@ export function taskCompletionMovementNotice(task: Task): TaskMovementNotice | n
   if (!isInboxTask(task)) return null;
 
   return {
-    message: `"${truncateTaskTitle(task.title)}" completed and moved to Archive`,
+    message: `"${truncateTaskTitle(task.title)}" completed and moved to your Completed view`,
     route: { commands: ['/archive'] },
     key: taskMovementKey(task.id),
   };
@@ -72,7 +72,7 @@ export function taskMovementNotice(
 
   if (after.completed) {
     return {
-      message: `"${title}" completed and moved to Archive`,
+      message: `"${title}" completed and moved to your Completed view`,
       route: { commands: ['/archive'] },
       key: taskMovementKey(after.id),
     };

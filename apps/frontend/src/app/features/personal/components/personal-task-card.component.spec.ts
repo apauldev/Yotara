@@ -370,7 +370,7 @@ describe('PersonalTaskCardComponent', () => {
       await component.completeTask();
 
       expect(statusServiceSpy.success).toHaveBeenCalledWith(
-        '"Write morning pages" completed and moved to Archive',
+        '"Write morning pages" completed and moved to your Completed view',
         3000,
         jasmine.objectContaining({
           key: 'task-movement:task-1',
@@ -402,7 +402,7 @@ describe('PersonalTaskCardComponent', () => {
 
       expect(statusServiceSpy.success).toHaveBeenCalledTimes(1);
       expect(statusServiceSpy.success).toHaveBeenCalledWith(
-        '"Write morning pages" completed and moved to Archive',
+        '"Write morning pages" completed and moved to your Completed view',
         3000,
         jasmine.objectContaining({ key: 'task-movement:task-1' }),
       );
@@ -497,7 +497,7 @@ describe('PersonalTaskCardComponent', () => {
     it('should format status label for archived', () => {
       setTask({ ...mockTask, status: 'archived' });
       fixture.detectChanges();
-      expect(component['statusLabel']()).toBe('Archived');
+      expect(component['statusLabel']()).toBe('Completed');
     });
 
     it('should format status label as overdue when rendered in overdue tone', () => {
