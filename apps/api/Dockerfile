@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:22.22.3-alpine AS build
+FROM node:26.12.1-alpine AS build
 
 ARG GIT_HASH=unknown
 ARG GIT_BRANCH=unknown
@@ -8,7 +8,7 @@ ENV GIT_HASH=${GIT_HASH}
 ENV GIT_BRANCH=${GIT_BRANCH}
 
 WORKDIR /app
-RUN corepack enable
+RUN npm install -g pnpm@10.30.3
 RUN apk add --no-cache python3 build-base
 
 # Only copy package files needed for API dependency resolution
@@ -35,10 +35,10 @@ RUN pnpm --filter @yotara/api build
 
 # --- Production stage — clean Node image, no python/build-base ---
 
-FROM node:22.22.3-alpine
+FROM node:26.12.1-alpine
 
 WORKDIR /app
-RUN corepack enable
+RUN npm install -g pnpm@10.30.3
 
 # Install production dependencies (skip lifecycle scripts to avoid husky failing)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./

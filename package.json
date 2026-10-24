@@ -4,9 +4,14 @@
   "version": "0.85.0",
   "description": "Yotara: lightweight self-hosted task manager",
   "engines": {
-    "node": ">=22.22.3"
+    "node": ">=26.12.1"
   },
   "packageManager": "pnpm@10.30.3",
+  "pnpm": {
+    "overrides": {
+      "c8>yargs": "17.7.3"
+    }
+  },
   "scripts": {
     "version:gen": "node scripts/generate-version.mjs",
     "release": "node scripts/release.mjs",

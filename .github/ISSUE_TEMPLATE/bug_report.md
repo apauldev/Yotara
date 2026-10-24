@@ -32,7 +32,7 @@ assignees: ''
 
 - **OS**: [e.g., macOS 14, Ubuntu 22.04, Windows 11]
 - **Browser**: [e.g., Chrome 120, Firefox 121]
-- **Node.js Version**: [e.g., 22.22.3]
+- **Node.js Version**: [e.g., 26.12.1]
 - **pnpm Version**: [e.g., 10.30.3]
 
 ## Screenshots or Logs

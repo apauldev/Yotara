@@ -6,7 +6,7 @@ How to get Yotara running locally. For the self-hosted production path, see
 
 ## Requirements
 
-- **Node.js** 22.22.3 or newer
+- **Node.js** 26.12.1 or newer
 - **pnpm** 10.30.3 or newer
 
 ## Local development
