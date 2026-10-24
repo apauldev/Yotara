@@ -553,6 +553,12 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
 
       // Safe to run twice: cleared history leaves nothing to remove
       assert.equal(await ctx.taskService.clearCompletedTasksForOwner(freshOwner), 0);
+
+      // An explicit transaction handle runs the same filter on its own client
+      const scoped = await ctx.db.transaction((client) =>
+        ctx.taskService.clearCompletedTasksForOwner(freshOwner, client),
+      );
+      assert.equal(scoped, 0);
     });
 
     await t.test('Weekdays + endDate combined', async () => {

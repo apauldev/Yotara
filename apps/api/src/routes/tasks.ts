@@ -341,9 +341,9 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         },
       }),
     },
-    async (request, reply) => {
+    async (request, _reply) => {
       if (!request.userId) {
-        return sendNotFound(reply, 'Task not found');
+        throw new UnauthorizedError();
       }
 
       const removed = await clearCompletedTasksForOwner(request.userId);
