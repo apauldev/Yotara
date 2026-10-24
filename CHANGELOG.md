@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.84.1](https://github.com/apauldev/Yotara/compare/v0.84.0...v0.84.1) (2026-10-24)
+
+
+### Bug Fixes
+
+* **frontend:** combine task filters and fix dropdown layering ([b1916b2](https://github.com/apauldev/Yotara/commit/b1916b23985815777b306aad7bfa3e662649846d))
+
+
+### Tests
+
+* **api:** pin notification timezone test to a fixed clock ([4784c3e](https://github.com/apauldev/Yotara/commit/4784c3e633c06b26d8aa682bfc0e40ed8e736c60))
+
 ## [0.84.0](https://github.com/apauldev/Yotara/compare/v0.83.1...v0.84.0) (2026-10-23)
 
 
