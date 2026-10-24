@@ -205,6 +205,12 @@ export function retireSupersededDueNotifications(
  * timezone is missing or invalid, including the overdue branch: their day is
  * the user's local day, so a UTC comparison can put them in the past before
  * their instant has passed.
+ *
+ * `task.dueDate` is a calendar date owned by `tz`, not the server's or UTC's
+ * day, and is compared to `todayInTimezone(tz, now)`. When synthesizing a due
+ * date (tests, scripts), derive it with `todayInTimezone` and inject `now`
+ * rather than relying on the default wall clock: at 02:00Z New York is still
+ * on yesterday, so a UTC-derived date reads as tomorrow and fires nothing.
  */
 export function createDueNotificationIfNeeded(
   tx: Database,
