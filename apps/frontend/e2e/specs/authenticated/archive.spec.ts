@@ -68,7 +68,7 @@ test.describe('Archive', () => {
     await archCard.getByRole('button', { name: 'Delete task forever' }).click();
 
     // Confirm deletion in dialog
-    await expect(page.getByText('Delete archived task?')).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByText('Delete completed task?')).toBeVisible({ timeout: 3_000 });
     await page.getByRole('button', { name: 'Delete forever' }).click();
     await page.waitForTimeout(1000);
 
@@ -148,14 +148,14 @@ test.describe('Archive', () => {
     await page.goto('/archive');
     await page.waitForLoadState('networkidle');
 
-    // Click "Make permanent"
+    // Click "Keep forever"
     const archCard = page.locator('article.task-card').filter({ hasText: name });
-    await archCard.getByRole('button', { name: 'Mark permanent archive' }).click();
+    await archCard.getByRole('button', { name: 'Keep this task forever' }).click();
     await page.waitForTimeout(1000);
 
     // Should now show "Permanent archive" state
-    await expect(
-      archCard.getByRole('button', { name: 'Remove permanent archive tag' }),
-    ).toBeVisible({ timeout: 5_000 });
+    await expect(archCard.getByRole('button', { name: 'Stop keeping this task' })).toBeVisible({
+      timeout: 5_000,
+    });
   });
 });

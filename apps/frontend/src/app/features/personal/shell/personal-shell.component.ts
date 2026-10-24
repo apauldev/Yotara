@@ -56,7 +56,7 @@ const TIPS = [
   'Press `#` in the task input to quickly add labels to any task.',
   'Use projects to group related tasks together into meaningful collections.',
   'Mark tasks as "Today" to focus on what matters right now.',
-  'Completed tasks move to your archive automatically for a clean workspace.',
+  'Completed tasks auto-clear after 30 days — use “Keep forever” to save the stars.',
   'Recurring tasks repeat daily, weekly, monthly, or yearly — no need to recreate them.',
   'Use the search bar to find any task across all your projects instantly.',
   'Break big tasks into smaller subtasks to make progress feel achievable.',
@@ -66,7 +66,7 @@ const TIPS = [
   'Use the Inbox to capture ideas quickly before organizing them into projects.',
   'The Today view shows everything due or marked for today in one place.',
   'The Upcoming view helps you plan your week and spot busy days ahead.',
-  'Archive old tasks to keep your workspace focused on what is active.',
+  'Clear completed tasks from the Completed view to keep the workspace focused on what is active.',
   'Press Enter to quickly add a task from the capture bar without touching your mouse.',
   'Batch-complete several tasks at once to clear your list faster.',
   'Overdue tasks are highlighted so nothing slips through the cracks.',
@@ -148,7 +148,7 @@ export class PersonalShellComponent implements OnDestroy {
     { label: 'Calendar', route: '/calendar', icon: 'calendar' },
     { label: 'Projects', route: '/projects', icon: 'projects' },
     { label: 'Labels', route: '/labels', icon: 'labels' },
-    { label: 'Archive', route: '/archive', icon: 'archive' },
+    { label: 'Completed', route: '/archive', icon: 'archive' },
   ];
   protected readonly mobileMenuOpen = signal(false);
   protected readonly sidebarCollapsed = signal(false);

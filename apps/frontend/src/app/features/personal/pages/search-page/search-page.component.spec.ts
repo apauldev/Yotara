@@ -417,7 +417,7 @@ describe('SearchPageComponent', () => {
 
       const text = fixture.nativeElement.textContent;
       expect(text).toContain("Don't see what you're looking for");
-      expect(text).toContain('Search Archive');
+      expect(text).toContain('Search Completed');
     }));
 
     it('hides archive promo when there is no search query', () => {

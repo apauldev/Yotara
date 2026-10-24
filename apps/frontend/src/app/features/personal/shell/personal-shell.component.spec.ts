@@ -116,7 +116,7 @@ describe('PersonalShellComponent', () => {
       'Calendar',
       'Projects',
       'Labels',
-      'Archive',
+      'Completed',
     ]);
   });
 

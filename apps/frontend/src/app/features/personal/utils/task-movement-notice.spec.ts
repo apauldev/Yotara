@@ -166,10 +166,10 @@ describe('task movement notice', () => {
   });
 
   describe('taskCompletionMovementNotice', () => {
-    it('names Archive and keeps the task key', () => {
+    it('names the Completed view and keeps the task key', () => {
       const notice = taskCompletionMovementNotice(task());
 
-      expect(notice?.message).toBe('"Plan launch" completed and moved to Archive');
+      expect(notice?.message).toBe('"Plan launch" completed and moved to your Completed view');
       expect(notice?.route).toEqual({ commands: ['/archive'] });
       expect(notice?.key).toBe('task-movement:task-1');
     });
@@ -264,7 +264,7 @@ describe('TaskMovementNoticeService', () => {
 
     expect(status.success).toHaveBeenCalledTimes(1);
     expect(status.success).toHaveBeenCalledWith(
-      '"Plan launch" completed and moved to Archive',
+      '"Plan launch" completed and moved to your Completed view',
       3000,
       jasmine.objectContaining({
         key: 'task-movement:task-1',

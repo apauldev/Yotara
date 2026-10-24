@@ -56,6 +56,7 @@ describe('ArchivePageComponent', () => {
     getArchivedTasks: jasmine.Spy;
     updateTask: jasmine.Spy;
     deleteTask: jasmine.Spy;
+    clearCompletedTasks: jasmine.Spy;
   };
 
   beforeEach(async () => {
@@ -68,6 +69,7 @@ describe('ArchivePageComponent', () => {
         .and.returnValue(of(paginatedResponse([]))),
       updateTask: jasmine.createSpy('updateTask').and.resolveTo(undefined),
       deleteTask: jasmine.createSpy('deleteTask').and.resolveTo(undefined),
+      clearCompletedTasks: jasmine.createSpy('clearCompletedTasks').and.resolveTo(undefined),
     };
 
     const projectServiceStub = {
@@ -98,12 +100,13 @@ describe('ArchivePageComponent', () => {
     }).compileComponents();
   });
 
-  it('displays the archive page header', () => {
+  it('displays the completed page header', () => {
     const fixture = TestBed.createComponent(ArchivePageComponent);
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Archive');
+    expect(text).toContain('Completed');
+    expect(text).not.toContain('Archive');
   });
 
   describe('Loading state', () => {
@@ -128,7 +131,9 @@ describe('ArchivePageComponent', () => {
       const fixture = TestBed.createComponent(ArchivePageComponent);
       fixture.detectChanges();
 
-      expect(fixture.nativeElement.textContent).toContain('Could not load archive right now.');
+      expect(fixture.nativeElement.textContent).toContain(
+        'Could not load completed tasks right now.',
+      );
     });
   });
 
@@ -141,27 +146,27 @@ describe('ArchivePageComponent', () => {
       expect(emptyState).toBeTruthy();
 
       const component = emptyState.componentInstance as EmptyStateComponent;
-      expect(component.title).toBe('Nothing archived yet');
-      expect(component.description).toContain('Completed work will appear here');
+      expect(component.title).toBe('No completed tasks yet');
+      expect(component.description).toContain('Finished tasks will appear here for 30 days');
 
       const text = fixture.nativeElement.textContent;
-      expect(text).toContain('Nothing archived yet');
-      expect(text).toContain('Completed work will appear here');
+      expect(text).toContain('No completed tasks yet');
+      expect(text).toContain('Finished tasks will appear here for 30 days');
     });
 
-    it('does not render the empty state when there are archived tasks', () => {
+    it('does not render the empty state when there are completed tasks', () => {
       mockTaskService.getArchivedTasks.and.returnValue(of(paginatedResponse([archivedTask()])));
       const fixture = TestBed.createComponent(ArchivePageComponent);
       fixture.detectChanges();
 
       const text = fixture.nativeElement.textContent;
-      expect(text).not.toContain('Nothing archived yet');
+      expect(text).not.toContain('No completed tasks yet');
       expect(text).toContain('Submit the release notes');
     });
   });
 
-  describe('Archived task list', () => {
-    it('renders each archived task', () => {
+  describe('Completed task list', () => {
+    it('renders each completed task', () => {
       mockTaskService.getArchivedTasks.and.returnValue(
         of(
           paginatedResponse([
@@ -176,26 +181,26 @@ describe('ArchivePageComponent', () => {
       const text = fixture.nativeElement.textContent;
       expect(text).toContain('Submit the release notes');
       expect(text).toContain('Draft the changelog');
-      expect(text).toContain('2 archived tasks');
+      expect(text).toContain('2 completed tasks');
     });
 
-    it('renders archive action pills for each task card', () => {
+    it('renders keep-forever action pills for each task card', () => {
       mockTaskService.getArchivedTasks.and.returnValue(of(paginatedResponse([archivedTask()])));
       const fixture = TestBed.createComponent(ArchivePageComponent);
       fixture.detectChanges();
 
       const text = fixture.nativeElement.textContent;
-      expect(text).toContain('Make permanent');
+      expect(text).toContain('Keep forever');
     });
 
-    it('highlights permanent archive pill when a task is permanently archived', () => {
+    it('highlights the kept pill when a task is permanently archived', () => {
       mockTaskService.getArchivedTasks.and.returnValue(
         of(paginatedResponse([archivedTask({ permanentArchive: true })])),
       );
       const fixture = TestBed.createComponent(ArchivePageComponent);
       fixture.detectChanges();
 
-      expect(fixture.nativeElement.textContent).toContain('Permanent archive');
+      expect(fixture.nativeElement.textContent).toContain('Kept');
     });
   });
 
@@ -225,7 +230,7 @@ describe('ArchivePageComponent', () => {
       fixture.detectChanges();
 
       const text = fixture.nativeElement.textContent;
-      expect(text).toContain('Delete archived task?');
+      expect(text).toContain('Delete completed task?');
       expect(text).toContain('Delete forever');
     });
 
@@ -256,12 +261,52 @@ describe('ArchivePageComponent', () => {
       });
       fixture.detectChanges();
 
-      expect(fixture.nativeElement.textContent).toContain('Delete archived task?');
+      expect(fixture.nativeElement.textContent).toContain('Delete completed task?');
 
       (fixture.componentInstance as any).closeDeleteConfirm();
       fixture.detectChanges();
 
-      expect(fixture.nativeElement.textContent).not.toContain('Delete archived task?');
+      expect(fixture.nativeElement.textContent).not.toContain('Delete completed task?');
+    });
+  });
+
+  describe('Clear completed flow', () => {
+    it('shows the clear button only when there are completed tasks', () => {
+      const emptyFixture = TestBed.createComponent(ArchivePageComponent);
+      emptyFixture.detectChanges();
+      expect(emptyFixture.nativeElement.textContent).not.toContain('Clear completed');
+
+      mockTaskService.getArchivedTasks.and.returnValue(of(paginatedResponse([archivedTask()])));
+      const fixture = TestBed.createComponent(ArchivePageComponent);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain('Clear completed');
+    });
+
+    it('opens the confirm dialog with keep-forever protection copy', () => {
+      mockTaskService.getArchivedTasks.and.returnValue(of(paginatedResponse([archivedTask()])));
+      const fixture = TestBed.createComponent(ArchivePageComponent);
+      fixture.detectChanges();
+
+      (fixture.componentInstance as any).requestClearCompleted();
+      fixture.detectChanges();
+
+      const text = fixture.nativeElement.textContent;
+      expect(text).toContain('Clear completed tasks?');
+      expect(text).toContain('Keep forever');
+    });
+
+    it('clears completed tasks via the service when confirmed', async () => {
+      mockTaskService.getArchivedTasks.and.returnValue(of(paginatedResponse([archivedTask()])));
+      const fixture = TestBed.createComponent(ArchivePageComponent);
+      fixture.detectChanges();
+
+      (fixture.componentInstance as any).requestClearCompleted();
+      fixture.detectChanges();
+      await (fixture.componentInstance as any).clearCompletedNow();
+      fixture.detectChanges();
+
+      expect(mockTaskService.clearCompletedTasks).toHaveBeenCalled();
+      expect((fixture.componentInstance as any).clearConfirmOpen()).toBeFalse();
     });
   });
 });

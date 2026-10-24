@@ -512,6 +512,49 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       assert.equal(instanceCheck, null);
     });
 
+    await t.test('clearCompletedTasksForOwner removes non-kept completions only', async () => {
+      const freshOwner = randomUUID();
+      const { users } = await import('../db/schema.js');
+      await ctx.db.insert(users).values({
+        id: freshOwner,
+        name: 'Clear Test User',
+        email: `${freshOwner}@example.com`,
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const done = await ctx.taskService.createTaskForOwner(freshOwner, {
+        title: 'Done and gone',
+      });
+      assert.ok(done);
+      await ctx.taskService.updateTaskForOwner(freshOwner, done.id, { completed: true });
+
+      const kept = await ctx.taskService.createTaskForOwner(freshOwner, {
+        title: 'Kept forever',
+      });
+      assert.ok(kept);
+      await ctx.taskService.updateTaskForOwner(freshOwner, kept.id, {
+        completed: true,
+        permanentArchive: true,
+      });
+
+      const active = await ctx.taskService.createTaskForOwner(freshOwner, {
+        title: 'Still active',
+      });
+      assert.ok(active);
+
+      const removed = await ctx.taskService.clearCompletedTasksForOwner(freshOwner);
+      assert.equal(removed, 1);
+
+      assert.equal(await ctx.taskService.getTaskForOwner(done.id, freshOwner), null);
+      assert.notEqual(await ctx.taskService.getTaskForOwner(kept.id, freshOwner), null);
+      assert.notEqual(await ctx.taskService.getTaskForOwner(active.id, freshOwner), null);
+
+      // Safe to run twice: cleared history leaves nothing to remove
+      assert.equal(await ctx.taskService.clearCompletedTasksForOwner(freshOwner), 0);
+    });
+
     await t.test('Weekdays + endDate combined', async () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);

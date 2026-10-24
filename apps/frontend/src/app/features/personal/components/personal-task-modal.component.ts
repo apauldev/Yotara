@@ -307,14 +307,14 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
         case 'done':
           return 'Complete';
         case 'archived':
-          return 'Archived';
+          return 'Completed';
         default:
           return 'Inbox';
       }
     }
 
     if (this.draftStatus() === 'done') return 'Complete';
-    if (this.draftStatus() === 'archived') return 'Archived';
+    if (this.draftStatus() === 'archived') return 'Completed';
 
     const dueDate = this.draftSimpleMode() ? '' : this.draftDueDate();
     if (!dueDate) return 'Unscheduled';

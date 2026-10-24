@@ -30,7 +30,21 @@ import { PaginatedResponse, Task } from '@yotara/shared';
   template: `
     <app-personal-task-workspace #workspace>
       <section class="page">
-        <app-page-header title="Archive" />
+        <app-page-header title="Completed">
+          <div page-header-actions>
+            @if (totalArchived() > 0) {
+              <button
+                type="button"
+                class="clear-completed"
+                [attr.aria-label]="'Clear completed tasks'"
+                (click)="requestClearCompleted()"
+              >
+                <fa-icon [icon]="faTrash" aria-hidden="true"></fa-icon>
+                <span>Clear completed</span>
+              </button>
+            }
+          </div>
+        </app-page-header>
 
         @if (loadingArchive()) {
           <p class="status-copy">Loading your recent completions...</p>
@@ -38,14 +52,14 @@ import { PaginatedResponse, Task } from '@yotara/shared';
           <p class="status-copy">{{ archiveError() }}</p>
         } @else if (archiveResponse().data.length === 0 && totalArchived() === 0) {
           <app-empty-state
-            title="Nothing archived yet"
-            description="Completed work will appear here, and permanent archives stay put."
+            title="No completed tasks yet"
+            description="Finished tasks will appear here for 30 days. Mark one “Keep forever” to save it from auto-clearing."
             [icon]="faBoxArchive"
           />
         } @else if (archiveResponse().data.length === 0 && totalArchived() > 0) {
           <div class="archive-summary">
-            <span>{{ totalArchived() }} archived tasks</span>
-            <p>Use the permanent archive tag to keep a task from being auto-cleared.</p>
+            <span>{{ totalArchived() }} completed tasks</span>
+            <p>Mark a task “Keep forever” to save it from auto-clearing.</p>
           </div>
 
           <p class="status-copy">This page is empty — try a different page.</p>
@@ -62,8 +76,8 @@ import { PaginatedResponse, Task } from '@yotara/shared';
           }
         } @else {
           <div class="archive-summary">
-            <span>{{ totalArchived() }} archived tasks</span>
-            <p>Use the permanent archive tag to keep a task from being auto-cleared.</p>
+            <span>{{ totalArchived() }} completed tasks</span>
+            <p>Completed tasks auto-clear after 30 days. Marked “Keep forever” tasks never do.</p>
           </div>
 
           <div class="task-stack">
@@ -97,7 +111,7 @@ import { PaginatedResponse, Task } from '@yotara/shared';
 
     <app-confirm-dialog
       [open]="deleteConfirmOpen()"
-      title="Delete archived task?"
+      title="Delete completed task?"
       [description]="deleteDescription()"
       confirmLabel="Delete forever"
       cancelLabel="Keep it"
@@ -107,6 +121,26 @@ import { PaginatedResponse, Task } from '@yotara/shared';
       (confirm)="deleteArchivedTask()"
       (cancel)="closeDeleteConfirm()"
       (close)="closeDeleteConfirm()"
+    >
+      <div confirm-icon class="confirm-icon-wrap" aria-hidden="true">
+        <div class="confirm-icon-disc">
+          <fa-icon [icon]="faTrash"></fa-icon>
+        </div>
+      </div>
+    </app-confirm-dialog>
+
+    <app-confirm-dialog
+      [open]="clearConfirmOpen()"
+      title="Clear completed tasks?"
+      [description]="clearDescription()"
+      confirmLabel="Clear completed"
+      cancelLabel="Keep your history"
+      [loading]="clearingTask()"
+      loadingLabel="Clearing..."
+      [danger]="true"
+      (confirm)="clearCompletedNow()"
+      (cancel)="closeClearConfirm()"
+      (close)="closeClearConfirm()"
     >
       <div confirm-icon class="confirm-icon-wrap" aria-hidden="true">
         <div class="confirm-icon-disc">
@@ -124,6 +158,32 @@ import { PaginatedResponse, Task } from '@yotara/shared';
 
       .page {
         padding: 1rem 0 2rem;
+      }
+
+      .clear-completed {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        min-height: 2.5rem;
+        padding: 0 0.85rem;
+        border: 1px solid var(--outline-variant);
+        border-radius: 0.75rem;
+        background: var(--surface-card);
+        color: var(--on-surface);
+        font: inherit;
+        font-size: 0.82rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .clear-completed:hover {
+        background: var(--error-soft);
+        border-color: var(--status-overdue);
+      }
+
+      .clear-completed:focus-visible {
+        outline: 2px solid var(--primary-solid);
+        outline-offset: 1px;
       }
 
       .status-copy {
@@ -198,6 +258,8 @@ export class ArchivePageComponent {
     id: string;
     title: string;
   } | null>(null);
+  protected readonly clearConfirmOpen = signal(false);
+  protected readonly clearingTask = signal(false);
 
   protected readonly currentPage = signal(1);
   protected readonly pageSize = signal<10 | 25>(10);
@@ -225,8 +287,8 @@ export class ArchivePageComponent {
             }
           }),
           catchError((error: unknown) => {
-            this.logService.error('Failed to load archive', error, 'ArchivePage');
-            this.archiveError.set('Could not load archive right now.');
+            this.logService.error('Failed to load completed tasks', error, 'ArchivePage');
+            this.archiveError.set('Could not load completed tasks right now.');
             return of({
               data: [],
               meta: {
@@ -297,10 +359,39 @@ export class ArchivePageComponent {
     });
   }
 
+  requestClearCompleted() {
+    this.clearConfirmOpen.set(true);
+  }
+
+  closeClearConfirm() {
+    this.clearConfirmOpen.set(false);
+  }
+
+  clearDescription() {
+    return (
+      'This removes your completed tasks now instead of waiting for the 30-day ' +
+      'auto-clear. Tasks marked “Keep forever” are not touched.'
+    );
+  }
+
+  async clearCompletedNow() {
+    this.clearingTask.set(true);
+    try {
+      await this.taskService.clearCompletedTasks();
+      this.closeClearConfirm();
+      this.currentPage.set(1);
+    } catch (error) {
+      this.logService.error('Failed to clear completed tasks', error, 'ArchivePage');
+      this.archiveError.set('Could not clear completed tasks right now.');
+    } finally {
+      this.clearingTask.set(false);
+    }
+  }
+
   deleteDescription() {
     const task = this.taskPendingDelete();
     return task
-      ? `This will permanently remove ${task.title} from your archive.`
-      : 'This will permanently remove the selected task from your archive.';
+      ? `This will permanently remove ${task.title} from your completed tasks.`
+      : 'This will permanently remove the selected task from your completed tasks.';
   }
 }

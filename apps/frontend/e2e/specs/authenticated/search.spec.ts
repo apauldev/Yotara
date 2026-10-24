@@ -211,7 +211,7 @@ test.describe('Search', () => {
     await expect(page.locator('article.task-card').filter({ hasText: taskName })).not.toBeVisible();
 
     // Click "Search Archive"
-    await page.getByRole('button', { name: 'Search Archive' }).click();
+    await page.getByRole('button', { name: 'Search Completed' }).click();
     await page.waitForLoadState('networkidle');
 
     // The completed task should appear in archive results

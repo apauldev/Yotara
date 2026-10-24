@@ -41,7 +41,7 @@ test.describe('Task CRUD', () => {
 
     const movementToast = page
       .locator('.toast')
-      .filter({ hasText: `"${name}" completed and moved to Archive` });
+      .filter({ hasText: `"${name}" completed and moved to your Completed view` });
     await expect(movementToast).toBeVisible({ timeout: 10_000 });
     await movementToast.getByRole('button', { name: 'View' }).click();
 

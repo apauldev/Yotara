@@ -821,6 +821,34 @@ describe('TaskService', () => {
     expect(projectServiceStub.refresh).toHaveBeenCalled();
   }));
 
+  it('clears completed tasks and bumps the fetch version', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    http.expectOne(ACTIVE_URL).flush(paginated([]));
+    flushCompletedTasks(http);
+    tick();
+
+    const versionBefore = service.version();
+
+    let result: { ok: boolean; removed: number } | undefined;
+    void service.clearCompletedTasks().then((value) => (result = value));
+
+    const clearRequest = http.expectOne('http://localhost:3000/tasks/completed');
+    expect(clearRequest.request.method).toBe('DELETE');
+    expect(clearRequest.request.withCredentials).toBeTrue();
+    clearRequest.flush({ ok: true, removed: 3 });
+    tick();
+
+    expect(result).toEqual({ ok: true, removed: 3 });
+    expect(service.version()).toBeGreaterThan(versionBefore);
+  }));
+
   describe('error handling', () => {
     it('sets error state when allActiveTasks fetch fails with a network error', fakeAsync(() => {
       const service = TestBed.inject(TaskService);

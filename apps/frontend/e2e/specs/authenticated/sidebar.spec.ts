@@ -15,7 +15,7 @@ test.describe('Sidebar & Navigation', () => {
       { name: 'Calendar', url: /\/calendar/ },
       { name: 'Projects', url: /\/projects/ },
       { name: 'Labels', url: /\/labels/ },
-      { name: 'Archive', url: /\/archive/ },
+      { name: 'Completed', url: /\/archive/ },
     ];
 
     for (const link of links) {

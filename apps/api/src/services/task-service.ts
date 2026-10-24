@@ -125,6 +125,28 @@ export async function cleanupExpiredArchivedTasks(ownerId: string) {
   return 1;
 }
 
+/**
+ * Remove every completed task that is not marked permanentArchive right now,
+ * instead of waiting for the 30-day auto-clear. Kept tasks (permanentArchive)
+ * are untouched; tasks soft-deleted elsewhere also go, matching the eventual
+ * purge in cleanupExpiredArchivedTasks.
+ */
+export function clearCompletedTasksForOwner(ownerId: string, tx?: Database): number {
+  const run = (client: Database) =>
+    client
+      .delete(tasks)
+      .where(
+        and(
+          eq(tasks.userId, ownerId),
+          eq(tasks.completed, true),
+          eq(tasks.permanentArchive, false),
+        ),
+      )
+      .run().changes;
+
+  return tx ? run(tx) : db.transaction(run, { behavior: 'immediate' });
+}
+
 export interface TaskFilters {
   status?: TaskStatus;
   completed?: boolean;

@@ -1765,6 +1765,64 @@ test('tasks list composes project, priority, and label filters', async () => {
   }
 });
 
+test('clear completed removes non-kept completions only', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`clear-completed-${randomUUID()}@example.com`);
+
+    const createTask = async (title: string) => {
+      const response = await ctx.app.inject({
+        method: 'POST',
+        url: '/tasks',
+        headers: { cookie },
+        payload: { title },
+      });
+      assert.equal(response.statusCode, 201);
+      return response.json().id as string;
+    };
+    const updateTask = async (id: string, body: Record<string, unknown>) => {
+      const response = await ctx.app.inject({
+        method: 'PATCH',
+        url: `/tasks/${id}`,
+        headers: { cookie },
+        payload: body,
+      });
+      assert.equal(response.statusCode, 200);
+    };
+
+    const done = await createTask('Regular done');
+    const kept = await createTask('Kept forever');
+    await createTask('Still active');
+    await updateTask(done, { completed: true });
+    await updateTask(kept, { completed: true, permanentArchive: true });
+
+    const clear = await ctx.app.inject({
+      method: 'DELETE',
+      url: '/tasks/completed',
+      headers: { cookie },
+    });
+    assert.equal(clear.statusCode, 200);
+    assert.deepEqual(clear.json(), { ok: true, removed: 1 });
+
+    const remaining = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?pageSize=50',
+      headers: { cookie },
+    });
+    assert.equal(remaining.statusCode, 200);
+    const titles = remaining.json().data.map((task: { title: string }) => task.title);
+    assert.ok(titles.includes('Still active'));
+    assert.ok(titles.includes('Kept forever'));
+    assert.ok(!titles.includes('Regular done'));
+
+    const unauthorized = await ctx.app.inject({ method: 'DELETE', url: '/tasks/completed' });
+    assert.equal(unauthorized.statusCode, 401);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
 test('tasks can be created and updated without a project', async () => {
   const ctx = await createAuthedApp();
 

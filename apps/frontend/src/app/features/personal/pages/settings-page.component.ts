@@ -92,8 +92,8 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
           <h3 class="section-title">Behavior</h3>
           <label class="settings-item settings-toggle">
             <div class="settings-item-copy">
-              <strong>Auto-delete archived tasks</strong>
-              <span>Turn this off to keep archived tasks indefinitely.</span>
+              <strong>Auto-clear completed tasks</strong>
+              <span>Turn this off to keep completed tasks indefinitely.</span>
             </div>
             <input
               type="checkbox"
@@ -101,7 +101,7 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
               [checked]="archiveAutoDelete()"
               (change)="onArchiveCleanupChange($event)"
               [disabled]="isSavingArchiveCleanup()"
-              aria-label="Toggle auto-delete for archived tasks"
+              aria-label="Toggle auto-clear for completed tasks"
             />
           </label>
 
