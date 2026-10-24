@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.85.0](https://github.com/apauldev/Yotara/compare/v0.84.1...v0.85.0) (2026-10-24)
+
+
+### Features
+
+* **tasks:** rename archive to completed and add clear completed ([259894e](https://github.com/apauldev/Yotara/commit/259894ea5ebbb44a06faf8e51e7587b28e35cee5))
+
+
+### Bug Fixes
+
+* **api:** return 401 from the clear-completed auth fallback ([b780c20](https://github.com/apauldev/Yotara/commit/b780c20659dafccfa0f423e05424cf95802a7733))
+
 ## [0.84.1](https://github.com/apauldev/Yotara/compare/v0.84.0...v0.84.1) (2026-10-24)
 
 
