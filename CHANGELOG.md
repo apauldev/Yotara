@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.85.1](https://github.com/apauldev/Yotara/compare/v0.85.0...v0.85.1) (2026-10-24)
+
+
+### Bug Fixes
+
+* **deps:** pin c8's yargs to 17.7.3 for node 26 compatibility ([03106a4](https://github.com/apauldev/Yotara/commit/03106a4fc1746223ded7820f5554b0537b634356))
+
 ## [0.85.0](https://github.com/apauldev/Yotara/compare/v0.84.1...v0.85.0) (2026-10-24)
 
 
