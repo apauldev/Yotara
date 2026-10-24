@@ -4,7 +4,7 @@
   "version": "0.85.0",
   "description": "Yotara: lightweight self-hosted task manager",
   "engines": {
-    "node": ">=22.22.3"
+    "node": ">=26.12.1"
   },
   "packageManager": "pnpm@10.30.3",
   "scripts": {

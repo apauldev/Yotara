@@ -95,7 +95,7 @@ Not another todo app. Not another project management suite. Something in between
 
 ## Quick Start
 
-Get Yotara running locally in under a minute. Requires Node `22.22.3+` and `pnpm` `10.30.3+`.
+Get Yotara running locally in under a minute. Requires Node `26.12.1+` and `pnpm` `10.30.3+`.
 
 ```bash
 git clone https://github.com/apauldev/Yotara.git
