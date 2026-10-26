@@ -22,6 +22,6 @@
   },
   "dependencies": {
     "@better-fetch/fetch": "^1.1.21",
-    "better-auth": "~1.6.22"
+    "better-auth": "~1.7.12"
   }
 }

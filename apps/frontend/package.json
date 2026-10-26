@@ -37,7 +37,7 @@
     "@spartan-ng/brain": "0.0.1-alpha.646",
     "@types/luxon": "^3.7.5",
     "@yotara/shared": "workspace:*",
-    "better-auth": "~1.6.22",
+    "better-auth": "~1.7.12",
     "chrono-node": "2.10.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
