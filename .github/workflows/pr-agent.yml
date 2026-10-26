@@ -18,7 +18,7 @@ jobs:
       issues: write
     steps:
       - name: PR Agent action step
-        uses: the-pr-agent/pr-agent@v0.41.0
+        uses: the-pr-agent/pr-agent@v0.48.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           openrouter__key: ${{ secrets.OPENROUTER_REVIEW_KEY }}
@@ -59,7 +59,7 @@ jobs:
       issues: write
     steps:
       - name: PR Agent action step
-        uses: the-pr-agent/pr-agent@v0.41.0
+        uses: the-pr-agent/pr-agent@v0.48.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           openrouter__key: ${{ secrets.OPENROUTER_REVIEW_KEY }}
