@@ -43,6 +43,32 @@ function insertLabelWithKey(
 }
 
 /**
+ * Reads the label uniqueness index the way the startup migration verifies it:
+ * presence, uniqueness flag, partial flag, and the exact column list from
+ * PRAGMA index_info. Returns undefined when the index does not exist.
+ */
+function readUniqueIndexShape(
+  db: SqliteDatabase,
+): { unique: boolean; partial: boolean; columns: Array<string | null> } | undefined {
+  const entry = (
+    db.prepare(`PRAGMA index_list('labels')`).all() as Array<{
+      name: string;
+      unique: number;
+      partial: number;
+    }>
+  ).find((row) => row.name === 'idx_labels_user_name_unique');
+  if (entry === undefined) {
+    return undefined;
+  }
+  const columns = (
+    db.prepare(`PRAGMA index_info('idx_labels_user_name_unique')`).all() as Array<{
+      name: string | null;
+    }>
+  ).map((column) => column.name);
+  return { unique: entry.unique === 1, partial: entry.partial === 1, columns };
+}
+
+/**
  * Builds a legacy database that predates the label-uniqueness migration:
  * the labels table has no unique index per (user_id, name_norm)
  * and may therefore contain case/whitespace variants of the same name.
@@ -189,13 +215,11 @@ test('startup migration merges duplicate labels without losing task associations
         .get(seed.casingDupe, seed.whitespaceDupe) as { n: number };
       assert.equal(orphaned.n, 0, 'join rows pointing at deleted duplicates are gone');
 
-      const uniqueIndex = sqlite
-        .prepare(
-          `SELECT name, sql FROM sqlite_master WHERE type = 'index' AND name = 'idx_labels_user_name_unique'`,
-        )
-        .get() as { name: string; sql: string } | undefined;
-      assert.ok(uniqueIndex, 'the unique index exists after dedupe');
-      assert.match(uniqueIndex.sql, /\bname_norm\b/, 'the index uses the normalized key column');
+      assert.deepEqual(
+        readUniqueIndexShape(sqlite),
+        { unique: true, partial: false, columns: ['user_id', 'name_norm'] },
+        'the unique index exists after dedupe with the expected shape',
+      );
 
       const joinIndex = sqlite
         .prepare(
@@ -299,8 +323,12 @@ test('a fresh bootstrap creates the uniqueness and join indexes', () => {
     assert.ok(names.includes('idx_labels_user_name_unique'));
     assert.ok(names.includes('idx_task_labels_label_id'));
     const uniqueIndex = indexes.find((row) => row.name === 'idx_labels_user_name_unique');
-    assert.ok(uniqueIndex);
-    assert.match(uniqueIndex.sql, /\bname_norm\b/);
+    assert.ok(uniqueIndex, 'the unique index is created on a fresh database');
+    assert.deepEqual(readUniqueIndexShape(sqlite), {
+      unique: true,
+      partial: false,
+      columns: ['user_id', 'name_norm'],
+    });
 
     const columns = sqlite.prepare(`PRAGMA table_info('labels')`).all() as Array<{
       name: string;
@@ -362,5 +390,316 @@ test('the unique index rejects duplicate normalized names within an owner', () =
     });
   } finally {
     sqlite.close();
+  }
+});
+
+test('startup backfill repairs keys written by an older normalizer and merges the collision', () => {
+  const dir = join(tmpdir(), `yotara-labels-stale-key-${randomUUID()}`);
+  mkdirSync(dir, { recursive: true });
+  const dbFile = join(dir, 'test.db');
+  const canonicalId = randomUUID();
+  const staleId = randomUUID();
+  const taskId = randomUUID();
+
+  try {
+    // First boot creates the current schema and the unique index. Then seed
+    // rows as the previous normalizer would have written them: the stored key
+    // for 'T' + combining diaeresis is the decomposed lowercase pair, but the
+    // current normalizer keys it as the precomposed 'ẗ' — colliding with the
+    // label that already uses that key.
+    const first = createDbClient(dbFile);
+    first.sqlite.close();
+
+    const seeded = new Database(dbFile);
+    try {
+      seedUserRow(seeded, 'u1', 'User A');
+      insertLabelWithKey(seeded, canonicalId, 'u1', '\u1E97', '\u1E97', '2024-01-01T00:00:00Z');
+      insertLabelWithKey(seeded, staleId, 'u1', 'T\u0308', 't\u0308', '2024-02-01T00:00:00Z');
+      seeded
+        .prepare(
+          `INSERT INTO tasks (id, user_id, title, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+        )
+        .run(taskId, 'u1', 'Stale key task', '2024-02-02T00:00:00Z', '2024-02-02T00:00:00Z');
+      seeded
+        .prepare(`INSERT INTO task_labels (task_id, label_id) VALUES (?, ?)`)
+        .run(taskId, staleId);
+    } finally {
+      seeded.close();
+    }
+
+    const second = createDbClient(dbFile);
+    try {
+      const labels = second.sqlite
+        .prepare(`SELECT id, name, name_norm FROM labels WHERE user_id = 'u1'`)
+        .all() as Array<{ id: string; name: string; name_norm: string }>;
+      assert.equal(labels.length, 1, 'the repaired key merges into the pre-existing label');
+      assert.equal(labels[0].id, canonicalId, 'the earliest-created label survives');
+      assert.equal(labels[0].name_norm, '\u1E97', 'the recomposed key is stored');
+
+      const join = second.sqlite
+        .prepare(`SELECT label_id FROM task_labels WHERE task_id = ?`)
+        .get(taskId) as { label_id: string };
+      assert.equal(join.label_id, canonicalId, 'the task association moves to the canonical row');
+
+      assert.deepEqual(
+        readUniqueIndexShape(second.sqlite),
+        { unique: true, partial: false, columns: ['user_id', 'name_norm'] },
+        'the unique index is back in place',
+      );
+    } finally {
+      second.sqlite.close();
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('startup replaces an index that does not match the expected unique shape', () => {
+  const dir = join(tmpdir(), `yotara-labels-expr-index-${randomUUID()}`);
+  mkdirSync(dir, { recursive: true });
+  const dbFile = join(dir, 'test.db');
+
+  try {
+    const first = createDbClient(dbFile);
+    first.sqlite.close();
+
+    const seeded = new Database(dbFile);
+    try {
+      seedUserRow(seeded, 'u1', 'User A');
+      insertLabelWithKey(seeded, 'l1', 'u1', 'Writing', 'writing', '2024-01-01T00:00:00Z');
+      // Stand-in for the older expression-based index: the stored keys are
+      // already current, so only the index shape is wrong and only the index
+      // should be rebuilt.
+      seeded.exec(`DROP INDEX idx_labels_user_name_unique`);
+      seeded.exec(
+        `CREATE UNIQUE INDEX idx_labels_user_name_unique ON labels(user_id, lower(name))`,
+      );
+    } finally {
+      seeded.close();
+    }
+
+    const second = createDbClient(dbFile);
+    try {
+      assert.deepEqual(
+        readUniqueIndexShape(second.sqlite),
+        { unique: true, partial: false, columns: ['user_id', 'name_norm'] },
+        'the mismatched index is rebuilt to the expected shape',
+      );
+      const labels = second.sqlite
+        .prepare(`SELECT id FROM labels WHERE user_id = 'u1'`)
+        .all() as Array<{ id: string }>;
+      assert.equal(labels.length, 1, 'a shape-only rebuild touches no rows');
+    } finally {
+      second.sqlite.close();
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('startup replaces a partial unique index with the full uniqueness index', () => {
+  const dir = join(tmpdir(), `yotara-labels-partial-index-${randomUUID()}`);
+  mkdirSync(dir, { recursive: true });
+  const dbFile = join(dir, 'test.db');
+
+  try {
+    const first = createDbClient(dbFile);
+    first.sqlite.close();
+
+    const seeded = new Database(dbFile);
+    try {
+      seedUserRow(seeded, 'u1', 'User A');
+      // A partial index can have the expected name, uniqueness flag, and
+      // columns while leaving rows outside its predicate unconstrained. The
+      // startup check must treat it as stale and rebuild the full index.
+      seeded.exec(`DROP INDEX idx_labels_user_name_unique`);
+      seeded.exec(
+        `CREATE UNIQUE INDEX idx_labels_user_name_unique
+         ON labels(user_id, name_norm) WHERE name_norm <> ''`,
+      );
+      insertLabelWithKey(seeded, 'l1', 'u1', '', '', '2024-01-01T00:00:00Z');
+    } finally {
+      seeded.close();
+    }
+
+    const second = createDbClient(dbFile);
+    try {
+      assert.deepEqual(
+        readUniqueIndexShape(second.sqlite),
+        { unique: true, partial: false, columns: ['user_id', 'name_norm'] },
+        'the partial index is rebuilt as a full unique index',
+      );
+      assert.throws(
+        () => insertLabelWithKey(second.sqlite, 'l2', 'u1', '', '', '2024-01-02T00:00:00Z'),
+        'duplicate keys that the partial predicate excluded are now rejected',
+      );
+    } finally {
+      second.sqlite.close();
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('startup backfill rewrites a stale key that does not collide', () => {
+  const dir = join(tmpdir(), `yotara-labels-stale-unique-${randomUUID()}`);
+  mkdirSync(dir, { recursive: true });
+  const dbFile = join(dir, 'test.db');
+
+  try {
+    const first = createDbClient(dbFile);
+    first.sqlite.close();
+
+    const seeded = new Database(dbFile);
+    try {
+      seedUserRow(seeded, 'u1', 'User A');
+      // A key written by an older normalizer that trimmed and composed but
+      // never lowercased. It is stale, yet no other row uses it, so the
+      // rewrite must not merge or delete anything.
+      insertLabelWithKey(seeded, 'l1', 'u1', ' Writing ', 'Writing', '2024-01-01T00:00:00Z');
+    } finally {
+      seeded.close();
+    }
+
+    const second = createDbClient(dbFile);
+    try {
+      const labels = second.sqlite
+        .prepare(`SELECT id, name, name_norm FROM labels WHERE user_id = 'u1'`)
+        .all() as Array<{ id: string; name: string; name_norm: string }>;
+      assert.equal(labels.length, 1, 'the label survives the rewrite');
+      assert.equal(labels[0].id, 'l1', 'no merge partner is invented');
+      assert.equal(labels[0].name, ' Writing ', 'the display name is untouched');
+      assert.equal(labels[0].name_norm, 'writing', 'the stale key is rewritten');
+      assert.deepEqual(
+        readUniqueIndexShape(second.sqlite),
+        { unique: true, partial: false, columns: ['user_id', 'name_norm'] },
+        'the index is rebuilt after the rewrite',
+      );
+    } finally {
+      second.sqlite.close();
+    }
+
+    // Third boot: everything matches the current normalizer, so the fast path
+    // leaves both the key and the index alone.
+    const third = createDbClient(dbFile);
+    try {
+      const label = third.sqlite.prepare(`SELECT name_norm FROM labels WHERE id = 'l1'`).get() as {
+        name_norm: string;
+      };
+      assert.equal(label.name_norm, 'writing', 'a steady-state boot changes nothing');
+      assert.deepEqual(readUniqueIndexShape(third.sqlite), {
+        unique: true,
+        partial: false,
+        columns: ['user_id', 'name_norm'],
+      });
+    } finally {
+      third.sqlite.close();
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('startup merges labels that collide only after case folding', () => {
+  const dir = join(tmpdir(), `yotara-labels-casefold-${randomUUID()}`);
+  mkdirSync(dir, { recursive: true });
+  const dbFile = join(dir, 'test.db');
+  const sigmaCanonical = randomUUID();
+  const sigmaDupe = randomUUID();
+  const eszettCanonical = randomUUID();
+  const eszettDupe = randomUUID();
+  const iotaCanonical = randomUUID();
+  const iotaDupe = randomUUID();
+  const cyrillicCanonical = randomUUID();
+  const cyrillicDupe = randomUUID();
+
+  try {
+    const first = createDbClient(dbFile);
+    first.sqlite.close();
+
+    const seeded = new Database(dbFile);
+    try {
+      seedUserRow(seeded, 'u1', 'User A');
+      // Keys as the pre-folding normalizer wrote them: distinct under
+      // toLowerCase() alone (final sigma vs medial sigma, ß vs ss, precomposed
+      // iota subscript vs explicit iota, Cyrillic Extended-C vs base letter),
+      // so every pair coexisted behind the unique index.
+      insertLabelWithKey(seeded, sigmaCanonical, 'u1', 'ΟΣ', 'ος', '2024-01-01T00:00:00Z');
+      insertLabelWithKey(seeded, sigmaDupe, 'u1', 'οσ', 'οσ', '2024-02-01T00:00:00Z');
+      insertLabelWithKey(seeded, eszettCanonical, 'u1', 'Straße', 'straße', '2024-03-01T00:00:00Z');
+      insertLabelWithKey(seeded, eszettDupe, 'u1', 'STRASSE', 'strasse', '2024-04-01T00:00:00Z');
+      insertLabelWithKey(seeded, iotaCanonical, 'u1', 'ᾳ', 'ᾳ', '2024-05-01T00:00:00Z');
+      insertLabelWithKey(seeded, iotaDupe, 'u1', 'αι', 'αι', '2024-06-01T00:00:00Z');
+      insertLabelWithKey(
+        seeded,
+        cyrillicCanonical,
+        'u1',
+        '\u1C80',
+        '\u1C80',
+        '2024-07-01T00:00:00Z',
+      );
+      insertLabelWithKey(seeded, cyrillicDupe, 'u1', 'в', 'в', '2024-08-01T00:00:00Z');
+      const insertTask = seeded.prepare(
+        `INSERT INTO tasks (id, user_id, title, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+      );
+      const insertJoin = seeded.prepare(
+        `INSERT INTO task_labels (task_id, label_id) VALUES (?, ?)`,
+      );
+      for (const [taskName, labelId] of [
+        ['Sigma task', sigmaDupe],
+        ['Eszett task', eszettDupe],
+        ['Iota task', iotaDupe],
+        ['Cyrillic task', cyrillicDupe],
+      ] as const) {
+        const taskId = randomUUID();
+        insertTask.run(taskId, 'u1', taskName, '2024-05-01T00:00:00Z', '2024-05-01T00:00:00Z');
+        insertJoin.run(taskId, labelId);
+      }
+    } finally {
+      seeded.close();
+    }
+
+    const second = createDbClient(dbFile);
+    try {
+      const labels = second.sqlite
+        .prepare(`SELECT id, name, name_norm FROM labels WHERE user_id = 'u1'`)
+        .all() as Array<{ id: string; name: string; name_norm: string }>;
+      assert.equal(labels.length, 4, 'all folded pairs collapse to one row each');
+      const sigma = labels.find((row) => row.name_norm === 'οσ');
+      const eszett = labels.find((row) => row.name_norm === 'strasse');
+      const iota = labels.find((row) => row.name_norm === 'αι');
+      const cyrillic = labels.find((row) => row.name_norm === 'в');
+      assert.ok(sigma, 'final sigma folds to the medial key');
+      assert.ok(eszett, 'ß folds to the ss key');
+      assert.ok(iota, 'the iota subscript folds to an explicit iota');
+      assert.ok(cyrillic, 'Cyrillic Extended-C folds to the base letter');
+      assert.equal(sigma.id, sigmaCanonical, 'the final-sigma row merges into the earlier label');
+      assert.equal(eszett.id, eszettCanonical, 'the ß/ss rows merge into the earlier label');
+      assert.equal(iota.id, iotaCanonical, 'the iota-subscript row merges into the earlier label');
+      assert.equal(
+        cyrillic.id,
+        cyrillicCanonical,
+        'the Cyrillic variant merges into the earlier label',
+      );
+
+      const joins = second.sqlite
+        .prepare(`SELECT label_id FROM task_labels ORDER BY label_id`)
+        .all() as Array<{ label_id: string }>;
+      assert.deepEqual(
+        joins.map((row) => row.label_id).sort(),
+        [sigmaCanonical, eszettCanonical, iotaCanonical, cyrillicCanonical].sort(),
+        'every task association moves to its canonical row',
+      );
+
+      assert.deepEqual(readUniqueIndexShape(second.sqlite), {
+        unique: true,
+        partial: false,
+        columns: ['user_id', 'name_norm'],
+      });
+    } finally {
+      second.sqlite.close();
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });

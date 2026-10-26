@@ -468,33 +468,60 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
     }
 
     // Label identity hygiene: Unicode case/whitespace-insensitive uniqueness.
-    // name_norm is computed in application code (NFKC + trim + lowercase)
-    // because SQLite's lower() is ASCII-only. Drop and rebuild the index so an
-    // older expression-based index is upgraded in place and normalization
-    // changes can be applied safely. The dedupe MUST run before recreating the
-    // unique index — a database that still contains duplicates would fail index
-    // creation. Per label group keyed by (user_id, name_norm) with more than one
-    // row:
+    // name_norm is computed in application code (NFKC, lowercase, NFD/NFKC,
+    // plus the case-folding overrides in labelNameKey) because SQLite's lower()
+    // is ASCII-only. The unique index is rebuilt only when it is missing, does
+    // not match the expected full unique (user_id, name_norm) shape (an older
+    // expression-based index, a partial index, or a non-unique/wrong-column
+    // variant), or the backfill below changes at least one stored key — a
+    // normalization change can make previously distinct keys collide, and those
+    // updates must not run while the index still enforces the old keys. The
+    // dedupe MUST run before recreating the unique index — a database that still
+    // contains duplicates would fail index creation. Per label group keyed by
+    // (user_id, name_norm) with more than one row:
     //   1. pick the canonical label (earliest non-empty created_at, then lowest id)
     //   2. re-point task_labels rows to the canonical label (INSERT OR IGNORE
     //      dedupes against the join table's (task_id, label_id) primary key)
     //   3. delete join rows that still point at duplicates
     //   4. delete the duplicate label rows
-    // Tasks are never deleted. Idempotent: once the index exists, groups have a
-    // single row, so the pre-check finds nothing and nothing runs.
-    sqlite.exec(`DROP INDEX IF EXISTS idx_labels_user_name_unique`);
+    // Tasks are never deleted. Idempotent: once every stored key matches the
+    // current normalizer and the index has the expected shape, the pre-check
+    // finds nothing and nothing runs.
+    const uniqueIndexEntry = (
+      sqlite.prepare(`PRAGMA index_list('labels')`).all() as Array<{
+        name: string;
+        unique: number;
+        partial: number;
+      }>
+    ).find((row) => row.name === 'idx_labels_user_name_unique');
+    const uniqueIndexColumns =
+      uniqueIndexEntry === undefined
+        ? []
+        : (
+            sqlite.prepare(`PRAGMA index_info('idx_labels_user_name_unique')`).all() as Array<{
+              name: string | null;
+            }>
+          ).map((column) => column.name);
+    const uniqueIndexCurrent =
+      uniqueIndexEntry?.unique === 1 &&
+      uniqueIndexEntry.partial === 0 &&
+      uniqueIndexColumns.length === 2 &&
+      uniqueIndexColumns[0] === 'user_id' &&
+      uniqueIndexColumns[1] === 'name_norm';
 
     const labelRows = sqlite.prepare(`SELECT id, name, name_norm FROM labels`).all() as Array<{
       id: string;
       name: string;
       name_norm: string | null;
     }>;
+    const staleLabelRows = labelRows.filter((row) => labelNameKey(row.name) !== row.name_norm);
+
+    if (staleLabelRows.length > 0 || !uniqueIndexCurrent) {
+      sqlite.exec(`DROP INDEX IF EXISTS idx_labels_user_name_unique`);
+    }
     const updateLabelNameNorm = sqlite.prepare(`UPDATE labels SET name_norm = ? WHERE id = ?`);
-    for (const row of labelRows) {
-      const nameNorm = labelNameKey(row.name);
-      if (row.name_norm !== nameNorm) {
-        updateLabelNameNorm.run(nameNorm, row.id);
-      }
+    for (const row of staleLabelRows) {
+      updateLabelNameNorm.run(labelNameKey(row.name), row.id);
     }
 
     const duplicateLabelGroups = sqlite
@@ -574,10 +601,13 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
 
     // Created AFTER dedupe on purpose (see above). The normalized key is stored
     // directly, so new writes are constrained even for non-ASCII case pairs.
-    sqlite.exec(
-      `CREATE UNIQUE INDEX idx_labels_user_name_unique
-       ON labels(user_id, name_norm)`,
-    );
+    // Skipped when the index is already current and nothing needed rewriting.
+    if (staleLabelRows.length > 0 || !uniqueIndexCurrent) {
+      sqlite.exec(
+        `CREATE UNIQUE INDEX idx_labels_user_name_unique
+         ON labels(user_id, name_norm)`,
+      );
+    }
     // Counts and label filters scan task_labels by label_id.
     sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_task_labels_label_id ON task_labels(label_id)`);
 
