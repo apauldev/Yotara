@@ -291,8 +291,8 @@ active label is hidden in its own pane; unknown label IDs are omitted.
 - `apps/api/src/db/client.ts` (schema bootstrap/migration)
 - `apps/api/src/db/schema.ts` (`nameNorm` column)
 - `apps/api/src/lib/label-name.ts` and `label-name.test.ts` (normalized key)
-- `apps/api/drizzle/0007_*.sql` (optional schema snapshot; include the dedupe
-  before the unique index if you add it, otherwise omit this file)
+- `apps/api/drizzle/0007_mature_johnny_blaze.sql` (schema record for `name_norm`,
+  scoped to the guarded ALTER like 0006; the runtime migration owns the index)
 - `apps/api/src/services/label-service.ts`
 - `apps/api/src/routes/labels.ts`
 - `apps/api/src/lib/app-error.ts` and/or `apps/api/src/server.ts` (409 response)
@@ -305,10 +305,16 @@ active label is hidden in its own pane; unknown label IDs are omitted.
 `BEGIN IMMEDIATE` transaction):**
 
 1. Group labels by `(user_id, name_norm)` where the group has more than one row.
-   `name_norm` is computed in application code with NFKC normalization, trimming,
-   and lowercasing, so names that differ only by Unicode case, composition, or
-   surrounding whitespace are treated as duplicates. SQLite's `lower()` is
-   ASCII-only and cannot provide this key.
+   `name_norm` is computed in application code (NFKC, lowercase, NFKC —
+   normalization after case mapping — then the case-folding overrides), so names
+   that differ only by Unicode case, composition, or surrounding whitespace are
+   treated as duplicates. The second NFKC pass recomposes sequences that only
+   become composable once lowercased (for example `T` plus a combining diaeresis,
+   or Greek `Ϊ` plus a combining tonos). The final case-folding overrides close
+   the gap between JavaScript's toLowerCase() (case *conversion*) and Unicode
+   case *folding*: `ß`/`ẞ` fold to `ss`, final sigma `ς` folds to `σ`, and long s
+   `ſ` folds to `s` — so `Straße`/`STRASSE` and `ΟΣ`/`οσ` collide as expected.
+   SQLite's `lower()` is ASCII-only and cannot provide this key.
 2. Choose the canonical label: earliest non-empty `created_at`, then lowest
    `id`. The canonical label keeps its own color (and icon once Phase 2 adds it);
    duplicate metadata is discarded.
@@ -317,8 +323,15 @@ active label is hidden in its own pane; unknown label IDs are omitted.
 4. Delete the duplicate label rows.
 5. **After** deduplication, create
    `CREATE UNIQUE INDEX idx_labels_user_name_unique ON labels(user_id, name_norm)`.
-   Do not add this index to `SQLITE_BOOTSTRAP_SQL`: the bootstrap runs before
-   dedupe and would fail on a database that still contains duplicates.
+   Rebuild it only when it is missing, does not match the expected shape —
+   verified via `PRAGMA index_list`/`index_info` as a unique index with columns
+   exactly `(user_id, name_norm)`, so an older expression-based index or a
+   wrong-column variant counts as stale — or the backfill changed at least one
+   stored key: a normalization change can make previously distinct keys collide,
+   so those updates must not run while the index still enforces the old keys.
+   Steady-state startups leave the index untouched. Do not add this index to
+   `SQLITE_BOOTSTRAP_SQL`: the bootstrap runs before dedupe and would fail on a
+   database that still contains duplicates.
 6. Create
    `CREATE INDEX IF NOT EXISTS idx_task_labels_label_id ON task_labels(label_id)`
    for counts and label filters. This is safe in the bootstrap for fresh
@@ -326,15 +339,18 @@ active label is hidden in its own pane; unknown label IDs are omitted.
 7. Log the number of merged labels and affected task-label rows. Tasks are never
    deleted.
 
-The migration must be idempotent and safe with `busy_timeout`. The Drizzle SQL
-file is optional; do not present it as a safe manual upgrade unless it includes
-the dedupe step. Startup behavior is governed by `ensureSqliteSchema`.
+The migration must be idempotent and safe with `busy_timeout`. `0007_mature_johnny_blaze.sql`
+records the `name_norm` addition for the generated chain but is not a safe
+manual upgrade; startup behavior is governed by `ensureSqliteSchema`.
 `schema.ts` declares `nameNorm` so Drizzle writes keep the key in sync; the
 unique index itself is created by the startup migration.
 
 SQLite's `lower()` limitation is addressed by the stored `name_norm` key.
 Canonically equivalent forms such as `Étude`, `étude`, and `E` plus a combining
-accent all map to `étude`, and the unique index enforces that key.
+accent all map to `étude`, and the unique index enforces that key. The
+case-folding overrides extend the same guarantee to `Straße`/`STRASSE` and to
+Greek final vs. medial sigma (`ΟΣ`/`οσ`), which a plain `toLowerCase()` would
+leave as distinct keys.
 
 **API behavior:**
 
