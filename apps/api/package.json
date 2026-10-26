@@ -33,7 +33,7 @@
     "resend": "^6.34.1"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
+    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^22",
     "c8": "^11.0.0",
     "drizzle-kit": "^0.31.10",
