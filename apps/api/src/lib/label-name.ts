@@ -52,5 +52,5 @@ export function labelNameKey(name: string): string {
     .replaceAll('ß', 'ss')
     .replaceAll('ς', 'σ')
     .replaceAll('ſ', 's')
-    .replace(/[\u1C80-\u1C88]/g, (char) => CYRILLIC_EXTENDED_C_FOLDS[char] ?? char);
+    .replace(/[\u1C80-\u1C88]/g, (char) => CYRILLIC_EXTENDED_C_FOLDS[char]!);
 }
