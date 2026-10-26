@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.85.2](https://github.com/apauldev/Yotara/compare/v0.85.1...v0.85.2) (2026-10-26)
+
+
+### Bug Fixes
+
+* **labels:** enforce Unicode case-insensitive label uniqueness ([#417](https://github.com/apauldev/Yotara/issues/417)) ([0de64d5](https://github.com/apauldev/Yotara/commit/0de64d55b89f11260eb50fc4c07c5761d06ff46e))
+
 ## [0.85.1](https://github.com/apauldev/Yotara/compare/v0.85.0...v0.85.1) (2026-10-24)
 
 
