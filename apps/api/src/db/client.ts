@@ -468,17 +468,17 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
     }
 
     // Label identity hygiene: Unicode case/whitespace-insensitive uniqueness.
-    // name_norm is computed in application code (NFKC, lowercase, NFKC, plus
-    // the case-folding overrides in labelNameKey) because SQLite's lower() is
-    // ASCII-only. The unique index is rebuilt only when it is missing, does not
-    // match the expected unique (user_id, name_norm) shape (an older
-    // expression-based index, or a non-unique/wrong-column variant), or the
-    // backfill below changes at least one stored key — a normalization change
-    // can make previously distinct keys collide, and those updates must not run
-    // while the index still enforces the old keys. The dedupe MUST run before
-    // recreating the unique index — a database that still contains duplicates
-    // would fail index creation. Per label group keyed by (user_id, name_norm)
-    // with more than one row:
+    // name_norm is computed in application code (NFKC, lowercase, NFD/NFKC,
+    // plus the case-folding overrides in labelNameKey) because SQLite's lower()
+    // is ASCII-only. The unique index is rebuilt only when it is missing, does
+    // not match the expected full unique (user_id, name_norm) shape (an older
+    // expression-based index, a partial index, or a non-unique/wrong-column
+    // variant), or the backfill below changes at least one stored key — a
+    // normalization change can make previously distinct keys collide, and those
+    // updates must not run while the index still enforces the old keys. The
+    // dedupe MUST run before recreating the unique index — a database that still
+    // contains duplicates would fail index creation. Per label group keyed by
+    // (user_id, name_norm) with more than one row:
     //   1. pick the canonical label (earliest non-empty created_at, then lowest id)
     //   2. re-point task_labels rows to the canonical label (INSERT OR IGNORE
     //      dedupes against the join table's (task_id, label_id) primary key)
@@ -491,6 +491,7 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
       sqlite.prepare(`PRAGMA index_list('labels')`).all() as Array<{
         name: string;
         unique: number;
+        partial: number;
       }>
     ).find((row) => row.name === 'idx_labels_user_name_unique');
     const uniqueIndexColumns =
@@ -503,6 +504,7 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
           ).map((column) => column.name);
     const uniqueIndexCurrent =
       uniqueIndexEntry?.unique === 1 &&
+      uniqueIndexEntry.partial === 0 &&
       uniqueIndexColumns.length === 2 &&
       uniqueIndexColumns[0] === 'user_id' &&
       uniqueIndexColumns[1] === 'name_norm';

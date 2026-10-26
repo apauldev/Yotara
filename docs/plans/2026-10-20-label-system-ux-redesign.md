@@ -305,16 +305,19 @@ active label is hidden in its own pane; unknown label IDs are omitted.
 `BEGIN IMMEDIATE` transaction):**
 
 1. Group labels by `(user_id, name_norm)` where the group has more than one row.
-   `name_norm` is computed in application code (NFKC, lowercase, NFKC —
-   normalization after case mapping — then the case-folding overrides), so names
-   that differ only by Unicode case, composition, or surrounding whitespace are
-   treated as duplicates. The second NFKC pass recomposes sequences that only
+   `name_norm` is computed in application code (NFKC, lowercase, NFD, NFKC, then
+   the case-folding overrides), so names that differ only by Unicode case,
+   composition, or surrounding whitespace are treated as duplicates. The NFD
+   step decomposes the Greek iota subscript so both combining and precomposed
+   spellings reach the fold; the following NFKC recomposes sequences that only
    become composable once lowercased (for example `T` plus a combining diaeresis,
    or Greek `Ϊ` plus a combining tonos). The final case-folding overrides close
    the gap between JavaScript's toLowerCase() (case *conversion*) and Unicode
-   case *folding*: `ß`/`ẞ` fold to `ss`, final sigma `ς` folds to `σ`, and long s
-   `ſ` folds to `s` — so `Straße`/`STRASSE` and `ΟΣ`/`οσ` collide as expected.
-   SQLite's `lower()` is ASCII-only and cannot provide this key.
+   case *folding*: `ß`/`ẞ` fold to `ss`, final sigma `ς` folds to `σ`, long s
+   `ſ` folds to `s`, iota subscript folds to `ι`, and Cyrillic Extended-C
+   variants fold to their base letters — so `Straße`/`STRASSE`, `ΟΣ`/`οσ`, and
+   `ᾳ`/`αι` collide as expected. SQLite's `lower()` is ASCII-only and cannot
+   provide this key.
 2. Choose the canonical label: earliest non-empty `created_at`, then lowest
    `id`. The canonical label keeps its own color (and icon once Phase 2 adds it);
    duplicate metadata is discarded.
@@ -324,14 +327,15 @@ active label is hidden in its own pane; unknown label IDs are omitted.
 5. **After** deduplication, create
    `CREATE UNIQUE INDEX idx_labels_user_name_unique ON labels(user_id, name_norm)`.
    Rebuild it only when it is missing, does not match the expected shape —
-   verified via `PRAGMA index_list`/`index_info` as a unique index with columns
-   exactly `(user_id, name_norm)`, so an older expression-based index or a
-   wrong-column variant counts as stale — or the backfill changed at least one
-   stored key: a normalization change can make previously distinct keys collide,
-   so those updates must not run while the index still enforces the old keys.
-   Steady-state startups leave the index untouched. Do not add this index to
-   `SQLITE_BOOTSTRAP_SQL`: the bootstrap runs before dedupe and would fail on a
-   database that still contains duplicates.
+   verified via `PRAGMA index_list`/`index_info` as a full (non-partial) unique
+   index with columns exactly `(user_id, name_norm)`, so an older
+   expression-based index or a wrong-column/partial variant counts as stale — or
+   the backfill changed at least one stored key: a normalization change can make
+   previously distinct keys collide, so those updates must not run while the
+   index still enforces the old keys. Steady-state startups leave the index
+   untouched. Do not add this index to `SQLITE_BOOTSTRAP_SQL`: the bootstrap
+   runs before dedupe and would fail on a database that still contains
+   duplicates.
 6. Create
    `CREATE INDEX IF NOT EXISTS idx_task_labels_label_id ON task_labels(label_id)`
    for counts and label filters. This is safe in the bootstrap for fresh
@@ -348,9 +352,10 @@ unique index itself is created by the startup migration.
 SQLite's `lower()` limitation is addressed by the stored `name_norm` key.
 Canonically equivalent forms such as `Étude`, `étude`, and `E` plus a combining
 accent all map to `étude`, and the unique index enforces that key. The
-case-folding overrides extend the same guarantee to `Straße`/`STRASSE` and to
-Greek final vs. medial sigma (`ΟΣ`/`οσ`), which a plain `toLowerCase()` would
-leave as distinct keys.
+case-folding overrides extend the same guarantee to `Straße`/`STRASSE`, to
+Greek final vs. medial sigma (`ΟΣ`/`οσ`), to iota-subscript forms (`ᾳ`/`αι`),
+and to Cyrillic Extended-C variants, which a plain `toLowerCase()` would leave
+as distinct keys.
 
 **API behavior:**
 
