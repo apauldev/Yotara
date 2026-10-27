@@ -32,14 +32,18 @@ Yotara publishes multi-platform images (amd64 & arm64) to Docker Hub on every re
 - [`apauldev2/yotara-api`](https://hub.docker.com/r/apauldev2/yotara-api) — Fastify + SQLite + Better Auth
 - [`apauldev2/yotara-frontend`](https://hub.docker.com/r/apauldev2/yotara-frontend) — Angular served by Nginx
 
-Use the [hub compose file](./docker-compose.hub.yml) for the quickest start:
+Use the [self-host compose file](./docker-compose.selfhost.yml) for the quickest start:
 
 ```bash
-curl -o docker-compose.yml https://raw.githubusercontent.com/apauldev/yotara/main/docker-compose.hub.yml
+curl -o docker-compose.yml https://raw.githubusercontent.com/apauldev/yotara/main/docker-compose.selfhost.yml
 export BETTER_AUTH_SECRET=$(openssl rand -base64 32)
 export RESEND_API_KEY=re_your_key_here
 docker compose up -d
 ```
+
+It pulls the published images pinned to the released version, so a rollback is a
+one-line change. `docker-compose.hub.yml` is the maintainer's own beta host
+config — it mounts host-specific TLS paths and is not meant for self-hosting.
 
 The API refuses to boot in production without `RESEND_API_KEY` — create a free key at
 [resend.com](https://resend.com) and set `EMAIL_FROM` to a sender you have verified there.

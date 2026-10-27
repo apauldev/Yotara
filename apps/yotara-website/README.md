@@ -44,9 +44,17 @@ version without manual edits. `commitAll` is enabled there so the stamped
 without `commitAll` `commit-and-tag-version` would commit only `package.json`
 and `CHANGELOG.md`, silently dropping the stamp.
 
+The same script stamps the image tags in
+[`docker-compose.selfhost.yml`](../../docker-compose.selfhost.yml) — the compose
+file the install page tells self-hosters to curl. A stale tag there would serve
+an old build to every new self-hoster, which is exactly how
+`docker-compose.hub.yml` ended up pinned eight releases behind. Do not hand-edit
+either file; they are overwritten at the next release.
+
 Do not hand-edit the version badge — it will be overwritten at the next release.
 [`scripts/sync-website-version.test.mjs`](../../scripts/sync-website-version.test.mjs)
-fails CI when the badge or `softwareVersion` drifts from the root `package.json`.
+fails CI when the badge, `softwareVersion`, or the compose image tags drift from
+the root `package.json`.
 
 ## Local preview
 

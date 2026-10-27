@@ -135,10 +135,17 @@
             Get started in <span class="text-primary">minutes</span>
           </h1>
           <p
-            class="hero-fade-in hero-fade-in-delay-1 text-xl text-on-surface-variant leading-relaxed max-w-2xl mx-auto mb-10"
+            class="hero-fade-in hero-fade-in-delay-1 text-xl text-on-surface-variant leading-relaxed max-w-2xl mx-auto mb-6"
           >
             Deploy Yotara on your own server. No vendor lock-in, no data leaving your
             infrastructure.
+          </p>
+          <p
+            class="hero-fade-in hero-fade-in-delay-1 text-base text-on-surface-variant leading-relaxed max-w-2xl mx-auto mb-10"
+          >
+            Upgrading an existing instance? The Archive tab is now called
+            <strong class="text-on-surface">Completed</strong> &mdash; your tasks and their history
+            are unchanged.
           </p>
           <div class="flex flex-wrap items-center justify-center gap-3">
             <span
@@ -163,7 +170,7 @@
               <span class="material-symbols-outlined text-lg text-primary" aria-hidden="true"
                 >check_circle</span
               >
-              1GB disk
+              2GB disk
             </span>
             <span
               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface-variant text-sm font-medium"
@@ -257,15 +264,23 @@
 
       <section class="py-24 bg-surface-container-low animate-in">
         <div class="max-w-4xl mx-auto px-8">
-          <div class="mb-6">
+          <div class="mb-6 flex flex-wrap items-center gap-3">
             <span
               class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-fixed/30 text-primary text-sm font-semibold"
               >Method 1</span
             >
+            <span
+              class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant text-sm font-semibold"
+              >Recommended</span
+            >
           </div>
-          <h2 class="text-[2rem] font-display font-bold text-on-surface mb-8 tracking-tight">
+          <h2 class="text-[2rem] font-display font-bold text-on-surface mb-4 tracking-tight">
             Quick start with Docker Compose
           </h2>
+          <p class="text-lg text-on-surface-variant mb-8 leading-relaxed">
+            This downloads Yotara's maintained Compose file, pinned to the current release, and
+            starts the stack.
+          </p>
           <div class="rounded-2xl overflow-hidden ring-1 ring-outline-variant/15 mb-6">
             <div
               class="relative h-12 bg-surface-container-low border-b border-outline-variant/15 flex items-center px-4 gap-2"
@@ -278,7 +293,7 @@
                   class="text-xs text-on-surface-variant hover:text-on-surface transition-colors px-3 py-1 rounded-lg bg-surface-container-highest/50"
                   onclick="
                     navigator.clipboard?.writeText(
-                      'curl -o docker-compose.yml https://raw.githubusercontent.com/apauldev/yotara/main/docker-compose.hub.yml && export BETTER_AUTH_SECRET=$(openssl rand -base64 32) && export RESEND_API_KEY=re_your_key_here && docker compose up -d',
+                      'curl -o docker-compose.yml https://raw.githubusercontent.com/apauldev/yotara/main/docker-compose.selfhost.yml && export BETTER_AUTH_SECRET=$(openssl rand -base64 32) && export RESEND_API_KEY=re_your_key_here && docker compose up -d',
                     )
                   "
                   aria-label="Copy Docker Compose command"
@@ -291,7 +306,7 @@
               class="p-6 text-sm leading-relaxed overflow-x-auto font-mono text-on-surface"
               style="background: #1c1c17; color: #e5e2da"
             ><span style="color: #acf2cb;">$</span> curl -o docker-compose.yml \
-  https://raw.githubusercontent.com/apauldev/yotara/main/docker-compose.hub.yml
+  https://raw.githubusercontent.com/apauldev/yotara/main/docker-compose.selfhost.yml
 <span style="color: #acf2cb;">$</span> export BETTER_AUTH_SECRET=$(openssl rand -base64 32)
 <span style="color: #acf2cb;">$</span> export RESEND_API_KEY=re_your_key_here
 <span style="color: #acf2cb;">$</span> docker compose up -d</pre>
@@ -330,7 +345,7 @@
             >
           </div>
           <h2 class="text-[2rem] font-display font-bold text-on-surface mb-8 tracking-tight">
-            Recommended — manual Docker Compose
+            Manual Docker Compose
           </h2>
           <p class="text-lg text-on-surface-variant mb-8 leading-relaxed">
             Create a
@@ -366,18 +381,20 @@
               style="background: #1c1c17; color: #e5e2da"
             ><span style="color: #91d5b0;">services:</span>
   api:
-    image: apauldev2/yotara-api:latest
+    image: apauldev2/yotara-api:v0.85.2
     environment:
       DATABASE_URL: /app/apps/api/data/yotara.db
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:8080}
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost:8080}
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET?set a strong secret}
-      RESEND_API_KEY: ${RESEND_API_KEY?set a Resend API key}
-      EMAIL_FROM: ${EMAIL_FROM:-noreply@email.yotara.website}
+      TRUST_PROXY: ${TRUST_PROXY:-172.16.0.0/12}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET?set a strong BETTER_AUTH_SECRET (openssl rand -base64 32)}
       HOST: 0.0.0.0
       PORT: ${PORT:-3000}
       NODE_ENV: ${NODE_ENV:-production}
-      CONTENT_SECURITY_POLICY: ${CONTENT_SECURITY_POLICY:-default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@email.yotara.website}
+      CONTENT_SECURITY_POLICY: ${CONTENT_SECURITY_POLICY:-default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://cloudflareinsights.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'}
     volumes:
       - yotara_api_data:/app/apps/api/data
     security_opt:
@@ -389,11 +406,11 @@
       - /tmp
 
   frontend:
-    image: apauldev2/yotara-frontend:latest
+    image: apauldev2/yotara-frontend:v0.85.2
     depends_on:
       - api
     environment:
-      CONTENT_SECURITY_POLICY: ${CONTENT_SECURITY_POLICY:-default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'}
+      CONTENT_SECURITY_POLICY: ${CONTENT_SECURITY_POLICY:-default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://cloudflareinsights.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'}
     ports:
       - "8080:80"
 
@@ -428,7 +445,13 @@
               <span class="material-symbols-outlined text-primary" aria-hidden="true"
                 >check_circle</span
               >
-              <span class="text-on-surface-variant">Docker installed (20.10+)</span>
+              <span class="text-on-surface-variant">Docker installed</span>
+            </div>
+            <div class="stagger-item flex items-center gap-3 p-4 rounded-2xl bg-surface">
+              <span class="material-symbols-outlined text-primary" aria-hidden="true"
+                >check_circle</span
+              >
+              <span class="text-on-surface-variant">Docker Compose installed</span>
             </div>
             <div class="stagger-item flex items-center gap-3 p-4 rounded-2xl bg-surface">
               <span class="material-symbols-outlined text-primary" aria-hidden="true"
@@ -440,7 +463,7 @@
               <span class="material-symbols-outlined text-primary" aria-hidden="true"
                 >check_circle</span
               >
-              <span class="text-on-surface-variant">1GB disk space</span>
+              <span class="text-on-surface-variant">2GB disk space</span>
             </div>
             <div class="stagger-item flex items-center gap-3 p-4 rounded-2xl bg-surface">
               <span class="material-symbols-outlined text-primary" aria-hidden="true"
@@ -539,7 +562,15 @@
               >
               <span class="text-on-surface-variant"
                 ><strong class="text-on-surface">Pin your image tag</strong> for reproducible
-                upgrades, then review the changelog before bumping.</span
+                upgrades, then review the
+                <a
+                  class="text-primary font-semibold hover:underline"
+                  href="https://github.com/apauldev/yotara/blob/main/CHANGELOG.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >changelog</a
+                >
+                before bumping.</span
               >
             </li>
             <li class="flex items-start gap-3 p-4 rounded-2xl bg-surface">
@@ -562,7 +593,7 @@
           >
             Resources
           </h2>
-          <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div class="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-4">
             <a
               class="inline-flex items-center gap-2 bg-surface-container-low text-on-surface font-semibold px-8 py-4 rounded-2xl hover:bg-surface-container-high transition-all ring-1 ring-outline-variant/20"
               href="https://github.com/apauldev/yotara/releases"
@@ -572,10 +603,17 @@
             </a>
             <a
               class="inline-flex items-center gap-2 bg-surface-container-low text-on-surface font-semibold px-8 py-4 rounded-2xl hover:bg-surface-container-high transition-all ring-1 ring-outline-variant/20"
-              href="https://hub.docker.com/r/apauldev2/yotara-frontend"
+              href="https://hub.docker.com/u/apauldev2"
             >
               <span class="material-symbols-outlined" aria-hidden="true">container</span>
               Docker Hub
+            </a>
+            <a
+              class="inline-flex items-center gap-2 bg-surface-container-low text-on-surface font-semibold px-8 py-4 rounded-2xl hover:bg-surface-container-high transition-all ring-1 ring-outline-variant/20"
+              href="https://github.com/apauldev/yotara/blob/main/CHANGELOG.md"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">history</span>
+              Changelog
             </a>
             <a
               class="inline-flex items-center gap-2 bg-surface-container-low text-on-surface font-semibold px-8 py-4 rounded-2xl hover:bg-surface-container-high transition-all ring-1 ring-outline-variant/20"
@@ -597,7 +635,7 @@
           </h2>
           <div class="stagger-container grid grid-cols-1 md:grid-cols-2 gap-8">
             <a
-              href="https://github.com/apauldev/yotara/discussions"
+              href="https://github.com/users/apauldev/projects/1"
               target="_blank"
               rel="noopener noreferrer"
               class="stagger-item p-8 rounded-2xl bg-surface/60 ring-1 ring-outline-variant/10 hover:bg-surface-container-high/50 transition-colors block"
@@ -609,8 +647,8 @@
                 </h3>
               </div>
               <p class="text-on-surface-variant leading-relaxed mb-6">
-                Deploy to Railway, Render, or Fly.io with a single click. No server management
-                required.
+                Deploy to a managed host such as Railway or Render with a single click. No server
+                management required.
               </p>
               <span
                 class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-fixed/30 text-primary text-sm font-medium"
@@ -621,7 +659,7 @@
               >
             </a>
             <a
-              href="https://github.com/apauldev/yotara/discussions"
+              href="https://github.com/users/apauldev/projects/1"
               target="_blank"
               rel="noopener noreferrer"
               class="stagger-item p-8 rounded-2xl bg-surface/60 ring-1 ring-outline-variant/10 hover:bg-surface-container-high/50 transition-colors block"
