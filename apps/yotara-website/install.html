@@ -381,7 +381,7 @@
               style="background: #1c1c17; color: #e5e2da"
             ><span style="color: #91d5b0;">services:</span>
   api:
-    image: apauldev2/yotara-api:v0.85.2
+    image: apauldev2/yotara-api:v0.85.3
     environment:
       DATABASE_URL: /app/apps/api/data/yotara.db
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
@@ -406,7 +406,7 @@
       - /tmp
 
   frontend:
-    image: apauldev2/yotara-frontend:v0.85.2
+    image: apauldev2/yotara-frontend:v0.85.3
     depends_on:
       - api
     environment:

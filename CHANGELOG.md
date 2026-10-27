@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.85.3](https://github.com/apauldev/Yotara/compare/v0.85.2...v0.85.3) (2026-10-27)
+
+
+### Chores
+
+* **marketing:** update screenshots and sync install compose tags ([9c51f7c](https://github.com/apauldev/Yotara/commit/9c51f7c30266979eb50bb25d0e8582e72aa140c0))
+* **website:** refresh the marketing site for v0.85.0 ([d878228](https://github.com/apauldev/Yotara/commit/d8782284ceea3b5e75f82a78d2b54655bde32189))
+
 ## [0.85.2](https://github.com/apauldev/Yotara/compare/v0.85.1...v0.85.2) (2026-10-26)
 
 
