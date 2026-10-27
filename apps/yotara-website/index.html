@@ -121,6 +121,22 @@
           },
           {
             "@type": "Question",
+            "name": "What is the Inbox?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "The Inbox holds the tasks you haven't filed or scheduled yet — no project, no date. It isn't a project of its own, just a view of what's still unfiled. Give a task a project or a date and it moves out. New accounts start with a set of projects like Work, Personal, and Home, so filing is usually one click."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is there a calendar view?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes — a month calendar sits alongside Today and Upcoming. On a desktop you can drag a task to another day to reschedule it, hover a day to create one there, and toggle whether finished tasks and task details are shown. On a phone it becomes a week strip and a day sheet you tap open. Keyboard navigation and screen-reader labels are built in."
+            }
+          },
+          {
+            "@type": "Question",
             "name": "How do reminders work?",
             "acceptedAnswer": {
               "@type": "Answer",
@@ -317,7 +333,7 @@
             <h2
               class="text-[1.75rem] md:text-[2.5rem] font-display font-bold mb-4 tracking-tight text-on-surface"
             >
-              One quiet flow, three views
+              One quiet flow
             </h2>
             <p class="text-lg text-on-surface-variant leading-relaxed">
               Capture the moment it lands, plan what's next, and keep everything organized — without
@@ -343,8 +359,8 @@
               <div class="flex-1 w-full md:w-1/2">
                 <h3 class="text-2xl font-bold mb-4 font-headline text-on-surface">Capture</h3>
                 <p class="text-lg text-on-surface-variant leading-relaxed">
-                  Drop a thought into the Inbox in seconds. No folders to pick, no decisions to make
-                  — just get it out of your head.
+                  Type a thought and press enter. File it to a project on the spot, or leave it in
+                  the Inbox and decide later — either way it takes seconds.
                 </p>
               </div>
             </div>
@@ -478,8 +494,9 @@
               What you get
             </h2>
             <p class="text-xl text-on-surface-variant leading-relaxed">
-              Quick capture, projects, recurring tasks, due dates and times, markdown, themes, and
-              self-hosted privacy. Everything you need, nothing you don't.
+              Quick capture, a month calendar, projects, labels, recurring tasks, due dates and
+              times, markdown, themes, and self-hosted privacy. Everything you need, nothing you
+              don't.
             </p>
           </div>
           <div class="stagger-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -512,8 +529,8 @@
                 Projects &amp; Labels
               </h3>
               <p class="text-on-surface-variant leading-relaxed">
-                Group related tasks, set dates, tag with labels. Stay organized across work,
-                personal, and everything in between.
+                Group related tasks into projects, and mark them with labels that carry an icon and
+                a color. Stay organized across work, personal, and everything in between.
               </p>
             </div>
             <div
@@ -578,8 +595,8 @@
                 Calendar &amp; Upcoming
               </h3>
               <p class="text-on-surface-variant leading-relaxed">
-                Plan by date and see what&rsquo;s next: This Week, Next Week, and Later. Due dates
-                and times stay visible on every task.
+                A month view of everything due — drag a task to another day to move it. Upcoming
+                groups the rest into This Week, Next Week, and Later.
               </p>
             </div>
           </div>
@@ -716,6 +733,41 @@
               <summary
                 class="flex items-center justify-between cursor-pointer font-semibold text-on-surface text-lg list-none"
               >
+                What is the Inbox?
+                <span
+                  class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180"
+                  >expand_more</span
+                >
+              </summary>
+              <p class="text-on-surface-variant leading-relaxed mt-4">
+                The Inbox holds the tasks you haven't filed or scheduled yet — no project, no date.
+                It isn't a project of its own, just a view of what's still unfiled. Give a task a
+                project or a date and it moves out. New accounts start with a set of projects like
+                Work, Personal, and Home, so filing is usually one click.
+              </p>
+            </details>
+            <details class="group rounded-2xl bg-surface p-6">
+              <summary
+                class="flex items-center justify-between cursor-pointer font-semibold text-on-surface text-lg list-none"
+              >
+                Is there a calendar view?
+                <span
+                  class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180"
+                  >expand_more</span
+                >
+              </summary>
+              <p class="text-on-surface-variant leading-relaxed mt-4">
+                Yes — a month calendar sits alongside Today and Upcoming. On a desktop you can drag
+                a task to another day to reschedule it, hover a day to create one there, and toggle
+                whether finished tasks and task details are shown. On a phone it becomes a week
+                strip and a day sheet you tap open. Keyboard navigation and screen-reader labels are
+                built in.
+              </p>
+            </details>
+            <details class="group rounded-2xl bg-surface p-6">
+              <summary
+                class="flex items-center justify-between cursor-pointer font-semibold text-on-surface text-lg list-none"
+              >
                 How do reminders work?
                 <span
                   class="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-180"
@@ -798,9 +850,9 @@
             Built in public. Self-hosted. Yours.
           </h2>
           <p class="text-xl text-surface-variant leading-relaxed max-w-2xl mx-auto mb-10">
-            Yotara is open source under the MIT license. Deploy your own instance in three commands.
-            No tracking, no telemetry, no data collection. Built for makers, students, freelancers,
-            and anyone who'd rather host their own task manager.
+            Yotara is open source under the MIT license. Deploy your own instance in minutes. No
+            tracking, no telemetry, no data collection. Built for makers, students, freelancers, and
+            anyone who'd rather host their own task manager.
           </p>
           <div
             class="flex flex-wrap justify-center gap-x-8 gap-y-3 mb-10 text-sm text-surface-variant"
@@ -844,12 +896,14 @@
             <span class="text-surface-variant">$</span>
             <span class="text-primary-fixed"
               >curl -o docker-compose.yml
-              https://raw.githubusercontent.com/apauldev/yotara/main/docker-compose.hub.yml</span
+              https://raw.githubusercontent.com/apauldev/yotara/main/docker-compose.selfhost.yml</span
             ><br />
             <span class="text-surface-variant">$</span>
             <span class="text-primary-fixed"
               >export BETTER_AUTH_SECRET=$(openssl rand -base64 32)</span
             ><br />
+            <span class="text-surface-variant">$</span>
+            <span class="text-primary-fixed">export RESEND_API_KEY=re_your_key_here</span><br />
             <span class="text-surface-variant">$</span>
             <span class="text-primary-fixed">docker compose up -d</span>
           </div>

@@ -157,12 +157,13 @@ For the full setup guide, environment files, workspace commands, and troubleshoo
 
 | Feature | Description |
 |:---|:---|
-| **Inbox** | Capture everything now, sort later. A soft landing for incoming thoughts. |
+| **Inbox** | Capture everything now, sort later. A view of what's unfiled, not a project of its own. |
 | **Today** | See what matters right now. Tasks due today or marked for today. |
 | **Upcoming** | Plan your week. Tasks grouped by due date with weekly rhythm. |
+| **Calendar** | A month grid of everything due. Drag to reschedule, or create from the grid. |
 | **Projects** | Group related tasks. Custom colors, live task counts, soft delete. |
-| **Labels** | Categorize tasks across projects. Multi-label support for cross-cutting concerns. |
-| **Archive** | Completed tasks move here. Restore or permanently delete with full lifecycle management. |
+| **Labels** | Categorize tasks across projects. Icons and colors, a pinned browser, merge, and multi-label filters. |
+| **Completed** | Finished tasks land here. Clear them in bulk, restore, or permanently delete. |
 | **Search** | Full-text search across tasks, projects, and labels with context highlighting. |
 
 </details>
@@ -176,7 +177,7 @@ For the full setup guide, environment files, workspace commands, and troubleshoo
 | **Recurring Tasks** | Daily, weekly, monthly, or yearly with edge-case handling for month-ends and leap years. |
 | **Subtasks** | Break big tasks into smaller steps. One level of nesting keeps it simple. |
 | **Simple Mode** | Hide dates and metadata when you just need a flat list. Toggle per task. |
-| **7 Themes** | Dark mode, light mode, and everything between. Custom CSS properties for your own. |
+| **9 Themes** | Dark mode, light mode, and everything between. Custom CSS properties for your own. |
 | **Keyboard Shortcuts** | Navigate every view without touching the mouse. Power-user speed. |
 | **Daily Tips** | Rotating productivity prompts on login. A small nudge, not a notification. |
 

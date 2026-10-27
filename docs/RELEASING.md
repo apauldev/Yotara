@@ -49,8 +49,11 @@ It skips entirely when the commit that triggered CI starts with
 2. Runs `pnpm release`, which analyzes commits, generates `CHANGELOG.md`, bumps
    the version, creates a `chore(release): vX.Y.Z` commit, and creates the tag.
    The `postbump` hook also stamps the version into the marketing site
-   (`apps/yotara-website/index.html`); `commitAll` in `.versionrc.json` includes
-   it in the release commit.
+   (`apps/yotara-website/index.html`) and into the self-host compose file
+   (`docker-compose.selfhost.yml`); `commitAll` in `.versionrc.json` includes
+   both in the release commit. The compose file is what the install page tells
+   self-hosters to curl, so a stale image tag there would serve an old build to
+   every new self-hoster — the stamp keeps the two in step.
 3. Reads the new version and the release SHA
 4. Pushes directly to `main` with `git push --follow-tags origin HEAD:main` —
    **there is no pull request and no auto-merge step**
