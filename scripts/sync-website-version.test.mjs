@@ -12,10 +12,12 @@ import {
   applyComposeVersionStamp,
   applyVersionStamp,
   formatReleaseDate,
+  syncInstallComposeVersion,
 } from './sync-website-version.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const htmlPath = resolve(root, 'apps/yotara-website/index.html');
+const installHtmlPath = resolve(root, 'apps/yotara-website/install.html');
 const composePath = resolve(root, 'docker-compose.selfhost.yml');
 const packageVersion = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')).version;
 
@@ -66,6 +68,17 @@ test('self-host compose image tags match package.json', () => {
 
   assert.ok(api, 'api image tag not found in docker-compose.selfhost.yml');
   assert.ok(frontend, 'frontend image tag not found in docker-compose.selfhost.yml');
+  assert.equal(api[0], `apauldev2/yotara-api:v${packageVersion}`);
+  assert.equal(frontend[0], `apauldev2/yotara-frontend:v${packageVersion}`);
+});
+
+test('install.html manual compose image tags match package.json', () => {
+  const html = readFileSync(installHtmlPath, 'utf8');
+  const api = html.match(COMPOSE_API_IMAGE_PATTERN);
+  const frontend = html.match(COMPOSE_FRONTEND_IMAGE_PATTERN);
+
+  assert.ok(api, 'api image tag not found in install.html');
+  assert.ok(frontend, 'frontend image tag not found in install.html');
   assert.equal(api[0], `apauldev2/yotara-api:v${packageVersion}`);
   assert.equal(frontend[0], `apauldev2/yotara-frontend:v${packageVersion}`);
 });

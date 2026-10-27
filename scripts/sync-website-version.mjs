@@ -104,13 +104,39 @@ export function syncComposeVersion({ yamlPath, version }) {
   return { apiImageFound, frontendImageFound };
 }
 
+export function syncInstallComposeVersion({ htmlPath, version }) {
+  const html = readFileSync(htmlPath, 'utf8');
+  const {
+    yaml: updated,
+    apiImageFound,
+    frontendImageFound,
+  } = applyComposeVersionStamp(html, version);
+
+  if (!apiImageFound || !frontendImageFound) {
+    const missing = [
+      !apiImageFound && 'the api image tag ("apauldev2/yotara-api:vX.Y.Z")',
+      !frontendImageFound && 'the frontend image tag ("apauldev2/yotara-frontend:vX.Y.Z")',
+    ].filter(Boolean);
+    throw new Error(
+      `could not find ${missing.join(' and ')} in ${htmlPath}. ` +
+        'A stale image tag would serve an old build to self-hosters — ' +
+        'fix install.html or update the patterns in scripts/sync-website-version.mjs.',
+    );
+  }
+
+  writeFileSync(htmlPath, updated);
+  return { apiImageFound, frontendImageFound };
+}
+
 function main() {
   const pkg = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
   const htmlPath = resolve(root, 'apps/yotara-website/index.html');
+  const installHtmlPath = resolve(root, 'apps/yotara-website/install.html');
   const composePath = resolve(root, 'docker-compose.selfhost.yml');
 
   syncWebsiteVersion({ htmlPath, version: pkg.version, date: formatReleaseDate() });
   syncComposeVersion({ yamlPath: composePath, version: pkg.version });
+  syncInstallComposeVersion({ htmlPath: installHtmlPath, version: pkg.version });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
