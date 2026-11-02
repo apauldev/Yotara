@@ -38,6 +38,14 @@ function tokenSpan(className: string, text: string, color?: string | null): stri
   return `<span class="${className}"${style}>${text}</span>`;
 }
 
+/** `!h`/`!high` -> high, `!l`/`!low` -> low, everything else medium. */
+function priorityTone(word: string): 'high' | 'medium' | 'low' {
+  const initial = word.replace(/^!/, '').toLowerCase()[0];
+  if (initial === 'h') return 'high';
+  if (initial === 'l') return 'low';
+  return 'medium';
+}
+
 export function highlightInlineCommands(
   text: string,
   validLabels?: HighlightEntities,
@@ -52,7 +60,7 @@ export function highlightInlineCommands(
     (_match, before, full) => {
       if (prioritySet) return before + full;
       prioritySet = true;
-      return `${before}<span class="hl-priority">${full}</span>`;
+      return `${before}<span class="hl-priority hl-priority-${priorityTone(full)}">${full}</span>`;
     },
   );
 

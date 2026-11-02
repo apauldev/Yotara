@@ -680,15 +680,9 @@
    highlighter), matching the label chips and project accents used elsewhere:
    a soft tint plus a hairline of the entity color, with readable on-surface
    text regardless of how light that color is. */
-.hl-priority {
-  color: var(--priority-high);
-  font-weight: 500;
-  background: var(--danger-soft);
-  border-radius: 3px;
-}
-
 .hl-label,
-.hl-project {
+.hl-project,
+.hl-priority {
   --token-color: var(--accent-strong);
   color: var(--on-surface);
   font-weight: 500;
@@ -699,4 +693,20 @@
 
 .hl-project {
   --token-color: var(--primary-solid);
+}
+
+.hl-priority {
+  --token-color: var(--priority-medium);
+}
+
+.hl-priority-high {
+  --token-color: var(--priority-high);
+}
+
+.hl-priority-medium {
+  --token-color: var(--priority-medium);
+}
+
+.hl-priority-low {
+  --token-color: var(--priority-low);
 }

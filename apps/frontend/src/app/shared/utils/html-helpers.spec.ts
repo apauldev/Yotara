@@ -22,39 +22,39 @@ describe('highlightInlineCommands', () => {
   });
 
   describe('priorities', () => {
-    it('highlights !h at start', () => {
+    it('highlights !h at start with the high tone', () => {
       const result = highlightInlineCommands('!h meeting');
-      expect(result).toMatch(/<span class="hl-priority">!h<\/span>/);
+      expect(result).toMatch(/<span class="hl-priority hl-priority-high">!h<\/span>/);
     });
 
-    it('highlights !high', () => {
+    it('highlights !high with the high tone', () => {
       const result = highlightInlineCommands('do this !high');
-      expect(result).toMatch(/<span class="hl-priority">!high<\/span>/);
+      expect(result).toMatch(/<span class="hl-priority hl-priority-high">!high<\/span>/);
     });
 
-    it('highlights !m', () => {
+    it('highlights !m with the medium tone', () => {
       const result = highlightInlineCommands('!m task');
-      expect(result).toMatch(/<span class="hl-priority">!m<\/span>/);
+      expect(result).toMatch(/<span class="hl-priority hl-priority-medium">!m<\/span>/);
     });
 
-    it('highlights !medium', () => {
+    it('highlights !medium with the medium tone', () => {
       const result = highlightInlineCommands('!medium task');
-      expect(result).toMatch(/<span class="hl-priority">!medium<\/span>/);
+      expect(result).toMatch(/<span class="hl-priority hl-priority-medium">!medium<\/span>/);
     });
 
-    it('highlights !l', () => {
+    it('highlights !l with the low tone', () => {
       const result = highlightInlineCommands('!l task');
-      expect(result).toMatch(/<span class="hl-priority">!l<\/span>/);
+      expect(result).toMatch(/<span class="hl-priority hl-priority-low">!l<\/span>/);
     });
 
-    it('highlights !low', () => {
+    it('highlights !low with the low tone', () => {
       const result = highlightInlineCommands('!low task');
-      expect(result).toMatch(/<span class="hl-priority">!low<\/span>/);
+      expect(result).toMatch(/<span class="hl-priority hl-priority-low">!low<\/span>/);
     });
 
     it('only highlights the first priority', () => {
       const result = highlightInlineCommands('!h !m task');
-      const matches = result.match(/hl-priority/g);
+      const matches = result.match(/class="hl-priority /g);
       expect(matches?.length).toBe(1);
     });
 
@@ -152,7 +152,7 @@ describe('highlightInlineCommands', () => {
 
     it('only one priority highlighted even with labels present', () => {
       const result = highlightInlineCommands('!h !m #urgent', ['urgent']);
-      const priorityMatches = result.match(/hl-priority/g);
+      const priorityMatches = result.match(/class="hl-priority /g);
       expect(priorityMatches?.length).toBe(1);
     });
   });
@@ -272,7 +272,7 @@ describe('highlightInlineCommands', () => {
       expect(result.match(/hl-unresolved/g)).toBeNull();
       expect(result.match(/hl-project/g)?.length).toBe(1);
       expect(result.match(/hl-label/g)?.length).toBe(1);
-      expect(result.match(/hl-priority/g)?.length).toBe(1);
+      expect(result.match(/class="hl-priority /g)?.length).toBe(1);
     });
 
     it('does not mark a bare sigil mid-sentence as unresolved', () => {
