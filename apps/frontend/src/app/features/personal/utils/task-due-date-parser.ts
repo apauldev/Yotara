@@ -111,7 +111,13 @@ const DAY_FIRST_DATE_CANDIDATE_PATTERN = new RegExp(
   'gi',
 );
 const ISO_DATE_PATTERN = /\b(\d{4})-(\d{2})-(\d{2})\b/g;
-const COMMAND_TOKEN_PATTERN = /(?:^|\s)(?:!(?:h|l|m|high|med|medium|low)\b|#[\w-]+\b)/gi;
+// The capture grammar recognizes-or-preserves every `#`/`!`/`@` token, so for
+// date recognition these are never prose and the phrase validator must not see
+// them. Masking is sigil-level rather than a whitelist so an unrecognized
+// `!word` after a live date phrase (e.g. `!admin`) can never delete the date.
+// An `@` that is not preceded by a space (email addresses) is not a token and
+// stays visible to the validator.
+const COMMAND_TOKEN_PATTERN = /(?:^|\s)[#!@][\w-]+\b/gi;
 const RECURRING_TOKEN_PATTERN = /\b(?:every|each)\b/i;
 const RECURRING_BEFORE_PATTERN = /\b(?:every|each)\s+other\s*$/i;
 const VAGUE_TIME_TOKEN_PATTERN =

@@ -54,6 +54,8 @@ import { AppStatusComponent } from '../../../shared/ui/app-status/app-status.com
 
 const TIPS = [
   'Press `#` in the task input to quickly add labels to any task.',
+  'Type `@` followed by a project name in the task input to file the task directly into that project.',
+  'Prepend `!high`, `!med`, or `!low` in the task input to set the task’s priority inline.',
   'Use projects to group related tasks together into meaningful collections.',
   'Mark tasks as "Today" to focus on what matters right now.',
   'Completed tasks auto-clear after 30 days — use “Keep forever” to save the stars.',

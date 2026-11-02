@@ -374,8 +374,9 @@ export class TaskListPageComponent implements OnInit {
       }
       const labelCandidates = [...availableLabels.values()];
 
-      const { title, priority, labelNames } = parseTaskCommand(rawValue, {
+      const { title, priority, labelNames, projectName } = parseTaskCommand(rawValue, {
         knownLabelNames: labelCandidates.map((label) => label.name),
+        knownProjectNames: this.projectService.projects().map((project) => project.name),
       });
       const dueDateDraft = bar.getDueDateDraft();
 
@@ -384,6 +385,19 @@ export class TaskListPageComponent implements OnInit {
           labelNames.some((name) => name.toLowerCase() === label.name.toLowerCase()),
         )
         .map((label) => label.id);
+
+      // Precedence: an inline `@token` filed from the title beats the capture
+      // bar's dropdown selection, because typing it is the most deliberate
+      // gesture in the input.
+      let projectId = bar.getProjectId();
+      if (projectName) {
+        const inlineProject = this.projectService
+          .projects()
+          .find((project) => project.name.toLowerCase() === projectName.toLowerCase());
+        if (inlineProject) {
+          projectId = inlineProject.id;
+        }
+      }
 
       const behavior =
         bar.getLastSubmissionType() === 'default'
@@ -396,7 +410,6 @@ export class TaskListPageComponent implements OnInit {
         try {
           const dueDate = dueDateDraft.source === 'cleared' ? '' : dueDateDraft.value;
           const dueTime = dueDateDraft.source === 'cleared' ? '' : (dueDateDraft.dueTime ?? '');
-          const projectId = bar.getProjectId();
           await this.taskService.createTask({
             title,
             priority: priority || 'medium',
@@ -422,12 +435,7 @@ export class TaskListPageComponent implements OnInit {
           bar.setError('Failed to quick capture task.');
         }
       } else {
-        this.workspace()?.openCreateTaskModal(
-          bar.getProjectId(),
-          dueDateDraft,
-          resolvedLabels,
-          title,
-        );
+        this.workspace()?.openCreateTaskModal(projectId, dueDateDraft, resolvedLabels, title);
         bar.resetSubmissionType();
       }
     } finally {

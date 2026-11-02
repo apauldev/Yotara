@@ -7,7 +7,11 @@ export function escapeHtml(text: string): string {
     .replace(/'/g, '&#039;');
 }
 
-export function highlightInlineCommands(text: string, validLabels?: string[]): string {
+export function highlightInlineCommands(
+  text: string,
+  validLabels?: string[],
+  validProjects?: string[],
+): string {
   let html = escapeHtml(text);
   let prioritySet = false;
 
@@ -50,6 +54,37 @@ export function highlightInlineCommands(text: string, validLabels?: string[]): s
     html = html.replace(/(^|\s)(#([\w-]+))(?=\s|$)/g, '$1<span class="hl-label">$2</span>');
     html = html.replace(/(^|\s)(#([\w-]*))(?!\s)/g, '$1<span class="hl-label">$2</span>');
   }
+
+  if (validProjects && validProjects.length > 0) {
+    const projects = validProjects.map((p) => p.toLowerCase());
+
+    // 5. Confirmed projects: @word at space/end — only if word matches a known project
+    html = html.replace(/(^|\s)(@([\w-]+))(?=\s|$)/g, (_match, before, full, name) => {
+      if (projects.includes(name.toLowerCase())) {
+        return `${before}<span class="hl-project">${full}</span>`;
+      }
+      return before + full;
+    });
+
+    // 6. Pending projects: @ + prefix at end of input
+    html = html.replace(/(^|\s)(@([\w-]*))$/g, (_match, before, full, prefix) => {
+      if (!prefix || projects.some((p) => p.startsWith(prefix.toLowerCase()))) {
+        return `${before}<span class="hl-project">${full}</span>`;
+      }
+      return before + full;
+    });
+  } else {
+    html = html.replace(/(^|\s)(@([\w-]+))(?=\s|$)/g, '$1<span class="hl-project">$2</span>');
+    html = html.replace(/(^|\s)(@([\w-]*))(?!\s)/g, '$1<span class="hl-project">$2</span>');
+  }
+
+  // 7. Unresolved tokens: any `#x` / `@x` / `!x` (never a bare sigil, which is
+  // prose punctuation or an in-progress token) that survived the passes above
+  // will not apply. Preserve the text — never delete it — but say so visually
+  // with the muted "won't apply" style.
+  html = html.replace(/(^|\s)([#!@][\w-]+)(?=\s|$)/g, (_match, before, full) => {
+    return `${before}<span class="hl-unresolved">${full}</span>`;
+  });
 
   return html;
 }

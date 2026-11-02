@@ -322,6 +322,282 @@ describe('CaptureBarComponent', () => {
     });
   });
 
+  describe('Project suggestion insertion', () => {
+    it('opens project suggestions when typing @ followed by text', () => {
+      const fixture = createFixture();
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = 'file draft @w';
+      input.nativeElement.selectionStart = 13;
+      input.nativeElement.selectionEnd = 13;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const dropdown = fixture.debugElement.query(By.css('.project-suggestions'));
+      expect(dropdown).toBeTruthy();
+      const items = dropdown.queryAll(By.css('li'));
+      expect(items.length).toBe(1);
+      expect(items[0].nativeElement.textContent).toContain('Work');
+    });
+
+    it('does not suggest a project while typing the local part of an email', () => {
+      const fixture = createFixture();
+      const input = fixture.debugElement.query(By.css('input'));
+      fixture.componentInstance.setTitle('email bob@exa');
+      fixture.detectChanges();
+      input.nativeElement.value = 'email bob@exa';
+      input.nativeElement.selectionStart = 13;
+      input.nativeElement.selectionEnd = 13;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      // The @ is mid-word, so it never starts a project search even though the
+      // caret sits immediately after it.
+      expect(fixture.debugElement.query(By.css('.project-suggestions'))).toBeNull();
+      const hint = fixture.debugElement.query(By.css('.capture-hint'));
+      expect(hint.nativeElement.textContent).toContain('type @ followed by a project name');
+    });
+
+    it('does not project-highlight an address-style @ mid-word', () => {
+      const fixture = createFixture();
+      const input = fixture.debugElement.query(By.css('input'));
+      fixture.componentInstance.setTitle('email bob@example later');
+      fixture.detectChanges();
+
+      input.nativeElement.selectionStart = 23;
+      input.nativeElement.selectionEnd = 23;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const highlighter = fixture.debugElement.query(By.css('.capture-highlighter'));
+      expect(highlighter.nativeElement.innerHTML).not.toContain('hl-project');
+    });
+
+    it('shows a muted no-match row instead of a create affordance', () => {
+      const fixture = createFixture();
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = 'file draft @zzz';
+      input.nativeElement.selectionStart = 15;
+      input.nativeElement.selectionEnd = 15;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const dropdown = fixture.debugElement.query(By.css('.project-suggestions'));
+      expect(dropdown).toBeTruthy();
+      const empty = dropdown.query(By.css('.suggestion-empty'));
+      expect(empty).toBeTruthy();
+      expect(empty.nativeElement.textContent).toContain('No project named');
+      expect(empty.nativeElement.textContent).toContain('zzz');
+      expect(dropdown.query(By.css('.suggestion-create'))).toBeNull();
+    });
+
+    it('closes the project list from the no-match row without touching the title', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('file draft @zzz');
+      fixture.detectChanges();
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = 'file draft @zzz';
+      input.nativeElement.selectionStart = 15;
+      input.nativeElement.selectionEnd = 15;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const dropdown = fixture.debugElement.query(By.css('.project-suggestions'));
+      expect(dropdown).toBeTruthy();
+
+      input.nativeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.getTitle()).toBe('file draft @zzz');
+      expect(fixture.debugElement.query(By.css('.project-suggestions'))).toBeNull();
+    });
+
+    it('selects the active project with Enter and inserts the token', () => {
+      const fixture = createFixture();
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = 'file draft @wo';
+      input.nativeElement.selectionStart = 14;
+      input.nativeElement.selectionEnd = 14;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      input.nativeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.getTitle()).toBe('file draft @Work ');
+      expect(fixture.debugElement.query(By.css('.project-suggestions'))).toBeNull();
+    });
+
+    it('replaces the typed partial token at the caret without touching the rest', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('file @wo quickly now');
+      fixture.detectChanges();
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = 'file @wo quickly now';
+      input.nativeElement.selectionStart = 8;
+      input.nativeElement.selectionEnd = 8;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      input.nativeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab' }));
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.getTitle()).toBe('file @Work quickly now');
+    });
+
+    it('navigates project suggestions with ArrowDown', () => {
+      const fixture = createFixture();
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = 'file @';
+      input.nativeElement.selectionStart = 6;
+      input.nativeElement.selectionEnd = 6;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const items = fixture.debugElement.queryAll(By.css('.project-suggestions li'));
+      expect(items.length).toBe(2);
+      input.nativeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+      fixture.detectChanges();
+
+      const activeItems = fixture.debugElement.queryAll(By.css('.project-suggestions li'));
+      expect(activeItems[0].classes['suggestion-active']).toBeUndefined();
+      expect(activeItems[1].classes['suggestion-active']).toBeTrue();
+    });
+
+    it('selects a project suggestion by clicking on it', () => {
+      const fixture = createFixture();
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = 'file draft @';
+      input.nativeElement.selectionStart = 12;
+      input.nativeElement.selectionEnd = 12;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const items = fixture.debugElement.queryAll(By.css('.project-suggestions li'));
+      items[1].nativeElement.click();
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.getTitle()).toBe('file draft @Work ');
+    });
+
+    it('dismisses project suggestions with Escape and keeps the title', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('file draft @w');
+      fixture.detectChanges();
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = 'file draft @w';
+      input.nativeElement.selectionStart = 13;
+      input.nativeElement.selectionEnd = 13;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      expect(fixture.debugElement.query(By.css('.project-suggestions'))).toBeTruthy();
+
+      input.nativeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      fixture.detectChanges();
+
+      expect(fixture.debugElement.query(By.css('.project-suggestions'))).toBeNull();
+      expect(fixture.componentInstance.getTitle()).toBe('file draft @w');
+    });
+
+    it('does not offer project suggestions while a later # hashtag is active', () => {
+      const fixture = createFixture();
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = 'file @work #';
+      input.nativeElement.selectionStart = 12;
+      input.nativeElement.selectionEnd = 12;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      // '#' is closest to the caret, so the tag list owns the suggestions.
+      const tagList = fixture.debugElement.query(
+        By.css('.tag-suggestions:not(.project-suggestions)'),
+      );
+      expect(tagList).toBeTruthy();
+      const list = fixture.debugElement.query(By.css('.project-suggestions'));
+      if (list) {
+        expect(list.queryAll(By.css('li')).length).toBe(0);
+      }
+      expect(list === null || list.queryAll(By.css('li')).length === 0).toBeTrue();
+    });
+  });
+
+  describe('Inline command guidance', () => {
+    it('shows the @project tip while typing and hides it when the field is empty', () => {
+      const fixture = createFixture();
+      expect(fixture.debugElement.query(By.css('.capture-hint'))).toBeNull();
+
+      fixture.componentInstance.setTitle('Water the plants');
+      fixture.detectChanges();
+      const hint = fixture.debugElement.query(By.css('.capture-hint'));
+      expect(hint).toBeTruthy();
+      expect(hint.nativeElement.textContent).toContain('type @ followed by a project name');
+
+      fixture.componentInstance.setTitle('');
+      fixture.detectChanges();
+      expect(fixture.debugElement.query(By.css('.capture-hint'))).toBeNull();
+    });
+
+    it('switches to choose-a-project guidance while the caret is in an @ token', () => {
+      const fixture = createFixture();
+      const input = fixture.debugElement.query(By.css('input'));
+      fixture.componentInstance.setTitle('file draft');
+      fixture.detectChanges();
+
+      input.nativeElement.value = 'file draft @w';
+      input.nativeElement.selectionStart = 13;
+      input.nativeElement.selectionEnd = 13;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const hint = fixture.debugElement.query(By.css('.capture-hint'));
+      expect(hint.nativeElement.textContent).toContain('Choose a project for this task');
+      expect(hint.nativeElement.getAttribute('aria-live')).toBe('polite');
+    });
+
+    it('ties the inline hint to the accessible description of the input', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('Water the plants');
+      fixture.detectChanges();
+
+      const input = fixture.debugElement.query(By.css('input[name="captureTitle"]'));
+      expect(input.nativeElement.getAttribute('aria-describedby')).toContain('capture-inline-hint');
+    });
+
+    it('shows the muted won-t-apply style for an unresolved token', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('go to meeting !admin');
+      fixture.detectChanges();
+
+      const highlighter = fixture.debugElement.query(By.css('.capture-highlighter'));
+      expect(highlighter.nativeElement.innerHTML).toContain(
+        '<span class="hl-unresolved">!admin</span>',
+      );
+    });
+
+    it('colors a resolved @project token differently from unresolved ones', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('file into @Work and @Later');
+      fixture.detectChanges();
+
+      const highlighter = fixture.debugElement.query(By.css('.capture-highlighter'));
+      expect(highlighter.nativeElement.innerHTML).toContain(
+        '<span class="hl-project">@Work</span>',
+      );
+      expect(highlighter.nativeElement.innerHTML).toContain(
+        '<span class="hl-unresolved">@Later</span>',
+      );
+    });
+
+    it('keeps the date preview when a capture token follows the phrase', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('go to meeting tomorrow at 9am @Work');
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.getDueDateDraft().value).toBe('2026-09-29');
+      expect(fixture.componentInstance.getDueDateDraft().dueTime).toBe('09:00');
+    });
+  });
+
   describe('Natural-language due date draft', () => {
     it('shows the matched phrase and resolved local date', () => {
       const fixture = createFixture();

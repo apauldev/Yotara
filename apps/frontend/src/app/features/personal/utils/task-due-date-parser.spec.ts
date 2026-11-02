@@ -113,6 +113,47 @@ describe('parseTaskDueDate', () => {
       expectDate('Call Sam Friday #friday', '2026-10-02');
       expectNoDate('Call Sam #friday');
     });
+
+    it('keeps the date when any capture sigil follows the phrase', () => {
+      const reference = DateTime.fromObject({ year: 2026, month: 9, day: 28 }, { zone: 'UTC' });
+      expectDateTime(
+        'go to meeting tomorrow at 9am !admin',
+        '2026-09-29',
+        '09:00',
+        reference,
+        'tomorrow at 9am',
+      );
+      expectDateTime(
+        'go to meeting tomorrow at 9am #call !admin',
+        '2026-09-29',
+        '09:00',
+        reference,
+        'tomorrow at 9am',
+      );
+      expectDateTime(
+        'go to meeting tomorrow at 9am @admin',
+        '2026-09-29',
+        '09:00',
+        reference,
+        'tomorrow at 9am',
+      );
+      expectDateTime(
+        'go to meeting tomorrow at 9am @admin #call !admin',
+        '2026-09-29',
+        '09:00',
+        reference,
+        'tomorrow at 9am',
+      );
+    });
+
+    it('does not treat an email address as a capture token', () => {
+      expectDate('email bob@example.com tomorrow', '2026-09-29');
+      expectDate('email bob @example tomorrow', '2026-09-29');
+    });
+
+    it('keeps date-like command tokens out of the date grammar', () => {
+      expectNoDate('Call Sam @tomorrow');
+    });
   });
 
   describe('supported date and time phrases', () => {

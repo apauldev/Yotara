@@ -452,6 +452,64 @@ describe('TaskListPageComponent', () => {
       expect(mockStatusService.success).toHaveBeenCalledWith('"Draft proposal" added to Work');
     });
 
+    it('gives an inline @project token precedence over the dropdown selection', async () => {
+      mockAuthStateService.user.set({ id: 'user-1', captureBehavior: 'quick' });
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      const captureBar = fixture.debugElement.query(By.directive(CaptureBarComponent))
+        .componentInstance as CaptureBarComponent;
+      captureBar.setTitle('Draft proposal @work');
+      captureBar['projectId'].set('1');
+
+      await (fixture.componentInstance as any).handleCapture();
+
+      const args = mockTaskService.createTask.calls.mostRecent().args[0];
+      expect(args.title).toBe('Draft proposal');
+      expect(args.projectId).toBe('2');
+      expect(mockStatusService.success).toHaveBeenCalledWith('"Draft proposal" added to Work');
+    });
+
+    it('keeps an unresolved inline @token in the title without assigning a project', async () => {
+      mockAuthStateService.user.set({ id: 'user-1', captureBehavior: 'quick' });
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      const captureBar = fixture.debugElement.query(By.directive(CaptureBarComponent))
+        .componentInstance as CaptureBarComponent;
+      captureBar.setTitle('Draft proposal @missing');
+      captureBar['projectId'].set('2');
+
+      await (fixture.componentInstance as any).handleCapture();
+
+      const args = mockTaskService.createTask.calls.mostRecent().args[0];
+      expect(args.title).toBe('Draft proposal @missing');
+      expect(args.projectId).toBe('2');
+    });
+
+    it('passes the inline project through the details handoff over the dropdown', async () => {
+      mockAuthStateService.user.set({ id: 'user-1', captureBehavior: 'capture' });
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
+        .componentInstance as PersonalTaskWorkspaceComponent;
+      const openSpy = spyOn(workspace, 'openCreateTaskModal');
+      const captureBar = fixture.debugElement.query(By.directive(CaptureBarComponent))
+        .componentInstance as CaptureBarComponent;
+      captureBar.setTitle('Capture task @work');
+      captureBar['projectId'].set('1');
+      captureBar.setSubmissionType('capture');
+
+      await (fixture.componentInstance as any).handleCapture();
+
+      expect(openSpy.calls.mostRecent().args[0]).toBe('2');
+      expect(openSpy.calls.mostRecent().args[3]).toBe('Capture task');
+    });
+
     it('applies a label created in the capture combobox to the saved task', async () => {
       mockAuthStateService.user.set({ id: 'user-1', captureBehavior: 'quick' });
       mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));

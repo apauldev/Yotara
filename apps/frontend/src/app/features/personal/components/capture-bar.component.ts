@@ -86,7 +86,37 @@ import { parseTaskDueDate, type TaskDueDateParseResult } from '../utils/task-due
               }
             </ul>
           }
+
+          @if (activeProjectSearch() !== null && suggestionCount() > 0) {
+            <ul class="tag-suggestions project-suggestions" role="listbox">
+              @for (suggestion of projectSuggestions(); track suggestion.id; let i = $index) {
+                <li
+                  [class.suggestion-active]="i === selectedSuggestionIndex()"
+                  (click)="selectProjectSuggestion(suggestion.name)"
+                  role="option"
+                >
+                  <span class="suggestion-hash">@</span>{{ suggestion.name }}
+                </li>
+              }
+              @if (noProjectMatch(); as noMatch) {
+                <li
+                  class="suggestion-empty"
+                  [class.suggestion-active]="
+                    selectedSuggestionIndex() === projectSuggestions().length
+                  "
+                  (click)="closeSuggestions()"
+                  role="option"
+                >
+                  No project named “{{ noMatch }}”
+                </li>
+              }
+            </ul>
+          }
         </div>
+
+        @if (captureHint(); as hint) {
+          <p id="capture-inline-hint" class="capture-hint" aria-live="polite">{{ hint }}</p>
+        }
 
         @if (dueDateDraft().source !== 'none') {
           <div
@@ -285,6 +315,18 @@ import { parseTaskDueDate, type TaskDueDateParseResult } from '../utils/task-due
         color: var(--accent-strong);
         font-weight: inherit;
       }
+
+      // A token whose project matched: filed on submit.
+      .hl-project {
+        color: var(--on-surface-subtle);
+        font-weight: 700;
+      }
+
+      // Honesty affordance: the token survived parsing but will not apply.
+      .hl-unresolved {
+        color: var(--on-surface-muted);
+        font-weight: inherit;
+      }
     }
 
     .tag-suggestions {
@@ -331,10 +373,28 @@ import { parseTaskDueDate, type TaskDueDateParseResult } from '../utils/task-due
           color: var(--primary-solid);
         }
 
+        &.suggestion-empty {
+          color: var(--on-surface-muted);
+          font-weight: 600;
+
+          &:hover,
+          &.suggestion-active {
+            background: var(--primary-soft);
+            color: var(--on-surface-muted);
+          }
+        }
+
         .suggestion-hash {
           opacity: 0.6;
         }
       }
+    }
+
+    .capture-hint {
+      margin: 0;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--on-surface-muted);
     }
 
     .capture-date-preview {
@@ -556,9 +616,12 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
   protected lastSubmissionType: 'quick' | 'capture' | 'default' = 'default';
 
   protected readonly activeTagSearch = signal<string | null>(null);
+  protected readonly activeProjectSearch = signal<string | null>(null);
   protected readonly selectedSuggestionIndex = signal(0);
   /** Labels created from this capture, exposed so the submit path applies them. */
   private readonly createdLabels = signal<Array<{ id: string; name: string }>>([]);
+  /** Mirrors the `projects` input; plain inputs are not reactive in computed(). */
+  private readonly projectOptions = signal<{ id: string; name: string }[]>([]);
 
   private readonly labelService = inject(LabelService);
   private readonly ngZone = inject(NgZone);
@@ -578,6 +641,25 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
       .slice(0, 5);
   });
 
+  protected readonly projectSuggestions = computed(() => {
+    const search = this.activeProjectSearch();
+    if (search === null) return [];
+    return this.projectOptions()
+      .filter((project) => project.name.toLowerCase().includes(search.toLowerCase()))
+      .slice(0, 5);
+  });
+
+  /**
+   * The typed name when no project matches. Unlike labels there is no create
+   * affordance for projects from capture; the muted row explains the token
+   * will not do anything while leaving the typed text alone.
+   */
+  protected readonly noProjectMatch = computed(() => {
+    const search = this.activeProjectSearch();
+    if (!search) return null;
+    return this.projectSuggestions().length === 0 ? search : null;
+  });
+
   /** The typed name when no existing label matches exactly. */
   protected readonly createTagName = computed(() => {
     const search = this.activeTagSearch()?.trim();
@@ -590,20 +672,38 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
     return exists ? null : search;
   });
 
-  protected readonly suggestionCount = computed(
-    () => this.tagSuggestions().length + (this.createTagName() ? 1 : 0),
-  );
+  protected readonly suggestionCount = computed(() => {
+    if (this.activeProjectSearch() !== null) {
+      return this.projectSuggestions().length + (this.noProjectMatch() ? 1 : 0);
+    }
+    return this.tagSuggestions().length + (this.createTagName() ? 1 : 0);
+  });
+
+  /**
+   * Inline-command guidance in three states:
+   * - hidden while the field is empty,
+   * - a discoverability tip about `@project` while typing,
+   * - in-token guidance naming the sigil purpose while the caret is inside an
+   *   `@` search. Announced politely for assistive technology.
+   */
+  protected readonly captureHint = computed(() => {
+    if (!this.title().trim()) return null;
+    if (this.activeProjectSearch() !== null) return 'Choose a project for this task';
+    return 'Tip: type @ followed by a project name to file this task.';
+  });
 
   protected readonly highlightedTitle = computed(() => {
     const text = this.title();
     if (!text) return '';
     const labels = this.labelService.labels().map((l) => l.name);
-    return highlightInlineCommands(text, labels);
+    const projects = this.projectOptions().map((p) => p.name);
+    return highlightInlineCommands(text, labels, projects);
   });
 
   protected readonly captureInputDescribedBy = computed(() => {
     const ids: string[] = [];
     if (this.error()) ids.push('capture-error');
+    if (this.captureHint()) ids.push('capture-inline-hint');
     if (this.dueDateDraft().source !== 'none') ids.push('capture-date-preview');
     if (this.dueDateNotice()) ids.push('capture-date-note');
     return ids.length > 0 ? ids.join(' ') : null;
@@ -658,6 +758,9 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
   });
 
   ngOnChanges(changes: SimpleChanges) {
+    if (changes['projects']) {
+      this.projectOptions.set(this.projects);
+    }
     if (changes['referenceDate']) {
       this.reparseDueDate(this.title());
     }
@@ -682,6 +785,7 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
   clearTitle() {
     this.updateTitle('');
     this.activeTagSearch.set(null);
+    this.activeProjectSearch.set(null);
     this.selectedSuggestionIndex.set(0);
     this.parserResult.set(null);
     this.dueDateDraft.set(createEmptyDueDateDraft());
@@ -941,39 +1045,78 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
     const value = input.value;
     const pos = input.selectionStart || 0;
 
-    const lastHash = value.lastIndexOf('#', pos - 1);
-    if (lastHash !== -1) {
-      const textSinceHash = value.substring(lastHash + 1, pos);
-      if (!textSinceHash.includes(' ')) {
-        this.activeTagSearch.set(textSinceHash);
-        this.selectedSuggestionIndex.set(0);
-        return;
-      }
+    const hashSearch = this.activeSearchBefore(value, pos, '#');
+    const projectSearch = this.activeSearchBefore(value, pos, '@');
+
+    // The two sigil searches are mutually exclusive; whichever sigil sits
+    // closest to the caret owns the suggestion list.
+    if (hashSearch !== null && (projectSearch === null || hashSearch.index > projectSearch.index)) {
+      this.activeTagSearch.set(hashSearch.search);
+      this.activeProjectSearch.set(null);
+      this.selectedSuggestionIndex.set(0);
+      return;
+    }
+
+    if (projectSearch !== null) {
+      this.activeProjectSearch.set(projectSearch.search);
+      this.activeTagSearch.set(null);
+      this.selectedSuggestionIndex.set(0);
+      return;
     }
 
     this.activeTagSearch.set(null);
+    this.activeProjectSearch.set(null);
+  }
+
+  /** Text typed since the closest `sigil` before the caret, when still active. */
+  private activeSearchBefore(
+    value: string,
+    pos: number,
+    sigil: '#' | '@',
+  ): { search: string; index: number } | null {
+    const index = value.lastIndexOf(sigil, pos - 1);
+    if (index === -1) return null;
+    // A sigil must start a token: `bob@example.com` and `word#tag` are prose,
+    // not a command, so they must never open the completion list.
+    if (index > 0 && !/\s/.test(value[index - 1])) return null;
+    const text = value.substring(index + 1, pos);
+    if (text.includes(' ')) return null;
+    return { search: text, index };
   }
 
   protected onCaptureKeyDown(event: KeyboardEvent) {
     const count = this.suggestionCount();
-    if (this.activeTagSearch() !== null && count > 0) {
-      if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        this.selectedSuggestionIndex.update((i) => (i + 1) % count);
-      } else if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        this.selectedSuggestionIndex.update((i) => (i - 1 + count) % count);
-      } else if (event.key === 'Enter' || event.key === 'Tab') {
-        event.preventDefault();
-        void this.activateTagSuggestion();
-      } else if (event.key === 'Escape') {
-        this.activeTagSearch.set(null);
-      }
+    if (count === 0) return;
+    if (this.activeTagSearch() === null && this.activeProjectSearch() === null) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.selectedSuggestionIndex.update((i) => (i + 1) % count);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.selectedSuggestionIndex.update((i) => (i - 1 + count) % count);
+    } else if (event.key === 'Enter' || event.key === 'Tab') {
+      event.preventDefault();
+      void this.activateSuggestion();
+    } else if (event.key === 'Escape') {
+      this.closeSuggestions();
     }
   }
 
-  private async activateTagSuggestion() {
+  /** Whichever search is active decides what Enter/Tab applies. */
+  private async activateSuggestion() {
     const index = this.selectedSuggestionIndex();
+    if (this.activeProjectSearch() !== null) {
+      const suggestions = this.projectSuggestions();
+      if (index < suggestions.length) {
+        this.selectProjectSuggestion(suggestions[index].name);
+        return;
+      }
+      // The unmatched-token row: leave the @token in place, close the list.
+      this.closeSuggestions();
+      return;
+    }
+
     const suggestions = this.tagSuggestions();
     if (index < suggestions.length) {
       this.selectSuggestion(suggestions[index].name);
@@ -983,7 +1126,16 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
   }
 
   protected selectSuggestion(labelName: string) {
-    this.insertLabelToken(labelName, this.activeTagSearch());
+    this.insertSigilToken('#', labelName, this.activeTagSearch());
+  }
+
+  protected selectProjectSuggestion(projectName: string) {
+    this.insertSigilToken('@', projectName, this.activeProjectSearch());
+  }
+
+  protected closeSuggestions() {
+    this.activeTagSearch.set(null);
+    this.activeProjectSearch.set(null);
   }
 
   /**
@@ -1004,13 +1156,13 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
         icon: suggestLabelIcon(name),
       });
       this.createdLabels.update((labels) => [...labels, { id: created.id, name: created.name }]);
-      this.insertLabelToken(created.name, search);
+      this.insertSigilToken('#', created.name, search);
     } catch (error) {
       const existing = existingLabelFromConflict(error);
       if (existing) {
         this.createdLabels.update((labels) => [...labels, existing]);
         this.labelService.refresh();
-        this.insertLabelToken(existing.name, search);
+        this.insertSigilToken('#', existing.name, search);
         return;
       }
       this.setError('Could not create that label. Try again.');
@@ -1018,36 +1170,40 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
   }
 
   /**
-   * Replace the typed tag with its canonical label name.
+   * Replace the typed `#tag` / `@project` text with its canonical name.
    *
-   * `search` is captured before an async label creation: if the user keeps
-   * typing while the request is in flight (#tea -> #teal), the old token is
-   * only a prefix of the new one. Refuse to replace unless the token ends at a
-   * word boundary so the extra characters are never mangled.
+   * `search` is captured before an async operation: if the user keeps typing
+   * while the request is in flight (#tea -> #teal), the old token is only a
+   * prefix of the new one. Refuse to rewrite a token that kept typing so the
+   * extra characters are never mangled.
    */
-  private insertLabelToken(labelName: string, search: string | null = this.activeTagSearch()) {
+  private insertSigilToken(
+    sigil: '#' | '@',
+    name: string,
+    search: string | null = sigil === '#' ? this.activeTagSearch() : this.activeProjectSearch(),
+  ) {
     const input = this.captureInput()?.nativeElement;
     // The DOM value is the freshest during a keystroke; the signal is the
     // fallback when an async creation outlived a re-render.
     const value = input?.value || this.title();
-    const token = search ? `#${search}` : null;
+    const token = search ? `${sigil}${search}` : null;
 
-    let hashIndex = token ? value.lastIndexOf(token) : -1;
-    if (token && hashIndex === -1) {
+    let tokenStart = token ? value.lastIndexOf(token) : -1;
+    if (token && tokenStart === -1) {
       return;
     }
 
     let tokenEnd: number;
-    if (hashIndex !== -1 && token) {
-      tokenEnd = hashIndex + token.length;
+    if (tokenStart !== -1 && token) {
+      tokenEnd = tokenStart + token.length;
     } else {
       // Fall back to the cursor position when the signal and DOM disagree.
       const pos = input?.selectionStart ?? value.length;
-      hashIndex = value.lastIndexOf('#', pos - 1);
+      tokenStart = value.lastIndexOf(sigil, pos - 1);
       tokenEnd = pos;
     }
 
-    if (hashIndex === -1) return;
+    if (tokenStart === -1) return;
 
     if (token) {
       const nextChar = value[tokenEnd];
@@ -1059,10 +1215,10 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
     const suffix = value.substring(tokenEnd);
     const needsSpace = suffix.length === 0 || !/^\s/.test(suffix);
     const newValue =
-      value.substring(0, hashIndex) + '#' + labelName + (needsSpace ? ' ' : '') + suffix;
-    const newPos = hashIndex + labelName.length + 1 + (needsSpace ? 1 : 0);
+      value.substring(0, tokenStart) + sigil + name + (needsSpace ? ' ' : '') + suffix;
+    const newPos = tokenStart + name.length + 1 + (needsSpace ? 1 : 0);
     this.updateTitle(newValue);
-    this.activeTagSearch.set(null);
+    this.closeSuggestions();
 
     requestAnimationFrame(() => {
       const el = this.captureInput()?.nativeElement;

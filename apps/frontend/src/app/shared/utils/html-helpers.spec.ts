@@ -156,4 +156,92 @@ describe('highlightInlineCommands', () => {
       expect(priorityMatches?.length).toBe(1);
     });
   });
+
+  describe('projects without validProjects (fallback)', () => {
+    it('highlights any @word', () => {
+      const result = highlightInlineCommands('filing @work');
+      expect(result).toMatch(/<span class="hl-project">@work<\/span>/);
+    });
+
+    it('highlights @word at end of input as pending', () => {
+      const result = highlightInlineCommands('file into @');
+      expect(result).toMatch(/<span class="hl-project">@<\/span>/);
+    });
+
+    it('does not highlight an address-style @ mid-word', () => {
+      const result = highlightInlineCommands('email bob@example later');
+      expect(result).not.toContain('hl-project');
+    });
+  });
+
+  describe('projects with validProjects', () => {
+    const projects = ['Work', 'Ideas'];
+
+    it('highlights a known @project', () => {
+      const result = highlightInlineCommands('file into @work', undefined, projects);
+      expect(result).toMatch(/<span class="hl-project">@work<\/span>/);
+    });
+
+    it('matches project names case-insensitively', () => {
+      const result = highlightInlineCommands('file into @Work', undefined, projects);
+      expect(result).toMatch(/<span class="hl-project">@Work<\/span>/);
+    });
+
+    it('does not wrap an unknown @token as a project', () => {
+      const result = highlightInlineCommands('file into @unknown', undefined, ['Work']);
+      expect(result).not.toContain('hl-project');
+    });
+
+    it('highlights multiple known projects', () => {
+      const result = highlightInlineCommands('@work @ideas filing', undefined, projects);
+      expect(result.match(/hl-project/g)?.length).toBe(2);
+    });
+
+    it('highlights pending @prefix with a matching project', () => {
+      const result = highlightInlineCommands('file into @w', undefined, projects);
+      expect(result).toMatch(/<span class="hl-project">@w<\/span>/);
+    });
+
+    it('highlights bare @ at end as pending project', () => {
+      const result = highlightInlineCommands('file into @', undefined, projects);
+      expect(result).toMatch(/<span class="hl-project">@<\/span>/);
+    });
+  });
+
+  describe('unresolved tokens', () => {
+    it('marks an unknown #label as unresolved', () => {
+      const result = highlightInlineCommands('fix this #unknown', ['known']);
+      expect(result).toMatch(/<span class="hl-unresolved">#unknown<\/span>/);
+    });
+
+    it('marks an unknown @project as unresolved', () => {
+      const result = highlightInlineCommands('file into @unknown', undefined, ['Work']);
+      expect(result).toMatch(/<span class="hl-unresolved">@unknown<\/span>/);
+    });
+
+    it('marks a non-whitelist !word as unresolved', () => {
+      const result = highlightInlineCommands('call !admin now');
+      expect(result).toMatch(/<span class="hl-unresolved">!admin<\/span>/);
+      expect(result).not.toContain('hl-priority');
+    });
+
+    it('does not mark wrapped tokens twice', () => {
+      const result = highlightInlineCommands('file into @work #urgent !h', ['urgent'], ['Work']);
+      expect(result.match(/hl-unresolved/g)).toBeNull();
+      expect(result.match(/hl-project/g)?.length).toBe(1);
+      expect(result.match(/hl-label/g)?.length).toBe(1);
+      expect(result.match(/hl-priority/g)?.length).toBe(1);
+    });
+
+    it('does not mark a bare sigil mid-sentence as unresolved', () => {
+      const result = highlightInlineCommands('add ! and # tokens @ later');
+      expect(result).not.toContain('hl-unresolved');
+    });
+
+    it('keeps a pending label with a prefix match out of the unresolved pass', () => {
+      const result = highlightInlineCommands('work on #f', ['frontend']);
+      expect(result).toMatch(/<span class="hl-label">#f<\/span>/);
+      expect(result).not.toContain('hl-unresolved');
+    });
+  });
 });
