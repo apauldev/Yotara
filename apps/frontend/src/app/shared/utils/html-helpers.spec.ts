@@ -208,6 +208,48 @@ describe('highlightInlineCommands', () => {
     });
   });
 
+  describe('entity colors', () => {
+    it('tints a resolved label chip with its own color', () => {
+      const result = highlightInlineCommands('fix this #urgent', [
+        { name: 'urgent', color: '#D44D3C' },
+      ]);
+      expect(result).toContain(
+        '<span class="hl-label" style="--token-color:#d44d3c">#urgent</span>',
+      );
+    });
+
+    it('tints a resolved project chip with its own color', () => {
+      const result = highlightInlineCommands('file into @work', undefined, [
+        { name: 'Work', color: '#2d7b75' },
+      ]);
+      expect(result).toContain(
+        '<span class="hl-project" style="--token-color:#2d7b75">@work</span>',
+      );
+    });
+
+    it('tints a pending prefix with the matched entity color', () => {
+      const result = highlightInlineCommands('file into @w', undefined, [
+        { name: 'Work', color: '#2d7b75' },
+      ]);
+      expect(result).toContain('<span class="hl-project" style="--token-color:#2d7b75">@w</span>');
+    });
+
+    it('never emits a non-hex color into the style attribute', () => {
+      const result = highlightInlineCommands('file into @work', undefined, [
+        { name: 'Work', color: 'red; background: url(evil)' },
+      ]);
+      expect(result).toContain('<span class="hl-project">@work</span>');
+      expect(result).not.toContain('style=');
+    });
+
+    it('leaves tokens without a color unstyled', () => {
+      const result = highlightInlineCommands('file into @work #urgent', ['urgent'], ['Work']);
+      expect(result).toContain('<span class="hl-label">#urgent</span>');
+      expect(result).toContain('<span class="hl-project">@work</span>');
+      expect(result).not.toContain('style=');
+    });
+  });
+
   describe('unresolved tokens', () => {
     it('marks an unknown #label as unresolved', () => {
       const result = highlightInlineCommands('fix this #unknown', ['known']);

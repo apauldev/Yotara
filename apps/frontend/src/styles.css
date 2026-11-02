@@ -675,7 +675,11 @@
   }
 }
 
-/* Inline command highlighting for capture bar — chip style */
+/* Inline command highlighting for capture bar — chip style. Labels and
+   projects carry their own entity color (set as --token-color by the
+   highlighter), matching the label chips and project accents used elsewhere:
+   a soft tint plus a hairline of the entity color, with readable on-surface
+   text regardless of how light that color is. */
 .hl-priority {
   color: var(--priority-high);
   font-weight: 500;
@@ -683,9 +687,16 @@
   border-radius: 3px;
 }
 
-.hl-label {
-  color: var(--accent-strong);
+.hl-label,
+.hl-project {
+  --token-color: var(--accent-strong);
+  color: var(--on-surface);
   font-weight: 500;
-  background: var(--accent-soft);
-  border-radius: 3px;
+  background: color-mix(in srgb, var(--token-color) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--token-color) 42%, transparent);
+  border-radius: 4px;
+}
+
+.hl-project {
+  --token-color: var(--primary-solid);
 }

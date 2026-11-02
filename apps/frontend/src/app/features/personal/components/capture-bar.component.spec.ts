@@ -606,6 +606,32 @@ describe('CaptureBarComponent', () => {
       );
     });
 
+    it('tints a resolved label token with its own color', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('fix the #work bug');
+      fixture.detectChanges();
+
+      const highlighter = fixture.debugElement.query(By.css('.capture-highlighter'));
+      expect(highlighter.nativeElement.innerHTML).toContain(
+        '<span class="hl-label" style="--token-color:#ff0000">#work</span>',
+      );
+    });
+
+    it('tints a resolved project token with the project palette color', () => {
+      const fixture = TestBed.createComponent(CaptureBarComponent);
+      fixture.componentRef.setInput('projects', [{ id: 'p2', name: 'Work', color: 'teal' }]);
+      fixture.componentRef.setInput('creating', false);
+      fixture.componentRef.setInput('referenceDate', referenceDate);
+      fixture.detectChanges();
+      fixture.componentInstance.setTitle('file into @Work');
+      fixture.detectChanges();
+
+      const highlighter = fixture.debugElement.query(By.css('.capture-highlighter'));
+      expect(highlighter.nativeElement.innerHTML).toContain(
+        '<span class="hl-project" style="--token-color:#2d7b75">@Work</span>',
+      );
+    });
+
     it('keeps the date preview when a capture token follows the phrase', () => {
       const fixture = createFixture();
       fixture.componentInstance.setTitle('go to meeting tomorrow at 9am @Work');
