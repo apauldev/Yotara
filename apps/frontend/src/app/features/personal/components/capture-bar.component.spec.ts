@@ -354,7 +354,7 @@ describe('CaptureBarComponent', () => {
       // caret sits immediately after it.
       expect(fixture.debugElement.query(By.css('.project-suggestions'))).toBeNull();
       const hint = fixture.debugElement.query(By.css('.capture-hint'));
-      expect(hint.nativeElement.textContent).toContain('type @ followed by a project name');
+      expect(hint.nativeElement.textContent).toContain('use # for labels');
     });
 
     it('does not project-highlight an address-style @ mid-word', () => {
@@ -522,7 +522,7 @@ describe('CaptureBarComponent', () => {
   });
 
   describe('Inline command guidance', () => {
-    it('shows the @project tip while typing and hides it when the field is empty', () => {
+    it('shows the inline-command tip while typing and hides it when the field is empty', () => {
       const fixture = createFixture();
       expect(fixture.debugElement.query(By.css('.capture-hint'))).toBeNull();
 
@@ -530,11 +530,29 @@ describe('CaptureBarComponent', () => {
       fixture.detectChanges();
       const hint = fixture.debugElement.query(By.css('.capture-hint'));
       expect(hint).toBeTruthy();
-      expect(hint.nativeElement.textContent).toContain('type @ followed by a project name');
+      expect(hint.nativeElement.textContent).toContain('# for labels');
+      expect(hint.nativeElement.textContent).toContain('@ for projects');
+      expect(hint.nativeElement.textContent).toContain('!high');
 
       fixture.componentInstance.setTitle('');
       fixture.detectChanges();
       expect(fixture.debugElement.query(By.css('.capture-hint'))).toBeNull();
+    });
+
+    it('switches to choose-a-label guidance while the caret is in a # token', () => {
+      const fixture = createFixture();
+      const input = fixture.debugElement.query(By.css('input'));
+      fixture.componentInstance.setTitle('file draft');
+      fixture.detectChanges();
+
+      input.nativeElement.value = 'file draft #w';
+      input.nativeElement.selectionStart = 13;
+      input.nativeElement.selectionEnd = 13;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const hint = fixture.debugElement.query(By.css('.capture-hint'));
+      expect(hint.nativeElement.textContent).toContain('Choose or create a label for this task');
     });
 
     it('switches to choose-a-project guidance while the caret is in an @ token', () => {

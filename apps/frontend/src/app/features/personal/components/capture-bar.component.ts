@@ -682,14 +682,15 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
   /**
    * Inline-command guidance in three states:
    * - hidden while the field is empty,
-   * - a discoverability tip about `@project` while typing,
-   * - in-token guidance naming the sigil purpose while the caret is inside an
-   *   `@` search. Announced politely for assistive technology.
+   * - a discoverability tip naming all three sigils while typing,
+   * - in-token guidance naming the active completion while the caret is inside
+   *   a `#` or `@` search. Announced politely for assistive technology.
    */
   protected readonly captureHint = computed(() => {
     if (!this.title().trim()) return null;
     if (this.activeProjectSearch() !== null) return 'Choose a project for this task';
-    return 'Tip: type @ followed by a project name to file this task.';
+    if (this.activeTagSearch() !== null) return 'Choose or create a label for this task';
+    return 'Tip: use # for labels, @ for projects, and !high, !med or !low for priority.';
   });
 
   protected readonly highlightedTitle = computed(() => {
