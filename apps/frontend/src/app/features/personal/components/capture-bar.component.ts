@@ -318,16 +318,6 @@ import type { ProjectColor } from '@yotara/shared';
       }
     }
 
-    :host ::ng-deep {
-      // Resolved label/project/priority chips are styled globally so every
-      // capture surface shares the entity color treatment (styles.css).
-      // Honesty affordance: the token survived parsing but will not apply.
-      .hl-unresolved {
-        color: var(--on-surface-muted);
-        font-weight: inherit;
-      }
-    }
-
     .tag-suggestions {
       --suggestion-radius: 0.9rem;
       --suggestion-padding: 0.4rem;

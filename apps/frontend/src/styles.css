@@ -710,3 +710,10 @@
 .hl-priority-low {
   --token-color: var(--priority-low);
 }
+
+/* Honesty affordance: the token survived parsing but will not apply, so it
+   gets muted text instead of the entity chip treatment. */
+.hl-unresolved {
+  color: var(--on-surface-muted);
+  font-weight: inherit;
+}
