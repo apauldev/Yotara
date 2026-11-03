@@ -244,6 +244,31 @@ describe('CaptureBarComponent', () => {
       expect(items[1].classes['suggestion-active']).toBeTrue();
     });
 
+    it('exposes the active label option through aria-selected and aria-activedescendant', () => {
+      const fixture = createFixture();
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = '#w';
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      expect(input.nativeElement.getAttribute('aria-activedescendant')).toBe(
+        'capture-tag-suggestion-0',
+      );
+      let items = fixture.debugElement.queryAll(By.css('.tag-suggestions li'));
+      expect(items[0].nativeElement.getAttribute('aria-selected')).toBe('true');
+      expect(items[1].nativeElement.getAttribute('aria-selected')).toBe('false');
+
+      input.nativeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+      fixture.detectChanges();
+
+      items = fixture.debugElement.queryAll(By.css('.tag-suggestions li'));
+      expect(items[0].nativeElement.getAttribute('aria-selected')).toBe('false');
+      expect(items[1].nativeElement.getAttribute('aria-selected')).toBe('true');
+      expect(input.nativeElement.getAttribute('aria-activedescendant')).toBe(
+        'capture-tag-suggestion-1',
+      );
+    });
+
     it('navigates suggestions with ArrowUp', () => {
       const fixture = createFixture();
       const input = fixture.debugElement.query(By.css('input'));
@@ -484,6 +509,23 @@ describe('CaptureBarComponent', () => {
       expect(dropdown.query(By.css('.suggestion-create'))).toBeNull();
     });
 
+    it('gives the no-match row full active-option semantics', () => {
+      const fixture = createFixture();
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = 'file draft @zzz';
+      input.nativeElement.selectionStart = 15;
+      input.nativeElement.selectionEnd = 15;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const empty = fixture.debugElement.query(By.css('.project-suggestions .suggestion-empty'));
+      expect(empty.nativeElement.id).toBe('capture-project-suggestion-0');
+      expect(empty.nativeElement.getAttribute('aria-selected')).toBe('true');
+      expect(input.nativeElement.getAttribute('aria-activedescendant')).toBe(
+        'capture-project-suggestion-0',
+      );
+    });
+
     it('closes the project list from the no-match row without touching the title', () => {
       const fixture = createFixture();
       fixture.componentInstance.setTitle('file draft @zzz');
@@ -555,6 +597,37 @@ describe('CaptureBarComponent', () => {
       const activeItems = fixture.debugElement.queryAll(By.css('.project-suggestions li'));
       expect(activeItems[0].classes['suggestion-active']).toBeUndefined();
       expect(activeItems[1].classes['suggestion-active']).toBeTrue();
+    });
+
+    it('exposes the active project option and clears it on Escape', () => {
+      const fixture = createFixture();
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = 'file @';
+      input.nativeElement.selectionStart = 6;
+      input.nativeElement.selectionEnd = 6;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      expect(input.nativeElement.getAttribute('aria-activedescendant')).toBe(
+        'capture-project-suggestion-0',
+      );
+      let items = fixture.debugElement.queryAll(By.css('.project-suggestions li'));
+      expect(items[0].nativeElement.getAttribute('aria-selected')).toBe('true');
+      expect(items[1].nativeElement.getAttribute('aria-selected')).toBe('false');
+
+      input.nativeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+      fixture.detectChanges();
+
+      items = fixture.debugElement.queryAll(By.css('.project-suggestions li'));
+      expect(items[1].nativeElement.getAttribute('aria-selected')).toBe('true');
+      expect(input.nativeElement.getAttribute('aria-activedescendant')).toBe(
+        'capture-project-suggestion-1',
+      );
+
+      input.nativeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      fixture.detectChanges();
+
+      expect(input.nativeElement.getAttribute('aria-activedescendant')).toBeNull();
     });
 
     it('selects a project suggestion by clicking on it', () => {

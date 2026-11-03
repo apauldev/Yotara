@@ -64,6 +64,7 @@ import type { ProjectColor } from '@yotara/shared';
             autocomplete="off"
             [attr.aria-invalid]="error() ? 'true' : 'false'"
             [attr.aria-describedby]="captureInputDescribedBy()"
+            [attr.aria-activedescendant]="activeSuggestionId()"
             (keydown.enter)="lastSubmissionType = 'default'"
           />
 
@@ -71,7 +72,9 @@ import type { ProjectColor } from '@yotara/shared';
             <ul class="tag-suggestions" role="listbox">
               @for (suggestion of tagSuggestions(); track suggestion.id; let i = $index) {
                 <li
+                  [id]="'capture-tag-suggestion-' + i"
                   [class.suggestion-active]="i === selectedSuggestionIndex()"
+                  [attr.aria-selected]="i === selectedSuggestionIndex()"
                   (click)="selectSuggestion(suggestion.name)"
                   role="option"
                 >
@@ -81,7 +84,9 @@ import type { ProjectColor } from '@yotara/shared';
               @if (createTagName(); as createName) {
                 <li
                   class="suggestion-create"
+                  [id]="'capture-tag-suggestion-' + tagSuggestions().length"
                   [class.suggestion-active]="selectedSuggestionIndex() === tagSuggestions().length"
+                  [attr.aria-selected]="selectedSuggestionIndex() === tagSuggestions().length"
                   (click)="createTagFromSearch()"
                   role="option"
                 >
@@ -95,7 +100,9 @@ import type { ProjectColor } from '@yotara/shared';
             <ul class="tag-suggestions project-suggestions" role="listbox">
               @for (suggestion of projectSuggestions(); track suggestion.id; let i = $index) {
                 <li
+                  [id]="'capture-project-suggestion-' + i"
                   [class.suggestion-active]="i === selectedSuggestionIndex()"
+                  [attr.aria-selected]="i === selectedSuggestionIndex()"
                   (click)="selectProjectSuggestion(suggestion.name)"
                   role="option"
                 >
@@ -105,9 +112,11 @@ import type { ProjectColor } from '@yotara/shared';
               @if (noProjectMatch(); as noMatch) {
                 <li
                   class="suggestion-empty"
+                  [id]="'capture-project-suggestion-' + projectSuggestions().length"
                   [class.suggestion-active]="
                     selectedSuggestionIndex() === projectSuggestions().length
                   "
+                  [attr.aria-selected]="selectedSuggestionIndex() === projectSuggestions().length"
                   (click)="closeSuggestions()"
                   role="option"
                 >
@@ -681,6 +690,19 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
       return this.projectSuggestions().length + (this.noProjectMatch() ? 1 : 0);
     }
     return this.tagSuggestions().length + (this.createTagName() ? 1 : 0);
+  });
+
+  /**
+   * Id of the option Enter/Tab would apply, for aria-activedescendant: the
+   * active row is otherwise marked only by a CSS class, which keyboard and
+   * screen-reader users never hear. Null while no list is open.
+   */
+  protected readonly activeSuggestionId = computed(() => {
+    if (this.suggestionCount() === 0) return null;
+    const index = this.selectedSuggestionIndex();
+    if (this.activeProjectSearch() !== null) return `capture-project-suggestion-${index}`;
+    if (this.activeTagSearch() !== null) return `capture-tag-suggestion-${index}`;
+    return null;
   });
 
   /**
