@@ -469,13 +469,16 @@ describe('CaptureBarComponent', () => {
       fixture.detectChanges();
 
       // 'Café' substring-matches the query but cannot be inserted, so the
-      // honest answer is the muted no-match row rather than a broken token.
+      // muted row names it and points at the dropdown rather than claiming
+      // the project does not exist.
       const dropdown = fixture.debugElement.query(By.css('.project-suggestions'));
       expect(dropdown).toBeTruthy();
       expect(dropdown.queryAll(By.css('li')).length).toBe(1);
       const empty = dropdown.query(By.css('.suggestion-empty'));
       expect(empty).toBeTruthy();
-      expect(empty.nativeElement.textContent).toContain('No project named');
+      expect(empty.nativeElement.textContent).toContain('Café');
+      expect(empty.nativeElement.textContent).toContain('dropdown');
+      expect(empty.nativeElement.textContent).not.toContain('No project named');
     });
 
     it('inserts only @tokens the parser reads back unchanged', () => {
@@ -784,6 +787,59 @@ describe('CaptureBarComponent', () => {
       const hint = fixture.debugElement.query(By.css('.capture-hint'));
       expect(hint.nativeElement.textContent).toContain('Choose a project for this task');
       expect(hint.nativeElement.getAttribute('aria-live')).toBe('polite');
+    });
+
+    it('explains the #tag limit when the typed name can never be a token', () => {
+      const fixture = createFixture();
+      const input = fixture.debugElement.query(By.css('input'));
+      fixture.componentInstance.setTitle('file draft');
+      fixture.detectChanges();
+
+      input.nativeElement.value = 'file draft #café';
+      input.nativeElement.selectionStart = 16;
+      input.nativeElement.selectionEnd = 16;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const hint = fixture.debugElement.query(By.css('.capture-hint'));
+      expect(hint.nativeElement.textContent).toContain(
+        '#tags can only use letters, numbers, and hyphens.',
+      );
+    });
+
+    it('explains the @project limit when the typed name can never be a token', () => {
+      const fixture = createFixture();
+      const input = fixture.debugElement.query(By.css('input'));
+      fixture.componentInstance.setTitle('file draft');
+      fixture.detectChanges();
+
+      input.nativeElement.value = 'file draft @café';
+      input.nativeElement.selectionStart = 16;
+      input.nativeElement.selectionEnd = 16;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const hint = fixture.debugElement.query(By.css('.capture-hint'));
+      expect(hint.nativeElement.textContent).toContain(
+        '@projects can only use letters, numbers, and hyphens.',
+      );
+    });
+
+    it('points at the dropdown when the only matching project cannot be a token', () => {
+      const fixture = createFixture([
+        { id: 'p1', name: 'Inbox' },
+        { id: 'p2', name: 'Café' },
+      ]);
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = 'plan @café';
+      input.nativeElement.selectionStart = 10;
+      input.nativeElement.selectionEnd = 10;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const empty = fixture.debugElement.query(By.css('.project-suggestions .suggestion-empty'));
+      expect(empty.nativeElement.textContent).toContain('Café');
+      expect(empty.nativeElement.textContent).toContain('dropdown');
     });
 
     it('ties the inline hint to the accessible description of the input', () => {

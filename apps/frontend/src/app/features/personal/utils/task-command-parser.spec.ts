@@ -13,6 +13,12 @@ describe('parseTaskCommand', () => {
     expect(result.priority).toBeUndefined();
   });
 
+  it('leaves a priority token that ends in a combining mark alone', () => {
+    const result = parseTaskCommand('Water the plants !high\u0301');
+    expect(result.title).toBe('Water the plants !high\u0301');
+    expect(result.priority).toBeUndefined();
+  });
+
   describe('without known label names (legacy behavior)', () => {
     it('extracts and strips every #tag', () => {
       const result = parseTaskCommand('Call the bank #errand #money');
@@ -65,6 +71,20 @@ describe('parseTaskCommand', () => {
       expect(result.title).toBe('Do #Café things');
       expect(result.labelNames).toEqual([]);
       expect(result.unresolvedLabelNames).toEqual([]);
+    });
+
+    it('never resolves a shorter label when the token ends in a combining mark', () => {
+      const result = parseTaskCommand('Do #Cafe\u0301 things', { knownLabelNames: ['cafe'] });
+      expect(result.title).toBe('Do #Cafe\u0301 things');
+      expect(result.labelNames).toEqual([]);
+      expect(result.unresolvedLabelNames).toEqual([]);
+    });
+
+    it('does not resolve a shorter label out of a trailing-hyphen token', () => {
+      // `#q1-` must never backtrack into `#q1` and leave a stray `-`.
+      const result = parseTaskCommand('tag #q1- now', { knownLabelNames: ['q1'] });
+      expect(result.title).toBe('tag #q1- now');
+      expect(result.labelNames).toEqual([]);
     });
   });
 
@@ -122,6 +142,24 @@ describe('parseTaskCommand', () => {
     it('never resolves a shorter project when the word continues with a letter', () => {
       const result = parseTaskCommand('Say hi to @Café', { knownProjectNames: ['Caf'] });
       expect(result.title).toBe('Say hi to @Café');
+      expect(result.projectName).toBeUndefined();
+      expect(result.unresolvedProjectNames).toEqual([]);
+    });
+
+    it('never resolves a shorter project when a trailing hyphen ends the token', () => {
+      // `@Q1-` must never backtrack into `@Q1` and leave a stray `-`.
+      const result = parseTaskCommand('ship @Q1- now', { knownProjectNames: ['Q1'] });
+      expect(result.title).toBe('ship @Q1- now');
+      expect(result.projectName).toBeUndefined();
+
+      const both = parseTaskCommand('ship @Q1- now', { knownProjectNames: ['Q1', 'Q1-'] });
+      expect(both.title).toBe('ship @Q1- now');
+      expect(both.projectName).toBeUndefined();
+    });
+
+    it('never resolves a shorter project when the token ends in a combining mark', () => {
+      const result = parseTaskCommand('mall @Cafe\u0301 run', { knownProjectNames: ['cafe'] });
+      expect(result.title).toBe('mall @Cafe\u0301 run');
       expect(result.projectName).toBeUndefined();
       expect(result.unresolvedProjectNames).toEqual([]);
     });

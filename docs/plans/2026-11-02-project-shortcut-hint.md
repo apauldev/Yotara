@@ -70,3 +70,9 @@ This should create a high-priority task titled `Prepare slides`, due tomorrow, f
 4. Task creation and modal project precedence.
 5. Component/page/e2e regression tests and desktop/mobile visual checks.
 6. Update user-facing shortcut help and verify affected frontend checks.
+
+## Follow-up notes (Nov 3 fixes)
+
+- Only inline-safe names (`isInlineTokenName`: `[\w-]` runs ending in a word character) are suggested for `@` and `#`; multiword and non-ASCII names stay dropdown/pick-list territory. When every `@` match is inline-unsafe, the muted row names the project and points at the project dropdown instead of claiming it does not exist.
+- Submitting with unapplied or unresolved `@` tokens shows a warning toast (first match wins; unresolved tokens are kept in the title).
+- Token boundaries never fall inside a letter, digit, combining mark, or hyphen, so `@Café`, `!high` + combining acute, and `@Q1-` are inert text and can never strip a shorter sibling out of the title.

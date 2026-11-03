@@ -44,11 +44,13 @@ export function parseTaskCommand(
 ): ParsedTaskCommand {
   // \b is ASCII-only, so it would happily stop `@Café` after `caf` and hand
   // the token to a shorter sibling project. The extra lookahead refuses any
-  // boundary into a real letter or number, so a token can only end where the
-  // highlighter ends it too — at whitespace or the end of the title.
-  const priorityRegex = /(?:^|\s)!([lhm]|low|med|medium|high)\b(?![\p{L}\p{N}])/iu;
-  const labelRegex = /(?:^|\s)#([\w-]+)\b(?![\p{L}\p{N}])/gu;
-  const projectRegex = /(?:^|\s)@([\w-]+)\b(?![\p{L}\p{N}])/gu;
+  // boundary into a real letter, number, mark, or hyphen — so a token can
+  // only end where the highlighter ends it too, and the `-` inside `[\w-]`
+  // can never be folded into a shorter match (`@Q1-` is not `@Q1` + `-`).
+  // Punctuation like `#tag,` is still a fine end for a token.
+  const priorityRegex = /(?:^|\s)!([lhm]|low|med|medium|high)\b(?![\p{L}\p{N}\p{M}-])/iu;
+  const labelRegex = /(?:^|\s)#([\w-]+)\b(?![\p{L}\p{N}\p{M}-])/gu;
+  const projectRegex = /(?:^|\s)@([\w-]+)\b(?![\p{L}\p{N}\p{M}-])/gu;
 
   let title = input;
   let priority: Priority | undefined;

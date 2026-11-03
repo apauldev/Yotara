@@ -120,7 +120,12 @@ import type { ProjectColor } from '@yotara/shared';
                   (click)="closeSuggestions()"
                   role="option"
                 >
-                  No project named “{{ noMatch }}”
+                  @if (unsafeProjectMatch(); as unsafe) {
+                    “{{ unsafe }}” can’t be applied from a token — pick it from the project
+                    dropdown.
+                  } @else {
+                    No project named “{{ noMatch }}”
+                  }
                 </li>
               }
             </ul>
@@ -654,15 +659,29 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
       .slice(0, 5);
   });
 
-  /**
-   * The typed name when no project matches. Unlike labels there is no create
-   * affordance for projects from capture; the muted row explains the token
-   * will not do anything while leaving the typed text alone.
-   */
+  /** The typed name when no project matches. */
   protected readonly noProjectMatch = computed(() => {
     const search = this.activeProjectSearch();
     if (!search) return null;
     return this.projectSuggestions().length === 0 ? search : null;
+  });
+
+  /**
+   * A project that substring-matches the query but whose name the token
+   * grammar cannot read back (multiword, non-ASCII). It is never offered, so
+   * the muted row points at the dropdown instead of claiming the project
+   * does not exist.
+   */
+  protected readonly unsafeProjectMatch = computed(() => {
+    const search = this.activeProjectSearch();
+    if (!search) return null;
+    return (
+      this.projectOptions().find(
+        (project) =>
+          !isInlineTokenName(project.name) &&
+          project.name.toLowerCase().includes(search.toLowerCase()),
+      )?.name ?? null
+    );
   });
 
   /** The typed name when no existing label matches exactly. */
@@ -709,8 +728,22 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
    */
   protected readonly captureHint = computed(() => {
     if (!this.title().trim()) return null;
-    if (this.activeProjectSearch() !== null) return 'Choose a project for this task';
-    if (this.activeTagSearch() !== null) return 'Choose or create a label for this task';
+    const projectSearch = this.activeProjectSearch();
+    if (projectSearch !== null) {
+      const search = projectSearch.trim();
+      if (search && !isInlineTokenName(search)) {
+        return '@projects can only use letters, numbers, and hyphens.';
+      }
+      return 'Choose a project for this task';
+    }
+    const tagSearch = this.activeTagSearch();
+    if (tagSearch !== null) {
+      const search = tagSearch.trim();
+      if (search && !isInlineTokenName(search)) {
+        return '#tags can only use letters, numbers, and hyphens.';
+      }
+      return 'Choose or create a label for this task';
+    }
     return 'Tip: use # for labels, @ for projects, and !high, !med or !low for priority.';
   });
 

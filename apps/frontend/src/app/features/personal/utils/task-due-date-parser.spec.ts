@@ -151,6 +151,13 @@ describe('parseTaskDueDate', () => {
       expectDate('email bob @example tomorrow', '2026-09-29');
     });
 
+    it('keeps the date with a non-ASCII token before the phrase', () => {
+      // `@Café` is inert in the capture grammar, so it is prose to the date
+      // parser and must not poison an otherwise-fine `tomorrow`.
+      expectDate('mall @Café tomorrow', '2026-09-29');
+      expectDate('mall @Cafe\u0301 tomorrow', '2026-09-29');
+    });
+
     it('keeps date-like command tokens out of the date grammar', () => {
       expectNoDate('Call Sam @tomorrow');
     });
