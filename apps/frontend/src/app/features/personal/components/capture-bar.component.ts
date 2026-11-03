@@ -34,6 +34,7 @@ import {
   type DueDateDraft,
 } from '../utils/due-date-draft';
 import { parseTaskDueDate, type TaskDueDateParseResult } from '../utils/task-due-date-parser';
+import { isInlineTokenName } from '../utils/task-command-parser';
 import { projectPaletteFor } from '../project-presentation';
 import type { ProjectColor } from '@yotara/shared';
 
@@ -640,8 +641,15 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
   protected readonly projectSuggestions = computed(() => {
     const search = this.activeProjectSearch();
     if (search === null) return [];
+    // Only names that re-read as `@token` may be offered: inserting a name the
+    // parser cannot strip back out would silently misfile the task. Unsafe
+    // names (multiword, non-ASCII) stay selectable via the project dropdown.
     return this.projectOptions()
-      .filter((project) => project.name.toLowerCase().includes(search.toLowerCase()))
+      .filter(
+        (project) =>
+          isInlineTokenName(project.name) &&
+          project.name.toLowerCase().includes(search.toLowerCase()),
+      )
       .slice(0, 5);
   });
 

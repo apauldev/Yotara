@@ -7,6 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { CaptureBarComponent } from './capture-bar.component';
 import { LabelService } from '../../../core/services/label.service';
 import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
+import { parseTaskCommand } from '../utils/task-command-parser';
 import { Label } from '@yotara/shared';
 
 describe('CaptureBarComponent', () => {
@@ -56,12 +57,14 @@ describe('CaptureBarComponent', () => {
     }).compileComponents();
   });
 
-  function createFixture() {
+  const defaultProjects = [
+    { id: 'p1', name: 'Inbox' },
+    { id: 'p2', name: 'Work' },
+  ];
+
+  function createFixture(projects = defaultProjects) {
     const fixture = TestBed.createComponent(CaptureBarComponent);
-    fixture.componentRef.setInput('projects', [
-      { id: 'p1', name: 'Inbox' },
-      { id: 'p2', name: 'Work' },
-    ]);
+    fixture.componentRef.setInput('projects', projects);
     fixture.componentRef.setInput('creating', false);
     fixture.componentRef.setInput('referenceDate', referenceDate);
     fixture.detectChanges();
@@ -337,6 +340,97 @@ describe('CaptureBarComponent', () => {
       const items = dropdown.queryAll(By.css('li'));
       expect(items.length).toBe(1);
       expect(items[0].nativeElement.textContent).toContain('Work');
+    });
+
+    it('hides projects whose names the @token grammar cannot read back', () => {
+      const fixture = createFixture([
+        { id: 'p1', name: 'Inbox' },
+        { id: 'p2', name: 'Garden' },
+        { id: 'p3', name: 'Garden Renovation' },
+        { id: 'p4', name: 'Café' },
+        { id: 'p5', name: 'Q1-' },
+      ]);
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = 'plan @';
+      input.nativeElement.selectionStart = 6;
+      input.nativeElement.selectionEnd = 6;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      // Garden Renovation (space), Café (non-ASCII) and Q1- (trailing hyphen)
+      // cannot round-trip through [\w-]+\b, so offering them would silently
+      // misfile the task or mangle the title on submit.
+      const items = fixture.debugElement.queryAll(By.css('.project-suggestions li'));
+      expect(items.length).toBe(2);
+      const names = items.map((item) => item.nativeElement.textContent.trim());
+      expect(names).toEqual(['@Inbox', '@Garden']);
+    });
+
+    it('offers a safe project that substring-matches an unsafe sibling', () => {
+      const fixture = createFixture([
+        { id: 'p1', name: 'Garden' },
+        { id: 'p2', name: 'Garden Renovation' },
+      ]);
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = 'plan @gar';
+      input.nativeElement.selectionStart = 9;
+      input.nativeElement.selectionEnd = 9;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const items = fixture.debugElement.queryAll(By.css('.project-suggestions li'));
+      expect(items.length).toBe(1);
+      expect(items[0].nativeElement.textContent).toContain('Garden');
+      expect(items[0].nativeElement.textContent).not.toContain('Renovation');
+    });
+
+    it('shows the no-match row when every match is inline-unsafe', () => {
+      const fixture = createFixture([
+        { id: 'p1', name: 'Inbox' },
+        { id: 'p2', name: 'Café' },
+      ]);
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = 'plan @ca';
+      input.nativeElement.selectionStart = 8;
+      input.nativeElement.selectionEnd = 8;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      // 'Café' substring-matches the query but cannot be inserted, so the
+      // honest answer is the muted no-match row rather than a broken token.
+      const dropdown = fixture.debugElement.query(By.css('.project-suggestions'));
+      expect(dropdown).toBeTruthy();
+      expect(dropdown.queryAll(By.css('li')).length).toBe(1);
+      const empty = dropdown.query(By.css('.suggestion-empty'));
+      expect(empty).toBeTruthy();
+      expect(empty.nativeElement.textContent).toContain('No project named');
+    });
+
+    it('inserts only @tokens the parser reads back unchanged', () => {
+      const projects = [
+        { id: 'p1', name: 'Inbox' },
+        { id: 'p2', name: 'Garden' },
+        { id: 'p3', name: 'Garden Renovation' },
+        { id: 'p4', name: 'Café' },
+        { id: 'p5', name: 'Q1-' },
+      ];
+      const fixture = createFixture(projects);
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = 'plan @';
+      input.nativeElement.selectionStart = 6;
+      input.nativeElement.selectionEnd = 6;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const items = fixture.debugElement.queryAll(By.css('.project-suggestions li'));
+      expect(items.length).toBe(2);
+      const knownProjectNames = projects.map((project) => project.name);
+      for (const item of items) {
+        const token = item.nativeElement.textContent.trim();
+        const parsed = parseTaskCommand(`file ${token} now`, { knownProjectNames });
+        expect(parsed.projectName).toBe(token.slice(1));
+        expect(parsed.title).toBe('file now');
+      }
     });
 
     it('does not suggest a project while typing the local part of an email', () => {

@@ -121,3 +121,16 @@ export function parseTaskCommand(
     unresolvedProjectNames: [...new Set(unresolvedProjectNames)],
   };
 }
+
+/**
+ * True when `@name` / `#name` written into a title is read back as exactly
+ * `name` by the token grammar above. The token regexes stop at the first
+ * character outside `[\w-]`, so multiword (`Garden Renovation`) and non-ASCII
+ * (`Café`) names cannot round-trip: inserting one would silently drop the
+ * pick or file into a different project. The trailing `\w` rejects a trailing
+ * hyphen, where `\b` backtracks and captures a shorter name (`@trail-` is
+ * read as `trail`, leaving `-` in the title).
+ */
+export function isInlineTokenName(name: string): boolean {
+  return /^[\w-]*\w$/.test(name);
+}
