@@ -285,5 +285,23 @@ describe('highlightInlineCommands', () => {
       expect(result).toMatch(/<span class="hl-label">#f<\/span>/);
       expect(result).not.toContain('hl-unresolved');
     });
+
+    it('marks tokens unresolved when the live lists are empty', () => {
+      // An empty array is a loaded list with nothing in it (e.g. the project
+      // signal before its first response), not permission to claim the token
+      // applies. The parser preserves these, so the highlighter must agree.
+      const result = highlightInlineCommands('file into @work and #urgent', [], []);
+      expect(result).toMatch(/<span class="hl-unresolved">@work<\/span>/);
+      expect(result).toMatch(/<span class="hl-unresolved">#urgent<\/span>/);
+      expect(result).not.toContain('hl-project');
+      expect(result).not.toContain('hl-label');
+    });
+
+    it('still uses the legacy wrap-any fallback when lists are omitted', () => {
+      const result = highlightInlineCommands('file into @work and #urgent');
+      expect(result).toMatch(/<span class="hl-project">@work<\/span>/);
+      expect(result).toMatch(/<span class="hl-label">#urgent<\/span>/);
+      expect(result).not.toContain('hl-unresolved');
+    });
   });
 });

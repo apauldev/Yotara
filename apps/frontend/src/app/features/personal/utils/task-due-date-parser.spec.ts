@@ -158,6 +158,22 @@ describe('parseTaskDueDate', () => {
       expectDate('mall @Cafe\u0301 tomorrow', '2026-09-29');
     });
 
+    it('keeps the date when a token the grammar rejects follows the phrase', () => {
+      // The command parser leaves these in the title (multiword/non-ASCII names
+      // and trailing hyphens cannot round-trip), but they are still typed as
+      // capture tokens and must never delete an otherwise-valid date.
+      const reference = DateTime.fromObject({ year: 2026, month: 9, day: 28 }, { zone: 'UTC' });
+      for (const token of ['@Café', '#café', '@Q1-', '!high\u0301']) {
+        expectDateTime(
+          `go to meeting tomorrow at 9am ${token}`,
+          '2026-09-29',
+          '09:00',
+          reference,
+          'tomorrow at 9am',
+        );
+      }
+    });
+
     it('keeps date-like command tokens out of the date grammar', () => {
       expectNoDate('Call Sam @tomorrow');
     });

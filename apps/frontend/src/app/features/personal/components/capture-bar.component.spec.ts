@@ -803,7 +803,7 @@ describe('CaptureBarComponent', () => {
 
       const hint = fixture.debugElement.query(By.css('.capture-hint'));
       expect(hint.nativeElement.textContent).toContain(
-        '#tags can only use letters, numbers, and hyphens.',
+        '#tags can only use English letters, numbers, and hyphens.',
       );
     });
 
@@ -821,7 +821,7 @@ describe('CaptureBarComponent', () => {
 
       const hint = fixture.debugElement.query(By.css('.capture-hint'));
       expect(hint.nativeElement.textContent).toContain(
-        '@projects can only use letters, numbers, and hyphens.',
+        '@projects can only use English letters, numbers, and hyphens.',
       );
     });
 

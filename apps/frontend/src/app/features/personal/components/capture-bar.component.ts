@@ -732,7 +732,7 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
     if (projectSearch !== null) {
       const search = projectSearch.trim();
       if (search && !isInlineTokenName(search)) {
-        return '@projects can only use letters, numbers, and hyphens.';
+        return '@projects can only use English letters, numbers, and hyphens.';
       }
       return 'Choose a project for this task';
     }
@@ -740,7 +740,7 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
     if (tagSearch !== null) {
       const search = tagSearch.trim();
       if (search && !isInlineTokenName(search)) {
-        return '#tags can only use letters, numbers, and hyphens.';
+        return '#tags can only use English letters, numbers, and hyphens.';
       }
       return 'Choose or create a label for this task';
     }

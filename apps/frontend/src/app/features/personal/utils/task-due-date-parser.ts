@@ -115,11 +115,13 @@ const ISO_DATE_PATTERN = /\b(\d{4})-(\d{2})-(\d{2})\b/g;
 // date recognition these are never prose and the phrase validator must not see
 // them. Masking is sigil-level rather than a whitelist so an unrecognized
 // `!word` after a live date phrase (e.g. `!admin`) can never delete the date.
-// An `@` that is not preceded by a space (email addresses) is not a token and
-// stays visible to the validator. The boundary lookahead mirrors the command
-// parser exactly (letters, numbers, marks, hyphens are never a token end) so
-// the mask can never leave a stray `-` behind that poisons the validator.
-const COMMAND_TOKEN_PATTERN = /(?:^|\s)[#!@][\w-]+\b(?![\p{L}\p{N}\p{M}-])/giu;
+// The mask consumes the whole non-space run after a sigil, not just the
+// `[\w-]+` the command parser reads: tokens it deliberately rejects as inert
+// (`@Café`, `#café`, `@Q1-`) are still capture-command intent, and leaving
+// them behind made them poison the phrase validator while the parser kept
+// them in the title. An `@` that is not preceded by a space (email addresses)
+// is not a token and stays visible to the validator.
+const COMMAND_TOKEN_PATTERN = /(?:^|\s)[#!@]\S*/gu;
 const RECURRING_TOKEN_PATTERN = /\b(?:every|each)\b/i;
 const RECURRING_BEFORE_PATTERN = /\b(?:every|each)\s+other\s*$/i;
 const VAGUE_TIME_TOKEN_PATTERN =

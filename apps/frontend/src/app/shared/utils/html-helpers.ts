@@ -18,7 +18,12 @@ export function escapeHtml(text: string): string {
 }
 
 function entityLookup(entities: HighlightEntities): Map<string, HighlightEntity> | null {
-  if (!entities || entities.length === 0) return null;
+  // `undefined` means "no live list supplied" and keeps the legacy wrap-any
+  // fallback. An empty array is a real, loaded list with nothing in it, so
+  // every token is unresolved — returning null here made `@foo` render as a
+  // valid chip while the parser preserved it (and on first paint the project
+  // signal is still `[]`).
+  if (!entities) return null;
 
   const lookup = new Map<string, HighlightEntity>();
   for (const entity of entities) {
