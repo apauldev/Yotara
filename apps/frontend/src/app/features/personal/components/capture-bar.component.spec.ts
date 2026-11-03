@@ -114,6 +114,53 @@ describe('CaptureBarComponent', () => {
       expect(create.nativeElement.textContent).toContain('Create “zzz”');
     });
 
+    it('hides labels whose names the #token grammar cannot read back', () => {
+      mockLabelService.labels.set([
+        ...mockLabels,
+        {
+          id: '6',
+          name: 'Garden',
+          color: '#112233',
+          icon: 'leaf',
+          pinned: false,
+          userId: 'user-1',
+        },
+        {
+          id: '7',
+          name: 'Garden Renovation',
+          color: '#445566',
+          icon: 'leaf',
+          pinned: false,
+          userId: 'user-1',
+        },
+      ]);
+      const fixture = createFixture();
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = 'plan #gar';
+      input.nativeElement.selectionStart = 9;
+      input.nativeElement.selectionEnd = 9;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const items = fixture.debugElement.queryAll(By.css('.tag-suggestions li'));
+      const texts = items.map((item) => item.nativeElement.textContent);
+      expect(texts.some((text) => text.includes('Garden Renovation'))).toBeFalse();
+      expect(texts.some((text) => text.includes('Garden'))).toBeTrue();
+    });
+
+    it('does not offer to create a label the #token grammar cannot read back', () => {
+      const fixture = createFixture();
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = 'plan #café';
+      input.nativeElement.selectionStart = 10;
+      input.nativeElement.selectionEnd = 10;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      // Creating "café" would mint a label whose `#café` token never applies.
+      expect(fixture.debugElement.query(By.css('.tag-suggestions'))).toBeNull();
+    });
+
     it('creates the typed label with its suggested icon and inserts the tag', async () => {
       mockLabelService.createLabel.and.resolveTo({
         id: 'new-label',

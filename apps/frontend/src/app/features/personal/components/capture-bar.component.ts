@@ -633,7 +633,9 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
     if (search === null) return [];
     return this.labelService
       .labels()
-      .filter((l) => l.name.toLowerCase().includes(search.toLowerCase()))
+      .filter(
+        (l) => isInlineTokenName(l.name) && l.name.toLowerCase().includes(search.toLowerCase()),
+      )
       .slice(0, 5);
   });
 
@@ -666,7 +668,10 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
   /** The typed name when no existing label matches exactly. */
   protected readonly createTagName = computed(() => {
     const search = this.activeTagSearch()?.trim();
-    if (!search) {
+    // A name the token grammar cannot read back (spaces can't be typed here,
+    // but non-ASCII can) would be created and then never apply, so the create
+    // row stays hidden rather than minting a dead token.
+    if (!search || !isInlineTokenName(search)) {
       return null;
     }
     const exists = this.labelService

@@ -7,6 +7,12 @@ describe('parseTaskCommand', () => {
     expect(result.priority).toBe('high');
   });
 
+  it('leaves a priority token that continues with a non-ASCII letter alone', () => {
+    const result = parseTaskCommand('Water the plants !highé');
+    expect(result.title).toBe('Water the plants !highé');
+    expect(result.priority).toBeUndefined();
+  });
+
   describe('without known label names (legacy behavior)', () => {
     it('extracts and strips every #tag', () => {
       const result = parseTaskCommand('Call the bank #errand #money');
@@ -52,6 +58,13 @@ describe('parseTaskCommand', () => {
       expect(result.title).toBe('Do #homework and');
       expect(result.labelNames).toEqual(['home']);
       expect(result.unresolvedLabelNames).toEqual(['homework']);
+    });
+
+    it('never resolves a shorter label when the word continues with a letter', () => {
+      const result = parseTaskCommand('Do #Café things', { knownLabelNames: ['caf'] });
+      expect(result.title).toBe('Do #Café things');
+      expect(result.labelNames).toEqual([]);
+      expect(result.unresolvedLabelNames).toEqual([]);
     });
   });
 
@@ -104,6 +117,13 @@ describe('parseTaskCommand', () => {
       });
       expect(result.title).toBe('email bob@bar and weird"@admin later');
       expect(result.projectName).toBeUndefined();
+    });
+
+    it('never resolves a shorter project when the word continues with a letter', () => {
+      const result = parseTaskCommand('Say hi to @Café', { knownProjectNames: ['Caf'] });
+      expect(result.title).toBe('Say hi to @Café');
+      expect(result.projectName).toBeUndefined();
+      expect(result.unresolvedProjectNames).toEqual([]);
     });
 
     it('matches hyphenated project names', () => {

@@ -42,9 +42,13 @@ export function parseTaskCommand(
   input: string,
   options?: { knownLabelNames?: string[]; knownProjectNames?: string[] },
 ): ParsedTaskCommand {
-  const priorityRegex = /(?:^|\s)!([lhm]|low|med|medium|high)\b/i;
-  const labelRegex = /(?:^|\s)#([\w-]+)\b/g;
-  const projectRegex = /(?:^|\s)@([\w-]+)\b/g;
+  // \b is ASCII-only, so it would happily stop `@Café` after `caf` and hand
+  // the token to a shorter sibling project. The extra lookahead refuses any
+  // boundary into a real letter or number, so a token can only end where the
+  // highlighter ends it too — at whitespace or the end of the title.
+  const priorityRegex = /(?:^|\s)!([lhm]|low|med|medium|high)\b(?![\p{L}\p{N}])/iu;
+  const labelRegex = /(?:^|\s)#([\w-]+)\b(?![\p{L}\p{N}])/gu;
+  const projectRegex = /(?:^|\s)@([\w-]+)\b(?![\p{L}\p{N}])/gu;
 
   let title = input;
   let priority: Priority | undefined;
