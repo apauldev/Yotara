@@ -431,6 +431,7 @@ describe('TaskListPageComponent', () => {
       expect(args.projectId).toBeNull();
       expect(captureBar.getProjectId()).toBeNull();
       expect(mockStatusService.success).toHaveBeenCalledWith('"Quick task" added to Inbox');
+      expect(mockStatusService.show).not.toHaveBeenCalled();
     });
 
     it('quick captures into the selected project and resets the picker', async () => {
@@ -487,6 +488,55 @@ describe('TaskListPageComponent', () => {
       const args = mockTaskService.createTask.calls.mostRecent().args[0];
       expect(args.title).toBe('Draft proposal @missing');
       expect(args.projectId).toBe('2');
+      expect(mockStatusService.show).toHaveBeenCalledWith(
+        'No project named “missing” — kept in the title.',
+        'warning',
+      );
+    });
+
+    it('reports a second matched @project that first-wins left unapplied', async () => {
+      mockAuthStateService.user.set({ id: 'user-1', captureBehavior: 'quick' });
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      const captureBar = fixture.debugElement.query(By.directive(CaptureBarComponent))
+        .componentInstance as CaptureBarComponent;
+      captureBar.setTitle('Draft proposal @work @inbox');
+
+      await (fixture.componentInstance as any).handleCapture();
+
+      const args = mockTaskService.createTask.calls.mostRecent().args[0];
+      expect(args.title).toBe('Draft proposal');
+      expect(args.projectId).toBe('2');
+      expect(mockStatusService.success).toHaveBeenCalledWith('"Draft proposal" added to Work');
+      expect(mockStatusService.show).toHaveBeenCalledWith(
+        'Only the first @project applies — also matched: “inbox”.',
+        'warning',
+      );
+    });
+
+    it('notifies about an unmatched @token when handing off to details', async () => {
+      mockAuthStateService.user.set({ id: 'user-1', captureBehavior: 'capture' });
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
+        .componentInstance as PersonalTaskWorkspaceComponent;
+      const openSpy = spyOn(workspace, 'openCreateTaskModal');
+      const captureBar = fixture.debugElement.query(By.directive(CaptureBarComponent))
+        .componentInstance as CaptureBarComponent;
+      captureBar.setTitle('Capture task @missing');
+      captureBar.setSubmissionType('capture');
+
+      await (fixture.componentInstance as any).handleCapture();
+
+      expect(openSpy).toHaveBeenCalled();
+      expect(mockStatusService.show).toHaveBeenCalledWith(
+        'No project named “missing” — kept in the title.',
+        'warning',
+      );
     });
 
     it('passes the inline project through the details handoff over the dropdown', async () => {

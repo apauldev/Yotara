@@ -374,7 +374,14 @@ export class TaskListPageComponent implements OnInit {
       }
       const labelCandidates = [...availableLabels.values()];
 
-      const { title, priority, labelNames, projectName } = parseTaskCommand(rawValue, {
+      const {
+        title,
+        priority,
+        labelNames,
+        projectName,
+        unappliedProjectNames,
+        unresolvedProjectNames,
+      } = parseTaskCommand(rawValue, {
         knownLabelNames: labelCandidates.map((label) => label.name),
         knownProjectNames: this.projectService.projects().map((project) => project.name),
       });
@@ -404,6 +411,22 @@ export class TaskListPageComponent implements OnInit {
           ? this.authState.user()?.captureBehavior || 'quick'
           : bar.getLastSubmissionType();
 
+      // Plan: an @token that did not apply must be said out loud at submit —
+      // preservation alone reads as the pick having worked.
+      const quoteNames = (names: string[]) => names.map((name) => `“${name}”`).join(', ');
+      const projectTokenNotices: string[] = [];
+      if (unresolvedProjectNames.length > 0) {
+        projectTokenNotices.push(
+          `No project named ${quoteNames(unresolvedProjectNames)} — kept in the title.`,
+        );
+      }
+      if (unappliedProjectNames.length > 0) {
+        projectTokenNotices.push(
+          `Only the first @project applies — also matched: ${quoteNames(unappliedProjectNames)}.`,
+        );
+      }
+      const projectTokenNotice = projectTokenNotices.join(' ');
+
       bar.clearError();
 
       if (behavior === 'quick') {
@@ -430,12 +453,18 @@ export class TaskListPageComponent implements OnInit {
               projectId,
             }),
           );
+          if (projectTokenNotice) {
+            this.statusService.show(projectTokenNotice, 'warning');
+          }
           bar.resetCapture();
         } catch (_) {
           bar.setError('Failed to quick capture task.');
         }
       } else {
         this.workspace()?.openCreateTaskModal(projectId, dueDateDraft, resolvedLabels, title);
+        if (projectTokenNotice) {
+          this.statusService.show(projectTokenNotice, 'warning');
+        }
         bar.resetSubmissionType();
       }
     } finally {

@@ -62,6 +62,7 @@ describe('parseTaskCommand', () => {
       const result = parseTaskCommand('go to meeting @admin', { knownProjectNames: projects });
       expect(result.title).toBe('go to meeting');
       expect(result.projectName).toBe('admin');
+      expect(result.unappliedProjectNames).toEqual([]);
       expect(result.unresolvedProjectNames).toEqual([]);
     });
 
@@ -81,6 +82,13 @@ describe('parseTaskCommand', () => {
       const result = parseTaskCommand('Check @ideas and @admin', { knownProjectNames: projects });
       expect(result.title).toBe('Check and');
       expect(result.projectName).toBe('ideas');
+      expect(result.unappliedProjectNames).toEqual(['admin']);
+    });
+
+    it('de-duplicates unapplied resolved project names', () => {
+      const result = parseTaskCommand('Check @ideas and @ideas', { knownProjectNames: projects });
+      expect(result.projectName).toBe('ideas');
+      expect(result.unappliedProjectNames).toEqual(['ideas']);
     });
 
     it('keeps unresolved tokens next to resolved ones and reports both kinds', () => {

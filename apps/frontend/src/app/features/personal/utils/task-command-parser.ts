@@ -14,6 +14,12 @@ export interface ParsedTaskCommand {
   /** Resolved `@project` name; the first resolved token wins. `undefined` when none resolved. */
   projectName?: string;
   /**
+   * Resolved `@project` tokens after the first. First-wins precedence applies
+   * only one project, so these matched but were applied nowhere; reported so
+   * the capture surface can say so at submit.
+   */
+  unappliedProjectNames: string[];
+  /**
    * `@tokens` that matched no existing project and were left in the title.
    * Without `knownProjectNames` the tokens are also reported here because
    * nothing can be assigned, and they are never stripped.
@@ -45,6 +51,7 @@ export function parseTaskCommand(
   const labelNames: string[] = [];
   const unresolvedLabelNames: string[] = [];
   let projectName: string | undefined;
+  const unappliedProjectNames: string[] = [];
   const unresolvedProjectNames: string[] = [];
 
   // Parse Priority
@@ -101,6 +108,8 @@ export function parseTaskCommand(
       if (projectName === undefined) {
         // Precedence: the first resolved project token wins.
         projectName = match[1];
+      } else {
+        unappliedProjectNames.push(match[1]);
       }
     } else {
       unresolvedProjectNames.push(match[1]);
@@ -118,6 +127,7 @@ export function parseTaskCommand(
     labelNames: [...new Set(labelNames)], // Unique labels
     unresolvedLabelNames: [...new Set(unresolvedLabelNames)],
     projectName,
+    unappliedProjectNames: [...new Set(unappliedProjectNames)],
     unresolvedProjectNames: [...new Set(unresolvedProjectNames)],
   };
 }
