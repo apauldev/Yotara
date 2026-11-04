@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.86.0](https://github.com/apauldev/Yotara/compare/v0.85.3...v0.86.0) (2026-11-04)
+
+
+### Features
+
+* **capture:** file tasks into projects with an inline [@token](https://github.com/token) ([00e1825](https://github.com/apauldev/Yotara/commit/00e1825534bc7b74d02ec20f40d249d41157df20))
+* **capture:** give label and project tokens entity-colored chips ([43e1d4a](https://github.com/apauldev/Yotara/commit/43e1d4ace86d6a87f9cc9a496c9bb4079ff7f3b0))
+* **capture:** name all three inline sigils in the typing hint ([0feb897](https://github.com/apauldev/Yotara/commit/0feb8970f5c65a8798b6487cfee64588407a74ad))
+* **capture:** say out loud when an [@project](https://github.com/project) token did not apply ([727f339](https://github.com/apauldev/Yotara/commit/727f3390ac9e3a046290a19aa84637a2e422f294))
+* **capture:** unify priority chips with the entity chip recipe ([f43ceb3](https://github.com/apauldev/Yotara/commit/f43ceb32e555d3667effda49f5d27b79a67a8c6d))
+
+
+### Bug Fixes
+
+* **capture:** announce the active suggestion to assistive technology ([a6e0453](https://github.com/apauldev/Yotara/commit/a6e0453d317db3833f82b92a02a9a83b3b826d5b))
+* **capture:** apply suggestions to the token at the caret ([df2c617](https://github.com/apauldev/Yotara/commit/df2c6172105641f2876aebc11819441a451a790b))
+* **capture:** close the remaining token boundary holes ([0dbc300](https://github.com/apauldev/Yotara/commit/0dbc30097c1c4309518fc21d4dd4b7a0f1ee3b13))
+* **capture:** close the remaining token round-trip holes ([992329a](https://github.com/apauldev/Yotara/commit/992329a16df463556aa96d228521039706152d9d))
+* **capture:** only suggest [@projects](https://github.com/projects) the token grammar can read back ([1bdaeaf](https://github.com/apauldev/Yotara/commit/1bdaeaf1a8233860066ed1eb936862562a51526a))
+* **capture:** preserve dates with inert tokens and honest empty-list chips ([135c521](https://github.com/apauldev/Yotara/commit/135c5212223bce316c3757ebc35c456fc7bc283d))
+* **projects:** include label ids in project task listings ([a813203](https://github.com/apauldev/Yotara/commit/a8132035d075c9f128463979763ae9d703abaaf2))
+
 ## [0.85.3](https://github.com/apauldev/Yotara/compare/v0.85.2...v0.85.3) (2026-10-27)
 
 
