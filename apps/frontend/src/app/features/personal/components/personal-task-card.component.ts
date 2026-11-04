@@ -13,14 +13,22 @@ import {
 import { Task } from '@yotara/shared';
 import type { Label } from '@yotara/shared';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faBoxArchive, faRotate, faRotateLeft, faTrash } from '@fortawesome/free-solid-svg-icons';
+import {
+  faBoxArchive,
+  faFlag,
+  faRotate,
+  faRotateLeft,
+  faTrash,
+} from '@fortawesome/free-solid-svg-icons';
 import { MarkdownComponent } from 'ngx-markdown';
 import { LabelService } from '../../../core/services/label.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
+import { ProjectService } from '../../../core/services/project.service';
 import { TaskService } from '../../../core/services/task.service';
 import { LabelChipComponent } from '../../../shared/ui/label-chip/label-chip.component';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 import { formatTimeLabel, parseCalendarDate } from '../../../shared/utils/timestamps';
+import { projectPaletteFor } from '../project-presentation';
 import { getTaskViewDestination } from '../utils/task-creation-notification';
 import { TaskMovementNoticeService } from '../utils/task-movement-notice';
 
@@ -164,9 +172,25 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
               @if (showContextMetadata) {
                 <span class="meta-pill meta-pill-muted">{{ statusLabel() }}</span>
               }
-              <span class="priority-chip priority-chip-{{ task().priority }}">{{
-                priorityLabel()
-              }}</span>
+              <span
+                class="priority-chip priority-chip-{{ task().priority }}"
+                role="img"
+                [attr.aria-label]="priorityLabel()"
+                [attr.title]="priorityLabel()"
+              >
+                <fa-icon [icon]="faFlag" />
+              </span>
+
+              @if (visibleProject(); as project) {
+                <span class="project-inline" [attr.title]="project.name">
+                  <span
+                    class="project-dot"
+                    [style.background]="projectAccent()"
+                    aria-hidden="true"
+                  ></span>
+                  <span class="project-name">{{ project.name }}</span>
+                </span>
+              }
 
               @if (showContextMetadata && task().simpleMode) {
                 <span class="meta-pill meta-pill-simple">Simple mode</span>
@@ -594,8 +618,7 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
         word-break: break-word;
       }
 
-      .meta-pill,
-      .priority-chip {
+      .meta-pill {
         border-radius: 999px;
         padding: 0.12rem 0.4rem;
         font-size: 0.62rem;
@@ -603,11 +626,19 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
         letter-spacing: 0.02em;
         text-transform: uppercase;
         white-space: nowrap;
-      }
-
-      .meta-pill {
         background: var(--surface-container-low);
         color: var(--on-surface-muted);
+      }
+
+      .priority-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 0;
+        margin-left: 0.3rem;
+        background: transparent;
+        font-size: 0.75rem;
+        line-height: 1;
+        white-space: nowrap;
       }
 
       .meta-pill-muted {
@@ -618,6 +649,33 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
       .meta-pill-date {
         background: var(--surface-container-high);
         color: var(--on-surface);
+      }
+
+      .project-inline {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        max-width: 12rem;
+        color: var(--on-surface-muted);
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0;
+        text-transform: none;
+      }
+
+      .project-dot {
+        width: 0.45rem;
+        height: 0.45rem;
+        flex: 0 0 auto;
+        border-radius: 999px;
+        background: var(--on-surface-subtle);
+      }
+
+      .project-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .meta-pill-complete {
@@ -659,18 +717,15 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
       }
 
       .priority-chip-high {
-        background: var(--danger-soft);
-        color: color-mix(in srgb, var(--priority-high) 75%, var(--on-surface));
+        color: var(--priority-high);
       }
 
       .priority-chip-medium {
-        background: var(--warning-soft);
-        color: color-mix(in srgb, var(--priority-medium) 50%, var(--on-surface));
+        color: var(--priority-medium);
       }
 
       .priority-chip-low {
-        background: var(--primary-soft);
-        color: var(--primary-solid);
+        color: var(--priority-low);
       }
 
       @media (max-width: 720px) {
@@ -713,8 +768,7 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
           margin-top: 0.1rem;
         }
 
-        .meta-pill,
-        .priority-chip {
+        .meta-pill {
           font-size: 0.65rem;
           padding: 0.1rem 0.35rem;
         }
@@ -758,6 +812,7 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
 export class PersonalTaskCardComponent {
   private readonly taskService = inject(TaskService);
   private readonly labelService = inject(LabelService);
+  private readonly projectService = inject(ProjectService);
   private readonly movementNotice = inject(TaskMovementNoticeService);
   private readonly preferences = inject(PreferencesStore);
 
@@ -768,6 +823,7 @@ export class PersonalTaskCardComponent {
   protected readonly colorFirstLabels = this.preferences.colorFirstLabels;
   protected dontShowAgain = false;
   protected readonly faRotate = faRotate;
+  protected readonly faFlag = faFlag;
   protected readonly faRotateLeft = faRotateLeft;
   protected readonly faBoxArchive = faBoxArchive;
   protected readonly faTrash = faTrash;
@@ -790,6 +846,8 @@ export class PersonalTaskCardComponent {
   readonly suppressLabelId = input<string | null>(null);
   /** Multiple active filter labels to suppress on the card. */
   readonly suppressLabelIds = input<string[]>([]);
+  /** Hide the project pill where the surrounding page already names the project. */
+  readonly showProject = input(true);
   @Output() readonly select = new EventEmitter<void>();
   @Output() readonly labelSelect = new EventEmitter<Label>();
   @Output() readonly togglePermanentArchive = new EventEmitter<void>();
@@ -815,6 +873,29 @@ export class PersonalTaskCardComponent {
   protected readonly visibleLabelChips = computed(() => this.taskLabelChips().slice(0, 2));
   protected readonly overflowLabelChips = computed(() => this.taskLabelChips().slice(2));
   protected readonly overflowOpen = signal(false);
+
+  /**
+   * The task's project, resolved against the live project list. Cards are
+   * shared across list, label, search, and archive views, so this pill is the
+   * only place the task's filing context appears.
+   */
+  protected readonly taskProject = computed(() => {
+    const projectId = this.task().projectId;
+    if (!projectId) {
+      return null;
+    }
+
+    return this.projectService.projects().find((project) => project.id === projectId) ?? null;
+  });
+
+  protected readonly visibleProject = computed(() =>
+    this.showProject() ? this.taskProject() : null,
+  );
+
+  protected readonly projectAccent = computed(() => {
+    const project = this.visibleProject();
+    return project ? projectPaletteFor(project.color).accent : null;
+  });
 
   protected priorityLabel() {
     return `${this.task().priority} priority`;

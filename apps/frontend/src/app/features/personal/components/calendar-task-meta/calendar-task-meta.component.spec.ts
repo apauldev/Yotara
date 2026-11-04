@@ -37,24 +37,25 @@ describe('CalendarTaskMetaComponent', () => {
     component = fixture.componentInstance;
   });
 
-  it('renders priority, project and label pills', () => {
+  it('renders the priority flag, project and labels', () => {
     component.task = task({ priority: 'high' });
     component.projectName = 'Work';
     component.projectAccent = '#123456';
     component.labelNames = ['urgent', 'home'];
     fixture.detectChanges();
 
-    expect(el('.priority-chip-high').textContent).toContain('High');
+    expect(el('.priority-chip-high').getAttribute('aria-label')).toBe('High');
     expect(fixture.nativeElement.textContent).toContain('Work');
     expect(fixture.nativeElement.textContent).toContain('urgent');
     expect(fixture.nativeElement.textContent).toContain('home');
   });
 
-  it('renders only the priority pill when there is no project or label', () => {
+  it('renders only the priority flag when there is no project or label', () => {
     component.task = task({ priority: 'low' });
     fixture.detectChanges();
 
-    expect(el('.priority-chip-low')).toBeTruthy();
-    expect(fixture.nativeElement.querySelectorAll('.meta-pill').length).toBe(1);
+    expect(el('.priority-chip-low').getAttribute('aria-label')).toBe('Low');
+    expect(fixture.nativeElement.querySelector('.project-inline')).toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('.meta-pill').length).toBe(0);
   });
 });

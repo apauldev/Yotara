@@ -444,11 +444,18 @@
               [class.priority-dot-low]="option === 'low'"
               [attr.aria-pressed]="draftPriority() === option"
               (click)="draftPriority.set(option)"
+              (mouseenter)="hoveredPriority.set(option)"
+              (mouseleave)="hoveredPriority.set(null)"
+              (focus)="hoveredPriority.set(option)"
+              (blur)="hoveredPriority.set(null)"
               [attr.aria-label]="option + ' priority'"
               [title]="option + ' priority'"
             ></button>
           }
         </div>
+        <span class="priority-hint">
+          {{ hoveredPriority() ?? draftPriority() | titlecase }} priority
+        </span>
       </div>
 
       <div class="sidebar-section">

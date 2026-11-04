@@ -86,6 +86,7 @@
                 <app-personal-task-card
                   [task]="task"
                   [interactive]="true"
+                  [showProject]="false"
                   (select)="workspace.editTask(task)"
                 />
               }
@@ -109,6 +110,7 @@
                   <app-personal-task-card
                     [task]="task"
                     [interactive]="true"
+                    [showProject]="false"
                     [showDescription]="false"
                     [showCompletionState]="true"
                     (select)="workspace.editTask(task)"

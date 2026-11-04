@@ -1418,6 +1418,37 @@ describe('PersonalTaskModalComponent', () => {
       expect(dots[0].nativeElement.getAttribute('aria-pressed')).toBe('true');
     });
 
+    it('shows a hover caption naming the priority being pointed at', () => {
+      component.open = true;
+      component['showAdvanced'].set(true);
+      fixture.detectChanges();
+
+      const hint = fixture.debugElement.query(By.css('.priority-hint'));
+      expect(hint.nativeElement.textContent).toContain('Medium priority');
+
+      const dots = fixture.debugElement.queryAll(By.css('.priority-dot'));
+      dots[0].triggerEventHandler('mouseenter', null);
+      fixture.detectChanges();
+      expect(hint.nativeElement.textContent).toContain('High priority');
+
+      dots[0].triggerEventHandler('mouseleave', null);
+      fixture.detectChanges();
+      expect(hint.nativeElement.textContent).toContain('Medium priority');
+    });
+
+    it('tints every priority dot with its level color before selection', () => {
+      component.open = true;
+      component['showAdvanced'].set(true);
+      fixture.detectChanges();
+
+      const backgrounds = fixture.debugElement
+        .queryAll(By.css('.priority-dot'))
+        .map((dot) => getComputedStyle(dot.nativeElement).backgroundColor);
+
+      expect(backgrounds[0]).not.toBe(backgrounds[1]);
+      expect(backgrounds[1]).not.toBe(backgrounds[2]);
+    });
+
     it('exposes aria-pressed on weekday choices within a labeled group', () => {
       component.open = true;
       component['showAdvanced'].set(true);

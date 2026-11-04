@@ -1,4 +1,6 @@
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { faFlag } from '@fortawesome/free-solid-svg-icons';
 import type { Task } from '@yotara/shared';
 
 /**
@@ -8,15 +10,23 @@ import type { Task } from '@yotara/shared';
 @Component({
   selector: 'app-calendar-task-meta',
   standalone: true,
+  imports: [FontAwesomeModule],
   changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <div class="cal-meta">
-      <span class="meta-pill priority-chip-{{ task.priority }}">{{ priorityLabel }}</span>
+      <span
+        class="priority-chip priority-chip-{{ task.priority }}"
+        role="img"
+        [attr.aria-label]="priorityLabel"
+        [attr.title]="priorityLabel"
+      >
+        <fa-icon [icon]="faFlag" />
+      </span>
 
       @if (projectName) {
-        <span class="meta-pill meta-pill-project">
+        <span class="project-inline">
           <span class="project-dot" [style.background]="projectAccent" aria-hidden="true"></span>
-          {{ projectName }}
+          <span class="project-name">{{ projectName }}</span>
         </span>
       }
 
@@ -53,13 +63,26 @@ import type { Task } from '@yotara/shared';
         color: var(--on-surface-muted);
       }
 
-      .meta-pill-project {
-        color: var(--on-surface);
-      }
-
       .meta-pill-label {
         background: var(--accent-soft);
         color: var(--accent-strong);
+      }
+
+      .project-inline {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        max-width: 12rem;
+        color: var(--on-surface-muted);
+        font-size: 0.72rem;
+        font-weight: 600;
+      }
+
+      .project-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .project-dot {
@@ -70,19 +93,25 @@ import type { Task } from '@yotara/shared';
         background: var(--on-surface-subtle);
       }
 
+      .priority-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 0;
+        background: transparent;
+        font-size: 0.75rem;
+        line-height: 1;
+      }
+
       .priority-chip-high {
-        background: var(--danger-soft);
-        color: color-mix(in srgb, var(--priority-high) 75%, var(--on-surface));
+        color: var(--priority-high);
       }
 
       .priority-chip-medium {
-        background: var(--warning-soft);
-        color: color-mix(in srgb, var(--priority-medium) 50%, var(--on-surface));
+        color: var(--priority-medium);
       }
 
       .priority-chip-low {
-        background: var(--primary-soft);
-        color: var(--primary-solid);
+        color: var(--priority-low);
       }
     `,
   ],
@@ -92,6 +121,8 @@ export class CalendarTaskMetaComponent {
   @Input() projectName: string | null = null;
   @Input() projectAccent: string | null = null;
   @Input() labelNames: string[] = [];
+
+  protected readonly faFlag = faFlag;
 
   protected get priorityLabel(): string {
     const priority = this.task.priority;

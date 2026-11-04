@@ -775,11 +775,28 @@ textarea {
 }
 
 .priority-dot-low.priority-dot-active {
-  background: var(--primary-solid);
+  background: var(--priority-low);
 }
 
-.priority-dot:not(.priority-dot-active) {
-  opacity: 0.5;
+.priority-dot-high:not(.priority-dot-active) {
+  background: color-mix(in srgb, var(--priority-high) 32%, var(--surface-container-highest));
+}
+
+.priority-dot-medium:not(.priority-dot-active) {
+  background: color-mix(in srgb, var(--priority-medium) 32%, var(--surface-container-highest));
+}
+
+.priority-dot-low:not(.priority-dot-active) {
+  background: color-mix(in srgb, var(--priority-low) 32%, var(--surface-container-highest));
+}
+
+.priority-hint {
+  display: block;
+  min-height: 1rem;
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--on-surface-muted);
 }
 
 .status-select {
