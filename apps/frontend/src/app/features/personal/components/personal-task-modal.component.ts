@@ -99,6 +99,7 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
   protected readonly draftDescription = signal('');
   protected readonly draftStatus = signal<TaskStatus>('inbox');
   protected readonly draftPriority = signal<Priority>('medium');
+  protected readonly hoveredPriority = signal<Priority | null>(null);
   protected readonly draftDueDate = signal('');
   protected readonly draftDueTime = signal('');
   protected readonly dateDraftSource = signal<DueDateDraftSource>('none');

@@ -31,7 +31,7 @@
 
 .priority-low {
   background: var(--primary-soft);
-  color: var(--primary-solid);
+  color: var(--priority-low);
 }
 
 .status {

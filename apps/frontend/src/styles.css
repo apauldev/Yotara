@@ -161,7 +161,7 @@
   --status-pending: #804a24;
   --priority-high: #c44d3c;
   --priority-medium: #d9a13d;
-  --priority-low: var(--primary-solid);
+  --priority-low: var(--success-strong);
 }
 
 .theme-dark-forest {
@@ -220,7 +220,7 @@
   --status-pending: #ffcc80;
   --priority-high: #ff8a7a;
   --priority-medium: #e8b84a;
-  --priority-low: var(--primary-solid);
+  --priority-low: var(--success-strong);
 }
 
 .theme-coastal-calm {
@@ -279,7 +279,7 @@
   --status-pending: #804a24;
   --priority-high: #c44d3c;
   --priority-medium: #d9a13d;
-  --priority-low: var(--primary-solid);
+  --priority-low: var(--success-strong);
 }
 
 .theme-minimal-slate {
@@ -338,7 +338,7 @@
   --status-pending: #804a24;
   --priority-high: #c44d3c;
   --priority-medium: #d9a13d;
-  --priority-low: var(--primary-solid);
+  --priority-low: var(--success-strong);
 }
 
 .theme-midnight-amethyst {
@@ -397,7 +397,7 @@
   --status-pending: #df9b6d;
   --priority-high: #e87a6a;
   --priority-medium: #e8b84a;
-  --priority-low: var(--primary-solid);
+  --priority-low: var(--success-strong);
 }
 
 .theme-golden-hour {
@@ -456,7 +456,7 @@
   --status-pending: #a05e2d;
   --priority-high: #c44d3c;
   --priority-medium: #d9a13d;
-  --priority-low: var(--primary-solid);
+  --priority-low: var(--success-strong);
 }
 
 .theme-deep-trench {
@@ -515,7 +515,7 @@
   --status-pending: #df9b6d;
   --priority-high: #e87a6a;
   --priority-medium: #e8b84a;
-  --priority-low: var(--primary-solid);
+  --priority-low: var(--success-strong);
 }
 
 /*
@@ -582,7 +582,7 @@
   --status-pending: #804a24;
   --priority-high: #c44d3c;
   --priority-medium: #d9a13d;
-  --priority-low: var(--primary-solid);
+  --priority-low: var(--success-strong);
 }
 
 /*
@@ -649,7 +649,7 @@
   --status-pending: #f2c284;
   --priority-high: #ff8a7a;
   --priority-medium: #e8b84a;
-  --priority-low: var(--primary-solid);
+  --priority-low: var(--success-strong);
 }
 
 @layer base {
