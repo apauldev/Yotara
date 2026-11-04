@@ -264,6 +264,23 @@ describe('CaptureBarComponent', () => {
       expect(fixture.componentInstance.getTitle()).toBe('#teal');
     });
 
+    it('rewrites the label token under the caret when the same prefix appears twice', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('file #wo later #wo');
+      fixture.detectChanges();
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = 'file #wo later #wo';
+      input.nativeElement.selectionStart = 8;
+      input.nativeElement.selectionEnd = 8;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      input.nativeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.getTitle()).toBe('file #work later #wo');
+    });
+
     it('hides the dropdown when space follows the hash term', () => {
       const fixture = createFixture();
       const input = fixture.debugElement.query(By.css('input'));
@@ -628,6 +645,25 @@ describe('CaptureBarComponent', () => {
       fixture.detectChanges();
 
       expect(fixture.componentInstance.getTitle()).toBe('file @Work quickly now');
+    });
+
+    it('rewrites the project token under the caret when the same prefix appears twice', () => {
+      const fixture = createFixture();
+      fixture.componentInstance.setTitle('file @wo later @wo');
+      fixture.detectChanges();
+      const input = fixture.debugElement.query(By.css('input'));
+      input.nativeElement.value = 'file @wo later @wo';
+      // Caret sits at the end of the first token, which is the one the
+      // suggestions were opened for.
+      input.nativeElement.selectionStart = 8;
+      input.nativeElement.selectionEnd = 8;
+      input.nativeElement.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      input.nativeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.getTitle()).toBe('file @Work later @wo');
     });
 
     it('navigates project suggestions with ArrowDown', () => {

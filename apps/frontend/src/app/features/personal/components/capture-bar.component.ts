@@ -1259,30 +1259,34 @@ export class CaptureBarComponent implements OnChanges, OnDestroy, OnInit {
     // The DOM value is the freshest during a keystroke; the signal is the
     // fallback when an async creation outlived a re-render.
     const value = input?.value || this.title();
+    const caret = input?.selectionStart ?? value.length;
     const token = search ? `${sigil}${search}` : null;
 
-    let tokenStart = token ? value.lastIndexOf(token) : -1;
-    if (token && tokenStart === -1) {
-      return;
-    }
-
+    let tokenStart: number;
     let tokenEnd: number;
-    if (tokenStart !== -1 && token) {
-      tokenEnd = tokenStart + token.length;
-    } else {
-      // Fall back to the cursor position when the signal and DOM disagree.
-      const pos = input?.selectionStart ?? value.length;
-      tokenStart = value.lastIndexOf(sigil, pos - 1);
-      tokenEnd = pos;
-    }
-
-    if (tokenStart === -1) return;
 
     if (token) {
-      const nextChar = value[tokenEnd];
-      if (nextChar !== undefined && !/\s/.test(nextChar)) {
+      // Resolve the token around the caret, not `lastIndexOf(token)`: when the
+      // same prefix appears twice (`@wo ... @wo`), the last copy is not the one
+      // being edited. The token text must still equal the captured search, so
+      // an async label create never rewrites characters typed while it ran.
+      const active = this.activeSearchBefore(value, caret, sigil);
+      if (!active) {
         return;
       }
+      tokenStart = active.index;
+      tokenEnd = active.index + 1;
+      while (tokenEnd < value.length && !/\s/.test(value[tokenEnd])) {
+        tokenEnd += 1;
+      }
+      if (value.substring(active.index + 1, tokenEnd) !== search) {
+        return;
+      }
+    } else {
+      // A bare sigil: replace the sigil closest before the caret.
+      tokenStart = value.lastIndexOf(sigil, caret - 1);
+      if (tokenStart === -1) return;
+      tokenEnd = caret;
     }
 
     const suffix = value.substring(tokenEnd);
