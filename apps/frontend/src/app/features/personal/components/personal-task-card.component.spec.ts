@@ -1,11 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { Router } from '@angular/router';
-import { signal } from '@angular/core';
+import { signal, WritableSignal } from '@angular/core';
 import { DateTime } from 'luxon';
 import { provideMarkdown } from 'ngx-markdown';
 import { PersonalTaskCardComponent } from './personal-task-card.component';
-import { Task } from '@yotara/shared';
+import { Project, Task } from '@yotara/shared';
 import { TaskService } from '../../../core/services/task.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
@@ -49,6 +49,19 @@ describe('PersonalTaskCardComponent', () => {
     labels: ReturnType<typeof signal>;
     labelById: () => Map<string, unknown>;
   };
+  let projectServiceStub: { projects: WritableSignal<Project[]> };
+
+  const mockProject: Project = {
+    id: 'project-1',
+    name: 'Deep Work',
+    color: 'teal',
+    ownerId: 'user-1',
+    createdAt: '2026-04-01T00:00:00Z',
+    updatedAt: '2026-04-01T00:00:00Z',
+    taskCount: 3,
+    completedTaskCount: 0,
+    openTaskCount: 3,
+  };
 
   beforeEach(async () => {
     taskServiceSpy = jasmine.createSpyObj<TaskService>('TaskService', ['updateTask']);
@@ -66,6 +79,7 @@ describe('PersonalTaskCardComponent', () => {
       labels: signal(mockLabels),
       labelById: () => new Map(mockLabels.map((label) => [label.id, label])),
     };
+    projectServiceStub = { projects: signal<Project[]>([]) };
 
     await TestBed.configureTestingModule({
       imports: [PersonalTaskCardComponent],
@@ -74,7 +88,7 @@ describe('PersonalTaskCardComponent', () => {
         { provide: StatusService, useValue: statusServiceSpy },
         { provide: NotificationService, useValue: notificationServiceSpy },
         { provide: LabelService, useValue: labelServiceStub },
-        { provide: ProjectService, useValue: { projects: signal([]) } },
+        { provide: ProjectService, useValue: projectServiceStub },
         { provide: Router, useValue: { navigate: jasmine.createSpy('navigate') } },
         provideMarkdown(),
       ],
@@ -115,10 +129,56 @@ describe('PersonalTaskCardComponent', () => {
       expect(titleEl.nativeElement.textContent).toContain('Write morning pages');
     });
 
-    it('should render priority chip', () => {
+    it('should render priority chip as an icon-only flag with an accessible name', () => {
       const priorityChip = fixture.debugElement.query(By.css('.priority-chip'));
-      expect(priorityChip.nativeElement.textContent).toContain('medium priority');
+      expect(priorityChip.nativeElement.getAttribute('aria-label')).toBe('medium priority');
       expect(priorityChip.nativeElement.classList.contains('priority-chip-medium')).toBe(true);
+      expect(priorityChip.nativeElement.querySelector('fa-icon')).toBeTruthy();
+      expect(priorityChip.nativeElement.textContent.trim()).toBe('');
+    });
+
+    it('should render the project pill when the task belongs to a project', () => {
+      projectServiceStub.projects.set([mockProject]);
+      setTask({ ...mockTask, projectId: 'project-1' });
+      fixture.detectChanges();
+
+      const pill = fixture.debugElement.query(By.css('.project-inline'));
+      expect(pill).toBeTruthy();
+      expect(pill.nativeElement.textContent).toContain('Deep Work');
+    });
+
+    it('should color the project pill with the project palette accent', () => {
+      projectServiceStub.projects.set([mockProject]);
+      setTask({ ...mockTask, projectId: 'project-1' });
+      fixture.detectChanges();
+
+      const dot = fixture.debugElement.query(By.css('.project-inline .project-dot'));
+      expect(dot.nativeElement.style.backgroundColor).toBe('rgb(45, 123, 117)');
+    });
+
+    it('should omit the project pill when the task has no project', () => {
+      projectServiceStub.projects.set([mockProject]);
+      setTask({ ...mockTask, projectId: undefined });
+      fixture.detectChanges();
+
+      expect(fixture.debugElement.query(By.css('.project-inline'))).toBeNull();
+    });
+
+    it('should omit the project pill when the project no longer exists', () => {
+      projectServiceStub.projects.set([mockProject]);
+      setTask({ ...mockTask, projectId: 'deleted-project' });
+      fixture.detectChanges();
+
+      expect(fixture.debugElement.query(By.css('.project-inline'))).toBeNull();
+    });
+
+    it('should hide the project pill when showProject is false', () => {
+      projectServiceStub.projects.set([mockProject]);
+      setTask({ ...mockTask, projectId: 'project-1' });
+      fixture.componentRef.setInput('showProject', false);
+      fixture.detectChanges();
+
+      expect(fixture.debugElement.query(By.css('.project-inline'))).toBeNull();
     });
 
     it('should render task description when showDescription is true', async () => {

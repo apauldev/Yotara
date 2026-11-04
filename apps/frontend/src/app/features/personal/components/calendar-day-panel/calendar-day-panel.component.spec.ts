@@ -113,7 +113,9 @@ describe('CalendarDayPanelComponent', () => {
       task({ id: 'c', title: 'Orphaned', projectId: 'gone', labels: ['missing'] }),
     ]);
 
-    expect(fixture.nativeElement.textContent).toContain('High');
+    expect(
+      fixture.nativeElement.querySelector('.priority-chip-high').getAttribute('aria-label'),
+    ).toBe('High');
     expect(fixture.nativeElement.textContent).toContain('Work');
     expect(fixture.nativeElement.textContent).toContain('urgent');
   });
