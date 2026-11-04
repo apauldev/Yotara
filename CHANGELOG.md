@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.87.0](https://github.com/apauldev/Yotara/compare/v0.86.0...v0.87.0) (2026-11-04)
+
+
+### Features
+
+* **personal:** show project on task cards and differentiate metadata visuals ([771c152](https://github.com/apauldev/Yotara/commit/771c1529bab2fc3d1bd81b6b039025d94e28f474))
+
+
+### Bug Fixes
+
+* **theme:** unify priority colors across themes and clarify the modal picker ([bd8da8f](https://github.com/apauldev/Yotara/commit/bd8da8fb2301114c61c4aba83c0fddb55d52dc03))
+
+
+### Tests
+
+* **e2e:** open task details via the title button in mobile modal spec ([fca55e0](https://github.com/apauldev/Yotara/commit/fca55e0057303ff90f2ac077095f1748b2c1a449))
+
 ## [0.86.0](https://github.com/apauldev/Yotara/compare/v0.85.3...v0.86.0) (2026-11-04)
 
 
