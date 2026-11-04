@@ -472,6 +472,75 @@ describe('PersonalTaskModalComponent', () => {
       expect(component['draftProjectId']()).toBe('project-2');
     });
 
+    it('seeds the project picker from an inline @token in the initial title', () => {
+      fixture.componentRef.setInput('projects', [launchPlan, personal]);
+      fixture.componentRef.setInput('initialTitle', 'Prepare slides @personal');
+      fixture.componentRef.setInput('open', true);
+      fixture.detectChanges();
+
+      expect(component['draftTitle']()).toBe('Prepare slides');
+      expect(component['draftProjectId']()).toBe('project-2');
+    });
+
+    it('gives the inline @token precedence over the contextual project on create', () => {
+      fixture.componentRef.setInput('projects', [launchPlan, personal]);
+      fixture.componentRef.setInput('initialProjectId', 'project-1');
+      fixture.componentRef.setInput('initialTitle', 'Prepare slides @personal');
+      fixture.componentRef.setInput('open', true);
+      fixture.detectChanges();
+
+      expect(component['draftProjectId']()).toBe('project-2');
+    });
+
+    it('keeps an unresolved @token in the title and does not seed a project from it', () => {
+      fixture.componentRef.setInput('projects', [launchPlan, personal]);
+      fixture.componentRef.setInput('initialTitle', 'Call @Nobody');
+      fixture.componentRef.setInput('open', true);
+      fixture.detectChanges();
+
+      expect(component['draftTitle']()).toBe('Call @Nobody');
+      expect(component['draftProjectId']()).toBeNull();
+    });
+
+    it('files a token-seeded draft into the parsed project on save', () => {
+      fixture.componentRef.setInput('projects', [launchPlan, personal]);
+      fixture.componentRef.setInput('initialTitle', 'Prepare slides @personal');
+      fixture.componentRef.setInput('open', true);
+      fixture.detectChanges();
+
+      const saveSpy = spyOn(component['save'], 'emit');
+      component['submit']();
+
+      expect(saveSpy).toHaveBeenCalledWith(
+        jasmine.objectContaining({
+          mode: 'create',
+          payload: jasmine.objectContaining({ projectId: 'project-2', title: 'Prepare slides' }),
+        }),
+      );
+    });
+
+    it('never re-parses or rewrites tokens when editing an existing task', () => {
+      fixture.componentRef.setInput('projects', [launchPlan, personal]);
+      fixture.componentRef.setInput('task', {
+        id: 'task-1',
+        title: 'Filed @personal task',
+        description: '',
+        status: 'inbox',
+        priority: 'medium',
+        completed: false,
+        simpleMode: true,
+        order: 0,
+        createdAt: '2026-04-18T08:00:00.000Z',
+        updatedAt: '2026-04-18T08:00:00.000Z',
+        projectId: 'project-1',
+      } as Task);
+      fixture.componentRef.setInput('open', true);
+      fixture.detectChanges();
+
+      expect(component['draftTitle']()).toBe('Filed @personal task');
+      expect(component['draftProjectId']()).toBe('project-1');
+    });
+
     it('hydrates an edited task from its own project only', () => {
       fixture.componentRef.setInput('projects', [launchPlan, personal]);
       fixture.componentRef.setInput('initialProjectId', 'project-2');

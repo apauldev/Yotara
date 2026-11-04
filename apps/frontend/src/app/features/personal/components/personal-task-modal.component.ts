@@ -928,8 +928,9 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
 
   private hydrateDraft() {
     const rawTitle = this.task?.title ?? this.initialTitle;
-    const { title, priority, labelNames } = parseTaskCommand(rawTitle, {
+    const { title, priority, labelNames, projectName } = parseTaskCommand(rawTitle, {
       knownLabelNames: this.labelService.labels().map((l) => l.name),
+      knownProjectNames: this.projects.map((p) => p.name),
     });
 
     // If editing, use raw title. If creating from initialTitle, use cleaned title.
@@ -937,6 +938,7 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
     this.draftDescription.set(this.task?.description ?? '');
     this.draftStatus.set(this.task?.status ?? 'inbox');
 
+    let parsedProjectId: string | null = null;
     if (!this.task && this.initialTitle) {
       this.draftPriority.set(priority ?? 'medium');
 
@@ -948,6 +950,17 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
       // Pane-seeded labels (initialLabelIds) apply on top of parsed ones only
       // when creating a fresh task.
       this.draftLabels.set([...new Set([...parsedLabelIds, ...this.initialLabelIds])]);
+
+      // An inline `@project` token in the initial title files the task before
+      // the modal ever opens; seed the picker from it the same way.
+      if (projectName) {
+        const parsedProject = this.projects.find(
+          (p) => p.name.toLowerCase() === projectName.toLowerCase(),
+        );
+        if (parsedProject) {
+          parsedProjectId = parsedProject.id;
+        }
+      }
     } else {
       this.draftPriority.set(this.task?.priority ?? 'medium');
       this.draftLabels.set(this.task?.labels ?? [...this.initialLabelIds]);
@@ -983,7 +996,9 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
     );
     this.dateDraftSuppressed.set(initialDateSource === 'cleared');
     this.draftProjectId.set(
-      this.task ? (this.task.projectId ?? null) : (this.initialProjectId ?? null),
+      this.task
+        ? (this.task.projectId ?? null)
+        : (parsedProjectId ?? this.initialProjectId ?? null),
     );
     this.draftCompleted.set(this.task?.completed ?? false);
     this.draftRecurrenceFrequency.set(this.task?.recurrenceRule?.frequency ?? null);

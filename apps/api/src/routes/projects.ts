@@ -200,7 +200,7 @@ export default async function projectRoutes(fastify: FastifyInstance) {
         return sendNotFound(reply, 'Project not found');
       }
 
-      return rows.map((row) => toTask(row));
+      return rows.map((row) => toTask(row, row.labels));
     },
   );
 }

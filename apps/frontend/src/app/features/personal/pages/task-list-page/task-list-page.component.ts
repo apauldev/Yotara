@@ -374,8 +374,16 @@ export class TaskListPageComponent implements OnInit {
       }
       const labelCandidates = [...availableLabels.values()];
 
-      const { title, priority, labelNames } = parseTaskCommand(rawValue, {
+      const {
+        title,
+        priority,
+        labelNames,
+        projectName,
+        unappliedProjectNames,
+        unresolvedProjectNames,
+      } = parseTaskCommand(rawValue, {
         knownLabelNames: labelCandidates.map((label) => label.name),
+        knownProjectNames: this.projectService.projects().map((project) => project.name),
       });
       const dueDateDraft = bar.getDueDateDraft();
 
@@ -385,10 +393,39 @@ export class TaskListPageComponent implements OnInit {
         )
         .map((label) => label.id);
 
+      // Precedence: an inline `@token` filed from the title beats the capture
+      // bar's dropdown selection, because typing it is the most deliberate
+      // gesture in the input.
+      let projectId = bar.getProjectId();
+      if (projectName) {
+        const inlineProject = this.projectService
+          .projects()
+          .find((project) => project.name.toLowerCase() === projectName.toLowerCase());
+        if (inlineProject) {
+          projectId = inlineProject.id;
+        }
+      }
+
       const behavior =
         bar.getLastSubmissionType() === 'default'
           ? this.authState.user()?.captureBehavior || 'quick'
           : bar.getLastSubmissionType();
+
+      // Plan: an @token that did not apply must be said out loud at submit —
+      // preservation alone reads as the pick having worked.
+      const quoteNames = (names: string[]) => names.map((name) => `“${name}”`).join(', ');
+      const projectTokenNotices: string[] = [];
+      if (unresolvedProjectNames.length > 0) {
+        projectTokenNotices.push(
+          `No project named ${quoteNames(unresolvedProjectNames)} — kept in the title.`,
+        );
+      }
+      if (unappliedProjectNames.length > 0) {
+        projectTokenNotices.push(
+          `Only the first @project applies — also matched: ${quoteNames(unappliedProjectNames)}.`,
+        );
+      }
+      const projectTokenNotice = projectTokenNotices.join(' ');
 
       bar.clearError();
 
@@ -396,7 +433,6 @@ export class TaskListPageComponent implements OnInit {
         try {
           const dueDate = dueDateDraft.source === 'cleared' ? '' : dueDateDraft.value;
           const dueTime = dueDateDraft.source === 'cleared' ? '' : (dueDateDraft.dueTime ?? '');
-          const projectId = bar.getProjectId();
           await this.taskService.createTask({
             title,
             priority: priority || 'medium',
@@ -417,17 +453,18 @@ export class TaskListPageComponent implements OnInit {
               projectId,
             }),
           );
+          if (projectTokenNotice) {
+            this.statusService.show(projectTokenNotice, 'warning');
+          }
           bar.resetCapture();
         } catch (_) {
           bar.setError('Failed to quick capture task.');
         }
       } else {
-        this.workspace()?.openCreateTaskModal(
-          bar.getProjectId(),
-          dueDateDraft,
-          resolvedLabels,
-          title,
-        );
+        this.workspace()?.openCreateTaskModal(projectId, dueDateDraft, resolvedLabels, title);
+        if (projectTokenNotice) {
+          this.statusService.show(projectTokenNotice, 'warning');
+        }
         bar.resetSubmissionType();
       }
     } finally {

@@ -289,6 +289,60 @@ test('project task listing returns only active tasks assigned to that project', 
   }
 });
 
+test('project task listing includes label ids so cards can render chips', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const userCookie = await signUpAndGetCookie(`project-labels-${randomUUID()}@example.com`);
+
+    const createProjectResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/projects',
+      headers: { cookie: userCookie },
+      payload: {
+        name: 'Garden Renovation',
+        color: 'olive',
+      },
+    });
+    assert.equal(createProjectResponse.statusCode, 201);
+    const projectId = createProjectResponse.json().id as string;
+
+    const createLabelResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/labels',
+      headers: { cookie: userCookie },
+      payload: { name: 'Call' },
+    });
+    assert.equal(createLabelResponse.statusCode, 201);
+    const labelId = createLabelResponse.json().id as string;
+
+    const createTaskResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie: userCookie },
+      payload: {
+        title: 'Call the plumber',
+        projectId,
+        labels: [labelId],
+      },
+    });
+    assert.equal(createTaskResponse.statusCode, 201);
+    const taskId = createTaskResponse.json().id as string;
+
+    const projectTasksResponse = await ctx.app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/tasks`,
+      headers: { cookie: userCookie },
+    });
+    assert.equal(projectTasksResponse.statusCode, 200);
+    const [task] = projectTasksResponse.json();
+    assert.equal(task.id, taskId);
+    assert.deepEqual(task.labels, [labelId]);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
 test('project task listing returns tasks in stable order', async () => {
   const ctx = await createAuthedApp();
 

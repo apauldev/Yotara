@@ -129,6 +129,88 @@ test.describe('Task CRUD', () => {
     });
   });
 
+  test('uses inline @project token in capture bar', async ({ page }) => {
+    // Create a project with a single-word-safe name first
+    const projName = `tok-proj-${Date.now()}`;
+    await page.goto('/projects');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    await page.getByRole('button', { name: '+ New Project' }).click();
+    await page.getByPlaceholder('e.g. Morning Rituals').fill(projName);
+    await page.getByRole('button', { name: 'Create Project' }).click();
+    await page.waitForURL(/\/projects\/[a-zA-Z0-9-]+/, { timeout: 10_000 });
+    const projectUrl = page.url();
+
+    await page.goto('/tasks?view=inbox');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    const name = taskName('tokproj');
+    // The trailing space closes the token so Enter submits instead of applying
+    // a suggestion; @projName files the task inline.
+    await page.getByPlaceholder("What's on your mind today?").fill(`${name} @${projName} `);
+    await page.getByPlaceholder("What's on your mind today?").press('Enter');
+
+    // A filed task is not part of the Inbox view. The capture confirmation
+    // names the project and the task is visible on that project page with the
+    // token stripped from the title.
+    await expect(
+      page.locator('.toast').filter({ hasText: `"${name}" added to ${projName}` }),
+    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('article.task-card').filter({ hasText: name })).toHaveCount(0);
+
+    await page.goto(projectUrl);
+    await page.waitForLoadState('networkidle');
+    const card = page.locator('article.task-card').filter({ hasText: name });
+    await expect(card).toBeVisible({ timeout: 10_000 });
+    await expect(card).not.toContainText(`@${projName}`);
+  });
+
+  test('keeps the due date and files the project from one inline capture', async ({ page }) => {
+    const projName = `tok-date-proj-${Date.now()}`;
+    await page.goto('/projects');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    await page.getByRole('button', { name: '+ New Project' }).click();
+    await page.getByPlaceholder('e.g. Morning Rituals').fill(projName);
+    await page.getByRole('button', { name: 'Create Project' }).click();
+    await page.waitForURL(/\/projects\/[a-zA-Z0-9-]+/, { timeout: 10_000 });
+    const projectId = page.url().split('/').pop();
+    await expect(projectId).toBeTruthy();
+
+    await page.goto('/tasks?view=inbox');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    const name = taskName('tokdate');
+    const responsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname.endsWith('/tasks'),
+    );
+    await page
+      .getByPlaceholder("What's on your mind today?")
+      .fill(`${name} tomorrow at 9am @${projName} `);
+    await page.getByPlaceholder("What's on your mind today?").press('Enter');
+
+    const response = await responsePromise;
+    expect(response.status()).toBe(201);
+    const created = await response.json();
+    expect(created.title).toBe(`${name} tomorrow at 9am`);
+    expect(created.projectId).toBe(projectId);
+    expect(created.dueTime).toBe('09:00');
+    // Tomorrow in the browser's own day, the zone the server was handed.
+    const tomorrow = await page.evaluate(() => {
+      const now = new Date();
+      const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      const pad = (value: number) => String(value).padStart(2, '0');
+      return `${next.getFullYear()}-${pad(next.getMonth() + 1)}-${pad(next.getDate())}`;
+    });
+    expect(created.dueDate).toBe(tomorrow);
+  });
+
   test('announces filing an Inbox task and opens its project', async ({ page }) => {
     const projName = `move-proj-${Date.now()}`;
     await page.goto('/projects');

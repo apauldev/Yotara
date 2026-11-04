@@ -4,6 +4,7 @@ import type { CreateProjectDto, UpdateProjectDto } from '@yotara/shared';
 import { db, type Database } from '../db/client.js';
 import { projects, tasks } from '../db/schema.js';
 import { nowIsoTimestamp } from '../lib/timestamps.js';
+import { getLabelsForTasks } from './label-service.js';
 import {
   normalizeProjectCreatePayload,
   normalizeProjectUpdatePayload,
@@ -197,7 +198,8 @@ export async function listTasksForProject(projectId: string, ownerId: string) {
     return left.id.localeCompare(right.id);
   });
 
-  return rows;
+  const labelsMap = await getLabelsForTasks(rows.map((row) => row.id));
+  return rows.map((row) => ({ ...row, labels: labelsMap.get(row.id) ?? [] }));
 }
 
 export type WritableProjectResolution = { ok: true; projectId: string | null } | { ok: false };
