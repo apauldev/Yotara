@@ -465,7 +465,7 @@ test.describe('Task modal on mobile', () => {
       timeout: 10_000,
     });
 
-    await page.locator('article.task-card').filter({ hasText: name }).first().click();
+    await page.getByRole('button', { name: `Open task details for ${name}` }).click();
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
     await expandDetails(page);
     await expect(
