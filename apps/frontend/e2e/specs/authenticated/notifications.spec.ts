@@ -146,7 +146,13 @@ test.describe('Notifications', () => {
       .locator('.date-picker-grid button:not([data-outside])')
       .getByText(String(new Date().getDate()), { exact: true })
       .click();
-    await page.locator('#task-due-time').fill(pastTime);
+    await modal.locator('.time-picker-trigger').click();
+    // The time panel renders into a document-level portal, like the date panel.
+    const timePanel = page.locator('.time-picker-panel').last();
+    await expect(timePanel).toBeVisible();
+    await timePanel.locator('.time-picker-custom-input').fill(pastTime);
+    await timePanel.locator('.time-picker-set-btn').click();
+    await expect(timePanel).toHaveCount(0);
     await page.getByRole('button', { name: 'Save Task' }).click();
     await expect(modal).not.toBeVisible({ timeout: 5_000 });
 
