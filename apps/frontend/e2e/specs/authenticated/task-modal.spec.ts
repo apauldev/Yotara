@@ -78,7 +78,7 @@ async function selectCalendarDate(page: Page, target: CalendarDate) {
   await expect(panel).toHaveCount(0);
 }
 
-const dueTimeTrigger = (page: Page) => page.locator('.schedule-picker .time-picker-trigger');
+const dueTimeTrigger = (page: Page) => page.locator('.schedule-time-picker .time-picker-trigger');
 
 async function setDueTime(page: Page, time: string) {
   await dueTimeTrigger(page).click();

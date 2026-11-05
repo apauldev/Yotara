@@ -347,8 +347,7 @@
           [describedBy]="dueDateError() ? 'task-due-date-error' : null"
         />
         <app-time-picker
-          id="task-due-time"
-          class="compact-field schedule-picker"
+          class="compact-field schedule-time-picker"
           [value]="draftDueTime()"
           (valueChange)="onDraftDueTimeChange($event)"
           [disabled]="draftSimpleMode() || !draftDueDate()"

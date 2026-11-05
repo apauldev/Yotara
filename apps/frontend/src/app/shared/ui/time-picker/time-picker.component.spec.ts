@@ -16,17 +16,19 @@ describe('TimePickerComponent', () => {
     fixture.detectChanges();
   });
 
-  afterEach(() => {
-    // Clean up popover overlays from document body
-    const panels = document.querySelectorAll('.time-picker-panel');
-    panels.forEach((p) => p.closest('brn-popover')?.remove());
-  });
-
   async function openPopover() {
     const trigger = fixture.debugElement.query(By.css('.time-picker-trigger'));
     trigger.nativeElement.click();
     fixture.detectChanges();
     await Promise.resolve();
+  }
+
+  async function waitFor(predicate: () => boolean, timeout = 2000) {
+    const start = Date.now();
+    while (!predicate()) {
+      if (Date.now() - start > timeout) return;
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
   }
 
   it('renders "No time set" when value is empty', () => {
@@ -84,7 +86,7 @@ describe('TimePickerComponent', () => {
     fixture.detectChanges();
     await Promise.resolve();
 
-    const slotBtn = document.querySelector<HTMLButtonElement>('#slot-14-15');
+    const slotBtn = document.querySelector<HTMLButtonElement>('[data-time="14:15"]');
     expect(slotBtn).toBeTruthy();
     slotBtn?.click();
     fixture.detectChanges();
@@ -156,7 +158,7 @@ describe('TimePickerComponent', () => {
   it('updates the trigger when a slot is selected without a parent write-back', async () => {
     await openPopover();
 
-    document.querySelector<HTMLButtonElement>('#slot-14-15')?.click();
+    document.querySelector<HTMLButtonElement>('[data-time="14:15"]')?.click();
     fixture.detectChanges();
 
     const valueEl = fixture.debugElement.query(By.css('.time-picker-value'));
@@ -192,7 +194,7 @@ describe('TimePickerComponent', () => {
     fixture.detectChanges();
     await openPopover();
 
-    const selected = document.querySelector<HTMLButtonElement>('#slot-15-30');
+    const selected = document.querySelector<HTMLButtonElement>('[data-time="15:30"]');
     expect(selected).toBeTruthy();
     if (!selected) return;
     expect(selected.getAttribute('aria-pressed')).toBe('true');
@@ -210,7 +212,7 @@ describe('TimePickerComponent', () => {
     fixture.detectChanges();
     await openPopover();
 
-    const start = document.querySelector<HTMLButtonElement>('#slot-09-00');
+    const start = document.querySelector<HTMLButtonElement>('[data-time="09:00"]');
     expect(start).toBeTruthy();
     start?.focus();
 
@@ -222,10 +224,10 @@ describe('TimePickerComponent', () => {
     };
 
     press('ArrowRight');
-    expect(document.activeElement).toBe(document.querySelector('#slot-09-15'));
+    expect(document.activeElement).toBe(document.querySelector('[data-time="09:15"]'));
 
     press('ArrowDown');
-    expect(document.activeElement).toBe(document.querySelector('#slot-10-00'));
+    expect(document.activeElement).toBe(document.querySelector('[data-time="10:00"]'));
   });
 
   it('names the popover dialog and does not nest a second dialog role', async () => {
@@ -237,6 +239,30 @@ describe('TimePickerComponent', () => {
     const dialog = panel?.closest('.cdk-dialog-container');
     expect(dialog?.getAttribute('role')).toBe('dialog');
     expect(dialog?.getAttribute('aria-label')).toBe('Choose due time');
+  });
+
+  it('does not open the popover when disabled', async () => {
+    fixture.componentRef.setInput('disabled', true);
+    fixture.detectChanges();
+
+    const trigger = fixture.debugElement.query(By.css('.time-picker-trigger'));
+    trigger.nativeElement.click();
+    fixture.detectChanges();
+    await Promise.resolve();
+
+    expect(document.querySelector('.time-picker-panel')).toBeNull();
+  });
+
+  it('closes the popover on Escape', async () => {
+    await openPopover();
+    expect(document.querySelector('.time-picker-panel')).toBeTruthy();
+
+    const active = document.activeElement;
+    expect(active).toBeTruthy();
+    active?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    await waitFor(() => document.querySelector('.time-picker-panel') === null);
+    expect(document.querySelector('.time-picker-panel')).toBeNull();
   });
 });
 
@@ -271,5 +297,16 @@ describe('parseExactTime', () => {
     expect(parseExactTime('invalid')).toBeNull();
     expect(parseExactTime('25:00')).toBeNull();
     expect(parseExactTime('12:65')).toBeNull();
+    expect(parseExactTime('24:00')).toBeNull();
+    expect(parseExactTime('9:5')).toBeNull();
+    expect(parseExactTime('13pm')).toBeNull();
+    expect(parseExactTime('0am')).toBeNull();
+  });
+
+  it('handles whitespace and meridiem edge cases', () => {
+    expect(parseExactTime(' 9:15 pm ')).toBe('21:15');
+    expect(parseExactTime('12p')).toBe('12:00');
+    expect(parseExactTime('12:30a')).toBe('00:30');
+    expect(parseExactTime('0:15')).toBe('00:15');
   });
 });

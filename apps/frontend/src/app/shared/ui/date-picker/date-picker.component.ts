@@ -33,6 +33,7 @@ import {
 } from '@spartan-ng/brain/calendar';
 import { provideNativeDateAdapter } from '@spartan-ng/brain/date-time';
 import { BrnPopover, BrnPopoverImports } from '@spartan-ng/brain/popover';
+import { pickerShellStyles } from '../picker/picker-shell.styles';
 import { parseCalendarDate } from '../../utils/timestamps';
 
 @Component({
@@ -52,16 +53,16 @@ import { parseCalendarDate } from '../../utils/timestamps';
     <div class="date-picker-shell">
       <button
         type="button"
-        class="date-picker-trigger"
+        class="date-picker-trigger picker-trigger"
         [disabled]="disabled"
         [attr.aria-invalid]="invalid ? 'true' : null"
         [attr.aria-describedby]="describedBy || null"
         brnPopoverTrigger
         [brnPopoverTriggerFor]="popover"
       >
-        <span class="date-picker-copy">
-          <span class="date-picker-label">{{ label }}</span>
-          <span class="date-picker-value">{{ displayValue() }}</span>
+        <span class="date-picker-copy picker-copy">
+          <span class="date-picker-label picker-label">{{ label }}</span>
+          <span class="date-picker-value picker-value">{{ displayValue() }}</span>
         </span>
 
         <fa-icon [icon]="faCalendarDays"></fa-icon>
@@ -70,7 +71,7 @@ import { parseCalendarDate } from '../../utils/timestamps';
       <brn-popover #popover="brnPopover" align="end" sideOffset="12" class="date-picker-popover">
         <ng-template brnPopoverContent>
           <div
-            class="date-picker-panel"
+            class="date-picker-panel picker-panel"
             brnCalendar
             [date]="selectedDate() ?? undefined"
             [defaultFocusedDate]="selectedDate() ?? today()"
@@ -122,7 +123,7 @@ import { parseCalendarDate } from '../../utils/timestamps';
               }
             </div>
 
-            <div class="date-picker-footer">
+            <div class="date-picker-footer picker-footer">
               <span class="date-picker-help">{{ helpText() }}</span>
 
               @if (selectedDate()) {
@@ -139,6 +140,7 @@ import { parseCalendarDate } from '../../utils/timestamps';
   `,
   changeDetection: ChangeDetectionStrategy.Eager,
   styles: [
+    pickerShellStyles,
     `
       :host {
         display: block;
@@ -146,64 +148,6 @@ import { parseCalendarDate } from '../../utils/timestamps';
 
       .date-picker-shell {
         width: 100%;
-      }
-
-      .date-picker-trigger {
-        width: 100%;
-        min-height: 3.05rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.85rem;
-        border: 0;
-        border-radius: 0.95rem;
-        padding: 0.78rem 0.92rem;
-        background: var(--surface-container-lowest);
-        box-shadow: inset 0 0 0 1px var(--outline-variant);
-        color: var(--on-surface);
-        text-align: left;
-      }
-
-      .date-picker-trigger:disabled {
-        opacity: 0.66;
-        cursor: not-allowed;
-      }
-
-      .date-picker-copy {
-        min-width: 0;
-        display: grid;
-        gap: 0.14rem;
-      }
-
-      .date-picker-label {
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        font-size: 0.68rem;
-        font-weight: 800;
-        color: var(--on-surface-subtle);
-      }
-
-      .date-picker-value {
-        min-width: 0;
-        font-size: 0.96rem;
-        font-weight: 700;
-        color: var(--on-surface);
-      }
-
-      .date-picker-trigger fa-icon {
-        color: var(--on-surface-subtle);
-      }
-
-      .date-picker-panel {
-        width: min(20.75rem, calc(100vw - 2rem));
-        border-radius: 1.15rem;
-        background: var(--surface-container-lowest);
-        box-shadow:
-          0 24px 48px var(--surface-dim-strong),
-          inset 0 0 0 1px var(--outline-variant);
-        padding: 0.95rem;
-        display: grid;
-        gap: 0.85rem;
       }
 
       .date-picker-header {
@@ -234,7 +178,6 @@ import { parseCalendarDate } from '../../utils/timestamps';
         place-items: center;
       }
 
-      .date-picker-trigger:focus-visible,
       .date-picker-nav:focus-visible,
       .date-picker-clear:focus-visible,
       .date-picker-day:focus-visible {
@@ -310,13 +253,6 @@ import { parseCalendarDate } from '../../utils/timestamps';
 
       .date-picker-day:not([data-disabled]):hover {
         background: var(--surface-container-high);
-      }
-
-      .date-picker-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.75rem;
       }
 
       .date-picker-help {

@@ -5,6 +5,7 @@ import {
   EventEmitter,
   Input,
   OnChanges,
+  OnDestroy,
   Output,
   SimpleChanges,
   computed,
@@ -12,10 +13,10 @@ import {
   viewChild,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faClock, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { BrnPopover, BrnPopoverImports } from '@spartan-ng/brain/popover';
+import { pickerShellStyles } from '../picker/picker-shell.styles';
 import { formatTimeLabel } from '../../utils/timestamps';
 
 export interface TimeSlot {
@@ -31,12 +32,12 @@ export interface TimePreset {
 @Component({
   selector: 'app-time-picker',
   standalone: true,
-  imports: [CommonModule, FormsModule, FontAwesomeModule, BrnPopoverImports],
+  imports: [CommonModule, FontAwesomeModule, BrnPopoverImports],
   template: `
     <div class="time-picker-shell">
       <button
         type="button"
-        class="time-picker-trigger"
+        class="time-picker-trigger picker-trigger"
         [disabled]="disabled"
         [attr.aria-invalid]="invalid ? 'true' : null"
         [attr.aria-describedby]="describedBy || null"
@@ -44,9 +45,9 @@ export interface TimePreset {
         [brnPopoverTriggerFor]="popover"
         (click)="onTriggerClick()"
       >
-        <span class="time-picker-copy">
-          <span class="time-picker-label">{{ label }}</span>
-          <span class="time-picker-value" [class.placeholder]="!value">
+        <span class="time-picker-copy picker-copy">
+          <span class="time-picker-label picker-label">{{ label }}</span>
+          <span class="time-picker-value picker-value" [class.placeholder]="!value">
             {{ displayValue() }}
           </span>
         </span>
@@ -62,7 +63,7 @@ export interface TimePreset {
         [aria-label]="dialogLabel"
       >
         <ng-template brnPopoverContent>
-          <div class="time-picker-panel">
+          <div class="time-picker-panel picker-panel">
             <!-- Quick Presets -->
             <div class="time-picker-section">
               <span class="time-picker-section-title">Presets</span>
@@ -86,11 +87,11 @@ export interface TimePreset {
               <span class="time-picker-section-title">Exact Time</span>
               <div class="time-picker-custom-row">
                 <input
-                  #customInputEl
                   type="text"
                   class="time-picker-custom-input"
                   placeholder="e.g. 9:15 AM or 14:30"
                   autocomplete="off"
+                  enterkeyhint="done"
                   [value]="customInputText()"
                   [attr.aria-invalid]="customTimeError() ? 'true' : null"
                   [attr.aria-describedby]="customTimeError() ? errorId : null"
@@ -123,7 +124,7 @@ export interface TimePreset {
                     <button
                       type="button"
                       class="time-picker-slot"
-                      [id]="'slot-' + slot.value.replace(':', '-')"
+                      [attr.data-time]="slot.value"
                       [attr.tabindex]="i === activeSlotIndex() ? 0 : -1"
                       [attr.data-selected]="value === slot.value"
                       [attr.aria-pressed]="value === slot.value"
@@ -139,7 +140,7 @@ export interface TimePreset {
             </div>
 
             <!-- Footer -->
-            <div class="time-picker-footer">
+            <div class="time-picker-footer picker-footer">
               <span class="time-picker-help">Local time</span>
 
               @if (value) {
@@ -156,6 +157,7 @@ export interface TimePreset {
   `,
   changeDetection: ChangeDetectionStrategy.Eager,
   styles: [
+    pickerShellStyles,
     `
       :host {
         display: block;
@@ -165,77 +167,9 @@ export interface TimePreset {
         width: 100%;
       }
 
-      .time-picker-trigger {
-        width: 100%;
-        min-height: 3.05rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.85rem;
-        border: 0;
-        border-radius: 0.95rem;
-        padding: 0.78rem 0.92rem;
-        background: var(--surface-container-lowest);
-        box-shadow: inset 0 0 0 1px var(--outline-variant);
-        color: var(--on-surface);
-        text-align: left;
-        cursor: pointer;
-        transition:
-          box-shadow 0.15s ease,
-          background 0.15s ease;
-      }
-
-      .time-picker-trigger:disabled {
-        opacity: 0.66;
-        cursor: not-allowed;
-      }
-
-      .time-picker-trigger:focus-visible {
-        outline: 2px solid var(--primary-solid);
-        outline-offset: 2px;
-      }
-
-      .time-picker-copy {
-        min-width: 0;
-        display: grid;
-        gap: 0.14rem;
-      }
-
-      .time-picker-label {
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        font-size: 0.68rem;
-        font-weight: 800;
+      .time-picker-value.placeholder {
         color: var(--on-surface-subtle);
-      }
-
-      .time-picker-value {
-        min-width: 0;
-        font-size: 0.96rem;
-        font-weight: 700;
-        color: var(--on-surface);
-
-        &.placeholder {
-          color: var(--on-surface-subtle);
-          font-weight: 500;
-        }
-      }
-
-      .time-picker-trigger fa-icon {
-        color: var(--on-surface-subtle);
-      }
-
-      .time-picker-panel {
-        width: min(20.75rem, calc(100vw - 2rem));
-        border-radius: 1.15rem;
-        background: var(--surface-container-lowest);
-        box-shadow:
-          0 24px 48px var(--surface-dim-strong),
-          inset 0 0 0 1px var(--outline-variant);
-        padding: 0.95rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.85rem;
+        font-weight: 500;
       }
 
       .time-picker-section {
@@ -401,10 +335,6 @@ export interface TimePreset {
       }
 
       .time-picker-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.75rem;
         padding-top: 0.35rem;
         border-top: 1px solid var(--outline-variant);
       }
@@ -445,7 +375,7 @@ export interface TimePreset {
     `,
   ],
 })
-export class TimePickerComponent implements OnChanges {
+export class TimePickerComponent implements OnChanges, OnDestroy {
   private readonly _value = signal('');
 
   @Input()
@@ -460,6 +390,7 @@ export class TimePickerComponent implements OnChanges {
   @Input() label = 'Due time';
   @Input() invalid = false;
   @Input() describedBy: string | null = null;
+  @Input() presets: readonly TimePreset[] = DEFAULT_PRESETS;
   @Output() readonly valueChange = new EventEmitter<string>();
 
   protected readonly faClock = faClock;
@@ -467,23 +398,16 @@ export class TimePickerComponent implements OnChanges {
 
   private readonly popover = viewChild(BrnPopover);
   private readonly slotsContainer = viewChild<ElementRef<HTMLDivElement>>('slotsContainer');
-  private readonly customInputEl = viewChild<ElementRef<HTMLInputElement>>('customInputEl');
 
   private readonly instanceId = `time-picker-${++nextTimePickerId}`;
+  private scrollTimer: ReturnType<typeof setTimeout> | null = null;
   protected readonly errorId = `${this.instanceId}-error`;
 
   protected readonly customInputText = signal('');
   protected readonly customTimeError = signal<string | null>(null);
   protected readonly activeSlotIndex = signal(DEFAULT_SLOT_INDEX);
 
-  protected readonly presets: readonly TimePreset[] = [
-    { label: '9:00 AM', value: '09:00' },
-    { label: '12:00 PM', value: '12:00' },
-    { label: '5:00 PM', value: '17:00' },
-    { label: '8:00 PM', value: '20:00' },
-  ];
-
-  protected readonly timeSlots: readonly TimeSlot[] = generateTimeSlots();
+  protected readonly timeSlots: readonly TimeSlot[] = TIME_SLOTS;
 
   protected get dialogLabel(): string {
     return `Choose ${this.label.toLowerCase()}`;
@@ -510,12 +434,23 @@ export class TimePickerComponent implements OnChanges {
     }
   }
 
+  ngOnDestroy(): void {
+    if (this.scrollTimer !== null) {
+      clearTimeout(this.scrollTimer);
+      this.scrollTimer = null;
+    }
+  }
+
   protected onTriggerClick(): void {
     this.customTimeError.set(null);
     this.customInputText.set(this.value ? formatTimeLabel(this.value) : '');
     this.activeSlotIndex.set(this.slotIndexForValue(this.value));
     // Auto-scroll to the selected or default 9:00 AM slot after the panel renders.
-    setTimeout(() => {
+    if (this.scrollTimer !== null) {
+      clearTimeout(this.scrollTimer);
+    }
+    this.scrollTimer = setTimeout(() => {
+      this.scrollTimer = null;
       this.scrollToActiveSlot();
     }, 50);
   }
@@ -606,15 +541,22 @@ export class TimePickerComponent implements OnChanges {
       container.querySelectorAll<HTMLElement>('.time-picker-slot')[this.activeSlotIndex()];
     if (!slotEl) return;
     const offsetTop = slotEl.offsetTop - container.offsetTop;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     container.scrollTo({
       top: Math.max(0, offsetTop - container.clientHeight / 2 + slotEl.clientHeight / 2),
-      behavior: 'smooth',
+      behavior: reduceMotion ? 'auto' : 'smooth',
     });
   }
 }
 
 const SLOT_COLUMNS = 3;
 const DEFAULT_SLOT_INDEX = 36; // 9:00 AM
+const DEFAULT_PRESETS: readonly TimePreset[] = [
+  { label: '9:00 AM', value: '09:00' },
+  { label: '12:00 PM', value: '12:00' },
+  { label: '5:00 PM', value: '17:00' },
+  { label: '8:00 PM', value: '20:00' },
+];
 let nextTimePickerId = 0;
 
 /** Pre-generates 96 slots for every 15-minute interval in a 24-hour day. */
@@ -633,6 +575,9 @@ function generateTimeSlots(): TimeSlot[] {
   }
   return slots;
 }
+
+/** Built once per module load instead of once per picker instance. */
+const TIME_SLOTS = generateTimeSlots();
 
 /** Parses natural user inputs like "14:35", "2:35 PM", "9:12am", "5p" into "HH:mm". */
 export function parseExactTime(input: string): string | null {
