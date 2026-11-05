@@ -18,7 +18,9 @@ describe('InsightPanelComponent', () => {
     const tooltip = fixture.debugElement.query(By.css('.insight-tooltip'));
 
     expect(quote.nativeElement.getAttribute('tabindex')).toBe('0');
+    expect(quote.nativeElement.getAttribute('aria-describedby')).toBe(tooltip.nativeElement.id);
     expect(tooltip.nativeElement.getAttribute('role')).toBe('tooltip');
+    expect(tooltip.nativeElement.getAttribute('aria-hidden')).toBeNull();
     expect(tooltip.nativeElement.textContent.trim()).toBe(
       'A longer quote that may need more than three lines.',
     );
