@@ -484,7 +484,12 @@ export class TaskListPageComponent implements OnInit {
 
   protected dismissInsight() {
     this.preferences.setInsightDismissed(true);
-    this.statusService.show('Insights can be re-enabled in Settings.', 'info', 4000);
+    this.statusService.show('Insights can be re-enabled in Settings.', 'info', 6000, {
+      action: {
+        label: 'Undo',
+        callback: () => this.preferences.setInsightDismissed(false),
+      },
+    });
   }
 
   // --- Today Logic ---

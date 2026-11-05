@@ -158,7 +158,7 @@ describe('TaskListPageComponent', () => {
       });
     });
 
-    it('dismisses the insight panel when the x is clicked', () => {
+    it('dismisses the insight panel permanently when the x is clicked', () => {
       mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
       const fixture = TestBed.createComponent(TaskListPageComponent);
       fixture.detectChanges();
@@ -167,6 +167,28 @@ describe('TaskListPageComponent', () => {
       fixture.detectChanges();
       const panel = fixture.debugElement.query(By.css('.insight-panel'));
       expect(panel).toBeNull();
+      expect(localStorage.getItem('yotara_insightDismissed')).toBe('true');
+    });
+
+    it('restores the insight when Undo is chosen from the dismissal toast', () => {
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      fixture.debugElement.query(By.css('.insight-dismiss')).nativeElement.click();
+      fixture.detectChanges();
+
+      const [message, type, duration, options] = mockStatusService.show.calls.mostRecent().args;
+      expect(message).toBe('Insights can be re-enabled in Settings.');
+      expect(type).toBe('info');
+      expect(duration).toBe(6000);
+      expect(options.action.label).toBe('Undo');
+
+      options.action.callback();
+      fixture.detectChanges();
+
+      expect(localStorage.getItem('yotara_insightDismissed')).toBe('false');
+      expect(fixture.debugElement.query(By.css('.insight-panel'))).toBeTruthy();
     });
 
     it('marks cards and the workspace as Inbox only in the inbox view', () => {

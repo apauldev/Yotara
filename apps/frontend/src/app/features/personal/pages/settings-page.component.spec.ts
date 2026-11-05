@@ -861,6 +861,17 @@ describe('SettingsPageComponent', () => {
       comp.onShowInsightsChange(event);
 
       expect(preferences.insightDismissed()).toBeTrue();
+      expect(localStorage.getItem('yotara_insightDismissed')).toBe('true');
+    });
+
+    it('re-enables insights', () => {
+      preferences.setInsightDismissed(true);
+
+      const event = { target: { checked: true } } as unknown as Event;
+      comp.onShowInsightsChange(event);
+
+      expect(preferences.insightDismissed()).toBeFalse();
+      expect(localStorage.getItem('yotara_insightDismissed')).toBe('false');
     });
   });
 
