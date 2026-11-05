@@ -31,9 +31,10 @@ import { InsightType } from '../pages/task-list-page/types';
 
         <div class="insight-text">
           <strong>{{ type === 'clarity' ? 'Daily Clarity' : 'The Yotara Journal' }}</strong>
-          <span class="insight-quote" tabindex="0" [attr.aria-describedby]="tooltipId">
+          <span class="insight-quote" tabindex="0">
             <span class="insight-quote-text">{{ prompt }}</span>
-            <span class="insight-tooltip" [id]="tooltipId" role="tooltip">{{ prompt }}</span>
+            <!-- Visual duplicate only: the full prompt is already in the text above. -->
+            <span class="insight-tooltip" role="tooltip" aria-hidden="true">{{ prompt }}</span>
           </span>
         </div>
       </div>
@@ -247,13 +248,10 @@ import { InsightType } from '../pages/task-list-page/types';
   `,
 })
 export class InsightPanelComponent {
-  private static nextTooltipId = 0;
-
   @Input({ required: true }) type: InsightType = 'clarity';
   @Input({ required: true }) prompt = '';
   @Output() readonly dismiss = new EventEmitter<void>();
 
-  protected readonly tooltipId = `insight-tooltip-${InsightPanelComponent.nextTooltipId++}`;
   protected readonly faXmark = faXmark;
   protected readonly faWandMagicSparkles = faWandMagicSparkles;
   protected readonly faPenNib = faPenNib;
