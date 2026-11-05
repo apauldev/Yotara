@@ -152,6 +152,7 @@ describe('SettingsPageComponent', () => {
 
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
   });
   let tasksSignal: ReturnType<typeof signal<Task[]>>;
   const originalCreateElement = document.createElement.bind(document);
@@ -855,12 +856,29 @@ describe('SettingsPageComponent', () => {
   });
 
   describe('onShowInsightsChange', () => {
-    it('persists the insights preference', () => {
-      const event = { target: { checked: false } } as unknown as Event;
+    it('persists the insights preference permanently and clears the session hide', () => {
+      preferences.setInsightDismissed(true);
+      expect(preferences.insightsVisible()).toBeFalse();
 
+      const event = { target: { checked: false } } as unknown as Event;
       comp.onShowInsightsChange(event);
 
       expect(preferences.insightDismissed()).toBeTrue();
+      expect(preferences.insightHiddenForSession()).toBeFalse();
+      expect(preferences.insightsVisible()).toBeFalse();
+      expect(localStorage.getItem('yotara_insightDismissed')).toBe('true');
+      expect(sessionStorage.getItem('yotara_insightSessionHidden')).toBeNull();
+    });
+
+    it('re-enables insights permanently', () => {
+      preferences.setInsightDismissed(true, true);
+
+      const event = { target: { checked: true } } as unknown as Event;
+      comp.onShowInsightsChange(event);
+
+      expect(preferences.insightDismissed()).toBeFalse();
+      expect(preferences.insightsVisible()).toBeTrue();
+      expect(localStorage.getItem('yotara_insightDismissed')).toBe('false');
     });
   });
 

@@ -339,7 +339,7 @@ export class TaskListPageComponent implements OnInit {
   protected readonly activeInsightType = signal<InsightType>(
     Math.random() > 0.5 ? 'clarity' : 'journal',
   );
-  protected readonly insightPanelVisible = computed(() => !this.preferences.insightDismissed());
+  protected readonly insightPanelVisible = computed(() => this.preferences.insightsVisible());
   private readonly statusService = inject(StatusService);
 
   protected readonly insightPrompt = computed(() =>
@@ -484,7 +484,12 @@ export class TaskListPageComponent implements OnInit {
 
   protected dismissInsight() {
     this.preferences.setInsightDismissed(true);
-    this.statusService.show('Insights can be re-enabled in Settings.', 'info', 4000);
+    this.statusService.show('Insight hidden for this session.', 'info', 6000, {
+      action: {
+        label: 'Undo',
+        callback: () => this.preferences.setInsightDismissed(false),
+      },
+    });
   }
 
   // --- Today Logic ---
