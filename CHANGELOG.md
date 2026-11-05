@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.88.0](https://github.com/apauldev/Yotara/compare/v0.87.0...v0.88.0) (2026-11-05)
+
+
+### Features
+
+* **insights:** show full quotes in a hover tooltip ([c1b16ef](https://github.com/apauldev/Yotara/commit/c1b16ef30912c5951170ea011cd76018f972eeb1))
+* **tips:** add tips for recently shipped features ([2567357](https://github.com/apauldev/Yotara/commit/2567357358d06ac6cc20e979aa612112929d9c6e))
+
+
+### Bug Fixes
+
+* **insights:** keep the visual tooltip out of the accessibility tree ([9f2edac](https://github.com/apauldev/Yotara/commit/9f2edacff8d2dcecd27c45638d024fa60d04f929))
+* **insights:** link the quote tooltip for screen readers ([ffd418a](https://github.com/apauldev/Yotara/commit/ffd418ac6bc34e9cc19fba8dbebc16e1b734b98f))
+* **insights:** make dismissal temporary and improve quotes ([9fb322f](https://github.com/apauldev/Yotara/commit/9fb322f5c791df7dcf998c659b14c99b1a744a09))
+* **insights:** restore permanent dismissal ([a9658e7](https://github.com/apauldev/Yotara/commit/a9658e7d5b1eb69040d6cb9129f54f88a4db6dd8))
+* **tips:** remove references to unshipped features ([d089cd1](https://github.com/apauldev/Yotara/commit/d089cd1529560b8d925fc8a4e10426a4ef348603))
+* **tips:** tighten copy and drop generic advice ([c92019e](https://github.com/apauldev/Yotara/commit/c92019ed67d710b62bb0deb065d623adaa1cb2ed))
+
 ## [0.87.0](https://github.com/apauldev/Yotara/compare/v0.86.0...v0.87.0) (2026-11-04)
 
 
