@@ -1046,8 +1046,12 @@ describe('PersonalTaskModalComponent', () => {
       fixture.detectChanges();
     }
 
-    function timeInput() {
-      return fixture.debugElement.query(By.css('#task-due-time'));
+    function timePicker() {
+      return fixture.debugElement.query(By.css('app-time-picker'));
+    }
+
+    function timeTrigger() {
+      return fixture.debugElement.query(By.css('app-time-picker .time-picker-trigger'));
     }
 
     // Model-to-DOM writes for ngModel-bound inputs land one change-detection
@@ -1061,7 +1065,7 @@ describe('PersonalTaskModalComponent', () => {
     it('labels the due time field', () => {
       openNewTask();
 
-      const label = fixture.debugElement.query(By.css('label[for="task-due-time"]'));
+      const label = fixture.debugElement.query(By.css('.time-picker-label'));
       expect(label.nativeElement.textContent).toContain('Due time');
     });
 
@@ -1069,19 +1073,19 @@ describe('PersonalTaskModalComponent', () => {
       openNewTask();
       await settle();
 
-      expect(timeInput().nativeElement.disabled).toBeTrue();
+      expect(timeTrigger().nativeElement.disabled).toBeTrue();
 
       component['onSimpleModeChange'](false);
       await settle();
-      expect(timeInput().nativeElement.disabled).toBeTrue();
+      expect(timeTrigger().nativeElement.disabled).toBeTrue();
 
       component['draftDueDate'].set('2026-10-02');
       await settle();
-      expect(timeInput().nativeElement.disabled).toBeFalse();
+      expect(timeTrigger().nativeElement.disabled).toBeFalse();
 
       component['onSimpleModeChange'](true);
       await settle();
-      expect(timeInput().nativeElement.disabled).toBeTrue();
+      expect(timeTrigger().nativeElement.disabled).toBeTrue();
     });
 
     it('shows the resolved time in the preview and includes it in the create payload', () => {
@@ -1142,7 +1146,7 @@ describe('PersonalTaskModalComponent', () => {
       expect(note.nativeElement.textContent).toContain(
         "Couldn't detect your timezone — the 3:30 PM reminder may not arrive on time.",
       );
-      expect(timeInput().nativeElement.getAttribute('aria-describedby')).toBe('task-date-note');
+      expect(timeTrigger().nativeElement.getAttribute('aria-describedby')).toBe('task-date-note');
     });
 
     it('omits dueTime from the create payload when no time is set', () => {
@@ -1164,8 +1168,8 @@ describe('PersonalTaskModalComponent', () => {
       const saveSpy = spyOn(component['save'], 'emit');
 
       expect(component['draftDueTime']()).toBe('15:30');
-      expect(timeInput().nativeElement.value).toBe('15:30');
-      expect(timeInput().nativeElement.disabled).toBeFalse();
+      expect(timePicker().componentInstance.value).toBe('15:30');
+      expect(timeTrigger().nativeElement.disabled).toBeFalse();
 
       component['onDraftDueTimeChange']('09:05');
       component['submit']();

@@ -32,6 +32,7 @@ import { LabelService } from '../../../core/services/label.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { TaskService } from '../../../core/services/task.service';
 import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
+import { TimePickerComponent } from '../../../shared/ui/time-picker/time-picker.component';
 import { LabelChipComponent } from '../../../shared/ui/label-chip/label-chip.component';
 import { LabelIconComponent } from '../../../shared/ui/label-icon/label-icon.component';
 import { MarkdownEditorComponent } from '../../../shared/ui/markdown-editor/markdown-editor.component';
@@ -56,6 +57,7 @@ type SavePayload =
   imports: [
     CommonModule,
     DatePickerComponent,
+    TimePickerComponent,
     FormsModule,
     LabelChipComponent,
     LabelIconComponent,
