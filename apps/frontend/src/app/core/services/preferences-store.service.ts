@@ -1,4 +1,4 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 
 @Injectable({
   providedIn: 'root',
@@ -10,7 +10,6 @@ export class PreferencesStore {
   private static readonly SHOW_DONE_CALENDAR_KEY = 'yotara_showDoneCalendar';
   private static readonly SHOW_METADATA_CALENDAR_KEY = 'yotara_showMetadataCalendar';
   private static readonly INSIGHT_DISMISSED_KEY = 'yotara_insightDismissed';
-  private static readonly INSIGHT_SESSION_HIDDEN_KEY = 'yotara_insightSessionHidden';
   private static readonly LOGIN_TIP_DISMISSED_KEY = 'yotara_loginTipDismissed';
   private static readonly ONBOARDING_COMPLETED_KEY = 'onboardingCompleted';
   private static readonly WORKSPACE_TYPE_KEY = 'workspaceType';
@@ -34,12 +33,6 @@ export class PreferencesStore {
   );
   readonly insightDismissed = signal(
     localStorage.getItem(PreferencesStore.INSIGHT_DISMISSED_KEY) === 'true',
-  );
-  readonly insightHiddenForSession = signal(
-    sessionStorage.getItem(PreferencesStore.INSIGHT_SESSION_HIDDEN_KEY) === 'true',
-  );
-  readonly insightsVisible = computed(
-    () => !this.insightDismissed() && !this.insightHiddenForSession(),
   );
   readonly loginTipDismissed = signal(
     localStorage.getItem(PreferencesStore.LOGIN_TIP_DISMISSED_KEY) === 'true' ||
@@ -81,17 +74,9 @@ export class PreferencesStore {
     localStorage.setItem(PreferencesStore.SHOW_METADATA_CALENDAR_KEY, value ? 'true' : 'false');
   }
 
-  setInsightDismissed(value: boolean, permanent = false): void {
-    if (permanent) {
-      this.insightDismissed.set(value);
-      localStorage.setItem(PreferencesStore.INSIGHT_DISMISSED_KEY, value ? 'true' : 'false');
-      sessionStorage.removeItem(PreferencesStore.INSIGHT_SESSION_HIDDEN_KEY);
-      this.insightHiddenForSession.set(false);
-      return;
-    }
-
-    this.insightHiddenForSession.set(value);
-    sessionStorage.setItem(PreferencesStore.INSIGHT_SESSION_HIDDEN_KEY, value ? 'true' : 'false');
+  setInsightDismissed(value: boolean): void {
+    this.insightDismissed.set(value);
+    localStorage.setItem(PreferencesStore.INSIGHT_DISMISSED_KEY, value ? 'true' : 'false');
   }
 
   setLoginTipDismissed(value: boolean, permanent = false): void {

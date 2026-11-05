@@ -28,7 +28,6 @@ describe('TaskListPageComponent', () => {
 
   beforeEach(async () => {
     localStorage.clear();
-    sessionStorage.clear();
     mockTaskService = {
       loading: signal(false),
       creating: signal(false),
@@ -159,7 +158,7 @@ describe('TaskListPageComponent', () => {
       });
     });
 
-    it('dismisses the insight panel for the session when the x is clicked', () => {
+    it('dismisses the insight panel permanently when the x is clicked', () => {
       mockActivatedRoute.queryParamMap = of(new Map([['view', 'inbox']]));
       const fixture = TestBed.createComponent(TaskListPageComponent);
       fixture.detectChanges();
@@ -168,8 +167,7 @@ describe('TaskListPageComponent', () => {
       fixture.detectChanges();
       const panel = fixture.debugElement.query(By.css('.insight-panel'));
       expect(panel).toBeNull();
-      expect(sessionStorage.getItem('yotara_insightSessionHidden')).toBe('true');
-      expect(localStorage.getItem('yotara_insightDismissed')).toBeNull();
+      expect(localStorage.getItem('yotara_insightDismissed')).toBe('true');
     });
 
     it('restores the insight when Undo is chosen from the dismissal toast', () => {
@@ -181,7 +179,7 @@ describe('TaskListPageComponent', () => {
       fixture.detectChanges();
 
       const [message, type, duration, options] = mockStatusService.show.calls.mostRecent().args;
-      expect(message).toBe('Insight hidden for this session.');
+      expect(message).toBe('Insights can be re-enabled in Settings.');
       expect(type).toBe('info');
       expect(duration).toBe(6000);
       expect(options.action.label).toBe('Undo');
@@ -189,7 +187,7 @@ describe('TaskListPageComponent', () => {
       options.action.callback();
       fixture.detectChanges();
 
-      expect(sessionStorage.getItem('yotara_insightSessionHidden')).toBe('false');
+      expect(localStorage.getItem('yotara_insightDismissed')).toBe('false');
       expect(fixture.debugElement.query(By.css('.insight-panel'))).toBeTruthy();
     });
 

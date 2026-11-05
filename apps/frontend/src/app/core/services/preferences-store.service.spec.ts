@@ -38,37 +38,17 @@ describe('PreferencesStore', () => {
     expect(localStorage.getItem('yotara_skipCompleteConfirm')).toBe('false');
   });
 
-  it('defaults insightsVisible to true', () => {
+  it('defaults insightDismissed to false', () => {
     expect(store.insightDismissed()).toBeFalse();
-    expect(store.insightHiddenForSession()).toBeFalse();
-    expect(store.insightsVisible()).toBeTrue();
   });
 
-  it('setInsightDismissed hides insights for the session by default', () => {
+  it('setInsightDismissed updates signal and localStorage', () => {
     store.setInsightDismissed(true);
-    expect(store.insightDismissed()).toBeFalse();
-    expect(store.insightHiddenForSession()).toBeTrue();
-    expect(store.insightsVisible()).toBeFalse();
-    expect(sessionStorage.getItem('yotara_insightSessionHidden')).toBe('true');
-    expect(localStorage.getItem('yotara_insightDismissed')).toBeNull();
+    expect(store.insightDismissed()).toBeTrue();
+    expect(localStorage.getItem('yotara_insightDismissed')).toBe('true');
 
     store.setInsightDismissed(false);
-    expect(store.insightHiddenForSession()).toBeFalse();
-    expect(store.insightsVisible()).toBeTrue();
-    expect(sessionStorage.getItem('yotara_insightSessionHidden')).toBe('false');
-  });
-
-  it('setInsightDismissed updates permanent state and localStorage when permanent is true', () => {
-    store.setInsightDismissed(true, true);
-    expect(store.insightDismissed()).toBeTrue();
-    expect(store.insightHiddenForSession()).toBeFalse();
-    expect(store.insightsVisible()).toBeFalse();
-    expect(localStorage.getItem('yotara_insightDismissed')).toBe('true');
-    expect(sessionStorage.getItem('yotara_insightSessionHidden')).toBeNull();
-
-    store.setInsightDismissed(false, true);
     expect(store.insightDismissed()).toBeFalse();
-    expect(store.insightsVisible()).toBeTrue();
     expect(localStorage.getItem('yotara_insightDismissed')).toBe('false');
   });
 
@@ -150,17 +130,6 @@ describe('PreferencesStore', () => {
     store = TestBed.inject(PreferencesStore);
 
     expect(store.loginTipDismissed()).toBeTrue();
-  });
-
-  it('initializes session-hidden insights from sessionStorage', () => {
-    sessionStorage.setItem('yotara_insightSessionHidden', 'true');
-
-    TestBed.resetTestingModule();
-    store = TestBed.inject(PreferencesStore);
-
-    expect(store.insightDismissed()).toBeFalse();
-    expect(store.insightHiddenForSession()).toBeTrue();
-    expect(store.insightsVisible()).toBeFalse();
   });
 
   it('desktopNotifications defaults to false', () => {

@@ -1126,7 +1126,7 @@ export class SettingsPageComponent {
   }
 
   protected onShowInsightsChange(event: Event) {
-    this.preferences.setInsightDismissed(!(event.target as HTMLInputElement).checked, true);
+    this.preferences.setInsightDismissed(!(event.target as HTMLInputElement).checked);
   }
 
   protected onShowLoginTipsChange(event: Event) {
