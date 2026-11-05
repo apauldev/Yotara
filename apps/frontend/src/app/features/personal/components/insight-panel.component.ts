@@ -23,19 +23,19 @@ import { InsightType } from '../pages/task-list-page/types';
           <div class="insight-icon clarity" aria-hidden="true">
             <fa-icon [icon]="faWandMagicSparkles"></fa-icon>
           </div>
-          <div class="insight-text">
-            <strong>Daily Clarity</strong>
-            <p>{{ prompt }}</p>
-          </div>
         } @else {
           <div class="insight-icon journal" aria-hidden="true">
             <fa-icon [icon]="faPenNib"></fa-icon>
           </div>
-          <div class="insight-text">
-            <strong>The Yotara Journal</strong>
-            <p>{{ prompt }}</p>
-          </div>
         }
+
+        <div class="insight-text">
+          <strong>{{ type === 'clarity' ? 'Daily Clarity' : 'The Yotara Journal' }}</strong>
+          <span class="insight-quote" tabindex="0">
+            <span class="insight-quote-text">{{ prompt }}</span>
+            <span class="insight-tooltip" role="tooltip" aria-hidden="true">{{ prompt }}</span>
+          </span>
+        </div>
       </div>
     </div>
   `,
@@ -47,8 +47,9 @@ import { InsightType } from '../pages/task-list-page/types';
 
     .insight-panel {
       position: relative;
+      z-index: 1;
       min-width: 18rem;
-      max-width: 22rem;
+      max-width: 24rem;
       background: var(--surface-card);
       border: 1px solid var(--outline-variant);
       border-radius: 1.25rem;
@@ -60,18 +61,20 @@ import { InsightType } from '../pages/task-list-page/types';
       align-items: center;
       gap: 0.85rem;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      overflow: hidden;
 
       &::before {
         content: '';
         position: absolute;
         inset: 0;
+        border-radius: inherit;
         background: linear-gradient(135deg, var(--primary-soft) 0%, transparent 100%);
         opacity: 0.4;
         pointer-events: none;
       }
 
-      &:hover {
+      &:hover,
+      &:focus-within {
+        z-index: 20;
         transform: translateY(-2px);
         box-shadow:
           0 8px 16px var(--surface-dim),
@@ -152,16 +155,73 @@ import { InsightType } from '../pages/task-list-page/types';
       margin-bottom: 0.2rem;
     }
 
-    .insight-panel p {
-      margin: 0;
+    .insight-quote {
+      position: relative;
+      display: block;
+      cursor: help;
+      border-radius: 0.25rem;
+
+      &:focus-visible {
+        outline: 2px solid var(--primary-solid);
+        outline-offset: 2px;
+      }
+
+      &:hover .insight-tooltip,
+      &:focus-within .insight-tooltip {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+      }
+    }
+
+    .insight-quote-text {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
       font-size: 0.85rem;
       font-weight: 600;
       line-height: 1.4;
       color: var(--on-surface);
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+    }
+
+    .insight-tooltip {
+      position: absolute;
+      top: calc(100% + 1rem);
+      right: 0;
+      z-index: 30;
+      width: max-content;
+      max-width: min(24rem, calc(100vw - 6rem));
+      padding: 0.7rem 0.85rem;
+      border-radius: 0.7rem;
+      background: var(--on-surface);
+      color: var(--surface-container-lowest);
+      box-shadow: 0 12px 32px var(--surface-dim-strong);
+      font-size: 0.8rem;
+      font-weight: 500;
+      line-height: 1.45;
+      text-align: left;
+      white-space: normal;
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-4px);
+      transition:
+        opacity 150ms ease,
+        transform 150ms ease,
+        visibility 150ms;
+
+      &::before {
+        content: '';
+        position: absolute;
+        top: -4px;
+        right: 1.5rem;
+        width: 8px;
+        height: 8px;
+        border-radius: 1px;
+        background: inherit;
+        transform: rotate(45deg);
+      }
     }
 
     @media (max-width: 720px) {
@@ -176,6 +236,12 @@ import { InsightType } from '../pages/task-list-page/types';
         width: 2.25rem;
         height: 2.25rem;
         font-size: 1rem;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .insight-tooltip {
+        transition: none;
       }
     }
   `,
