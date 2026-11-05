@@ -54,9 +54,15 @@ export interface TimePreset {
         <fa-icon [icon]="faClock"></fa-icon>
       </button>
 
-      <brn-popover #popover="brnPopover" align="end" sideOffset="12" class="time-picker-popover">
+      <brn-popover
+        #popover="brnPopover"
+        align="end"
+        sideOffset="12"
+        class="time-picker-popover"
+        [aria-label]="dialogLabel"
+      >
         <ng-template brnPopoverContent>
-          <div class="time-picker-panel" role="dialog" aria-label="Choose due time">
+          <div class="time-picker-panel">
             <!-- Quick Presets -->
             <div class="time-picker-section">
               <span class="time-picker-section-title">Presets</span>
@@ -66,6 +72,7 @@ export interface TimePreset {
                     type="button"
                     class="time-picker-preset-btn"
                     [attr.data-active]="value === preset.value"
+                    [attr.aria-pressed]="value === preset.value"
                     (click)="selectTime(preset.value)"
                   >
                     {{ preset.label }}
@@ -83,7 +90,10 @@ export interface TimePreset {
                   type="text"
                   class="time-picker-custom-input"
                   placeholder="e.g. 9:15 AM or 14:30"
+                  autocomplete="off"
                   [value]="customInputText()"
+                  [attr.aria-invalid]="customTimeError() ? 'true' : null"
+                  [attr.aria-describedby]="customTimeError() ? errorId : null"
                   (input)="onCustomInputChange($event)"
                   (keydown.enter)="applyCustomTime()"
                   aria-label="Type exact time"
@@ -91,14 +101,16 @@ export interface TimePreset {
                 <button
                   type="button"
                   class="time-picker-set-btn"
-                  [disabled]="!isCustomTimeValid()"
+                  [disabled]="!customInputText().trim()"
                   (click)="applyCustomTime()"
                 >
                   Set
                 </button>
               </div>
               @if (customTimeError()) {
-                <span class="time-picker-error-hint">{{ customTimeError() }}</span>
+                <span [id]="errorId" class="time-picker-error-hint" role="alert">
+                  {{ customTimeError() }}
+                </span>
               }
             </div>
 
@@ -107,12 +119,16 @@ export interface TimePreset {
               <span class="time-picker-section-title">15-Minute Intervals</span>
               <div #slotsContainer class="time-picker-slots-container">
                 <div class="time-picker-slots-grid">
-                  @for (slot of timeSlots; track slot.value) {
+                  @for (slot of timeSlots; track slot.value; let i = $index) {
                     <button
                       type="button"
                       class="time-picker-slot"
                       [id]="'slot-' + slot.value.replace(':', '-')"
+                      [attr.tabindex]="i === activeSlotIndex() ? 0 : -1"
                       [attr.data-selected]="value === slot.value"
+                      [attr.aria-pressed]="value === slot.value"
+                      (focus)="activeSlotIndex.set(i)"
+                      (keydown)="onSlotKeydown($event, i)"
                       (click)="selectTime(slot.value)"
                     >
                       {{ slot.label }}
@@ -453,8 +469,12 @@ export class TimePickerComponent implements OnChanges {
   private readonly slotsContainer = viewChild<ElementRef<HTMLDivElement>>('slotsContainer');
   private readonly customInputEl = viewChild<ElementRef<HTMLInputElement>>('customInputEl');
 
+  private readonly instanceId = `time-picker-${++nextTimePickerId}`;
+  protected readonly errorId = `${this.instanceId}-error`;
+
   protected readonly customInputText = signal('');
   protected readonly customTimeError = signal<string | null>(null);
+  protected readonly activeSlotIndex = signal(DEFAULT_SLOT_INDEX);
 
   protected readonly presets: readonly TimePreset[] = [
     { label: '9:00 AM', value: '09:00' },
@@ -465,6 +485,10 @@ export class TimePickerComponent implements OnChanges {
 
   protected readonly timeSlots: readonly TimeSlot[] = generateTimeSlots();
 
+  protected get dialogLabel(): string {
+    return `Choose ${this.label.toLowerCase()}`;
+  }
+
   protected readonly displayValue = computed(() => {
     const v = this._value();
     if (!v) return 'No time set';
@@ -473,10 +497,6 @@ export class TimePickerComponent implements OnChanges {
 
   protected readonly parsedCustomTime = computed(() => {
     return parseExactTime(this.customInputText());
-  });
-
-  protected readonly isCustomTimeValid = computed(() => {
-    return this.parsedCustomTime() !== null;
   });
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -492,17 +512,17 @@ export class TimePickerComponent implements OnChanges {
 
   protected onTriggerClick(): void {
     this.customTimeError.set(null);
-    if (this.value) {
-      this.customInputText.set(formatTimeLabel(this.value));
-    }
-    // Auto-scroll to selected or default 9:00 AM slot after popover renders
+    this.customInputText.set(this.value ? formatTimeLabel(this.value) : '');
+    this.activeSlotIndex.set(this.slotIndexForValue(this.value));
+    // Auto-scroll to the selected or default 9:00 AM slot after the panel renders.
     setTimeout(() => {
       this.scrollToActiveSlot();
     }, 50);
   }
 
   protected onCustomInputChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) return;
     this.customInputText.set(input.value);
     this.customTimeError.set(null);
   }
@@ -518,33 +538,84 @@ export class TimePickerComponent implements OnChanges {
   }
 
   protected selectTime(time: string): void {
+    this._value.set(time);
+    this.customInputText.set(formatTimeLabel(time));
+    this.customTimeError.set(null);
     this.valueChange.emit(time);
     this.popover()?.close();
   }
 
   protected clearTime(): void {
+    this._value.set('');
     this.customInputText.set('');
     this.customTimeError.set(null);
     this.valueChange.emit('');
     this.popover()?.close();
   }
 
+  /** Arrow-key navigation across the 15-minute grid, with one roving tab stop. */
+  protected onSlotKeydown(event: KeyboardEvent, index: number): void {
+    let next: number;
+    switch (event.key) {
+      case 'ArrowRight':
+        next = Math.min(index + 1, this.timeSlots.length - 1);
+        break;
+      case 'ArrowLeft':
+        next = Math.max(index - 1, 0);
+        break;
+      case 'ArrowDown':
+        next = Math.min(index + SLOT_COLUMNS, this.timeSlots.length - 1);
+        break;
+      case 'ArrowUp':
+        next = Math.max(index - SLOT_COLUMNS, 0);
+        break;
+      case 'Home':
+        next = 0;
+        break;
+      case 'End':
+        next = this.timeSlots.length - 1;
+        break;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    this.activeSlotIndex.set(next);
+    const target = event.currentTarget;
+    const grid = target instanceof HTMLElement ? target.parentElement : null;
+    const buttons = grid?.querySelectorAll<HTMLButtonElement>('.time-picker-slot');
+    buttons?.[next]?.focus();
+  }
+
+  private slotIndexForValue(value: string): number {
+    const exact = this.timeSlots.findIndex((slot) => slot.value === value);
+    if (exact >= 0) return exact;
+
+    const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(value);
+    if (!match) return DEFAULT_SLOT_INDEX;
+
+    const minutes = Number(match[1]) * 60 + Number(match[2]);
+    return Math.min(Math.round(minutes / 15), this.timeSlots.length - 1);
+  }
+
   private scrollToActiveSlot(): void {
     const container = this.slotsContainer()?.nativeElement;
     if (!container) return;
 
-    const targetValue = this.value || '09:00';
-    const targetId = 'slot-' + targetValue.replace(':', '-');
-    const slotEl = container.querySelector<HTMLElement>(`#${targetId}`);
-    if (slotEl) {
-      const offsetTop = slotEl.offsetTop - container.offsetTop;
-      container.scrollTo({
-        top: Math.max(0, offsetTop - container.clientHeight / 2 + slotEl.clientHeight / 2),
-        behavior: 'smooth',
-      });
-    }
+    const slotEl =
+      container.querySelectorAll<HTMLElement>('.time-picker-slot')[this.activeSlotIndex()];
+    if (!slotEl) return;
+    const offsetTop = slotEl.offsetTop - container.offsetTop;
+    container.scrollTo({
+      top: Math.max(0, offsetTop - container.clientHeight / 2 + slotEl.clientHeight / 2),
+      behavior: 'smooth',
+    });
   }
 }
+
+const SLOT_COLUMNS = 3;
+const DEFAULT_SLOT_INDEX = 36; // 9:00 AM
+let nextTimePickerId = 0;
 
 /** Pre-generates 96 slots for every 15-minute interval in a 24-hour day. */
 function generateTimeSlots(): TimeSlot[] {

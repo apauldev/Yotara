@@ -22,6 +22,13 @@ describe('TimePickerComponent', () => {
     panels.forEach((p) => p.closest('brn-popover')?.remove());
   });
 
+  async function openPopover() {
+    const trigger = fixture.debugElement.query(By.css('.time-picker-trigger'));
+    trigger.nativeElement.click();
+    fixture.detectChanges();
+    await Promise.resolve();
+  }
+
   it('renders "No time set" when value is empty', () => {
     const valueEl = fixture.debugElement.query(By.css('.time-picker-value'));
     expect(valueEl.nativeElement.textContent.trim()).toBe('No time set');
@@ -144,6 +151,92 @@ describe('TimePickerComponent', () => {
     fixture.detectChanges();
 
     expect(emitSpy).toHaveBeenCalledWith('');
+  });
+
+  it('updates the trigger when a slot is selected without a parent write-back', async () => {
+    await openPopover();
+
+    document.querySelector<HTMLButtonElement>('#slot-14-15')?.click();
+    fixture.detectChanges();
+
+    const valueEl = fixture.debugElement.query(By.css('.time-picker-value'));
+    expect(valueEl.nativeElement.textContent.trim()).toBe('2:15 PM');
+  });
+
+  it('allows submitting a non-empty invalid time so the error is announced', async () => {
+    await openPopover();
+
+    const input = document.querySelector<HTMLInputElement>('.time-picker-custom-input');
+    const setBtn = document.querySelector<HTMLButtonElement>('.time-picker-set-btn');
+    expect(input).toBeTruthy();
+    expect(setBtn).toBeTruthy();
+    if (!input || !setBtn) return;
+
+    input.value = 'not-a-time';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(setBtn.disabled).toBeFalse();
+    setBtn.click();
+    fixture.detectChanges();
+
+    const error = document.querySelector<HTMLElement>('.time-picker-error-hint');
+    expect(error?.getAttribute('role')).toBe('alert');
+    expect(error?.id).toBeTruthy();
+    expect(input.getAttribute('aria-describedby')).toBe(error?.id ?? null);
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+  });
+
+  it('marks the selected slot as pressed with a single tab stop', async () => {
+    fixture.componentRef.setInput('value', '15:30');
+    fixture.detectChanges();
+    await openPopover();
+
+    const selected = document.querySelector<HTMLButtonElement>('#slot-15-30');
+    expect(selected).toBeTruthy();
+    if (!selected) return;
+    expect(selected.getAttribute('aria-pressed')).toBe('true');
+    expect(selected.getAttribute('tabindex')).toBe('0');
+
+    const tabbable = Array.from(document.querySelectorAll('.time-picker-slot')).filter(
+      (slot) => slot.getAttribute('tabindex') === '0',
+    );
+    expect(tabbable.length).toBe(1);
+    expect(tabbable[0]).toBe(selected);
+  });
+
+  it('moves focus across the interval grid with arrow keys', async () => {
+    fixture.componentRef.setInput('value', '09:00');
+    fixture.detectChanges();
+    await openPopover();
+
+    const start = document.querySelector<HTMLButtonElement>('#slot-09-00');
+    expect(start).toBeTruthy();
+    start?.focus();
+
+    const press = (key: string) => {
+      (document.activeElement as HTMLElement).dispatchEvent(
+        new KeyboardEvent('keydown', { key, bubbles: true }),
+      );
+      fixture.detectChanges();
+    };
+
+    press('ArrowRight');
+    expect(document.activeElement).toBe(document.querySelector('#slot-09-15'));
+
+    press('ArrowDown');
+    expect(document.activeElement).toBe(document.querySelector('#slot-10-00'));
+  });
+
+  it('names the popover dialog and does not nest a second dialog role', async () => {
+    await openPopover();
+
+    const panel = document.querySelector('.time-picker-panel');
+    expect(panel?.getAttribute('role')).toBeNull();
+
+    const dialog = panel?.closest('.cdk-dialog-container');
+    expect(dialog?.getAttribute('role')).toBe('dialog');
+    expect(dialog?.getAttribute('aria-label')).toBe('Choose due time');
   });
 });
 
