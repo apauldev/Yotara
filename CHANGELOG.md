@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.89.0](https://github.com/apauldev/Yotara/compare/v0.88.0...v0.89.0) (2026-11-06)
+
+
+### Features
+
+* **time-picker:** add custom 15-minute time picker with exact time support ([f014dd5](https://github.com/apauldev/Yotara/commit/f014dd57df476aa134bb0052d71fe6a62546ca77))
+
+
+### Bug Fixes
+
+* **date-picker:** trap Tab within the portaled panel ([42596d9](https://github.com/apauldev/Yotara/commit/42596d91eabdcd8654434ec81c00d0d66fc9325e))
+* **time-picker:** make selection, validation, and grid navigation accessible ([f2f381a](https://github.com/apauldev/Yotara/commit/f2f381a784425c2a407e6f3ce3bd4805a662adcf))
+* **time-picker:** trap Tab within the portaled panel ([71f6dbc](https://github.com/apauldev/Yotara/commit/71f6dbc5e5c169cabbcb34461e6807e0d488b9d4))
+
+
+### Refactoring
+
+* **picker:** extract the panel Tab trap into a shared directive ([9f23e0f](https://github.com/apauldev/Yotara/commit/9f23e0f5457de1b32e88e1c30cc5f155698881dd))
+* **picker:** share the picker shell and tidy the time picker ([f90ff5f](https://github.com/apauldev/Yotara/commit/f90ff5fad41d4eff9e97c54a881f6c40a567067a))
+* **time-picker:** drop dead slot label fallback ([8d80d40](https://github.com/apauldev/Yotara/commit/8d80d403335b5a8f5b3dad48d0fd2e63b882e8f1))
+
+
+### Tests
+
+* **e2e:** drive due-time specs through the time picker ([8d422d4](https://github.com/apauldev/Yotara/commit/8d422d4e51dcbdc688f620a7f52b68a1821cfc59))
+* **picker:** cover trap edge cases and time picker scroll guards ([cb33fea](https://github.com/apauldev/Yotara/commit/cb33feaa69d4bb7c2003a454547fe96ecbced651))
+
 ## [0.88.0](https://github.com/apauldev/Yotara/compare/v0.87.0...v0.88.0) (2026-11-05)
 
 
