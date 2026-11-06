@@ -78,6 +78,31 @@ async function selectCalendarDate(page: Page, target: CalendarDate) {
   await expect(panel).toHaveCount(0);
 }
 
+const dueTimeTrigger = (page: Page) => page.locator('.schedule-time-picker .time-picker-trigger');
+
+async function setDueTime(page: Page, time: string) {
+  await dueTimeTrigger(page).click();
+  // Like the date panel, the time panel renders into a document-level portal.
+  const panel = page.locator('.time-picker-panel').last();
+  await expect(panel).toBeVisible();
+  await panel.locator('.time-picker-custom-input').fill(time);
+  await panel.locator('.time-picker-set-btn').click();
+  // Applying a time closes the popover.
+  await expect(panel).toHaveCount(0);
+}
+
+async function clearDueTime(page: Page) {
+  await dueTimeTrigger(page).click();
+  const panel = page.locator('.time-picker-panel').last();
+  await expect(panel).toBeVisible();
+  await panel.locator('.time-picker-clear').click();
+  await expect(panel).toHaveCount(0);
+}
+
+async function expectDueTime(page: Page, label: string) {
+  await expect(dueTimeTrigger(page).locator('.time-picker-value')).toHaveText(label);
+}
+
 test.describe.configure({ mode: 'serial' });
 
 test.describe('Task Modal CRUD', () => {
@@ -432,8 +457,8 @@ test.describe('Task Modal CRUD', () => {
 
     // Simple Mode disables the schedule controls; turn it off first. The time
     // field then still waits for a date.
-    const timeInput = page.locator('#task-due-time');
-    await expect(timeInput).toBeDisabled();
+    const timeTrigger = dueTimeTrigger(page);
+    await expect(timeTrigger).toBeDisabled();
     const simpleModeCheckbox = page.getByRole('checkbox', {
       name: 'Keep it lightweight with no date metadata',
     });
@@ -444,8 +469,8 @@ test.describe('Task Modal CRUD', () => {
 
     await page.locator('.schedule-picker .date-picker-trigger').click();
     await selectCalendarDate(page, manualDate);
-    await expect(timeInput).toBeEnabled();
-    await timeInput.fill('15:30');
+    await expect(timeTrigger).toBeEnabled();
+    await setDueTime(page, '15:30');
 
     // The preview shows the exact date and time that will be saved.
     const preview = page.locator('#task-date-preview');
@@ -472,7 +497,7 @@ test.describe('Task Modal CRUD', () => {
     const card = await findTaskCard(page, name);
     await card.click();
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
-    await expect(page.locator('#task-due-time')).toHaveValue('15:30');
+    await expectDueTime(page, '3:30 PM');
 
     // Clearing the time sends null and persists the clear.
     const clearResponsePromise = page.waitForResponse(
@@ -480,7 +505,7 @@ test.describe('Task Modal CRUD', () => {
         response.request().method() === 'PATCH' &&
         new URL(response.url()).pathname.startsWith('/tasks/'),
     );
-    await page.locator('#task-due-time').fill('');
+    await clearDueTime(page);
     await page.getByRole('button', { name: 'Save Task' }).click();
     const clearResponse = await clearResponsePromise;
     expect(clearResponse.status()).toBe(200);
@@ -491,7 +516,7 @@ test.describe('Task Modal CRUD', () => {
     const cardAfterClear = await findTaskCard(page, name);
     await cardAfterClear.click();
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
-    await expect(page.locator('#task-due-time')).toHaveValue('');
+    await expectDueTime(page, 'No time set');
     await expect(page.locator('.schedule-picker .date-picker-trigger')).toContainText(
       manualDate.displayLabel,
     );
@@ -536,7 +561,7 @@ test.describe('Task Modal CRUD', () => {
     await expect(card).toContainText('3:00 PM');
     await card.click();
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
-    await expect(page.locator('#task-due-time')).toHaveValue('15:00');
+    await expectDueTime(page, '3:00 PM');
     await page.getByRole('button', { name: 'Cancel' }).click();
   });
 
@@ -582,7 +607,7 @@ test.describe('Task Modal CRUD', () => {
     const preview = page.locator('#task-date-preview');
     await expect(preview).toContainText('tomorrow at 9:30am resolves to');
     await expect(preview).toContainText('9:30 AM');
-    await expect(page.locator('#task-due-time')).toHaveValue('09:30');
+    await expectDueTime(page, '9:30 AM');
 
     const createResponsePromise = page.waitForResponse(
       (response) =>
@@ -604,7 +629,7 @@ test.describe('Task Modal CRUD', () => {
     const card = await findTaskCard(page, name);
     await card.click();
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
-    await expect(page.locator('#task-due-time')).toHaveValue('09:30');
+    await expectDueTime(page, '9:30 AM');
     await page.getByRole('button', { name: 'Cancel' }).click();
   });
 

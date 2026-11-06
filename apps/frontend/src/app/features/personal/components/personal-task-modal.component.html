@@ -346,15 +346,13 @@
           [invalid]="!!dueDateError()"
           [describedBy]="dueDateError() ? 'task-due-date-error' : null"
         />
-        <label class="field-label" for="task-due-time">Due time</label>
-        <input
-          id="task-due-time"
-          type="time"
-          name="taskDueTime"
-          [ngModel]="draftDueTime()"
-          (ngModelChange)="onDraftDueTimeChange($event)"
+        <app-time-picker
+          class="compact-field schedule-time-picker"
+          [value]="draftDueTime()"
+          (valueChange)="onDraftDueTimeChange($event)"
           [disabled]="draftSimpleMode() || !draftDueDate()"
-          [attr.aria-describedby]="dueDateNotice() ? 'task-date-note' : null"
+          label="Due time"
+          [describedBy]="dueDateNotice() ? 'task-date-note' : null"
         />
         @if (dueDateNotice(); as notice) {
           <p id="task-date-note" class="date-preview-note" role="status">{{ notice }}</p>
