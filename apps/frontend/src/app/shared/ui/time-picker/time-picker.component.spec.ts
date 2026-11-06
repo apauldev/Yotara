@@ -264,6 +264,71 @@ describe('TimePickerComponent', () => {
     await waitFor(() => document.querySelector('.time-picker-panel') === null);
     expect(document.querySelector('.time-picker-panel')).toBeNull();
   });
+
+  describe('panel focus trap', () => {
+    function panelTabbables(): HTMLElement[] {
+      const panel = document.querySelector<HTMLElement>('.time-picker-panel');
+      expect(panel).toBeTruthy();
+      return Array.from(
+        panel!.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter(
+        (element) =>
+          !element.hasAttribute('disabled') &&
+          element.getAttribute('tabindex') !== '-1' &&
+          element.checkVisibility(),
+      );
+    }
+
+    function pressTab(shift = false): void {
+      (document.activeElement as HTMLElement).dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Tab', shiftKey: shift, bubbles: true }),
+      );
+      fixture.detectChanges();
+    }
+
+    it('wraps Tab from the last panel element back to the first instead of escaping', async () => {
+      fixture.componentRef.setInput('value', '15:30');
+      fixture.detectChanges();
+      await openPopover();
+
+      const tabbable = panelTabbables();
+      expect(tabbable.length).toBeGreaterThan(1);
+      const last = tabbable[tabbable.length - 1];
+      last.focus();
+      expect(document.activeElement).toBe(last);
+
+      pressTab();
+
+      expect(document.activeElement).toBe(tabbable[0]);
+      expect(document.querySelector('.time-picker-panel')).toBeTruthy();
+    });
+
+    it('wraps Shift+Tab from the first panel element back to the last', async () => {
+      await openPopover();
+
+      const tabbable = panelTabbables();
+      const first = tabbable[0];
+      first.focus();
+      expect(document.activeElement).toBe(first);
+
+      pressTab(true);
+
+      expect(document.activeElement).toBe(tabbable[tabbable.length - 1]);
+    });
+
+    it('keeps the interval grid a single tab stop while trapping', async () => {
+      fixture.componentRef.setInput('value', '15:30');
+      fixture.detectChanges();
+      await openPopover();
+
+      const tabbable = panelTabbables();
+      const slots = tabbable.filter((el) => el.classList.contains('time-picker-slot'));
+      expect(slots.length).toBe(1);
+      expect(slots[0].getAttribute('data-time')).toBe('15:30');
+    });
+  });
 });
 
 describe('parseExactTime', () => {

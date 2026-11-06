@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import {
   Component,
   ElementRef,
@@ -9,6 +9,7 @@ import {
   Output,
   SimpleChanges,
   computed,
+  inject,
   signal,
   viewChild,
   ChangeDetectionStrategy,
@@ -63,7 +64,7 @@ export interface TimePreset {
         [aria-label]="dialogLabel"
       >
         <ng-template brnPopoverContent>
-          <div class="time-picker-panel picker-panel">
+          <div #panel class="time-picker-panel picker-panel" (keydown)="onPanelKeydown($event)">
             <!-- Quick Presets -->
             <div class="time-picker-section">
               <span class="time-picker-section-title">Presets</span>
@@ -376,6 +377,7 @@ export interface TimePreset {
   ],
 })
 export class TimePickerComponent implements OnChanges, OnDestroy {
+  private readonly document = inject(DOCUMENT);
   private readonly _value = signal('');
 
   @Input()
@@ -397,6 +399,7 @@ export class TimePickerComponent implements OnChanges, OnDestroy {
   protected readonly faXmark = faXmark;
 
   private readonly popover = viewChild(BrnPopover);
+  private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
   private readonly slotsContainer = viewChild<ElementRef<HTMLDivElement>>('slotsContainer');
 
   private readonly instanceId = `time-picker-${++nextTimePickerId}`;
@@ -520,6 +523,69 @@ export class TimePickerComponent implements OnChanges, OnDestroy {
     const grid = target instanceof HTMLElement ? target.parentElement : null;
     const buttons = grid?.querySelectorAll<HTMLButtonElement>('.time-picker-slot');
     buttons?.[next]?.focus();
+  }
+
+  /**
+   * Traps Tab within the portaled panel while the popover is open.
+   *
+   * The popover content renders in a document-level CDK overlay, outside any
+   * containing modal dialog, so keydowns fired inside the panel never bubble
+   * through the dialog (and the dialog's focus trap only enumerates its own
+   * descendants). Without this handler, a keyboard user can Tab straight out
+   * of the parent modal while the picker is open. Escape or selecting a time
+   * still closes the panel and CDK restores focus to the trigger inside the
+   * dialog.
+   */
+  protected onPanelKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'Tab') return;
+
+    const panel = this.panel()?.nativeElement;
+    if (!panel) return;
+
+    const focusable = this.getPanelFocusableElements(panel);
+    if (focusable.length === 0) return;
+
+    const active = this.document.activeElement;
+    const currentIndex = active instanceof HTMLElement ? focusable.indexOf(active) : -1;
+    const wrapBackwards = event.shiftKey;
+    const nextIndex =
+      currentIndex === -1
+        ? wrapBackwards
+          ? focusable.length - 1
+          : 0
+        : wrapBackwards
+          ? currentIndex <= 0
+            ? focusable.length - 1
+            : currentIndex - 1
+          : currentIndex >= focusable.length - 1
+            ? 0
+            : currentIndex + 1;
+
+    event.preventDefault();
+    focusable[nextIndex]?.focus();
+  }
+
+  private getPanelFocusableElements(panel: HTMLElement) {
+    return Array.from(
+      panel.querySelectorAll<HTMLElement>(
+        [
+          'button:not([disabled])',
+          'input:not([disabled])',
+          'select:not([disabled])',
+          'textarea:not([disabled])',
+          '[href]',
+          '[tabindex]:not([tabindex="-1"])',
+        ].join(','),
+      ),
+    ).filter(
+      (element) =>
+        !element.hasAttribute('disabled') &&
+        element.getAttribute('tabindex') !== '-1' &&
+        !element.hasAttribute('aria-hidden') &&
+        // The roving tabindex grid keeps exactly one tab stop, so the
+        // inactive slots (tabindex="-1") must stay out of the trap order.
+        element.checkVisibility(),
+    );
   }
 
   private slotIndexForValue(value: string): number {
