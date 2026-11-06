@@ -33,6 +33,7 @@ import {
 } from '@spartan-ng/brain/calendar';
 import { provideNativeDateAdapter } from '@spartan-ng/brain/date-time';
 import { BrnPopover, BrnPopoverImports } from '@spartan-ng/brain/popover';
+import { PickerFocusTrapDirective } from '../picker/picker-focus-trap.directive';
 import { pickerShellStyles } from '../picker/picker-shell.styles';
 import { parseCalendarDate } from '../../utils/timestamps';
 
@@ -47,6 +48,7 @@ import { parseCalendarDate } from '../../utils/timestamps';
     BrnCalendarCellButton,
     BrnCalendarGrid,
     BrnCalendarHeader,
+    PickerFocusTrapDirective,
   ],
   providers: [provideNativeDateAdapter()],
   template: `
@@ -72,6 +74,7 @@ import { parseCalendarDate } from '../../utils/timestamps';
         <ng-template brnPopoverContent>
           <div
             class="date-picker-panel picker-panel"
+            appPickerFocusTrap
             brnCalendar
             [date]="selectedDate() ?? undefined"
             [defaultFocusedDate]="selectedDate() ?? today()"
