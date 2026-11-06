@@ -568,9 +568,11 @@ function generateTimeSlots(): TimeSlot[] {
       const hh = String(hour).padStart(2, '0');
       const mm = String(minute).padStart(2, '0');
       const value = `${hh}:${mm}`;
+      // Every generated value matches the formatter's pattern, so it always
+      // yields a label.
       slots.push({
         value,
-        label: formatTimeLabel(value) || value,
+        label: formatTimeLabel(value),
       });
     }
   }
