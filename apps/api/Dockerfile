@@ -74,6 +74,14 @@ COPY --from=build /app/apps/api/drizzle /app/apps/api/drizzle
 # the DEV_MODE env var or a mounted file).
 COPY --from=build /app/apps/api/dev-mode.json /app/apps/api/dev-mode.json
 
+# Symlink audit in the runtime stage (not prod-deps) so it certifies the tree
+# that will actually be executed. Stage-to-stage COPY keeps symlinks, but a
+# builder regression would otherwise surface only at container boot: the walk
+# resolves every symlink under the copied workspace and the require proves the
+# native better-sqlite3 prebuild loads from its final path. Dangling links or a
+# dead native load fail the build here instead of producing a dead image.
+RUN node -e "const fs=require('fs'),path=require('path');let links=0;const walk=(d)=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){const f=path.join(d,e.name);if(e.isSymbolicLink()){links++;fs.realpathSync(f)}else if(e.isDirectory())walk(f)}};['/app/node_modules','/app/packages','/app/apps'].forEach((d)=>{if(fs.existsSync(d))walk(d)});require('./apps/api/node_modules/better-sqlite3');console.log('symlink audit:',links,'links OK; better-sqlite3 loads from final layout')"
+
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
