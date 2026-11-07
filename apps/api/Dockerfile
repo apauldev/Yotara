@@ -1,15 +1,18 @@
 # syntax=docker/dockerfile:1
 
+# Keep in sync with the "packageManager" field in the root package.json.
+ARG PNPM_VERSION=10.30.3
+
 FROM node:26.12.1-alpine AS build
 
-ARG GIT_HASH=unknown
-ARG GIT_BRANCH=unknown
-ENV GIT_HASH=${GIT_HASH}
-ENV GIT_BRANCH=${GIT_BRANCH}
+ARG PNPM_VERSION
 
 WORKDIR /app
-RUN npm install -g pnpm@10.30.3
-RUN apk add --no-cache python3 build-base
+
+RUN npm install -g pnpm@${PNPM_VERSION} --no-fund --no-audit
+
+# better-sqlite3 v13 ships prebuilt binaries in the package tarball
+# (prebuilds/<platform>-<arch>.node), so python3/build-base are not needed.
 
 # Only copy package files needed for API dependency resolution
 # (frontend/package.json intentionally omitted — this image only serves the API)
@@ -18,38 +21,50 @@ COPY tsconfig.base.json tsconfig.base.json
 COPY apps/api/package.json apps/api/package.json
 COPY packages/shared/package.json packages/shared/package.json
 
-# Skip lifecycle scripts during install (prepare script needs git + scripts/ dir)
-RUN pnpm install --frozen-lockfile --ignore-scripts
+# Skip lifecycle scripts during install (prepare script needs git + husky)
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --ignore-scripts
 
-# better-sqlite3 v13 ships prebuilt binaries in the package tarball
-# (prebuilds/<platform>-<arch>.node), so no native compilation is needed.
-
-COPY scripts scripts
 COPY packages/shared packages/shared
 COPY apps/api apps/api
 
-RUN pnpm version:gen
-RUN rm -f packages/shared/tsconfig.tsbuildinfo
-RUN pnpm --filter @yotara/shared build
-RUN pnpm --filter @yotara/api build
+RUN pnpm --filter @yotara/shared build \
+    && pnpm --filter @yotara/api build
 
-# --- Production stage — clean Node image, no python/build-base ---
+# --- Production dependency stage — the expected runtime /app layout ---
 
-FROM node:26.12.1-alpine
+FROM node:26.12.1-alpine AS prod-deps
+
+ARG PNPM_VERSION
 
 WORKDIR /app
-RUN npm install -g pnpm@10.30.3
 
-# Install production dependencies (skip lifecycle scripts to avoid husky failing)
+RUN npm install -g pnpm@${PNPM_VERSION} --no-fund --no-audit && npm cache clean --force
+
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/package.json
 COPY packages/shared/package.json packages/shared/package.json
 
-RUN pnpm install --frozen-lockfile --prod --ignore-scripts
-RUN node -e "require('./apps/api/node_modules/better-sqlite3'); console.log('better-sqlite3 loaded successfully')"
+# Install production dependencies only (skip lifecycle scripts to avoid husky).
+# auto-install-peers=false stops drizzle-orm's optional peers (prisma engine
+# chain, pglite, effect, typescript) from being materialized — ~350MB — since
+# the app only uses the better-sqlite3 adapter.
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --prod --ignore-scripts --config.auto-install-peers=false \
+    && node -e "require('./apps/api/node_modules/better-sqlite3'); console.log('better-sqlite3 loaded successfully')" \
+    && mkdir -p /app/apps/api/data \
+    && chown node:node /app/apps/api/data
 
-# better-sqlite3 v13 uses the prebuilt binaries shipped in its tarball,
-# so no native rebuild or binary copying is needed.
+# --- Production stage — clean Node image, no build or package tooling ---
+
+FROM node:26.12.1-alpine
+
+WORKDIR /app
+
+# Runtime tree: must copy the whole /app so pnpm's relative symlinks into
+# node_modules/.pnpm keep resolving (copying individual node_modules dirs
+# breaks the links).
+COPY --from=prod-deps /app /app
 
 # Copy built artifacts (no source files)
 COPY --from=build /app/packages/shared/dist /app/packages/shared/dist
@@ -58,6 +73,14 @@ COPY --from=build /app/apps/api/drizzle /app/apps/api/drizzle
 # Dev-mode config (defaults to disabled in the image; override at runtime via
 # the DEV_MODE env var or a mounted file).
 COPY --from=build /app/apps/api/dev-mode.json /app/apps/api/dev-mode.json
+
+# Symlink audit in the runtime stage (not prod-deps) so it certifies the tree
+# that will actually be executed. Stage-to-stage COPY keeps symlinks, but a
+# builder regression would otherwise surface only at container boot: the walk
+# resolves every symlink under the copied workspace and the require proves the
+# native better-sqlite3 prebuild loads from its final path. Dangling links or a
+# dead native load fail the build here instead of producing a dead image.
+RUN node -e "const fs=require('fs'),path=require('path');let links=0;const walk=(d)=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){const f=path.join(d,e.name);if(e.isSymbolicLink()){links++;fs.realpathSync(f)}else if(e.isDirectory())walk(f)}};['/app/node_modules','/app/packages','/app/apps'].forEach((d)=>{if(fs.existsSync(d))walk(d)});require('./apps/api/node_modules/better-sqlite3');console.log('symlink audit:',links,'links OK; better-sqlite3 loads from final layout')"
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
@@ -70,8 +93,11 @@ ENV TRUSTED_ORIGINS=http://localhost:8080
 
 EXPOSE 3000
 
-RUN mkdir -p /app/apps/api/data && chown node:node /app/apps/api/data
-
 USER node
+
+# In-container path is /health; nginx exposes it at /api/health externally
+# (verified by scripts/docker-smoke.sh).
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=10s \
+    CMD wget -q -O /dev/null http://127.0.0.1:3000/health || exit 1
 
 CMD ["node", "/app/apps/api/dist/server.js"]

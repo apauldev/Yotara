@@ -4,3 +4,7 @@ packages:
 
 allowBuilds:
   better-sqlite3: true
+# Don't auto-install dependencies' optional peers (e.g. drizzle-orm's
+# prisma/pglite/effect adapters). Runtime needs are pinned explicitly in
+# package.json; the auto-installed peer chains bloated the prod image by ~350MB.
+autoInstallPeers: false
