@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.89.1](https://github.com/apauldev/Yotara/compare/v0.89.0...v0.89.1) (2026-11-07)
+
+
+### Chores
+
+* **docker:** fail builds on dangling symlinks in the runtime image ([5e3d2af](https://github.com/apauldev/Yotara/commit/5e3d2af5718f9f3062cc0b10cb5f4984d2dd8759))
+* reduce Docker image size and build time ([b4628a8](https://github.com/apauldev/Yotara/commit/b4628a891eb9f9945c9104263e9e7dbbb5606fd1))
+
+
+### Performance
+
+* **docker:** prune peer bloat and drop pnpm from the API image ([8b13bae](https://github.com/apauldev/Yotara/commit/8b13bae60985e445dcb8cef37ca4897e800248bf))
+
 ## [0.89.0](https://github.com/apauldev/Yotara/compare/v0.88.0...v0.89.0) (2026-11-06)
 
 
