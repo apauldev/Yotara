@@ -3,9 +3,6 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-      args:
-        GIT_HASH: ${GIT_HASH:-unknown}
-        GIT_BRANCH: ${GIT_BRANCH:-unknown}
     environment:
       DATABASE_URL: ${DATABASE_URL:-./apps/api/data/yotara.db}
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}

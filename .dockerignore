@@ -16,3 +16,11 @@ data/
 **/*.db-shm
 **/*.db-wal
 apps/api/data
+# Typescript incremental build artifacts (stale ones silently change builds)
+**/*.tsbuildinfo
+# Host-side tool state (read by generate-version.mjs, never used by images)
+.github
+.vscode
+.idea
+# Blog/website content pack — published separately, never part of either image
+apps/yotara-website

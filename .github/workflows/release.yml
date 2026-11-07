@@ -109,9 +109,6 @@ jobs:
           file: apps/api/Dockerfile
           platforms: ${{ matrix.platform }}
           push: true
-          build-args: |
-            GIT_HASH=${{ needs.release.outputs.release_sha }}
-            GIT_BRANCH=main
           tags: |
             apauldev2/yotara-api:${{ needs.release.outputs.version }}-${{ matrix.architecture }}
             apauldev2/yotara-api:v${{ needs.release.outputs.version }}-${{ matrix.architecture }}
