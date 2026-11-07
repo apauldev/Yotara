@@ -8,8 +8,11 @@ ENV GIT_HASH=${GIT_HASH}
 ENV GIT_BRANCH=${GIT_BRANCH}
 
 WORKDIR /app
-RUN npm install -g pnpm@10.30.3
-RUN apk add --no-cache python3 build-base
+
+RUN npm install -g pnpm@10.30.3 --no-fund --no-audit
+
+# Angular + Tailwind do not require native addons, so python3/build-base are
+# not needed here.
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tsconfig.base.json tsconfig.base.json
@@ -17,7 +20,8 @@ COPY apps/api/package.json apps/api/package.json
 COPY apps/frontend/package.json apps/frontend/package.json
 COPY packages/shared/package.json packages/shared/package.json
 
-RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --ignore-scripts
 
 COPY scripts scripts
 COPY packages/shared packages/shared
