@@ -24,6 +24,12 @@ pnpm dev
 
 `pnpm install` also runs `pnpm prepare`, which sets up the Husky Git hooks. `pnpm dev` starts the frontend on http://localhost:4200 and the API on http://localhost:3000.
 
+The pre-commit hook runs a gitleaks secret scan when the binary is available. It is optional — CI scans every push and pull request regardless — but installing it locally catches a leaked key before it reaches the remote:
+
+```bash
+brew install gitleaks   # or: go install github.com/gitleaks/gitleaks/v8@latest
+```
+
 See [docs/INSTALL.md](./docs/INSTALL.md) for the full setup guide, environment files, and the Docker path.
 
 ## What to Work On
