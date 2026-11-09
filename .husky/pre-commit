@@ -3,10 +3,19 @@ set -e
 pnpm lint-staged
 
 # Secret scan on staged files — blocks accidental key commits.
-# Install locally: brew install gitleaks  (or `go install github.com/gitleaks/gitleaks/v8@latest`)
-if command -v gitleaks >/dev/null 2>&1; then
-  gitleaks git --pre-commit --staged 2>/dev/null || {
-    echo "⚠️  gitleaks: potential secret in staged files. Run 'gitleaks git --pre-commit --staged --verbose' for details."
+# Install locally: brew install gitleaks
+# (or go install github.com/gitleaks/gitleaks/v8@latest).
+if [ -x node_modules/.bin/gitleaks ]; then
+  GITLEAKS_BIN=node_modules/.bin/gitleaks
+elif command -v gitleaks >/dev/null 2>&1; then
+  GITLEAKS_BIN=gitleaks
+else
+  GITLEAKS_BIN=""
+fi
+
+if [ -n "$GITLEAKS_BIN" ]; then
+  "$GITLEAKS_BIN" git --pre-commit --staged 2>/dev/null || {
+    echo "⚠️  gitleaks: potential secret in staged files. Run '$GITLEAKS_BIN git --pre-commit --staged --verbose' for details."
     exit 1
   }
 else
