@@ -9,7 +9,7 @@
 # docker-compose.hub.yml instead.
 services:
   api:
-    image: apauldev2/yotara-api:v0.89.1
+    image: apauldev2/yotara-api:v0.89.2
     restart: unless-stopped
     environment:
       DATABASE_URL: /app/apps/api/data/yotara.db
@@ -43,7 +43,7 @@ services:
       - /tmp
 
   frontend:
-    image: apauldev2/yotara-frontend:v0.89.1
+    image: apauldev2/yotara-frontend:v0.89.2
     restart: unless-stopped
     depends_on:
       - api

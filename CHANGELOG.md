@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.89.2](https://github.com/apauldev/Yotara/compare/v0.89.1...v0.89.2) (2026-11-09)
+
+
+### Chores
+
+* **security:** make pre-commit gitleaks scan find the local binary ([48a4071](https://github.com/apauldev/Yotara/commit/48a40713c818d5226f300cfd95e8506a52b7fc6f))
+
 ## [0.89.1](https://github.com/apauldev/Yotara/compare/v0.89.0...v0.89.1) (2026-11-07)
 
 
