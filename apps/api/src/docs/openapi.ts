@@ -298,7 +298,7 @@ const appUserSchema = {
     id: { type: 'string' },
     email: { type: 'string', format: 'email' },
     name: { type: 'string' },
-    image: { anyOf: [{ type: 'string', format: 'uri' }, { type: 'null' }] },
+    image: { anyOf: [{ type: 'string', maxLength: 200000 }, { type: 'null' }] },
     emailVerified: { type: 'boolean' },
     passwordSetupRequired: { type: 'boolean' },
     workspaceMode: {
@@ -387,7 +387,7 @@ const userSchema = {
     id: { type: 'string' },
     email: { type: 'string', format: 'email' },
     name: { type: 'string' },
-    image: { anyOf: [{ type: 'string', format: 'uri' }, { type: 'null' }] },
+    image: { anyOf: [{ type: 'string', maxLength: 200000 }, { type: 'null' }] },
     emailVerified: { type: 'boolean' },
     workspaceMode: {
       anyOf: [{ type: 'string', enum: ['personal', 'team'] }, { type: 'null' }],
@@ -449,6 +449,43 @@ const meResponseSchema = {
   },
 } as const;
 
+const starterContentSchema = {
+  $id: 'StarterContent',
+  type: 'object',
+  required: ['projects', 'labels'],
+  properties: {
+    projects: {
+      type: 'array',
+      maxItems: 50,
+      items: {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string', minLength: 1, maxLength: 80 },
+          description: { type: 'string', maxLength: 200 },
+          color: { $ref: 'ProjectColor#' },
+        },
+        additionalProperties: false,
+      },
+    },
+    labels: {
+      type: 'array',
+      maxItems: 50,
+      items: {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string', minLength: 1, maxLength: 80 },
+          color: { type: 'string', pattern: '^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$' },
+          icon: { type: 'string', enum: [...LABEL_ICON_KEYS] },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  additionalProperties: false,
+} as const;
+
 const updateProfileSchema = {
   $id: 'UpdateProfile',
   type: 'object',
@@ -460,6 +497,8 @@ const updateProfileSchema = {
     onboardingCompleted: { type: 'boolean' },
     archiveAutoDelete: { type: 'boolean' },
     captureBehavior: { type: 'string', enum: ['quick', 'capture'] },
+    starterContent: { $ref: 'StarterContent#' },
+    image: { type: ['string', 'null'], maxLength: 200000 },
   },
   additionalProperties: false,
 } as const;
@@ -614,6 +653,7 @@ const sharedSchemas = [
   apiErrorSchema,
   sessionSchema,
   meResponseSchema,
+  starterContentSchema,
   updateProfileSchema,
   deleteAccountSchema,
   authSessionResponseSchema,

@@ -1,5 +1,6 @@
 import { createAuthClient } from 'better-auth/client';
-import type { WorkspaceMode } from './domain.js';
+import type { ProjectColor, WorkspaceMode } from './domain.js';
+import type { LabelIcon } from './label-icons.js';
 
 let apiBaseUrl = '';
 
@@ -36,6 +37,33 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export type CaptureBehavior = 'quick' | 'capture';
+
+/** A project created during onboarding. Colors/descriptions are optional. */
+export interface StarterProjectInput {
+  name: string;
+  description?: string;
+  color?: ProjectColor;
+}
+
+/** A label created during onboarding. The server fills a color/icon when omitted. */
+export interface StarterLabelInput {
+  name: string;
+  color?: string;
+  icon?: LabelIcon;
+}
+
+export interface StarterContent {
+  projects: StarterProjectInput[];
+  labels: StarterLabelInput[];
+}
+
+/** Server-owned choices carried by the single completion request. */
+export interface OnboardingPreferences {
+  archiveAutoDelete?: boolean;
+  captureBehavior?: CaptureBehavior;
+  starterContent?: StarterContent;
+  image?: string | null;
+}
 
 export interface ProfileResponse {
   user: {
@@ -138,6 +166,8 @@ export const AuthService = {
     onboardingCompleted?: boolean;
     archiveAutoDelete?: boolean;
     captureBehavior?: CaptureBehavior;
+    starterContent?: StarterContent;
+    image?: string | null;
   }) => {
     return await request<ProfileResponse>('/me', {
       method: 'PATCH',
@@ -153,12 +183,16 @@ export const AuthService = {
   getCounts: async () => {
     return await request<DataCounts>('/me/counts');
   },
-  completeOnboarding: async (workspaceMode: WorkspaceMode) => {
+  completeOnboarding: async (
+    workspaceMode: WorkspaceMode,
+    preferences: OnboardingPreferences = {},
+  ) => {
     return await request<ProfileResponse>('/me', {
       method: 'PATCH',
       body: JSON.stringify({
         workspaceMode,
         onboardingCompleted: true,
+        ...preferences,
       }),
     });
   },

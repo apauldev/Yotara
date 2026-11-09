@@ -319,8 +319,9 @@ test('PATCH /me can retry onboarding after starter label seeding fails', async (
     assert.ok(user);
 
     // Projects seed first, then labels. Fail the second seed to verify the
-    // completion marker is not persisted and the retry can finish provisioning
-    // without duplicating the already-seeded projects.
+    // whole completion is transactional: no partial content is left behind
+    // and the completion marker is not persisted, so the retry can finish
+    // provisioning without duplicating anything.
     sqlite.exec(`
       CREATE TRIGGER fail_starter_labels
       BEFORE INSERT ON labels
@@ -355,7 +356,7 @@ test('PATCH /me can retry onboarding after starter label seeding fails', async (
         .select({ value: sql<number>`count(*)` })
         .from(projects)
         .where(eq(projects.ownerId, user.id));
-      assert.equal(projectCountAfterFailure.value, 7);
+      assert.equal(projectCountAfterFailure.value, 0, 'The transaction rolls the projects back');
 
       const [labelCountAfterFailure] = await db
         .select({ value: sql<number>`count(*)` })
@@ -386,6 +387,319 @@ test('PATCH /me can retry onboarding after starter label seeding fails', async (
       .from(labels)
       .where(eq(labels.userId, user.id));
     assert.ok(labelCount.value >= 6, 'Retry should finish seeding the default labels');
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('PATCH /me seeds exactly the supplied starter content', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`starter-subset-${randomUUID()}@example.com`);
+
+    const response = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/me',
+      headers: { cookie },
+      payload: {
+        workspaceMode: 'personal',
+        onboardingCompleted: true,
+        starterContent: {
+          projects: [
+            { name: 'Work', description: 'Custom work', color: 'teal' },
+            { name: 'Garden' },
+          ],
+          labels: [{ name: 'Deep Work', color: '#123456', icon: 'leaf' }, { name: 'Later' }],
+        },
+      },
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().user.onboardingCompleted, true);
+
+    const projectsResponse = await ctx.app.inject({
+      method: 'GET',
+      url: '/projects',
+      headers: { cookie },
+    });
+    assert.equal(projectsResponse.statusCode, 200);
+    const projectsList = projectsResponse.json() as Array<{
+      name: string;
+      description: string | null;
+      color: string | null;
+    }>;
+    assert.deepEqual(projectsList.map((project) => project.name).sort(), ['Garden', 'Work']);
+    const work = projectsList.find((project) => project.name === 'Work');
+    assert.equal(work?.description, 'Custom work');
+    assert.equal(work?.color, 'teal');
+    const garden = projectsList.find((project) => project.name === 'Garden');
+    assert.equal(garden?.description ?? null, null);
+    assert.equal(garden?.color ?? null, null);
+
+    const labelsResponse = await ctx.app.inject({
+      method: 'GET',
+      url: '/labels',
+      headers: { cookie },
+    });
+    assert.equal(labelsResponse.statusCode, 200);
+    const labelsList = labelsResponse.json() as Array<{
+      name: string;
+      color: string;
+      icon: string;
+    }>;
+    assert.deepEqual(labelsList.map((label) => label.name).sort(), ['Deep Work', 'Later']);
+    const deepWork = labelsList.find((label) => label.name === 'Deep Work');
+    assert.equal(deepWork?.color, '#123456');
+    assert.equal(deepWork?.icon, 'leaf');
+    const later = labelsList.find((label) => label.name === 'Later');
+    assert.ok(later?.color);
+    assert.equal(later?.icon, 'tag');
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('PATCH /me with empty starter content seeds nothing and completes onboarding', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`starter-empty-${randomUUID()}@example.com`);
+
+    const response = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/me',
+      headers: { cookie },
+      payload: {
+        workspaceMode: 'personal',
+        onboardingCompleted: true,
+        starterContent: { projects: [], labels: [] },
+      },
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().user.onboardingCompleted, true);
+
+    const projectsResponse = await ctx.app.inject({
+      method: 'GET',
+      url: '/projects',
+      headers: { cookie },
+    });
+    assert.deepEqual(projectsResponse.json(), []);
+
+    const labelsResponse = await ctx.app.inject({
+      method: 'GET',
+      url: '/labels',
+      headers: { cookie },
+    });
+    assert.deepEqual(labelsResponse.json(), []);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('PATCH /me rejects invalid starter content without seeding anything', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const email = `starter-invalid-${randomUUID()}@example.com`;
+    const cookie = await signUpAndGetCookie(email);
+
+    const invalidPayloads = [
+      {
+        projects: [{ name: 'Work' }, { name: 'work' }],
+        labels: [],
+      },
+      { projects: [{ name: '   ' }], labels: [] },
+      { projects: [{ name: 'X', color: 'neon' }], labels: [] },
+      { projects: [], labels: [{ name: 'Bad color', color: 'red' }] },
+      { projects: [], labels: [{ name: 'Bad icon', icon: 'sparkles' }] },
+      {
+        projects: Array.from({ length: 51 }, (_, index) => ({ name: `Project ${index}` })),
+        labels: [],
+      },
+    ];
+
+    for (const starterContent of invalidPayloads) {
+      const response = await ctx.app.inject({
+        method: 'PATCH',
+        url: '/me',
+        headers: { cookie },
+        payload: { workspaceMode: 'personal', onboardingCompleted: true, starterContent },
+      });
+      assert.equal(response.statusCode, 400, JSON.stringify(starterContent));
+    }
+
+    const profile = await ctx.app.inject({ method: 'GET', url: '/me', headers: { cookie } });
+    assert.equal(profile.json().user.onboardingCompleted, false);
+
+    const { db } = await import('../db/client.js');
+    const { labels, projects } = await import('../db/schema.js');
+    const { eq, sql } = await import('drizzle-orm');
+
+    const [projectCount] = await db
+      .select({ value: sql<number>`count(*)` })
+      .from(projects)
+      .where(eq(projects.ownerId, profile.json().user.id));
+    assert.equal(projectCount.value, 0);
+
+    const [labelCount] = await db
+      .select({ value: sql<number>`count(*)` })
+      .from(labels)
+      .where(eq(labels.userId, profile.json().user.id));
+    assert.equal(labelCount.value, 0);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('PATCH /me rejects starter content for a team workspace', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`starter-team-${randomUUID()}@example.com`);
+
+    const response = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/me',
+      headers: { cookie },
+      payload: {
+        workspaceMode: 'team',
+        onboardingCompleted: true,
+        starterContent: { projects: [], labels: [] },
+      },
+    });
+
+    assert.equal(response.statusCode, 400);
+
+    const profile = await ctx.app.inject({ method: 'GET', url: '/me', headers: { cookie } });
+    assert.equal(profile.json().user.workspaceMode, null);
+    assert.equal(profile.json().user.onboardingCompleted, false);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('PATCH /me ignores starter content after onboarding is complete', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`starter-late-${randomUUID()}@example.com`);
+
+    const first = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/me',
+      headers: { cookie },
+      payload: { workspaceMode: 'personal', onboardingCompleted: true },
+    });
+    assert.equal(first.statusCode, 200);
+
+    const second = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/me',
+      headers: { cookie },
+      payload: {
+        starterContent: {
+          projects: [{ name: 'Extra Project' }],
+          labels: [{ name: 'Extra Label' }],
+        },
+      },
+    });
+    assert.equal(second.statusCode, 200);
+
+    const projectsResponse = await ctx.app.inject({
+      method: 'GET',
+      url: '/projects',
+      headers: { cookie },
+    });
+    const projectNames = (projectsResponse.json() as Array<{ name: string }>).map(
+      (project) => project.name,
+    );
+    assert.equal(projectNames.length, 7);
+    assert.ok(!projectNames.includes('Extra Project'));
+
+    const labelsResponse = await ctx.app.inject({
+      method: 'GET',
+      url: '/labels',
+      headers: { cookie },
+    });
+    const labelNames = (labelsResponse.json() as Array<{ name: string }>).map(
+      (label) => label.name,
+    );
+    assert.equal(labelNames.length, 6);
+    assert.ok(!labelNames.includes('Extra Label'));
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('PATCH /me stores a validated profile photo and clears it with null', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`avatar-${randomUUID()}@example.com`);
+    const image =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=';
+
+    const saved = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/me',
+      headers: { cookie },
+      payload: { image },
+    });
+    assert.equal(saved.statusCode, 200);
+    assert.equal(saved.json().user.image, image);
+
+    const me = await ctx.app.inject({ method: 'GET', url: '/me', headers: { cookie } });
+    assert.equal(me.json().user.image, image);
+
+    const cleared = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/me',
+      headers: { cookie },
+      payload: { image: null },
+    });
+    assert.equal(cleared.statusCode, 200);
+    assert.equal(cleared.json().user.image, null);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('PATCH /me rejects invalid profile photos and leaves the stored value unchanged', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`avatar-invalid-${randomUUID()}@example.com`);
+    const jpegBytesAsPng = 'data:image/png;base64,/9j/4AAQSkZJRg==';
+    const oversizedPng =
+      'data:image/png;base64,' +
+      Buffer.concat([
+        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+        Buffer.alloc(128 * 1024),
+      ]).toString('base64');
+
+    const invalidImages = [
+      'https://example.com/avatar.png',
+      'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=',
+      'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+      'data:image/png;base64,!!!!',
+      jpegBytesAsPng,
+      oversizedPng,
+    ];
+
+    for (const image of invalidImages) {
+      const response = await ctx.app.inject({
+        method: 'PATCH',
+        url: '/me',
+        headers: { cookie },
+        payload: { image },
+      });
+      assert.equal(response.statusCode, 400, image.slice(0, 40));
+    }
+
+    const me = await ctx.app.inject({ method: 'GET', url: '/me', headers: { cookie } });
+    assert.equal(me.json().user.image, null);
   } finally {
     await ctx.cleanup();
   }

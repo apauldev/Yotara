@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, eq, isNull, sql } from 'drizzle-orm';
-import type { CreateProjectDto, UpdateProjectDto } from '@yotara/shared';
+import type { CreateProjectDto, ProjectColor, UpdateProjectDto } from '@yotara/shared';
+import { DEFAULT_PROJECTS } from '@yotara/shared';
 import { db, type Database } from '../db/client.js';
 import { projects, tasks } from '../db/schema.js';
 import { nowIsoTimestamp } from '../lib/timestamps.js';
@@ -9,28 +10,6 @@ import {
   normalizeProjectCreatePayload,
   normalizeProjectUpdatePayload,
 } from '../routes/project-utils.js';
-
-const DEFAULT_PROJECTS = [
-  {
-    name: 'Work',
-    description: 'Job, clients, and professional commitments.',
-    color: 'deep-ocean',
-  },
-  { name: 'Personal', description: 'Appointments, paperwork, and everyday life.', color: 'clay' },
-  { name: 'Home', description: 'Household tasks, maintenance, and upkeep.', color: 'olive' },
-  { name: 'Health', description: 'Fitness, medical care, and wellbeing.', color: 'teal' },
-  { name: 'Finance', description: 'Bills, budgets, and money admin.', color: 'forest' },
-  {
-    name: 'Learning',
-    description: 'Courses, reading, and skill building.',
-    color: 'deep-ocean',
-  },
-  {
-    name: 'Side Projects',
-    description: 'Creative work and independent projects.',
-    color: 'clay',
-  },
-] as const;
 
 type ProjectWithCountsRow = typeof projects.$inferSelect & {
   taskCount: number;
@@ -63,12 +42,28 @@ async function loadProjectById(projectId: string, ownerId: string) {
   return project as ProjectWithCountsRow | undefined;
 }
 
+/** A project the onboarding seeder may insert. */
+export interface ProjectSeed {
+  name: string;
+  description?: string;
+  color?: ProjectColor;
+}
+
 /**
- * Seeds missing starter projects. Callers must gate this on the
- * onboarding-incomplete → complete transition; it is not a read-path fallback,
- * so later profile saves cannot recreate renamed or removed starter projects.
+ * Seeds the supplied starter projects (defaulting to the shared catalogue).
+ * Callers must gate this on the onboarding-incomplete → complete transition;
+ * it is not a read-path fallback, so later profile saves cannot recreate
+ * renamed or removed starter projects.
  */
-export function seedDefaultProjectsForOwner(ownerId: string, tx?: Database) {
+export function seedDefaultProjectsForOwner(
+  ownerId: string,
+  projectsToSeed: readonly ProjectSeed[] = DEFAULT_PROJECTS,
+  tx?: Database,
+) {
+  if (projectsToSeed.length === 0) {
+    return;
+  }
+
   const client = tx ?? db;
   const existingNames = new Set(
     client
@@ -78,7 +73,7 @@ export function seedDefaultProjectsForOwner(ownerId: string, tx?: Database) {
       .all()
       .map((project) => project.name),
   );
-  const missingProjects = DEFAULT_PROJECTS.filter((project) => !existingNames.has(project.name));
+  const missingProjects = projectsToSeed.filter((project) => !existingNames.has(project.name));
 
   if (missingProjects.length === 0) {
     return;
@@ -92,8 +87,8 @@ export function seedDefaultProjectsForOwner(ownerId: string, tx?: Database) {
         id: randomUUID(),
         ownerId,
         name: project.name,
-        description: project.description,
-        color: project.color,
+        description: project.description ?? null,
+        color: project.color ?? null,
         createdAt: now,
         updatedAt: now,
       })),

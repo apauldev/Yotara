@@ -3,6 +3,7 @@ import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@a
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 import { APP_VERSION } from '../../../core/constants/version';
+import { THEMES } from '../../../core/constants/themes';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { ThemeService, Theme } from '../../../core/services/theme.service';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
@@ -10,11 +11,14 @@ import { ChangePasswordModalComponent } from '../components/change-password-moda
 import { DeleteAccountModalComponent } from '../components/delete-account-modal.component';
 import { LogoutConfirmModalComponent } from '../../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
 import { AuthStateService } from '../../../core/services/auth-state.service';
+import { LogService } from '../../../core/services/log.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { Router } from '@angular/router';
 import { TaskService } from '../../../core/services/task.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { LabelService } from '../../../core/services/label.service';
+import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
+import { AvatarEditorComponent } from '../../../shared/components/avatar/avatar-editor.component';
 import { downloadCsv, downloadJson, CsvColumn } from '../../../shared/utils/export';
 import { Task, Project, Label, type DataCounts } from '@yotara/shared';
 
@@ -28,6 +32,8 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
     ChangePasswordModalComponent,
     DeleteAccountModalComponent,
     LogoutConfirmModalComponent,
+    AvatarComponent,
+    AvatarEditorComponent,
   ],
   template: `
     <section class="page">
@@ -47,22 +53,19 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
               (change)="onThemeChange($event)"
               aria-label="Select theme"
             >
-              <option value="light-forest">Light Forest</option>
-              <option value="dark-forest">Dark Forest</option>
-              <option value="coastal-calm">Coastal Calm</option>
-              <option value="minimal-slate">Minimal Slate</option>
-              <option value="floral-blossoms">Floral Blossoms</option>
-              <option value="midnight-amethyst">Midnight Amethyst</option>
-              <option value="ember-hearth">Ember Hearth</option>
-              <option value="golden-hour">Golden Hour</option>
-              <option value="deep-trench">Deep Trench</option>
+              @for (option of themes; track option.id) {
+                <option [value]="option.id">{{ option.label }}</option>
+              }
             </select>
           </div>
 
           <label class="settings-item settings-toggle">
             <div class="settings-item-copy">
               <strong>Show label names in task lists</strong>
-              <span>When off, cards use compact icon chips and a labels sheet.</span>
+              <span>
+                On, task cards show each label's name beside its icon. Off, labels appear as icons
+                only; use the ⋯ button to see the names.
+              </span>
             </div>
             <input
               type="checkbox"
@@ -232,6 +235,33 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
 
         <div class="settings-section">
           <h3 class="section-title">Account</h3>
+          <div class="settings-item">
+            <div class="settings-item-copy">
+              <strong>Profile photo</strong>
+              <span>Processed in your browser. Initials show when no photo is set.</span>
+            </div>
+            <div class="profile-photo-control">
+              <app-avatar
+                [image]="userImage()"
+                [name]="userName()"
+                [email]="userEmail()"
+                size="sm"
+              />
+              <button type="button" class="photo-link" (click)="openAvatarEditor()">
+                {{ userImage() ? 'Change' : 'Add photo' }}
+              </button>
+              @if (userImage()) {
+                <button
+                  type="button"
+                  class="photo-link photo-link-danger"
+                  [disabled]="isSavingPhoto()"
+                  (click)="onPhotoRemove()"
+                >
+                  Remove
+                </button>
+              }
+            </div>
+          </div>
           <div class="settings-item">
             <div class="settings-item-copy">
               <strong>Email</strong>
@@ -459,6 +489,17 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
       (close)="isDeleteAccountOpen.set(false)"
       (deleted)="onDeleteAccount()"
     />
+
+    <app-avatar-editor
+      [open]="isAvatarEditorOpen()"
+      [currentImage]="userImage()"
+      [userName]="userName()"
+      [error]="photoError()"
+      [saving]="isSavingPhoto()"
+      (save)="onPhotoSave($event)"
+      (remove)="onPhotoRemove()"
+      (close)="closeAvatarEditor()"
+    />
   `,
   changeDetection: ChangeDetectionStrategy.Eager,
   styles: [
@@ -632,6 +673,34 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
       .verified-badge.unverified {
         color: var(--on-surface-subtle);
         background: var(--surface-container-high);
+      }
+
+      .profile-photo-control {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+      }
+
+      .photo-link {
+        border: 0;
+        background: transparent;
+        color: var(--primary-solid);
+        font: inherit;
+        font-size: 0.88rem;
+        font-weight: 700;
+        text-decoration: underline;
+        padding: 0.15rem;
+        cursor: pointer;
+      }
+
+      .photo-link-danger {
+        color: var(--status-overdue);
+      }
+
+      .photo-link:disabled {
+        opacity: 0.6;
+        cursor: default;
       }
 
       .settings-link {
@@ -844,16 +913,21 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
 export class SettingsPageComponent {
   protected readonly faTriangleExclamation = faTriangleExclamation;
   protected readonly appVersion = APP_VERSION;
+  protected readonly themes = THEMES;
   protected readonly themeService = inject(ThemeService);
   private readonly authState = inject(AuthStateService);
   private readonly router = inject(Router);
   private readonly taskService = inject(TaskService);
   private readonly projectService = inject(ProjectService);
   private readonly labelService = inject(LabelService);
+  private readonly logService = inject(LogService);
 
   protected readonly isChangePasswordOpen = signal(false);
   protected readonly isLogoutConfirmOpen = signal(false);
   protected readonly isDeleteAccountOpen = signal(false);
+  protected readonly isAvatarEditorOpen = signal(false);
+  protected readonly isSavingPhoto = signal(false);
+  protected readonly photoError = signal('');
   protected readonly isLoggingOut = signal(false);
   protected readonly isSavingArchiveCleanup = signal(false);
   protected readonly isSavingCaptureBehavior = signal(false);
@@ -865,6 +939,8 @@ export class SettingsPageComponent {
   protected readonly projectCount = computed(() => this.dataCounts().projects);
   protected readonly labelCount = computed(() => this.dataCounts().labels);
   protected readonly userEmail = computed(() => this.authState.user()?.email ?? '');
+  protected readonly userName = computed(() => this.authState.user()?.name ?? '');
+  protected readonly userImage = computed(() => this.authState.user()?.image ?? null);
   protected readonly emailVerified = computed(() => this.authState.user()?.emailVerified ?? false);
 
   protected readonly skipCompleteConfirm = this.preferences.skipCompleteConfirm;
@@ -1131,6 +1207,42 @@ export class SettingsPageComponent {
 
   protected onShowLoginTipsChange(event: Event) {
     this.preferences.setLoginTipDismissed(!(event.target as HTMLInputElement).checked, true);
+  }
+
+  protected openAvatarEditor() {
+    this.photoError.set('');
+    this.isAvatarEditorOpen.set(true);
+  }
+
+  protected closeAvatarEditor() {
+    if (this.isSavingPhoto()) {
+      return;
+    }
+    this.isAvatarEditorOpen.set(false);
+    this.photoError.set('');
+  }
+
+  protected async onPhotoSave(image: string) {
+    await this.saveProfilePhoto(image);
+  }
+
+  protected async onPhotoRemove() {
+    await this.saveProfilePhoto(null);
+  }
+
+  private async saveProfilePhoto(image: string | null) {
+    this.photoError.set('');
+    this.isSavingPhoto.set(true);
+
+    try {
+      await this.authState.updateProfile({ image });
+      this.isAvatarEditorOpen.set(false);
+    } catch (error) {
+      this.logService.error('Failed to save profile photo', error, 'Settings');
+      this.photoError.set('Could not save your photo. Please try again.');
+    } finally {
+      this.isSavingPhoto.set(false);
+    }
   }
 
   protected async onLogout() {

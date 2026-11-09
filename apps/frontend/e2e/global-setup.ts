@@ -1,7 +1,7 @@
 import { chromium, request } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
-import { getRuntimeConfig } from './fixtures/auth';
+import { completeWizard, getRuntimeConfig } from './fixtures/auth';
 
 const BASE_URL = process.env['E2E_BASE_URL'] ?? 'http://localhost:4200';
 const AUTH_DIR = path.resolve('e2e/.auth');
@@ -126,12 +126,9 @@ async function setup() {
     await page.waitForURL(/\/onboarding/);
     log(`Onboarding URL: ${page.url()}`);
 
-    log('Clicking Continue (personal mode is default)...');
-
-    await page.getByRole('button', { name: 'Continue' }).click();
-
+    log('Walking the startup wizard...');
+    await completeWizard(page);
     log('Waiting for tasks...');
-    await page.waitForURL(/\/tasks/);
     log(`Final URL: ${page.url()}`);
 
     log('Saving storage state...');

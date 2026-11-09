@@ -115,6 +115,28 @@ export async function dismissTip(page: Page) {
   }
 }
 
+/**
+ * Walk the six-step startup wizard with the default choices and land on the
+ * task list.
+ */
+export async function completeWizard(page: Page) {
+  await page.waitForURL(/\/onboarding/, { timeout: 15_000 });
+  for (let step = 0; step < 5; step += 1) {
+    await page.getByRole('button', { name: 'Continue' }).click();
+  }
+  await page.getByRole('button', { name: 'Enter Yotara' }).click();
+  await page.waitForURL(/\/tasks/, { timeout: 15_000 });
+}
+
+/** Continue from the current step to the Starter content step. */
+export async function goToStarterStep(page: Page) {
+  await page.waitForURL(/\/onboarding/, { timeout: 15_000 });
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('heading', { name: 'Starter projects and labels' }).waitFor();
+}
+
 export const test = e2eTest;
 
 export { expect };

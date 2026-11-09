@@ -13,6 +13,7 @@ import {
 import { filter } from 'rxjs';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { LogoutConfirmModalComponent } from '../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
+import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { AppStatusComponent } from '../../shared/ui/app-status/app-status.component';
 
 type SidebarIcon = 'dashboard' | 'tasks' | 'workspaces' | 'calendar' | 'team';
@@ -35,6 +36,7 @@ interface SidebarItem {
     RouterOutlet,
     LogoutConfirmModalComponent,
     AppStatusComponent,
+    AvatarComponent,
   ],
   template: `
     <div class="shell">
@@ -143,7 +145,12 @@ interface SidebarItem {
               aria-label="Open account menu"
               (click)="toggleProfileMenu()"
             >
-              <div class="avatar" aria-hidden="true">{{ userInitials() }}</div>
+              <app-avatar
+                [name]="user()?.name"
+                [email]="user()?.email"
+                [image]="user()?.image ?? null"
+                size="md"
+              />
               <div class="profile-copy">
                 <div class="profile-name">{{ displayName() }}</div>
                 <div class="profile-meta">{{ profileMeta() }}</div>
@@ -489,23 +496,6 @@ interface SidebarItem {
         outline-offset: -4px;
       }
 
-      .avatar {
-        width: 2.7rem;
-        height: 2.7rem;
-        border-radius: 999px;
-        background: linear-gradient(
-          135deg,
-          var(--surface-container-highest),
-          var(--surface-container-low)
-        );
-        color: var(--primary-foreground);
-        display: grid;
-        place-items: center;
-        font-size: 0.92rem;
-        font-weight: 700;
-        flex: 0 0 auto;
-      }
-
       .profile-copy {
         min-width: 0;
       }
@@ -721,19 +711,6 @@ export class AuthShellComponent {
     }
 
     return user.email || this.workspaceLabel().replace(' WORKSPACE', '');
-  });
-
-  protected readonly userInitials = computed(() => {
-    const source = this.displayName().trim();
-    if (!source) {
-      return 'YT';
-    }
-
-    const parts = source.split(/\s+/).filter(Boolean);
-    return parts
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? '')
-      .join('');
   });
 
   constructor() {

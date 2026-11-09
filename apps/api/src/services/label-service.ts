@@ -3,7 +3,6 @@ import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import {
   DEFAULT_LABELS,
   DEFAULT_LABEL_ICON,
-  isLabelIcon,
   pickLabelColorForName,
   type CreateLabelDto,
   type Label,
@@ -13,76 +12,54 @@ import {
 import { db, type Database } from '../db/client.js';
 import { labels, taskLabels, tasks } from '../db/schema.js';
 import { labelNameKey } from '../lib/label-name.js';
+import { normalizeHexColor, normalizeLabelIcon } from '../lib/label-values.js';
 import { nowIsoTimestamp } from '../lib/timestamps.js';
 import { BadRequestError, ConflictError } from '../lib/app-error.js';
 
-/** Matches a normalized 3- or 6-digit hex color. */
-const HEX_COLOR_PATTERN = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
-
-/**
- * Validates and normalizes a label color sent by a client. Accepts 3- or
- * 6-digit hex; 3-digit forms expand to 6. Anything else is rejected so broken
- * CSS colors never reach the browser. Legacy stored values that fail this
- * check are tolerated on read (toLabel) but never pass through unchanged
- * writes.
- */
-function normalizeHexColor(value: string, context: string): string {
-  const raw = value.trim();
-  if (!HEX_COLOR_PATTERN.test(raw)) {
-    throw new BadRequestError(`${context} must be a 3- or 6-digit hex color, e.g. #82d7a9`);
-  }
-  const hex = raw.toLowerCase();
-  if (hex.length === 4) {
-    const [, r, g, b] = hex;
-    return `#${r}${r}${g}${g}${b}${b}`;
-  }
-  return hex;
-}
-
-/** Validates a picked icon against the shared allowlist. */
-function normalizeLabelIcon(value: string | undefined): LabelIcon {
-  if (value === undefined) {
-    return DEFAULT_LABEL_ICON;
-  }
-  if (!isLabelIcon(value)) {
-    throw new BadRequestError(`Unknown label icon "${value}"`);
-  }
-  return value;
+/** A label the onboarding seeder may insert; the server fills omitted fields. */
+export interface LabelSeed {
+  name: string;
+  color?: string;
+  icon?: LabelIcon;
 }
 
 /**
- * Idempotent under both the (user_id, name_norm) unique index and
- * repeated onboarding calls: existing labels short-circuit, and a double
- * request that races past that check hits ON CONFLICT DO NOTHING instead of
- * surfacing a constraint failure as a 500.
+ * Idempotent under the (user_id, name_norm) unique index: repeated onboarding
+ * calls and races are absorbed by ON CONFLICT DO NOTHING. Callers gate this on
+ * the onboarding-incomplete → complete transition, so it never resurrects a
+ * label the person later deleted or renamed.
  */
-export async function seedDefaultLabelsForOwner(ownerId: string) {
-  const existing = await db
-    .select({ id: labels.id })
-    .from(labels)
-    .where(eq(labels.userId, ownerId))
-    .limit(1);
-  if (existing.length > 0) {
+export function seedDefaultLabelsForOwner(
+  ownerId: string,
+  labelsToSeed: readonly LabelSeed[] = DEFAULT_LABELS,
+  tx?: Database,
+) {
+  if (labelsToSeed.length === 0) {
     return;
   }
 
+  const client = tx ?? db;
   const now = nowIsoTimestamp();
-  await db
+  client
     .insert(labels)
     .values(
-      DEFAULT_LABELS.map((label) => ({
-        id: randomUUID(),
-        userId: ownerId,
-        name: label.name,
-        nameNorm: labelNameKey(label.name),
-        color: label.color,
-        icon: label.icon,
-        pinned: false,
-        createdAt: now,
-        updatedAt: now,
-      })),
+      labelsToSeed.map((label) => {
+        const name = label.name.trim();
+        return {
+          id: randomUUID(),
+          userId: ownerId,
+          name,
+          nameNorm: labelNameKey(name),
+          color: label.color ?? pickLabelColor(name),
+          icon: label.icon ?? DEFAULT_LABEL_ICON,
+          pinned: false,
+          createdAt: now,
+          updatedAt: now,
+        };
+      }),
     )
-    .onConflictDoNothing();
+    .onConflictDoNothing()
+    .run();
 }
 
 /**

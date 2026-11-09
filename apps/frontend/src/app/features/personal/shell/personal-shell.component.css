@@ -583,17 +583,12 @@
 }
 
 .avatar {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 0.85rem;
-  background: var(--primary-gradient);
-  color: hsl(var(--primary-foreground));
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
   display: grid;
   place-items: center;
-  font-size: 0.85rem;
-  font-weight: 800;
-  border: 0;
-  cursor: pointer;
   transition: transform 180ms ease;
 }
 
@@ -609,8 +604,7 @@
 
 @media (pointer: coarse) {
   .icon-button,
-  .menu-toggle,
-  .avatar {
+  .menu-toggle {
     width: 2.75rem;
     height: 2.75rem;
   }

@@ -180,6 +180,10 @@ docker compose up -d
 This single variable propagates to both the API's Fastify `onSend` hook and nginx's
 `envsubst`-rendered config. There is no second copy to update.
 
+Profile photos are stored as `data:` URLs in `user.image` and rendered with `app-avatar`. If
+you override the CSP, keep `img-src 'self' data:` in the directive, or avatars will silently
+fall back to initials.
+
 ## Security Hardening
 
 The Docker stack is hardened out of the box:

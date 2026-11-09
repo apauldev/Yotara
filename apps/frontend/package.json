@@ -44,6 +44,7 @@
     "dompurify": "^3.4.17",
     "luxon": "^3.7.2",
     "marked": "^18.1.1",
+    "ngx-image-cropper": "^9.1.7",
     "ngx-markdown": "^22.0.0",
     "rxjs": "~7.8.0",
     "tailwind-merge": "^3.6.0",
