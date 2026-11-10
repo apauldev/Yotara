@@ -28,6 +28,7 @@ import { AuthStateService } from '../../../../core/services/auth-state.service';
 import { LogService } from '../../../../core/services/log.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { PreferencesStore } from '../../../../core/services/preferences-store.service';
+import { StatusService } from '../../../../core/services/status.service';
 import { TaskService } from '../../../../core/services/task.service';
 import { ThemeService } from '../../../../core/services/theme.service';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
@@ -115,6 +116,7 @@ export class StartupWizardComponent {
   private readonly preferences = inject(PreferencesStore);
   private readonly themeService = inject(ThemeService);
   private readonly taskService = inject(TaskService);
+  private readonly statusService = inject(StatusService);
   protected readonly notificationService = inject(NotificationService);
 
   private readonly stepHeading = viewChild<ElementRef<HTMLHeadingElement>>('stepHeading');
@@ -130,11 +132,16 @@ export class StartupWizardComponent {
   readonly error = signal('');
   readonly accountCreated = signal(this.route.snapshot.queryParamMap.get('created') === '1');
   readonly isAvatarEditorOpen = signal(false);
+  /** True when a stale draft expired, so the Welcome step can say so. */
+  readonly draftExpired = signal(false);
 
   readonly newProjectName = signal('');
   readonly newLabelName = signal('');
   readonly projectAddError = signal('');
   readonly labelAddError = signal('');
+
+  private readonly newProjectInput = viewChild<ElementRef<HTMLInputElement>>('newProjectInput');
+  private readonly newLabelInput = viewChild<ElementRef<HTMLInputElement>>('newLabelInput');
 
   readonly stepIndex = computed(() => WIZARD_STEPS.findIndex((entry) => entry.id === this.step()));
   readonly liveMessage = computed(
@@ -325,6 +332,9 @@ export class StartupWizardComponent {
     });
     this.newProjectName.set('');
     this.projectAddError.set('');
+    // Keep focus in the input so a second project can be added without
+    // re-tabbing from the button.
+    this.newProjectInput()?.nativeElement.focus();
   }
 
   addLabel(): void {
@@ -344,6 +354,7 @@ export class StartupWizardComponent {
     });
     this.newLabelName.set('');
     this.labelAddError.set('');
+    this.newLabelInput()?.nativeElement.focus();
   }
 
   toggleProject(name: string, event: Event): void {
@@ -429,14 +440,22 @@ export class StartupWizardComponent {
   }
 
   skip(): void {
-    // Skip means "apply the defaults I have so far and finish". The draft
-    // already holds the defaults (default theme, Settings defaults for the
-    // rest), so completing right away persists a clean baseline instead of
-    // leaving the person with a half-configured account.
+    // "Skip setup" means the person wants in without the questions — it must
+    // not silently create content they never saw. Seed nothing (matching the
+    // "Start empty" choice) but keep theme and other preferences the draft
+    // already holds, so the account lands with a clean, intentional baseline.
+    this.patchDraft({
+      starterProjects: defaultProjectDrafts(false),
+      starterLabels: defaultLabelDrafts(false),
+      firstTaskTitle: '',
+    });
     void this.complete();
   }
 
   async signOut(): Promise<void> {
+    // Don't leave a previous person's picks (including their avatar data
+    // URL) in localStorage on a shared machine.
+    this.clearDraft();
     try {
       await this.authState.signOut();
     } finally {
@@ -492,6 +511,13 @@ export class StartupWizardComponent {
             error,
             'StartupWizard',
           );
+          // Don't lose the task silently: name it in a toast on the landing
+          // page so the person can re-add it in seconds.
+          this.statusService.show(
+            `We couldn\u2019t save your first task (\u201C${firstTaskTitle}\u201D) \u2014 please add it again.`,
+            'warning',
+            8000,
+          );
         }
       }
 
@@ -508,7 +534,14 @@ export class StartupWizardComponent {
       if (this.step() !== 'ready') {
         this.goToStep('ready');
       }
-      this.error.set('Could not finish setting up. Please try again.');
+      // Echo the server's message when there is one (validation detail, photo
+      // too large, name collision) instead of a canned string.
+      const detail = error instanceof Error ? error.message.trim() : '';
+      this.error.set(
+        detail
+          ? `Could not finish setting up. ${detail}`
+          : 'Could not finish setting up. Please try again.',
+      );
     } finally {
       this.completing.set(false);
     }
@@ -665,14 +698,20 @@ export class StartupWizardComponent {
         draft?: unknown;
       };
 
-      const valid =
+      const shapeValid =
         parsed.version === WIZARD_DRAFT_VERSION &&
         typeof parsed.savedAt === 'number' &&
-        Date.now() - parsed.savedAt < WIZARD_DRAFT_TTL_MS &&
         typeof parsed.draft === 'object' &&
         parsed.draft !== null;
+      const fresh =
+        typeof parsed.savedAt === 'number' && Date.now() - parsed.savedAt < WIZARD_DRAFT_TTL_MS;
 
-      if (!valid) {
+      if (!shapeValid || !fresh) {
+        // Only an expiry (not a version bump or corrupt JSON) is worth
+        // mentioning; the person really did start this more than a day ago.
+        if (shapeValid && !fresh) {
+          this.draftExpired.set(true);
+        }
         localStorage.removeItem(key);
         return null;
       }

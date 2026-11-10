@@ -8,6 +8,7 @@ import { AuthStateService } from '../../../../core/services/auth-state.service';
 import { LogService } from '../../../../core/services/log.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { PreferencesStore } from '../../../../core/services/preferences-store.service';
+import { StatusService } from '../../../../core/services/status.service';
 import { TaskService } from '../../../../core/services/task.service';
 import { ThemeService } from '../../../../core/services/theme.service';
 import { StartupWizardComponent } from './startup-wizard.component';
@@ -63,6 +64,7 @@ describe('StartupWizardComponent', () => {
   };
   let logService: { error: jasmine.Spy; warn: jasmine.Spy };
   let taskService: { createTask: jasmine.Spy };
+  let statusService: { show: jasmine.Spy };
   let preferences: PreferencesStore;
 
   function checkbox(checked: boolean): Event {
@@ -150,6 +152,8 @@ describe('StartupWizardComponent', () => {
       createTask: jasmine.createSpy('createTask').and.resolveTo({}),
     };
 
+    statusService = { show: jasmine.createSpy('show') };
+
     await TestBed.configureTestingModule({
       imports: [StartupWizardComponent],
       providers: [
@@ -160,6 +164,7 @@ describe('StartupWizardComponent', () => {
         { provide: NotificationService, useValue: notificationService },
         { provide: LogService, useValue: logService },
         { provide: TaskService, useValue: taskService },
+        { provide: StatusService, useValue: statusService },
       ],
     }).compileComponents();
 
@@ -285,13 +290,16 @@ describe('StartupWizardComponent', () => {
     expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/inbox');
   });
 
-  it('skip completes with the current draft', async () => {
+  it('skip completes with an empty starter selection', async () => {
     await create();
     const completeSpy = spyOn(component, 'complete').and.resolveTo();
 
     component.skip();
 
     expect(completeSpy).toHaveBeenCalled();
+    expect(component.draft().starterProjects.every((project) => !project.selected)).toBeTrue();
+    expect(component.draft().starterLabels.every((label) => !label.selected)).toBeTrue();
+    expect(component.draft().firstTaskTitle).toBe('');
   });
 
   it('persists the login-tip choice and still suppresses the first-session tip', async () => {
@@ -432,6 +440,21 @@ describe('StartupWizardComponent', () => {
     expect(payload.image).toBeNull();
   });
 
+  it('toasts a warning when the first task could not be created', async () => {
+    await create();
+    taskService.createTask.and.rejectWith(new Error('offline'));
+    component.setFirstTaskTitle(input('Write the launch note'));
+
+    await component.complete();
+
+    expect(statusService.show).toHaveBeenCalledOnceWith(
+      'We couldn\u2019t save your first task (\u201CWrite the launch note\u201D) \u2014 please add it again.',
+      'warning',
+      8000,
+    );
+    expect(preferences.onboardingCompleted()).toBeTrue();
+  });
+
   it('renders the three curated tips', async () => {
     await create();
 
@@ -453,7 +476,7 @@ describe('StartupWizardComponent', () => {
 
     await component.complete();
 
-    expect(component.error()).toBe('Could not finish setting up. Please try again.');
+    expect(component.error()).toBe('Could not finish setting up. save failed');
     expect(component.completing()).toBeFalse();
     expect(preferences.onboardingCompleted()).toBeFalse();
     expect(router.navigateByUrl).not.toHaveBeenCalled();
@@ -469,7 +492,7 @@ describe('StartupWizardComponent', () => {
     await fixture.whenStable();
 
     expect(component.step()).toBe('ready');
-    expect(component.error()).toBe('Could not finish setting up. Please try again.');
+    expect(component.error()).toBe('Could not finish setting up. save failed');
     expect(preferences.onboardingCompleted()).toBeFalse();
   });
 
@@ -536,6 +559,7 @@ describe('StartupWizardComponent', () => {
     expect(component.step()).toBe('welcome');
     expect(component.draft().theme).toBe('light-forest');
     expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+    expect(component.draftExpired()).toBeTrue();
   });
 
   it('validates the step query parameter and follows later changes', async () => {
@@ -551,12 +575,15 @@ describe('StartupWizardComponent', () => {
     ).toBe('step');
   });
 
-  it('signs out and returns to login', async () => {
+  it('signs out, clears the draft, and returns to login', async () => {
     await create();
+    component.selectTheme('dark-forest');
+    expect(localStorage.getItem(DRAFT_KEY)).not.toBeNull();
 
     await component.signOut();
 
     expect(authState.signOut).toHaveBeenCalled();
     expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
   });
 });

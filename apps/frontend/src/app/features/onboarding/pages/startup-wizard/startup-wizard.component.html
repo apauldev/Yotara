@@ -25,7 +25,11 @@
     </div>
   </header>
 
-  <main class="wizard-main" aria-labelledby="wizard-step-heading">
+  <main
+    class="wizard-main"
+    [attr.aria-busy]="completing() || null"
+    aria-labelledby="wizard-step-heading"
+  >
     <h1 id="wizard-step-heading" #stepHeading tabindex="-1" class="step-heading">
       @switch (step()) {
         @case ('welcome') {
@@ -48,6 +52,12 @@
 
           @if (accountCreated()) {
             <p class="success-note">Account created. You're all set!</p>
+          }
+
+          @if (draftExpired()) {
+            <p class="draft-note">
+              Your earlier setup expired after 24 hours, so we're starting fresh.
+            </p>
           }
 
           <div class="account-card">
@@ -104,7 +114,7 @@
                   [checked]="draft().theme === option.id"
                   (change)="selectTheme(option.id)"
                 />
-                <span class="theme-preview" aria-hidden="true">
+                <span class="theme-preview theme-{{ option.id }}" aria-hidden="true">
                   <span class="swatch swatch-background"></span>
                   <span class="swatch swatch-surface"></span>
                   <span class="swatch swatch-primary"></span>
@@ -120,7 +130,7 @@
           </div>
 
           <section class="settings-section" aria-labelledby="wizard-labels-heading">
-            <h2 id="wizard-labels-heading">Labels</h2>
+            <h2 id="wizard-labels-heading">Label display</h2>
             <label class="settings-item">
               <span class="settings-item-copy">
                 <strong>Show label names in task lists</strong>
@@ -243,7 +253,7 @@
                   (change)="setDesktopNotifications($event)"
                 />
               } @else {
-                <span class="coming-soon">N/A</span>
+                <span class="coming-soon">Off</span>
               }
             </label>
 
@@ -333,6 +343,7 @@
 
             <div class="add-row">
               <input
+                #newProjectInput
                 type="text"
                 [value]="newProjectName()"
                 maxlength="80"
@@ -387,6 +398,7 @@
 
             <div class="add-row">
               <input
+                #newLabelInput
                 type="text"
                 [value]="newLabelName()"
                 maxlength="80"
@@ -564,8 +576,19 @@
     <ol class="progress-dots" aria-label="Onboarding progress">
       @for (entry of steps; track entry.id; let index = $index) {
         <li [attr.aria-current]="index === stepIndex() ? 'step' : null">
-          <span class="dot" aria-hidden="true" [class.active]="index === stepIndex()"></span>
-          <span class="sr-only">{{ entry.title }}</span>
+          @if (index < stepIndex()) {
+            <button
+              type="button"
+              class="dot dot-button"
+              (click)="editStep(entry.id)"
+              [attr.aria-label]="'Back to ' + entry.title"
+            >
+              <span class="sr-only">{{ entry.title }}</span>
+            </button>
+          } @else {
+            <span class="dot" aria-hidden="true" [class.active]="index === stepIndex()"></span>
+            <span class="sr-only">{{ entry.title }}</span>
+          }
         </li>
       }
     </ol>

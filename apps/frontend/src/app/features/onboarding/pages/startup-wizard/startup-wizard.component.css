@@ -529,6 +529,52 @@
   background: var(--primary-solid);
 }
 
+.dot-button {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+  position: relative;
+}
+
+.dot-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 0.58rem;
+  height: 0.58rem;
+  border-radius: 999px;
+  background: var(--primary-solid);
+}
+
+.dot-button:hover,
+.dot-button:focus-visible {
+  outline: 2px solid var(--primary-solid);
+  outline-offset: 3px;
+}
+
+.draft-note {
+  margin: 0.8rem 0 0;
+  color: var(--on-surface-subtle);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+/* Each theme card carries its own theme class, and the app's .theme-*
+ * selectors define --primary-solid and --accent-strong per theme, so the
+ * swatches below pick up distinct colors per card using only theme tokens.
+ * Dark themes also get a tinted preview surface so their lighter swatches
+ * stay legible. */
+.theme-preview.theme-dark-forest,
+.theme-preview.theme-midnight-amethyst,
+.theme-preview.theme-ember-hearth,
+.theme-preview.theme-deep-trench {
+  background: color-mix(in srgb, var(--primary-solid) 14%, var(--surface));
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -734,7 +780,8 @@
   font: inherit;
   font-size: 0.82rem;
   font-weight: 650;
-  padding: 0.2rem;
+  padding: 0.55rem 0.35rem;
+  min-height: 2rem;
   cursor: pointer;
 }
 
