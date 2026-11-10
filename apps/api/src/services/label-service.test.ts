@@ -78,7 +78,7 @@ test('Label Service', async (t) => {
       assert.equal(urgentCount, 1, 'Urgent should only exist once');
     });
 
-    await t.test('does not add defaults to an account that already has labels', async () => {
+    await t.test('adds defaults alongside existing labels when seeded explicitly', async () => {
       const existingOwnerId = randomUUID();
       await ctx.db.insert(users).values({
         id: existingOwnerId,
@@ -89,13 +89,41 @@ test('Label Service', async (t) => {
         updatedAt: new Date(),
       });
       await ctx.labelService.createLabelForOwner(existingOwnerId, { name: 'Calls' });
-      await ctx.labelService.seedDefaultLabelsForOwner(existingOwnerId);
+      ctx.labelService.seedDefaultLabelsForOwner(existingOwnerId);
 
       const labels = await ctx.labelService.listLabelsForOwner(existingOwnerId);
-      assert.deepEqual(
-        labels.map((label) => label.name),
-        ['Calls'],
-      );
+      const names = labels.map((label) => label.name);
+      assert.ok(names.includes('Calls'));
+      assert.ok(names.includes('Urgent'));
+      assert.equal(names.length, 7);
+    });
+
+    await t.test('seeds only the supplied starter labels', async () => {
+      const subsetOwnerId = randomUUID();
+      await ctx.db.insert(users).values({
+        id: subsetOwnerId,
+        name: 'Subset User',
+        email: `${subsetOwnerId}@example.com`,
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      ctx.labelService.seedDefaultLabelsForOwner(subsetOwnerId, [
+        { name: 'Deep Work', color: '#123456', icon: 'leaf' },
+        { name: 'Later' },
+      ]);
+
+      const labels = await ctx.labelService.listLabelsForOwner(subsetOwnerId);
+      assert.deepEqual(labels.map((label) => label.name).sort(), ['Deep Work', 'Later']);
+
+      const deepWork = labels.find((label) => label.name === 'Deep Work');
+      assert.equal(deepWork?.color, '#123456');
+      assert.equal(deepWork?.icon, 'leaf');
+
+      const later = labels.find((label) => label.name === 'Later');
+      assert.ok(later?.color);
+      assert.equal(later?.icon, 'tag');
     });
 
     await t.test('creating a label with default color', async () => {

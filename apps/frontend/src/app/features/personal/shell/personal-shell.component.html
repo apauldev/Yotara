@@ -278,7 +278,12 @@
             aria-label="Open account menu"
             (click)="toggleProfileMenu()"
           >
-            {{ userInitials() }}
+            <app-avatar
+              [name]="authState.user()?.name"
+              [email]="authState.user()?.email"
+              [image]="authState.user()?.image ?? null"
+              size="md"
+            />
           </button>
 
           @if (profileMenuOpen()) {
@@ -329,7 +334,7 @@
           <fa-icon [icon]="faXmark"></fa-icon>
         </button>
       </div>
-      <p class="tip-text">{{ tip }}</p>
+      <p class="tip-text">{{ tip.text }}</p>
       <div class="tip-actions">
         <label class="tip-checkbox-label">
           <input

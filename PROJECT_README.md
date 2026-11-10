@@ -49,7 +49,7 @@ The Angular application contains:
 | Area | Routes | Notes |
 |:---|:---|:---|
 | Auth | `/login`, `/verify-email`, `/forgot-password`, `/reset-password` | `/verify-email` has no auth guard, because the emailed link is opened before a session exists |
-| Onboarding | `/onboarding`, `/preview/picker` | Guarded by `authGuard` and `onboardingGuard` |
+| Onboarding | `/onboarding` | Six-step startup wizard guarded by `authGuard` and `onboardingGuard` |
 | Personal shell | `/tasks`, `/projects`, `/projects/:id`, `/labels`, `/archive`, `/settings`, `/notifications`, `/search` | Selected by `personalModeMatchGuard` |
 | Team shell | `/dashboard` | Selected by `teamModeMatchGuard`; team mode is not yet a complete feature |
 | Fallback | `**` | Animated 404 page |

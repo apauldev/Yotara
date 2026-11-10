@@ -887,4 +887,58 @@ describe('SettingsPageComponent', () => {
       expect(router.navigate).toHaveBeenCalledWith(['/login']);
     });
   });
+
+  describe('profile photo methods', () => {
+    it('opens and closes the avatar editor', () => {
+      comp.openAvatarEditor();
+      expect(comp.isAvatarEditorOpen()).toBeTrue();
+      expect(comp.photoError()).toBe('');
+
+      comp.closeAvatarEditor();
+      expect(comp.isAvatarEditorOpen()).toBeFalse();
+    });
+
+    it('does not close avatar editor when saving is in progress', () => {
+      comp.openAvatarEditor();
+      comp.isSavingPhoto.set(true);
+
+      comp.closeAvatarEditor();
+      expect(comp.isAvatarEditorOpen()).toBeTrue();
+    });
+
+    it('saves photo and updates profile', async () => {
+      const authState = TestBed.inject(AuthStateService) as any;
+      comp.openAvatarEditor();
+
+      await comp.onPhotoSave('data:image/png;base64,abc');
+
+      expect(authState.updateProfile).toHaveBeenCalledWith({ image: 'data:image/png;base64,abc' });
+      expect(comp.isAvatarEditorOpen()).toBeFalse();
+      expect(comp.isSavingPhoto()).toBeFalse();
+      expect(comp.photoError()).toBe('');
+    });
+
+    it('removes photo and updates profile', async () => {
+      const authState = TestBed.inject(AuthStateService) as any;
+      comp.openAvatarEditor();
+
+      await comp.onPhotoRemove();
+
+      expect(authState.updateProfile).toHaveBeenCalledWith({ image: null });
+      expect(comp.isAvatarEditorOpen()).toBeFalse();
+      expect(comp.isSavingPhoto()).toBeFalse();
+    });
+
+    it('handles photo save error', async () => {
+      const authState = TestBed.inject(AuthStateService) as any;
+      authState.updateProfile.and.rejectWith(new Error('Network error'));
+      comp.openAvatarEditor();
+
+      await comp.onPhotoSave('data:image/png;base64,abc');
+
+      expect(comp.photoError()).toBe('Could not save your photo. Please try again.');
+      expect(comp.isSavingPhoto()).toBeFalse();
+      expect(comp.isAvatarEditorOpen()).toBeTrue();
+    });
+  });
 });

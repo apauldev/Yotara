@@ -1,4 +1,10 @@
-import { test, expect, getRuntimeConfig } from '../../fixtures/auth';
+import {
+  test,
+  expect,
+  completeWizard,
+  goToStarterStep,
+  getRuntimeConfig,
+} from '../../fixtures/auth';
 import fs from 'node:fs';
 
 test.use({ storageState: { cookies: [], origins: [] } });
@@ -69,31 +75,118 @@ test.describe('Onboarding', () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
-  test('shows workspace selection options after sign-up', async ({ page }) => {
+  test('shows the startup wizard after sign-up', async ({ page }) => {
     // Sign up as a new user
     await signUp(page, TEST_NAME, TEST_EMAIL, TEST_PASSWORD);
 
     // Wait for onboarding page
     await page.waitForURL(/\/onboarding/, { timeout: 15_000 });
 
-    // Verify onboarding page is visible
-    await expect(page.getByText('Welcome to Yotara')).toBeVisible();
+    // Verify the welcome step is visible
+    await expect(page.getByRole('heading', { name: /^Welcome,/ })).toBeVisible();
+    await expect(page.getByText('A calm place for what matters today.')).toBeVisible();
   });
 
-  test('selects personal workspace and continues to tasks', async ({ page }) => {
+  test('completes the wizard and continues to tasks', async ({ page }) => {
     const email = `onboarding-flow-${Date.now()}@yotara.test`;
 
     // Sign up as a new user
     await signUp(page, 'Flow Tester', email, 'FlowTest123!');
 
-    // Wait for onboarding page
-    await page.waitForURL(/\/onboarding/, { timeout: 15_000 });
-
-    // Click Continue — personal mode is now the default
-    await page.getByRole('button', { name: 'Continue' }).click();
+    // Walk all six wizard steps with the default choices
+    await completeWizard(page);
 
     // Should redirect to tasks page
+    await expect(page).toHaveURL(/\/tasks/);
+  });
+
+  test('skipping from the welcome step completes onboarding', async ({ page }) => {
+    const email = `onboarding-skip-${Date.now()}@yotara.test`;
+
+    await signUp(page, 'Skip Tester', email, 'SkipTest123!');
+    await page.waitForURL(/\/onboarding/, { timeout: 15_000 });
+
+    await page.getByRole('button', { name: 'Skip setup' }).click();
+
     await page.waitForURL(/\/tasks/, { timeout: 15_000 });
     await expect(page).toHaveURL(/\/tasks/);
+  });
+
+  test('creates exactly the selected starter projects and labels', async ({ page }) => {
+    const email = `onboarding-starter-${Date.now()}@yotara.test`;
+
+    await signUp(page, 'Starter Tester', email, 'StarterTest123!');
+    await goToStarterStep(page);
+
+    await page.getByRole('checkbox', { name: /^Work/ }).uncheck();
+    await page.getByLabel('New project name').fill('Garden');
+    await page.getByRole('button', { name: 'Add project' }).click();
+    await page.getByLabel('New label name').fill('Deep Work');
+    await page.getByRole('button', { name: 'Add label' }).click();
+
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await page.getByRole('button', { name: 'Enter Yotara' }).click();
+    await page.waitForURL(/\/tasks/, { timeout: 15_000 });
+
+    await page.goto('/projects');
+    await expect(page.getByText('Garden')).toBeVisible();
+    await expect(page.getByText('Work', { exact: true })).toHaveCount(0);
+
+    await page.goto('/labels');
+    await expect(page.getByRole('button', { name: 'Deep Work', exact: true })).toBeVisible();
+  });
+
+  test('start empty leaves the workspace without starter content', async ({ page }) => {
+    const email = `onboarding-empty-${Date.now()}@yotara.test`;
+
+    await signUp(page, 'Empty Tester', email, 'EmptyTest123!');
+    await goToStarterStep(page);
+
+    await page.getByRole('button', { name: 'Start empty' }).click();
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await page.getByRole('button', { name: 'Enter Yotara' }).click();
+    await page.waitForURL(/\/tasks/, { timeout: 15_000 });
+
+    await page.goto('/projects');
+    await expect(page.getByText('Work', { exact: true })).toHaveCount(0);
+  });
+
+  test('creates the optional first task in the inbox', async ({ page }) => {
+    const email = `onboarding-first-task-${Date.now()}@yotara.test`;
+
+    await signUp(page, 'Task Tester', email, 'TaskTest123!');
+    await goToStarterStep(page);
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await page.getByRole('button', { name: 'Continue' }).click();
+
+    await page.getByLabel('What do you want to finish today?').fill('Ship the release');
+    await page.getByRole('button', { name: 'Enter Yotara' }).click();
+    await page.waitForURL(/\/tasks/, { timeout: 15_000 });
+
+    await expect(page.getByText('Ship the release')).toBeVisible();
+  });
+
+  test('adds and removes a profile photo in Settings', async ({ page }) => {
+    const email = `onboarding-photo-${Date.now()}@yotara.test`;
+
+    await signUp(page, 'Photo Tester', email, 'PhotoTest123!');
+    await completeWizard(page);
+    await page.goto('/settings');
+
+    await page.getByRole('button', { name: 'Add photo', exact: true }).click();
+    await page.getByLabel('Choose a photo').setInputFiles('e2e/fixtures/avatar.png');
+    await expect(page.getByRole('button', { name: 'Save photo' })).toBeEnabled({
+      timeout: 10_000,
+    });
+    await page.getByRole('button', { name: 'Save photo' }).click();
+    await expect(page.getByRole('button', { name: 'Change', exact: true })).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'Change', exact: true })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Remove', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Add photo', exact: true })).toBeVisible();
   });
 });

@@ -13,15 +13,8 @@ export const routes: Routes = [
     path: 'onboarding',
     canActivate: [authGuard, onboardingGuard],
     loadComponent: () =>
-      import('./features/onboarding/pages/start-screen/start-screen.component').then(
-        (m) => m.StartScreenComponent,
-      ),
-  },
-  {
-    path: 'preview/picker',
-    loadComponent: () =>
-      import('./features/onboarding/pages/start-screen/start-screen.component').then(
-        (m) => m.StartScreenComponent,
+      import('./features/onboarding/pages/startup-wizard/startup-wizard.component').then(
+        (m) => m.StartupWizardComponent,
       ),
   },
   {

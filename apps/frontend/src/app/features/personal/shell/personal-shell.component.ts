@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common';
 import {
   Component,
-  computed,
   effect,
   inject,
   signal,
@@ -41,6 +40,7 @@ import {
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { APP_VERSION } from '../../../core/constants/version';
+import { TIPS, type Tip } from '../../../core/constants/tips';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { TaskService } from '../../../core/services/task.service';
 import { ThemeService } from '../../../core/services/theme.service';
@@ -49,40 +49,9 @@ import { NotificationService } from '../../../core/services/notification.service
 import { DueTimeSchedulerService } from '../../../core/services/due-time-scheduler.service';
 import { TIMED_REMINDERS_UNAVAILABLE } from '../utils/timezone-notices';
 import { LogoutConfirmModalComponent } from '../../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
+import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
 import type { Notification } from '@yotara/shared';
 import { AppStatusComponent } from '../../../shared/ui/app-status/app-status.component';
-
-const TIPS = [
-  'Press `#` in the task input to quickly add labels to any task.',
-  'Type `@` followed by a project name in the task input to file the task directly into that project.',
-  'Prepend `!high`, `!med`, or `!low` in the task input to set the task’s priority inline.',
-  'Type dates in plain language — “tomorrow” or “next Friday” — and check the preview before you save.',
-  'Use projects to group related tasks together into meaningful collections.',
-  'Mark tasks as "Today" to focus on what matters right now.',
-  'Completed tasks auto-clear after 30 days — use “Keep forever” to save one from auto-clearing.',
-  'Recurring tasks repeat daily, on weekdays, weekly, monthly, or yearly — no need to recreate them.',
-  'Search tasks, projects, and labels from the top bar.',
-  'Break big tasks into smaller subtasks to make progress feel achievable.',
-  'Self-host Yotara to keep your tasks in your own database.',
-  'Labels help you categorize tasks across different projects and views.',
-  'Give labels their own icon and color, and pin the ones you use most so they stay at the top.',
-  'Use the Inbox to capture ideas quickly before organizing them into projects.',
-  'Inbox is for unfiled tasks — adding a project or a due date moves a task out.',
-  'The Today view shows everything due or marked for today in one place.',
-  'The Upcoming view helps you plan your week and spot busy days ahead.',
-  'Clear completed tasks from the Completed view to keep the workspace focused on what is active.',
-  'Press Enter to quickly add a task from the capture bar without touching your mouse.',
-  'Overdue tasks are highlighted so nothing slips through the cracks.',
-  'Schedule tasks for specific dates to plan your work ahead of time.',
-  'On desktop, drag a task to another day in Calendar to reschedule it, or double-click a day to create one.',
-  'Add a due time to a task and Yotara will remind you when it comes due while the app is open.',
-  'The sidebar collapses to give you a distraction-free writing and planning area.',
-  'Review your completed tasks to reflect on progress and celebrate wins.',
-  'Projects support custom colors to make them easy to spot at a glance.',
-  'The app adapts to nine themes so you can match your mood or environment.',
-  'Add due dates to surface tasks in Today and Upcoming.',
-  'Your theme and display preferences are saved in this browser.',
-];
 
 type PersonalIcon = 'inbox' | 'today' | 'upcoming' | 'calendar' | 'projects' | 'labels' | 'archive';
 
@@ -106,6 +75,7 @@ interface PersonalNavItem {
     RouterOutlet,
     LogoutConfirmModalComponent,
     AppStatusComponent,
+    AvatarComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './personal-shell.component.html',
@@ -129,14 +99,14 @@ export class PersonalShellComponent implements OnDestroy {
   protected readonly faXmark = faXmark;
   private router = inject(Router);
   private route = inject(ActivatedRoute);
-  private authState = inject(AuthStateService);
+  protected readonly authState = inject(AuthStateService);
   protected readonly taskService = inject(TaskService);
   protected readonly themeService = inject(ThemeService);
   protected readonly notificationService = inject(NotificationService);
   protected readonly timedRemindersUnavailable = TIMED_REMINDERS_UNAVAILABLE;
   private readonly dueTimeScheduler = inject(DueTimeSchedulerService);
   protected readonly searchQuery = signal(this.route.snapshot.queryParamMap.get('q') ?? '');
-  protected readonly showTip = signal<string | null>(null);
+  protected readonly showTip = signal<Tip | null>(null);
   protected readonly tipDontShowAgain = signal(false);
   private preferences = inject(PreferencesStore);
 
@@ -160,20 +130,6 @@ export class PersonalShellComponent implements OnDestroy {
   protected readonly notificationsOpen = signal(false);
   protected readonly logoutDialogOpen = signal(false);
   protected readonly signingOut = signal(false);
-  protected readonly userInitials = computed(() => {
-    const fallback = 'PS';
-    const source = this.authState.user()?.name?.trim() || this.authState.user()?.email || fallback;
-    const parts = source.split(/\s+/).filter(Boolean);
-
-    if (parts.length === 0) {
-      return fallback;
-    }
-
-    return parts
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? '')
-      .join('');
-  });
 
   constructor() {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {

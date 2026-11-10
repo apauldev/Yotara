@@ -1,9 +1,12 @@
 import { eq, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
+import type { StarterContent } from '@yotara/shared';
 import { db } from '../db/client.js';
 import { labels, projects, tasks, users } from '../db/schema.js';
 import { authCookieSecurity, errorResponseSchema, withJsonResponse } from '../docs/openapi.js';
 import { sendUnauthorized } from '../lib/api-errors.js';
+import { normalizeAvatarImage } from '../lib/avatar.js';
+import { normalizeStarterContent, type NormalizedStarterContent } from '../lib/starter-content.js';
 import requireAuthenticatedUser from '../plugins/auth-required.js';
 import { toPublicUser } from '../lib/public-user.js';
 import { seedDefaultLabelsForOwner } from '../services/label-service.js';
@@ -102,6 +105,8 @@ export default async function meRoutes(fastify: FastifyInstance) {
       onboardingCompleted?: boolean;
       archiveAutoDelete?: boolean;
       captureBehavior?: 'quick' | 'capture';
+      starterContent?: StarterContent;
+      image?: string | null;
     };
     Reply: { user: ReturnType<typeof toPublicUser> } | { message: string };
   }>(
@@ -147,25 +152,45 @@ export default async function meRoutes(fastify: FastifyInstance) {
         ...(request.body.captureBehavior !== undefined
           ? { captureBehavior: request.body.captureBehavior }
           : {}),
+        ...(request.body.image !== undefined
+          ? { image: normalizeAvatarImage(request.body.image) }
+          : {}),
         updatedAt: new Date(),
       };
 
       // Seed starters only on the onboarding-incomplete → complete transition
       // for a personal workspace. Repeated profile saves must not recreate
       // projects or labels the user renamed or removed.
-      //
-      // Run the seeders before persisting the completion marker. If a seed
-      // fails, onboarding stays incomplete and the request can be retried;
-      // the seeders skip existing starter names and labels, so a retry is safe.
       const nextWorkspaceMode = request.body.workspaceMode ?? currentUser.workspaceMode;
       const onboardingJustCompleted =
         request.body.onboardingCompleted === true && !currentUser.onboardingCompleted;
-      if (onboardingJustCompleted && nextWorkspaceMode === 'personal') {
-        await seedDefaultProjectsForOwner(userId);
-        await seedDefaultLabelsForOwner(userId);
+      const shouldSeed = onboardingJustCompleted && nextWorkspaceMode === 'personal';
+
+      let starterContent: NormalizedStarterContent | null = null;
+      if (request.body.starterContent !== undefined) {
+        // Starter content only seeds on the onboarding-incomplete → complete
+        // transition for personal workspaces. A team workspace or a
+        // non-transition save ignores it (the person manages projects and
+        // labels on their own pages after completion). Only a malformed
+        // payload on a seeding transition is rejected.
+        if (shouldSeed) {
+          starterContent = normalizeStarterContent(request.body.starterContent);
+        }
       }
 
-      await db.update(users).set(profilePatch).where(eq(users.id, userId));
+      // Seed and persist in one transaction. A failure between project and
+      // label insertion leaves neither set behind, and the completion marker
+      // is never persisted unless both seeders succeed.
+      db.transaction(
+        (tx) => {
+          if (shouldSeed) {
+            seedDefaultProjectsForOwner(userId, starterContent?.projects, tx);
+            seedDefaultLabelsForOwner(userId, starterContent?.labels, tx);
+          }
+          tx.update(users).set(profilePatch).where(eq(users.id, userId)).run();
+        },
+        { behavior: 'immediate' },
+      );
 
       const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       if (!user) {

@@ -1,0 +1,691 @@
+<div class="wizard-screen">
+  <header class="wizard-header">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M20 4C11 4 4 10.3 4 18c0 .9.1 1.8.4 2.6A9.8 9.8 0 0 0 12 24c6.6 0 12-5.4 12-12V4h-4Z"
+          />
+          <path
+            class="brand-vein"
+            d="M7.5 16.8a1 1 0 1 0 1.5 1.4c1.6-1.7 4-3.4 7.4-4.5a1 1 0 1 0-.6-1.9c-3.8 1.3-6.6 3.2-8.3 5Z"
+          />
+        </svg>
+      </div>
+      <span class="brand-name">Yotara</span>
+    </div>
+
+    <div class="header-actions">
+      <button type="button" class="link-button" [disabled]="completing()" (click)="signOut()">
+        Not you? Sign out
+      </button>
+      <button type="button" class="link-button" [disabled]="completing()" (click)="skip()">
+        Skip setup
+      </button>
+    </div>
+  </header>
+
+  <main
+    class="wizard-main"
+    [attr.aria-busy]="completing() || null"
+    aria-labelledby="wizard-step-heading"
+  >
+    <h1 id="wizard-step-heading" #stepHeading tabindex="-1" class="step-heading">
+      @switch (step()) {
+        @case ('welcome') {
+          {{ welcomeHeading() }}
+        }
+        @default {
+          {{ steps[stepIndex()]?.title }}
+        }
+      }
+    </h1>
+
+    @switch (step()) {
+      @case ('welcome') {
+        <div class="step-body">
+          <p class="lead">A calm place for what matters today.</p>
+          <p class="copy">Yotara keeps capture, planning, and finishing in one quiet workspace.</p>
+          <p class="copy">
+            This takes about a minute. Everything can be changed later in Settings.
+          </p>
+
+          @if (accountCreated()) {
+            <p class="success-note">Account created. You're all set!</p>
+          }
+
+          @if (draftExpired()) {
+            <p class="draft-note">
+              Your earlier setup expired after 24 hours, so we're starting fresh.
+            </p>
+          }
+
+          <div class="account-card">
+            <app-avatar
+              [name]="user()?.name"
+              [email]="user()?.email"
+              [image]="draft().avatarDataUrl"
+              size="md"
+            />
+            <div class="account-copy">
+              <strong>{{ user()?.name || 'Your account' }}</strong>
+              <span>Signed in as {{ user()?.email }}</span>
+              <div class="photo-actions">
+                <button type="button" class="edit-link" (click)="openAvatarEditor()">
+                  {{ draft().avatarDataUrl ? 'Change photo' : 'Add a photo' }}
+                </button>
+                @if (draft().avatarDataUrl) {
+                  <button
+                    type="button"
+                    class="edit-link edit-link-quiet"
+                    (click)="onAvatarRemoved()"
+                  >
+                    Remove
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+
+          <ul class="welcome-list">
+            <li><strong>How it looks</strong> — pick a theme and an optional photo.</li>
+            <li><strong>How it behaves</strong> — capture, completion, and notifications.</li>
+            <li><strong>Starter content</strong> — choose which projects and labels to create.</li>
+            <li><strong>A few tips</strong> — you can revisit everything in Settings.</li>
+          </ul>
+        </div>
+      }
+
+      @case ('look') {
+        <div class="step-body">
+          <p class="copy">Themes affect every screen. Click a card to preview it live.</p>
+
+          <div class="theme-grid">
+            @for (option of themes; track option.id) {
+              <label
+                [class]="
+                  'theme-card theme-' + option.id + (draft().theme === option.id ? ' selected' : '')
+                "
+              >
+                <input
+                  type="radio"
+                  name="wizard-theme"
+                  [value]="option.id"
+                  [checked]="draft().theme === option.id"
+                  (change)="selectTheme(option.id)"
+                />
+                <span class="theme-preview theme-{{ option.id }}" aria-hidden="true">
+                  <span class="swatch swatch-background"></span>
+                  <span class="swatch swatch-surface"></span>
+                  <span class="swatch swatch-primary"></span>
+                  <span class="swatch swatch-accent"></span>
+                </span>
+                <span class="theme-copy">
+                  <span class="theme-name">{{ option.label }}</span>
+                  <span class="theme-tag">{{ option.isDark ? 'Dark' : 'Light' }}</span>
+                </span>
+                <span class="theme-check" aria-hidden="true">✓</span>
+              </label>
+            }
+          </div>
+
+          <section class="settings-section" aria-labelledby="wizard-labels-heading">
+            <h2 id="wizard-labels-heading">Label display</h2>
+            <label class="settings-item">
+              <span class="settings-item-copy">
+                <strong>Show label names in task lists</strong>
+                <span>
+                  On, task cards show each label's name beside its icon. Off, labels appear as icons
+                  only; use the ⋯ button to see the names.
+                </span>
+              </span>
+              <input
+                type="checkbox"
+                class="toggle-input"
+                [checked]="draft().showLabelNames"
+                (change)="setShowLabelNames($event)"
+              />
+            </label>
+            <label class="settings-item">
+              <span class="settings-item-copy">
+                <strong>Color-first labels</strong>
+                <span>Fill label chips with their color instead of a soft tint.</span>
+              </span>
+              <input
+                type="checkbox"
+                class="toggle-input"
+                [checked]="draft().colorFirstLabels"
+                (change)="setColorFirstLabels($event)"
+              />
+            </label>
+          </section>
+        </div>
+      }
+
+      @case ('defaults') {
+        <div class="step-body">
+          <p class="copy">
+            These mirror the controls on the Settings page. You can change them there later.
+          </p>
+
+          <section class="settings-section" aria-labelledby="wizard-behavior-heading">
+            <h2 id="wizard-behavior-heading">How tasks behave</h2>
+
+            <div class="settings-item">
+              <span class="settings-item-copy">
+                <strong>Capture behavior</strong>
+                <span>Quick capture from the bar, or open the full task form.</span>
+              </span>
+              <select
+                class="settings-select"
+                [value]="draft().captureBehavior"
+                (change)="setCaptureBehavior($event)"
+                aria-label="Capture behavior"
+              >
+                <option value="quick">Quick capture</option>
+                <option value="capture">Open the full form</option>
+              </select>
+            </div>
+
+            <label class="settings-item">
+              <span class="settings-item-copy">
+                <strong>Auto-clear completed tasks</strong>
+                <span>Keep completed tasks for 30 days, then clear them.</span>
+              </span>
+              <input
+                type="checkbox"
+                class="toggle-input"
+                [checked]="draft().archiveAutoDelete"
+                (change)="setArchiveAutoDelete($event)"
+              />
+            </label>
+
+            <label class="settings-item">
+              <span class="settings-item-copy">
+                <strong>Ask before completing tasks</strong>
+                <span>Show a confirmation dialog when you check a task off.</span>
+              </span>
+              <input
+                type="checkbox"
+                class="toggle-input"
+                [checked]="draft().askBeforeComplete"
+                (change)="setAskBeforeComplete($event)"
+              />
+            </label>
+          </section>
+
+          <section class="settings-section" aria-labelledby="wizard-notifications-heading">
+            <h2 id="wizard-notifications-heading">Notifications and prompts</h2>
+
+            <label class="settings-item">
+              <span class="settings-item-copy">
+                <strong>Task completion notifications</strong>
+                <span>Show a confirmation toast when you check a task as done.</span>
+              </span>
+              <input
+                type="checkbox"
+                class="toggle-input"
+                [checked]="draft().actionNotifications"
+                (change)="setActionNotifications($event)"
+              />
+            </label>
+
+            <label class="settings-item">
+              <span class="settings-item-copy">
+                <strong>Desktop notifications</strong>
+                <span>
+                  @if (!notificationService.isSupported) {
+                    Not supported in this browser.
+                  } @else if (notificationService.permission() === 'denied') {
+                    Blocked — enable in browser settings.
+                  } @else {
+                    Browser notifications for tasks that come due. Only while Yotara is open — not
+                    push notifications, so nothing arrives when Yotara is closed.
+                  }
+                </span>
+              </span>
+              @if (
+                notificationService.isSupported && notificationService.permission() !== 'denied'
+              ) {
+                <input
+                  type="checkbox"
+                  class="toggle-input"
+                  [checked]="draft().desktopNotifications"
+                  (change)="setDesktopNotifications($event)"
+                />
+              } @else {
+                <span class="coming-soon">Off</span>
+              }
+            </label>
+
+            <label class="settings-item">
+              <span class="settings-item-copy">
+                <strong>Daily insights</strong>
+                <span>Show Daily Clarity and Yotara Journal prompts in the page header.</span>
+              </span>
+              <input
+                type="checkbox"
+                class="toggle-input"
+                [checked]="draft().dailyInsights"
+                (change)="setDailyInsights($event)"
+              />
+            </label>
+
+            <label class="settings-item">
+              <span class="settings-item-copy">
+                <strong>Show login tips</strong>
+                <span>Display productivity tips after signing in.</span>
+              </span>
+              <input
+                type="checkbox"
+                class="toggle-input"
+                [checked]="draft().showLoginTips"
+                (change)="setShowLoginTips($event)"
+              />
+            </label>
+          </section>
+        </div>
+      }
+
+      @case ('starter') {
+        <div class="step-body">
+          <p class="copy">
+            Choose what exists on your first day. Uncheck a default to skip it, or remove a custom
+            one. Defaults can be renamed later; labels can also be deleted.
+          </p>
+
+          <section class="settings-section" aria-labelledby="wizard-projects-heading">
+            <div class="section-heading-row">
+              <h2 id="wizard-projects-heading">Projects</h2>
+              <div class="quick-actions">
+                <button type="button" class="text-button" (click)="useDefaultSuite()">
+                  Use default suite
+                </button>
+                <button type="button" class="text-button" (click)="startEmpty()">
+                  Start empty
+                </button>
+              </div>
+            </div>
+
+            <ul class="starter-list">
+              @for (project of draft().starterProjects; track project.name) {
+                <li class="starter-row" [class.starter-row-off]="!project.selected">
+                  <label class="starter-check">
+                    <input
+                      type="checkbox"
+                      [checked]="project.selected"
+                      (change)="toggleProject(project.name, $event)"
+                    />
+                    <span
+                      class="project-dot"
+                      [style.background]="projectAccent(project.color)"
+                      aria-hidden="true"
+                    ></span>
+                    <span class="starter-name">{{ project.name }}</span>
+                  </label>
+                  @if (project.description) {
+                    <span class="starter-detail">{{ project.description }}</span>
+                  }
+                  @if (!project.isDefault) {
+                    <button
+                      type="button"
+                      class="remove-custom"
+                      [attr.aria-label]="'Remove ' + project.name"
+                      (click)="removeProject(project.name)"
+                    >
+                      Remove
+                    </button>
+                  }
+                </li>
+              }
+            </ul>
+
+            <div class="add-row">
+              <input
+                #newProjectInput
+                type="text"
+                [value]="newProjectName()"
+                maxlength="80"
+                placeholder="Add a project"
+                aria-label="New project name"
+                (input)="onProjectInput($event)"
+                (keydown.enter)="addProject(); $event.preventDefault()"
+              />
+              <button type="button" class="secondary-button" (click)="addProject()">
+                Add project
+              </button>
+            </div>
+            <div class="add-meta">
+              <div class="color-row" role="radiogroup" aria-label="Project color">
+                @for (option of projectPalette; track option.value) {
+                  <button
+                    type="button"
+                    class="color-dot"
+                    role="radio"
+                    [class.color-dot-active]="newProjectColor() === option.value"
+                    [style.background]="option.accent"
+                    [attr.aria-label]="option.label"
+                    [attr.aria-checked]="newProjectColor() === option.value"
+                    (click)="newProjectColor.set(option.value)"
+                  ></button>
+                }
+              </div>
+            </div>
+            @if (projectAddError()) {
+              <p class="add-error" role="alert">{{ projectAddError() }}</p>
+            }
+          </section>
+
+          <section class="settings-section" aria-labelledby="wizard-starter-labels-heading">
+            <h2 id="wizard-starter-labels-heading">Labels</h2>
+
+            <ul class="starter-list">
+              @for (label of draft().starterLabels; track label.name) {
+                <li class="starter-row" [class.starter-row-off]="!label.selected">
+                  <label class="starter-check">
+                    <input
+                      type="checkbox"
+                      [checked]="label.selected"
+                      (change)="toggleLabel(label.name, $event)"
+                    />
+                    <app-label-icon
+                      [icon]="label.icon ?? 'tag'"
+                      [color]="label.color ?? null"
+                      size="sm"
+                    />
+                    <span class="starter-name">{{ label.name }}</span>
+                  </label>
+                  @if (!label.isDefault) {
+                    <button
+                      type="button"
+                      class="remove-custom"
+                      [attr.aria-label]="'Remove ' + label.name"
+                      (click)="removeLabel(label.name)"
+                    >
+                      Remove
+                    </button>
+                  }
+                </li>
+              }
+            </ul>
+
+            <div class="add-row">
+              <input
+                #newLabelInput
+                type="text"
+                [value]="newLabelName()"
+                maxlength="80"
+                placeholder="Add a label"
+                aria-label="New label name"
+                (input)="onLabelInput($event)"
+                (keydown.enter)="addLabel(); $event.preventDefault()"
+              />
+              <button type="button" class="secondary-button" (click)="addLabel()">Add label</button>
+            </div>
+            <div class="add-meta">
+              <button
+                type="button"
+                class="customize-toggle"
+                [attr.aria-expanded]="newLabelExpanded()"
+                (click)="newLabelExpanded.set(!newLabelExpanded())"
+              >
+                <app-label-icon [icon]="newLabelIcon()" [color]="newLabelColor()" size="sm" />
+                {{ newLabelExpanded() ? 'Hide options' : 'Set icon & color' }}
+              </button>
+
+              @if (newLabelExpanded()) {
+                <div class="color-row" role="radiogroup" aria-label="Label color">
+                  @for (color of labelColors; track color) {
+                    <button
+                      type="button"
+                      class="color-dot"
+                      role="radio"
+                      [class.color-dot-active]="newLabelColor() === color"
+                      [style.background]="color"
+                      [attr.aria-label]="color"
+                      [attr.aria-checked]="newLabelColor() === color"
+                      (click)="newLabelColor.set(color)"
+                    ></button>
+                  }
+                </div>
+                <div class="quick-icon-row" role="radiogroup" aria-label="Label icon">
+                  @for (icon of quickPickIcons; track icon) {
+                    <button
+                      type="button"
+                      class="icon-option"
+                      role="radio"
+                      [class.icon-option-active]="newLabelIcon() === icon"
+                      [attr.aria-label]="icon + ' icon'"
+                      [attr.aria-checked]="newLabelIcon() === icon"
+                      (click)="newLabelIcon.set(icon)"
+                    >
+                      <app-label-icon [icon]="icon" [color]="newLabelColor()" size="sm" />
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+            @if (labelAddError()) {
+              <p class="add-error" role="alert">{{ labelAddError() }}</p>
+            }
+          </section>
+
+          <p class="starter-summary" aria-live="polite">{{ starterSummary() }}</p>
+        </div>
+      }
+
+      @case ('tips') {
+        <div class="step-body">
+          <p class="copy">A few things that make Yotara feel quick.</p>
+
+          <div class="tips-grid">
+            <article class="tip-card tip-card-wide">
+              <h2>Quick add: file tasks from the keyboard</h2>
+              <p>
+                Press <kbd>#</kbd> to add a label, type <kbd>@</kbd> followed by a project name to
+                file the task there, and prepend <kbd>!high</kbd>, <kbd>!med</kbd>, or
+                <kbd>!low</kbd> to set priority — all without leaving the input.
+              </p>
+              <p class="tip-example">Call dentist #health @Personal !high</p>
+            </article>
+
+            @for (tip of wizardTips; track tip.id) {
+              <article class="tip-card">
+                <h2>{{ tipTitle(tip.id) }}</h2>
+                <p>{{ tip.text }}</p>
+                @if (tipExample(tip.id); as example) {
+                  <p class="tip-example">{{ example }}</p>
+                }
+              </article>
+            }
+          </div>
+
+          <p class="copy">You can revisit all of this in Settings.</p>
+        </div>
+      }
+
+      @case ('ready') {
+        <div class="step-body">
+          <p class="lead">You're ready to start.</p>
+          <p class="copy">
+            Review your choices, then enter Yotara. You can change any of this in Settings.
+          </p>
+
+          <dl class="summary">
+            @if (draft().avatarDataUrl) {
+              <div class="summary-row">
+                <dt>Profile photo</dt>
+                <dd class="summary-photo">
+                  <app-avatar
+                    [image]="draft().avatarDataUrl"
+                    [name]="user()?.name"
+                    [email]="user()?.email"
+                    size="sm"
+                  />
+                  <button type="button" class="edit-link" (click)="editStep('welcome')">
+                    Edit
+                  </button>
+                </dd>
+              </div>
+            }
+            <div class="summary-row">
+              <dt>Theme</dt>
+              <dd>
+                {{ themeLabel() }}
+                <button type="button" class="edit-link" (click)="editStep('look')">Edit</button>
+              </dd>
+            </div>
+            <div class="summary-row">
+              <dt>Capture behavior</dt>
+              <dd>
+                {{ draft().captureBehavior === 'capture' ? 'Open the full form' : 'Quick capture' }}
+                <button type="button" class="edit-link" (click)="editStep('defaults')">Edit</button>
+              </dd>
+            </div>
+            <div class="summary-row">
+              <dt>Completed tasks</dt>
+              <dd>
+                {{ draft().archiveAutoDelete ? 'Auto-clear after 30 days' : 'Keep indefinitely' }}
+                <button type="button" class="edit-link" (click)="editStep('defaults')">Edit</button>
+              </dd>
+            </div>
+            <div class="summary-row">
+              <dt>Completion confirmation</dt>
+              <dd>
+                {{ draft().askBeforeComplete ? 'On' : 'Off' }}
+                <button type="button" class="edit-link" (click)="editStep('defaults')">Edit</button>
+              </dd>
+            </div>
+            <div class="summary-row">
+              <dt>Notifications</dt>
+              <dd>
+                {{ notificationSummary() }}
+                <button type="button" class="edit-link" (click)="editStep('defaults')">Edit</button>
+              </dd>
+            </div>
+            <div class="summary-row">
+              <dt>Daily insights</dt>
+              <dd>
+                {{ draft().dailyInsights ? 'On' : 'Off' }}
+                <button type="button" class="edit-link" (click)="editStep('defaults')">Edit</button>
+              </dd>
+            </div>
+            <div class="summary-row">
+              <dt>Login tips</dt>
+              <dd>
+                {{ draft().showLoginTips ? 'On' : 'Off' }}
+                <button type="button" class="edit-link" (click)="editStep('defaults')">Edit</button>
+              </dd>
+            </div>
+            <div class="summary-row summary-row-wide">
+              <dt>Starter content</dt>
+              <dd>
+                @if (starterIsEmpty()) {
+                  You will start with an empty workspace.
+                } @else {
+                  {{ selectedProjectCount() }} projects and {{ selectedLabelCount() }} labels will
+                  be created.
+                  <span class="chip-row">
+                    @for (project of selectedProjects(); track project.name) {
+                      <span class="summary-chip">
+                        <span
+                          class="project-dot"
+                          [style.background]="projectAccent(project.color)"
+                          aria-hidden="true"
+                        ></span>
+                        {{ project.name }}
+                      </span>
+                    }
+                    @for (label of selectedLabels(); track label.name) {
+                      <span class="summary-chip summary-chip-label">
+                        <app-label-icon
+                          [icon]="label.icon ?? 'tag'"
+                          [color]="label.color ?? null"
+                          size="xs"
+                        />
+                        {{ label.name }}
+                      </span>
+                    }
+                  </span>
+                }
+                <button type="button" class="edit-link" (click)="editStep('starter')">Edit</button>
+              </dd>
+            </div>
+          </dl>
+
+          <div class="first-task">
+            <label for="wizard-first-task"
+              ><strong>What do you want to finish today?</strong></label
+            >
+            <input
+              id="wizard-first-task"
+              type="text"
+              maxlength="200"
+              [value]="draft().firstTaskTitle"
+              placeholder="Optional: add one task to your inbox"
+              (input)="setFirstTaskTitle($event)"
+            />
+          </div>
+
+          @if (error()) {
+            <p class="submit-error" role="alert">{{ error() }}</p>
+          }
+        </div>
+      }
+    }
+
+    <p class="sr-only" aria-live="polite">{{ liveMessage() }}</p>
+  </main>
+
+  <footer class="wizard-footer">
+    <div class="footer-slot footer-start">
+      @if (stepIndex() > 0) {
+        <button type="button" class="secondary-button" [disabled]="completing()" (click)="goBack()">
+          Back
+        </button>
+      }
+    </div>
+
+    <ol class="progress-dots" aria-label="Onboarding progress">
+      @for (entry of steps; track entry.id; let index = $index) {
+        <li
+          [class.progress-step]="true"
+          [class.progress-step-done]="index < stepIndex()"
+          [class.progress-step-current]="index === stepIndex()"
+        >
+          <button
+            type="button"
+            class="progress-dot-button"
+            (click)="editStep(entry.id)"
+            [disabled]="index >= stepIndex() || completing()"
+            [attr.aria-label]="'Back to ' + entry.title"
+            [attr.aria-current]="index === stepIndex() ? 'step' : null"
+          >
+            <span class="progress-dot" aria-hidden="true">
+              @if (index < stepIndex()) {
+                <span class="progress-check">✓</span>
+              }
+            </span>
+            <span class="sr-only">{{ entry.title }}</span>
+          </button>
+          <span class="progress-connector" aria-hidden="true"></span>
+        </li>
+      }
+    </ol>
+
+    <div class="footer-slot footer-end">
+      <button type="button" class="primary-button" [disabled]="completing()" (click)="goNext()">
+        {{ primaryLabel() }}
+      </button>
+    </div>
+  </footer>
+
+  <app-avatar-editor
+    [open]="isAvatarEditorOpen()"
+    [currentImage]="draft().avatarDataUrl"
+    [userName]="user()?.name ?? null"
+    (save)="onAvatarSaved($event)"
+    (remove)="onAvatarRemoved()"
+    (close)="isAvatarEditorOpen.set(false)"
+  />
+</div>

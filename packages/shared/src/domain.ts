@@ -3,7 +3,14 @@ import type { LabelIcon } from './label-icons.js';
 export type Priority = 'low' | 'medium' | 'high';
 export type TaskStatus = 'inbox' | 'today' | 'upcoming' | 'done' | 'archived';
 export type WorkspaceMode = 'personal' | 'team';
-export type ProjectColor = 'sage' | 'teal' | 'olive' | 'clay' | 'forest' | 'deep-ocean';
+
+export const PROJECT_COLORS = ['sage', 'teal', 'olive', 'clay', 'forest', 'deep-ocean'] as const;
+export type ProjectColor = (typeof PROJECT_COLORS)[number];
+
+export function isProjectColor(value: unknown): value is ProjectColor {
+  return typeof value === 'string' && (PROJECT_COLORS as readonly string[]).includes(value);
+}
+
 export type RecurrenceFrequency = 'daily' | 'weekdays' | 'weekly' | 'monthly' | 'yearly';
 
 export interface RecurrenceRule {

@@ -1,5 +1,6 @@
 import { createAuthClient } from 'better-auth/client';
-import type { WorkspaceMode } from './domain.js';
+import type { ProjectColor, WorkspaceMode } from './domain.js';
+import type { LabelIcon } from './label-icons.js';
 
 let apiBaseUrl = '';
 
@@ -17,6 +18,21 @@ function getAuthClient() {
   });
 }
 
+/**
+ * Error thrown by `request()` carrying the HTTP status so callers can branch
+ * on it. Named `RequestError` to avoid colliding with the `ApiError` response
+ * interface in `domain.ts`.
+ */
+export class RequestError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'RequestError';
+    this.status = status;
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
@@ -29,13 +45,43 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const errorBody = (await response.json().catch(() => null)) as { message?: string } | null;
-    throw new Error(errorBody?.message ?? `Request failed with status ${response.status}`);
+    throw new RequestError(
+      response.status,
+      errorBody?.message ?? `Request failed with status ${response.status}`,
+    );
   }
 
   return (await response.json()) as T;
 }
 
 export type CaptureBehavior = 'quick' | 'capture';
+
+/** A project created during onboarding. Colors/descriptions are optional. */
+export interface StarterProjectInput {
+  name: string;
+  description?: string;
+  color?: ProjectColor;
+}
+
+/** A label created during onboarding. The server fills a color/icon when omitted. */
+export interface StarterLabelInput {
+  name: string;
+  color?: string;
+  icon?: LabelIcon;
+}
+
+export interface StarterContent {
+  projects: StarterProjectInput[];
+  labels: StarterLabelInput[];
+}
+
+/** Server-owned choices carried by the single completion request. */
+export interface OnboardingPreferences {
+  archiveAutoDelete?: boolean;
+  captureBehavior?: CaptureBehavior;
+  starterContent?: StarterContent;
+  image?: string | null;
+}
 
 export interface ProfileResponse {
   user: {
@@ -138,6 +184,8 @@ export const AuthService = {
     onboardingCompleted?: boolean;
     archiveAutoDelete?: boolean;
     captureBehavior?: CaptureBehavior;
+    starterContent?: StarterContent;
+    image?: string | null;
   }) => {
     return await request<ProfileResponse>('/me', {
       method: 'PATCH',
@@ -153,12 +201,16 @@ export const AuthService = {
   getCounts: async () => {
     return await request<DataCounts>('/me/counts');
   },
-  completeOnboarding: async (workspaceMode: WorkspaceMode) => {
+  completeOnboarding: async (
+    workspaceMode: WorkspaceMode,
+    preferences: OnboardingPreferences = {},
+  ) => {
     return await request<ProfileResponse>('/me', {
       method: 'PATCH',
       body: JSON.stringify({
         workspaceMode,
         onboardingCompleted: true,
+        ...preferences,
       }),
     });
   },

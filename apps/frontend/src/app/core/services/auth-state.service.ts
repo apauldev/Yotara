@@ -1,5 +1,10 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { AuthService, type DataCounts } from '@yotara/shared';
+import {
+  AuthService,
+  type DataCounts,
+  type OnboardingPreferences,
+  type StarterContent,
+} from '@yotara/shared';
 import { LogService } from './log.service';
 
 type SessionResponse = Awaited<ReturnType<typeof AuthService.getSession>>;
@@ -215,11 +220,14 @@ export class AuthStateService {
     return await AuthService.getCounts();
   }
 
-  async completeOnboarding(workspaceMode: 'personal' | 'team') {
+  async completeOnboarding(
+    workspaceMode: 'personal' | 'team',
+    preferences: OnboardingPreferences = {},
+  ) {
     this.loadingState.set(true);
 
     try {
-      const result = await AuthService.completeOnboarding(workspaceMode);
+      const result = await AuthService.completeOnboarding(workspaceMode, preferences);
       this.userState.set(result.user);
       return result;
     } finally {
@@ -232,6 +240,8 @@ export class AuthStateService {
     onboardingCompleted?: boolean;
     archiveAutoDelete?: boolean;
     captureBehavior?: 'quick' | 'capture';
+    starterContent?: StarterContent;
+    image?: string | null;
   }) {
     this.loadingState.set(true);
 

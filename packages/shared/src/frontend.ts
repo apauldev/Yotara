@@ -2,6 +2,8 @@
 // happy while the Node entry stays explicit about its ESM specifiers.
 export * from './auth';
 export * from './default-labels';
+export * from './default-projects';
 export * from './label-colors';
 export * from './label-icons';
+export * from './name-key';
 export * from './domain';

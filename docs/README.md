@@ -34,6 +34,7 @@ not sure where something belongs, this table is the answer.
 | Plan | Owns | Audience |
 |:---|:---|:---|
 | [2026-10-20-label-system-ux-redesign.md](./plans/2026-10-20-label-system-ux-redesign.md) | Three-phase label system UX redesign: taxonomy, shared chips, icon identity, one Labels surface, and server-side filtering | Contributors, designers |
+| [2026-11-09-startup-wizard.md](./plans/2026-11-09-startup-wizard.md) | Six-step startup wizard for new accounts: themes, Settings-backed preferences, optional client-processed profile photo, starter project and label selection, tips, and completion flow | Contributors, designers |
 
 ## At the repository root
 
