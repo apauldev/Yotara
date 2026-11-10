@@ -335,7 +335,7 @@ This step decides what exists on the first day. It is content selection, not a n
 - Names are trimmed, required, and deduplicated case-insensitively against every row in that list,
   including deselected defaults. Duplicate or empty additions show an inline error and are not
   appended.
-- The copy says the defaults can be renamed later. Labels can already be merged or deleted;
+- The copy says the defaults can be renamed later. Labels can already be deleted;
   projects cannot be removed until the deletion follow-up ships, so do not promise project
   removal.
 
