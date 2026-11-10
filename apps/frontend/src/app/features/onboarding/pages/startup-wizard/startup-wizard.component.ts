@@ -11,11 +11,17 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
+  DEFAULT_LABEL_ICON,
   DEFAULT_LABELS,
   DEFAULT_PROJECTS,
+  LABEL_COLORS,
   RequestError,
+  isLabelIcon,
+  isProjectColor,
   nameKey,
+  pickLabelColorForName,
   type CaptureBehavior,
+  type LabelColor,
   type LabelIcon,
   type ProjectColor,
   type StarterContent,
@@ -35,7 +41,7 @@ import { AvatarComponent } from '../../../../shared/components/avatar/avatar.com
 import { AvatarEditorComponent } from '../../../../shared/components/avatar/avatar-editor.component';
 import { LabelIconComponent } from '../../../../shared/ui/label-icon/label-icon.component';
 import { isSafeAvatarImage } from '../../../../shared/utils/avatar';
-import { projectPaletteFor } from '../../../personal/project-presentation';
+import { PROJECT_PALETTE, projectPaletteFor } from '../../../personal/project-presentation';
 
 type WizardStep = 'welcome' | 'look' | 'defaults' | 'starter' | 'tips' | 'ready';
 
@@ -140,6 +146,27 @@ export class StartupWizardComponent {
   readonly newLabelName = signal('');
   readonly projectAddError = signal('');
   readonly labelAddError = signal('');
+
+  // ── Custom-item metadata ───────────────────────────────────────────────────
+  // Auto-assigned from the name as the user types; overridable via the inline
+  // color/icon pickers that appear below each add-row.
+  readonly newProjectColor = signal<ProjectColor>('sage');
+  readonly newLabelColor = signal<LabelColor>(LABEL_COLORS[0]);
+  readonly newLabelIcon = signal<LabelIcon>(DEFAULT_LABEL_ICON);
+  readonly newLabelExpanded = signal(false);
+
+  // Exposed to the template so the HTML doesn't import constants directly.
+  readonly projectPalette = PROJECT_PALETTE;
+  readonly labelColors = LABEL_COLORS;
+  /** Six quick-pick icons drawn from the "signals" group — most label-like. */
+  readonly quickPickIcons: LabelIcon[] = [
+    'flame',
+    'hourglass',
+    'calendar-days',
+    'check-double',
+    'lightbulb',
+    'tag',
+  ];
 
   private readonly newProjectInput = viewChild<ElementRef<HTMLInputElement>>('newProjectInput');
   private readonly newLabelInput = viewChild<ElementRef<HTMLInputElement>>('newLabelInput');
@@ -306,11 +333,21 @@ export class StartupWizardComponent {
   }
 
   onProjectInput(event: Event): void {
-    this.newProjectName.set((event.target as HTMLInputElement).value);
+    const name = (event.target as HTMLInputElement).value;
+    this.newProjectName.set(name);
+    // Auto-assign a palette color as the user types so the dot preview in the
+    // color row already reflects this name when they glance at the picker.
+    this.newProjectColor.set(pickProjectColorForName(name));
   }
 
   onLabelInput(event: Event): void {
-    this.newLabelName.set((event.target as HTMLInputElement).value);
+    const name = (event.target as HTMLInputElement).value;
+    this.newLabelName.set(name);
+    // Track a deterministic color by name only while the picker is collapsed —
+    // once the user has explicitly picked a color don't overwrite their choice.
+    if (!this.newLabelExpanded()) {
+      this.newLabelColor.set(pickLabelColorForName(name));
+    }
   }
 
   addProject(): void {
@@ -328,10 +365,11 @@ export class StartupWizardComponent {
     this.patchDraft({
       starterProjects: [
         ...this.draft().starterProjects,
-        { name, selected: true, isDefault: false },
+        { name, color: this.newProjectColor(), selected: true, isDefault: false },
       ],
     });
     this.newProjectName.set('');
+    this.newProjectColor.set('sage');
     this.projectAddError.set('');
     // Keep focus in the input so a second project can be added without
     // re-tabbing from the button.
@@ -351,9 +389,21 @@ export class StartupWizardComponent {
     }
 
     this.patchDraft({
-      starterLabels: [...this.draft().starterLabels, { name, selected: true, isDefault: false }],
+      starterLabels: [
+        ...this.draft().starterLabels,
+        {
+          name,
+          color: this.newLabelColor(),
+          icon: this.newLabelIcon(),
+          selected: true,
+          isDefault: false,
+        },
+      ],
     });
     this.newLabelName.set('');
+    this.newLabelColor.set(LABEL_COLORS[0]);
+    this.newLabelIcon.set(DEFAULT_LABEL_ICON);
+    this.newLabelExpanded.set(false);
     this.labelAddError.set('');
     this.newLabelInput()?.nativeElement.focus();
   }
@@ -827,7 +877,8 @@ function mergeStarterProjects(stored: unknown): StarterProjectDraft[] {
     if (entry['isDefault'] === true) {
       selectedByName.set(nameKey(name), entry['selected'] !== false);
     } else {
-      custom.push({ name, selected: entry['selected'] !== false, isDefault: false });
+      const color = isProjectColor(entry['color']) ? entry['color'] : undefined;
+      custom.push({ name, color, selected: entry['selected'] !== false, isDefault: false });
     }
   }
 
@@ -861,7 +912,9 @@ function mergeStarterLabels(stored: unknown): StarterLabelDraft[] {
     if (entry['isDefault'] === true) {
       selectedByName.set(nameKey(name), entry['selected'] !== false);
     } else {
-      custom.push({ name, selected: entry['selected'] !== false, isDefault: false });
+      const color = typeof entry['color'] === 'string' ? entry['color'] : undefined;
+      const icon = isLabelIcon(entry['icon']) ? entry['icon'] : undefined;
+      custom.push({ name, color, icon, selected: entry['selected'] !== false, isDefault: false });
     }
   }
 
@@ -905,4 +958,20 @@ function booleanOr(value: unknown, fallback: boolean): boolean {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Deterministic project-color pick by name, mirroring `pickLabelColorForName`
+ * from `@yotara/shared`. Keeps auto-assignment stable so the dot preview stays
+ * consistent whether the user types quickly or pauses.
+ */
+function pickProjectColorForName(name: string): ProjectColor {
+  const index =
+    Math.abs(
+      name
+        .toLowerCase()
+        .split('')
+        .reduce((sum, ch) => sum + ch.charCodeAt(0), 0),
+    ) % PROJECT_PALETTE.length;
+  return PROJECT_PALETTE[index].value;
 }

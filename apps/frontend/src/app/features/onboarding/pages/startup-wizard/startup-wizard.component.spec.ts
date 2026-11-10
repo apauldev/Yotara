@@ -326,16 +326,27 @@ describe('StartupWizardComponent', () => {
     expect(payload.starterContent.projects.map((project) => project.name)).not.toContain('Work');
   });
 
-  it('adds custom projects and labels to the payload', async () => {
+  it('adds custom projects and labels to the payload with color and icon metadata', async () => {
     await create();
 
     component.onProjectInput(input('Garden'));
+    expect(component.newProjectColor()).toBeDefined();
+    component.newProjectColor.set('teal');
     component.addProject();
+
     component.onLabelInput(input('Deep Work'));
+    expect(component.newLabelColor()).toBeDefined();
+    component.newLabelIcon.set('lightbulb');
     component.addLabel();
 
     expect(component.draft().starterProjects.length).toBe(8);
     expect(component.draft().starterLabels.length).toBe(7);
+
+    const customProject = component.draft().starterProjects.find((p) => p.name === 'Garden');
+    expect(customProject?.color).toBe('teal');
+
+    const customLabel = component.draft().starterLabels.find((l) => l.name === 'Deep Work');
+    expect(customLabel?.icon).toBe('lightbulb');
 
     await component.complete();
 
@@ -343,13 +354,17 @@ describe('StartupWizardComponent', () => {
       string,
       {
         starterContent: {
-          projects: { name: string }[];
-          labels: { name: string }[];
+          projects: { name: string; color?: string }[];
+          labels: { name: string; color?: string; icon?: string }[];
         };
       },
     ];
-    expect(payload.starterContent.projects.map((project) => project.name)).toContain('Garden');
-    expect(payload.starterContent.labels.map((label) => label.name)).toContain('Deep Work');
+    const savedProject = payload.starterContent.projects.find((p) => p.name === 'Garden');
+    expect(savedProject?.color).toBe('teal');
+
+    const savedLabel = payload.starterContent.labels.find((l) => l.name === 'Deep Work');
+    expect(savedLabel?.icon).toBe('lightbulb');
+    expect(savedLabel?.color).toBeDefined();
   });
 
   it('start empty sends empty starter arrays', async () => {

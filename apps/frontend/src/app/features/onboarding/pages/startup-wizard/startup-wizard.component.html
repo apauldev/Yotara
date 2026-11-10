@@ -316,13 +316,11 @@
                       [checked]="project.selected"
                       (change)="toggleProject(project.name, $event)"
                     />
-                    @if (project.isDefault) {
-                      <span
-                        class="project-dot"
-                        [style.background]="projectAccent(project.color)"
-                        aria-hidden="true"
-                      ></span>
-                    }
+                    <span
+                      class="project-dot"
+                      [style.background]="projectAccent(project.color)"
+                      aria-hidden="true"
+                    ></span>
                     <span class="starter-name">{{ project.name }}</span>
                   </label>
                   @if (project.description) {
@@ -357,6 +355,22 @@
                 Add project
               </button>
             </div>
+            <div class="add-meta">
+              <div class="color-row" role="radiogroup" aria-label="Project color">
+                @for (option of projectPalette; track option.value) {
+                  <button
+                    type="button"
+                    class="color-dot"
+                    role="radio"
+                    [class.color-dot-active]="newProjectColor() === option.value"
+                    [style.background]="option.accent"
+                    [attr.aria-label]="option.label"
+                    [attr.aria-checked]="newProjectColor() === option.value"
+                    (click)="newProjectColor.set(option.value)"
+                  ></button>
+                }
+              </div>
+            </div>
             @if (projectAddError()) {
               <p class="add-error" role="alert">{{ projectAddError() }}</p>
             }
@@ -374,13 +388,11 @@
                       [checked]="label.selected"
                       (change)="toggleLabel(label.name, $event)"
                     />
-                    @if (label.isDefault) {
-                      <app-label-icon
-                        [icon]="label.icon ?? 'tag'"
-                        [color]="label.color ?? null"
-                        size="sm"
-                      />
-                    }
+                    <app-label-icon
+                      [icon]="label.icon ?? 'tag'"
+                      [color]="label.color ?? null"
+                      size="sm"
+                    />
                     <span class="starter-name">{{ label.name }}</span>
                   </label>
                   @if (!label.isDefault) {
@@ -409,6 +421,49 @@
                 (keydown.enter)="addLabel(); $event.preventDefault()"
               />
               <button type="button" class="secondary-button" (click)="addLabel()">Add label</button>
+            </div>
+            <div class="add-meta">
+              <button
+                type="button"
+                class="customize-toggle"
+                [attr.aria-expanded]="newLabelExpanded()"
+                (click)="newLabelExpanded.set(!newLabelExpanded())"
+              >
+                <app-label-icon [icon]="newLabelIcon()" [color]="newLabelColor()" size="sm" />
+                {{ newLabelExpanded() ? 'Hide options' : 'Set icon & color' }}
+              </button>
+
+              @if (newLabelExpanded()) {
+                <div class="color-row" role="radiogroup" aria-label="Label color">
+                  @for (color of labelColors; track color) {
+                    <button
+                      type="button"
+                      class="color-dot"
+                      role="radio"
+                      [class.color-dot-active]="newLabelColor() === color"
+                      [style.background]="color"
+                      [attr.aria-label]="color"
+                      [attr.aria-checked]="newLabelColor() === color"
+                      (click)="newLabelColor.set(color)"
+                    ></button>
+                  }
+                </div>
+                <div class="quick-icon-row" role="radiogroup" aria-label="Label icon">
+                  @for (icon of quickPickIcons; track icon) {
+                    <button
+                      type="button"
+                      class="icon-option"
+                      role="radio"
+                      [class.icon-option-active]="newLabelIcon() === icon"
+                      [attr.aria-label]="icon + ' icon'"
+                      [attr.aria-checked]="newLabelIcon() === icon"
+                      (click)="newLabelIcon.set(icon)"
+                    >
+                      <app-label-icon [icon]="icon" [color]="newLabelColor()" size="sm" />
+                    </button>
+                  }
+                </div>
+              }
             </div>
             @if (labelAddError()) {
               <p class="add-error" role="alert">{{ labelAddError() }}</p>
@@ -532,7 +587,14 @@
                   be created.
                   <span class="chip-row">
                     @for (project of selectedProjects(); track project.name) {
-                      <span class="summary-chip">{{ project.name }}</span>
+                      <span class="summary-chip">
+                        <span
+                          class="project-dot"
+                          [style.background]="projectAccent(project.color)"
+                          aria-hidden="true"
+                        ></span>
+                        {{ project.name }}
+                      </span>
                     }
                     @for (label of selectedLabels(); track label.name) {
                       <span class="summary-chip summary-chip-label">

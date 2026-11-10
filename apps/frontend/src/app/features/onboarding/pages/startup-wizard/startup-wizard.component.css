@@ -994,3 +994,123 @@ kbd {
     text-align: center;
   }
 }
+
+/* ── Custom-item metadata pickers ──────────────────────────────────────────── */
+
+.add-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+/* Color swatch row (projects: always visible; labels: inside disclosure) */
+.color-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.color-dot {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  transition:
+    transform 100ms ease,
+    border-color 100ms ease;
+  /* Minimum touch target — the browser will center a larger hit area. */
+  touch-action: manipulation;
+}
+
+.color-dot:hover {
+  transform: scale(1.2);
+}
+
+.color-dot-active {
+  border-color: var(--on-surface);
+  transform: scale(1.15);
+}
+
+.color-dot:focus-visible {
+  outline: 2px solid var(--primary-solid);
+  outline-offset: 3px;
+}
+
+/* Label-specific: disclosure toggle */
+.customize-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 0;
+  background: transparent;
+  color: var(--on-surface-muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.1rem 0;
+  cursor: pointer;
+}
+
+.customize-toggle:hover {
+  color: var(--on-surface);
+}
+
+.customize-toggle:focus-visible {
+  outline: 2px solid var(--primary-solid);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+/* Quick icon pick — 6 icons in a single row */
+.quick-icon-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.icon-option {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 0.6rem;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    border-color 100ms ease,
+    background 100ms ease;
+  touch-action: manipulation;
+}
+
+.icon-option:hover {
+  background: var(--surface-container-low);
+}
+
+.icon-option-active {
+  border-color: var(--on-surface);
+  background: var(--surface-container-low);
+}
+
+.icon-option:focus-visible {
+  outline: 2px solid var(--primary-solid);
+  outline-offset: 2px;
+}
+
+/* On coarse-pointer (touch) devices widen the tap targets */
+@media (pointer: coarse) {
+  .color-dot {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .icon-option {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+}
