@@ -31,7 +31,7 @@ import { AvatarComponent } from './avatar.component';
     <app-modal
       [open]="open()"
       title="Profile photo"
-      size="md"
+      size="sm"
       [showFooter]="false"
       [closeOnBackdrop]="!saving()"
       [closeOnEsc]="!saving()"
@@ -179,14 +179,14 @@ import { AvatarComponent } from './avatar.component';
       }
 
       .cropper-stage {
-        width: min(22rem, 100%);
-        min-height: 220px;
-        max-height: min(420px, 60dvh);
+        width: min(20rem, 100%);
+        min-height: 200px;
+        max-height: min(340px, 50dvh);
         height: auto;
         box-sizing: border-box;
-        justify-self: center;
+        margin-inline: auto;
         border-radius: 1rem;
-        overflow: visible;
+        overflow: hidden;
         background: var(--surface-container-low);
         box-shadow: inset 0 0 0 1px var(--outline-variant);
         /*
@@ -268,16 +268,36 @@ import { AvatarComponent } from './avatar.component';
         cursor: default;
       }
 
-      @media (width <= 480px) {
+      @media (width <= 640px) {
         .cropper-stage {
-          width: min(100%, 22rem);
-          min-height: 180px;
-          max-height: min(340px, 50dvh);
+          width: 100%;
+          max-width: 16rem;
+          min-height: 160px;
+          max-height: min(240px, 36dvh);
+        }
+
+        .file-button {
+          width: 100%;
         }
 
         .editor-footer {
-          flex-direction: column;
-          align-items: stretch;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .remove-button {
+          width: 100%;
+          text-align: center;
+          padding: 0.35rem 0.5rem;
+          order: -1;
+        }
+
+        .secondary-button,
+        .primary-button {
+          flex: 1 1 0;
+          text-align: center;
+          padding: 0.65rem 0.75rem;
         }
 
         .spacer {
