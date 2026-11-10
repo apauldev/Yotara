@@ -43,10 +43,7 @@ import { AvatarComponent } from './avatar.component';
             <app-avatar [image]="currentImage()" [name]="userName()" size="lg" />
             <div class="preview-copy">
               <strong>Choose a photo</strong>
-              <span
-                >JPEG, PNG, or WebP up to 5 MB. It is cropped and resized to a small square in your
-                browser — the file that is sent is far smaller than the one you pick.</span
-              >
+              <span>JPEG, PNG, or WebP under 5 MB.</span>
             </div>
           </div>
 
