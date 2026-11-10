@@ -239,9 +239,9 @@ import type { ProjectColor } from '@yotara/shared';
     }
 
     .capture-bar {
-      --capture-gap: 1.25rem;
-      --capture-padding-x: 1.25rem;
-      --capture-padding-y: 0.6rem;
+      --capture-gap: 0.75rem;
+      --capture-padding-x: 0.85rem;
+      --capture-padding-y: 0.65rem;
       --capture-radius: 1.2rem;
       --input-font-size: 1.06rem;
       --input-line-height: 1.5;
@@ -257,8 +257,7 @@ import type { ProjectColor } from '@yotara/shared';
       box-shadow:
         inset 0 0 0 1px var(--outline-variant),
         0 18px 32px var(--surface-dim);
-      padding: var(--capture-padding-y) var(--capture-padding-y) var(--capture-padding-y)
-        var(--capture-padding-x);
+      padding: var(--capture-padding-y) var(--capture-padding-x);
       position: relative;
       transition: box-shadow 0.2s ease;
 
@@ -282,26 +281,48 @@ import type { ProjectColor } from '@yotara/shared';
       min-width: 0;
       display: flex;
       align-items: center;
+      background: var(--surface-container-lowest);
+      border-radius: 0.75rem;
+      box-shadow: inset 0 0 0 1px var(--outline-variant);
+      transition: all 0.2s ease;
+
+      &:hover {
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--on-surface) 25%, transparent);
+      }
+
+      &:focus-within {
+        background: var(--surface);
+        box-shadow:
+          inset 0 0 0 1.5px var(--primary-solid),
+          0 0 0 3px var(--primary-soft);
+      }
+
+      &:has(input[aria-invalid='true']) {
+        box-shadow:
+          inset 0 0 0 1.5px var(--status-overdue),
+          0 0 0 3px color-mix(in srgb, var(--status-overdue) 18%, transparent);
+      }
     }
 
     .capture-highlighter,
     .capture-bar input {
+      font-family: inherit;
       font-size: var(--input-font-size);
       font-weight: var(--input-font-weight);
       line-height: var(--input-line-height);
-      padding: 0.4rem 0;
+      padding: 0.55rem 0.85rem;
+      min-height: 2.75rem;
+      box-sizing: border-box;
     }
 
     .capture-highlighter {
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      inset: 0;
       white-space: pre;
       overflow: hidden;
       pointer-events: none;
       color: var(--on-surface);
+      border-radius: inherit;
     }
 
     .capture-bar input {
@@ -313,6 +334,7 @@ import type { ProjectColor } from '@yotara/shared';
       caret-color: var(--on-surface);
       position: relative;
       z-index: 1;
+      border-radius: inherit;
 
       &::placeholder {
         color: var(--on-surface-subtle);
@@ -328,11 +350,11 @@ import type { ProjectColor } from '@yotara/shared';
       --suggestion-padding: 0.4rem;
 
       position: absolute;
-      top: calc(100% + 1rem);
-      left: -0.5rem;
-      width: calc(100% + 1rem);
+      top: calc(100% + 0.35rem);
+      left: 0;
+      width: 100%;
       min-width: 14rem;
-      max-width: 22rem;
+      max-width: 24rem;
       background: var(--surface-overlay);
       border-radius: var(--suggestion-radius);
       box-shadow:
@@ -471,6 +493,7 @@ import type { ProjectColor } from '@yotara/shared';
       font-weight: 600;
       padding: 0.5rem 0.75rem;
       min-width: 8rem;
+      min-height: 2.75rem;
       box-shadow: inset 0 0 0 1px var(--outline-variant);
       cursor: pointer;
       transition: all 0.2s ease;
