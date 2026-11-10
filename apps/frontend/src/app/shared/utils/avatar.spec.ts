@@ -85,29 +85,39 @@ describe('avatar file helpers', () => {
   });
 
   it('formats file sizes for messages', () => {
+    expect(formatFileSize(15 * 1024 * 1024)).toBe('15 MB');
     expect(formatFileSize(8 * 1024 * 1024)).toBe('8.0 MB');
     expect(formatFileSize(1.5 * 1024 * 1024)).toBe('1.5 MB');
-    expect(formatFileSize(512)).toBe('512 B');
+    expect(formatFileSize(150 * 1024)).toBe('150 KB');
     expect(formatFileSize(1536)).toBe('1.5 KB');
+    expect(formatFileSize(512)).toBe('512 B');
   });
 
   it('normalizes bare cropper output to a data URL', () => {
-    // Bare base64 gets its MIME sniffed from the magic bytes (PNG here),
-    // never blindly labelled WebP.
+    // Bare base64 gets its MIME sniffed from the magic bytes
     expect(toAvatarDataUrl('iVBORw0KGgoAAAANSUhEUg==')).toBe(
       'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==',
+    );
+    expect(toAvatarDataUrl('/9j/4AAQSkZJRg==')).toBe('data:image/jpeg;base64,/9j/4AAQSkZJRg==');
+    expect(toAvatarDataUrl('UklGRiIAAABXRUJQVLkA')).toBe(
+      'data:image/webp;base64,UklGRiIAAABXRUJQVLkA',
     );
     expect(toAvatarDataUrl('data:image/png;base64,iVBORw0KGgo=')).toBe(
       'data:image/png;base64,iVBORw0KGgo=',
     );
     expect(toAvatarDataUrl('data:image/svg+xml;base64,PHN2Zz4=')).toBeNull();
+    expect(toAvatarDataUrl('   ')).toBeNull();
+    expect(toAvatarDataUrl('')).toBeNull();
   });
 
-  it('checks the decoded byte cap', () => {
+  it('checks the decoded byte cap and format limits', () => {
     const small = `data:image/png;base64,${btoa('x'.repeat(100))}`;
     const large = `data:image/png;base64,${btoa('x'.repeat(AVATAR_MAX_DECODED_BYTES + 10))}`;
 
     expect(isAvatarWithinLimits(small)).toBeTrue();
     expect(isAvatarWithinLimits(large)).toBeFalse();
+    expect(isAvatarWithinLimits('invalid-format')).toBeFalse();
+    expect(isAvatarWithinLimits('data:image/png;base64,')).toBeFalse();
+    expect(isAvatarWithinLimits('data:image/png;base64,' + 'A'.repeat(200_001))).toBeFalse();
   });
 });

@@ -36,6 +36,8 @@ interface MockDraft {
   desktopNotifications?: boolean;
   dailyInsights?: boolean;
   showLoginTips?: boolean;
+  starterProjects?: unknown[];
+  starterLabels?: unknown[];
 }
 
 const DRAFT_KEY = 'yotara_wizard_draft:user-1';
@@ -85,9 +87,14 @@ describe('StartupWizardComponent', () => {
       storedDraft?: { savedAt: number; draft: MockDraft };
       theme?: Theme;
       user?: Partial<MockUser>;
+      skipCompleteConfirm?: boolean;
     } = {},
   ): Promise<void> {
     localStorage.clear();
+
+    if (options.skipCompleteConfirm !== undefined) {
+      localStorage.setItem('yotara_skipCompleteConfirm', String(options.skipCompleteConfirm));
+    }
 
     if (options.storedDraft) {
       localStorage.setItem(
@@ -157,6 +164,7 @@ describe('StartupWizardComponent', () => {
     await TestBed.configureTestingModule({
       imports: [StartupWizardComponent],
       providers: [
+        PreferencesStore,
         { provide: AuthStateService, useValue: authState },
         { provide: Router, useValue: router },
         { provide: ActivatedRoute, useValue: route },
@@ -177,6 +185,7 @@ describe('StartupWizardComponent', () => {
   afterEach(() => {
     localStorage.clear();
     sessionStorage.clear();
+    TestBed.resetTestingModule();
   });
 
   it('renders the welcome step and a six-step indicator', async () => {
@@ -203,13 +212,19 @@ describe('StartupWizardComponent', () => {
     expect(component.draft().archiveAutoDelete).toBeFalse();
     expect(component.draft().showLabelNames).toBeTrue();
     expect(component.draft().colorFirstLabels).toBeFalse();
-    expect(component.draft().askBeforeComplete).toBeFalse();
+    expect(component.draft().askBeforeComplete).toBeTrue();
     expect(component.draft().dailyInsights).toBeTrue();
     expect(component.draft().showLoginTips).toBeTrue();
     expect(component.draft().starterProjects.length).toBe(7);
     expect(component.draft().starterLabels.length).toBe(6);
     expect(component.draft().starterProjects.every((project) => project.selected)).toBeTrue();
     expect(component.draft().starterLabels.every((label) => label.selected)).toBeTrue();
+  });
+
+  it('initializes askBeforeComplete to false when skipCompleteConfirm is already enabled in preferences', async () => {
+    await create({ skipCompleteConfirm: true });
+
+    expect(component.draft().askBeforeComplete).toBeFalse();
   });
 
   it('advances and retreats without losing choices', async () => {
@@ -605,5 +620,183 @@ describe('StartupWizardComponent', () => {
     expect(authState.signOut).toHaveBeenCalled();
     expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
     expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
+
+  it('manages avatar modal, saves, removes, and carries image on completion', async () => {
+    await create();
+
+    component.openAvatarEditor();
+    expect(component.isAvatarEditorOpen()).toBeTrue();
+
+    const dataUrl = 'data:image/png;base64,iVBORw0KGgo=';
+    component.onAvatarSaved(dataUrl);
+    expect(component.draft().avatarDataUrl).toBe(dataUrl);
+    expect(component.draft().avatarTouched).toBeTrue();
+    expect(component.isAvatarEditorOpen()).toBeFalse();
+
+    await component.complete();
+    expect(authState.completeOnboarding).toHaveBeenCalledWith(
+      'personal',
+      jasmine.objectContaining({ image: dataUrl }),
+    );
+
+    // Now remove avatar
+    component.onAvatarRemoved();
+    expect(component.draft().avatarDataUrl).toBeNull();
+    expect(component.draft().avatarTouched).toBeTrue();
+
+    await component.complete();
+    expect(authState.completeOnboarding).toHaveBeenCalledWith(
+      'personal',
+      jasmine.objectContaining({ image: null }),
+    );
+  });
+
+  it('manages starter projects: add, toggle, remove, and duplicate validation', async () => {
+    await create();
+
+    // Type new project
+    component.onProjectInput(input('Client X'));
+    expect(component.newProjectName()).toBe('Client X');
+
+    component.addProject();
+    expect(component.draft().starterProjects.some((p) => p.name === 'Client X')).toBeTrue();
+    expect(component.newProjectName()).toBe('');
+
+    // Try duplicate project
+    component.onProjectInput(input('Client X'));
+    component.addProject();
+    expect(component.projectAddError()).toBe('A project with that name already exists.');
+
+    // Toggle project
+    component.toggleProject('Client X', checkbox(false));
+    expect(
+      component.draft().starterProjects.find((p) => p.name === 'Client X')?.selected,
+    ).toBeFalse();
+
+    // Remove project
+    component.removeProject('Client X');
+    expect(component.draft().starterProjects.some((p) => p.name === 'Client X')).toBeFalse();
+
+    // Removing a default project does nothing
+    component.removeProject('Work');
+    expect(component.draft().starterProjects.some((p) => p.name === 'Work')).toBeTrue();
+  });
+
+  it('manages starter labels: add, toggle, remove, and duplicate validation', async () => {
+    await create();
+
+    // Type new label
+    component.onLabelInput(input('Design'));
+    expect(component.newLabelName()).toBe('Design');
+
+    component.addLabel();
+    expect(component.draft().starterLabels.some((l) => l.name === 'Design')).toBeTrue();
+
+    // Try duplicate label
+    component.onLabelInput(input('Design'));
+    component.addLabel();
+    expect(component.labelAddError()).toBe('A label with that name already exists.');
+
+    // Toggle label
+    component.toggleLabel('Design', checkbox(false));
+    expect(component.draft().starterLabels.find((l) => l.name === 'Design')?.selected).toBeFalse();
+
+    // Remove custom label
+    component.removeLabel('Design');
+    expect(component.draft().starterLabels.some((l) => l.name === 'Design')).toBeFalse();
+
+    // Suite helpers
+    component.startEmpty();
+    expect(component.draft().starterProjects.every((p) => !p.selected)).toBeTrue();
+    expect(component.draft().starterLabels.every((l) => !l.selected)).toBeTrue();
+
+    component.useDefaultSuite();
+    expect(component.draft().starterProjects.every((p) => p.selected)).toBeTrue();
+    expect(component.draft().starterLabels.every((l) => l.selected)).toBeTrue();
+  });
+
+  it('creates the first task on onboarding complete or warns on error', async () => {
+    await create();
+    component.setFirstTaskTitle(input('My initial task'));
+    expect(component.draft().firstTaskTitle).toBe('My initial task');
+
+    // Success path
+    await component.complete();
+    expect(taskService.createTask).toHaveBeenCalledWith({
+      title: 'My initial task',
+      status: 'inbox',
+    });
+
+    // Error path toasts a warning
+    taskService.createTask.and.rejectWith(new Error('Task service down'));
+    await component.complete();
+    expect(logService.warn).toHaveBeenCalled();
+    expect(statusService.show).toHaveBeenCalledWith(
+      jasmine.stringMatching(/couldn’t save your first task/i),
+      'warning',
+      8000,
+    );
+  });
+
+  it('resolves tipTitle accurately', async () => {
+    await create();
+    expect(component.tipTitle('capture-date')).toBe('Type dates in plain language');
+    expect(component.tipTitle('unknown-tip-id')).toBe('A useful tip');
+  });
+
+  it('computes labels, summaries, and handles empty starter states', async () => {
+    await create({ user: { name: '' } });
+    expect(component.welcomeHeading()).toBe('Welcome to Yotara');
+    expect(component.primaryLabel()).toBe('Continue');
+
+    component.completing.set(true);
+    expect(component.primaryLabel()).toBe('Saving...');
+    component.completing.set(false);
+
+    routeParams.next(convertToParamMap({ step: 'ready' }));
+    fixture.detectChanges();
+    expect(component.primaryLabel()).toBe('Enter Yotara');
+    expect(component.themeLabel()).toBe('Light Forest');
+    expect(component.notificationSummary()).toContain('Completion toasts on');
+    expect(component.starterSummary()).toContain('projects');
+    expect(component.starterIsEmpty()).toBeFalse();
+
+    component.startEmpty();
+    expect(component.starterIsEmpty()).toBeTrue();
+  });
+
+  it('restores custom starter projects and labels from draft', async () => {
+    await create({
+      storedDraft: {
+        savedAt: Date.now(),
+        draft: {
+          step: 'starter',
+          starterProjects: [
+            { name: 'Work', selected: false, isDefault: true },
+            { name: 'Side Project Alpha', color: 'clay', selected: true, isDefault: false },
+          ] as any,
+          starterLabels: [
+            { name: 'Urgent', selected: false, isDefault: true },
+            {
+              name: 'Custom Label',
+              color: '#10b981',
+              icon: 'flame',
+              selected: true,
+              isDefault: false,
+            },
+          ] as any,
+        },
+      },
+    });
+
+    expect(component.draft().starterProjects.find((p) => p.name === 'Work')?.selected).toBeFalse();
+    expect(
+      component.draft().starterProjects.find((p) => p.name === 'Side Project Alpha')?.color,
+    ).toBe('clay');
+    expect(component.draft().starterLabels.find((l) => l.name === 'Urgent')?.selected).toBeFalse();
+    expect(component.draft().starterLabels.find((l) => l.name === 'Custom Label')?.icon).toBe(
+      'flame',
+    );
   });
 });

@@ -11,15 +11,18 @@ import { AvatarComponent } from './avatar.component';
     <app-avatar
       [image]="image"
       [decorative]="decorative"
-      name="Jordan Doe"
-      email="jordan@example.com"
-      size="md"
+      [name]="name"
+      [email]="email"
+      [size]="size"
     />
   `,
 })
 class AvatarHostComponent {
   image: string | null = null;
   decorative = true;
+  name: string | null = 'Jordan Doe';
+  email: string | null = 'jordan@example.com';
+  size: 'sm' | 'md' | 'lg' = 'md';
 }
 
 describe('AvatarComponent', () => {
@@ -69,5 +72,28 @@ describe('AvatarComponent', () => {
     const avatar = fixture.debugElement.query(By.css('.app-avatar'));
     expect(avatar.nativeElement.getAttribute('role')).toBe('img');
     expect(avatar.nativeElement.getAttribute('aria-label')).toBe('Jordan Doe');
+  });
+
+  it('falls back to email or Avatar for standalone label when name is missing', () => {
+    fixture.componentInstance.decorative = false;
+    fixture.componentInstance.name = null;
+    fixture.detectChanges();
+
+    const avatar = fixture.debugElement.query(By.css('.app-avatar'));
+    expect(avatar.nativeElement.getAttribute('aria-label')).toBe('jordan@example.com');
+
+    fixture.componentInstance.email = null;
+    fixture.detectChanges();
+    expect(avatar.nativeElement.getAttribute('aria-label')).toBe('Avatar');
+  });
+
+  it('applies sm and lg size classes correctly', () => {
+    fixture.componentInstance.size = 'sm';
+    fixture.detectChanges();
+    expect(fixture.debugElement.query(By.css('.app-avatar-sm'))).toBeTruthy();
+
+    fixture.componentInstance.size = 'lg';
+    fixture.detectChanges();
+    expect(fixture.debugElement.query(By.css('.app-avatar-lg'))).toBeTruthy();
   });
 });

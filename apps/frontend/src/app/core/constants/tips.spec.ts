@@ -1,4 +1,4 @@
-import { TIPS, WIZARD_QUICK_ADD_TIPS, WIZARD_TIPS } from './tips';
+import { TIPS, WIZARD_QUICK_ADD_TIPS, WIZARD_TIPS, findTipsByIds } from './tips';
 
 describe('tips catalogue', () => {
   it('gives every tip a stable, unique id and non-empty text', () => {
@@ -35,5 +35,10 @@ describe('tips catalogue', () => {
         expect(tip.text.toLowerCase()).not.toContain(phrase);
       }
     }
+  });
+
+  it('filters out unknown tip ids in findTipsByIds', () => {
+    const result = findTipsByIds(['capture-date', 'non-existent-tip-id', 'today-view']);
+    expect(result.map((tip) => tip.id)).toEqual(['capture-date', 'today-view']);
   });
 });

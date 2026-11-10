@@ -670,9 +670,9 @@ export class StartupWizardComponent {
       colorFirstLabels: this.preferences.colorFirstLabels(),
       captureBehavior: user?.captureBehavior ?? 'quick',
       archiveAutoDelete: user?.archiveAutoDelete ?? true,
-      // The wizard presents the confirmation question with its own opt-in
-      // default (§3.6); an explicit choice is what gets saved below.
-      askBeforeComplete: false,
+      // Ask-before-complete reflects PreferencesStore's skipCompleteConfirm
+      // (false => confirmation dialog on, so askBeforeComplete defaults to true).
+      askBeforeComplete: !this.preferences.skipCompleteConfirm(),
       actionNotifications: this.preferences.actionNotifications(),
       desktopNotifications:
         this.notificationService.isSupported && this.notificationService.permission() !== 'denied'

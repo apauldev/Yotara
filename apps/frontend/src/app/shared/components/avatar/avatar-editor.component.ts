@@ -322,9 +322,16 @@ export class AvatarEditorComponent {
   protected readonly imageFile = signal<File | undefined>(undefined);
   protected readonly croppedDataUrl = signal<string | null>(null);
   protected readonly localError = signal<string | null>(null);
-  protected readonly displayError = computed(() => this.localError() ?? this.error());
+  private readonly dismissedExternalError = signal<string | null>(null);
+  protected readonly displayError = computed(() => {
+    if (this.localError()) {
+      return this.localError();
+    }
+    const external = this.error();
+    return external && external !== this.dismissedExternalError() ? external : null;
+  });
   protected readonly canSave = computed(
-    () => this.croppedDataUrl() !== null && !this.displayError() && !this.saving(),
+    () => this.croppedDataUrl() !== null && !this.localError() && !this.saving(),
   );
 
   constructor() {
@@ -333,6 +340,7 @@ export class AvatarEditorComponent {
         this.imageFile.set(undefined);
         this.croppedDataUrl.set(null);
         this.localError.set(null);
+        this.dismissedExternalError.set(null);
       }
     });
   }
@@ -345,6 +353,8 @@ export class AvatarEditorComponent {
     if (!file) {
       return;
     }
+
+    this.dismissedExternalError.set(this.error());
 
     const error = validateAvatarFile(file);
     if (error) {
@@ -370,6 +380,8 @@ export class AvatarEditorComponent {
       return;
     }
 
+    this.dismissedExternalError.set(this.error());
+
     const dataUrl = toAvatarDataUrl(base64);
     if (!dataUrl) {
       this.croppedDataUrl.set(null);
@@ -394,6 +406,7 @@ export class AvatarEditorComponent {
   }
 
   protected onSave(): void {
+    this.dismissedExternalError.set(this.error());
     const dataUrl = this.croppedDataUrl();
     if (dataUrl) {
       this.save.emit(dataUrl);

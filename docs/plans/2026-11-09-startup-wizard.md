@@ -156,9 +156,9 @@ disabled, while checking it sets `skipCompleteConfirm = true`
    §2.3 plus the Profile photo control this plan adds, using the same labels and semantics. Tips,
    theme choice, and starter content are the only wizard-specific surfaces.
 6. **Fix the inverted confirmation wording in the wizard.** Present **Ask before completing
-   tasks** (checked means `skipCompleteConfirm = false`), default off, matching the UX review's
-   recommendation. Leave the existing Settings row's behavior alone in this plan; correcting its
-   label is a separate small fix.
+   tasks** (checked means `skipCompleteConfirm = false`), default on, preserving the existing
+   app behavior and Settings default (`skipCompleteConfirm = false`). Leave the existing Settings
+   row's behavior alone in this plan; correcting its label is a separate small fix.
 7. **Tips are curated, not random.** The tips step shows three known-good tips with concrete
    examples: inline capture syntax, Today/Upcoming, and calendar drag-to-reschedule. Extract the
    tip catalogue so the shell and wizard share one source of truth, and remove tips that describe
@@ -1256,7 +1256,8 @@ one PR.
 3. When project deletion ships, should starter projects be retireable (preserve tasks) or hard
    deleted? The schema's `retiredAt` suggests retire-first.
 4. Should the wizard's confirmation preference change the shipped default for existing users, or
-   only set it for new accounts? This plan changes it for new accounts only.
+   only set it for new accounts? This plan preserves the shipped default (`skipCompleteConfirm = false`,
+   confirmation on) across both existing and new accounts.
 5. Should a "match system" theme be added to Settings and the wizard? It does not exist today;
    adding it means `ThemeService` must resolve `prefers-color-scheme` and listen for changes.
 6. Is rejecting HEIC acceptable, or should we add a browser-side HEIC converter? This plan rejects

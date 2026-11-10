@@ -31,4 +31,17 @@ describe('getInitials', () => {
     expect(getInitials('Zoë Smith')).toBe('ZS');
     expect(getInitials('田中 太郎')).toBe('田太');
   });
+
+  it('falls back to Array.from if Intl.Segmenter throws or is unavailable', () => {
+    const originalSegmenter = (Intl as unknown as { Segmenter: unknown }).Segmenter;
+    try {
+      (Intl as unknown as { Segmenter: unknown }).Segmenter = function () {
+        throw new Error('Not supported');
+      };
+      expect(getInitials('Fallback Test')).toBe('FT');
+      expect(getInitials('', 'fallback@example.com')).toBe('F');
+    } finally {
+      (Intl as unknown as { Segmenter: unknown }).Segmenter = originalSegmenter;
+    }
+  });
 });
