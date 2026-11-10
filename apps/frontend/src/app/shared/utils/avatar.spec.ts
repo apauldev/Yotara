@@ -1,5 +1,6 @@
 import {
   AVATAR_MAX_DECODED_BYTES,
+  formatFileSize,
   isAvatarWithinLimits,
   isSafeAvatarImage,
   toAvatarDataUrl,
@@ -71,7 +72,23 @@ describe('avatar file helpers', () => {
     expect(validateAvatarFile(svg)).toBe('Choose a JPEG, PNG, or WebP image.');
     expect(validateAvatarFile(gif)).toBe('Choose a JPEG, PNG, or WebP image.');
     expect(validateAvatarFile(heic)).toBe('Choose a JPEG, PNG, or WebP image.');
-    expect(validateAvatarFile(huge)).toBe('Choose an image up to 5 MB.');
+    expect(validateAvatarFile(huge)).toBe(
+      'That photo is 5.0 MB. Choose an image up to 5 MB \u2014 or export it at a smaller size.',
+    );
+  });
+
+  it('tells the person how big their photo actually is when it is too large', () => {
+    const huge = new File([new Uint8Array(8 * 1024 * 1024)], 'huge.png', { type: 'image/png' });
+    expect(validateAvatarFile(huge)).toBe(
+      'That photo is 8.0 MB. Choose an image up to 5 MB \u2014 or export it at a smaller size.',
+    );
+  });
+
+  it('formats file sizes for messages', () => {
+    expect(formatFileSize(8 * 1024 * 1024)).toBe('8.0 MB');
+    expect(formatFileSize(1.5 * 1024 * 1024)).toBe('1.5 MB');
+    expect(formatFileSize(512)).toBe('512 B');
+    expect(formatFileSize(1536)).toBe('1.5 KB');
   });
 
   it('normalizes bare cropper output to a data URL', () => {

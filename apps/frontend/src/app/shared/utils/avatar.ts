@@ -10,6 +10,9 @@ const AVATAR_DATA_URL_PATTERN = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+
 /** Input cap for a chosen file. The browser resizes before anything is sent. */
 export const AVATAR_MAX_FILE_BYTES = 5 * 1024 * 1024;
 
+/** Human-readable input cap for messages, e.g. "5 MB". */
+export const AVATAR_MAX_FILE_SIZE_LABEL = '5 MB';
+
 /** Server cap for the decoded image. */
 export const AVATAR_MAX_DECODED_BYTES = 128 * 1024;
 
@@ -58,9 +61,22 @@ export function validateAvatarFile(file: File): string | null {
     return 'Choose a JPEG, PNG, or WebP image.';
   }
   if (file.size > AVATAR_MAX_FILE_BYTES) {
-    return 'Choose an image up to 5 MB.';
+    return `That photo is ${formatFileSize(file.size)}. Choose an image up to ${AVATAR_MAX_FILE_SIZE_LABEL} — or export it at a smaller size.`;
   }
   return null;
+}
+
+/** Practical file-size label, e.g. "8.0 MB" or "1.5 KB". */
+export function formatFileSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) {
+    const mb = bytes / (1024 * 1024);
+    return `${mb.toFixed(mb >= 10 ? 0 : 1)} MB`;
+  }
+  if (bytes >= 1024) {
+    const kb = bytes / 1024;
+    return `${kb.toFixed(kb >= 100 ? 0 : 1)} KB`;
+  }
+  return `${Math.round(bytes)} B`;
 }
 
 /**
