@@ -31,7 +31,7 @@ import { AvatarComponent } from './avatar.component';
     <app-modal
       [open]="open()"
       title="Profile photo"
-      size="sm"
+      size="md"
       [showFooter]="false"
       [closeOnBackdrop]="!saving()"
       [closeOnEsc]="!saving()"
@@ -57,6 +57,7 @@ import { AvatarComponent } from './avatar.component';
               [imageFile]="imageFile()"
               [maintainAspectRatio]="true"
               [aspectRatio]="1"
+              [containWithinAspectRatio]="true"
               [resizeToWidth]="256"
               [resizeToHeight]="256"
               [output]="'base64'"
@@ -66,6 +67,7 @@ import { AvatarComponent } from './avatar.component';
               [imageAltText]="'Profile photo crop preview'"
               [cropperFrameAriaLabel]="'Crop your profile photo'"
               (imageCropped)="onImageCropped($event)"
+              (imageLoaded)="onImageLoaded()"
               (loadImageFailed)="onLoadFailed()"
             />
           </div>
@@ -177,17 +179,27 @@ import { AvatarComponent } from './avatar.component';
       }
 
       .cropper-stage {
-        height: 280px;
+        width: min(22rem, 100%);
+        min-height: 220px;
+        max-height: min(420px, 60dvh);
+        height: auto;
+        box-sizing: border-box;
+        justify-self: center;
         border-radius: 1rem;
-        overflow: hidden;
+        overflow: visible;
         background: var(--surface-container-low);
         box-shadow: inset 0 0 0 1px var(--outline-variant);
+        /*
+         * Establish a touch-action context so the browser doesn't
+         * intercept pointer events before the cropper can handle them.
+         */
+        touch-action: none;
       }
 
       image-cropper {
         display: block;
         width: 100%;
-        height: 100%;
+        height: auto;
       }
 
       .editor-error {
@@ -258,7 +270,9 @@ import { AvatarComponent } from './avatar.component';
 
       @media (width <= 480px) {
         .cropper-stage {
-          height: 230px;
+          width: min(100%, 22rem);
+          min-height: 180px;
+          max-height: min(340px, 50dvh);
         }
 
         .editor-footer {
@@ -323,6 +337,10 @@ export class AvatarEditorComponent {
     this.localError.set(null);
     this.croppedDataUrl.set(null);
     this.imageFile.set(file);
+  }
+
+  protected onImageLoaded(): void {
+    this.localError.set(null);
   }
 
   protected onImageCropped(event: ImageCroppedEvent): void {
