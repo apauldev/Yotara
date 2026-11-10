@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.90.0](https://github.com/apauldev/Yotara/compare/v0.89.2...v0.90.0) (2026-11-10)
+
+
+### Features
+
+* **avatar:** clearer oversized-photo messaging ([63a1c5a](https://github.com/apauldev/Yotara/commit/63a1c5a1514b92a17fc69259f872d26ef59e2906))
+* **avatar:** trim the upload hint to image under 5mb with the format ([a214465](https://github.com/apauldev/Yotara/commit/a2144659cef96a21985644bd254b40b2f1724570))
+* **onboarding:** clarify desktop notifications are not push ([2a60bd1](https://github.com/apauldev/Yotara/commit/2a60bd1a4cc8b15480d4754d9b747f3e8747f09c))
+* **onboarding:** replace the start screen with the startup wizard ([393d451](https://github.com/apauldev/Yotara/commit/393d45167bc480725ab50e6cb5b98a343c63c83b))
+* **onboarding:** split capture tips and restyle the step footer ([3f460a3](https://github.com/apauldev/Yotara/commit/3f460a3c479dddb5afa23de5fa42c03f52f30770))
+* **onboarding:** ux polish for the startup wizard ([b4b5c1a](https://github.com/apauldev/Yotara/commit/b4b5c1a303143add92d162111f0c9c0a9f5798b5))
+* **wizard:** add color and icon metadata pickers to starter projects and labels ([45fc383](https://github.com/apauldev/Yotara/commit/45fc383f4e723f7d8ad8934496852170b3981f76))
+
+
+### Bug Fixes
+
+* **avatar-editor:** fix crop drag on non-square images, add touch support ([a69159d](https://github.com/apauldev/Yotara/commit/a69159d0d7b798ba220c454f4b787edfaf3d3b00))
+* **capture-bar:** give inbox task capture field a visible text box container ([f4a5fd9](https://github.com/apauldev/Yotara/commit/f4a5fd9b215e2f0be3cd071377a5ed93f84ce5df))
+* **onboarding:** address review findings on the startup wizard ([528d293](https://github.com/apauldev/Yotara/commit/528d29361cd86b024ad1182bc00ced101f44c6ed))
+* **onboarding:** share Unicode name folding between wizard and API ([82be4da](https://github.com/apauldev/Yotara/commit/82be4da3a522cca9a64769c8bbaa081cd455aa53))
+* **onboarding:** uplift test coverage, resolve save retry, and preserve confirmation ([a03ecd2](https://github.com/apauldev/Yotara/commit/a03ecd251dfee3cb7bda6a2bfe4f871f1d71e2dd))
+* **wizard:** fix mobile footer cut-off and avatar modal layout ([e8e814a](https://github.com/apauldev/Yotara/commit/e8e814a39422aaefb95f1083256b6a400ed02100))
+* **wizard:** remove claim that labels can be merged ([bacca89](https://github.com/apauldev/Yotara/commit/bacca89fa51fbc7b70127bf4046c04c598b1e9a0))
+
 ## [0.89.2](https://github.com/apauldev/Yotara/compare/v0.89.1...v0.89.2) (2026-11-09)
 
 
