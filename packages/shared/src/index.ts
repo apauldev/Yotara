@@ -4,4 +4,5 @@ export * from './default-labels.js';
 export * from './default-projects.js';
 export * from './label-colors.js';
 export * from './label-icons.js';
+export * from './name-key.js';
 export * from './domain.js';

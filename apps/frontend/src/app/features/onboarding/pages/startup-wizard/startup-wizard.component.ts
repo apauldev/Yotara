@@ -13,6 +13,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import {
   DEFAULT_LABELS,
   DEFAULT_PROJECTS,
+  nameKey,
   type CaptureBehavior,
   type LabelIcon,
   type ProjectColor,
@@ -424,6 +425,10 @@ export class StartupWizardComponent {
   }
 
   skip(): void {
+    // Skip means "apply the defaults I have so far and finish". The draft
+    // already holds the defaults (default theme, Settings defaults for the
+    // rest), so completing right away persists a clean baseline instead of
+    // leaving the person with a half-configured account.
     void this.complete();
   }
 
@@ -461,11 +466,14 @@ export class StartupWizardComponent {
       this.preferences.setActionNotifications(draft.actionNotifications);
       this.preferences.setDesktopNotifications(draft.desktopNotifications);
       this.preferences.setInsightDismissed(!draft.dailyInsights);
-      // Persist the person's choice for later sessions, then suppress the tip
-      // for this session only so the shell does not open another modal right
-      // after the wizard that just showed tips.
-      this.preferences.setLoginTipDismissed(!draft.showLoginTips, true);
-      this.preferences.setLoginTipDismissed(true, false);
+      // Persist the person's choice for later sessions. The session dismiss
+      // is only needed when tips stay on; a permanent "off" already suppresses
+      // the shell modal.
+      if (draft.showLoginTips) {
+        this.preferences.setLoginTipDismissed(true, false);
+      } else {
+        this.preferences.setLoginTipDismissed(true, true);
+      }
       this.preferences.setWorkspaceType('personal');
       this.preferences.setOnboardingCompleted();
       this.clearDraft();
@@ -548,6 +556,9 @@ export class StartupWizardComponent {
   }
 
   private syncStepParam(step: WizardStep): void {
+    if (this.route.snapshot.queryParamMap.get('step') === step) {
+      return;
+    }
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { step },
@@ -836,10 +847,6 @@ function dedupeCustoms<T extends { name: string }>(
   }
 
   return deduped;
-}
-
-function nameKey(name: string): string {
-  return name.trim().toLocaleLowerCase();
 }
 
 function isChecked(event: Event): boolean {
