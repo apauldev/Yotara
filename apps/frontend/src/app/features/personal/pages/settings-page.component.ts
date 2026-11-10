@@ -190,7 +190,9 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
                 } @else if (notificationService.permission() === 'denied') {
                   Blocked — enable in browser settings
                 } @else {
-                  Show browser notifications when tasks are due.
+                  Show browser notifications when tasks are due. Only works while Yotara is open in
+                  this browser — it is not a push notification, so it cannot reach you when Yotara
+                  is closed.
                 }
               </span>
             </div>
@@ -203,7 +205,7 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
                 aria-label="Toggle desktop notifications"
               />
             } @else {
-              <span class="coming-soon">N/A</span>
+              <span class="coming-soon">Off</span>
             }
           </label>
           <!-- <div class="settings-item settings-item-disabled">
