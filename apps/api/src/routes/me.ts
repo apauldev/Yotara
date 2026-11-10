@@ -5,7 +5,6 @@ import { db } from '../db/client.js';
 import { labels, projects, tasks, users } from '../db/schema.js';
 import { authCookieSecurity, errorResponseSchema, withJsonResponse } from '../docs/openapi.js';
 import { sendUnauthorized } from '../lib/api-errors.js';
-import { BadRequestError } from '../lib/app-error.js';
 import { normalizeAvatarImage } from '../lib/avatar.js';
 import { normalizeStarterContent, type NormalizedStarterContent } from '../lib/starter-content.js';
 import requireAuthenticatedUser from '../plugins/auth-required.js';
@@ -169,11 +168,11 @@ export default async function meRoutes(fastify: FastifyInstance) {
 
       let starterContent: NormalizedStarterContent | null = null;
       if (request.body.starterContent !== undefined) {
-        if (nextWorkspaceMode === 'team') {
-          throw new BadRequestError('Starter content is only available for personal workspaces');
-        }
-        // Ignore starter content on non-transition saves; after completion the
-        // person manages projects and labels on their own pages.
+        // Starter content only seeds on the onboarding-incomplete → complete
+        // transition for personal workspaces. A team workspace or a
+        // non-transition save ignores it (the person manages projects and
+        // labels on their own pages after completion). Only a malformed
+        // payload on a seeding transition is rejected.
         if (shouldSeed) {
           starterContent = normalizeStarterContent(request.body.starterContent);
         }

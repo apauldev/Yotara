@@ -18,6 +18,21 @@ function getAuthClient() {
   });
 }
 
+/**
+ * Error thrown by `request()` carrying the HTTP status so callers can branch
+ * on it. Named `RequestError` to avoid colliding with the `ApiError` response
+ * interface in `domain.ts`.
+ */
+export class RequestError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'RequestError';
+    this.status = status;
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
@@ -30,7 +45,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const errorBody = (await response.json().catch(() => null)) as { message?: string } | null;
-    throw new Error(errorBody?.message ?? `Request failed with status ${response.status}`);
+    throw new RequestError(
+      response.status,
+      errorBody?.message ?? `Request failed with status ${response.status}`,
+    );
   }
 
   return (await response.json()) as T;

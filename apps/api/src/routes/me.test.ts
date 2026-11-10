@@ -553,7 +553,7 @@ test('PATCH /me rejects invalid starter content without seeding anything', async
   }
 });
 
-test('PATCH /me rejects starter content for a team workspace', async () => {
+test('PATCH /me ignores starter content for a team workspace', async () => {
   const ctx = await createAuthedApp();
 
   try {
@@ -566,15 +566,15 @@ test('PATCH /me rejects starter content for a team workspace', async () => {
       payload: {
         workspaceMode: 'team',
         onboardingCompleted: true,
-        starterContent: { projects: [], labels: [] },
+        starterContent: { projects: [{ name: 'Should Not Seed' }], labels: [] },
       },
     });
 
-    assert.equal(response.statusCode, 400);
+    assert.equal(response.statusCode, 200);
 
     const profile = await ctx.app.inject({ method: 'GET', url: '/me', headers: { cookie } });
-    assert.equal(profile.json().user.workspaceMode, null);
-    assert.equal(profile.json().user.onboardingCompleted, false);
+    assert.equal(profile.json().user.workspaceMode, 'team');
+    assert.equal(profile.json().user.onboardingCompleted, true);
   } finally {
     await ctx.cleanup();
   }

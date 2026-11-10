@@ -257,11 +257,14 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
                   [disabled]="isSavingPhoto()"
                   (click)="onPhotoRemove()"
                 >
-                  Remove
+                  {{ isSavingPhoto() ? 'Removing…' : 'Remove' }}
                 </button>
               }
             </div>
           </div>
+          @if (photoError() && !isAvatarEditorOpen()) {
+            <p class="photo-inline-error" role="alert">{{ photoError() }}</p>
+          }
           <div class="settings-item">
             <div class="settings-item-copy">
               <strong>Email</strong>
@@ -701,6 +704,13 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
       .photo-link:disabled {
         opacity: 0.6;
         cursor: default;
+      }
+
+      .photo-inline-error {
+        margin: 0.35rem 0 0.25rem;
+        color: var(--status-overdue);
+        font-size: 0.88rem;
+        font-weight: 600;
       }
 
       .settings-link {

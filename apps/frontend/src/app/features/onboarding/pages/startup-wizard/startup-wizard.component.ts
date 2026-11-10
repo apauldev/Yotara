@@ -13,6 +13,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import {
   DEFAULT_LABELS,
   DEFAULT_PROJECTS,
+  RequestError,
   nameKey,
   type CaptureBehavior,
   type LabelIcon,
@@ -203,6 +204,9 @@ export class StartupWizardComponent {
       const nextStep = params.get('step');
       if (this.isStep(nextStep) && nextStep !== this.step()) {
         this.step.set(nextStep);
+        // Keep the persisted draft in step with the URL so a refresh after
+        // back/forward resumes at the visible step instead of a stale one.
+        this.patchDraft({ step: nextStep });
         this.focusStepHeading();
       }
     });
@@ -466,13 +470,13 @@ export class StartupWizardComponent {
       this.preferences.setActionNotifications(draft.actionNotifications);
       this.preferences.setDesktopNotifications(draft.desktopNotifications);
       this.preferences.setInsightDismissed(!draft.dailyInsights);
-      // Persist the person's choice for later sessions. The session dismiss
-      // is only needed when tips stay on; a permanent "off" already suppresses
-      // the shell modal.
+      // Persist the person's choice permanently (including re-enabling tips
+      // after a previous "off", which must write 'false'), then suppress the
+      // tip for this session only so the shell does not open a modal right
+      // after the wizard that just showed tips.
+      this.preferences.setLoginTipDismissed(!draft.showLoginTips, true);
       if (draft.showLoginTips) {
         this.preferences.setLoginTipDismissed(true, false);
-      } else {
-        this.preferences.setLoginTipDismissed(true, true);
       }
       this.preferences.setWorkspaceType('personal');
       this.preferences.setOnboardingCompleted();
@@ -708,8 +712,10 @@ export class StartupWizardComponent {
   }
 
   private isSessionError(error: unknown): boolean {
-    const message = error instanceof Error ? error.message : String(error);
-    return /\b(401|403)\b/.test(message);
+    if (error instanceof RequestError) {
+      return error.status === 401 || error.status === 403;
+    }
+    return false;
   }
 }
 

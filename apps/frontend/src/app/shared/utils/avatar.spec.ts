@@ -75,7 +75,11 @@ describe('avatar file helpers', () => {
   });
 
   it('normalizes bare cropper output to a data URL', () => {
-    expect(toAvatarDataUrl('iVBORw0KGgo=')).toBe('data:image/webp;base64,iVBORw0KGgo=');
+    // Bare base64 gets its MIME sniffed from the magic bytes (PNG here),
+    // never blindly labelled WebP.
+    expect(toAvatarDataUrl('iVBORw0KGgoAAAANSUhEUg==')).toBe(
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==',
+    );
     expect(toAvatarDataUrl('data:image/png;base64,iVBORw0KGgo=')).toBe(
       'data:image/png;base64,iVBORw0KGgo=',
     );

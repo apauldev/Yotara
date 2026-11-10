@@ -2,6 +2,7 @@ import { signal, type WritableSignal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap, type ParamMap } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
+import { RequestError } from '@yotara/shared';
 import type { Theme } from '../../../../core/constants/themes';
 import { AuthStateService } from '../../../../core/services/auth-state.service';
 import { LogService } from '../../../../core/services/log.service';
@@ -474,7 +475,9 @@ describe('StartupWizardComponent', () => {
 
   it('sends the person to login when the session ended', async () => {
     await create();
-    authState.completeOnboarding.and.rejectWith(new Error('Request failed with status 401'));
+    // Real session expiry: AuthService throws a RequestError carrying the
+    // status, not an error whose message happens to mention 401.
+    authState.completeOnboarding.and.rejectWith(new RequestError(401, 'Unauthorized'));
 
     await component.complete();
 

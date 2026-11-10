@@ -4,10 +4,10 @@ export interface Tip {
 }
 
 /**
- * Login-tip catalogue shared by the personal shell and (in a later part)
- * the startup wizard. Every entry must describe a shipped feature — do not
- * add tips for unshipped surfaces (`?` shortcut sheet, batch actions,
- * drag-to-reorder in lists).
+ * Login-tip catalogue shown by the personal shell; the startup wizard curates
+ * three of these via `WIZARD_TIPS` below. Every entry must describe a shipped
+ * feature — do not add tips for unshipped surfaces (`?` shortcut sheet,
+ * batch actions, drag-to-reorder in lists).
  */
 export const TIPS: readonly Tip[] = [
   {
@@ -128,22 +128,14 @@ export const TIPS: readonly Tip[] = [
   },
 ];
 
+const WIZARD_TIP_IDS = ['capture-label', 'today-view', 'calendar-drag'] as const;
+
 /**
- * Curated three-tip subset for the startup wizard (single source of truth:
- * the entries are the same shipped-feature tips as `TIPS`, ordered for a
- * first-run walkthrough).
+ * Curated three-tip subset for the startup wizard. Derived from `TIPS` by id
+ * so the tip text has a single source of truth; the wizard supplies its own
+ * title/example copy per id.
  */
-export const WIZARD_TIPS: readonly Tip[] = [
-  {
-    id: 'capture-label',
-    text: 'Press `#` in the task input to quickly add labels to any task.',
-  },
-  {
-    id: 'today-view',
-    text: 'The Today view shows everything due or marked for today in one place.',
-  },
-  {
-    id: 'calendar-drag',
-    text: 'On desktop, drag a task to another day in Calendar to reschedule it, or double-click a day to create one.',
-  },
-];
+export const WIZARD_TIPS: readonly Tip[] = WIZARD_TIP_IDS.flatMap((id) => {
+  const tip = TIPS.find((entry) => entry.id === id);
+  return tip ? [tip] : [];
+});

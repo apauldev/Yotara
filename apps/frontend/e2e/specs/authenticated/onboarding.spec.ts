@@ -93,7 +93,7 @@ test.describe('Onboarding', () => {
     // Sign up as a new user
     await signUp(page, 'Flow Tester', email, 'FlowTest123!');
 
-    // Walk the four steps with the default choices
+    // Walk all six wizard steps with the default choices
     await completeWizard(page);
 
     // Should redirect to tasks page

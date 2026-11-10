@@ -65,9 +65,11 @@ export function validateAvatarFile(file: File): string | null {
 
 /**
  * Normalizes a cropper result to a full data URL. The library normally returns
- * a prefixed value; a bare base64 string gets the fallback MIME prefix.
+ * a prefixed value; for a bare base64 string the MIME is sniffed from the
+ * magic bytes (PNG / JPEG / WebP) instead of guessing, so a PNG never gets a
+ * WebP prefix that the API's magic-byte check would reject.
  */
-export function toAvatarDataUrl(base64: string, fallbackMime = 'image/webp'): string | null {
+export function toAvatarDataUrl(base64: string): string | null {
   const trimmed = base64.trim();
   if (!trimmed) {
     return null;
@@ -75,9 +77,59 @@ export function toAvatarDataUrl(base64: string, fallbackMime = 'image/webp'): st
 
   const withPrefix = /^data:[^;]+;base64,/.test(trimmed)
     ? trimmed
-    : `data:${fallbackMime};base64,${trimmed}`;
+    : `data:${sniffAvatarMime(trimmed)};base64,${trimmed}`;
 
   return isSafeAvatarImage(withPrefix) ? withPrefix : null;
+}
+
+function sniffAvatarMime(base64: string): string {
+  const bytes = decodeBase64Head(base64, 12);
+  if (
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47 &&
+    bytes[4] === 0x0d &&
+    bytes[5] === 0x0a &&
+    bytes[6] === 0x1a &&
+    bytes[7] === 0x0a
+  ) {
+    return 'image/png';
+  }
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return 'image/jpeg';
+  }
+  if (
+    bytes.length >= 12 &&
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return 'image/webp';
+  }
+  return 'image/webp';
+}
+
+function decodeBase64Head(base64: string, byteCount: number): Uint8Array {
+  const clean = base64.replace(/\s/g, '');
+  const headChars = Math.min(clean.length, Math.ceil((byteCount / 3) * 4));
+  const head = clean.slice(0, headChars).replace(/=+$/, '');
+  try {
+    const binary = atob(head);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+  } catch {
+    return new Uint8Array(0);
+  }
 }
 
 /** Whether the data URL stays within both the character and decoded-byte caps. */
