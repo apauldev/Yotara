@@ -1,4 +1,4 @@
-import { TIPS, WIZARD_TIPS } from './tips';
+import { TIPS, WIZARD_QUICK_ADD_TIPS, WIZARD_TIPS } from './tips';
 
 describe('tips catalogue', () => {
   it('gives every tip a stable, unique id and non-empty text', () => {
@@ -11,14 +11,18 @@ describe('tips catalogue', () => {
     }
   });
 
-  it('keeps the curated wizard subset at three tips with stable ids', () => {
-    expect(WIZARD_TIPS.length).toBe(3);
+  it('keeps the curated wizard subset derived from TIPS with stable ids', () => {
     expect(WIZARD_TIPS.map((tip) => tip.id)).toEqual([
-      'capture-label',
+      'capture-date',
       'today-view',
       'calendar-drag',
     ]);
-    for (const tip of WIZARD_TIPS) {
+    expect(WIZARD_QUICK_ADD_TIPS.map((tip) => tip.id)).toEqual([
+      'capture-label',
+      'capture-project',
+      'capture-priority',
+    ]);
+    for (const tip of [...WIZARD_TIPS, ...WIZARD_QUICK_ADD_TIPS]) {
       expect(tip.text.trim()).not.toBe('');
       expect(TIPS.some((entry) => entry.id === tip.id)).toBeTrue();
     }

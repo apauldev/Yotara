@@ -128,14 +128,32 @@ export const TIPS: readonly Tip[] = [
   },
 ];
 
-const WIZARD_TIP_IDS = ['capture-label', 'today-view', 'calendar-drag'] as const;
+/**
+ * Quick-add tip ids combined into one wizard card by the component.
+ */
+export const WIZARD_QUICK_ADD_TIP_IDS = [
+  'capture-label',
+  'capture-project',
+  'capture-priority',
+] as const;
 
 /**
- * Curated three-tip subset for the startup wizard. Derived from `TIPS` by id
- * so the tip text has a single source of truth; the wizard supplies its own
- * title/example copy per id.
+ * Curated tip subset for the startup wizard, split into:
+ * - a "quick add" card (# labels, @ projects, !priority tokens),
+ * - an NLP date card (plain-language dates),
+ * - Today view and Calendar cards.
+ * The text is derived from `TIPS` by id so there is a single source of truth;
+ * the wizard supplies its own title/example copy per card.
  */
-export const WIZARD_TIPS: readonly Tip[] = WIZARD_TIP_IDS.flatMap((id) => {
+export const WIZARD_TIPS: readonly Tip[] = ['capture-date', 'today-view', 'calendar-drag'].flatMap(
+  (id) => {
+    const tip = TIPS.find((entry) => entry.id === id);
+    return tip ? [tip] : [];
+  },
+);
+
+/** Quick-add tips in display order: label, project, priority. */
+export const WIZARD_QUICK_ADD_TIPS: readonly Tip[] = WIZARD_QUICK_ADD_TIP_IDS.flatMap((id) => {
   const tip = TIPS.find((entry) => entry.id === id);
   return tip ? [tip] : [];
 });

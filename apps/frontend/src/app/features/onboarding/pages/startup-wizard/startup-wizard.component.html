@@ -420,9 +420,19 @@
 
       @case ('tips') {
         <div class="step-body">
-          <p class="copy">Three things that make Yotara feel quick.</p>
+          <p class="copy">A few things that make Yotara feel quick.</p>
 
           <div class="tips-grid">
+            <article class="tip-card tip-card-wide">
+              <h2>Quick add: file tasks from the keyboard</h2>
+              <p>
+                Press <kbd>#</kbd> to add a label, type <kbd>@</kbd> followed by a project name to
+                file the task there, and prepend <kbd>!high</kbd>, <kbd>!med</kbd>, or
+                <kbd>!low</kbd> to set priority — all without leaving the input.
+              </p>
+              <p class="tip-example">Call dentist #health @Personal !high</p>
+            </article>
+
             @for (tip of wizardTips; track tip.id) {
               <article class="tip-card">
                 <h2>{{ tipTitle(tip.id) }}</h2>
@@ -575,20 +585,27 @@
 
     <ol class="progress-dots" aria-label="Onboarding progress">
       @for (entry of steps; track entry.id; let index = $index) {
-        <li [attr.aria-current]="index === stepIndex() ? 'step' : null">
-          @if (index < stepIndex()) {
-            <button
-              type="button"
-              class="dot dot-button"
-              (click)="editStep(entry.id)"
-              [attr.aria-label]="'Back to ' + entry.title"
-            >
-              <span class="sr-only">{{ entry.title }}</span>
-            </button>
-          } @else {
-            <span class="dot" aria-hidden="true" [class.active]="index === stepIndex()"></span>
+        <li
+          [class.progress-step]="true"
+          [class.progress-step-done]="index < stepIndex()"
+          [class.progress-step-current]="index === stepIndex()"
+        >
+          <button
+            type="button"
+            class="progress-dot-button"
+            (click)="editStep(entry.id)"
+            [disabled]="index >= stepIndex() || completing()"
+            [attr.aria-label]="'Back to ' + entry.title"
+            [attr.aria-current]="index === stepIndex() ? 'step' : null"
+          >
+            <span class="progress-dot" aria-hidden="true">
+              @if (index < stepIndex()) {
+                <span class="progress-check">✓</span>
+              }
+            </span>
             <span class="sr-only">{{ entry.title }}</span>
-          }
+          </button>
+          <span class="progress-connector" aria-hidden="true"></span>
         </li>
       }
     </ol>

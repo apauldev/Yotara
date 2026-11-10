@@ -186,7 +186,7 @@ describe('StartupWizardComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Welcome, Jordan');
     expect(fixture.nativeElement.textContent).toContain('Signed in as jordan@example.com');
 
-    const dots = fixture.nativeElement.querySelectorAll('.progress-dots li');
+    const dots = fixture.nativeElement.querySelectorAll('.progress-dot-button');
     expect(dots.length).toBe(6);
     expect(dots[0].getAttribute('aria-current')).toBe('step');
     expect(fixture.nativeElement.querySelector('.sr-only[aria-live="polite"]')).not.toBeNull();
@@ -455,7 +455,7 @@ describe('StartupWizardComponent', () => {
     expect(preferences.onboardingCompleted()).toBeTrue();
   });
 
-  it('renders the three curated tips', async () => {
+  it('renders the quick-add, NLP, and remaining tips', async () => {
     await create();
 
     component.goNext();
@@ -465,8 +465,11 @@ describe('StartupWizardComponent', () => {
     fixture.detectChanges();
 
     expect(component.step()).toBe('tips');
-    expect(fixture.nativeElement.querySelectorAll('.tip-card').length).toBe(3);
-    expect(fixture.nativeElement.textContent).toContain('Capture in plain language');
+    // One combined quick-add card + capture-date + today-view + calendar-drag.
+    expect(fixture.nativeElement.querySelectorAll('.tip-card').length).toBe(4);
+    expect(fixture.nativeElement.textContent).toContain('Quick add: file tasks from the keyboard');
+    expect(fixture.nativeElement.textContent).toContain('Type dates in plain language');
+    expect(fixture.nativeElement.textContent).toContain('Call dentist #health @Personal !high');
   });
 
   it('keeps the wizard open and writes no completion flag when saving fails', async () => {
@@ -571,7 +574,9 @@ describe('StartupWizardComponent', () => {
 
     expect(component.step()).toBe('look');
     expect(
-      fixture.nativeElement.querySelectorAll('.progress-dots li')[1].getAttribute('aria-current'),
+      fixture.nativeElement
+        .querySelectorAll('.progress-dot-button')[1]
+        .getAttribute('aria-current'),
     ).toBe('step');
   });
 

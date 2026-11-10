@@ -23,7 +23,7 @@ import {
   type StarterProjectInput,
 } from '@yotara/shared';
 import { DEFAULT_THEME, THEMES, type Theme } from '../../../../core/constants/themes';
-import { WIZARD_TIPS } from '../../../../core/constants/tips';
+import { WIZARD_QUICK_ADD_TIPS, WIZARD_TIPS } from '../../../../core/constants/tips';
 import { AuthStateService } from '../../../../core/services/auth-state.service';
 import { LogService } from '../../../../core/services/log.service';
 import { NotificationService } from '../../../../core/services/notification.service';
@@ -88,13 +88,13 @@ const WIZARD_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
 const STARTER_NAME_MAX_LENGTH = 80;
 
 const TIP_TITLES: Readonly<Record<string, string>> = {
-  'capture-label': 'Capture in plain language',
+  'capture-date': 'Type dates in plain language',
   'today-view': 'Keep the next step visible',
   'calendar-drag': 'Move a task by dragging',
 };
 
 const TIP_EXAMPLES: Readonly<Record<string, string>> = {
-  'capture-label': 'Finish quarterly review #work @Roadmap !high tomorrow 3pm',
+  'capture-date': '“tomorrow”, “next Friday”, or “Mar 12 3pm” — check the preview before you save.',
   'today-view': 'Today shows what is due or marked for today; Upcoming plans the week ahead.',
   'calendar-drag':
     'On desktop, drag a task to another day in Calendar, or double-click a day to create one.',
@@ -124,6 +124,7 @@ export class StartupWizardComponent {
   readonly steps = WIZARD_STEPS;
   readonly themes = THEMES;
   readonly wizardTips = WIZARD_TIPS;
+  readonly quickAddTips = WIZARD_QUICK_ADD_TIPS;
   protected readonly user = this.authState.user;
 
   readonly step = signal<WizardStep>('welcome');

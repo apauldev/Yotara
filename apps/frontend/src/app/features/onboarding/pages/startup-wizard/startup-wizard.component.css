@@ -444,7 +444,11 @@
 }
 
 .wizard-footer {
-  display: flex;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -452,6 +456,15 @@
   border-top: 1px solid var(--outline-variant);
   background: color-mix(in srgb, var(--surface) 92%, transparent);
   backdrop-filter: blur(8px);
+}
+
+kbd {
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.35rem;
+  background: var(--surface-container-lowest);
+  box-shadow: inset 0 0 0 1px var(--outline-variant);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.85em;
 }
 
 .footer-slot {
@@ -505,55 +518,93 @@
   cursor: default;
 }
 
+/* Industry-standard stepper: dots on a fixed rail with a connector line.
+ * Every slot is the same size at every step (button or span), so the
+ * counter never reflows and the row only shifts when dots change state. */
 .progress-dots {
   display: flex;
-  align-items: center;
-  gap: 0.55rem;
+  align-items: flex-start;
+  justify-content: center;
   margin: 0;
   padding: 0;
   list-style: none;
+  flex: 0 1 auto;
 }
 
-.progress-dots li {
+.progress-step {
   display: flex;
+  align-items: center;
 }
 
-.dot {
-  width: 0.58rem;
-  height: 0.58rem;
-  border-radius: 999px;
-  background: var(--surface-container-highest);
-}
-
-.dot.active {
-  background: var(--primary-solid);
-}
-
-.dot-button {
+.progress-dot-button {
+  display: grid;
+  place-items: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  padding: 0;
   border: 0;
   background: transparent;
   cursor: pointer;
-  padding: 0;
-  min-width: 1.75rem;
-  min-height: 1.75rem;
-  position: relative;
+  border-radius: 999px;
 }
 
-.dot-button::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 0.58rem;
-  height: 0.58rem;
+.progress-dot-button:disabled {
+  cursor: default;
+}
+
+.progress-dot-button:focus-visible {
+  outline: 2px solid var(--primary-solid);
+  outline-offset: 2px;
+}
+
+.progress-dot {
+  display: grid;
+  place-items: center;
+  width: 0.625rem;
+  height: 0.625rem;
   border-radius: 999px;
+  background: var(--surface-container-highest);
+  transition:
+    background 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+.progress-step-done .progress-dot {
   background: var(--primary-solid);
 }
 
-.dot-button:hover,
-.dot-button:focus-visible {
-  outline: 2px solid var(--primary-solid);
-  outline-offset: 3px;
+.progress-step-current .progress-dot {
+  background: var(--primary-solid);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary-solid) 18%, transparent);
+}
+
+.progress-dot-button:not(:disabled):hover .progress-dot {
+  transform: scale(1.15);
+}
+
+.progress-check {
+  color: hsl(var(--primary-foreground));
+  font-size: 0.55rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.progress-connector {
+  width: 1.5rem;
+  height: 2px;
+  margin: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--surface-container-highest);
+  flex: 0 0 auto;
+}
+
+.progress-step-done .progress-connector {
+  background: var(--primary-solid);
+}
+
+.progress-step:last-child .progress-connector {
+  display: none;
 }
 
 .draft-note {
@@ -637,19 +688,23 @@
   }
 
   .wizard-footer {
-    flex-wrap: wrap;
+    position: sticky;
+    bottom: 0;
+    grid-template-columns: 1fr auto 1fr;
     padding: 0.8rem 1rem max(0.9rem, env(safe-area-inset-bottom));
   }
 
   .progress-dots {
-    order: -1;
-    width: 100%;
-    justify-content: center;
+    grid-column: 2;
+  }
+
+  .progress-connector {
+    width: 0.85rem;
   }
 
   .footer-start,
   .footer-end {
-    flex: 1 1 0;
+    min-width: 0;
   }
 
   .primary-button {
@@ -835,9 +890,13 @@
 
 .tips-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
   margin: 1.2rem 0;
+}
+
+.tip-card-wide {
+  grid-column: 1 / -1;
 }
 
 .tip-card {
