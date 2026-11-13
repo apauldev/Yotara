@@ -16,6 +16,9 @@ import { PersonalTaskCardComponent } from '../../components/personal-task-card.c
 import { CaptureBarComponent } from '../../components/capture-bar.component';
 import { Task } from '@yotara/shared';
 import { StatusService } from '../../../../core/services/status.service';
+import { CalendarService } from '../../../../core/services/calendar.service';
+import { CalendarEventDto } from '@yotara/shared';
+import { startOfToday } from '../../../../shared/utils/timestamps';
 
 describe('TaskListPageComponent', () => {
   let mockTaskService: any;
@@ -25,6 +28,7 @@ describe('TaskListPageComponent', () => {
   let mockActivatedRoute: any;
   let mockRouter: any;
   let mockStatusService: any;
+  let mockCalendarService: any;
 
   beforeEach(async () => {
     localStorage.clear();
@@ -85,6 +89,13 @@ describe('TaskListPageComponent', () => {
       show: jasmine.createSpy('show'),
     };
 
+    mockCalendarService = {
+      events: signal<CalendarEventDto[]>([]),
+      sources: signal([]),
+      loadingEvents: signal(false),
+      loadEvents: jasmine.createSpy('loadEvents').and.returnValue(Promise.resolve([])),
+    };
+
     await TestBed.configureTestingModule({
       imports: [TaskListPageComponent],
       providers: [
@@ -97,6 +108,7 @@ describe('TaskListPageComponent', () => {
         { provide: ActivatedRoute, useValue: mockActivatedRoute },
         { provide: Router, useValue: mockRouter },
         { provide: StatusService, useValue: mockStatusService },
+        { provide: CalendarService, useValue: mockCalendarService },
       ],
     }).compileComponents();
   });
@@ -119,6 +131,55 @@ describe('TaskListPageComponent', () => {
       expect(fixture.nativeElement.textContent).toContain('Today');
       const text = fixture.nativeElement.textContent;
       expect(text.toLowerCase()).toMatch(/daily clarity|the yotara journal/);
+    });
+
+    it('loads and shows today events in a separate schedule beside the task list', () => {
+      const today = startOfToday().toISODate() ?? '';
+      mockCalendarService.events.set([
+        {
+          id: 'event-1',
+          sourceId: 'source-1',
+          sourceName: 'Work',
+          sourceColor: 'teal',
+          summary: 'Planning meeting',
+          description: null,
+          location: null,
+          allDay: false,
+          dayKeys: [today],
+          startTime: '09:30',
+          endTime: '10:00',
+          floating: false,
+          timezone: 'Asia/Kolkata',
+          status: 'CONFIRMED',
+        },
+      ]);
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'today']]));
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      expect(mockCalendarService.loadEvents).toHaveBeenCalledWith(today, today);
+      expect(fixture.nativeElement.querySelector('.today-calendar-panel')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('.today-main-grid-active')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('.today-calendar-panel').textContent).toContain(
+        'Planning meeting',
+      );
+      expect(fixture.nativeElement.querySelector('.today-calendar-panel').textContent).toContain(
+        'Work calendar',
+      );
+      expect(fixture.nativeElement.querySelector('.today-calendar-panel input')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.today-calendar-head a').textContent).toContain(
+        'Full calendar',
+      );
+
+      (
+        fixture.nativeElement.querySelector(
+          '.today-calendar-panel app-calendar-event-chip button',
+        ) as HTMLButtonElement
+      ).click();
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[role="dialog"]')?.textContent).toContain(
+        'Read-only',
+      );
     });
 
     it('renders the upcoming view when requested', () => {

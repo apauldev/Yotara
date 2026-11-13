@@ -838,7 +838,11 @@ Events visible, and unmistakably not tasks.
 8. **Onboarding.** `onboarding/startup-wizard/`: the Ready-step card and its dialog,
    reusing the same form. The URL stays in memory; the Ready step re-fetches the sources
    for its summary, so the wizard draft is never touched (§10.6).
-9. **Retire** `components/calendar-day-panel/` once the agenda has landed.
+9. **Today page.** `pages/task-list-page/`: fetch today's event range and show an
+   event-only **Today's schedule** panel beside the task list on wide screens. On
+   smaller screens, stack the schedule above Due Today. Keep overdue tasks above both,
+   preserve task counts and completion progress, and open events in the read-only detail.
+10. **Retire** `components/calendar-day-panel/` once the agenda has landed.
 
 **Tests**
 
@@ -848,6 +852,7 @@ Events visible, and unmistakably not tasks.
 | `calendar-month-grid.component.spec.ts` *(extended)* | The budget, the kind-aware overflow, the aria label |
 | `calendar-day-view.component.spec.ts` | Ordering, all-day vs timed, task vs event affordances |
 | `calendar-event-chip.component.spec.ts`, `calendar-event-detail.component.spec.ts` | No completion control anywhere |
+| `task-list-page.component.spec.ts` | Today loads the date range, displays events separately, and opens event details |
 | `e2e/specs/authenticated/calendar-events.spec.ts` | Add a source; see events in the month grid and the day view; assert an event has no checkbox and a task still completes |
 
 **Exit criteria:** the feature is visible end to end; `pnpm lint`, `pnpm typecheck`,
@@ -902,6 +907,9 @@ Events visible, and unmistakably not tasks.
 | `apps/frontend/src/app/features/personal/pages/calendar-page/calendar-page.component.ts` | Wire `CalendarService`, the range, and the agenda day view |
 | `apps/frontend/src/app/features/personal/pages/calendar-page/calendar-page.component.html` | Place the agenda in the right column / mobile sheet; separate task and event bands |
 | `apps/frontend/src/app/features/personal/components/calendar-header/calendar-header.component.ts` | Compact Tasks/Events legend and an optional Day toggle |
+| `apps/frontend/src/app/features/personal/pages/task-list-page/task-list-page.component.ts` | Load today's event range, show read-only events beside the task list, open event details |
+| `apps/frontend/src/app/features/personal/pages/task-list-page/task-list-page.component.html` | Today's schedule panel: right column on wide screens, above Due Today on smaller screens |
+| `apps/frontend/src/app/features/personal/pages/task-list-page/task-list-page.component.spec.ts` | Today schedule loading, separate event rendering, read-only event details |
 | `apps/frontend/src/app/core/services/preferences-store.service.ts` | Persist the month/day view preference when the toggle ships |
 | `apps/frontend/src/app/features/personal/pages/settings-page.component.ts` | Calendars section, reusing `calendar-source-form` |
 | `apps/frontend/src/app/features/onboarding/pages/startup-wizard/startup-wizard.component.ts` | Ready-step calendar card, dialog state, source loading; never persists the URL; re-fetches sources on entering the Ready step |
@@ -977,9 +985,9 @@ Events visible, and unmistakably not tasks.
    grid and planning; a wider window costs ingest time and rows.
 3. **Encrypt event contents too, or only the source URL?** Event rows must be queryable by
    range, so plaintext is the pragmatic choice for a self-hosted DB; document it.
-4. **Should events appear in Today/Upcoming as well as the Calendar page?** The model
-   supports it; v1 starts with the Calendar page and its day view to keep the surface
-   focused.
+4. **Should events appear in Today/Upcoming as well as the Calendar page?** Resolved:
+   show today's events in Today in v1, using a separate right-side schedule on wide
+   screens and stacking it above Due Today on smaller screens. Keep Upcoming out of v1.
 5. **What is the right inbound refresh interval?** 15 minutes feels live without hammering
    providers; conditional GET makes most polls free.
 6. **Should the agenda day view become the desktop default, or sit beside the month grid?**

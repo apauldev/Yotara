@@ -45,6 +45,122 @@
   margin-top: 2rem;
 }
 
+.today-main-grid {
+  min-width: 0;
+}
+
+.today-main-grid-active {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'calendar'
+    'tasks';
+  gap: 1rem;
+}
+
+.today-calendar-panel {
+  grid-area: calendar;
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 1rem;
+  background: var(--surface-card);
+}
+
+.today-calendar-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.today-calendar-head h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.today-calendar-head p {
+  margin: 0.2rem 0 0;
+  color: var(--on-surface-subtle);
+  font-size: 0.76rem;
+}
+
+.today-calendar-head a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0 0.55rem;
+  border-radius: 0.6rem;
+  color: var(--primary-solid);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.today-calendar-head a:hover {
+  background: var(--surface-container-low);
+}
+
+.today-calendar-group {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.today-calendar-group h3 {
+  margin: 0;
+  color: var(--on-surface-subtle);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.today-calendar-group ul {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.today-calendar-group li {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.today-calendar-group small {
+  padding-left: 0.45rem;
+  color: var(--on-surface-subtle);
+  font-size: 0.68rem;
+}
+
+.today-task-section {
+  grid-area: tasks;
+  min-width: 0;
+  margin-top: 0;
+}
+
+@media (min-width: 1200px) {
+  .today-main-grid-active {
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 21rem);
+    grid-template-areas: 'tasks calendar';
+    align-items: start;
+    gap: 1.5rem;
+  }
+
+  .today-calendar-panel {
+    position: sticky;
+    top: calc(var(--topbar-height) + 1rem);
+    max-height: calc(100vh - var(--topbar-height) - 2rem);
+    overflow-y: auto;
+  }
+}
+
 .status-copy {
   margin: 0.7rem 0 0;
   color: var(--on-surface-muted);
