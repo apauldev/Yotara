@@ -1239,6 +1239,9 @@ one PR.
 - The project deletion/retire endpoint itself. It is a planned follow-up, and the wizard copy must
   stay accurate until it ships.
 - Calendar-only preferences and other internal localStorage keys that are not in Settings.
+- Connecting an external calendar. Owned by
+  [the inbound calendar plan](./2026-11-12-inbound-calendar-read-only.md), which adds an
+  optional card on the Ready step.
 - Week-start, date-format, default-view, and sort-order settings (none exist today).
 - A real keyboard-shortcuts sheet, batch actions, or drag-to-reorder in lists; tips must not
   pretend otherwise.

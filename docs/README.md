@@ -35,6 +35,7 @@ not sure where something belongs, this table is the answer.
 |:---|:---|:---|
 | [2026-10-20-label-system-ux-redesign.md](./plans/2026-10-20-label-system-ux-redesign.md) | Three-phase label system UX redesign: taxonomy, shared chips, icon identity, one Labels surface, and server-side filtering | Contributors, designers |
 | [2026-11-09-startup-wizard.md](./plans/2026-11-09-startup-wizard.md) | Six-step startup wizard for new accounts: themes, Settings-backed preferences, optional client-processed profile photo, starter project and label selection, tips, and completion flow | Contributors, designers |
+| [2026-11-12-inbound-calendar-read-only.md](./plans/2026-11-12-inbound-calendar-read-only.md) | Inbound read-only calendar events: ICS sources, server-side fetch/parse/expand, encrypted source URLs, and a distinct events layer in the Calendar view | Contributors, designers |
 
 ## At the repository root
 
