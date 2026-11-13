@@ -14,6 +14,7 @@ import { tasks, users } from '../db/schema.js';
 import { DateTime } from 'luxon';
 import { nowIsoTimestamp } from '../lib/timestamps.js';
 import { todayInTimezone, startOfDayInUtc } from '../lib/timezone.js';
+import { assertCalendarDate } from '../lib/calendar-date.js';
 import { AppError, BadRequestError, NotFoundError } from '../lib/app-error.js';
 import { getLabelsForTasks, getTaskLabels, syncTaskLabels } from './label-service.js';
 import {
@@ -165,19 +166,6 @@ export interface TaskFilters {
   projectId?: string;
   /** Only tasks with this priority. */
   priority?: Priority;
-}
-
-const CALENDAR_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
-/**
- * Calendar bounds are interpolated into the date range predicate, so they are
- * checked here rather than trusted from the route schema: a caller reaching
- * this service directly must not be able to pass an arbitrary string.
- */
-function assertCalendarDate(value: string, field: string): void {
-  if (!CALENDAR_DATE_PATTERN.test(value) || !DateTime.fromISO(value, { zone: 'utc' }).isValid) {
-    throw new BadRequestError(`${field} must be a calendar date (YYYY-MM-DD)`);
-  }
 }
 
 export async function listTasksForOwner(

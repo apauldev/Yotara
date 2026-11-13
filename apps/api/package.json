@@ -29,6 +29,7 @@
     "better-sqlite3": "^13.0.3",
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.12.7",
+    "ical.js": "^2.2.1",
     "luxon": "^3.7.2",
     "resend": "^6.34.1"
   },

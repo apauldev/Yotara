@@ -111,6 +111,8 @@ verified there.
 | `TRUST_PROXY` | `172.16.0.0/12` in Compose | Trusted reverse-proxy IPs/CIDRs; unset for direct API access |
 | `PORT` | `3000` | API container port |
 | `CONTENT_SECURITY_POLICY` | *(see below)* | Override the CSP for both nginx and the API |
+| `CALENDAR_ENCRYPTION_KEY` | unset | Encrypts calendar source URLs at rest. When unset the key is derived from `BETTER_AUTH_SECRET`, so rotating the session secret means re-adding every calendar feed |
+| `ALLOW_INSECURE_CALENDAR_URLS` | unset (`false`) | Allows plain `http://` calendar feed URLs for a feed on a trusted LAN. The server refuses to fetch any address that resolves to a loopback, private, link-local, or cloud-metadata target |
 
 This table covers the variables that matter for the Docker deployment. For the complete
 reference — including `FRONTEND_BASE_URL`, `HOST`, `DEV_MODE`, and the rate-limit and

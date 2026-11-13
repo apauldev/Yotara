@@ -1,4 +1,10 @@
-import { integer, sqliteTable, text, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
+import {
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+  type AnySQLiteColumn,
+} from 'drizzle-orm/sqlite-core';
 import type { ProjectColor } from '@yotara/shared';
 
 const PROJECT_COLOR_VALUES = [
@@ -129,13 +135,79 @@ export const labels = sqliteTable('labels', {
   updatedAt: text('updated_at').notNull(),
 });
 
-export const taskLabels = sqliteTable('task_labels', {
-  taskId: text('task_id')
+export const taskLabels = sqliteTable(
+  'task_labels',
+  {
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    labelId: text('label_id')
+      .notNull()
+      .references(() => labels.id, { onDelete: 'cascade' }),
+  },
+  (table) => [primaryKey({ columns: [table.taskId, table.labelId] })],
+);
+
+export const calendarSources = sqliteTable('calendar_sources', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
     .notNull()
-    .references(() => tasks.id, { onDelete: 'cascade' }),
-  labelId: text('label_id')
+    .references(() => users.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  /** Encrypted ICS URL. Never returned by the API and never logged. */
+  urlCiphertext: text('url_ciphertext').notNull(),
+  /** SHA-256 of the normalised URL, for duplicate detection. */
+  urlHash: text('url_hash').notNull(),
+  color: text('color').notNull(),
+  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+  etag: text('etag'),
+  lastModified: text('last_modified'),
+  lastFetchedAt: text('last_fetched_at'),
+  lastSuccessAt: text('last_success_at'),
+  /** Human-readable failure description. Never contains the URL. */
+  lastError: text('last_error'),
+  nextAttemptAt: text('next_attempt_at'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export const calendarEvents = sqliteTable('calendar_events', {
+  id: text('id').primaryKey(),
+  sourceId: text('source_id')
     .notNull()
-    .references(() => labels.id, { onDelete: 'cascade' }),
+    .references(() => calendarSources.id, { onDelete: 'cascade' }),
+  /** Denormalised so the window query filters on one table. */
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  uid: text('uid').notNull(),
+  /**
+   * The instance key. `''` marks a standalone event; a recurring instance
+   * carries the start of the instance it replaces.
+   *
+   * Never `NULL`: SQLite treats NULLs as distinct inside a UNIQUE index, so a
+   * nullable column would let the same event be inserted twice without
+   * tripping the constraint.
+   */
+  recurrenceId: text('recurrence_id').notNull().default(''),
+  summary: text('summary').notNull().default(''),
+  description: text('description'),
+  location: text('location'),
+  /** UTC ISO instant. */
+  startAt: text('start_at').notNull(),
+  /** UTC ISO instant, exclusive. */
+  endAt: text('end_at').notNull(),
+  allDay: integer('all_day', { mode: 'boolean' }).notNull().default(false),
+  /** `YYYY-MM-DD`, for all-day display. Not a bucketing key. */
+  startDate: text('start_date'),
+  /** `YYYY-MM-DD`, exclusive, for all-day display. Not a bucketing key. */
+  endDate: text('end_date'),
+  /** The source's IANA zone, when it declared a known one. */
+  timezone: text('timezone'),
+  /** True when the feed gave no zone: the stored time is the source's wall clock. */
+  floating: integer('floating', { mode: 'boolean' }).notNull().default(false),
+  status: text('status'),
+  updatedAt: text('updated_at').notNull(),
 });
 
 export const notifications = sqliteTable('notifications', {
@@ -157,3 +229,7 @@ export type NewDbNotification = typeof notifications.$inferInsert;
 export type DbTask = typeof tasks.$inferSelect;
 export type NewDbTask = typeof tasks.$inferInsert;
 export type DbProject = typeof projects.$inferSelect;
+export type DbCalendarSource = typeof calendarSources.$inferSelect;
+export type NewDbCalendarSource = typeof calendarSources.$inferInsert;
+export type DbCalendarEvent = typeof calendarEvents.$inferSelect;
+export type NewDbCalendarEvent = typeof calendarEvents.$inferInsert;
