@@ -456,10 +456,11 @@ export async function syncCalendarSource(
     };
   }
 
+  const ingestWindow = calendarIngestWindow();
   let parsed;
   try {
     assertLooksLikeCalendar(response.body);
-    parsed = parseCalendarFeed(response.body, { window: calendarIngestWindow() });
+    parsed = parseCalendarFeed(response.body, { window: ingestWindow });
   } catch (error) {
     const message =
       error instanceof UnprocessableEntityError
@@ -468,7 +469,7 @@ export async function syncCalendarSource(
     return recordCalendarFailure(source, message);
   }
 
-  replaceCalendarEventsForSource(ownerId, sourceId, calendarIngestWindow(), parsed.events);
+  replaceCalendarEventsForSource(ownerId, sourceId, ingestWindow, parsed.events);
 
   db.update(calendarSources)
     .set({

@@ -230,17 +230,31 @@ export function htmlToPlainText(value: string): string {
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
 
-  const withBreaks = withoutBlocks
+  // Keep web destinations visible in the plain-text description. The client
+  // can then linkify only validated HTTP(S) URLs without rendering feed HTML.
+  const withLinkTargets = withoutBlocks.replace(
+    /<a\b([^>]*)>([\s\S]*?)<\/a>/gi,
+    (_anchor, attributes: string, content: string) => {
+      const hrefMatch = attributes.match(/\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+      if (!hrefMatch) return content;
+
+      const href = decodeHtmlEntities(hrefMatch[1] ?? hrefMatch[2] ?? hrefMatch[3] ?? '').trim();
+      if (!/^https?:\/\//i.test(href)) return content;
+
+      const label = content.replace(/<[^>]*>/g, '');
+      const decodedLabel = decodeHtmlEntities(label).trim();
+      return decodedLabel && decodedLabel !== href ? `${decodedLabel} — ${href}` : href;
+    },
+  );
+
+  const withBreaks = withLinkTargets
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/(p|div|li|tr|h[1-6])\s*>/gi, '\n')
     .replace(/<li\b[^>]*>/gi, '• ');
 
   const withoutTags = withBreaks.replace(/<[^>]*>/g, '');
 
-  const decoded = withoutTags.replace(/&[a-z#0-9]+;/gi, (entity) => {
-    const known = HTML_ENTITIES[entity.toLowerCase()];
-    return known ?? entity;
-  });
+  const decoded = decodeHtmlEntities(withoutTags);
 
   return decoded
     .split('\n')
@@ -248,6 +262,13 @@ export function htmlToPlainText(value: string): string {
     .join('\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
+
+function decodeHtmlEntities(value: string): string {
+  return value.replace(/&[a-z#0-9]+;/gi, (entity) => {
+    const known = HTML_ENTITIES[entity.toLowerCase()];
+    return known ?? entity;
+  });
 }
 
 // ─── Durations ──────────────────────────────────────────────────────────────
@@ -843,12 +864,28 @@ function expandGroup(
   if (!group.master) {
     // Only overrides: each stands on its own as a single instance.
     for (const override of group.overrides) {
+      if (events.length >= options.maxInstances) {
+        truncated = true;
+        break;
+      }
+
       const context = buildContext(override);
       if (context.status === 'CANCELLED') {
         continue;
       }
       const recurrenceId = readRecurrenceId(override, context.resolutionZone);
-      const event = buildEvent(context, context.startWall, recurrenceId ? 'pending' : '');
+      if (!recurrenceId) {
+        skipped += 1;
+        continue;
+      }
+
+      const recurrenceKey = toUtcIso(DateTime.fromMillis(recurrenceId.instantMs, { zone: 'utc' }));
+      if (!recurrenceKey) {
+        skipped += 1;
+        continue;
+      }
+
+      const event = buildEvent(context, context.startWall, recurrenceKey);
       if (!event) {
         skipped += 1;
         continue;

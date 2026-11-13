@@ -48,7 +48,22 @@ import type { CalendarEventDto } from '@yotara/shared';
           </p>
         }
         @if (event.description) {
-          <p class="event-description">{{ event.description }}</p>
+          <p class="event-description">
+            @for (part of descriptionParts(); track $index) {
+              @if (part.href) {
+                <a
+                  class="event-description-link"
+                  [href]="part.href"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  referrerpolicy="no-referrer"
+                  >{{ part.text }}</a
+                >
+              } @else {
+                {{ part.text }}
+              }
+            }
+          </p>
         }
         <p class="event-provenance">
           From {{ event.sourceName }} calendar · Read-only. Edit this event in your calendar
@@ -104,6 +119,17 @@ import type { CalendarEventDto } from '@yotara/shared';
         white-space: pre-wrap;
         overflow-wrap: anywhere;
       }
+      .event-description-link {
+        color: var(--primary-solid);
+        text-decoration: underline;
+        text-underline-offset: 0.15em;
+        overflow-wrap: anywhere;
+      }
+      .event-description-link:focus-visible {
+        border-radius: 0.15rem;
+        outline: 2px solid var(--primary-solid);
+        outline-offset: 2px;
+      }
       .event-provenance {
         margin: 1.2rem 0 0;
         padding-top: 0.8rem;
@@ -138,4 +164,41 @@ export class CalendarEventDetailComponent {
   protected readonly faCalendarDays = faCalendarDays;
   protected readonly faLocationDot = faLocationDot;
   protected readonly faXmark = faXmark;
+
+  protected descriptionParts(): Array<{ text: string; href?: string }> {
+    const description = this.event?.description ?? '';
+    const parts: Array<{ text: string; href?: string }> = [];
+    const urlPattern = /https?:\/\/[^\s<>"']+/gi;
+    let cursor = 0;
+
+    for (const match of description.matchAll(urlPattern)) {
+      const rawUrl = match[0];
+      const urlText = rawUrl.replace(/[.,!?;:]+$/, '');
+      if (!urlText) continue;
+
+      let parsed: URL;
+      try {
+        parsed = new URL(urlText);
+      } catch {
+        continue;
+      }
+
+      if (
+        (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') ||
+        !parsed.hostname ||
+        parsed.username ||
+        parsed.password
+      ) {
+        continue;
+      }
+
+      const index = match.index ?? 0;
+      parts.push({ text: description.slice(cursor, index) });
+      parts.push({ text: urlText, href: parsed.href });
+      cursor = index + urlText.length;
+    }
+
+    parts.push({ text: description.slice(cursor) });
+    return parts;
+  }
 }

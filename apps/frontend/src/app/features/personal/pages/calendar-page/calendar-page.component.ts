@@ -190,6 +190,7 @@ export class CalendarPageComponent {
   });
 
   private readonly tasksByDay = computed(() => buildTasksByDay(this.calendarTasks()));
+  private readonly eventsByDay = computed(() => buildEventsByDay(this.calendarService.events()));
   protected readonly undatedTasks = computed(() =>
     buildUndatedTasks(this.taskService.undatedTasks()).filter(
       (task) => !this.schedulingIds().has(task.id),
@@ -197,26 +198,16 @@ export class CalendarPageComponent {
   );
 
   protected readonly cells = computed(() =>
-    buildMonthCells(
-      this.viewMonth(),
-      this.tasksByDay(),
-      this.today,
-      buildEventsByDay(this.calendarService.events()),
-    ),
+    buildMonthCells(this.viewMonth(), this.tasksByDay(), this.today, this.eventsByDay()),
   );
   protected readonly selectedDayTasks = computed(
     () => this.tasksByDay().get(this.selectedKey()) ?? [],
   );
   protected readonly selectedDayEvents = computed(
-    () => buildEventsByDay(this.calendarService.events()).get(this.selectedKey()) ?? [],
+    () => this.eventsByDay().get(this.selectedKey()) ?? [],
   );
   protected readonly weekDays = computed(() =>
-    buildWeekDays(
-      this.selectedDate(),
-      this.tasksByDay(),
-      this.today,
-      buildEventsByDay(this.calendarService.events()),
-    ),
+    buildWeekDays(this.selectedDate(), this.tasksByDay(), this.today, this.eventsByDay()),
   );
 
   protected readonly noDateCount = computed(() => this.undatedTasks().length);

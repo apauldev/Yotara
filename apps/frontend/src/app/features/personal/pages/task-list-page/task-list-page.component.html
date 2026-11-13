@@ -33,24 +33,27 @@
       />
     }
 
-    @if (!hasTaskFilters() && viewMode() === 'today' && taskService.overdueTasks().length > 0) {
-      <section class="task-section">
-        <app-section-header title="Overdue" size="lg" tone="accent" />
-
-        <app-task-stack
-          [tasks]="taskService.overdueTasks()"
-          [subtasksByParent]="subtasksByParent()"
-          [taskCard]="overdueTaskCardTpl"
-        />
-      </section>
-    }
-
     <div
       class="today-main-grid"
       [class.today-main-grid-active]="
         viewMode() === 'today' && !hasTaskFilters() && todayEvents().length > 0
       "
+      [class.today-main-grid-has-overdue]="
+        viewMode() === 'today' && !hasTaskFilters() && taskService.overdueTasks().length > 0
+      "
     >
+      @if (!hasTaskFilters() && viewMode() === 'today' && taskService.overdueTasks().length > 0) {
+        <section class="task-section today-overdue-section">
+          <app-section-header title="Overdue" size="lg" tone="accent" />
+
+          <app-task-stack
+            [tasks]="taskService.overdueTasks()"
+            [subtasksByParent]="subtasksByParent()"
+            [taskCard]="overdueTaskCardTpl"
+          />
+        </section>
+      }
+
       @if (viewMode() === 'today' && !hasTaskFilters() && todayEvents().length > 0) {
         <aside class="today-calendar-panel" aria-labelledby="today-calendar-heading">
           <header class="today-calendar-head">

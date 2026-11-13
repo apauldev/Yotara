@@ -123,7 +123,7 @@ export function replaceCalendarEventsForSource(
       // Everything for this source inside the window that the new set does
       // not mention is gone: an event was deleted from the feed, or it was
       // cancelled.
-      const keep = rows.map((row) => row.id);
+      const keep = new Set(rows.map((row) => row.id));
       const stale = tx
         .select({ id: calendarEvents.id })
         .from(calendarEvents)
@@ -136,7 +136,7 @@ export function replaceCalendarEventsForSource(
         )
         .all()
         .map((row) => row.id)
-        .filter((id) => !keep.includes(id));
+        .filter((id) => !keep.has(id));
 
       if (stale.length > 0) {
         tx.delete(calendarEvents).where(inArray(calendarEvents.id, stale)).run();
