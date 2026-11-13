@@ -65,9 +65,10 @@ Yotara helps focused people capture tasks, plan their week, and finish without t
 
 ## What to expect
 
-- Designed for focused personal use, not large enterprise programs.
-- Team features are planned; the current experience is single-user and personal-first.
-- Self-hosted deployment with a local SQLite database and a portable monorepo stack.
+- Built for personal planning and daily focus, not enterprise portfolio management.
+- Personal workspaces are the complete experience today; team mode is still early.
+- Self-hosted with SQLite, so your tasks and calendar connections stay on infrastructure you control.
+- Responsive layouts support desktop and phone use.
 
 ---
 
@@ -158,13 +159,14 @@ For the full setup guide, environment files, workspace commands, and troubleshoo
 | Feature | Description |
 |:---|:---|
 | **Inbox** | Capture everything now, sort later. A view of what's unfiled, not a project of its own. |
-| **Today** | See what matters right now. Tasks due today or marked for today. |
+| **Today** | See tasks due today alongside events from connected calendars. Overdue work stays visible. |
 | **Upcoming** | Plan your week. Tasks grouped by due date with weekly rhythm. |
-| **Calendar** | A month grid of everything due. Drag to reschedule, or create from the grid. |
+| **Calendar** | Month and week views for tasks and read-only calendar events. Create or reschedule tasks from the grid. |
 | **Projects** | Group related tasks. Custom colors, live task counts, soft delete. |
-| **Labels** | Categorize tasks across projects. Icons and colors, a pinned browser, merge, and multi-label filters. |
+| **Labels** | Categorize tasks across projects with icons, colors, pinned labels, quick creation, merge, and multi-label filters. |
 | **Completed** | Finished tasks land here. Clear them in bulk, restore, or permanently delete. |
 | **Search** | Full-text search across tasks, projects, and labels with context highlighting. |
+| **Notifications** | In-app reminders for task dates, with account and notification preferences in Settings. |
 
 </details>
 
@@ -174,12 +176,36 @@ For the full setup guide, environment files, workspace commands, and troubleshoo
 
 | Feature | Description |
 |:---|:---|
-| **Recurring Tasks** | Daily, weekly, monthly, or yearly with edge-case handling for month-ends and leap years. |
-| **Subtasks** | Break big tasks into smaller steps. One level of nesting keeps it simple. |
+| **Task details** | Set due dates and times, priorities, descriptions, projects, and labels. Filter by priority, project, or one or more labels. |
+| **Recurring Tasks** | Daily, weekly, monthly, or yearly, including month-end and leap-year cases. |
+| **Subtasks** | Break big tasks into a single level of smaller steps. |
 | **Simple Mode** | Hide dates and metadata when you just need a flat list. Toggle per task. |
-| **9 Themes** | Dark mode, light mode, and everything between. Custom CSS properties for your own. |
-| **Keyboard Shortcuts** | Navigate every view without touching the mouse. Power-user speed. |
-| **Daily Tips** | Rotating productivity prompts on login. A small nudge, not a notification. |
+| **9 Themes** | Light, dark, and colorful themes, with preferences saved to your account. |
+| **Keyboard and touch** | Keyboard navigation, visible focus states, and touch-friendly controls for phones. |
+| **Archive and recovery** | Restore archived or recently deleted work, or permanently remove it. |
+| **Daily insights** | Optional Daily Clarity and Yotara Journal prompts in the task page header. |
+
+</details>
+
+<details>
+<summary><b>Calendar connections and setup</b></summary>
+<br />
+
+- **Connect an ICS feed** from Google Calendar or another ICS-compatible provider in Settings. The setup wizard also explains where to find provider links.
+- **Read-only events** appear in the Calendar and Today views, with event time, location, description, and safe clickable web links.
+- **Private feed URLs are protected.** Yotara encrypts them at rest, never returns them through the API, and checks destinations and redirects to prevent unsafe server-side requests.
+- **Manage each source** in Settings: enable or disable it, refresh it, or remove it. Events stay separate from tasks and can only be edited in the calendar provider.
+- **Choose your starting setup** in the six-step onboarding wizard, including workspace mode, theme, starter project and labels, and optional profile photo.
+
+</details>
+
+<details>
+<summary><b>Account and data</b></summary>
+<br />
+
+- Email verification, password reset, account preferences, profile settings, and in-app notifications.
+- Export tasks (up to 10,000 at a time), projects, and labels as JSON or CSV from Settings.
+- SQLite-backed storage and self-hosted deployment keep control of your data in your hands.
 
 </details>
 
@@ -294,6 +320,7 @@ Yotara is built by these contributors:
   <tbody>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/apauldev"><img src="https://avatars.githubusercontent.com/u/6706835?v=4?s=100" width="100px;" alt="Arul"/><br /><sub><b>Arul</b></sub></a><br /><a href="https://github.com/apauldev/Yotara/commits?author=apauldev" title="Code">Code</a> <a href="https://github.com/apauldev/Yotara/commits?author=apauldev" title="Documentation">Docs</a> <a href="#design-apauldev" title="Design">Design</a> <a href="#ideas-apauldev" title="Ideas, Planning, & Feedback">Ideas</a> <a href="#maintenance-apauldev" title="Maintenance">Maintenance</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/lntutor"><img src="https://avatars.githubusercontent.com/u/1948922?v=4?s=100" width="100px;" alt="Loi Nguyen"/><br /><sub><b>Loi Nguyen</b></sub></a><br /><a href="https://github.com/apauldev/Yotara/commits?author=lntutor" title="Code">Code</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/shivansh090"><img src="https://avatars.githubusercontent.com/u/116243866?v=4?s=100" width="100px;" alt="Shivansh Vikram Singh"/><br /><sub><b>Shivansh Vikram Singh</b></sub></a><br /><a href="https://github.com/apauldev/Yotara/commits?author=shivansh090" title="Documentation">Docs</a></td>
     </tr>
   </tbody>
