@@ -9,6 +9,7 @@ function day(overrides: Partial<CalendarWeekDay> & { key: string }): CalendarWee
     isToday: false,
     isSelected: false,
     taskCount: 0,
+    eventCount: 0,
     ...overrides,
   };
 }
@@ -43,6 +44,15 @@ describe('CalendarWeekStripComponent', () => {
     const buttons = fixture.nativeElement.querySelectorAll('.cal-week-day');
     expect(buttons[0].querySelector('.cal-week-count')).toBeNull();
     expect(buttons[1].querySelector('.cal-week-count')?.textContent?.trim()).toBe('3');
+  });
+
+  it('shows event counts separately and includes them in the accessible label', () => {
+    component.days = [day({ key: '2026-10-12', eventCount: 2 })];
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('.cal-week-day') as HTMLButtonElement;
+    expect(button.querySelector('.cal-week-event-count')?.textContent?.trim()).toBe('2');
+    expect(button.getAttribute('aria-label')).toContain('2 events');
   });
 
   it('marks the selected and today buttons and labels them for screen readers', () => {

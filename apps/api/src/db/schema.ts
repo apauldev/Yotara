@@ -167,6 +167,13 @@ export const calendarSources = sqliteTable('calendar_sources', {
   /** Human-readable failure description. Never contains the URL. */
   lastError: text('last_error'),
   nextAttemptAt: text('next_attempt_at'),
+  /**
+   * Consecutive failures, used to pick the backoff step.
+   *
+   * Reset to zero on a successful fetch. Kept as a counter rather than derived
+   * from the timestamps so the step is unambiguous.
+   */
+  failureCount: integer('failure_count').notNull().default(0),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });

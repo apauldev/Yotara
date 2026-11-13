@@ -11,10 +11,12 @@ import {
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
-import type { Task } from '@yotara/shared';
+import type { CalendarEventDto, Task } from '@yotara/shared';
 import { DateTime } from 'luxon';
 import { CalendarCell, CalendarRescheduleRequest } from '../../utils/calendar-view';
 import { CalendarTaskChipComponent } from '../calendar-task-chip/calendar-task-chip.component';
+import { CalendarEventChipComponent } from '../calendar-event-chip/calendar-event-chip.component';
+import { planCellChips } from '../../utils/calendar-view';
 import { fadeCollapse } from '../../../../shared/animations/fade-collapse.animation';
 
 const MAX_VISIBLE_TASKS = 3;
@@ -22,7 +24,12 @@ const MAX_VISIBLE_TASKS = 3;
 @Component({
   selector: 'app-calendar-month-grid',
   standalone: true,
-  imports: [CalendarTaskChipComponent, DragDropModule, FontAwesomeModule],
+  imports: [
+    CalendarTaskChipComponent,
+    CalendarEventChipComponent,
+    DragDropModule,
+    FontAwesomeModule,
+  ],
   changeDetection: ChangeDetectionStrategy.Eager,
   animations: [fadeCollapse],
   template: `
@@ -76,9 +83,20 @@ const MAX_VISIBLE_TASKS = 3;
             </div>
 
             @if (compactCounts) {
-              @if (cell.tasks.length > 0) {
+              @if (cell.tasks.length > 0 || cell.events.length > 0) {
                 <div class="cal-cell-count-wrap">
-                  <span class="cal-cell-count">{{ cell.tasks.length }}</span>
+                  @if (cell.tasks.length > 0) {
+                    <span class="cal-cell-count"
+                      >{{ cell.tasks.length }}
+                      {{ cell.tasks.length === 1 ? 'task' : 'tasks' }}</span
+                    >
+                  }
+                  @if (cell.events.length > 0) {
+                    <span class="cal-cell-event-count"
+                      >{{ cell.events.length }}
+                      {{ cell.events.length === 1 ? 'event' : 'events' }}</span
+                    >
+                  }
                 </div>
               }
             } @else {
@@ -99,9 +117,22 @@ const MAX_VISIBLE_TASKS = 3;
                     (complete)="onComplete($event)"
                   />
                 }
-                @if (cell.tasks.length > maxVisible) {
+                @for (event of visibleEvents(cell); track event.id) {
+                  <app-calendar-event-chip [event]="event" (select)="selectEvent($event)" />
+                }
+                @if (hiddenTasks(cell) > 0) {
                   <button type="button" class="cal-more" (click)="selectDate.emit(cell.date)">
-                    +{{ cell.tasks.length - maxVisible }} more
+                    +{{ hiddenTasks(cell) }} more {{ hiddenTasks(cell) === 1 ? 'task' : 'tasks' }}
+                  </button>
+                }
+                @if (hiddenEvents(cell) > 0) {
+                  <button
+                    type="button"
+                    class="cal-more cal-more-events"
+                    (click)="selectDate.emit(cell.date)"
+                  >
+                    +{{ hiddenEvents(cell) }} more
+                    {{ hiddenEvents(cell) === 1 ? 'event' : 'events' }}
                   </button>
                 }
               </div>
@@ -254,6 +285,7 @@ const MAX_VISIBLE_TASKS = 3;
         display: grid;
         place-items: center;
         flex: 1;
+        gap: 0.2rem;
       }
 
       .cal-cell-count {
@@ -269,6 +301,12 @@ const MAX_VISIBLE_TASKS = 3;
         font-weight: 800;
       }
 
+      .cal-cell-event-count {
+        color: var(--on-surface-subtle);
+        font-size: 0.66rem;
+        font-weight: 700;
+      }
+
       .cal-more {
         align-self: flex-start;
         border: 0;
@@ -278,6 +316,10 @@ const MAX_VISIBLE_TASKS = 3;
         font-weight: 700;
         padding: 0.1rem 0.2rem;
         cursor: pointer;
+      }
+
+      .cal-more-events {
+        color: var(--on-surface-subtle);
       }
 
       @media (width <= 900px) {
@@ -318,6 +360,7 @@ export class CalendarMonthGridComponent {
   @Input() compactCounts = false;
   @Output() readonly selectDate = new EventEmitter<DateTime>();
   @Output() readonly openTask = new EventEmitter<Task>();
+  @Output() readonly openEvent = new EventEmitter<CalendarEventDto>();
   @Output() readonly completeTask = new EventEmitter<Task>();
   @Output() readonly rescheduleTask = new EventEmitter<CalendarRescheduleRequest>();
   @Output() readonly createTask = new EventEmitter<DateTime>();
@@ -331,7 +374,23 @@ export class CalendarMonthGridComponent {
   private suppressClickUntil = 0;
 
   protected visibleTasks(cell: CalendarCell): Task[] {
-    return cell.tasks.slice(0, this.maxVisible);
+    return planCellChips(cell.tasks, cell.events, this.maxVisible).tasks;
+  }
+
+  protected visibleEvents(cell: CalendarCell): CalendarEventDto[] {
+    return planCellChips(cell.tasks, cell.events, this.maxVisible).events;
+  }
+
+  protected hiddenTasks(cell: CalendarCell): number {
+    return planCellChips(cell.tasks, cell.events, this.maxVisible).hiddenTasks;
+  }
+
+  protected hiddenEvents(cell: CalendarCell): number {
+    return planCellChips(cell.tasks, cell.events, this.maxVisible).hiddenEvents;
+  }
+
+  protected selectEvent(event: CalendarEventDto): void {
+    this.openEvent.emit(event);
   }
 
   /** The single day that participates in tab order: focused, else selected, else the month's first day. */
@@ -350,7 +409,10 @@ export class CalendarMonthGridComponent {
   protected dayAriaLabel(cell: CalendarCell): string {
     const count = cell.tasks.length;
     const tasks = `${count} ${count === 1 ? 'task' : 'tasks'}`;
-    return `${cell.date.toFormat('cccc, LLLL d, yyyy')}, ${tasks}${cell.isToday ? ', today' : ''}`;
+    const events = cell.events.length
+      ? `, ${cell.events.length} ${cell.events.length === 1 ? 'event' : 'events'}`
+      : '';
+    return `${cell.date.toFormat('cccc, LLLL d, yyyy')}, ${tasks}${events}${cell.isToday ? ', today' : ''}`;
   }
 
   protected onDayFocus(cell: CalendarCell): void {

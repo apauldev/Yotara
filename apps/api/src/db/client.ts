@@ -185,6 +185,7 @@ const SQLITE_BOOTSTRAP_SQL = `
     last_success_at TEXT,
     last_error TEXT,
     next_attempt_at TEXT,
+    failure_count INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
@@ -409,6 +410,20 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
 
     if (!taskColumnNames.has('archived_at')) {
       sqlite.exec(`ALTER TABLE tasks ADD COLUMN archived_at TEXT`);
+    }
+
+    // A database created before the calendar backoff counter existed still has
+    // the calendar tables, so the bootstrap's CREATE TABLE IF NOT EXISTS will
+    // not add the column to them.
+    const calendarSourceColumns = sqlite
+      .prepare(`PRAGMA table_info('calendar_sources')`)
+      .all() as Array<{ name: string }>;
+    const calendarSourceColumnNames = new Set(calendarSourceColumns.map((column) => column.name));
+
+    if (!calendarSourceColumnNames.has('failure_count')) {
+      sqlite.exec(
+        `ALTER TABLE calendar_sources ADD COLUMN failure_count INTEGER NOT NULL DEFAULT 0`,
+      );
     }
 
     // Backfill archived_at for existing completed tasks if missing

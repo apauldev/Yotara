@@ -512,6 +512,24 @@
           </p>
 
           <dl class="summary">
+            <div class="summary-row">
+              <dt>Calendar</dt>
+              <dd>
+                @if (calendarService.sources().length) {
+                  @let source = calendarService.sources()[0];
+                  {{ source.name }} · {{ source.eventCount }}
+                  {{ source.eventCount === 1 ? 'event' : 'events' }}
+                  <button type="button" class="edit-link" (click)="openCalendarSettings()">
+                    Manage in Settings
+                  </button>
+                } @else {
+                  Not connected
+                  <button type="button" class="edit-link" (click)="openCalendarDialog()">
+                    Connect
+                  </button>
+                }
+              </dd>
+            </div>
             @if (draft().avatarDataUrl) {
               <div class="summary-row">
                 <dt>Profile photo</dt>
@@ -612,6 +630,65 @@
               </dd>
             </div>
           </dl>
+
+          <article class="calendar-connect-card">
+            <div>
+              <h2>See your calendar next to your tasks (optional)</h2>
+              <p>
+                Connect a calendar and its events appear read-only beside your tasks. You can do
+                this later in Settings → Calendars.
+              </p>
+            </div>
+            @if (calendarService.sources().length) {
+              <button
+                #calendarConnectButton
+                type="button"
+                class="secondary-button"
+                (click)="openCalendarSettings()"
+              >
+                Manage in Settings
+              </button>
+            } @else {
+              <button
+                #calendarConnectButton
+                type="button"
+                class="secondary-button"
+                (click)="openCalendarDialog()"
+              >
+                Connect a calendar
+              </button>
+            }
+          </article>
+
+          @if (calendarDialogOpen()) {
+            <div
+              class="calendar-dialog-backdrop"
+              role="presentation"
+              (click)="closeCalendarDialog()"
+            >
+              <section
+                class="calendar-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="calendar-dialog-title"
+                cdkTrapFocus
+                [cdkTrapFocusAutoCapture]="true"
+                (click)="$event.stopPropagation()"
+                (keydown.escape)="closeCalendarDialog()"
+              >
+                <header>
+                  <h2 id="calendar-dialog-title">Connect a calendar</h2>
+                  <button type="button" class="edit-link" (click)="closeCalendarDialog()">
+                    Close
+                  </button>
+                </header>
+                <app-calendar-source-form (connected)="onCalendarConnected($event)" />
+                <button type="button" class="calendar-skip" (click)="closeCalendarDialog()">
+                  I’ll do this later
+                </button>
+              </section>
+            </div>
+          }
 
           <div class="first-task">
             <label for="wizard-first-task"

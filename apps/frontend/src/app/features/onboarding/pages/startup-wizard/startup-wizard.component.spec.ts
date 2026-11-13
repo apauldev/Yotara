@@ -11,6 +11,7 @@ import { PreferencesStore } from '../../../../core/services/preferences-store.se
 import { StatusService } from '../../../../core/services/status.service';
 import { TaskService } from '../../../../core/services/task.service';
 import { ThemeService } from '../../../../core/services/theme.service';
+import { CalendarService } from '../../../../core/services/calendar.service';
 import { StartupWizardComponent } from './startup-wizard.component';
 
 interface MockUser {
@@ -173,6 +174,15 @@ describe('StartupWizardComponent', () => {
         { provide: LogService, useValue: logService },
         { provide: TaskService, useValue: taskService },
         { provide: StatusService, useValue: statusService },
+        {
+          provide: CalendarService,
+          useValue: {
+            sources: signal([]),
+            events: signal([]),
+            loadSources: jasmine.createSpy().and.resolveTo([]),
+            loadEvents: jasmine.createSpy().and.resolveTo([]),
+          },
+        },
       ],
     }).compileComponents();
 
@@ -199,6 +209,33 @@ describe('StartupWizardComponent', () => {
     expect(dots.length).toBe(6);
     expect(dots[0].getAttribute('aria-current')).toBe('step');
     expect(fixture.nativeElement.querySelector('.sr-only[aria-live="polite"]')).not.toBeNull();
+  });
+
+  it('offers an optional calendar connect dialog on Ready without persisting its URL', async () => {
+    await create({ query: { step: 'ready' } });
+    expect(component.steps).toHaveSize(6);
+    expect(fixture.nativeElement.textContent).toContain(
+      'See your calendar next to your tasks (optional)',
+    );
+
+    (
+      fixture.nativeElement.querySelector('.calendar-connect-card button') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeTruthy();
+
+    const url = fixture.nativeElement.querySelector(
+      '.calendar-dialog input[type="url"]',
+    ) as HTMLInputElement;
+    url.value = 'https://example.test/private-secret.ics';
+    url.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    expect(localStorage.getItem(DRAFT_KEY)).not.toContain('private-secret.ics');
+
+    (fixture.nativeElement.querySelector('.calendar-skip') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    expect(component.step()).toBe('ready');
   });
 
   it('initializes defaults from PreferencesStore, ThemeService, and the user', async () => {

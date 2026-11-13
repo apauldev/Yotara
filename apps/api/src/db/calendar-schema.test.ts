@@ -84,6 +84,7 @@ test('a fresh bootstrap creates the calendar tables', () => {
       'last_success_at',
       'last_error',
       'next_attempt_at',
+      'failure_count',
       'created_at',
       'updated_at',
     ]);
