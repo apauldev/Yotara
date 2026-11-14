@@ -250,6 +250,11 @@ export function isBlockedAddress(address: string): boolean {
 
 // ─── URL validation ─────────────────────────────────────────────────────────
 
+/** Convert calendar-client subscription URLs to the HTTPS URL we can fetch. */
+export function normalizeCalendarFeedUrl(url: string): string {
+  return url.trim().replace(/^webcal:\/\//i, 'https://');
+}
+
 /**
  * Parse a calendar URL and reject the shapes the fetcher will not handle.
  *

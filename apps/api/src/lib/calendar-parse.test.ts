@@ -466,6 +466,41 @@ describe('parseCalendarFeed — text and identity', () => {
     assert.equal(result.events[0].recurrenceId, '');
   });
 
+  it('keeps detached overrides without a master under their own recurrence IDs', () => {
+    const result = parse(
+      feed(
+        event(
+          [
+            'UID:series@example.com',
+            'RECURRENCE-ID:20260303T090000Z',
+            'SUMMARY:Moved first instance',
+            'DTSTART:20260303T100000Z',
+            'DTEND:20260303T103000Z',
+          ].join('\r\n'),
+        ),
+        event(
+          [
+            'UID:series@example.com',
+            'RECURRENCE-ID:20260304T090000Z',
+            'SUMMARY:Moved second instance',
+            'DTSTART:20260304T110000Z',
+            'DTEND:20260304T113000Z',
+          ].join('\r\n'),
+        ),
+      ),
+    );
+
+    assert.equal(result.events.length, 2);
+    assert.deepEqual(
+      result.events.map((item) => item.recurrenceId),
+      ['2026-03-03T09:00:00.000Z', '2026-03-04T09:00:00.000Z'],
+    );
+    assert.deepEqual(
+      result.events.map((item) => item.startAt),
+      ['2026-03-03T10:00:00.000Z', '2026-03-04T11:00:00.000Z'],
+    );
+  });
+
   it('gives an event without a UID a stable identity', () => {
     const body = feed(
       event(
@@ -539,6 +574,28 @@ describe('parseCalendarFeed — resilience', () => {
     );
 
     assert.equal(result.events.length, 5);
+    assert.equal(result.truncated, true);
+  });
+
+  it('applies the instance cap to detached overrides without a master', () => {
+    const result = parse(
+      feed(
+        ...[3, 4, 5].map((day) =>
+          event(
+            [
+              'UID:series@example.com',
+              `RECURRENCE-ID:2026030${day}T090000Z`,
+              'SUMMARY:Detached instance',
+              `DTSTART:2026030${day}T100000Z`,
+              `DTEND:2026030${day}T103000Z`,
+            ].join('\r\n'),
+          ),
+        ),
+      ),
+      { maxInstances: 2 },
+    );
+
+    assert.equal(result.events.length, 2);
     assert.equal(result.truncated, true);
   });
 

@@ -14,6 +14,7 @@ import {
   CalendarFetchError,
   assertFetchableCalendarUrl,
   fetchCalendarFeed,
+  normalizeCalendarFeedUrl,
   type CalendarFetchOptions,
   type CalendarFetchResult,
 } from '../lib/calendar-fetch.js';
@@ -233,20 +234,20 @@ export async function createCalendarSourceForOwner(
   body: CreateCalendarSourceDto,
   options: CalendarSyncOptions = {},
 ): Promise<CalendarSource> {
-  const rawUrl = body.url?.trim() ?? '';
-  if (!rawUrl) {
+  const url = normalizeCalendarFeedUrl(body.url ?? '');
+  if (!url) {
     throw new BadRequestError('A calendar URL is required.');
   }
 
   let urlHash: string;
   try {
-    assertFetchableCalendarUrl(rawUrl, insecureUrlsAllowed());
-    urlHash = hashUrl(rawUrl);
+    assertFetchableCalendarUrl(url, insecureUrlsAllowed());
+    urlHash = hashUrl(url);
   } catch (error) {
     throw new UnprocessableEntityError(describeFetchFailure(error));
   }
 
-  const host = describeSourceUrl(rawUrl);
+  const host = describeSourceUrl(url);
   const id = randomUUID();
   const now = nowIsoTimestamp();
 
@@ -268,7 +269,7 @@ export async function createCalendarSourceForOwner(
           id,
           userId: ownerId,
           name: normalizeSourceName(body.name, host),
-          urlCiphertext: encryptUrl(rawUrl),
+          urlCiphertext: encryptUrl(url),
           urlHash,
           color: normalizeSourceColor(body.color),
           enabled: true,
@@ -282,7 +283,7 @@ export async function createCalendarSourceForOwner(
 
   // The first fetch is part of connecting: a source that cannot be read is
   // not worth having, and the person should find out now rather than later.
-  const status = await syncCalendarSource(id, ownerId, { ...options, plainUrl: rawUrl });
+  const status = await syncCalendarSource(id, ownerId, { ...options, plainUrl: url });
   if (status.lastError) {
     db.delete(calendarSources).where(eq(calendarSources.id, id)).run();
     throw new UnprocessableEntityError(status.lastError);

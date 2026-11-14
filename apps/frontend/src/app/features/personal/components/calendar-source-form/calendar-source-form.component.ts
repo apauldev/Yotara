@@ -174,8 +174,8 @@ import { CalendarService } from '../../../../core/services/calendar.service';
                     <strong>Share Link</strong>.
                   </li>
                   <li>
-                    Paste the link into Yotara. If it starts with <code>webcal://</code>, change
-                    that prefix to <code>https://</code>.
+                    Paste the link into Yotara as copied. Links starting with
+                    <code>webcal://</code> are converted to HTTPS automatically.
                   </li>
                 </ol>
                 <p class="provider-note provider-note-warning">
@@ -222,8 +222,9 @@ import { CalendarService } from '../../../../core/services/calendar.service';
                   </li>
                   <li>Copy the full web address that downloads or displays an iCalendar feed.</li>
                   <li>
-                    Paste it into Yotara. The address must use <code>https://</code> and be
-                    reachable without signing in.
+                    Paste it into Yotara. HTTPS links work directly; <code>webcal://</code> links
+                    are converted to HTTPS automatically. The feed must be reachable without signing
+                    in.
                   </li>
                 </ol>
                 <p class="provider-note">

@@ -32,6 +32,7 @@ export class CalendarService {
         this.eventRequestId += 1;
         this.sources.set([]);
         this.events.set([]);
+        this.loadingEvents.set(false);
       }
     });
   }

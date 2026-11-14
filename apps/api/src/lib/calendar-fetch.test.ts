@@ -7,6 +7,7 @@ import {
   assertFetchableCalendarUrl,
   fetchCalendarFeed,
   isBlockedAddress,
+  normalizeCalendarFeedUrl,
   resolveCalendarTargets,
   type CalendarFetchTarget,
 } from './calendar-fetch.js';
@@ -163,6 +164,26 @@ describe('assertFetchableCalendarUrl', () => {
     assert.throws(
       () => assertFetchableCalendarUrl('not a url'),
       (error: unknown) => error instanceof CalendarFetchError && error.reason === 'invalid-url',
+    );
+  });
+});
+
+describe('normalizeCalendarFeedUrl', () => {
+  it('converts webcal links to HTTPS and trims surrounding whitespace', () => {
+    assert.equal(
+      normalizeCalendarFeedUrl('  WEBCAL://calendar.example.com/private/feed.ics  '),
+      'https://calendar.example.com/private/feed.ics',
+    );
+  });
+
+  it('leaves other URL schemes unchanged for normal validation', () => {
+    assert.equal(
+      normalizeCalendarFeedUrl('https://calendar.example.com/feed.ics'),
+      'https://calendar.example.com/feed.ics',
+    );
+    assert.equal(
+      normalizeCalendarFeedUrl('http://calendar.example.com/feed.ics'),
+      'http://calendar.example.com/feed.ics',
     );
   });
 });
