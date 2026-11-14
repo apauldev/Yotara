@@ -113,8 +113,7 @@ describe('calendar URL encryption', () => {
       assert.fail('expected the decryption to fail');
     } catch (error) {
       assert.ok(error instanceof CalendarEncryptionError);
-      assert.ok(!error.message.includes('super-secret'));
-      assert.ok(!error.message.includes('calendar.example.com'));
+      assert.equal(error.message, 'Calendar URL could not be decrypted with the configured key');
     }
   });
 

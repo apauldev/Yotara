@@ -346,7 +346,7 @@ export function resolveCalendarTargets(hostname: string): Promise<CalendarFetchT
 type LookupSettings = { family?: number; all?: boolean };
 type LookupCallback = (
   error: Error | null,
-  address: string | Array<{ address: string; family: number }>,
+  address?: string | Array<{ address: string; family: number }>,
   family?: number,
 ) => void;
 
@@ -371,19 +371,33 @@ function readLookupSettings(options: unknown): LookupSettings {
  * This is what closes the DNS rebinding gap: the connection cannot land on a
  * different address than the one that was checked.
  */
-function pinnedLookup(targets: ResolvedTarget[]): LookupFunction {
+export function createPinnedCalendarLookup(
+  targets: CalendarFetchTarget[],
+  expectedHostname: string,
+): LookupFunction {
   const lookup = (hostname: string, options: unknown, callback: unknown): void => {
+    if (typeof callback !== 'function') {
+      return;
+    }
+    const done = callback as LookupCallback;
+
+    const normalizeHostname = (value: string): string =>
+      value
+        .toLowerCase()
+        .replace(/^\[|\]$/g, '')
+        .replace(/\.$/, '');
+
+    if (normalizeHostname(hostname) !== normalizeHostname(expectedHostname)) {
+      done(new Error('DNS lookup hostname did not match the validated calendar host'));
+      return;
+    }
+
     const settings = readLookupSettings(options);
     const family = settings.family ?? 0;
 
     const matching =
       family === 4 || family === 6 ? targets.filter((target) => target.family === family) : targets;
     const usable = matching.length > 0 ? matching : targets;
-
-    if (typeof callback !== 'function') {
-      return;
-    }
-    const done = callback as LookupCallback;
 
     if (settings.all === true) {
       done(
@@ -491,7 +505,7 @@ function requestOnce(
         headers,
         // Pin the connection to the validated addresses so a DNS record that
         // changes after the check cannot redirect the request.
-        lookup: pinnedLookup(targets),
+        lookup: createPinnedCalendarLookup(targets, url.hostname),
         signal,
       },
       (response) => {

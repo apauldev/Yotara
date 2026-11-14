@@ -5,6 +5,7 @@ import type { AddressInfo } from 'node:net';
 import {
   CalendarFetchError,
   assertFetchableCalendarUrl,
+  createPinnedCalendarLookup,
   fetchCalendarFeed,
   isBlockedAddress,
   normalizeCalendarFeedUrl,
@@ -268,6 +269,20 @@ describe('fetchCalendarFeed — the guard', () => {
       }),
       (error: unknown) => error instanceof CalendarFetchError && error.reason === 'blocked-address',
     );
+  });
+});
+
+describe('createPinnedCalendarLookup', () => {
+  it('does not give validated addresses to a different hostname', () => {
+    const lookup = createPinnedCalendarLookup(
+      [{ address: '203.0.113.12', family: 4 }],
+      'feed.example.test',
+    );
+
+    lookup('attacker.example.test', {}, (error, address) => {
+      assert.match(error?.message ?? '', /did not match the validated calendar host/);
+      assert.equal(address, undefined);
+    });
   });
 });
 
