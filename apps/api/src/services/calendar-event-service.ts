@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { and, eq, inArray, lt, gt, sql } from 'drizzle-orm';
+import { and, eq, inArray, lt, gt, or, sql } from 'drizzle-orm';
 import { DateTime } from 'luxon';
 import type { CalendarEventDto } from '@yotara/shared';
 import { db, type Database } from '../db/client.js';
@@ -176,6 +176,11 @@ export function listCalendarEventsForOwner(
   tz?: string,
 ): CalendarEventDto[] {
   const range = calendarRangeToInstants(from, to, tz);
+  // Floating events are stored as UTC-shaped values whose date and time parts
+  // represent the feed's wall clock. Filter them against the requested dates
+  // interpreted as UTC so the reader's timezone cannot shift them out of the
+  // range before projectEventToZone preserves their wall clock.
+  const floatingRange = calendarRangeToInstants(from, to, 'UTC');
 
   // An inverted range matches nothing rather than erroring.
   if (range.end <= range.start) {
@@ -206,8 +211,18 @@ export function listCalendarEventsForOwner(
       and(
         eq(calendarEvents.userId, ownerId),
         eq(calendarSources.enabled, true),
-        lt(calendarEvents.startAt, range.end),
-        gt(calendarEvents.endAt, range.start),
+        or(
+          and(
+            eq(calendarEvents.floating, true),
+            lt(calendarEvents.startAt, floatingRange.end),
+            gt(calendarEvents.endAt, floatingRange.start),
+          ),
+          and(
+            eq(calendarEvents.floating, false),
+            lt(calendarEvents.startAt, range.end),
+            gt(calendarEvents.endAt, range.start),
+          ),
+        ),
       ),
     )
     .orderBy(calendarEvents.startAt, calendarEvents.id)

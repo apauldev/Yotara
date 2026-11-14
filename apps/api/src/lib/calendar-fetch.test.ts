@@ -272,6 +272,20 @@ describe('fetchCalendarFeed — the guard', () => {
 });
 
 describe('fetchCalendarFeed — the transport', () => {
+  it('bounds DNS resolution by the request deadline', async () => {
+    const startedAt = Date.now();
+
+    await assert.rejects(
+      fetchCalendarFeed('https://feed.example.test/a.ics', {
+        timeoutMs: 30,
+        resolveHost: () => new Promise<CalendarFetchTarget[]>(() => {}),
+      }),
+      (error: unknown) => error instanceof CalendarFetchError && error.reason === 'timeout',
+    );
+
+    assert.ok(Date.now() - startedAt < 500, 'the stalled DNS lookup should not hold the fetch');
+  });
+
   it('returns the body and the validators', async () => {
     const { port } = await startLocalServer((_request, response) => {
       response.writeHead(200, {

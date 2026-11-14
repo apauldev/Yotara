@@ -595,17 +595,23 @@ export async function fetchCalendarFeed(
         );
       }
       targets = [{ address: hostname, family: literalFamily === 6 ? 6 : 4 }];
-    } else if (options.resolveHost) {
-      targets = await options.resolveHost(hostname);
     } else {
-      targets = await resolveTargets(hostname);
+      targets = await resolveBeforeDeadline(
+        options.resolveHost ? options.resolveHost(hostname) : resolveTargets(hostname),
+        remaining,
+      );
+    }
+
+    const requestRemaining = deadline - Date.now();
+    if (requestRemaining <= 0) {
+      throw new CalendarFetchError('timeout', 'The calendar request timed out');
     }
 
     const response = await requestOnce(
       current,
       targets,
       { maxBytes, userAgent, etag: options.etag, lastModified: options.lastModified },
-      AbortSignal.timeout(remaining),
+      AbortSignal.timeout(requestRemaining),
     );
 
     if (response.status === 304) {
@@ -656,4 +662,31 @@ function readHeader(value: string | string[] | undefined): string | null {
     return value[0] ?? null;
   }
   return value ?? null;
+}
+
+/**
+ * Bound an asynchronous DNS lookup by the fetch's remaining deadline.
+ *
+ * `dns.lookup` does not accept an AbortSignal, so a timed-out lookup cannot be
+ * cancelled at the OS resolver. Racing it with the deadline still releases
+ * the fetch worker promptly; any later resolver completion is ignored.
+ */
+async function resolveBeforeDeadline<T>(resolution: Promise<T>, timeoutMs: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      resolution,
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(
+          () => reject(new CalendarFetchError('timeout', 'The calendar request timed out')),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
 }

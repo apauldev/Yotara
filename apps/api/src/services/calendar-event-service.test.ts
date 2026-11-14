@@ -260,8 +260,8 @@ test('the window query', async (t) => {
     replaceCalendarEventsForSource(ownerId, sourceId, WINDOW, [
       event({
         uid: 'floating@example.com',
-        startAt: '2026-03-05T09:00:00.000Z',
-        endAt: '2026-03-05T10:00:00.000Z',
+        startAt: '2026-03-05T12:00:00.000Z',
+        endAt: '2026-03-05T13:00:00.000Z',
         floating: true,
         timezone: null,
       }),
@@ -271,12 +271,12 @@ test('the window query', async (t) => {
       ownerId,
       '2026-03-05',
       '2026-03-05',
-      'Pacific/Auckland',
+      'Pacific/Kiritimati',
     );
 
     const floating = events.find((entry) => entry.floating);
     assert.ok(floating);
-    assert.equal(floating.startTime, '09:00', 'a 09:00 standup stays at 09:00');
+    assert.equal(floating.startTime, '12:00', 'a 12:00 event stays at 12:00');
     assert.deepEqual(floating.dayKeys, ['2026-03-05']);
   });
 
