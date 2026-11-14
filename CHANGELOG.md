@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.91.0](https://github.com/apauldev/Yotara/compare/v0.90.0...v0.91.0) (2026-11-14)
+
+
+### Features
+
+* **calendar:** add provider setup dialog ([3fa4157](https://github.com/apauldev/Yotara/commit/3fa4157fde3c2378069565a8b2b35879b3f8f856))
+* **calendar:** add read-only ICS events ([f311a76](https://github.com/apauldev/Yotara/commit/f311a765bdd7058bc2529d4de37a75265fd8c2a5))
+* **calendar:** ingest core — schema, encryption, guarded fetch, parse ([5fcef5f](https://github.com/apauldev/Yotara/commit/5fcef5f39e9ab7bddb834b59fe2431211b6e8408))
+* **calendar:** show events on Today ([8d5cae1](https://github.com/apauldev/Yotara/commit/8d5cae15eb99b677afad38d1b6df78cac983c060))
+
+
+### Bug Fixes
+
+* **calendar:** address review findings ([f6676bf](https://github.com/apauldev/Yotara/commit/f6676bf953c28ed925d00e037e19291ca4c3f159))
+* **calendar:** parse HTML feed text safely ([42b5f56](https://github.com/apauldev/Yotara/commit/42b5f56fc35f8c876fc3e155ddecceccdaa68f83))
+* **calendar:** preserve detached event identities ([d6d3763](https://github.com/apauldev/Yotara/commit/d6d3763fe4869b99c211178d3e08b38dee90c2fa))
+* **security:** bind pinned DNS lookup to host ([eb9df41](https://github.com/apauldev/Yotara/commit/eb9df412bc444a282ebb54c6c196aed203ba6c11))
+
+
+### Documentation
+
+* **calendar:** add the inbound read-only calendar plan ([db1ae3b](https://github.com/apauldev/Yotara/commit/db1ae3b3423efde82e97c8012b787475f639bbdb))
+* refresh GitHub README and contributors ([d1f3ce6](https://github.com/apauldev/Yotara/commit/d1f3ce6ec9bcc69ad544629ec8e2e7fca905e27a))
+
+
+### Tests
+
+* **e2e:** stabilize calendar and task modal specs ([6617a09](https://github.com/apauldev/Yotara/commit/6617a090375d8b5f770d368b6d5b5670bf163954))
+* improve calendar feature coverage ([5b8e9e9](https://github.com/apauldev/Yotara/commit/5b8e9e9f9856717845ab70aebcf444121533f7ed))
+
 ## [0.90.0](https://github.com/apauldev/Yotara/compare/v0.89.2...v0.90.0) (2026-11-10)
 
 
