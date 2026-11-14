@@ -75,6 +75,7 @@ test('shows read-only events beside completable tasks in the day agenda', async 
   await expect(page.locator('#calendars')).toContainText('example.test');
 
   await page.getByRole('link', { name: 'Calendar' }).click();
+  await page.waitForLoadState('networkidle');
   const eventButton = page.locator('.agenda').getByRole('button', { name: /Event: Team offsite/ });
   await expect(eventButton).toBeVisible();
   await eventButton.click();
@@ -86,9 +87,11 @@ test('shows read-only events beside completable tasks in the day agenda', async 
   await expect(details.getByRole('button', { name: /complete|delete|edit/i })).toHaveCount(0);
 
   await details.getByRole('button', { name: 'Close event details' }).click();
+  await expect(details).not.toBeVisible();
+
   const taskChip = page.locator('.agenda app-calendar-task-chip').filter({ hasText: taskName });
   await expect(taskChip).toBeVisible();
-  await taskChip.getByRole('button', { name: `Mark ${taskName} as complete` }).click();
+  await taskChip.locator('.cal-chip-check').click();
   await expect(taskChip).toHaveCount(0);
   await expect(eventButton).toBeVisible();
 });
