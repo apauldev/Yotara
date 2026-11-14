@@ -13,16 +13,18 @@ import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faArrowLeft, faCalendarDays, faCalendarWeek } from '@fortawesome/free-solid-svg-icons';
 import { DateTime } from 'luxon';
-import type { Task } from '@yotara/shared';
+import type { CalendarEventDto, Task } from '@yotara/shared';
 import { LabelService } from '../../../../core/services/label.service';
 import { PreferencesStore } from '../../../../core/services/preferences-store.service';
 import { ProjectService } from '../../../../core/services/project.service';
 import { StatusService } from '../../../../core/services/status.service';
 import { TaskService, type CalendarRangeRequest } from '../../../../core/services/task.service';
+import { CalendarService } from '../../../../core/services/calendar.service';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { startOfToday } from '../../../../shared/utils/timestamps';
 import { projectPaletteFor } from '../../project-presentation';
-import { CalendarDayPanelComponent } from '../../components/calendar-day-panel/calendar-day-panel.component';
+import { CalendarDayViewComponent } from '../../components/calendar-day-view/calendar-day-view.component';
+import { CalendarEventDetailComponent } from '../../components/calendar-event-detail/calendar-event-detail.component';
 import { CalendarHeaderComponent } from '../../components/calendar-header/calendar-header.component';
 import { CalendarMonthGridComponent } from '../../components/calendar-month-grid/calendar-month-grid.component';
 import { CalendarWeekStripComponent } from '../../components/calendar-week-strip/calendar-week-strip.component';
@@ -33,6 +35,7 @@ import {
 import { PersonalTaskWorkspaceComponent } from '../../components/personal-task-workspace.component';
 import {
   buildMonthCells,
+  buildEventsByDay,
   buildTasksByDay,
   buildUndatedTasks,
   buildWeekDays,
@@ -60,7 +63,8 @@ function pruneIds(ids: ReadonlySet<string>, allowed: ReadonlySet<string>): Reado
     CalendarHeaderComponent,
     CalendarMonthGridComponent,
     CalendarWeekStripComponent,
-    CalendarDayPanelComponent,
+    CalendarDayViewComponent,
+    CalendarEventDetailComponent,
     CalendarNoDateListComponent,
     PersonalTaskWorkspaceComponent,
   ],
@@ -70,6 +74,7 @@ function pruneIds(ids: ReadonlySet<string>, allowed: ReadonlySet<string>): Reado
 })
 export class CalendarPageComponent {
   private readonly taskService = inject(TaskService);
+  private readonly calendarService = inject(CalendarService);
   private readonly projectService = inject(ProjectService);
   private readonly labelService = inject(LabelService);
   private readonly statusService = inject(StatusService);
@@ -86,6 +91,7 @@ export class CalendarPageComponent {
   protected readonly faCalendarWeek = faCalendarWeek;
   /** On mobile, whether the dense month grid replaces the week strip. */
   protected readonly mobileMonthView = signal(false);
+  protected readonly selectedEvent = signal<CalendarEventDto | null>(null);
 
   private readonly today = startOfToday();
   protected readonly todayKey = dayKey(this.today);
@@ -160,6 +166,14 @@ export class CalendarPageComponent {
     };
   });
 
+  private readonly eventRange = computed(() => {
+    const range = this.visibleRange();
+    return {
+      from: range.grid.from < range.focus.from ? range.grid.from : range.focus.from,
+      to: range.grid.to > range.focus.to ? range.grid.to : range.focus.to,
+    };
+  });
+
   private readonly calendarTasks = computed(() => {
     const tasks = this.taskService
       .calendarRangeTasks()
@@ -176,6 +190,7 @@ export class CalendarPageComponent {
   });
 
   private readonly tasksByDay = computed(() => buildTasksByDay(this.calendarTasks()));
+  private readonly eventsByDay = computed(() => buildEventsByDay(this.calendarService.events()));
   protected readonly undatedTasks = computed(() =>
     buildUndatedTasks(this.taskService.undatedTasks()).filter(
       (task) => !this.schedulingIds().has(task.id),
@@ -183,18 +198,24 @@ export class CalendarPageComponent {
   );
 
   protected readonly cells = computed(() =>
-    buildMonthCells(this.viewMonth(), this.tasksByDay(), this.today),
+    buildMonthCells(this.viewMonth(), this.tasksByDay(), this.today, this.eventsByDay()),
   );
   protected readonly selectedDayTasks = computed(
     () => this.tasksByDay().get(this.selectedKey()) ?? [],
   );
+  protected readonly selectedDayEvents = computed(
+    () => this.eventsByDay().get(this.selectedKey()) ?? [],
+  );
   protected readonly weekDays = computed(() =>
-    buildWeekDays(this.selectedDate(), this.tasksByDay(), this.today),
+    buildWeekDays(this.selectedDate(), this.tasksByDay(), this.today, this.eventsByDay()),
   );
 
   protected readonly noDateCount = computed(() => this.undatedTasks().length);
   protected readonly monthHasTasks = computed(() =>
     this.cells().some((cell) => cell.inMonth && cell.tasks.length > 0),
+  );
+  protected readonly monthHasEvents = computed(() =>
+    this.cells().some((cell) => cell.inMonth && cell.events.length > 0),
   );
   protected readonly showInitialLoading = computed(
     () => this.taskService.calendarRangeLoading() && !this.taskService.calendarRangeLoaded(),
@@ -207,6 +228,13 @@ export class CalendarPageComponent {
   constructor() {
     effect(() => {
       this.taskService.setCalendarRange(this.visibleRange());
+    });
+
+    effect(() => {
+      const range = this.eventRange();
+      void this.calendarService.loadEvents(range.from, range.to).catch(() => {
+        this.statusService.error('Could not load calendar events right now.');
+      });
     });
 
     effect(() => {
@@ -301,6 +329,10 @@ export class CalendarPageComponent {
   protected closeMobilePanel(): void {
     this.mobileDayOpen.set(false);
     this.showNoDate.set(false);
+  }
+
+  protected openEvent(event: CalendarEventDto): void {
+    this.selectedEvent.set(event);
   }
 
   protected toggleNoDate(): void {

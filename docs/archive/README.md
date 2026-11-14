@@ -46,6 +46,7 @@ archived plan and the code disagree, the code wins.
 | [security-hardening-plan.md](./security-hardening-plan.md) | The security hardening plan covering CSP, security headers, password policy, and secret validation | Shipped. The durable policy now lives in [DOCKER.md](../../DOCKER.md) and [docs/ARCHITECTURE.md](../ARCHITECTURE.md). Its §3 environment-configuration analysis is superseded: `angular.json` does use `fileReplacements`, and email verification is now environment-driven. |
 | [documentation-overhaul.md](./documentation-overhaul.md) | The audit and remediation plan for this documentation set | Implemented. Records the documentation as it was before the overhaul, including the verified errors that were corrected. |
 | [precheck-beta-release.md](./precheck-beta-release.md) | A pre-flight checklist for the first beta Docker deploy | The beta shipped. Its §2.4 E2E-diagnostics finding is resolved: CI now uploads `playwright-report/`, `test-results/`, and both service logs with `if: always()`, and terminates the background processes in an `always()` step. |
+| [2026-11-12-calendar-ics-feed.md](./2026-11-12-calendar-ics-feed.md) | An outbound plan to export tasks as `.ics` downloads and a token-authenticated subscribed calendar feed | Abandoned. Publishing casual tasks to a calendar was judged low value; the direction moved to inbound read-only calendar events ([current plan](../plans/2026-11-12-inbound-calendar-read-only.md)). |
 
 ## Adding to this archive
 

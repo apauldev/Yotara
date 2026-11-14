@@ -1,10 +1,13 @@
 import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { DateTime } from 'luxon';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { faCalendarDays } from '@fortawesome/free-solid-svg-icons';
 import type { CalendarWeekDay } from '../../utils/calendar-view';
 
 @Component({
   selector: 'app-calendar-week-strip',
   standalone: true,
+  imports: [FontAwesomeModule],
   changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <div class="cal-week-strip" role="group" aria-label="Week">
@@ -23,6 +26,11 @@ import type { CalendarWeekDay } from '../../utils/calendar-view';
           <span class="cal-week-number">{{ day.date.day }}</span>
           @if (day.taskCount > 0) {
             <span class="cal-week-count">{{ day.taskCount }}</span>
+          }
+          @if (day.eventCount > 0) {
+            <span class="cal-week-event-count">
+              <fa-icon [icon]="faCalendarDays" aria-hidden="true" />{{ day.eventCount }}
+            </span>
           }
         </button>
       }
@@ -85,6 +93,16 @@ import type { CalendarWeekDay } from '../../utils/calendar-view';
         font-weight: 800;
       }
 
+      .cal-week-event-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.15rem;
+        color: var(--on-surface-subtle);
+        font-size: 0.58rem;
+        font-weight: 800;
+        line-height: 1;
+      }
+
       .cal-week-day-today .cal-week-number {
         color: var(--primary-solid);
       }
@@ -119,10 +137,12 @@ import type { CalendarWeekDay } from '../../utils/calendar-view';
 export class CalendarWeekStripComponent {
   @Input() days: CalendarWeekDay[] = [];
   @Output() readonly selectDate = new EventEmitter<DateTime>();
+  protected readonly faCalendarDays = faCalendarDays;
 
   protected dayLabel(day: CalendarWeekDay): string {
     const count = day.taskCount;
     const tasks = `${count} ${count === 1 ? 'task' : 'tasks'}`;
-    return `${day.date.toFormat('cccc, LLLL d, yyyy')}, ${tasks}${day.isToday ? ', today' : ''}`;
+    const events = `${day.eventCount} ${day.eventCount === 1 ? 'event' : 'events'}`;
+    return `${day.date.toFormat('cccc, LLLL d, yyyy')}, ${tasks}, ${events}${day.isToday ? ', today' : ''}`;
   }
 }

@@ -35,3 +35,15 @@ export class ConflictError extends AppError {
     super(409, message);
   }
 }
+
+/**
+ * The request was well-formed but could not be acted on.
+ *
+ * Used for a calendar URL that parses but cannot be used — a feed that
+ * answers with a login page, for instance.
+ */
+export class UnprocessableEntityError extends AppError {
+  constructor(message: string) {
+    super(422, message);
+  }
+}

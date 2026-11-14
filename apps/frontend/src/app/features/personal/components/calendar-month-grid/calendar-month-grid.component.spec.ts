@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import type { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { DateTime } from 'luxon';
-import type { Task } from '@yotara/shared';
+import type { CalendarEventDto, Task } from '@yotara/shared';
 import { CalendarCell, CalendarRescheduleRequest } from '../../utils/calendar-view';
 import { CalendarMonthGridComponent } from './calendar-month-grid.component';
 
@@ -20,13 +20,35 @@ function task(overrides: Partial<Task> = {}): Task {
   } as Task;
 }
 
+function calendarEvent(overrides: Partial<CalendarEventDto> = {}): CalendarEventDto {
+  return {
+    id: 'event-1',
+    sourceId: 'source-1',
+    sourceName: 'Work',
+    sourceColor: 'teal',
+    summary: 'Standup',
+    description: null,
+    location: null,
+    allDay: false,
+    dayKeys: ['2026-10-12'],
+    startTime: '09:00',
+    endTime: '09:30',
+    floating: false,
+    timezone: 'UTC',
+    status: 'CONFIRMED',
+    ...overrides,
+  };
+}
+
 describe('CalendarMonthGridComponent', () => {
   let fixture: ComponentFixture<CalendarMonthGridComponent>;
   let component: CalendarMonthGridComponent;
   const date = DateTime.fromISO('2026-10-12');
 
   function setCells(tasks: Task[]): void {
-    component.cells = [{ key: '2026-10-12', date, inMonth: true, isToday: false, tasks }];
+    component.cells = [
+      { key: '2026-10-12', date, inMonth: true, isToday: false, tasks, events: [] },
+    ];
     fixture.detectChanges();
   }
 
@@ -41,6 +63,7 @@ describe('CalendarMonthGridComponent', () => {
       inMonth: true,
       isToday: false,
       tasks: [],
+      events: [],
       ...overrides,
     };
   }
@@ -92,6 +115,17 @@ describe('CalendarMonthGridComponent', () => {
     expect(fixture.nativeElement.querySelector('.cal-chip-completed')).toBeTruthy();
   });
 
+  it('renders events as read-only chips and labels both counts', () => {
+    component.cells = [makeCell('2026-10-12', { tasks: [task()], events: [calendarEvent()] })];
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-calendar-event-chip')).toBeTruthy();
+    expect(
+      fixture.nativeElement.querySelector('app-calendar-event-chip .cal-chip-check'),
+    ).toBeNull();
+    const day = fixture.nativeElement.querySelector('.cal-cell-head') as HTMLButtonElement;
+    expect(day.getAttribute('aria-label')).toContain('1 task, 1 event');
+  });
+
   it('selects the day from the day-number button', () => {
     setCells([task({ id: 'a', dueDate: '2026-10-12' })]);
     let selected: DateTime | undefined;
@@ -130,6 +164,7 @@ describe('CalendarMonthGridComponent', () => {
       inMonth: true,
       isToday: false,
       tasks: [],
+      events: [],
     };
     (component as unknown as { onDrop: (e: unknown, c: CalendarCell) => void }).onDrop(
       event,
@@ -163,7 +198,7 @@ describe('CalendarMonthGridComponent', () => {
 
     const counts = fixture.nativeElement.querySelectorAll('.cal-cell-count');
     expect(counts).toHaveSize(1);
-    expect(counts[0].textContent?.trim()).toBe('2');
+    expect(counts[0].textContent?.trim()).toBe('2 tasks');
     expect(fixture.nativeElement.querySelector('app-calendar-task-chip')).toBeNull();
     expect(fixture.nativeElement.querySelector('.cal-more')).toBeNull();
   });

@@ -8,6 +8,7 @@ import corsPlugin from './plugins/cors.js';
 import authBridgePlugin, { applyCorsHeaders } from './plugins/auth-bridge.js';
 import { registerOpenApi } from './docs/openapi.js';
 import { startUnverifiedCleanupJob } from './lib/email-cleanup.js';
+import { startCalendarRefreshJob } from './lib/calendar-refresh.js';
 import { getTrustedProxy } from './lib/trusted-proxy.js';
 import healthRoutes from './routes/health.js';
 import meRoutes from './routes/me.js';
@@ -18,6 +19,7 @@ import projectRoutes from './routes/projects.js';
 import rootRoutes from './routes/root.js';
 import searchRoutes from './routes/search.js';
 import taskRoutes from './routes/tasks.js';
+import calendarRoutes from './routes/calendar.js';
 import devRoutes from './routes/dev.js';
 import { isLocalDevMode, bypassGlobalRateLimit } from './lib/dev-mode.js';
 
@@ -116,6 +118,7 @@ export async function buildApp() {
   await app.register(projectRoutes);
   await app.register(searchRoutes);
   await app.register(taskRoutes);
+  await app.register(calendarRoutes);
   await app.register(rootRoutes);
   if (isLocalDevMode()) {
     await app.register(devRoutes);
@@ -131,6 +134,9 @@ export async function startServer() {
 
   // Delete unverified accounts older than 24h (production or dev override).
   startUnverifiedCleanupJob();
+
+  // Refresh the connected calendar feeds on their own cadence.
+  startCalendarRefreshJob();
 
   try {
     await app.listen({ port, host });

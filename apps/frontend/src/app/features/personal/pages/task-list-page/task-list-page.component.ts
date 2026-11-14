@@ -8,8 +8,8 @@ import {
   effect,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
-import { Label, Priority, Task } from '@yotara/shared';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { CalendarEventDto, Label, Priority, Task } from '@yotara/shared';
 import { PreferencesStore } from '../../../../core/services/preferences-store.service';
 import { ProjectService } from '../../../../core/services/project.service';
 import {
@@ -19,6 +19,7 @@ import {
 } from '../../../../core/services/task.service';
 import { LabelService } from '../../../../core/services/label.service';
 import { AuthStateService } from '../../../../core/services/auth-state.service';
+import { CalendarService } from '../../../../core/services/calendar.service';
 import { PersonalTaskWorkspaceComponent } from '../../components/personal-task-workspace.component';
 import { PersonalTaskCardComponent } from '../../components/personal-task-card.component';
 import { StatusService } from '../../../../core/services/status.service';
@@ -33,6 +34,8 @@ import {
   TaskFilterSelection,
 } from '../../../../shared/components/task-filter-bar/task-filter-bar.component';
 import { TaskStackComponent } from '../../../../shared/components/task-stack/task-stack.component';
+import { CalendarEventChipComponent } from '../../components/calendar-event-chip/calendar-event-chip.component';
+import { CalendarEventDetailComponent } from '../../components/calendar-event-detail/calendar-event-detail.component';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faPlus, faSun, faCalendarDay, faCloud, faTag } from '@fortawesome/free-solid-svg-icons';
 import { parseTaskCommand } from '../../utils/task-command-parser';
@@ -47,6 +50,7 @@ import {
 } from '../../utils/insight-prompts';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
+import { startOfToday } from '../../../../shared/utils/timestamps';
 
 function parsePriority(value: string | null): Priority | null {
   return value === 'low' || value === 'medium' || value === 'high' ? value : null;
@@ -68,6 +72,9 @@ function parsePriority(value: string | null): Priority | null {
     FontAwesomeModule,
     EmptyStateComponent,
     TaskStackComponent,
+    RouterLink,
+    CalendarEventChipComponent,
+    CalendarEventDetailComponent,
   ],
   templateUrl: './task-list-page.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -78,6 +85,7 @@ export class TaskListPageComponent implements OnInit {
   protected readonly projectService = inject(ProjectService);
   protected readonly labelService = inject(LabelService);
   protected readonly authState = inject(AuthStateService);
+  protected readonly calendarService = inject(CalendarService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly preferences = inject(PreferencesStore);
@@ -87,6 +95,19 @@ export class TaskListPageComponent implements OnInit {
   protected readonly faCalendarDay = faCalendarDay;
   protected readonly faCloud = faCloud;
   protected readonly faTag = faTag;
+  protected readonly todayKey = startOfToday().toISODate() ?? '';
+  protected readonly selectedCalendarEvent = signal<CalendarEventDto | null>(null);
+  protected readonly todayEvents = computed(() =>
+    this.calendarService.events().filter((event) => event.dayKeys.includes(this.todayKey)),
+  );
+  protected readonly allDayTodayEvents = computed(() =>
+    this.todayEvents().filter((event) => event.allDay),
+  );
+  protected readonly timedTodayEvents = computed(() =>
+    this.todayEvents()
+      .filter((event) => !event.allDay)
+      .sort((a, b) => (a.startTime ?? '').localeCompare(b.startTime ?? '')),
+  );
 
   private readonly workspace = viewChild(PersonalTaskWorkspaceComponent);
   protected readonly captureBar = viewChild(CaptureBarComponent);
@@ -508,7 +529,11 @@ export class TaskListPageComponent implements OnInit {
       this.taskService.todayCompletedTasks().length;
     const completed = this.taskService.todayCompletedTasks().length;
 
-    return total === 0 ? 'a clear page' : `${completed} of ${total} done`;
+    return total === 0
+      ? this.todayEvents().length > 0
+        ? 'no tasks due'
+        : 'a clear page'
+      : `${completed} of ${total} done`;
   });
 
   constructor() {
@@ -529,6 +554,12 @@ export class TaskListPageComponent implements OnInit {
         priority: this.selectedPriority(),
       });
       this.currentPage.set(1);
+    });
+
+    effect(() => {
+      if (this.viewMode() === 'today' && !this.hasTaskFilters()) {
+        void this.calendarService.loadEvents(this.todayKey, this.todayKey).catch(() => undefined);
+      }
     });
   }
 

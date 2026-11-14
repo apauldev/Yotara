@@ -47,3 +47,50 @@ export function startOfDayInUtc(dateStr: string, tz?: string): string {
   const zone = tz && DateTime.now().setZone(tz).isValid ? tz : 'UTC';
   return toUtcIsoString(DateTime.fromFormat(dateStr, 'yyyy-MM-dd', { zone }).startOf('day'));
 }
+
+/**
+ * Compute the start of the day *after* a given date (YYYY-MM-DD) in the
+ * specified timezone and return it as a UTC ISO timestamp.
+ *
+ * The upper bound of a calendar range is the start of the next day rather than
+ * the last instant of the given day, so a 23- or 25-hour DST day is covered
+ * exactly instead of losing or double-counting an hour.
+ */
+export function startOfNextDayInUtc(dateStr: string, tz?: string): string {
+  const zone = tz && DateTime.now().setZone(tz).isValid ? tz : 'UTC';
+  const nextDay = DateTime.fromFormat(dateStr, 'yyyy-MM-dd', { zone }).plus({ days: 1 });
+  return toUtcIsoString(nextDay.startOf('day'));
+}
+
+/**
+ * A half-open range of instants: `start` is included, `end` is excluded.
+ */
+export interface CalendarInstantRange {
+  /** Inclusive lower bound, as a UTC ISO instant. */
+  start: string;
+  /** Exclusive upper bound, as a UTC ISO instant. */
+  end: string;
+}
+
+/**
+ * Convert a range of calendar dates into the half-open instant range that the
+ * events query filters on.
+ *
+ * `from` and `to` are calendar dates in the reader's zone, while `start_at`
+ * and `end_at` are absolute instants, so the range has to cross the zone
+ * boundary before it can be compared against stored rows.
+ *
+ * An inverted range is not an error: it yields a range whose upper bound is at
+ * or below its lower bound, and the strict overlap predicate then matches
+ * nothing.
+ */
+export function calendarRangeToInstants(
+  from: string,
+  to: string,
+  tz?: string,
+): CalendarInstantRange {
+  return {
+    start: startOfDayInUtc(from, tz),
+    end: startOfNextDayInUtc(to, tz),
+  };
+}

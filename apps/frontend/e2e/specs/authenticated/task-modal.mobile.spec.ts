@@ -672,6 +672,7 @@ test.describe('Task modal on mobile', () => {
     await expect(schedule).not.toContainText('Pick a date');
 
     await page.getByRole('button', { name: 'Create Task' }).click();
+    await expect(page.getByRole('dialog')).not.toBeVisible();
     await page.goto('/tasks?view=today');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('article.task-card').filter({ hasText: name }).first()).toBeVisible({

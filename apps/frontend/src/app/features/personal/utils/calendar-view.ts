@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import type { Task } from '@yotara/shared';
+import type { CalendarEventDto, Task } from '@yotara/shared';
 
 export interface CalendarCell {
   key: string;
@@ -7,6 +7,7 @@ export interface CalendarCell {
   inMonth: boolean;
   isToday: boolean;
   tasks: Task[];
+  events: CalendarEventDto[];
 }
 
 export interface CalendarWeekDay {
@@ -15,12 +16,24 @@ export interface CalendarWeekDay {
   isToday: boolean;
   isSelected: boolean;
   taskCount: number;
+  eventCount: number;
 }
 
 export interface CalendarRescheduleRequest {
   task: Task;
   date: string;
 }
+
+export interface VisibleCellChips {
+  tasks: Task[];
+  events: CalendarEventDto[];
+  hiddenTasks: number;
+  hiddenEvents: number;
+}
+
+export type CalendarAgendaEntry =
+  | { kind: 'task'; task: Task; time: string }
+  | { kind: 'event'; event: CalendarEventDto; time: string };
 
 const PRIORITY_RANK: Record<Task['priority'], number> = {
   high: 0,
@@ -77,6 +90,52 @@ export function buildUndatedTasks(tasks: Task[]): Task[] {
   return sortDayTasks(tasks.filter((task) => isCalendarTask(task) && !task.dueDate));
 }
 
+export function buildEventsByDay(events: CalendarEventDto[]): Map<string, CalendarEventDto[]> {
+  const map = new Map<string, CalendarEventDto[]>();
+  for (const event of events) {
+    for (const key of event.dayKeys) {
+      const list = map.get(key) ?? [];
+      list.push(event);
+      map.set(key, list);
+    }
+  }
+  for (const [key, list] of map) {
+    map.set(
+      key,
+      [...list].sort((a, b) => (a.startTime ?? '').localeCompare(b.startTime ?? '')),
+    );
+  }
+  return map;
+}
+
+/** Keep month cells compact while preserving at least one slot for each kind. */
+export function planCellChips(
+  tasks: Task[],
+  events: CalendarEventDto[],
+  maxRows = 3,
+): VisibleCellChips {
+  const eventSlots = tasks.length ? Math.min(events.length, Math.max(0, maxRows - 1)) : maxRows;
+  const taskSlots = Math.min(tasks.length, maxRows - eventSlots);
+  const visibleEvents = Math.min(events.length, maxRows - taskSlots);
+  return {
+    tasks: tasks.slice(0, taskSlots),
+    events: events.slice(0, visibleEvents),
+    hiddenTasks: Math.max(0, tasks.length - taskSlots),
+    hiddenEvents: Math.max(0, events.length - visibleEvents),
+  };
+}
+
+export function buildDayAgenda(tasks: Task[], events: CalendarEventDto[]): CalendarAgendaEntry[] {
+  return [
+    ...tasks
+      .filter((task) => !!task.dueTime)
+      .map((task): CalendarAgendaEntry => ({ kind: 'task', task, time: task.dueTime! })),
+    ...events
+      .filter((event) => !event.allDay && !!event.startTime)
+      .map((event): CalendarAgendaEntry => ({ kind: 'event', event, time: event.startTime! })),
+  ].sort((a, b) => a.time.localeCompare(b.time));
+}
+
 /** The Sunday that starts the week containing `reference`. */
 export function weekStart(reference: DateTime): DateTime {
   return reference.startOf('day').minus({ days: reference.weekday % 7 });
@@ -87,6 +146,7 @@ export function buildWeekDays(
   reference: DateTime,
   tasksByDay: Map<string, Task[]>,
   today: DateTime,
+  eventsByDay: Map<string, CalendarEventDto[]> = new Map(),
 ): CalendarWeekDay[] {
   const start = weekStart(reference);
   const todayKey = dayKey(today);
@@ -101,6 +161,7 @@ export function buildWeekDays(
       isToday: key === todayKey,
       isSelected: key === selectedKey,
       taskCount: tasksByDay.get(key)?.length ?? 0,
+      eventCount: eventsByDay.get(key)?.length ?? 0,
     };
   });
 }
@@ -114,6 +175,7 @@ export function buildMonthCells(
   reference: DateTime,
   tasksByDay: Map<string, Task[]>,
   today: DateTime,
+  eventsByDay: Map<string, CalendarEventDto[]> = new Map(),
 ): CalendarCell[] {
   const monthStart = reference.startOf('month');
   const leadingDays = monthStart.weekday % 7;
@@ -131,6 +193,7 @@ export function buildMonthCells(
       inMonth: date.month === monthStart.month && date.year === monthStart.year,
       isToday: key === todayKey,
       tasks: tasksByDay.get(key) ?? [],
+      events: eventsByDay.get(key) ?? [],
     });
   }
   return cells;

@@ -170,6 +170,63 @@ const SQLITE_BOOTSTRAP_SQL = `
 
   CREATE INDEX IF NOT EXISTS idx_notifications_task_type_created
     ON notifications(task_id, type, created_at);
+
+  CREATE TABLE IF NOT EXISTS calendar_sources (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    url_ciphertext TEXT NOT NULL,
+    url_hash TEXT NOT NULL,
+    color TEXT NOT NULL,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    etag TEXT,
+    last_modified TEXT,
+    last_fetched_at TEXT,
+    last_success_at TEXT,
+    last_error TEXT,
+    next_attempt_at TEXT,
+    failure_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+  );
+
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_calendar_sources_user_url_hash
+    ON calendar_sources(user_id, url_hash);
+
+  CREATE INDEX IF NOT EXISTS idx_calendar_sources_user_enabled
+    ON calendar_sources(user_id, enabled);
+
+  CREATE TABLE IF NOT EXISTS calendar_events (
+    id TEXT PRIMARY KEY NOT NULL,
+    source_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    uid TEXT NOT NULL,
+    recurrence_id TEXT NOT NULL DEFAULT '',
+    summary TEXT NOT NULL DEFAULT '',
+    description TEXT,
+    location TEXT,
+    start_at TEXT NOT NULL,
+    end_at TEXT NOT NULL,
+    all_day INTEGER NOT NULL DEFAULT 0,
+    start_date TEXT,
+    end_date TEXT,
+    timezone TEXT,
+    floating INTEGER NOT NULL DEFAULT 0,
+    status TEXT,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (source_id) REFERENCES calendar_sources(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+  );
+
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_calendar_events_source_uid_recurrence
+    ON calendar_events(source_id, uid, recurrence_id);
+
+  CREATE INDEX IF NOT EXISTS idx_calendar_events_user_start_end
+    ON calendar_events(user_id, start_at, end_at);
+
+  CREATE INDEX IF NOT EXISTS idx_calendar_events_source
+    ON calendar_events(source_id);
 `;
 
 function normalizeTextTimestamp(value: unknown, fallback: string): string {
@@ -353,6 +410,20 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
 
     if (!taskColumnNames.has('archived_at')) {
       sqlite.exec(`ALTER TABLE tasks ADD COLUMN archived_at TEXT`);
+    }
+
+    // A database created before the calendar backoff counter existed still has
+    // the calendar tables, so the bootstrap's CREATE TABLE IF NOT EXISTS will
+    // not add the column to them.
+    const calendarSourceColumns = sqlite
+      .prepare(`PRAGMA table_info('calendar_sources')`)
+      .all() as Array<{ name: string }>;
+    const calendarSourceColumnNames = new Set(calendarSourceColumns.map((column) => column.name));
+
+    if (!calendarSourceColumnNames.has('failure_count')) {
+      sqlite.exec(
+        `ALTER TABLE calendar_sources ADD COLUMN failure_count INTEGER NOT NULL DEFAULT 0`,
+      );
     }
 
     // Backfill archived_at for existing completed tasks if missing

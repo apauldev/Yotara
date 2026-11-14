@@ -29,11 +29,14 @@
     "better-sqlite3": "^13.0.3",
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.12.7",
+    "html-to-text": "^10.0.1",
+    "ical.js": "^2.2.1",
     "luxon": "^3.7.2",
     "resend": "^6.34.1"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
+    "@types/html-to-text": "^9.0.4",
     "@types/node": "^22",
     "c8": "^11.0.0",
     "drizzle-kit": "^0.31.10",

@@ -21,6 +21,9 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar.compon
 import { AvatarEditorComponent } from '../../../shared/components/avatar/avatar-editor.component';
 import { downloadCsv, downloadJson, CsvColumn } from '../../../shared/utils/export';
 import { Task, Project, Label, type DataCounts } from '@yotara/shared';
+import { CalendarService } from '../../../core/services/calendar.service';
+import { CalendarSourceFormComponent } from '../components/calendar-source-form/calendar-source-form.component';
+import type { CalendarSource } from '@yotara/shared';
 
 @Component({
   selector: 'app-settings-page',
@@ -34,6 +37,7 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
     LogoutConfirmModalComponent,
     AvatarComponent,
     AvatarEditorComponent,
+    CalendarSourceFormComponent,
   ],
   template: `
     <section class="page">
@@ -430,6 +434,77 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
           </button> -->
         </div>
 
+        <div class="settings-section" id="calendars">
+          <h3 class="section-title">Calendars</h3>
+          <p class="calendar-explainer">
+            Events come from your calendar and are read-only. Tasks are yours to complete. No
+            calendars connected? Tasks and events will appear together here.
+          </p>
+          @if (calendarLoadError()) {
+            <p class="photo-inline-error" role="alert">{{ calendarLoadError() }}</p>
+          }
+          @for (source of calendarService.sources(); track source.id) {
+            <article class="calendar-source-row">
+              <div class="calendar-source-main">
+                <span
+                  class="calendar-source-dot"
+                  [class]="'calendar-source-dot source-' + source.color"
+                  aria-hidden="true"
+                ></span>
+                <div class="calendar-source-copy">
+                  <strong>{{ source.name }}</strong>
+                  <span
+                    >{{ source.host }} · {{ source.eventCount }}
+                    {{ source.eventCount === 1 ? 'event' : 'events' }} ·
+                    {{
+                      source.lastFetchedAt
+                        ? 'Last synced ' + (source.lastFetchedAt | date: 'short')
+                        : 'Not synced yet'
+                    }}</span
+                  >
+                  @if (source.lastError) {
+                    <span class="calendar-source-error" role="status">{{ source.lastError }}</span>
+                  }
+                </div>
+              </div>
+              <div class="calendar-source-actions">
+                <label class="calendar-enabled"
+                  ><input
+                    type="checkbox"
+                    [checked]="source.enabled"
+                    [disabled]="calendarBusy().has(source.id)"
+                    (change)="toggleCalendar(source, $event)"
+                  />
+                  Enabled</label
+                >
+                <button
+                  type="button"
+                  class="photo-link"
+                  [disabled]="calendarBusy().has(source.id)"
+                  (click)="refreshCalendar(source)"
+                >
+                  {{ calendarBusy().has(source.id) ? 'Refreshing…' : 'Refresh now' }}
+                </button>
+                <button
+                  type="button"
+                  class="photo-link photo-link-danger"
+                  [disabled]="calendarBusy().has(source.id)"
+                  (click)="removeCalendar(source)"
+                >
+                  Remove
+                </button>
+              </div>
+            </article>
+          }
+          @if (calendarNotice()) {
+            <p class="calendar-notice" role="status">{{ calendarNotice() }}</p>
+          }
+          <div class="calendar-add-wrap">
+            <h4>Add a calendar</h4>
+            <app-calendar-source-form (connected)="onCalendarConnected($event)" />
+          </div>
+        </div>
+
         <!-- <div class="settings-section">
           <h3 class="section-title">Support</h3>
           <button type="button" class="settings-item settings-link" disabled>
@@ -533,6 +608,97 @@ import { Task, Project, Label, type DataCounts } from '@yotara/shared';
         display: flex;
         flex-direction: column;
         gap: 1rem;
+      }
+
+      .calendar-explainer,
+      .calendar-notice {
+        margin: 0;
+        color: var(--on-surface-muted);
+        font-size: 0.86rem;
+        line-height: 1.5;
+      }
+      .calendar-source-row {
+        display: grid;
+        gap: 0.7rem;
+        padding: 0.85rem;
+        border-radius: 0.85rem;
+        background: var(--surface-container-low);
+      }
+      .calendar-source-main {
+        display: flex;
+        gap: 0.65rem;
+        min-width: 0;
+        align-items: flex-start;
+      }
+      .calendar-source-dot {
+        flex: 0 0 0.7rem;
+        width: 0.7rem;
+        height: 0.7rem;
+        margin-top: 0.35rem;
+        border-radius: 50%;
+        background: var(--primary-solid);
+      }
+      .source-sage {
+        background: var(--success-strong);
+      }
+      .source-teal {
+        background: var(--primary-solid);
+      }
+      .source-olive {
+        background: var(--priority-low);
+      }
+      .source-clay {
+        background: var(--status-pending);
+      }
+      .source-forest {
+        background: var(--accent-strong);
+      }
+      .source-deep-ocean {
+        background: var(--priority-high);
+      }
+      .calendar-source-copy {
+        display: grid;
+        gap: 0.2rem;
+        min-width: 0;
+      }
+      .calendar-source-copy span {
+        color: var(--on-surface-subtle);
+        font-size: 0.78rem;
+        overflow-wrap: anywhere;
+      }
+      .calendar-source-error {
+        color: var(--status-overdue) !important;
+      }
+      .calendar-source-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.7rem;
+      }
+      @media (pointer: coarse) {
+        .calendar-source-actions .photo-link,
+        .calendar-source-actions .calendar-enabled {
+          min-height: 2.75rem;
+        }
+        .calendar-source-actions .photo-link {
+          padding: 0.35rem;
+        }
+      }
+      .calendar-enabled {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        color: var(--on-surface-muted);
+        font-size: 0.82rem;
+      }
+      .calendar-add-wrap {
+        display: grid;
+        gap: 0.6rem;
+        padding-top: 0.4rem;
+      }
+      .calendar-add-wrap h4 {
+        margin: 0;
+        font-size: 0.95rem;
       }
 
       .section-title {
@@ -932,6 +1098,7 @@ export class SettingsPageComponent {
   private readonly taskService = inject(TaskService);
   private readonly projectService = inject(ProjectService);
   private readonly labelService = inject(LabelService);
+  protected readonly calendarService = inject(CalendarService);
   private readonly logService = inject(LogService);
 
   protected readonly isChangePasswordOpen = signal(false);
@@ -970,6 +1137,76 @@ export class SettingsPageComponent {
   protected readonly exportFormat = signal<'csv' | 'json'>('csv');
 
   protected readonly isExporting = signal(false);
+  protected readonly calendarBusy = signal<ReadonlySet<string>>(new Set());
+  protected readonly calendarLoadError = signal('');
+  protected readonly calendarNotice = signal('');
+
+  constructor() {
+    void this.calendarService.loadSources().catch(() => {
+      this.calendarLoadError.set('Could not load connected calendars. Please try again.');
+    });
+  }
+
+  protected async onCalendarConnected(source: CalendarSource): Promise<void> {
+    this.calendarNotice.set(
+      `Events from ${source.name} are read-only. Tasks remain yours to complete.`,
+    );
+    this.calendarLoadError.set('');
+    try {
+      await this.calendarService.loadSources();
+    } catch {
+      /* the newly created source is already shown optimistically */
+    }
+  }
+
+  protected async toggleCalendar(source: CalendarSource, event: Event): Promise<void> {
+    const enabled = (event.target as HTMLInputElement).checked;
+    await this.withCalendarBusy(source.id, async () => {
+      try {
+        await this.calendarService.updateSource(source.id, { enabled });
+      } catch {
+        this.calendarLoadError.set('Could not update this calendar.');
+      }
+    });
+  }
+
+  protected async refreshCalendar(source: CalendarSource): Promise<void> {
+    await this.withCalendarBusy(source.id, async () => {
+      try {
+        const status = await this.calendarService.refreshSource(source.id);
+        this.calendarNotice.set(
+          status.lastError ?? `Refreshed ${source.name} · ${status.eventCount} events found.`,
+        );
+      } catch {
+        this.calendarLoadError.set('Could not refresh this calendar.');
+      }
+    });
+  }
+
+  protected async removeCalendar(source: CalendarSource): Promise<void> {
+    await this.withCalendarBusy(source.id, async () => {
+      try {
+        await this.calendarService.deleteSource(source.id);
+        this.calendarNotice.set(`${source.name} calendar removed.`);
+      } catch {
+        this.calendarLoadError.set('Could not remove this calendar.');
+      }
+    });
+  }
+
+  private async withCalendarBusy(id: string, action: () => Promise<void>): Promise<void> {
+    if (this.calendarBusy().has(id)) return;
+    this.calendarBusy.update((ids) => new Set(ids).add(id));
+    try {
+      await action();
+    } finally {
+      this.calendarBusy.update((ids) => {
+        const next = new Set(ids);
+        next.delete(id);
+        return next;
+      });
+    }
+  }
 
   protected readonly includeCompleted = signal(true);
   protected readonly includeSubtasks = signal(true);

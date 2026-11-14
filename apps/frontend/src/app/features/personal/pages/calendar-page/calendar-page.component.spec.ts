@@ -183,7 +183,7 @@ describe('CalendarPageComponent', () => {
     it('passes the selected date from the panel add action', () => {
       spyOn(workspace, 'openCreateTaskModal');
 
-      element<HTMLButtonElement>('.cal-panel-add').click();
+      element<HTMLButtonElement>('.agenda-add').click();
 
       expect(workspace.openCreateTaskModal).toHaveBeenCalledWith(
         undefined,
@@ -503,7 +503,7 @@ describe('CalendarPageComponent', () => {
     fixture.detectChanges();
 
     // The side panel is not part of the mobile layout until a day is opened.
-    expect(fixture.nativeElement.querySelector('app-calendar-day-panel')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('app-calendar-day-view')).toBeFalsy();
     // Mobile uses a week strip instead of the squeezed month grid.
     expect(fixture.nativeElement.querySelector('app-calendar-month-grid')).toBeFalsy();
     expect(fixture.nativeElement.querySelector('app-calendar-week-strip')).toBeTruthy();
@@ -592,7 +592,9 @@ describe('CalendarPageComponent', () => {
     expect(fixture.nativeElement.querySelector('app-calendar-week-strip')).toBeFalsy();
     expect(toggle().textContent).toContain('Show week');
     // The dense phone grid shows a count, not the squeezed task contents.
-    expect(fixture.nativeElement.querySelector('.cal-cell-count')?.textContent?.trim()).toBe('1');
+    expect(fixture.nativeElement.querySelector('.cal-cell-count')?.textContent?.trim()).toBe(
+      '1 task',
+    );
     expect(fixture.nativeElement.querySelector('app-calendar-month-grid .cal-chip')).toBeFalsy();
 
     toggle().click();

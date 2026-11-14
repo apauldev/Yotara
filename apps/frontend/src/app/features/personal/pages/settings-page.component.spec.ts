@@ -12,6 +12,7 @@ import { ThemeService } from '../../../core/services/theme.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { APP_VERSION } from '../../../core/constants/version';
+import { CalendarService } from '../../../core/services/calendar.service';
 
 const mockProjects: Project[] = [
   {
@@ -211,6 +212,15 @@ describe('SettingsPageComponent', () => {
         },
         { provide: ProjectService, useValue: { projects: projectsSignal } },
         { provide: LabelService, useValue: { labels: labelsSignal } },
+        {
+          provide: CalendarService,
+          useValue: {
+            sources: signal([]),
+            events: signal([]),
+            loadSources: jasmine.createSpy().and.resolveTo([]),
+            loadEvents: jasmine.createSpy().and.resolveTo([]),
+          },
+        },
         { provide: AuthStateService, useValue: mockAuthState },
         {
           provide: ThemeService,
@@ -245,6 +255,13 @@ describe('SettingsPageComponent', () => {
       .find((section) => section.nativeElement.textContent.includes('Version'));
 
     expect(aboutSection?.nativeElement.textContent).toContain(APP_VERSION.full);
+  });
+
+  it('provides a Calendars section that explains read-only events', () => {
+    const section = fixture.nativeElement.querySelector('#calendars') as HTMLElement;
+    expect(section).toBeTruthy();
+    expect(section.textContent).toContain('Events come from your calendar and are read-only.');
+    expect(section.querySelector('app-calendar-source-form')).toBeTruthy();
   });
 
   describe('export tasks', () => {

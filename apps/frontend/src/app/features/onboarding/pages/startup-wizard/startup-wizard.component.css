@@ -1154,3 +1154,78 @@ kbd {
     height: 2.75rem;
   }
 }
+.calendar-connect-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 1rem;
+  background: var(--surface-container-low);
+}
+
+.calendar-connect-card h2 {
+  margin: 0 0 0.35rem;
+  font-size: 0.98rem;
+}
+.calendar-connect-card p {
+  margin: 0;
+  color: var(--on-surface-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+.calendar-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: var(--backdrop-overlay);
+}
+.calendar-dialog {
+  width: min(100%, 34rem);
+  max-height: 90vh;
+  max-height: 90dvh;
+  overflow: auto;
+  padding: 1.25rem;
+  border-radius: 1rem;
+  background: var(--surface-card);
+  color: var(--on-surface);
+  box-shadow: 0 1.5rem 4rem var(--surface-dim-strong);
+}
+.calendar-dialog header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.calendar-dialog h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.calendar-skip {
+  margin-top: 0.8rem;
+  padding: 0.45rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--on-surface-subtle);
+  font: inherit;
+  cursor: pointer;
+}
+@media (max-width: 600px) {
+  .calendar-connect-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .calendar-dialog-backdrop {
+    padding: max(0.5rem, env(safe-area-inset-top)) max(0.5rem, env(safe-area-inset-right))
+      max(0.5rem, env(safe-area-inset-bottom)) max(0.5rem, env(safe-area-inset-left));
+  }
+  .calendar-dialog {
+    padding: 1rem;
+  }
+}

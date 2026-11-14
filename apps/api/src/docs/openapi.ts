@@ -250,6 +250,135 @@ const projectColorSchema = {
   enum: ['sage', 'teal', 'olive', 'clay', 'forest', 'deep-ocean'],
 } as const;
 
+const calendarSourceSchema = {
+  $id: 'CalendarSource',
+  type: 'object',
+  required: [
+    'id',
+    'name',
+    'color',
+    'enabled',
+    'host',
+    'eventCount',
+    'lastFetchedAt',
+    'lastSuccessAt',
+    'lastError',
+    'createdAt',
+    'updatedAt',
+  ],
+  properties: {
+    id: { type: 'string', format: 'uuid' },
+    name: { type: 'string' },
+    color: { $ref: 'ProjectColor#' },
+    enabled: { type: 'boolean' },
+    host: {
+      type: 'string',
+      description:
+        'The host of the feed URL. The URL itself is a credential and is never returned.',
+    },
+    eventCount: { type: 'integer', minimum: 0 },
+    lastFetchedAt: { type: ['string', 'null'], format: 'date-time' },
+    lastSuccessAt: { type: ['string', 'null'], format: 'date-time' },
+    lastError: {
+      type: ['string', 'null'],
+      description: 'A short description of the last failure. Never contains the URL.',
+    },
+    createdAt: { type: 'string', format: 'date-time' },
+    updatedAt: { type: 'string', format: 'date-time' },
+  },
+} as const;
+
+const createCalendarSourceSchema = {
+  $id: 'CreateCalendarSource',
+  type: 'object',
+  required: ['url'],
+  properties: {
+    url: {
+      type: 'string',
+      description: 'The ICS feed URL. It is stored encrypted, never returned, and never logged.',
+    },
+    name: { type: 'string', description: 'A label for the source. Defaults to the host.' },
+    color: { $ref: 'ProjectColor#' },
+  },
+} as const;
+
+const updateCalendarSourceSchema = {
+  $id: 'UpdateCalendarSource',
+  type: 'object',
+  properties: {
+    name: { type: 'string' },
+    color: { $ref: 'ProjectColor#' },
+    enabled: { type: 'boolean' },
+  },
+} as const;
+
+const calendarEventSchema = {
+  $id: 'CalendarEvent',
+  type: 'object',
+  required: [
+    'id',
+    'sourceId',
+    'sourceName',
+    'sourceColor',
+    'summary',
+    'description',
+    'location',
+    'allDay',
+    'dayKeys',
+    'startTime',
+    'endTime',
+    'floating',
+    'timezone',
+    'status',
+  ],
+  properties: {
+    id: { type: 'string' },
+    sourceId: { type: 'string', format: 'uuid' },
+    sourceName: { type: 'string' },
+    sourceColor: { $ref: 'ProjectColor#' },
+    summary: { type: 'string' },
+    description: { type: ['string', 'null'] },
+    location: { type: ['string', 'null'] },
+    allDay: { type: 'boolean' },
+    dayKeys: {
+      type: 'array',
+      items: { type: 'string', format: 'date' },
+      description: 'The reader-local days this event occupies.',
+    },
+    startTime: {
+      type: ['string', 'null'],
+      description: 'Reader-local start time (HH:mm). Null for an all-day event.',
+    },
+    endTime: {
+      type: ['string', 'null'],
+      description: 'Reader-local end time (HH:mm). Null for an all-day event.',
+    },
+    floating: {
+      type: 'boolean',
+      description: 'True when the feed gave no zone: the times are the source’s own wall clock.',
+    },
+    timezone: { type: ['string', 'null'] },
+    status: { type: ['string', 'null'] },
+  },
+} as const;
+
+const calendarSyncStatusSchema = {
+  $id: 'CalendarSyncStatus',
+  type: 'object',
+  required: ['sourceId', 'eventCount', 'lastFetchedAt', 'lastSuccessAt', 'lastError', 'truncated'],
+  properties: {
+    sourceId: { type: 'string', format: 'uuid' },
+    eventCount: { type: 'integer', minimum: 0 },
+    lastFetchedAt: { type: ['string', 'null'], format: 'date-time' },
+    lastSuccessAt: { type: ['string', 'null'], format: 'date-time' },
+    lastError: { type: ['string', 'null'] },
+    truncated: {
+      type: 'boolean',
+      description: 'True when a limit cut the stored set short.',
+    },
+  },
+} as const;
+
 const projectSchema = {
   $id: 'Project',
   type: 'object',
@@ -647,6 +776,11 @@ const sharedSchemas = [
   createProjectSchema,
   updateProjectSchema,
   projectsListResponseSchema,
+  calendarSourceSchema,
+  createCalendarSourceSchema,
+  updateCalendarSourceSchema,
+  calendarEventSchema,
+  calendarSyncStatusSchema,
   paginationMetaSchema,
   paginatedTasksResponseSchema,
   userSchema,
@@ -763,6 +897,86 @@ export const examples = {
       updatedAt: '2026-03-18T09:30:00.000Z',
     },
   ],
+  calendarSource: {
+    id: '3f2c1b7a-9d84-4f2e-b0a1-5c7d8e9f0a1b',
+    name: 'Work',
+    color: 'teal',
+    enabled: true,
+    host: 'calendar.google.com',
+    eventCount: 24,
+    lastFetchedAt: '2026-03-18T09:30:00.000Z',
+    lastSuccessAt: '2026-03-18T09:30:00.000Z',
+    lastError: null,
+    createdAt: '2026-03-16T12:00:00.000Z',
+    updatedAt: '2026-03-18T09:30:00.000Z',
+  },
+  createCalendarSource: {
+    url: 'https://calendar.google.com/calendar/ical/example/basic.ics',
+    name: 'Work',
+    color: 'teal',
+  },
+  updateCalendarSource: {
+    name: 'Work (renamed)',
+    color: 'forest',
+    enabled: true,
+  },
+  calendarSources: [
+    {
+      id: '3f2c1b7a-9d84-4f2e-b0a1-5c7d8e9f0a1b',
+      name: 'Work',
+      color: 'teal',
+      enabled: true,
+      host: 'calendar.google.com',
+      eventCount: 24,
+      lastFetchedAt: '2026-03-18T09:30:00.000Z',
+      lastSuccessAt: '2026-03-18T09:30:00.000Z',
+      lastError: null,
+      createdAt: '2026-03-16T12:00:00.000Z',
+      updatedAt: '2026-03-18T09:30:00.000Z',
+    },
+  ],
+  calendarEvent: {
+    id: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+    sourceId: '3f2c1b7a-9d84-4f2e-b0a1-5c7d8e9f0a1b',
+    sourceName: 'Work',
+    sourceColor: 'teal',
+    summary: 'Team standup',
+    description: 'Daily sync',
+    location: 'Room 3',
+    allDay: false,
+    dayKeys: ['2026-03-18'],
+    startTime: '09:00',
+    endTime: '09:30',
+    floating: false,
+    timezone: 'America/New_York',
+    status: 'CONFIRMED',
+  },
+  calendarEvents: [
+    {
+      id: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+      sourceId: '3f2c1b7a-9d84-4f2e-b0a1-5c7d8e9f0a1b',
+      sourceName: 'Work',
+      sourceColor: 'teal',
+      summary: 'Team standup',
+      description: 'Daily sync',
+      location: 'Room 3',
+      allDay: false,
+      dayKeys: ['2026-03-18'],
+      startTime: '09:00',
+      endTime: '09:30',
+      floating: false,
+      timezone: 'America/New_York',
+      status: 'CONFIRMED',
+    },
+  ],
+  calendarSyncStatus: {
+    sourceId: '3f2c1b7a-9d84-4f2e-b0a1-5c7d8e9f0a1b',
+    eventCount: 24,
+    lastFetchedAt: '2026-03-18T09:30:00.000Z',
+    lastSuccessAt: '2026-03-18T09:30:00.000Z',
+    lastError: null,
+    truncated: false,
+  },
   me: {
     user: {
       id: 'user_123',
@@ -1061,6 +1275,68 @@ function addOpenApiExamples(paths: OpenApiPathRecord) {
     ensureJsonContent(projectTasksGet, '404').example = examples.apiError('Project not found');
   }
 
+  const calendarSourcesGet = paths['/calendar/sources']?.get;
+  if (calendarSourcesGet) {
+    ensureJsonContent(calendarSourcesGet, '200').example = examples.calendarSources;
+    ensureJsonContent(calendarSourcesGet, '401').example = examples.apiError('Unauthorized');
+  }
+
+  const calendarSourcesPost = paths['/calendar/sources']?.post;
+  if (calendarSourcesPost) {
+    calendarSourcesPost.requestBody ??= { content: { 'application/json': {} } };
+    calendarSourcesPost.requestBody.content ??= {};
+    calendarSourcesPost.requestBody.content['application/json'] ??= {};
+    calendarSourcesPost.requestBody.content['application/json'].example =
+      examples.createCalendarSource;
+    ensureJsonContent(calendarSourcesPost, '201').example = examples.calendarSource;
+    ensureJsonContent(calendarSourcesPost, '400').example = examples.apiError('Bad request');
+    ensureJsonContent(calendarSourcesPost, '401').example = examples.apiError('Unauthorized');
+    ensureJsonContent(calendarSourcesPost, '409').example = examples.apiError(
+      'That calendar is already connected.',
+    );
+    ensureJsonContent(calendarSourcesPost, '422').example = examples.apiError(
+      'That URL did not return a calendar feed.',
+    );
+  }
+
+  const calendarSourcePatch = paths['/calendar/sources/{id}']?.patch;
+  if (calendarSourcePatch) {
+    calendarSourcePatch.requestBody ??= { content: { 'application/json': {} } };
+    calendarSourcePatch.requestBody.content ??= {};
+    calendarSourcePatch.requestBody.content['application/json'] ??= {};
+    calendarSourcePatch.requestBody.content['application/json'].example =
+      examples.updateCalendarSource;
+    ensureJsonContent(calendarSourcePatch, '200').example = {
+      ...examples.calendarSource,
+      ...examples.updateCalendarSource,
+    };
+    ensureJsonContent(calendarSourcePatch, '401').example = examples.apiError('Unauthorized');
+    ensureJsonContent(calendarSourcePatch, '404').example = examples.apiError('Calendar not found');
+  }
+
+  const calendarSourceDelete = paths['/calendar/sources/{id}']?.delete;
+  if (calendarSourceDelete) {
+    ensureJsonContent(calendarSourceDelete, '200').example = { ok: true };
+    ensureJsonContent(calendarSourceDelete, '401').example = examples.apiError('Unauthorized');
+    ensureJsonContent(calendarSourceDelete, '404').example =
+      examples.apiError('Calendar not found');
+  }
+
+  const calendarSourceRefresh = paths['/calendar/sources/{id}/refresh']?.post;
+  if (calendarSourceRefresh) {
+    ensureJsonContent(calendarSourceRefresh, '200').example = examples.calendarSyncStatus;
+    ensureJsonContent(calendarSourceRefresh, '401').example = examples.apiError('Unauthorized');
+    ensureJsonContent(calendarSourceRefresh, '404').example =
+      examples.apiError('Calendar not found');
+  }
+
+  const calendarEventsGet = paths['/calendar/events']?.get;
+  if (calendarEventsGet) {
+    ensureJsonContent(calendarEventsGet, '200').example = examples.calendarEvents;
+    ensureJsonContent(calendarEventsGet, '400').example = examples.apiError('Bad request');
+    ensureJsonContent(calendarEventsGet, '401').example = examples.apiError('Unauthorized');
+  }
+
   const taskByIdGet = paths['/tasks/{id}']?.get;
   if (taskByIdGet) {
     ensureJsonContent(taskByIdGet, '200').example = examples.task;
@@ -1292,6 +1568,10 @@ export async function registerOpenApi(app: FastifyInstance) {
         { name: 'meta', description: 'Service metadata and health endpoints' },
         { name: 'projects', description: 'Authenticated personal project endpoints' },
         { name: 'tasks', description: 'Authenticated task CRUD endpoints' },
+        {
+          name: 'calendar',
+          description: 'Authenticated read-only calendar source and event endpoints',
+        },
         { name: 'auth', description: 'Better Auth session and credential flows' },
       ],
       components: {

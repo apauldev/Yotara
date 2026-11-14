@@ -37,9 +37,13 @@ import { PreferencesStore } from '../../../../core/services/preferences-store.se
 import { StatusService } from '../../../../core/services/status.service';
 import { TaskService } from '../../../../core/services/task.service';
 import { ThemeService } from '../../../../core/services/theme.service';
+import { CalendarService } from '../../../../core/services/calendar.service';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
 import { AvatarEditorComponent } from '../../../../shared/components/avatar/avatar-editor.component';
 import { LabelIconComponent } from '../../../../shared/ui/label-icon/label-icon.component';
+import { CdkTrapFocus } from '@angular/cdk/a11y';
+import { CalendarSourceFormComponent } from '../../../personal/components/calendar-source-form/calendar-source-form.component';
+import type { CalendarSource } from '@yotara/shared';
 import { isSafeAvatarImage } from '../../../../shared/utils/avatar';
 import { PROJECT_PALETTE, projectPaletteFor } from '../../../personal/project-presentation';
 
@@ -109,7 +113,13 @@ const TIP_EXAMPLES: Readonly<Record<string, string>> = {
 @Component({
   selector: 'app-startup-wizard',
   standalone: true,
-  imports: [AvatarComponent, AvatarEditorComponent, LabelIconComponent],
+  imports: [
+    AvatarComponent,
+    AvatarEditorComponent,
+    LabelIconComponent,
+    CdkTrapFocus,
+    CalendarSourceFormComponent,
+  ],
   templateUrl: './startup-wizard.component.html',
   styleUrl: './startup-wizard.component.css',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -123,9 +133,12 @@ export class StartupWizardComponent {
   private readonly themeService = inject(ThemeService);
   private readonly taskService = inject(TaskService);
   private readonly statusService = inject(StatusService);
+  protected readonly calendarService = inject(CalendarService);
   protected readonly notificationService = inject(NotificationService);
 
   private readonly stepHeading = viewChild<ElementRef<HTMLHeadingElement>>('stepHeading');
+  private readonly calendarConnectButton =
+    viewChild<ElementRef<HTMLButtonElement>>('calendarConnectButton');
 
   readonly steps = WIZARD_STEPS;
   readonly themes = THEMES;
@@ -141,6 +154,7 @@ export class StartupWizardComponent {
   readonly isAvatarEditorOpen = signal(false);
   /** True when a stale draft expired, so the Welcome step can say so. */
   readonly draftExpired = signal(false);
+  readonly calendarDialogOpen = signal(false);
 
   readonly newProjectName = signal('');
   readonly newLabelName = signal('');
@@ -230,6 +244,7 @@ export class StartupWizardComponent {
     const queryStep = this.route.snapshot.queryParamMap.get('step');
     const initialStep = this.isStep(queryStep) ? queryStep : merged.step;
     this.step.set(initialStep);
+    if (initialStep === 'ready') void this.loadCalendarSources();
 
     // Reflect the step in the URL after the current navigation settles, so the
     // initial deep link / refresh can be resumed without racing route activation.
@@ -239,6 +254,7 @@ export class StartupWizardComponent {
       const nextStep = params.get('step');
       if (this.isStep(nextStep) && nextStep !== this.step()) {
         this.step.set(nextStep);
+        if (nextStep === 'ready') void this.loadCalendarSources();
         // Keep the persisted draft in step with the URL so a refresh after
         // back/forward resumes at the visible step instead of a stale one.
         this.patchDraft({ step: nextStep });
@@ -268,6 +284,33 @@ export class StartupWizardComponent {
 
   editStep(step: WizardStep): void {
     this.goToStep(step);
+  }
+
+  openCalendarDialog(): void {
+    this.calendarDialogOpen.set(true);
+  }
+
+  closeCalendarDialog(): void {
+    this.calendarDialogOpen.set(false);
+    setTimeout(() => this.calendarConnectButton()?.nativeElement.focus());
+  }
+
+  onCalendarConnected(_source: CalendarSource): void {
+    this.calendarDialogOpen.set(false);
+    void this.loadCalendarSources();
+    setTimeout(() => this.calendarConnectButton()?.nativeElement.focus());
+  }
+
+  openCalendarSettings(): void {
+    void this.router.navigate(['/app/settings']);
+  }
+
+  private async loadCalendarSources(): Promise<void> {
+    try {
+      await this.calendarService.loadSources();
+    } catch {
+      // The optional card remains usable if the source summary cannot load.
+    }
   }
 
   selectTheme(theme: Theme): void {
@@ -633,6 +676,7 @@ export class StartupWizardComponent {
     }
 
     this.step.set(step);
+    if (step === 'ready') void this.loadCalendarSources();
     this.patchDraft({ step });
     this.syncStepParam(step);
     this.focusStepHeading();

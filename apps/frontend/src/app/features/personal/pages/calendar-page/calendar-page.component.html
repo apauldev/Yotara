@@ -38,14 +38,16 @@
           [compactCounts]="isMobile()"
           (selectDate)="selectDate($event)"
           (openTask)="openTask($event)"
+          (openEvent)="openEvent($event)"
           (completeTask)="completeTask($event)"
           (rescheduleTask)="moveTask($event)"
           (createTask)="createTaskForDate($event)"
         />
 
-        @if (!monthHasTasks()) {
+        @if (!monthHasTasks() && !monthHasEvents()) {
           <p class="cal-month-empty">
-            Nothing scheduled in {{ monthLabel() }} yet. Give a task a due date to see it here.
+            No tasks or events in {{ monthLabel() }} yet. Give a task a due date or connect a
+            calendar in Settings.
           </p>
         }
       </ng-template>
@@ -66,16 +68,19 @@
             (scheduleTask)="scheduleTask($event)"
           />
         } @else {
-          <app-calendar-day-panel
+          <app-calendar-day-view
             [dateLabel]="selectedDateLabel()"
+            [dateKey]="selectedKey()"
+            [todayKey]="todayKey"
             [tasks]="selectedDayTasks()"
+            [events]="selectedDayEvents()"
             [accentByProject]="projectAccents()"
             [completionOverrides]="completionOverrides()"
-            [todayKey]="todayKey"
             [projectNames]="projectNames()"
             [labelNames]="labelNames()"
             [showMetadata]="showMetadata()"
             [touchTargets]="isMobile()"
+            (openEvent)="openEvent($event)"
             (openTask)="openTask($event)"
             (completeTask)="completeTask($event)"
             (addTask)="addTaskForDate()"
@@ -129,6 +134,10 @@
           </aside>
         </div>
       }
+    }
+
+    @if (selectedEvent(); as event) {
+      <app-calendar-event-detail [event]="event" (close)="selectedEvent.set(null)" />
     }
   </section>
 </app-personal-task-workspace>

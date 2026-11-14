@@ -1,6 +1,12 @@
 import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faChevronLeft, faChevronRight, faPlus } from '@fortawesome/free-solid-svg-icons';
+import {
+  faCalendarDays,
+  faCheck,
+  faChevronLeft,
+  faChevronRight,
+  faPlus,
+} from '@fortawesome/free-solid-svg-icons';
 
 @Component({
   selector: 'app-calendar-header',
@@ -27,6 +33,11 @@ import { faChevronLeft, faChevronRight, faPlus } from '@fortawesome/free-solid-s
         >
           <fa-icon [icon]="faChevronRight" aria-hidden="true" />
         </button>
+      </div>
+
+      <div class="cal-legend" aria-label="Calendar legend">
+        <span><fa-icon [icon]="faCheck" aria-hidden="true" /> Tasks</span>
+        <span><fa-icon [icon]="faCalendarDays" aria-hidden="true" /> Events</span>
       </div>
 
       <div class="cal-actions">
@@ -114,6 +125,20 @@ import { faChevronLeft, faChevronRight, faPlus } from '@fortawesome/free-solid-s
         gap: 0.5rem;
         flex-wrap: wrap;
         min-width: 0;
+      }
+
+      .cal-legend {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        color: var(--on-surface-subtle);
+        font-size: 0.72rem;
+        font-weight: 700;
+      }
+      .cal-legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
       }
 
       .cal-nodate-btn,
@@ -230,4 +255,6 @@ export class CalendarHeaderComponent {
   protected readonly faChevronLeft = faChevronLeft;
   protected readonly faChevronRight = faChevronRight;
   protected readonly faPlus = faPlus;
+  protected readonly faCalendarDays = faCalendarDays;
+  protected readonly faCheck = faCheck;
 }

@@ -5,7 +5,17 @@ import {
 } from 'better-auth/crypto';
 import { db } from '../db/client.js';
 import { AppError } from '../lib/app-error.js';
-import { accounts, labels, projects, sessions, tasks, users, verifications } from '../db/schema.js';
+import {
+  accounts,
+  calendarEvents,
+  calendarSources,
+  labels,
+  projects,
+  sessions,
+  tasks,
+  users,
+  verifications,
+} from '../db/schema.js';
 
 export type DeleteAccountResult =
   | { ok: true }
@@ -117,6 +127,8 @@ export async function deleteAccountForUser(
       tx.delete(tasks).where(eq(tasks.userId, userId)).run();
       tx.delete(labels).where(eq(labels.userId, userId)).run();
       tx.delete(projects).where(eq(projects.ownerId, userId)).run();
+      tx.delete(calendarEvents).where(eq(calendarEvents.userId, userId)).run();
+      tx.delete(calendarSources).where(eq(calendarSources.userId, userId)).run();
       tx.delete(sessions).where(eq(sessions.userId, userId)).run();
       tx.delete(accounts).where(eq(accounts.userId, userId)).run();
       tx.delete(verifications).where(eq(verifications.identifier, user.email)).run();

@@ -93,6 +93,13 @@ openssl rand -base64 32  # canonical Base64
 | `RESEND_API_KEY` | unset | [Resend](https://resend.com) API key. When unset, emails are logged to the console instead of sent. Required to boot in production, since the verification flow depends on delivery. |
 | `EMAIL_FROM` | `noreply@email.yotara.website` | From address for outgoing email. Must be a sender you have verified with Resend. |
 
+## Calendar feeds
+
+| Variable | Default | Purpose |
+|:---|:---|:---|
+| `CALENDAR_ENCRYPTION_KEY` | unset | Key used to encrypt calendar source URLs at rest. An ICS URL is a credential — it usually embeds a secret token — so it is stored encrypted and is never returned by the API or written to a log. Generate a unique value with `openssl rand -base64 32`. When unset, the key is derived from `BETTER_AUTH_SECRET`, which keeps a self-hoster working without an extra variable but ties rotating the session secret to re-adding every calendar feed. |
+| `ALLOW_INSECURE_CALENDAR_URLS` | unset (`false`) | Allows plain `http://` calendar feed URLs. Off by default: an http URL sends the secret calendar token in the clear. Only enable it for a feed served from a trusted LAN, never for a public address. The server also refuses to fetch any URL that resolves to a loopback, private, link-local, or cloud-metadata address, and re-checks every redirect hop. |
+
 ## Development mode
 
 | Variable | Default | Purpose |

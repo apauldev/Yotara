@@ -33,193 +33,264 @@
       />
     }
 
-    @if (!hasTaskFilters() && viewMode() === 'today' && taskService.overdueTasks().length > 0) {
-      <section class="task-section">
-        <app-section-header title="Overdue" size="lg" tone="accent" />
+    <div
+      class="today-main-grid"
+      [class.today-main-grid-active]="
+        viewMode() === 'today' && !hasTaskFilters() && todayEvents().length > 0
+      "
+      [class.today-main-grid-has-overdue]="
+        viewMode() === 'today' && !hasTaskFilters() && taskService.overdueTasks().length > 0
+      "
+    >
+      @if (!hasTaskFilters() && viewMode() === 'today' && taskService.overdueTasks().length > 0) {
+        <section class="task-section today-overdue-section">
+          <app-section-header title="Overdue" size="lg" tone="accent" />
 
-        <app-task-stack
-          [tasks]="taskService.overdueTasks()"
-          [subtasksByParent]="subtasksByParent()"
-          [taskCard]="overdueTaskCardTpl"
-        />
-      </section>
-    }
+          <app-task-stack
+            [tasks]="taskService.overdueTasks()"
+            [subtasksByParent]="subtasksByParent()"
+            [taskCard]="overdueTaskCardTpl"
+          />
+        </section>
+      }
 
-    <section class="task-section">
-      <app-section-header
-        [title]="primarySectionTitle()"
-        [count]="primarySectionCount()"
-        [size]="primarySectionSize()"
-      >
-        <div section-header-actions class="task-controls">
-          @if (hasTaskFilters() || viewMode() !== 'upcoming') {
-            <app-task-view-controls
-              [sortOption]="sortOption()"
-              [pageSize]="pageSize()"
-              (sortOptionChange)="onSortOptionChange($event)"
-              (pageSizeChange)="onPageSizeChange($event)"
-            />
+      @if (viewMode() === 'today' && !hasTaskFilters() && todayEvents().length > 0) {
+        <aside class="today-calendar-panel" aria-labelledby="today-calendar-heading">
+          <header class="today-calendar-head">
+            <div>
+              <h2 id="today-calendar-heading">Today's schedule</h2>
+              <p>
+                {{ todayEvents().length }} {{ todayEvents().length === 1 ? 'event' : 'events' }}
+              </p>
+            </div>
+            <a routerLink="/calendar">Full calendar</a>
+          </header>
+
+          @if (allDayTodayEvents().length > 0) {
+            <section class="today-calendar-group" aria-labelledby="today-all-day-heading">
+              <h3 id="today-all-day-heading">All day</h3>
+              <ul>
+                @for (event of allDayTodayEvents(); track event.id) {
+                  <li>
+                    <app-calendar-event-chip
+                      [event]="event"
+                      (select)="selectedCalendarEvent.set($event)"
+                    />
+                    <small>{{ event.sourceName }} calendar</small>
+                  </li>
+                }
+              </ul>
+            </section>
           }
 
-          <app-task-filter-bar
-            [labels]="labels()"
-            [projects]="projectService.projects()"
-            [selectedLabelIds]="selectedLabelIds()"
-            [labelMode]="labelFilterMode()"
-            [selectedProjectId]="selectedProjectId()"
-            [selectedPriority]="selectedPriority()"
-            (filtersChange)="onFiltersChange($event)"
-          />
-        </div>
-      </app-section-header>
+          @if (timedTodayEvents().length > 0) {
+            <section class="today-calendar-group" aria-labelledby="today-timed-heading">
+              <h3 id="today-timed-heading">Schedule</h3>
+              <ul>
+                @for (event of timedTodayEvents(); track event.id) {
+                  <li>
+                    <app-calendar-event-chip
+                      [event]="event"
+                      (select)="selectedCalendarEvent.set($event)"
+                    />
+                    <small>{{ event.sourceName }} calendar</small>
+                  </li>
+                }
+              </ul>
+            </section>
+          }
+        </aside>
+      }
 
-      @if (hasTaskFilters()) {
-        <div aria-live="polite">
-          @if (
-            taskService.filterPending() ||
-            (taskService.filterLoading() && filteredTasks().length === 0)
-          ) {
-            <p class="status-copy">Loading filtered tasks...</p>
-          } @else if (filteredTasks().length === 0) {
-            @if (taskService.error()) {
-              <p class="status-copy">{{ taskService.error() }}</p>
-            } @else {
-              <app-empty-state
-                title="No tasks match these filters"
-                description="Try different filter values, or clear the filters to return to this view."
-                [icon]="faTag"
+      <section
+        class="task-section"
+        [class.today-task-section]="viewMode() === 'today' && !hasTaskFilters()"
+      >
+        <app-section-header
+          [title]="primarySectionTitle()"
+          [count]="primarySectionCount()"
+          [size]="primarySectionSize()"
+        >
+          <div section-header-actions class="task-controls">
+            @if (hasTaskFilters() || viewMode() !== 'upcoming') {
+              <app-task-view-controls
+                [sortOption]="sortOption()"
+                [pageSize]="pageSize()"
+                (sortOptionChange)="onSortOptionChange($event)"
+                (pageSizeChange)="onPageSizeChange($event)"
               />
             }
-          } @else {
-            <app-task-stack
-              [tasks]="processedFilteredTasks()"
-              [subtasksByParent]="null"
-              [flat]="true"
-              [taskCard]="taskCardTpl"
-            />
 
-            <app-pagination
-              [totalItems]="filteredTasks().length"
-              [pageSize]="pageSize()"
-              [currentPage]="currentPage()"
-              (pageChange)="onPageChange($event)"
+            <app-task-filter-bar
+              [labels]="labels()"
+              [projects]="projectService.projects()"
+              [selectedLabelIds]="selectedLabelIds()"
+              [labelMode]="labelFilterMode()"
+              [selectedProjectId]="selectedProjectId()"
+              [selectedPriority]="selectedPriority()"
+              (filtersChange)="onFiltersChange($event)"
             />
-          }
-        </div>
-      } @else {
-        @switch (viewMode()) {
-          @case ('inbox') {
-            <div aria-live="polite">
-              @if (showInitialLoading()) {
-                <p class="status-copy">Loading your inbox...</p>
-              } @else if (taskService.inboxTasks().length === 0) {
-                @if (taskService.error()) {
-                  <p class="status-copy">{{ taskService.error() }}</p>
-                } @else {
-                  <app-empty-state
-                    title="Clear skies"
-                    description="Your inbox is empty. Capture the next idea or task above to keep moving."
-                    [icon]="faCloud"
-                  />
-                }
+          </div>
+        </app-section-header>
+
+        @if (hasTaskFilters()) {
+          <div aria-live="polite">
+            @if (
+              taskService.filterPending() ||
+              (taskService.filterLoading() && filteredTasks().length === 0)
+            ) {
+              <p class="status-copy">Loading filtered tasks...</p>
+            } @else if (filteredTasks().length === 0) {
+              @if (taskService.error()) {
+                <p class="status-copy">{{ taskService.error() }}</p>
               } @else {
-                <app-task-stack
-                  [tasks]="processedInboxTasks()"
-                  [subtasksByParent]="subtasksByParent()"
-                  [taskCard]="taskCardTpl"
-                />
-
-                <app-pagination
-                  [totalItems]="taskService.inboxTasks().length"
-                  [pageSize]="pageSize()"
-                  [currentPage]="currentPage()"
-                  (pageChange)="onPageChange($event)"
+                <app-empty-state
+                  title="No tasks match these filters"
+                  description="Try different filter values, or clear the filters to return to this view."
+                  [icon]="faTag"
                 />
               }
-            </div>
-          }
+            } @else {
+              <app-task-stack
+                [tasks]="processedFilteredTasks()"
+                [subtasksByParent]="null"
+                [flat]="true"
+                [taskCard]="taskCardTpl"
+              />
 
-          @case ('today') {
-            <div aria-live="polite">
-              @if (showInitialLoading()) {
-                <p class="status-copy">Loading your focused list...</p>
-              } @else if (
-                taskService.todayTasks().length === 0 &&
-                taskService.todayCompletedTasks().length === 0 &&
-                taskService.overdueTasks().length === 0
-              ) {
-                @if (taskService.error()) {
-                  <p class="status-copy">{{ taskService.error() }}</p>
-                } @else {
-                  <app-empty-state
-                    title="You are clear for today"
-                    description="Nothing urgent is waiting. Capture a new task or plan the next focus block."
-                    [icon]="faSun"
-                  />
-                }
-              } @else {
-                <app-task-stack
-                  [tasks]="processedTodayTasks()"
-                  [subtasksByParent]="subtasksByParent()"
-                  [taskCard]="taskCardTpl"
-                />
-
-                <app-pagination
-                  [totalItems]="taskService.todayTasks().length"
-                  [pageSize]="pageSize()"
-                  [currentPage]="currentPage()"
-                  (pageChange)="onPageChange($event)"
-                />
-
-                @if (taskService.todayCompletedTasks().length > 0) {
-                  <div class="completed-stack">
-                    <app-task-stack
-                      [tasks]="taskService.todayCompletedTasks()"
-                      [subtasksByParent]="subtasksByParent()"
-                      [taskCard]="completedTaskCardTpl"
-                    />
-                  </div>
-                }
-              }
-            </div>
-          }
-
-          @case ('upcoming') {
-            <div aria-live="polite">
-              @if (showInitialLoading()) {
-                <p class="status-copy">Loading your upcoming plans...</p>
-              } @else if (taskService.upcomingTasks().length === 0) {
-                @if (taskService.error()) {
-                  <p class="status-copy">{{ taskService.error() }}</p>
-                } @else {
-                  <app-empty-state
-                    title="Nothing is crowding the horizon"
-                    description="Upcoming work will appear here once tasks are scheduled ahead."
-                    [icon]="faCalendarDay"
-                  />
-                }
-              } @else {
-                <div class="group-stack">
-                  @for (group of processedUpcomingGroups(); track group.label) {
-                    <app-section-header
-                      [title]="group.label"
-                      [count]="group.tasks.length + ' tasks'"
-                      size="md"
-                    />
-
-                    <app-task-stack
-                      [tasks]="group.tasks"
-                      [subtasksByParent]="subtasksByParent()"
-                      [taskCard]="taskCardTpl"
+              <app-pagination
+                [totalItems]="filteredTasks().length"
+                [pageSize]="pageSize()"
+                [currentPage]="currentPage()"
+                (pageChange)="onPageChange($event)"
+              />
+            }
+          </div>
+        } @else {
+          @switch (viewMode()) {
+            @case ('inbox') {
+              <div aria-live="polite">
+                @if (showInitialLoading()) {
+                  <p class="status-copy">Loading your inbox...</p>
+                } @else if (taskService.inboxTasks().length === 0) {
+                  @if (taskService.error()) {
+                    <p class="status-copy">{{ taskService.error() }}</p>
+                  } @else {
+                    <app-empty-state
+                      title="Clear skies"
+                      description="Your inbox is empty. Capture the next idea or task above to keep moving."
+                      [icon]="faCloud"
                     />
                   }
-                </div>
-              }
-            </div>
+                } @else {
+                  <app-task-stack
+                    [tasks]="processedInboxTasks()"
+                    [subtasksByParent]="subtasksByParent()"
+                    [taskCard]="taskCardTpl"
+                  />
+
+                  <app-pagination
+                    [totalItems]="taskService.inboxTasks().length"
+                    [pageSize]="pageSize()"
+                    [currentPage]="currentPage()"
+                    (pageChange)="onPageChange($event)"
+                  />
+                }
+              </div>
+            }
+
+            @case ('today') {
+              <div aria-live="polite">
+                @if (showInitialLoading()) {
+                  <p class="status-copy">Loading your focused list...</p>
+                } @else if (
+                  taskService.todayTasks().length === 0 &&
+                  taskService.todayCompletedTasks().length === 0 &&
+                  taskService.overdueTasks().length === 0
+                ) {
+                  @if (taskService.error()) {
+                    <p class="status-copy">{{ taskService.error() }}</p>
+                  } @else {
+                    <app-empty-state
+                      [title]="
+                        todayEvents().length ? 'No tasks due today' : 'You are clear for today'
+                      "
+                      [description]="
+                        todayEvents().length
+                          ? 'Your calendar events are shown in Today’s schedule. Capture a task or plan the next focus block.'
+                          : 'Nothing urgent is waiting. Capture a new task or plan the next focus block.'
+                      "
+                      [icon]="faSun"
+                    />
+                  }
+                } @else {
+                  <app-task-stack
+                    [tasks]="processedTodayTasks()"
+                    [subtasksByParent]="subtasksByParent()"
+                    [taskCard]="taskCardTpl"
+                  />
+
+                  <app-pagination
+                    [totalItems]="taskService.todayTasks().length"
+                    [pageSize]="pageSize()"
+                    [currentPage]="currentPage()"
+                    (pageChange)="onPageChange($event)"
+                  />
+
+                  @if (taskService.todayCompletedTasks().length > 0) {
+                    <div class="completed-stack">
+                      <app-task-stack
+                        [tasks]="taskService.todayCompletedTasks()"
+                        [subtasksByParent]="subtasksByParent()"
+                        [taskCard]="completedTaskCardTpl"
+                      />
+                    </div>
+                  }
+                }
+              </div>
+            }
+
+            @case ('upcoming') {
+              <div aria-live="polite">
+                @if (showInitialLoading()) {
+                  <p class="status-copy">Loading your upcoming plans...</p>
+                } @else if (taskService.upcomingTasks().length === 0) {
+                  @if (taskService.error()) {
+                    <p class="status-copy">{{ taskService.error() }}</p>
+                  } @else {
+                    <app-empty-state
+                      title="Nothing is crowding the horizon"
+                      description="Upcoming work will appear here once tasks are scheduled ahead."
+                      [icon]="faCalendarDay"
+                    />
+                  }
+                } @else {
+                  <div class="group-stack">
+                    @for (group of processedUpcomingGroups(); track group.label) {
+                      <app-section-header
+                        [title]="group.label"
+                        [count]="group.tasks.length + ' tasks'"
+                        size="md"
+                      />
+
+                      <app-task-stack
+                        [tasks]="group.tasks"
+                        [subtasksByParent]="subtasksByParent()"
+                        [taskCard]="taskCardTpl"
+                      />
+                    }
+                  </div>
+                }
+              </div>
+            }
           }
         }
-      }
-    </section>
+      </section>
+    </div>
+
+    @if (selectedCalendarEvent(); as event) {
+      <app-calendar-event-detail [event]="event" (close)="selectedCalendarEvent.set(null)" />
+    }
 
     <!-- Shared FAB for all modes -->
     <button

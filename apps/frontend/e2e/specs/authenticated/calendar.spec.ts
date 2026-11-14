@@ -219,7 +219,7 @@ test.describe('Calendar', () => {
     // the chip behind "+N more".
     await expect(row).toHaveCount(0, { timeout: 10_000 });
     await page.getByRole('button', { name: /No date/ }).click();
-    await expect(page.locator('app-calendar-day-panel').getByText(name).first()).toBeVisible({
+    await expect(page.locator('app-calendar-day-view').getByText(name).first()).toBeVisible({
       timeout: 10_000,
     });
   });
