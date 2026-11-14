@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { DateTime } from 'luxon';
 import ICAL from 'ical.js';
+import { compile } from 'html-to-text';
 
 /**
  * Parse an ICS feed into the concrete event instances that get stored.
@@ -208,67 +209,35 @@ function readText(component: ICAL.Component, name: string): string | null {
 
 // ─── Text cleanup ───────────────────────────────────────────────────────────
 
-const HTML_ENTITIES: Record<string, string> = {
-  '&amp;': '&',
-  '&lt;': '<',
-  '&gt;': '>',
-  '&quot;': '"',
-  '&#39;': "'",
-  '&apos;': "'",
-  '&nbsp;': ' ',
-};
-
 /**
  * Reduce an HTML description to plain text.
  *
- * Feeds exported from mail clients wrap descriptions in markup. The value is
- * rendered as text and never as HTML, so the markup is stripped here rather
- * than shown to the reader.
+ * Calendar feeds can include HTML in descriptions and locations. Convert it
+ * with an HTML parser so malformed markup is handled consistently; the client
+ * displays this output as text and only linkifies validated HTTP(S) URLs.
  */
-export function htmlToPlainText(value: string): string {
-  const withoutBlocks = value
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
-
-  // Keep web destinations visible in the plain-text description. The client
-  // can then linkify only validated HTTP(S) URLs without rendering feed HTML.
-  const withLinkTargets = withoutBlocks.replace(
-    /<a\b([^>]*)>([\s\S]*?)<\/a>/gi,
-    (_anchor, attributes: string, content: string) => {
-      const hrefMatch = attributes.match(/\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
-      if (!hrefMatch) return content;
-
-      const href = decodeHtmlEntities(hrefMatch[1] ?? hrefMatch[2] ?? hrefMatch[3] ?? '').trim();
-      if (!/^https?:\/\//i.test(href)) return content;
-
-      const label = content.replace(/<[^>]*>/g, '');
-      const decodedLabel = decodeHtmlEntities(label).trim();
-      return decodedLabel && decodedLabel !== href ? `${decodedLabel} — ${href}` : href;
+const convertCalendarHtml = compile({
+  wordwrap: false,
+  preserveNewlines: true,
+  selectors: [
+    { selector: 'script', format: 'skip' },
+    { selector: 'style', format: 'skip' },
+    {
+      selector: 'a',
+      options: {
+        linkBrackets: [' — ', ''],
+        hideLinkHrefIfSameAsText: true,
+        pathRewrite: (href: string) =>
+          href.toLowerCase().startsWith('http://') || href.toLowerCase().startsWith('https://')
+            ? href
+            : '',
+      },
     },
-  );
+  ],
+});
 
-  const withBreaks = withLinkTargets
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(p|div|li|tr|h[1-6])\s*>/gi, '\n')
-    .replace(/<li\b[^>]*>/gi, '• ');
-
-  const withoutTags = withBreaks.replace(/<[^>]*>/g, '');
-
-  const decoded = decodeHtmlEntities(withoutTags);
-
-  return decoded
-    .split('\n')
-    .map((line) => line.replace(/[ \t]+/g, ' ').trim())
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-function decodeHtmlEntities(value: string): string {
-  return value.replace(/&[a-z#0-9]+;/gi, (entity) => {
-    const known = HTML_ENTITIES[entity.toLowerCase()];
-    return known ?? entity;
-  });
+export function htmlToPlainText(value: string): string {
+  return convertCalendarHtml(value).trim();
 }
 
 // ─── Durations ──────────────────────────────────────────────────────────────

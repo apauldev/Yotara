@@ -63,6 +63,24 @@ describe('htmlToPlainText', () => {
   it('drops the contents of a script block', () => {
     assert.equal(htmlToPlainText('a<script>alert(1)</script>b'), 'ab');
   });
+
+  it('drops script and style contents when their closing tags contain whitespace', () => {
+    assert.equal(
+      htmlToPlainText('a<script>alert(1)</script >b<style>.hidden { display: none }</style >c'),
+      'abc',
+    );
+  });
+
+  it('keeps HTTP link destinations readable', () => {
+    assert.equal(
+      htmlToPlainText('<a href="https://calendar.example.com/event">Open event</a>'),
+      'Open event — https://calendar.example.com/event',
+    );
+  });
+
+  it('does not keep non-HTTP link destinations', () => {
+    assert.equal(htmlToPlainText('<a href="javascript:alert(1)">Open event</a>'), 'Open event');
+  });
 });
 
 describe('parseCalendarFeed — the shape of a time', () => {
