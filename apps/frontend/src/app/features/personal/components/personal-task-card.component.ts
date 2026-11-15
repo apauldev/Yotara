@@ -5,9 +5,11 @@ import {
   Input,
   Output,
   computed,
+  effect,
   inject,
   input,
   signal,
+  untracked,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { Task } from '@yotara/shared';
@@ -24,6 +26,7 @@ import { MarkdownComponent } from 'ngx-markdown';
 import { LabelService } from '../../../core/services/label.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { ProjectService } from '../../../core/services/project.service';
+import { StatusService } from '../../../core/services/status.service';
 import { TaskService } from '../../../core/services/task.service';
 import { LabelChipComponent } from '../../../shared/ui/label-chip/label-chip.component';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
@@ -31,6 +34,10 @@ import { formatTimeLabel, parseCalendarDate } from '../../../shared/utils/timest
 import { projectPaletteFor } from '../project-presentation';
 import { getTaskViewDestination } from '../utils/task-creation-notification';
 import { TaskMovementNoticeService } from '../utils/task-movement-notice';
+import {
+  TaskQuickActionsMenuComponent,
+  TaskQuickActionsSaveEvent,
+} from './task-quick-actions-menu/task-quick-actions-menu.component';
 
 @Component({
   selector: 'app-personal-task-card',
@@ -41,6 +48,7 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
     FontAwesomeModule,
     LabelChipComponent,
     MarkdownComponent,
+    TaskQuickActionsMenuComponent,
   ],
   host: {
     // The +N overflow popover listens for outside interactions; the toggle
@@ -52,7 +60,7 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
     <article
       class="task-card"
       [class.task-card-overdue]="tone === 'overdue'"
-      [class.task-card-complete]="task().completed"
+      [class.task-card-complete]="effectiveTask().completed"
       [class.task-card-interactive]="interactive"
       [class.task-card-compact]="mode === 'compact'"
       (click)="select.emit()"
@@ -60,9 +68,9 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
       <button
         type="button"
         class="task-check"
-        [class.task-check-complete]="task().completed"
+        [class.task-check-complete]="effectiveTask().completed"
         [class.task-check-compact]="mode === 'compact'"
-        [attr.aria-label]="task().completed ? 'Task completed' : 'Mark task complete'"
+        [attr.aria-label]="effectiveTask().completed ? 'Task completed' : 'Mark task complete'"
         (click)="requestComplete($event)"
         (keydown)="$event.stopPropagation()"
       >
@@ -71,7 +79,7 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
           aria-hidden="true"
           [class.task-check-box-compact]="mode === 'compact'"
         >
-          @if (task().completed) {
+          @if (effectiveTask().completed) {
             <span
               class="task-check-mark"
               [class.task-check-mark-compact]="mode === 'compact'"
@@ -87,13 +95,13 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
               <button
                 type="button"
                 class="task-title-button"
-                [attr.aria-label]="'Open task details for ' + task().title"
+                [attr.aria-label]="'Open task details for ' + effectiveTask().title"
                 (click)="selectFromTitle($event)"
               >
-                {{ task().title }}
+                {{ effectiveTask().title }}
               </button>
             } @else {
-              {{ task().title }}
+              {{ effectiveTask().title }}
             }
           </h3>
 
@@ -118,8 +126,14 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
                     [attr.aria-expanded]="overflowOpen()"
                     [attr.aria-label]="
                       showLabelNames()
-                        ? '+ ' + overflowLabelChips().length + ' more labels for ' + task().title
-                        : 'Show all ' + taskLabelChips().length + ' labels for ' + task().title
+                        ? '+ ' +
+                          overflowLabelChips().length +
+                          ' more labels for ' +
+                          effectiveTask().title
+                        : 'Show all ' +
+                          taskLabelChips().length +
+                          ' labels for ' +
+                          effectiveTask().title
                     "
                     (click)="toggleLabelOverflow($event)"
                     (keydown)="$event.stopPropagation()"
@@ -134,7 +148,7 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
                     <span
                       class="task-label-overflow-menu"
                       role="group"
-                      [attr.aria-label]="'Labels for ' + task().title"
+                      [attr.aria-label]="'Labels for ' + effectiveTask().title"
                       (click)="$event.stopPropagation()"
                       (keydown)="$event.stopPropagation()"
                     >
@@ -154,13 +168,13 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
             </div>
           }
 
-          @if (task().parentId && mode === 'compact') {
+          @if (effectiveTask().parentId && mode === 'compact') {
             <span class="meta-pill meta-pill-subtask">Subtask</span>
           }
 
           @if (mode === 'default') {
             <div class="task-badges">
-              @if (task().dueDate) {
+              @if (effectiveTask().dueDate) {
                 <span class="meta-pill meta-pill-date">
                   {{ dateLabel() }}
                 </span>
@@ -173,7 +187,7 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
                 <span class="meta-pill meta-pill-muted">{{ statusLabel() }}</span>
               }
               <span
-                class="priority-chip priority-chip-{{ task().priority }}"
+                class="priority-chip priority-chip-{{ effectiveTask().priority }}"
                 role="img"
                 [attr.aria-label]="priorityLabel()"
                 [attr.title]="priorityLabel()"
@@ -192,11 +206,11 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
                 </span>
               }
 
-              @if (showContextMetadata && task().simpleMode) {
+              @if (showContextMetadata && effectiveTask().simpleMode) {
                 <span class="meta-pill meta-pill-simple">Simple mode</span>
               }
 
-              @if (task().parentId) {
+              @if (effectiveTask().parentId) {
                 <span class="meta-pill meta-pill-subtask">Subtask</span>
               }
 
@@ -210,20 +224,20 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
                 </span>
               }
 
-              @if (task().recurrenceRule) {
+              @if (effectiveTask().recurrenceRule) {
                 <span class="meta-pill meta-pill-recurring" [attr.title]="recurrenceLabel()">
                   <fa-icon [icon]="faRotate" class="recurring-icon" />
                   {{ recurrenceLabel() }}
                 </span>
               }
 
-              @if (showCompletionState && task().completed) {
+              @if (showCompletionState && effectiveTask().completed) {
                 <span class="meta-pill meta-pill-complete">Done</span>
               }
             </div>
           }
 
-          @if (task().completed && mode === 'default') {
+          @if (effectiveTask().completed && mode === 'default') {
             <div class="completion-group">
               <span class="completion-chip completion-chip-complete">Completed</span>
               <button
@@ -241,15 +255,17 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
                 <button
                   type="button"
                   class="restore-pill archive-pill"
-                  [class.archive-pill-active]="task().permanentArchive"
+                  [class.archive-pill-active]="effectiveTask().permanentArchive"
                   (click)="$event.stopPropagation(); togglePermanentArchive.emit()"
                   (keydown)="$event.stopPropagation()"
                   [attr.aria-label]="
-                    task().permanentArchive ? 'Stop keeping this task' : 'Keep this task forever'
+                    effectiveTask().permanentArchive
+                      ? 'Stop keeping this task'
+                      : 'Keep this task forever'
                   "
                 >
                   <fa-icon [icon]="faBoxArchive" class="restore-icon"></fa-icon>
-                  <span>{{ task().permanentArchive ? 'Kept' : 'Keep forever' }}</span>
+                  <span>{{ effectiveTask().permanentArchive ? 'Kept' : 'Keep forever' }}</span>
                 </button>
 
                 <button
@@ -267,35 +283,58 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
           }
         </div>
 
-        @if (mode === 'default' && showDescription && task().description) {
+        @if (mode === 'default' && showDescription && effectiveTask().description) {
           <markdown class="task-description" [data]="truncatedDescription()"></markdown>
         }
+      </div>
+
+      <div class="task-trailing-actions" (click)="$event.stopPropagation()">
+        <app-task-quick-actions-menu
+          [task]="effectiveTask()"
+          (saveChanges)="onQuickActionSave($event)"
+          (openDetails)="select.emit()"
+          (deleteTask)="openDeleteConfirm()"
+        />
       </div>
     </article>
 
     <app-confirm-dialog
       [open]="completeConfirmOpen()"
-      [title]="task().completed ? 'Move task back to doing?' : 'Complete task?'"
+      [title]="effectiveTask().completed ? 'Move task back to doing?' : 'Complete task?'"
       [description]="
-        task().completed
+        effectiveTask().completed
           ? 'This will return the task to your active work list.'
           : 'This will move the task into your completed history.'
       "
-      [confirmLabel]="task().completed ? 'Put back into doing' : 'Mark complete'"
+      [confirmLabel]="effectiveTask().completed ? 'Put back into doing' : 'Mark complete'"
       cancelLabel="Keep as is"
       [loading]="completing()"
-      [loadingLabel]="task().completed ? 'Restoring...' : 'Completing...'"
+      [loadingLabel]="effectiveTask().completed ? 'Restoring...' : 'Completing...'"
       (confirm)="completeTask()"
       (cancel)="closeCompleteConfirm()"
       (close)="closeCompleteConfirm()"
     >
-      @if (!task().completed) {
+      @if (!effectiveTask().completed) {
         <label confirm-extra class="skip-confirm-label">
           <input type="checkbox" #dontShowCheck (change)="dontShowAgain = dontShowCheck.checked" />
           Don&#39;t show this again
         </label>
       }
     </app-confirm-dialog>
+
+    <app-confirm-dialog
+      [open]="deleteConfirmOpen()"
+      title="Delete task?"
+      description="This will permanently delete this task and any subtasks. This action cannot be undone."
+      confirmLabel="Delete task"
+      [danger]="true"
+      cancelLabel="Keep task"
+      [loading]="deleting()"
+      loadingLabel="Deleting..."
+      (confirm)="confirmDeleteTask()"
+      (cancel)="closeDeleteConfirm()"
+      (close)="closeDeleteConfirm()"
+    />
   `,
   changeDetection: ChangeDetectionStrategy.Eager,
   styles: [
@@ -306,7 +345,7 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
 
       .task-card {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-columns: auto minmax(0, 1fr) auto;
         gap: 0.8rem;
         border-radius: 0.8rem;
         background: var(--surface-card);
@@ -409,6 +448,14 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
       .task-copy {
         min-width: 0;
         max-width: 100%;
+      }
+
+      .task-trailing-actions {
+        display: flex;
+        align-items: flex-start;
+        justify-content: flex-end;
+        align-self: flex-start;
+        margin-top: -0.05rem;
       }
 
       .task-title-row {
@@ -811,6 +858,7 @@ import { TaskMovementNoticeService } from '../utils/task-movement-notice';
 })
 export class PersonalTaskCardComponent {
   private readonly taskService = inject(TaskService);
+  private readonly statusService = inject(StatusService);
   private readonly labelService = inject(LabelService);
   private readonly projectService = inject(ProjectService);
   private readonly movementNotice = inject(TaskMovementNoticeService);
@@ -818,6 +866,18 @@ export class PersonalTaskCardComponent {
 
   protected readonly completeConfirmOpen = signal(false);
   protected readonly completing = signal(false);
+  protected readonly deleteConfirmOpen = signal(false);
+  protected readonly deleting = signal(false);
+
+  private readonly optimisticOverrides = signal<Partial<Task> | null>(null);
+
+  readonly effectiveTask = computed<Task>(() => {
+    const base = this.task();
+    const overrides = this.optimisticOverrides();
+    if (!overrides) return base;
+    return { ...base, ...overrides };
+  });
+
   /** Task-list density preferences shared across cards. */
   protected readonly showLabelNames = this.preferences.showLabelNames;
   protected readonly colorFirstLabels = this.preferences.colorFirstLabels;
@@ -853,6 +913,17 @@ export class PersonalTaskCardComponent {
   @Output() readonly togglePermanentArchive = new EventEmitter<void>();
   @Output() readonly deleteForever = new EventEmitter<void>();
 
+  constructor() {
+    effect(() => {
+      this.task();
+      untracked(() => {
+        if (this.optimisticOverrides()) {
+          this.optimisticOverrides.set(null);
+        }
+      });
+    });
+  }
+
   /**
    * Live labels in task order, skipping IDs that no longer exist (deleted mid
    * session) and the suppressed one. Two chips render inline; the rest move
@@ -865,7 +936,7 @@ export class PersonalTaskCardComponent {
     if (singleSuppressedLabelId) {
       suppressed.add(singleSuppressedLabelId);
     }
-    return (this.task().labels ?? [])
+    return (this.effectiveTask().labels ?? [])
       .map((labelId) => labelsById.get(labelId))
       .filter((label): label is Label => label !== undefined && !suppressed.has(label.id));
   });
@@ -880,7 +951,7 @@ export class PersonalTaskCardComponent {
    * only place the task's filing context appears.
    */
   protected readonly taskProject = computed(() => {
-    const projectId = this.task().projectId;
+    const projectId = this.effectiveTask().projectId;
     if (!projectId) {
       return null;
     }
@@ -898,7 +969,7 @@ export class PersonalTaskCardComponent {
   });
 
   protected priorityLabel() {
-    return `${this.task().priority} priority`;
+    return `${this.effectiveTask().priority} priority`;
   }
 
   protected statusLabel() {
@@ -906,13 +977,14 @@ export class PersonalTaskCardComponent {
       return 'Overdue';
     }
 
-    const status = this.task().status;
-    if (this.task().projectId && status !== 'done' && status !== 'archived') {
-      if (!this.task().dueDate) {
+    const task = this.effectiveTask();
+    const status = task.status;
+    if (task.projectId && status !== 'done' && status !== 'archived') {
+      if (!task.dueDate) {
         return 'Unscheduled';
       }
 
-      switch (getTaskViewDestination(this.task().dueDate, status)) {
+      switch (getTaskViewDestination(task.dueDate, status)) {
         case 'today':
           return 'Today';
         case 'upcoming':
@@ -939,7 +1011,8 @@ export class PersonalTaskCardComponent {
   }
 
   protected dateLabel() {
-    const parsed = parseCalendarDate(this.task().dueDate);
+    const task = this.effectiveTask();
+    const parsed = parseCalendarDate(task.dueDate);
 
     if (!parsed) {
       return '';
@@ -950,14 +1023,14 @@ export class PersonalTaskCardComponent {
       day: 'numeric',
       year: 'numeric',
     }).format(parsed.toJSDate());
-    const formattedTime = formatTimeLabel(this.task().dueTime);
+    const formattedTime = formatTimeLabel(task.dueTime);
 
     // The time appears only when the task actually carries one.
     return formattedTime ? `${formattedDate}, ${formattedTime}` : formattedDate;
   }
 
-  protected subtaskCount = computed(() => this.task().subtaskCount ?? 0);
-  protected subtaskDoneCount = computed(() => this.task().subtaskCompletedCount ?? 0);
+  protected subtaskCount = computed(() => this.effectiveTask().subtaskCount ?? 0);
+  protected subtaskDoneCount = computed(() => this.effectiveTask().subtaskCompletedCount ?? 0);
   protected subtaskAllDone = computed(
     () => this.subtaskCount() > 0 && this.subtaskDoneCount() === this.subtaskCount(),
   );
@@ -965,13 +1038,13 @@ export class PersonalTaskCardComponent {
   /** Truncate description at 500 chars to avoid perf issues with markdown parser on card preview.
    *  CSS line-clamp handles visual truncation; this prevents processing very long strings. */
   protected truncatedDescription() {
-    const desc = this.task()?.description;
+    const desc = this.effectiveTask()?.description;
     if (!desc || desc.length <= 500) return desc;
     return desc.slice(0, 497) + '...';
   }
 
   protected recurrenceLabel() {
-    const rule = this.task().recurrenceRule;
+    const rule = this.effectiveTask().recurrenceRule;
     if (!rule) return '';
 
     const { frequency, interval, daysOfWeek } = rule;
@@ -1046,6 +1119,45 @@ export class PersonalTaskCardComponent {
       }
     } finally {
       this.completing.set(false);
+    }
+  }
+
+  openDeleteConfirm() {
+    this.deleteConfirmOpen.set(true);
+  }
+
+  closeDeleteConfirm() {
+    this.deleteConfirmOpen.set(false);
+  }
+
+  async confirmDeleteTask() {
+    this.deleting.set(true);
+    const task = this.task();
+    try {
+      await this.taskService.deleteTask(task.id);
+      this.deleteConfirmOpen.set(false);
+      this.statusService.show('Task deleted', 'success');
+    } catch {
+      this.statusService.show('Could not delete your task right now.', 'error');
+    } finally {
+      this.deleting.set(false);
+    }
+  }
+
+  async onQuickActionSave(event: TaskQuickActionsSaveEvent) {
+    this.optimisticOverrides.set({
+      dueDate: event.draft.dueDate ?? undefined,
+      priority: event.draft.priority,
+      labels: event.draft.labels,
+      projectId: event.draft.projectId ?? undefined,
+    });
+
+    try {
+      await this.taskService.updateTask(event.taskId, event.diff);
+      this.statusService.show('Task updated', 'success');
+    } catch {
+      this.optimisticOverrides.set(null);
+      this.statusService.show('Could not update your task right now.', 'error');
     }
   }
 }
