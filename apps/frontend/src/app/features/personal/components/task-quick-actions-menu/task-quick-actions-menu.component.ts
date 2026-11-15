@@ -940,7 +940,7 @@ export class TaskQuickActionsMenuComponent {
     return projectPaletteFor(color).accent;
   }
 
-  protected onEscape(event: KeyboardEvent): void {
+  protected onEscape(event: Event): void {
     event.stopPropagation();
     this.discarded = true;
     this.popover()?.close();
