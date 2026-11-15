@@ -294,7 +294,7 @@ import {
           [disabled]="quickActionSaving()"
           (saveChanges)="onQuickActionSave($event)"
           (openDetails)="select.emit()"
-          (deleteTask)="openDeleteConfirm()"
+          (deleteTask)="onQuickActionDelete()"
         />
       </div>
     </article>
@@ -914,6 +914,7 @@ export class PersonalTaskCardComponent {
   @Output() readonly labelSelect = new EventEmitter<Label>();
   @Output() readonly togglePermanentArchive = new EventEmitter<void>();
   @Output() readonly deleteForever = new EventEmitter<void>();
+  @Output() readonly requestDelete = new EventEmitter<void>();
 
   constructor() {
     effect(() => {
@@ -1128,6 +1129,15 @@ export class PersonalTaskCardComponent {
     this.deleteConfirmOpen.set(true);
   }
 
+  onQuickActionDelete() {
+    if (this.showArchiveActions) {
+      this.requestDelete.emit();
+      return;
+    }
+
+    this.openDeleteConfirm();
+  }
+
   closeDeleteConfirm() {
     this.deleteConfirmOpen.set(false);
   }
@@ -1150,6 +1160,7 @@ export class PersonalTaskCardComponent {
     this.quickActionSaving.set(true);
     this.optimisticOverrides.set({
       dueDate: event.draft.dueDate ?? undefined,
+      simpleMode: event.draft.dueDate ? false : this.effectiveTask().simpleMode,
       priority: event.draft.priority,
       labels: event.draft.labels,
       projectId: event.draft.projectId ?? undefined,

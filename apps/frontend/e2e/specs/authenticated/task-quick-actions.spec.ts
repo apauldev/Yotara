@@ -41,9 +41,9 @@ test.describe('Task quick actions', () => {
         response.request().method() === 'PATCH' &&
         new URL(response.url()).pathname.startsWith('/tasks/'),
     );
-    // The popover uses a document-level overlay, so an outside pointer lands
-    // on its backdrop rather than on the Inbox heading underneath it.
-    await page.mouse.click(10, 10);
+    // The popover has no backdrop; click the non-interactive page heading to
+    // exercise an outside click without depending on a screen coordinate.
+    await page.getByRole('heading', { name: 'Inbox' }).click();
     expect((await updateResponse).ok()).toBeTruthy();
     await expect(page.getByText('Task updated', { exact: true })).toBeVisible();
     await expect(card.locator('.priority-chip')).toHaveClass(/priority-chip-high/);

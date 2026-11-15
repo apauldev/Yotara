@@ -25,7 +25,7 @@ import {
   faXmark,
 } from '@fortawesome/free-solid-svg-icons';
 import { BrnPopover, BrnPopoverImports } from '@spartan-ng/brain/popover';
-import type { Label, Priority, Project, ProjectColor, Task, UpdateTaskDto } from '@yotara/shared';
+import type { Priority, ProjectColor, Task, UpdateTaskDto } from '@yotara/shared';
 import { LabelService } from '../../../../core/services/label.service';
 import { ProjectService } from '../../../../core/services/project.service';
 import { TaskQuickActionsCoordinatorService } from '../../../../core/services/task-quick-actions-coordinator.service';
@@ -794,10 +794,6 @@ export class TaskQuickActionsMenuComponent {
   readonly align = input<'start' | 'center' | 'end'>('end');
   readonly sideOffset = input(6);
 
-  /** Optional input overrides for isolated testing */
-  readonly customLabels = input<Label[] | null>(null);
-  readonly customProjects = input<Project[] | null>(null);
-
   readonly saveChanges = output<TaskQuickActionsSaveEvent>();
   readonly discard = output<void>();
   readonly openDetails = output<void>();
@@ -815,6 +811,7 @@ export class TaskQuickActionsMenuComponent {
   protected readonly draftPriority = signal<Priority>('medium');
   protected readonly draftLabels = signal<string[]>([]);
   protected readonly draftProjectId = signal<string | null>(null);
+  private readonly initialTask = signal<Task | null>(null);
 
   // Search filters
   protected readonly labelSearch = signal('');
@@ -861,15 +858,8 @@ export class TaskQuickActionsMenuComponent {
   });
 
   // Labels and Projects options
-  protected readonly allLabels = computed<Label[]>(() => {
-    const custom = this.customLabels();
-    return custom !== null ? custom : this.labelService.labels();
-  });
-
-  protected readonly allProjects = computed<Project[]>(() => {
-    const custom = this.customProjects();
-    return custom !== null ? custom : this.projectService.projects();
-  });
+  protected readonly allLabels = this.labelService.labels;
+  protected readonly allProjects = this.projectService.projects;
 
   protected readonly filteredLabels = computed(() => {
     const query = this.labelSearch().trim().toLowerCase();
@@ -895,7 +885,8 @@ export class TaskQuickActionsMenuComponent {
    * Evaluates if the current local draft differs from the initial task snapshot.
    */
   readonly isDirty = computed(() => {
-    const task = this.task();
+    const task = this.initialTask();
+    if (!task) return false;
     const origDueDate = task.dueDate ?? null;
     const origPriority = task.priority;
     const origLabels = task.labels ?? [];
@@ -905,14 +896,7 @@ export class TaskQuickActionsMenuComponent {
     if (this.draftPriority() !== origPriority) return true;
     if (this.draftProjectId() !== origProjectId) return true;
 
-    const currentLabels = this.draftLabels();
-    if (currentLabels.length !== origLabels.length) return true;
-    const origSet = new Set(origLabels);
-    for (const labelId of currentLabels) {
-      if (!origSet.has(labelId)) return true;
-    }
-
-    return false;
+    return !this.sameLabels(this.draftLabels(), origLabels);
   });
 
   constructor() {
@@ -932,6 +916,7 @@ export class TaskQuickActionsMenuComponent {
 
   protected initializeDraft(): void {
     const task = this.task();
+    this.initialTask.set({ ...task, labels: [...(task.labels ?? [])] });
     this.draftDueDate.set(task.dueDate ?? null);
     this.draftPriority.set(task.priority);
     this.draftLabels.set([...(task.labels ?? [])]);
@@ -1050,7 +1035,8 @@ export class TaskQuickActionsMenuComponent {
   }
 
   private computeDiff(): UpdateTaskDto {
-    const task = this.task();
+    const task = this.initialTask();
+    if (!task) return {};
     const diff: UpdateTaskDto = {};
 
     const origDueDate = task.dueDate ?? null;
@@ -1062,19 +1048,8 @@ export class TaskQuickActionsMenuComponent {
       diff.priority = this.draftPriority();
     }
 
-    const origLabels = task.labels ?? [];
     const currentLabels = this.draftLabels();
-    let labelsChanged = origLabels.length !== currentLabels.length;
-    if (!labelsChanged) {
-      const origSet = new Set(origLabels);
-      for (const id of currentLabels) {
-        if (!origSet.has(id)) {
-          labelsChanged = true;
-          break;
-        }
-      }
-    }
-    if (labelsChanged) {
+    if (!this.sameLabels(currentLabels, task.labels ?? [])) {
       diff.labels = currentLabels;
     }
 
@@ -1084,5 +1059,12 @@ export class TaskQuickActionsMenuComponent {
     }
 
     return diff;
+  }
+
+  private sameLabels(left: string[], right: string[]): boolean {
+    if (left.length !== right.length) return false;
+    const leftSet = new Set(left);
+    const rightSet = new Set(right);
+    return leftSet.size === rightSet.size && [...leftSet].every((labelId) => rightSet.has(labelId));
   }
 }
