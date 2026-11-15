@@ -291,6 +291,7 @@ import {
       <div class="task-trailing-actions" (click)="$event.stopPropagation()">
         <app-task-quick-actions-menu
           [task]="effectiveTask()"
+          [disabled]="quickActionSaving()"
           (saveChanges)="onQuickActionSave($event)"
           (openDetails)="select.emit()"
           (deleteTask)="openDeleteConfirm()"
@@ -868,6 +869,7 @@ export class PersonalTaskCardComponent {
   protected readonly completing = signal(false);
   protected readonly deleteConfirmOpen = signal(false);
   protected readonly deleting = signal(false);
+  protected readonly quickActionSaving = signal(false);
 
   private readonly optimisticOverrides = signal<Partial<Task> | null>(null);
 
@@ -1145,6 +1147,7 @@ export class PersonalTaskCardComponent {
   }
 
   async onQuickActionSave(event: TaskQuickActionsSaveEvent) {
+    this.quickActionSaving.set(true);
     this.optimisticOverrides.set({
       dueDate: event.draft.dueDate ?? undefined,
       priority: event.draft.priority,
@@ -1158,6 +1161,8 @@ export class PersonalTaskCardComponent {
     } catch {
       this.optimisticOverrides.set(null);
       this.statusService.show('Could not update your task right now.', 'error');
+    } finally {
+      this.quickActionSaving.set(false);
     }
   }
 }

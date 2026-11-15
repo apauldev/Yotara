@@ -1149,6 +1149,40 @@ describe('PersonalTaskCardComponent', () => {
       expect(chipAfter.nativeElement.classList.contains('priority-chip-high')).toBeTrue();
     });
 
+    it('disables the quick actions trigger while an update is pending', async () => {
+      setup({ priority: 'low' });
+
+      let resolveUpdate!: (task: Task) => void;
+      taskServiceSpy.updateTask.and.returnValue(
+        new Promise<Task>((resolve) => {
+          resolveUpdate = resolve;
+        }),
+      );
+
+      const savePromise = component.onQuickActionSave({
+        taskId: mockTask.id,
+        diff: { priority: 'high' },
+        draft: {
+          dueDate: null,
+          priority: 'high',
+          labels: [],
+          projectId: null,
+        },
+      });
+      fixture.detectChanges();
+
+      const trigger = fixture.debugElement.query(By.css('.quick-action-trigger'));
+      expect(component['quickActionSaving']()).toBeTrue();
+      expect(trigger.nativeElement.disabled).toBeTrue();
+
+      resolveUpdate({ ...mockTask, priority: 'high' });
+      await savePromise;
+      fixture.detectChanges();
+
+      expect(component['quickActionSaving']()).toBeFalse();
+      expect(trigger.nativeElement.disabled).toBeFalse();
+    });
+
     it('reverts optimistic update and shows error toast on update failure', async () => {
       setup({ priority: 'low' });
       taskServiceSpy.updateTask.and.rejectWith(new Error('Network error'));

@@ -66,7 +66,7 @@ export interface TaskQuickActionsSaveEvent {
       [disabled]="disabled()"
       [attr.aria-label]="triggerAriaLabel()"
       [attr.aria-expanded]="isOpen()"
-      [attr.aria-haspopup]="'menu'"
+      [attr.aria-haspopup]="'dialog'"
       brnPopoverTrigger
       [brnPopoverTriggerFor]="popover"
       (click)="$event.stopPropagation()"
@@ -86,7 +86,7 @@ export interface TaskQuickActionsSaveEvent {
         <div
           class="quick-actions-panel"
           appPickerFocusTrap
-          role="menu"
+          role="dialog"
           [attr.aria-label]="'Quick actions for ' + task().title"
           (click)="$event.stopPropagation()"
           (keydown.escape)="onEscape($event)"
@@ -216,10 +216,11 @@ export interface TaskQuickActionsSaveEvent {
                   type="text"
                   class="filter-input"
                   placeholder="Filter labels..."
+                  aria-label="Filter labels"
                   [ngModel]="labelSearch()"
                   (ngModelChange)="labelSearch.set($event)"
                   (click)="$event.stopPropagation()"
-                  (keydown)="$event.stopPropagation()"
+                  (keydown)="onFilterKeydown($event)"
                 />
                 @if (labelSearch()) {
                   <button
@@ -269,10 +270,11 @@ export interface TaskQuickActionsSaveEvent {
                   type="text"
                   class="filter-input"
                   placeholder="Filter projects..."
+                  aria-label="Filter projects"
                   [ngModel]="projectSearch()"
                   (ngModelChange)="projectSearch.set($event)"
                   (click)="$event.stopPropagation()"
-                  (keydown)="$event.stopPropagation()"
+                  (keydown)="onFilterKeydown($event)"
                 />
                 @if (projectSearch()) {
                   <button
@@ -286,15 +288,14 @@ export interface TaskQuickActionsSaveEvent {
                 }
               </div>
 
-              <div class="options-list" role="radiogroup" aria-label="Projects selection">
+              <div class="options-list" role="group" aria-label="Project options">
                 @if (shouldShowNoProjectOption()) {
                   <button
                     type="button"
                     class="option-row"
                     [class.option-row-selected]="draftProjectId() === null"
                     (click)="setProject(null)"
-                    role="radio"
-                    [attr.aria-checked]="draftProjectId() === null"
+                    [attr.aria-pressed]="draftProjectId() === null"
                   >
                     <span class="project-dot project-dot-empty" aria-hidden="true"></span>
                     <span class="option-name">No project</span>
@@ -310,8 +311,7 @@ export interface TaskQuickActionsSaveEvent {
                     class="option-row"
                     [class.option-row-selected]="draftProjectId() === project.id"
                     (click)="setProject(project.id)"
-                    role="radio"
-                    [attr.aria-checked]="draftProjectId() === project.id"
+                    [attr.aria-pressed]="draftProjectId() === project.id"
                   >
                     <span
                       class="project-dot"
@@ -394,7 +394,7 @@ export interface TaskQuickActionsSaveEvent {
         cursor: not-allowed;
       }
 
-      @media (pointer: coarse) {
+      @media (max-width: 720px), (pointer: coarse) {
         .quick-action-trigger {
           min-width: 2.75rem;
           min-height: 2.75rem;
@@ -405,8 +405,12 @@ export interface TaskQuickActionsSaveEvent {
       .quick-actions-panel {
         display: flex;
         flex-direction: column;
-        width: min(20rem, 90vw);
+        width: min(
+          20rem,
+          calc(100vw - 2rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+        );
         max-height: min(26rem, 80vh);
+        max-height: min(26rem, 80dvh);
         background: var(--surface-card);
         border-radius: 0.75rem;
         box-shadow:
@@ -460,6 +464,8 @@ export interface TaskQuickActionsSaveEvent {
 
       .panel-scroll-area {
         overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
         padding: 0.6rem 0.85rem;
         display: flex;
         flex-direction: column;
@@ -640,6 +646,8 @@ export interface TaskQuickActionsSaveEvent {
         gap: 0.15rem;
         max-height: 7.5rem;
         overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
       }
 
       .option-row {
@@ -745,6 +753,33 @@ export interface TaskQuickActionsSaveEvent {
         font-size: 0.72rem;
         width: 0.85rem;
         text-align: center;
+      }
+
+      @media (max-width: 720px), (pointer: coarse) {
+        .filter-box {
+          min-height: 2.75rem;
+        }
+
+        .filter-input {
+          min-height: 2.75rem;
+        }
+
+        .filter-clear-button {
+          min-width: 2.75rem;
+          min-height: 2.75rem;
+        }
+
+        .preset-button,
+        .priority-button,
+        .option-row,
+        .action-row {
+          min-height: 2.75rem;
+        }
+
+        .reset-changes-button {
+          min-height: 2.75rem;
+          padding-inline: 0.75rem;
+        }
       }
     `,
   ],
@@ -944,6 +979,15 @@ export class TaskQuickActionsMenuComponent {
     event.stopPropagation();
     this.discarded = true;
     this.popover()?.close();
+  }
+
+  protected onFilterKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      this.onEscape(event);
+      return;
+    }
+
+    event.stopPropagation();
   }
 
   protected handleOpenDetails(event: MouseEvent): void {

@@ -106,6 +106,25 @@ describe('TaskQuickActionsMenuComponent', () => {
     expect(trigger.getAttribute('aria-label')).toBe('Quick actions for Review proposal');
   });
 
+  it('exposes label selection and project accents for the options list', () => {
+    component['initializeDraft']();
+    expect(component['isLabelSelected']('label-1')).toBeTrue();
+    expect(component['isLabelSelected']('label-2')).toBeFalse();
+    expect(component['getProjectAccent']('sage')).toBeTruthy();
+  });
+
+  it('delegates programmatic open and close to the popover', () => {
+    const popover = (component as any).popover();
+    spyOn(popover, 'open');
+    spyOn(popover, 'close');
+
+    component.open();
+    component.close();
+
+    expect(popover.open).toHaveBeenCalled();
+    expect(popover.close).toHaveBeenCalled();
+  });
+
   describe('Draft staging and dirty state', () => {
     it('initializes draft from task values on open', () => {
       // Trigger open state
@@ -126,6 +145,27 @@ describe('TaskQuickActionsMenuComponent', () => {
 
       expect(component['draftDueDate']()).toBe(today);
       expect(component.isDirty()).toBeTrue();
+    });
+
+    it('computes tomorrow and next-week presets and identifies custom dates', () => {
+      expect(component['tomorrowDate']()).toBe(
+        startOfToday().plus({ days: 1 }).toFormat('yyyy-MM-dd'),
+      );
+      expect(component['nextWeekDate']()).toBeTruthy();
+
+      component['draftDueDate'].set(component['tomorrowDate']());
+      expect(component['isTomorrowSelected']()).toBeTrue();
+      expect(component['isCustomDateSelected']()).toBeFalse();
+
+      component['draftDueDate'].set(component['nextWeekDate']());
+      expect(component['isNextWeekSelected']()).toBeTrue();
+
+      const customDate = startOfToday().plus({ days: 10 }).toFormat('yyyy-MM-dd');
+      component['draftDueDate'].set(customDate);
+      expect(component['isCustomDateSelected']()).toBeTrue();
+      expect(component['customDateLabel']()).toBe(
+        startOfToday().plus({ days: 10 }).toFormat('MMM d, yyyy'),
+      );
     });
 
     it('updates priority and marks dirty', () => {
@@ -215,6 +255,38 @@ describe('TaskQuickActionsMenuComponent', () => {
       expect(savedEvent?.draft.labels).toEqual(['label-1', 'label-2']);
     });
 
+    it('includes changed schedule and project values in the update diff', () => {
+      let savedEvent: TaskQuickActionsSaveEvent | undefined;
+      component.saveChanges.subscribe((event) => {
+        savedEvent = event;
+      });
+
+      component['onStateChanged']('open');
+      component['setSchedule'](component['tomorrowDate']());
+      component['setProject'](null);
+      component['onStateChanged']('closed');
+
+      expect(savedEvent?.diff).toEqual({
+        dueDate: component['tomorrowDate'](),
+        projectId: null,
+      });
+    });
+
+    it('ignores label reordering but includes same-size label replacements', () => {
+      fixture.componentRef.setInput('task', {
+        ...baseTask,
+        labels: ['label-1', 'label-2'],
+      });
+      fixture.detectChanges();
+      component['initializeDraft']();
+
+      component['draftLabels'].set(['label-2', 'label-1']);
+      expect(component['computeDiff']().labels).toBeUndefined();
+
+      component['draftLabels'].set(['label-2', 'label-3']);
+      expect(component['computeDiff']().labels).toEqual(['label-2', 'label-3']);
+    });
+
     it('does not emit saveChanges on dismissal if nothing changed', () => {
       let savedEvent: TaskQuickActionsSaveEvent | undefined;
       component.saveChanges.subscribe((event) => {
@@ -254,6 +326,22 @@ describe('TaskQuickActionsMenuComponent', () => {
 
       expect(discardCalled).toBeTrue();
       expect(savedEvent).toBeUndefined();
+    });
+
+    it('routes Escape from a filter through the discard handler and stops other keys', () => {
+      const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape' });
+      spyOn(component as any, 'onEscape');
+
+      component['onFilterKeydown'](escapeEvent);
+
+      expect((component as any).onEscape).toHaveBeenCalledWith(escapeEvent);
+
+      const typingEvent = new KeyboardEvent('keydown', { key: 'a' });
+      spyOn(typingEvent, 'stopPropagation');
+      component['onFilterKeydown'](typingEvent);
+
+      expect(typingEvent.stopPropagation).toHaveBeenCalled();
+      expect((component as any).onEscape).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -351,6 +439,16 @@ describe('TaskQuickActionsMenuComponent', () => {
 
       component['projectSearch'].set('xyz');
       expect(component['filteredProjects']().length).toBe(0);
+    });
+
+    it('shows No project when the filter matches and hides it otherwise', () => {
+      expect(component['shouldShowNoProjectOption']()).toBeTrue();
+
+      component['projectSearch'].set('no project');
+      expect(component['shouldShowNoProjectOption']()).toBeTrue();
+
+      component['projectSearch'].set('finance');
+      expect(component['shouldShowNoProjectOption']()).toBeFalse();
     });
   });
 });
