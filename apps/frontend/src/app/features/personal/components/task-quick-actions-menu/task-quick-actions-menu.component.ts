@@ -79,6 +79,8 @@ export interface TaskQuickActionsSaveEvent {
       #popover="brnPopover"
       [align]="align()"
       [sideOffset]="sideOffset()"
+      [aria-label]="'Quick actions for ' + task().title"
+      [aria-modal]="false"
       (stateChanged)="onStateChanged($event)"
       class="task-quick-actions-popover"
     >
@@ -86,8 +88,6 @@ export interface TaskQuickActionsSaveEvent {
         <div
           class="quick-actions-panel"
           appPickerFocusTrap
-          role="dialog"
-          [attr.aria-label]="'Quick actions for ' + task().title"
           (click)="$event.stopPropagation()"
           (keydown.escape)="onEscape($event)"
         >
@@ -241,8 +241,7 @@ export interface TaskQuickActionsSaveEvent {
                     class="option-row"
                     [class.option-row-selected]="isLabelSelected(label.id)"
                     (click)="toggleLabel(label.id)"
-                    role="checkbox"
-                    [attr.aria-checked]="isLabelSelected(label.id)"
+                    [attr.aria-pressed]="isLabelSelected(label.id)"
                   >
                     <app-label-icon [icon]="label.icon" [color]="label.color" size="sm" />
                     <span class="option-name">{{ label.name }}</span>
