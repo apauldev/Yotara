@@ -141,6 +141,10 @@
   margin: 0 auto;
 }
 
+.mobile-close-button {
+  display: none;
+}
+
 /* --- Navigation --- */
 
 .nav-list {
@@ -604,7 +608,8 @@
 
 @media (pointer: coarse) {
   .icon-button,
-  .menu-toggle {
+  .menu-toggle,
+  .sidebar-toggle {
     width: 2.75rem;
     height: 2.75rem;
   }
@@ -685,6 +690,14 @@
 
   .sidebar.sidebar-open .sidebar-toggle {
     margin: 0;
+  }
+
+  .desktop-toggle {
+    display: none;
+  }
+
+  .mobile-close-button {
+    display: grid;
   }
 
   .sidebar.sidebar-open .sidebar-version-collapsed {
