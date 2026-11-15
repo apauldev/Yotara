@@ -797,8 +797,6 @@ export class TaskQuickActionsMenuComponent {
   readonly discard = output<void>();
   readonly openDetails = output<void>();
   readonly deleteTask = output<void>();
-  readonly opened = output<void>();
-  readonly closed = output<void>();
 
   private readonly popover = viewChild(BrnPopover);
 
@@ -993,7 +991,6 @@ export class TaskQuickActionsMenuComponent {
       this.isOpen.set(true);
       this.initializeDraft();
       this.coordinator.open(this.task().id);
-      this.opened.emit();
     } else {
       this.isOpen.set(false);
       this.coordinator.close(this.task().id);
@@ -1014,8 +1011,6 @@ export class TaskQuickActionsMenuComponent {
           },
         });
       }
-
-      this.closed.emit();
     }
   }
 
