@@ -41,6 +41,33 @@
   margin-top: 1.15rem;
 }
 
+.completed-today-section {
+  margin-top: 2.25rem;
+}
+
+.all-caught-up-note {
+  margin: 1.25rem 0 0;
+  color: var(--on-surface-muted);
+  font-size: 0.95rem;
+}
+
+.collapse-toggle-button {
+  border: 0;
+  background: transparent;
+  color: var(--on-surface-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.4rem;
+  transition: all 150ms ease;
+
+  &:hover {
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+  }
+}
+
 .task-section {
   margin-top: 2rem;
 }
