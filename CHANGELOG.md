@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.92.0](https://github.com/apauldev/Yotara/compare/v0.91.0...v0.92.0) (2026-11-16)
+
+
+### Features
+
+* **personal:** integrate quick actions menu into personal task card (phase 2) ([9d5574e](https://github.com/apauldev/Yotara/commit/9d5574ebf079cb7ed6ca12894f066dd8017d1ae2))
+* **personal:** task quick actions menu popover and coordinator (phase 1) ([2cc2eb9](https://github.com/apauldev/Yotara/commit/2cc2eb9dd49662aba6254b751580349298e86f19))
+* **shell:** replace ineffective sidebar collapse toggle with close button on mobile ([c1612ff](https://github.com/apauldev/Yotara/commit/c1612ff02a1edfdd88d1d36bd9849686c8924739))
+
+
+### Bug Fixes
+
+* **a11y:** clarify quick actions dialog semantics ([81734f3](https://github.com/apauldev/Yotara/commit/81734f38b634ad767d342fa13d9d598d0d50c900))
+* **e2e:** fix outside click locator in task quick actions spec ([ee9ec05](https://github.com/apauldev/Yotara/commit/ee9ec053f666d409bd7d64c99b61cc5240e128d9))
+* **personal:** accept Event in onEscape handler for Angular template compiler ([44bbcc4](https://github.com/apauldev/Yotara/commit/44bbcc4a7375537d47b6b30aa41fcf1982da7340))
+* **personal:** address quick actions review nits ([6a3ddcc](https://github.com/apauldev/Yotara/commit/6a3ddccd1ebf7e21582a8b163cc0a2de9674a738))
+* **personal:** polish task quick actions ([a796184](https://github.com/apauldev/Yotara/commit/a79618450f900c337c3047ee48bad45672e5202a))
+* **shell:** elevate mobile sidebar and backdrop z-index above sticky topbar ([efa44d2](https://github.com/apauldev/Yotara/commit/efa44d28040d92735f1cd60df5c4aec4824de90f))
+
+
+### Refactoring
+
+* **a11y:** remove unused popover outputs ([d90ec6a](https://github.com/apauldev/Yotara/commit/d90ec6a3ba6c20d88781bc7eb5330465629905fd))
+
+
+### Tests
+
+* **personal:** increase unit test coverage for quick actions and task card ([f210aef](https://github.com/apauldev/Yotara/commit/f210aef3f0376430b0981017d3a4c7095addd244))
+
 ## [0.91.0](https://github.com/apauldev/Yotara/compare/v0.90.0...v0.91.0) (2026-11-14)
 
 
