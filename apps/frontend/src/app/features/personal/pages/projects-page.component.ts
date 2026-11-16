@@ -103,6 +103,7 @@ export class ProjectsPageComponent {
   }
 
   @HostListener('document:click')
+  @HostListener('document:keydown.escape')
   protected onDocumentClick() {
     if (this.rowMenuProjectId()) {
       this.rowMenuProjectId.set(null);

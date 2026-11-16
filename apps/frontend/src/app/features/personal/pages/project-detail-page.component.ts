@@ -193,6 +193,7 @@ export class ProjectDetailPageComponent {
   }
 
   @HostListener('document:click')
+  @HostListener('document:keydown.escape')
   protected onDocumentClick() {
     if (this.menuOpen()) {
       this.menuOpen.set(false);
