@@ -13,9 +13,11 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import type { CreateProjectDto, Project, Task } from '@yotara/shared';
+import type { CreateProjectDto, Project, ProjectSection, Task } from '@yotara/shared';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {
+  faArrowDown,
+  faArrowUp,
   faBoxArchive,
   faCheck,
   faChevronDown,
@@ -23,6 +25,8 @@ import {
   faEdit,
   faEllipsisVertical,
   faFolderOpen,
+  faGripVertical,
+  faPlus,
   faRotateLeft,
   faThumbtack,
   faTrash,
@@ -31,7 +35,9 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { MarkdownComponent } from 'ngx-markdown';
 import { ProjectService } from '../../../core/services/project.service';
+import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { StatusService } from '../../../core/services/status.service';
+import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog/confirm-dialog.component';
 import { TaskService } from '../../../core/services/task.service';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
 import { PersonalTaskWorkspaceComponent } from '../components/personal-task-workspace.component';
@@ -60,6 +66,7 @@ type ProjectLoadState = 'loading' | 'ready' | 'not-found' | 'error';
     SectionHeaderComponent,
     PageHeaderComponent,
     EmptyStateComponent,
+    ConfirmDialogComponent,
   ],
   templateUrl: './project-detail-page.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -78,8 +85,13 @@ export class ProjectDetailPageComponent {
   protected readonly faTrash = faTrash;
   protected readonly faChevronRight = faChevronRight;
   protected readonly faChevronDown = faChevronDown;
+  protected readonly faGripVertical = faGripVertical;
+  protected readonly faArrowUp = faArrowUp;
+  protected readonly faArrowDown = faArrowDown;
+  protected readonly faPlus = faPlus;
 
   protected readonly projectService = inject(ProjectService);
+  private readonly preferences = inject(PreferencesStore);
   private readonly statusService = inject(StatusService);
   private readonly taskService = inject(TaskService);
   private readonly route = inject(ActivatedRoute);
@@ -91,10 +103,21 @@ export class ProjectDetailPageComponent {
   protected readonly menuOpen = signal(false);
   protected readonly completedCollapsed = signal(true);
 
+  protected readonly sectionMenuId = signal<string | null>(null);
+  protected readonly editingSectionId = signal<string | null>(null);
+  protected readonly sectionDraftName = signal('');
+  protected readonly sectionNameError = signal<string | null>(null);
+  protected readonly creatingSection = signal(false);
+  protected readonly newSectionName = signal('');
+  protected readonly sectionToDelete = signal<ProjectSection | null>(null);
+  protected readonly draggedSectionId = signal<string | null>(null);
+  protected readonly dropSectionId = signal<string | null>(null);
+
   protected readonly projectState = signal<ProjectLoadState>('loading');
   protected readonly loadError = signal<string | null>(null);
   protected readonly project = signal<Project | null>(null);
   protected readonly projectTasks = signal<Task[]>([]);
+  protected readonly sections = signal<ProjectSection[]>([]);
   private readonly lastSeenTaskVersion = signal(this.taskService.version());
   private readonly loadedProjectId = signal<string | null>(null);
   private readonly todoSection = viewChild<ElementRef<HTMLElement>>('todoSection');
@@ -115,6 +138,29 @@ export class ProjectDetailPageComponent {
       .filter((task) => task.completed && task.status !== 'archived')
       .sort(compareTasksByOrder),
   );
+
+  /** Active tasks with no section (or a stale section id) form the flat top group. */
+  protected readonly unsectionedTasks = computed(() => {
+    const sectionIds = new Set(this.sections().map((section) => section.id));
+    return this.activeProjectTasks().filter(
+      (task) => !task.sectionId || !sectionIds.has(task.sectionId),
+    );
+  });
+
+  protected readonly tasksBySection = computed(() => {
+    const sectionIds = new Set(this.sections().map((section) => section.id));
+    const groups = new Map<string, Task[]>();
+    for (const section of this.sections()) {
+      groups.set(section.id, []);
+    }
+    for (const task of this.activeProjectTasks()) {
+      if (!task.sectionId || !sectionIds.has(task.sectionId)) {
+        continue;
+      }
+      groups.get(task.sectionId)?.push(task);
+    }
+    return groups;
+  });
 
   constructor() {
     effect(() => {
@@ -151,6 +197,9 @@ export class ProjectDetailPageComponent {
     if (this.menuOpen()) {
       this.menuOpen.set(false);
     }
+    if (this.sectionMenuId()) {
+      this.sectionMenuId.set(null);
+    }
   }
 
   protected handleTaskSaved() {
@@ -177,6 +226,215 @@ export class ProjectDetailPageComponent {
 
   protected toggleCompletedCollapsed() {
     this.completedCollapsed.update((v) => !v);
+  }
+
+  protected isSectionCollapsed(sectionId: string): boolean {
+    return this.preferences.isSectionCollapsed(sectionId);
+  }
+
+  protected toggleSectionCollapsed(sectionId: string) {
+    this.preferences.setSectionCollapsed(sectionId, !this.isSectionCollapsed(sectionId));
+  }
+
+  protected toggleSectionMenu(sectionId: string, event: MouseEvent) {
+    event.stopPropagation();
+    this.sectionMenuId.update((id) => (id === sectionId ? null : sectionId));
+  }
+
+  protected startCreateSection() {
+    this.creatingSection.set(true);
+    this.newSectionName.set('');
+    this.sectionNameError.set(null);
+  }
+
+  protected cancelCreateSection() {
+    this.creatingSection.set(false);
+    this.newSectionName.set('');
+    this.sectionNameError.set(null);
+  }
+
+  protected async confirmCreateSection() {
+    const name = this.newSectionName().trim();
+    if (!name) {
+      this.sectionNameError.set('Give the section a name.');
+      return;
+    }
+
+    const projectId = this.projectId();
+    if (!projectId) {
+      return;
+    }
+
+    try {
+      const section = await this.projectService.createSection(projectId, { name });
+      this.sections.update((sections) => [...sections, section]);
+      this.cancelCreateSection();
+      this.statusService.show('Section added', 'success', 3000);
+    } catch {
+      this.sectionNameError.set('Could not add the section right now.');
+    }
+  }
+
+  protected startRenameSection(section: ProjectSection, event?: MouseEvent) {
+    event?.stopPropagation();
+    this.sectionMenuId.set(null);
+    this.editingSectionId.set(section.id);
+    this.sectionDraftName.set(section.name);
+    this.sectionNameError.set(null);
+  }
+
+  protected cancelRenameSection() {
+    this.editingSectionId.set(null);
+    this.sectionDraftName.set('');
+    this.sectionNameError.set(null);
+  }
+
+  protected async confirmRenameSection(section: ProjectSection) {
+    const name = this.sectionDraftName().trim();
+    if (!name) {
+      this.sectionNameError.set('Give the section a name.');
+      return;
+    }
+    if (name === section.name) {
+      this.cancelRenameSection();
+      return;
+    }
+
+    try {
+      const updated = await this.projectService.updateSection(section.id, { name });
+      this.sections.update((sections) =>
+        sections.map((item) => (item.id === section.id ? updated : item)),
+      );
+      this.cancelRenameSection();
+    } catch {
+      this.sectionNameError.set('Could not rename the section right now.');
+    }
+  }
+
+  protected canMoveSection(section: ProjectSection, direction: -1 | 1): boolean {
+    const sections = this.sections();
+    const index = sections.findIndex((item) => item.id === section.id);
+    const target = index + direction;
+    return index >= 0 && target >= 0 && target < sections.length;
+  }
+
+  protected async moveSection(section: ProjectSection, direction: -1 | 1, event?: MouseEvent) {
+    event?.stopPropagation();
+    this.sectionMenuId.set(null);
+    const sections = this.sections();
+    const index = sections.findIndex((item) => item.id === section.id);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= sections.length) {
+      return;
+    }
+
+    const reordered = [...sections];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(target, 0, moved);
+    await this.persistSectionOrder(sections, reordered);
+  }
+
+  protected onSectionDragStart(event: DragEvent, section: ProjectSection) {
+    this.draggedSectionId.set(section.id);
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', section.id);
+    }
+  }
+
+  protected onSectionDragOver(event: DragEvent, section: ProjectSection) {
+    const draggedId = this.draggedSectionId();
+    if (!draggedId || draggedId === section.id) {
+      return;
+    }
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+    this.dropSectionId.set(section.id);
+  }
+
+  protected onSectionDragLeave(section: ProjectSection) {
+    if (this.dropSectionId() === section.id) {
+      this.dropSectionId.set(null);
+    }
+  }
+
+  protected onSectionDrop(event: DragEvent, section: ProjectSection) {
+    event.preventDefault();
+    const draggedId = this.draggedSectionId() ?? event.dataTransfer?.getData('text/plain') ?? null;
+    const targetId = section.id;
+    this.draggedSectionId.set(null);
+    this.dropSectionId.set(null);
+
+    if (!draggedId || draggedId === targetId) {
+      return;
+    }
+
+    const sections = this.sections();
+    const from = sections.findIndex((item) => item.id === draggedId);
+    const to = sections.findIndex((item) => item.id === targetId);
+    if (from < 0 || to < 0) {
+      return;
+    }
+
+    const reordered = [...sections];
+    const [moved] = reordered.splice(from, 1);
+    reordered.splice(to, 0, moved);
+    void this.persistSectionOrder(sections, reordered);
+  }
+
+  protected onSectionDragEnd() {
+    this.draggedSectionId.set(null);
+    this.dropSectionId.set(null);
+  }
+
+  protected openAddTaskInSection(section: ProjectSection, event?: MouseEvent) {
+    event?.stopPropagation();
+    this.sectionMenuId.set(null);
+    this.workspace()?.openCreateTaskModal(this.projectId(), null, [], '', section.id);
+  }
+
+  protected askDeleteSection(section: ProjectSection, event?: MouseEvent) {
+    event?.stopPropagation();
+    this.sectionMenuId.set(null);
+    this.sectionToDelete.set(section);
+  }
+
+  protected closeDeleteSection() {
+    this.sectionToDelete.set(null);
+  }
+
+  protected async confirmDeleteSection() {
+    const section = this.sectionToDelete();
+    if (!section) {
+      return;
+    }
+    try {
+      await this.projectService.deleteSection(section.id);
+      this.sections.update((sections) => sections.filter((item) => item.id !== section.id));
+      this.statusService.show('Section deleted · its tasks stayed in this project', 'info', 5000);
+      this.closeDeleteSection();
+    } catch {
+      this.statusService.show('Could not delete the section right now.', 'error', 5000);
+    }
+  }
+
+  private async persistSectionOrder(previous: ProjectSection[], reordered: ProjectSection[]) {
+    const projectId = this.projectId();
+    if (!projectId) {
+      return;
+    }
+    try {
+      const result = await this.projectService.reorderSections(
+        projectId,
+        reordered.map((section) => section.id),
+      );
+      this.sections.set(result);
+    } catch {
+      this.sections.set(previous);
+      this.statusService.show('Could not reorder your sections right now.', 'error', 5000);
+    }
   }
 
   protected async togglePinned(event?: MouseEvent) {
@@ -322,6 +580,7 @@ export class ProjectDetailPageComponent {
     if (isColdLoad) {
       this.project.set(null);
       this.projectTasks.set([]);
+      this.sections.set([]);
       this.projectState.set('loading');
     }
 
@@ -337,6 +596,7 @@ export class ProjectDetailPageComponent {
       if (!project) {
         this.project.set(null);
         this.projectTasks.set([]);
+        this.sections.set([]);
         this.projectState.set('not-found');
         return;
       }
@@ -349,13 +609,20 @@ export class ProjectDetailPageComponent {
       if (!projectTasks) {
         this.project.set(null);
         this.projectTasks.set([]);
+        this.sections.set([]);
         this.projectState.set('not-found');
+        return;
+      }
+
+      const sections = await this.projectService.getSections(projectId);
+      if (requestToken !== this.loadToken) {
         return;
       }
 
       this.loadedProjectId.set(projectId);
       this.project.set(project);
       this.projectTasks.set(projectTasks);
+      this.sections.set(sections);
       this.projectState.set('ready');
     } catch {
       if (requestToken !== this.loadToken) {

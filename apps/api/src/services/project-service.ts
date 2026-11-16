@@ -398,6 +398,7 @@ export async function deleteProjectForOwner(
       tx.update(tasks)
         .set({
           projectId: null,
+          sectionId: null,
           updatedAt: now,
         })
         .where(and(eq(tasks.projectId, projectId), eq(tasks.userId, ownerId)))

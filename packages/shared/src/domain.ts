@@ -59,6 +59,22 @@ export interface Project {
   openTaskCount: number;
 }
 
+/**
+ * An optional, flat heading inside a project. A section is a display aid only:
+ * it never changes a task's status, dates, labels, or completion.
+ */
+export interface ProjectSection {
+  id: string;
+  projectId: string;
+  name: string;
+  sortOrder: number;
+  taskCount: number;
+  completedTaskCount: number;
+  openTaskCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Label {
   id: string;
   name: string;
@@ -89,6 +105,8 @@ export interface Task {
   dueTime?: string; // 'HH:mm' local wall-clock time
   simpleMode?: boolean;
   projectId?: string;
+  /** Optional section inside the project. Absent means unsectioned. */
+  sectionId?: string;
   parentId?: string;
   recurrenceRule?: RecurrenceRule;
   baseTaskId?: string;
@@ -144,6 +162,8 @@ export interface CreateTaskDto {
   dueTime?: string; // 'HH:mm'; requires a dueDate
   simpleMode?: boolean;
   projectId?: string | null;
+  /** Assign the new task to a section of the selected project. */
+  sectionId?: string | null;
   parentId?: string;
   recurrenceRule?: RecurrenceRule;
   baseTaskId?: string;
@@ -160,6 +180,8 @@ export interface UpdateTaskDto {
   dueTime?: string | null; // null clears a persisted time; undefined leaves it unchanged
   simpleMode?: boolean;
   projectId?: string | null;
+  /** `null` moves the task back to the project's unsectioned group. */
+  sectionId?: string | null;
   parentId?: string | null;
   recurrenceRule?: RecurrenceRule | null;
   permanentArchive?: boolean;
@@ -209,6 +231,20 @@ export interface UpdateProjectDto extends Omit<Partial<CreateProjectDto>, 'descr
   /** `null` clears the color. */
   color?: ProjectColor | null;
   sortOrder?: number;
+}
+
+export interface CreateProjectSectionDto {
+  name: string;
+}
+
+export interface UpdateProjectSectionDto {
+  name?: string;
+  sortOrder?: number;
+}
+
+export interface ReorderProjectSectionsDto {
+  projectId: string;
+  ids: string[];
 }
 
 // ─── Notification Types ─────────────────────────────────────────────────────

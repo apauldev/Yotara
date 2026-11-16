@@ -64,6 +64,7 @@ const taskSchema = {
     dueTime: timeOfDaySchema,
     simpleMode: { type: 'boolean' },
     projectId: { type: 'string', format: 'uuid' },
+    sectionId: { type: 'string', format: 'uuid' },
     parentId: { type: 'string' },
     recurrenceRule: { $ref: 'RecurrenceRule#' },
     baseTaskId: { type: 'string' },
@@ -100,6 +101,9 @@ const createTaskSchema = {
     dueTime: timeOfDaySchema,
     simpleMode: { type: 'boolean' },
     projectId: {
+      anyOf: [{ type: 'string', format: 'uuid' }, { type: 'null' }],
+    },
+    sectionId: {
       anyOf: [{ type: 'string', format: 'uuid' }, { type: 'null' }],
     },
     parentId: { type: 'string' },
@@ -148,6 +152,9 @@ const updateTaskSchema = {
     },
     simpleMode: { type: 'boolean' },
     projectId: {
+      anyOf: [{ type: 'string', format: 'uuid' }, { type: 'null' }],
+    },
+    sectionId: {
       anyOf: [{ type: 'string', format: 'uuid' }, { type: 'null' }],
     },
     parentId: {
@@ -507,6 +514,75 @@ const projectsListResponseSchema = {
   items: { $ref: 'Project#' },
 } as const;
 
+const projectSectionSchema = {
+  $id: 'ProjectSection',
+  type: 'object',
+  required: [
+    'id',
+    'projectId',
+    'name',
+    'sortOrder',
+    'taskCount',
+    'completedTaskCount',
+    'openTaskCount',
+    'createdAt',
+    'updatedAt',
+  ],
+  properties: {
+    id: { type: 'string', format: 'uuid' },
+    projectId: { type: 'string', format: 'uuid' },
+    name: { type: 'string' },
+    sortOrder: { type: 'integer' },
+    taskCount: { type: 'integer', minimum: 0 },
+    completedTaskCount: { type: 'integer', minimum: 0 },
+    openTaskCount: { type: 'integer', minimum: 0 },
+    createdAt: dateTimeSchema,
+    updatedAt: dateTimeSchema,
+  },
+} as const;
+
+const createProjectSectionSchema = {
+  $id: 'CreateProjectSectionDto',
+  type: 'object',
+  required: ['name'],
+  properties: {
+    name: nonEmptyTextSchema,
+  },
+  additionalProperties: false,
+} as const;
+
+const updateProjectSectionSchema = {
+  $id: 'UpdateProjectSectionDto',
+  type: 'object',
+  properties: {
+    name: nonEmptyTextSchema,
+    sortOrder: { type: 'integer' },
+  },
+  additionalProperties: false,
+} as const;
+
+const reorderProjectSectionsSchema = {
+  $id: 'ReorderProjectSectionsDto',
+  type: 'object',
+  required: ['projectId', 'ids'],
+  properties: {
+    projectId: { type: 'string', format: 'uuid' },
+    ids: {
+      type: 'array',
+      items: { type: 'string', format: 'uuid' },
+      minItems: 1,
+      uniqueItems: true,
+    },
+  },
+  additionalProperties: false,
+} as const;
+
+const projectSectionsListResponseSchema = {
+  $id: 'ProjectSectionsListResponse',
+  type: 'array',
+  items: { $ref: 'ProjectSection#' },
+} as const;
+
 const paginationMetaSchema = {
   $id: 'PaginationMeta',
   type: 'object',
@@ -815,6 +891,11 @@ const sharedSchemas = [
   updateProjectSchema,
   reorderProjectsSchema,
   projectsListResponseSchema,
+  projectSectionSchema,
+  createProjectSectionSchema,
+  updateProjectSectionSchema,
+  reorderProjectSectionsSchema,
+  projectSectionsListResponseSchema,
   calendarSourceSchema,
   createCalendarSourceSchema,
   updateCalendarSourceSchema,

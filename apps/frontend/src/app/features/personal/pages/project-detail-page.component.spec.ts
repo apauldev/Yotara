@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { convertToParamMap, ActivatedRoute, provideRouter } from '@angular/router';
 import { provideMarkdown } from 'ngx-markdown';
 import { of } from 'rxjs';
-import type { Project } from '@yotara/shared';
+import type { Project, ProjectSection } from '@yotara/shared';
 import { ProjectDetailPageComponent } from './project-detail-page.component';
 import { ProjectService } from '../../../core/services/project.service';
 import { TaskService } from '../../../core/services/task.service';
@@ -16,6 +16,11 @@ describe('ProjectDetailPageComponent', () => {
     error: ReturnType<typeof signal>;
     getProject: jasmine.Spy;
     getProjectTasks: jasmine.Spy;
+    getSections: jasmine.Spy;
+    createSection: jasmine.Spy;
+    updateSection: jasmine.Spy;
+    reorderSections: jasmine.Spy;
+    deleteSection: jasmine.Spy;
     updateProject: jasmine.Spy;
     completeProject: jasmine.Spy;
     reopenProject: jasmine.Spy;
@@ -83,6 +88,11 @@ describe('ProjectDetailPageComponent', () => {
             ]
           : null,
       ),
+      getSections: jasmine.createSpy('getSections').and.resolveTo([]),
+      createSection: jasmine.createSpy('createSection').and.resolveTo(undefined),
+      updateSection: jasmine.createSpy('updateSection').and.resolveTo(undefined),
+      reorderSections: jasmine.createSpy('reorderSections').and.resolveTo([]),
+      deleteSection: jasmine.createSpy('deleteSection').and.resolveTo(undefined),
       updateProject: jasmine.createSpy('updateProject').and.resolveTo(baseProject),
       completeProject: jasmine.createSpy('completeProject').and.resolveTo(baseProject),
       reopenProject: jasmine.createSpy('reopenProject').and.resolveTo(baseProject),
@@ -283,6 +293,73 @@ describe('ProjectDetailPageComponent', () => {
     const complete = items.find((item) => item.textContent?.includes('Complete project'));
     expect(complete).toBeTruthy();
     expect(complete!.disabled).toBeTrue();
+  });
+
+  const planningSection: ProjectSection = {
+    id: 'section-1',
+    projectId: 'project-1',
+    name: 'Planning',
+    sortOrder: 0,
+    taskCount: 1,
+    completedTaskCount: 0,
+    openTaskCount: 1,
+    createdAt: '2026-04-01T10:00:00.000Z',
+    updatedAt: '2026-04-01T10:00:00.000Z',
+  };
+
+  it('renders unsectioned tasks first, then sections with their tasks', async () => {
+    await configure(baseProject);
+    projectServiceStub.getSections.and.resolveTo([planningSection]);
+    projectServiceStub.getProjectTasks.and.resolveTo([
+      { ...activeTask, id: 'task-2', title: 'Section task', sectionId: 'section-1', order: 0 },
+      { ...activeTask, id: 'task-1', title: 'Flat task', sectionId: undefined, order: 1 },
+    ]);
+
+    const fixture = TestBed.createComponent(ProjectDetailPageComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Planning');
+    expect(text.indexOf('Flat task')).toBeLessThan(text.indexOf('Section task'));
+    expect(fixture.nativeElement.querySelectorAll('.project-section').length).toBe(1);
+    expect(projectServiceStub.getSections).toHaveBeenCalledWith('project-1');
+  });
+
+  it('creates a section inline and offers a safe delete confirmation', async () => {
+    await configure(baseProject);
+    projectServiceStub.getSections.and.resolveTo([planningSection]);
+    projectServiceStub.createSection.and.resolveTo({
+      ...planningSection,
+      id: 'section-2',
+      name: 'Bookings',
+    });
+
+    const fixture = TestBed.createComponent(ProjectDetailPageComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('.add-section-button').click();
+    fixture.detectChanges();
+    const input = fixture.nativeElement.querySelector('.section-create-row input');
+    input.value = 'Bookings';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    await (fixture.componentInstance as any).confirmCreateSection();
+    fixture.detectChanges();
+
+    expect(projectServiceStub.createSection).toHaveBeenCalledWith('project-1', {
+      name: 'Bookings',
+    });
+    expect(fixture.nativeElement.textContent).toContain('Bookings');
+
+    (fixture.componentInstance as any).askDeleteSection(planningSection);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Its tasks will stay in this project.');
   });
 
   it('displays archived banner and allows restoration when archived', async () => {

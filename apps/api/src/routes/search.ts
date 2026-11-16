@@ -16,6 +16,7 @@ interface TaskSearchRow {
   due_date: string | null;
   simple_mode: number;
   project_id: string | null;
+  section_id?: string | null;
   parent_id: string | null;
   recurrence_rule: string | null;
   base_task_id: string | null;
@@ -134,6 +135,7 @@ function toTask(row: TaskSearchRow, labelIds: string[]): Task {
     dueDate: row.due_date ?? undefined,
     simpleMode: !!row.simple_mode,
     projectId: row.project_id ?? undefined,
+    sectionId: row.section_id ?? undefined,
     parentId: row.parent_id ?? undefined,
     recurrenceRule: row.recurrence_rule
       ? (JSON.parse(row.recurrence_rule) as Task['recurrenceRule'])

@@ -1,6 +1,7 @@
 <app-personal-task-workspace
   #workspace
   [initialProjectId]="projectId()"
+  [sections]="sections()"
   (taskSaved)="handleTaskSaved()"
 >
   <app-personal-project-modal
@@ -19,6 +20,17 @@
     [loading]="projectService.saving()"
     (close)="closeDeleteModal()"
     (confirmDelete)="confirmDeleteProject($event)"
+  />
+
+  <app-confirm-dialog
+    [open]="sectionToDelete() !== null"
+    [title]="'Delete “' + (sectionToDelete()?.name ?? '') + '”?'"
+    description="Its tasks will stay in this project."
+    confirmLabel="Delete section"
+    [danger]="true"
+    (confirm)="confirmDeleteSection()"
+    (cancel)="closeDeleteSection()"
+    (close)="closeDeleteSection()"
   />
 
   <section class="page">
@@ -208,7 +220,11 @@
           </button>
         </div>
 
-        @if (activeProjectTasks().length === 0 && completedProjectTasks().length === 0) {
+        @if (
+          activeProjectTasks().length === 0 &&
+          completedProjectTasks().length === 0 &&
+          sections().length === 0
+        ) {
           @if (currentProject.kind === 'ongoing') {
             <app-empty-state
               title="Add the first task for this area"
@@ -245,7 +261,7 @@
             <app-section-header title="To Do" [count]="activeProjectTasks().length" size="lg" />
 
             <div class="task-stack">
-              @for (task of activeProjectTasks(); track task.id) {
+              @for (task of unsectionedTasks(); track task.id) {
                 <app-personal-task-card
                   [task]="task"
                   [interactive]="true"
@@ -258,6 +274,187 @@
                 + Add new task to {{ currentProject.name }}
               </button>
             </div>
+
+            @for (section of sections(); track section.id) {
+              <div
+                class="project-section"
+                [class.drop-target]="dropSectionId() === section.id"
+                (dragover)="onSectionDragOver($event, section)"
+                (dragleave)="onSectionDragLeave(section)"
+                (drop)="onSectionDrop($event, section)"
+              >
+                <div class="project-section-header">
+                  <span
+                    class="drag-handle"
+                    draggable="true"
+                    (dragstart)="onSectionDragStart($event, section)"
+                    (dragend)="onSectionDragEnd()"
+                    [attr.aria-label]="'Drag to reorder ' + section.name"
+                    title="Drag to reorder"
+                  >
+                    <fa-icon [icon]="faGripVertical" aria-hidden="true"></fa-icon>
+                  </span>
+
+                  <button
+                    type="button"
+                    class="section-collapse"
+                    [attr.aria-expanded]="!isSectionCollapsed(section.id)"
+                    [attr.aria-label]="
+                      (isSectionCollapsed(section.id) ? 'Expand ' : 'Collapse ') + section.name
+                    "
+                    (click)="toggleSectionCollapsed(section.id)"
+                  >
+                    <fa-icon
+                      [icon]="isSectionCollapsed(section.id) ? faChevronRight : faChevronDown"
+                      aria-hidden="true"
+                    ></fa-icon>
+                  </button>
+
+                  @if (editingSectionId() === section.id) {
+                    <input
+                      class="section-name-input"
+                      [value]="sectionDraftName()"
+                      (input)="sectionDraftName.set($any($event.target).value)"
+                      (keydown.enter)="confirmRenameSection(section)"
+                      (keydown.escape)="cancelRenameSection()"
+                      aria-label="Section name"
+                    />
+                    <button
+                      type="button"
+                      class="section-inline-action"
+                      (click)="confirmRenameSection(section)"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      class="section-inline-action"
+                      (click)="cancelRenameSection()"
+                    >
+                      Cancel
+                    </button>
+                  } @else {
+                    <h3 class="section-name">{{ section.name }}</h3>
+                    <span class="section-count">{{
+                      tasksBySection().get(section.id)?.length ?? 0
+                    }}</span>
+                  }
+
+                  <div class="section-actions">
+                    <button
+                      type="button"
+                      class="section-action"
+                      [attr.aria-label]="'Add task to ' + section.name"
+                      title="Add task to this section"
+                      (click)="openAddTaskInSection(section, $event)"
+                    >
+                      <fa-icon [icon]="faPlus" aria-hidden="true"></fa-icon>
+                    </button>
+                    <button
+                      type="button"
+                      class="section-action"
+                      [attr.aria-label]="'Section actions for ' + section.name"
+                      [attr.aria-expanded]="sectionMenuId() === section.id"
+                      (click)="toggleSectionMenu(section.id, $event)"
+                    >
+                      <fa-icon [icon]="faEllipsisVertical" aria-hidden="true"></fa-icon>
+                    </button>
+
+                    @if (sectionMenuId() === section.id) {
+                      <div class="section-menu" role="menu" (click)="$event.stopPropagation()">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          (click)="startRenameSection(section, $event)"
+                        >
+                          Rename
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          [disabled]="!canMoveSection(section, -1)"
+                          (click)="moveSection(section, -1, $event)"
+                        >
+                          <fa-icon [icon]="faArrowUp" aria-hidden="true"></fa-icon> Move up
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          [disabled]="!canMoveSection(section, 1)"
+                          (click)="moveSection(section, 1, $event)"
+                        >
+                          <fa-icon [icon]="faArrowDown" aria-hidden="true"></fa-icon> Move down
+                        </button>
+                        <hr class="menu-divider" />
+                        <button
+                          type="button"
+                          role="menuitem"
+                          class="menu-danger"
+                          (click)="askDeleteSection(section, $event)"
+                        >
+                          Delete section…
+                        </button>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                @if (sectionNameError() && editingSectionId() === section.id) {
+                  <p class="section-error">{{ sectionNameError() }}</p>
+                }
+
+                @if (!isSectionCollapsed(section.id)) {
+                  <div class="task-stack section-task-stack">
+                    @for (task of tasksBySection().get(section.id) ?? []; track task.id) {
+                      <app-personal-task-card
+                        [task]="task"
+                        [interactive]="true"
+                        [showProject]="false"
+                        (select)="workspace.editTask(task)"
+                      />
+                    }
+                    <button
+                      type="button"
+                      class="inline-create"
+                      (click)="openAddTaskInSection(section, $event)"
+                    >
+                      + Add task to {{ section.name }}
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+
+            @if (creatingSection()) {
+              <div class="section-create-row">
+                <input
+                  class="section-name-input"
+                  [value]="newSectionName()"
+                  (input)="newSectionName.set($any($event.target).value)"
+                  (keydown.enter)="confirmCreateSection()"
+                  (keydown.escape)="cancelCreateSection()"
+                  aria-label="New section name"
+                  placeholder="Section name"
+                />
+                <button
+                  type="button"
+                  class="section-inline-action"
+                  (click)="confirmCreateSection()"
+                >
+                  Add section
+                </button>
+                <button type="button" class="section-inline-action" (click)="cancelCreateSection()">
+                  Cancel
+                </button>
+              </div>
+              @if (sectionNameError()) {
+                <p class="section-error">{{ sectionNameError() }}</p>
+              }
+            } @else {
+              <button type="button" class="add-section-button" (click)="startCreateSection()">
+                <fa-icon [icon]="faPlus" aria-hidden="true"></fa-icon> Add section
+              </button>
+            }
           </section>
 
           @if (completedProjectTasks().length > 0) {

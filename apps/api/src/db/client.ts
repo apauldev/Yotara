@@ -85,6 +85,19 @@ const SQLITE_BOOTSTRAP_SQL = `
     FOREIGN KEY (owner_id) REFERENCES user(id) ON DELETE NO ACTION
   );
 
+  CREATE TABLE IF NOT EXISTS project_sections (
+    id TEXT PRIMARY KEY NOT NULL,
+    project_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_project_sections_project_order
+    ON project_sections(project_id, sort_order);
+
   CREATE TABLE IF NOT EXISTS tasks (
     id TEXT PRIMARY KEY NOT NULL,
     user_id TEXT,
@@ -98,6 +111,7 @@ const SQLITE_BOOTSTRAP_SQL = `
     due_time TEXT,
     simple_mode INTEGER NOT NULL DEFAULT 0,
     project_id TEXT,
+    section_id TEXT REFERENCES project_sections(id) ON DELETE SET NULL,
     parent_id TEXT REFERENCES tasks(id) ON DELETE SET NULL,
     recurrence_rule TEXT,
     base_task_id TEXT REFERENCES tasks(id) ON DELETE SET NULL,
@@ -454,6 +468,14 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
     if (!taskColumnNames.has('base_task_id')) {
       sqlite.exec(
         `ALTER TABLE tasks ADD COLUMN base_task_id TEXT REFERENCES tasks(id) ON DELETE SET NULL`,
+      );
+    }
+
+    // Section assignment is optional. Deleting a section sets this back to
+    // NULL automatically, returning its tasks to the unsectioned group.
+    if (!taskColumnNames.has('section_id')) {
+      sqlite.exec(
+        `ALTER TABLE tasks ADD COLUMN section_id TEXT REFERENCES project_sections(id) ON DELETE SET NULL`,
       );
     }
 

@@ -16,6 +16,7 @@ import configRoutes from './routes/config.js';
 import labelRoutes from './routes/labels.js';
 import notificationRoutes from './routes/notifications.js';
 import projectRoutes from './routes/projects.js';
+import sectionRoutes from './routes/sections.js';
 import rootRoutes from './routes/root.js';
 import searchRoutes from './routes/search.js';
 import taskRoutes from './routes/tasks.js';
@@ -116,6 +117,7 @@ export async function buildApp() {
   await app.register(labelRoutes);
   await app.register(notificationRoutes);
   await app.register(projectRoutes);
+  await app.register(sectionRoutes);
   await app.register(searchRoutes);
   await app.register(taskRoutes);
   await app.register(calendarRoutes);

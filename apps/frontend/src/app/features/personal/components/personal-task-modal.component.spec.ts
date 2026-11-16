@@ -240,6 +240,34 @@ describe('PersonalTaskModalComponent', () => {
         );
       });
 
+      it('includes the assigned section in the saved payload', () => {
+        const saveSpy = spyOn(component['save'], 'emit');
+        component.sections = [
+          {
+            id: 'section-1',
+            projectId: 'project-1',
+            name: 'Planning',
+            sortOrder: 0,
+            taskCount: 0,
+            completedTaskCount: 0,
+            openTaskCount: 0,
+            createdAt: '2026-04-01T00:00:00Z',
+            updatedAt: '2026-04-01T00:00:00Z',
+          },
+        ];
+        component['draftTitle'].set('New Task');
+        component['draftProjectId'].set('project-1');
+        component['draftSectionId'].set('section-1');
+        component['submit']();
+
+        expect(saveSpy).toHaveBeenCalledWith(
+          jasmine.objectContaining({
+            mode: 'create',
+            payload: jasmine.objectContaining({ projectId: 'project-1', sectionId: 'section-1' }),
+          }),
+        );
+      });
+
       it('should show validation error on submit with empty title', () => {
         component['draftTitle'].set('');
         component['submit']();

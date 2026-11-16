@@ -17,6 +17,7 @@ import { todayInTimezone, startOfDayInUtc } from '../lib/timezone.js';
 import { assertCalendarDate } from '../lib/calendar-date.js';
 import { AppError, BadRequestError, NotFoundError } from '../lib/app-error.js';
 import { getLabelsForTasks, getTaskLabels, syncTaskLabels } from './label-service.js';
+import { resolveSectionIdForTaskWrite } from './section-service.js';
 import {
   createDueNotificationIfNeeded,
   retireSupersededDueNotifications,
@@ -84,6 +85,7 @@ export function toTask(task: TaskRow, labelIds: string[] = []): Task {
     dueTime: task.dueTime ?? undefined,
     simpleMode: task.simpleMode,
     projectId: task.projectId ?? undefined,
+    sectionId: task.sectionId ?? undefined,
     parentId: task.parentId ?? undefined,
     recurrenceRule: task.recurrenceRule
       ? (JSON.parse(task.recurrenceRule) as RecurrenceRule)
@@ -457,9 +459,22 @@ function createTaskForOwnerSync(ownerId: string, body: CreateTaskDto, tz?: strin
       if (!payload.projectId) {
         payload.projectId = parent.projectId ?? undefined;
       }
+      if (payload.sectionId === undefined) {
+        payload.sectionId = parent.sectionId ?? undefined;
+      }
     }
 
-    const projectId = payload.projectId ?? null;
+    const sectionResolution = resolveSectionIdForTaskWrite(
+      ownerId,
+      payload.sectionId,
+      payload.projectId,
+    );
+    if (!sectionResolution.ok) {
+      throw new BadRequestError('Section not found or does not belong to this project');
+    }
+
+    const projectId = sectionResolution.projectId ?? payload.projectId ?? null;
+    const sectionId = sectionResolution.sectionId;
 
     client
       .insert(tasks)
@@ -474,6 +489,7 @@ function createTaskForOwnerSync(ownerId: string, body: CreateTaskDto, tz?: strin
         dueTime: payload.dueTime,
         simpleMode: payload.simpleMode ?? false,
         projectId,
+        sectionId,
         parentId: payload.parentId ?? null,
         recurrenceRule: payload.recurrenceRule ? JSON.stringify(payload.recurrenceRule) : null,
         baseTaskId: payload.baseTaskId ?? null,
@@ -520,6 +536,7 @@ function createTaskForOwnerSync(ownerId: string, body: CreateTaskDto, tz?: strin
             priority: 'medium',
             simpleMode: payload.simpleMode ?? false, // Inherit simpleMode from parent
             projectId,
+            sectionId,
             parentId: id,
             completed: sub.completed ?? false,
             archivedAt: sub.completed ? now : null,
@@ -584,6 +601,22 @@ function updateTaskForOwnerSync(
           : null;
     const nextProjectId =
       body.projectId === null ? null : (body.projectId ?? current.projectId ?? null);
+    let nextSectionId = current.sectionId ?? null;
+    if (body.sectionId !== undefined) {
+      const sectionResolution = resolveSectionIdForTaskWrite(
+        ownerId,
+        body.sectionId,
+        nextProjectId,
+      );
+      if (!sectionResolution.ok) {
+        throw new BadRequestError('Section not found or does not belong to this project');
+      }
+      nextSectionId = sectionResolution.sectionId;
+    } else if (nextProjectId !== current.projectId) {
+      // A section only exists inside its own project; moving a task elsewhere
+      // leaves it unsectioned unless the caller names a section explicitly.
+      nextSectionId = null;
+    }
     const nextParentId =
       body.parentId === null ? null : (body.parentId ?? current.parentId ?? undefined);
 
@@ -669,7 +702,8 @@ function updateTaskForOwnerSync(
               dueDate: nextDueDate,
               dueTime: current.dueTime ?? undefined,
               simpleMode: current.simpleMode,
-              projectId: current.projectId ?? undefined,
+              projectId: nextProjectId ?? undefined,
+              sectionId: nextSectionId ?? undefined,
               recurrenceRule: rule,
               baseTaskId: current.baseTaskId ?? current.id, // link to template
               labels: currentLabels,
@@ -691,6 +725,7 @@ function updateTaskForOwnerSync(
         dueTime: nextDueTime,
         simpleMode,
         projectId: nextProjectId,
+        sectionId: nextSectionId,
         parentId: nextParentId,
         recurrenceRule: nextRecurrenceRule,
         order: body.order ?? current.order,

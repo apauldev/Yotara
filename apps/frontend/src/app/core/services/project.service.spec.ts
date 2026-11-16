@@ -393,4 +393,58 @@ describe('ProjectService', () => {
     expect(reordered).toEqual([]);
     expect(service.version()).toBe(1);
   }));
+
+  it('manages project sections through the section endpoints', fakeAsync(() => {
+    const service = TestBed.inject(ProjectService);
+    const http = TestBed.inject(HttpTestingController);
+    const section = {
+      id: 'section-1',
+      projectId: 'project-1',
+      name: 'Planning',
+      sortOrder: 0,
+      taskCount: 0,
+      completedTaskCount: 0,
+      openTaskCount: 0,
+      createdAt: '2026-04-01T10:00:00.000Z',
+      updatedAt: '2026-04-01T10:00:00.000Z',
+    };
+
+    let listed: unknown[] = [];
+    void service.getSections('project-1').then((res) => {
+      listed = res;
+    });
+    tick();
+    const listReq = http.expectOne('http://localhost:3000/projects/project-1/sections');
+    expect(listReq.request.method).toBe('GET');
+    listReq.flush([section]);
+    tick();
+    expect(listed).toEqual([section]);
+
+    let created: unknown = null;
+    void service.createSection('project-1', { name: 'Planning' }).then((res) => {
+      created = res;
+    });
+    tick();
+    const createReq = http.expectOne('http://localhost:3000/projects/project-1/sections');
+    expect(createReq.request.method).toBe('POST');
+    expect(createReq.request.body).toEqual({ name: 'Planning' });
+    createReq.flush(section);
+    tick();
+    expect(created).toEqual(section);
+
+    void service.reorderSections('project-1', ['section-1']);
+    tick();
+    const reorderReq = http.expectOne('http://localhost:3000/sections/reorder');
+    expect(reorderReq.request.method).toBe('PATCH');
+    expect(reorderReq.request.body).toEqual({ projectId: 'project-1', ids: ['section-1'] });
+    reorderReq.flush([section]);
+    tick();
+
+    void service.deleteSection('section-1');
+    tick();
+    const deleteReq = http.expectOne('http://localhost:3000/sections/section-1');
+    expect(deleteReq.request.method).toBe('DELETE');
+    deleteReq.flush({ success: true });
+    tick();
+  }));
 });

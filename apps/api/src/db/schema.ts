@@ -104,6 +104,22 @@ export const projects = sqliteTable('projects', {
   updatedAt: text('updated_at').notNull(),
 });
 
+/**
+ * Optional, flat headings inside a project. Deleting a project cascades its
+ * sections; deleting a section sets its tasks' `section_id` to NULL (a task is
+ * never deleted as a side effect of removing a heading).
+ */
+export const projectSections = sqliteTable('project_sections', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
 export const tasks = sqliteTable('tasks', {
   id: text('id').primaryKey(),
   userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
@@ -123,6 +139,7 @@ export const tasks = sqliteTable('tasks', {
   dueTime: text('due_time'),
   simpleMode: integer('simple_mode', { mode: 'boolean' }).notNull().default(false),
   projectId: text('project_id').references(() => projects.id, { onDelete: 'set null' }),
+  sectionId: text('section_id').references(() => projectSections.id, { onDelete: 'set null' }),
   parentId: text('parent_id').references((): AnySQLiteColumn => tasks.id),
   recurrenceRule: text('recurrence_rule'),
   baseTaskId: text('base_task_id').references((): AnySQLiteColumn => tasks.id),
@@ -248,6 +265,7 @@ export type NewDbNotification = typeof notifications.$inferInsert;
 export type DbTask = typeof tasks.$inferSelect;
 export type NewDbTask = typeof tasks.$inferInsert;
 export type DbProject = typeof projects.$inferSelect;
+export type DbProjectSection = typeof projectSections.$inferSelect;
 export type DbCalendarSource = typeof calendarSources.$inferSelect;
 export type NewDbCalendarSource = typeof calendarSources.$inferInsert;
 export type DbCalendarEvent = typeof calendarEvents.$inferSelect;

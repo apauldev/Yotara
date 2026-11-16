@@ -1,7 +1,16 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { CreateProjectDto, Project, Task, UpdateProjectDto } from '@yotara/shared';
+import {
+  CreateProjectDto,
+  CreateProjectSectionDto,
+  Project,
+  ProjectSection,
+  ReorderProjectSectionsDto,
+  Task,
+  UpdateProjectDto,
+  UpdateProjectSectionDto,
+} from '@yotara/shared';
 import { LogService } from './log.service';
 import {
   catchError,
@@ -99,6 +108,98 @@ export class ProjectService {
       }
 
       throw error;
+    }
+  }
+
+  async getSections(projectId: string): Promise<ProjectSection[]> {
+    return firstValueFrom(
+      this.http.get<ProjectSection[]>(`${this.baseUrl}/projects/${projectId}/sections`, {
+        withCredentials: true,
+      }),
+    );
+  }
+
+  async createSection(
+    projectId: string,
+    payload: CreateProjectSectionDto,
+  ): Promise<ProjectSection> {
+    this.savingState.set(true);
+    this.errorState.set(null);
+    try {
+      const created = await firstValueFrom(
+        this.http.post<ProjectSection>(`${this.baseUrl}/projects/${projectId}/sections`, payload, {
+          withCredentials: true,
+        }),
+      );
+      this.refresh();
+      return created;
+    } catch (error) {
+      this.logService.error('Failed to create section', error, 'ProjectService');
+      this.errorState.set('Could not create the section right now.');
+      throw error;
+    } finally {
+      this.savingState.set(false);
+    }
+  }
+
+  async updateSection(
+    sectionId: string,
+    payload: UpdateProjectSectionDto,
+  ): Promise<ProjectSection> {
+    this.savingState.set(true);
+    this.errorState.set(null);
+    try {
+      const updated = await firstValueFrom(
+        this.http.patch<ProjectSection>(`${this.baseUrl}/sections/${sectionId}`, payload, {
+          withCredentials: true,
+        }),
+      );
+      this.refresh();
+      return updated;
+    } catch (error) {
+      this.logService.error('Failed to update section', error, 'ProjectService');
+      this.errorState.set('Could not update the section right now.');
+      throw error;
+    } finally {
+      this.savingState.set(false);
+    }
+  }
+
+  async reorderSections(projectId: string, ids: string[]): Promise<ProjectSection[]> {
+    this.savingState.set(true);
+    this.errorState.set(null);
+    const body: ReorderProjectSectionsDto = { projectId, ids };
+    try {
+      const reordered = await firstValueFrom(
+        this.http.patch<ProjectSection[]>(`${this.baseUrl}/sections/reorder`, body, {
+          withCredentials: true,
+        }),
+      );
+      this.refresh();
+      return reordered;
+    } catch (error) {
+      this.logService.error('Failed to reorder sections', error, 'ProjectService');
+      this.errorState.set('Could not reorder your sections right now.');
+      throw error;
+    } finally {
+      this.savingState.set(false);
+    }
+  }
+
+  async deleteSection(sectionId: string): Promise<void> {
+    this.savingState.set(true);
+    this.errorState.set(null);
+    try {
+      await firstValueFrom(
+        this.http.delete(`${this.baseUrl}/sections/${sectionId}`, { withCredentials: true }),
+      );
+      this.refresh();
+    } catch (error) {
+      this.logService.error('Failed to delete section', error, 'ProjectService');
+      this.errorState.set('Could not delete the section right now.');
+      throw error;
+    } finally {
+      this.savingState.set(false);
     }
   }
 

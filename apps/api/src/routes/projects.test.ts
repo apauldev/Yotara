@@ -750,11 +750,19 @@ test('project deletion handles task preservation (keepTasks) and cascading soft-
     });
     const p1Id = p1Res.json().id as string;
 
+    const s1Res = await ctx.app.inject({
+      method: 'POST',
+      url: `/projects/${p1Id}/sections`,
+      headers: { cookie: userCookie },
+      payload: { name: 'Initial Section' },
+    });
+    const s1Id = s1Res.json().id as string;
+
     const t1Res = await ctx.app.inject({
       method: 'POST',
       url: '/tasks',
       headers: { cookie: userCookie },
-      payload: { title: 'Keep this task', projectId: p1Id },
+      payload: { title: 'Keep this task', projectId: p1Id, sectionId: s1Id },
     });
     const t1Id = t1Res.json().id as string;
 
@@ -766,7 +774,7 @@ test('project deletion handles task preservation (keepTasks) and cascading soft-
     assert.equal(delete1Res.statusCode, 200);
     assert.equal(delete1Res.json().success, true);
 
-    // Task 1 still exists but projectId is undefined (unlinked)
+    // Task 1 still exists but projectId and sectionId are undefined (unlinked)
     const t1Fetch = await ctx.app.inject({
       method: 'GET',
       url: `/tasks/${t1Id}`,
@@ -774,6 +782,7 @@ test('project deletion handles task preservation (keepTasks) and cascading soft-
     });
     assert.equal(t1Fetch.statusCode, 200);
     assert.equal(t1Fetch.json().projectId, undefined);
+    assert.equal(t1Fetch.json().sectionId, undefined);
 
     // Project 1 is gone
     const p1Fetch = await ctx.app.inject({
