@@ -403,6 +403,20 @@ describe('PersonalShellComponent', () => {
     expect(fixture.componentInstance['sidebarCollapsed']()).toBeFalse();
   });
 
+  it('toggles and closes mobile menu', () => {
+    const fixture = TestBed.createComponent(PersonalShellComponent);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance['mobileMenuOpen']()).toBeFalse();
+    fixture.componentInstance['toggleMobileMenu']();
+    expect(fixture.componentInstance['mobileMenuOpen']()).toBeTrue();
+
+    const closeBtn = fixture.debugElement.query(By.css('.mobile-close-button'));
+    expect(closeBtn).toBeTruthy();
+    closeBtn.nativeElement.click();
+    expect(fixture.componentInstance['mobileMenuOpen']()).toBeFalse();
+  });
+
   it('toggles profile menu', () => {
     const fixture = TestBed.createComponent(PersonalShellComponent);
     fixture.detectChanges();

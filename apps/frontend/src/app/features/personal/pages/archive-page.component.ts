@@ -91,6 +91,7 @@ import { PaginatedResponse, Task } from '@yotara/shared';
                 (select)="workspace.editTask(task)"
                 (togglePermanentArchive)="togglePermanentArchive(task)"
                 (deleteForever)="requestDelete(task)"
+                (requestDelete)="requestDelete(task)"
               />
             }
           </div>

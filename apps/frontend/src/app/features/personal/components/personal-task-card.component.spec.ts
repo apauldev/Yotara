@@ -5,6 +5,7 @@ import { signal, WritableSignal } from '@angular/core';
 import { DateTime } from 'luxon';
 import { provideMarkdown } from 'ngx-markdown';
 import { PersonalTaskCardComponent } from './personal-task-card.component';
+import { TaskQuickActionsMenuComponent } from './task-quick-actions-menu/task-quick-actions-menu.component';
 import { Project, Task } from '@yotara/shared';
 import { TaskService } from '../../../core/services/task.service';
 import { ProjectService } from '../../../core/services/project.service';
@@ -64,7 +65,7 @@ describe('PersonalTaskCardComponent', () => {
   };
 
   beforeEach(async () => {
-    taskServiceSpy = jasmine.createSpyObj<TaskService>('TaskService', ['updateTask']);
+    taskServiceSpy = jasmine.createSpyObj<TaskService>('TaskService', ['updateTask', 'deleteTask']);
     statusServiceSpy = jasmine.createSpyObj<StatusService>('StatusService', [
       'success',
       'error',
@@ -599,6 +600,17 @@ describe('PersonalTaskCardComponent', () => {
       expect(component['statusLabel']()).toBe('Overdue');
     });
 
+    it('returns Unscheduled when dueDate cannot be parsed into a calendar destination', () => {
+      setTask({
+        ...mockTask,
+        projectId: 'project-1',
+        status: 'inbox',
+        dueDate: 'invalid-date',
+      });
+      fixture.detectChanges();
+      expect(component['statusLabel']()).toBe('Unscheduled');
+    });
+
     it('should format date label correctly', () => {
       setTask({ ...mockTask, dueDate: '2026-04-20T00:00:00Z' });
       fixture.detectChanges();
@@ -1095,6 +1107,246 @@ describe('PersonalTaskCardComponent', () => {
       expect(fixture.debugElement.query(By.css('.meta-pill-simple'))).toBeNull();
       // Non-ambient metadata stays.
       expect(fixture.debugElement.query(By.css('.priority-chip'))).toBeTruthy();
+    });
+  });
+
+  describe('Task quick actions menu integration', () => {
+    function setup(taskOverrides: Partial<Task> = {}) {
+      setTask({ ...mockTask, ...taskOverrides });
+      fixture.detectChanges();
+    }
+
+    it('renders app-task-quick-actions-menu within task-trailing-actions', () => {
+      setup();
+      const menuEl = fixture.debugElement.query(By.css('app-task-quick-actions-menu'));
+      expect(menuEl).toBeTruthy();
+      const trailingCol = fixture.debugElement.query(By.css('.task-trailing-actions'));
+      expect(trailingCol).toBeTruthy();
+    });
+
+    it('optimistically updates task card metadata and calls taskService.updateTask', async () => {
+      setup({ priority: 'low', labels: [] });
+      taskServiceSpy.updateTask.and.resolveTo({
+        ...mockTask,
+        priority: 'high',
+        labels: ['label-1'],
+      });
+
+      // Before save, priority chip has priority-chip-low
+      const chipBefore = fixture.debugElement.query(By.css('.priority-chip'));
+      expect(chipBefore.nativeElement.classList.contains('priority-chip-low')).toBeTrue();
+
+      // Dispatch save
+      await component.onQuickActionSave({
+        taskId: mockTask.id,
+        diff: { priority: 'high', labels: ['label-1'] },
+        draft: {
+          dueDate: null,
+          priority: 'high',
+          labels: ['label-1'],
+          projectId: null,
+        },
+      });
+      fixture.detectChanges();
+
+      expect(taskServiceSpy.updateTask).toHaveBeenCalledWith(mockTask.id, {
+        priority: 'high',
+        labels: ['label-1'],
+      });
+      expect(statusServiceSpy.show).toHaveBeenCalledWith('Task updated', 'success');
+
+      // Optimistic update reflects on card
+      const chipAfter = fixture.debugElement.query(By.css('.priority-chip'));
+      expect(chipAfter.nativeElement.classList.contains('priority-chip-high')).toBeTrue();
+    });
+
+    it('disables the quick actions trigger while an update is pending', async () => {
+      setup({ priority: 'low' });
+
+      let resolveUpdate!: (task: Task) => void;
+      taskServiceSpy.updateTask.and.returnValue(
+        new Promise<Task>((resolve) => {
+          resolveUpdate = resolve;
+        }),
+      );
+
+      const savePromise = component.onQuickActionSave({
+        taskId: mockTask.id,
+        diff: { priority: 'high' },
+        draft: {
+          dueDate: null,
+          priority: 'high',
+          labels: [],
+          projectId: null,
+        },
+      });
+      fixture.detectChanges();
+
+      const trigger = fixture.debugElement.query(By.css('.quick-action-trigger'));
+      expect(component['quickActionSaving']()).toBeTrue();
+      expect(trigger.nativeElement.disabled).toBeTrue();
+
+      resolveUpdate({ ...mockTask, priority: 'high' });
+      await savePromise;
+      fixture.detectChanges();
+
+      expect(component['quickActionSaving']()).toBeFalse();
+      expect(trigger.nativeElement.disabled).toBeFalse();
+    });
+
+    it('reverts optimistic update and shows error toast on update failure', async () => {
+      setup({ priority: 'low' });
+      taskServiceSpy.updateTask.and.rejectWith(new Error('Network error'));
+
+      await component.onQuickActionSave({
+        taskId: mockTask.id,
+        diff: { priority: 'high' },
+        draft: {
+          dueDate: null,
+          priority: 'high',
+          labels: [],
+          projectId: null,
+        },
+      });
+      fixture.detectChanges();
+
+      expect(statusServiceSpy.show).toHaveBeenCalledWith(
+        'Could not update your task right now.',
+        'error',
+      );
+      // Reverts back to low priority
+      const chipAfter = fixture.debugElement.query(By.css('.priority-chip'));
+      expect(chipAfter.nativeElement.classList.contains('priority-chip-low')).toBeTrue();
+    });
+
+    it('emits select when quick actions menu emits openDetails', () => {
+      setup();
+      spyOn(component.select, 'emit');
+
+      const menu = fixture.debugElement.query(
+        By.directive(TaskQuickActionsMenuComponent),
+      ).componentInstance;
+      menu.openDetails.emit();
+
+      expect(component.select.emit).toHaveBeenCalled();
+    });
+
+    it('opens delete confirmation dialog and deletes task on confirm', async () => {
+      setup();
+      taskServiceSpy.deleteTask.and.resolveTo({ ok: true } as any);
+
+      expect(component['deleteConfirmOpen']()).toBeFalse();
+
+      component.openDeleteConfirm();
+      expect(component['deleteConfirmOpen']()).toBeTrue();
+
+      await component.confirmDeleteTask();
+      fixture.detectChanges();
+
+      expect(taskServiceSpy.deleteTask).toHaveBeenCalledWith(mockTask.id);
+      expect(component['deleteConfirmOpen']()).toBeFalse();
+      expect(statusServiceSpy.show).toHaveBeenCalledWith('Task deleted', 'success');
+    });
+
+    it('shows error toast when confirmDeleteTask fails', async () => {
+      setup();
+      taskServiceSpy.deleteTask.and.rejectWith(new Error('Failed to delete'));
+
+      await component.confirmDeleteTask();
+      fixture.detectChanges();
+
+      expect(statusServiceSpy.show).toHaveBeenCalledWith(
+        'Could not delete your task right now.',
+        'error',
+      );
+    });
+
+    it('closes delete confirmation dialog via closeDeleteConfirm', () => {
+      setup();
+      component.openDeleteConfirm();
+      expect(component['deleteConfirmOpen']()).toBeTrue();
+
+      component.closeDeleteConfirm();
+      expect(component['deleteConfirmOpen']()).toBeFalse();
+    });
+
+    it('delegates onQuickActionDelete to requestDelete when showArchiveActions is true', () => {
+      setup();
+      component.showArchiveActions = true;
+      spyOn(component.requestDelete, 'emit');
+
+      component.onQuickActionDelete();
+      expect(component.requestDelete.emit).toHaveBeenCalled();
+      expect(component['deleteConfirmOpen']()).toBeFalse();
+    });
+
+    it('opens delete confirmation when onQuickActionDelete is called with showArchiveActions false', () => {
+      setup();
+      component.showArchiveActions = false;
+
+      component.onQuickActionDelete();
+      expect(component['deleteConfirmOpen']()).toBeTrue();
+    });
+
+    it('clears optimistic overrides when task input updates', () => {
+      setup();
+      component['optimisticOverrides'].set({
+        dueDate: '2026-12-01',
+        simpleMode: false,
+        priority: 'high',
+        labels: [],
+        projectId: undefined,
+      });
+      expect(component['optimisticOverrides']()).not.toBeNull();
+
+      setTask({ ...mockTask, title: 'Updated from server' });
+      fixture.detectChanges();
+
+      expect(component['optimisticOverrides']()).toBeNull();
+    });
+
+    it('handles optimistic save with dates, project ID, and simpleMode update', async () => {
+      setup({ simpleMode: true });
+
+      await component.onQuickActionSave({
+        taskId: mockTask.id,
+        diff: { dueDate: '2026-11-20', projectId: 'project-1' },
+        draft: {
+          dueDate: '2026-11-20',
+          priority: 'high',
+          labels: ['label-1'],
+          projectId: 'project-1',
+        },
+      });
+      fixture.detectChanges();
+
+      const task = component['effectiveTask']();
+      expect(task.dueDate).toBe('2026-11-20');
+      expect(task.simpleMode).toBeFalse();
+      expect(task.projectId).toBe('project-1');
+      expect(task.priority).toBe('high');
+      expect(task.labels).toEqual(['label-1']);
+    });
+
+    it('handles optimistic save when dueDate and projectId are null', async () => {
+      setup({ dueDate: '2026-11-20', simpleMode: true });
+
+      await component.onQuickActionSave({
+        taskId: mockTask.id,
+        diff: { dueDate: null, projectId: null },
+        draft: {
+          dueDate: null,
+          priority: 'low',
+          labels: [],
+          projectId: null,
+        },
+      });
+      fixture.detectChanges();
+
+      const task = component['effectiveTask']();
+      expect(task.dueDate).toBeUndefined();
+      expect(task.simpleMode).toBeTrue();
+      expect(task.projectId).toBeUndefined();
     });
   });
 });

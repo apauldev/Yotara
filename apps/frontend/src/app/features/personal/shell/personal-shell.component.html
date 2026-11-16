@@ -25,11 +25,19 @@
         </div>
         <button
           type="button"
-          class="sidebar-toggle"
+          class="sidebar-toggle desktop-toggle"
           (click)="toggleSidebar()"
           [attr.aria-label]="sidebarCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
         >
           <fa-icon [icon]="sidebarCollapsed() ? faChevronRight : faChevronLeft"></fa-icon>
+        </button>
+        <button
+          type="button"
+          class="sidebar-toggle mobile-close-button"
+          (click)="closeMobileMenu()"
+          aria-label="Close navigation"
+        >
+          <fa-icon [icon]="faXmark"></fa-icon>
         </button>
       </div>
 
