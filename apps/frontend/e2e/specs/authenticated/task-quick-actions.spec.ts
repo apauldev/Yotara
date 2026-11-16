@@ -43,7 +43,8 @@ test.describe('Task quick actions', () => {
     );
     // The popover has no backdrop; click the non-interactive page heading to
     // exercise an outside click without depending on a screen coordinate.
-    await page.getByRole('heading', { name: 'Inbox' }).click();
+    // Use a DOM locator because the open CDK dialog marks the host tree aria-hidden.
+    await page.locator('.page-header h1').click();
     expect((await updateResponse).ok()).toBeTruthy();
     await expect(page.getByText('Task updated', { exact: true })).toBeVisible();
     await expect(card.locator('.priority-chip')).toHaveClass(/priority-chip-high/);
