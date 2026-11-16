@@ -73,6 +73,12 @@ const SQLITE_BOOTSTRAP_SQL = `
     name TEXT NOT NULL,
     description TEXT,
     color TEXT,
+    kind TEXT NOT NULL DEFAULT 'project',
+    target_date TEXT,
+    completed_at TEXT,
+    archived_at TEXT,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    pinned INTEGER NOT NULL DEFAULT 0,
     retired_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
@@ -467,6 +473,45 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
     if (!projectColumnNames.has('retired_at')) {
       sqlite.exec(`ALTER TABLE projects ADD COLUMN retired_at TEXT`);
     }
+    if (!projectColumnNames.has('kind')) {
+      sqlite.exec(`ALTER TABLE projects ADD COLUMN kind TEXT NOT NULL DEFAULT 'project'`);
+      // Preserve the kind of starter areas created before `kind` existed.
+      // Match their original descriptions as well as their names so a user's
+      // unrelated project with a common name such as "Home" remains a Project.
+      // This runs only as part of the one-time column migration; later user
+      // edits to a project's kind are not overwritten on server restart.
+      sqlite.exec(`
+        UPDATE projects
+        SET kind = 'ongoing'
+        WHERE (name = 'Work' AND description = 'Job, clients, and professional commitments.')
+           OR (name = 'Personal' AND description = 'Appointments, paperwork, and everyday life.')
+           OR (name = 'Home' AND description = 'Household tasks, maintenance, and upkeep.')
+           OR (name = 'Health' AND description = 'Fitness, medical care, and wellbeing.')
+           OR (name = 'Finance' AND description = 'Bills, budgets, and money admin.')
+           OR (name = 'Learning' AND description = 'Courses, reading, and skill building.')
+           OR (name = 'Side Projects' AND description = 'Creative work and independent projects.');
+      `);
+    }
+    if (!projectColumnNames.has('target_date')) {
+      sqlite.exec(`ALTER TABLE projects ADD COLUMN target_date TEXT`);
+    }
+    if (!projectColumnNames.has('completed_at')) {
+      sqlite.exec(`ALTER TABLE projects ADD COLUMN completed_at TEXT`);
+    }
+    if (!projectColumnNames.has('archived_at')) {
+      sqlite.exec(`ALTER TABLE projects ADD COLUMN archived_at TEXT`);
+    }
+    if (!projectColumnNames.has('sort_order')) {
+      sqlite.exec(`ALTER TABLE projects ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0`);
+      sqlite.exec(`UPDATE projects SET sort_order = rowid WHERE sort_order = 0`);
+    }
+    if (!projectColumnNames.has('pinned')) {
+      sqlite.exec(`ALTER TABLE projects ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0`);
+    }
+
+    sqlite.exec(
+      `CREATE INDEX IF NOT EXISTS idx_projects_owner_order ON projects(owner_id, pinned, sort_order)`,
+    );
 
     // Retire the legacy seeded Inbox project rather than deleting it, so its
     // id remains a stable (but hidden) tombstone for stale clients. The seed

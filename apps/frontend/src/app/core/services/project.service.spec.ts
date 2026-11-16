@@ -85,6 +85,9 @@ describe('ProjectService', () => {
         name: 'Launch Yotara MVP',
         description: 'Core release scope',
         color: 'sage',
+        kind: 'project',
+        sortOrder: 0,
+        pinned: false,
         ownerId: 'user-1',
         taskCount: 18,
         completedTaskCount: 11,
@@ -119,6 +122,9 @@ describe('ProjectService', () => {
         name: 'User One Project',
         description: 'First account',
         color: 'sage',
+        kind: 'project',
+        sortOrder: 0,
+        pinned: false,
         ownerId: 'user-1',
         taskCount: 1,
         completedTaskCount: 0,
@@ -231,5 +237,160 @@ describe('ProjectService', () => {
 
     service.refresh();
     expect(service.version()).toBe(2);
+  }));
+
+  it('completes, reopens, archives, unarchives and deletes projects', fakeAsync(() => {
+    const service = TestBed.inject(ProjectService);
+    const http = TestBed.inject(HttpTestingController);
+
+    // completeProject
+    let completedProject: Project | undefined;
+    service.completeProject('project-1').then((res) => {
+      completedProject = res;
+    });
+    tick();
+
+    const completeReq = http.expectOne('http://localhost:3000/projects/project-1/complete');
+    expect(completeReq.request.method).toBe('POST');
+    completeReq.flush({
+      id: 'project-1',
+      name: 'Launch MVP',
+      kind: 'project',
+      completedAt: '2026-11-16T12:00:00.000Z',
+      sortOrder: 0,
+      pinned: false,
+      ownerId: 'user-1',
+      taskCount: 0,
+      completedTaskCount: 0,
+      openTaskCount: 0,
+      createdAt: '2026-04-01T10:00:00.000Z',
+      updatedAt: '2026-11-16T12:00:00.000Z',
+    });
+    tick();
+    expect(completedProject?.completedAt).toBe('2026-11-16T12:00:00.000Z');
+
+    // reopenProject
+    let reopenedProject: Project | undefined;
+    service.reopenProject('project-1').then((res) => {
+      reopenedProject = res;
+    });
+    tick();
+
+    const reopenReq = http.expectOne('http://localhost:3000/projects/project-1/reopen');
+    expect(reopenReq.request.method).toBe('POST');
+    reopenReq.flush({
+      id: 'project-1',
+      name: 'Launch MVP',
+      kind: 'project',
+      completedAt: null,
+      sortOrder: 0,
+      pinned: false,
+      ownerId: 'user-1',
+      taskCount: 0,
+      completedTaskCount: 0,
+      openTaskCount: 0,
+      createdAt: '2026-04-01T10:00:00.000Z',
+      updatedAt: '2026-11-16T12:05:00.000Z',
+    });
+    tick();
+    expect(reopenedProject?.completedAt).toBeNull();
+
+    // archiveProject
+    let archivedProject: Project | undefined;
+    service.archiveProject('project-1').then((res) => {
+      archivedProject = res;
+    });
+    tick();
+
+    const archiveReq = http.expectOne('http://localhost:3000/projects/project-1/archive');
+    expect(archiveReq.request.method).toBe('POST');
+    archiveReq.flush({
+      id: 'project-1',
+      name: 'Launch MVP',
+      kind: 'project',
+      archivedAt: '2026-11-16T12:10:00.000Z',
+      sortOrder: 0,
+      pinned: false,
+      ownerId: 'user-1',
+      taskCount: 0,
+      completedTaskCount: 0,
+      openTaskCount: 0,
+      createdAt: '2026-04-01T10:00:00.000Z',
+      updatedAt: '2026-11-16T12:10:00.000Z',
+    });
+    tick();
+    expect(archivedProject?.archivedAt).toBe('2026-11-16T12:10:00.000Z');
+
+    // unarchiveProject
+    let unarchivedProject: Project | undefined;
+    service.unarchiveProject('project-1').then((res) => {
+      unarchivedProject = res;
+    });
+    tick();
+
+    const unarchiveReq = http.expectOne('http://localhost:3000/projects/project-1/unarchive');
+    expect(unarchiveReq.request.method).toBe('POST');
+    unarchiveReq.flush({
+      id: 'project-1',
+      name: 'Launch MVP',
+      kind: 'project',
+      archivedAt: null,
+      sortOrder: 0,
+      pinned: false,
+      ownerId: 'user-1',
+      taskCount: 0,
+      completedTaskCount: 0,
+      openTaskCount: 0,
+      createdAt: '2026-04-01T10:00:00.000Z',
+      updatedAt: '2026-11-16T12:15:00.000Z',
+    });
+    tick();
+    expect(unarchivedProject?.archivedAt).toBeNull();
+
+    // deleteProject
+    let deleted = false;
+    service.deleteProject('project-1', true).then(() => {
+      deleted = true;
+    });
+    tick();
+
+    const deleteReq = http.expectOne('http://localhost:3000/projects/project-1?keepTasks=true');
+    expect(deleteReq.request.method).toBe('DELETE');
+    deleteReq.flush({ success: true });
+    tick();
+    expect(deleted).toBeTrue();
+
+    // getProjectsByStatus
+    let statusProjects: Project[] = [];
+    service.getProjectsByStatus('archived').then((res) => {
+      statusProjects = res;
+    });
+    tick();
+
+    const statusReq = http.expectOne('http://localhost:3000/projects?status=archived');
+    expect(statusReq.request.method).toBe('GET');
+    statusReq.flush([]);
+    tick();
+    expect(statusProjects).toEqual([]);
+  }));
+
+  it('reorders projects and refreshes the list', fakeAsync(() => {
+    const service = TestBed.inject(ProjectService);
+    const http = TestBed.inject(HttpTestingController);
+
+    let reordered: Project[] = [];
+    void service.reorderProjects(['project-2', 'project-1']).then((res) => {
+      reordered = res;
+    });
+    tick();
+
+    const request = http.expectOne('http://localhost:3000/projects/reorder');
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual({ ids: ['project-2', 'project-1'] });
+    request.flush([]);
+    tick();
+
+    expect(reordered).toEqual([]);
+    expect(service.version()).toBe(1);
   }));
 });

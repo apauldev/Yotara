@@ -46,9 +46,7 @@ export class ProjectService {
         this.errorState.set(null);
 
         return this.http.get<Project[]>(`${this.baseUrl}/projects`, { withCredentials: true }).pipe(
-          map((projects) =>
-            [...projects].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
-          ),
+          map((projects) => [...projects]),
           catchError((error: unknown) => {
             if (error instanceof HttpErrorResponse && error.status === 401) {
               this.errorState.set(null);
@@ -138,6 +136,146 @@ export class ProjectService {
     } catch (error) {
       this.logService.error('Failed to update project', error, 'ProjectService');
       this.errorState.set('Could not update your project right now.');
+      throw error;
+    } finally {
+      this.savingState.set(false);
+    }
+  }
+
+  async getProjectsByStatus(
+    status: 'active' | 'completed' | 'archived' | 'all',
+  ): Promise<Project[]> {
+    return await firstValueFrom(
+      this.http.get<Project[]>(`${this.baseUrl}/projects?status=${status}`, {
+        withCredentials: true,
+      }),
+    );
+  }
+
+  async completeProject(projectId: string): Promise<Project> {
+    this.savingState.set(true);
+    this.errorState.set(null);
+    try {
+      const completed = await firstValueFrom(
+        this.http.post<Project>(
+          `${this.baseUrl}/projects/${projectId}/complete`,
+          {},
+          { withCredentials: true },
+        ),
+      );
+      this.refresh();
+      return completed;
+    } catch (error) {
+      this.logService.error('Failed to complete project', error, 'ProjectService');
+      this.errorState.set('Could not complete your project right now.');
+      throw error;
+    } finally {
+      this.savingState.set(false);
+    }
+  }
+
+  async reopenProject(projectId: string): Promise<Project> {
+    this.savingState.set(true);
+    this.errorState.set(null);
+    try {
+      const reopened = await firstValueFrom(
+        this.http.post<Project>(
+          `${this.baseUrl}/projects/${projectId}/reopen`,
+          {},
+          { withCredentials: true },
+        ),
+      );
+      this.refresh();
+      return reopened;
+    } catch (error) {
+      this.logService.error('Failed to reopen project', error, 'ProjectService');
+      this.errorState.set('Could not reopen your project right now.');
+      throw error;
+    } finally {
+      this.savingState.set(false);
+    }
+  }
+
+  async archiveProject(projectId: string): Promise<Project> {
+    this.savingState.set(true);
+    this.errorState.set(null);
+    try {
+      const archived = await firstValueFrom(
+        this.http.post<Project>(
+          `${this.baseUrl}/projects/${projectId}/archive`,
+          {},
+          { withCredentials: true },
+        ),
+      );
+      this.refresh();
+      return archived;
+    } catch (error) {
+      this.logService.error('Failed to archive project', error, 'ProjectService');
+      this.errorState.set('Could not archive your project right now.');
+      throw error;
+    } finally {
+      this.savingState.set(false);
+    }
+  }
+
+  async unarchiveProject(projectId: string): Promise<Project> {
+    this.savingState.set(true);
+    this.errorState.set(null);
+    try {
+      const unarchived = await firstValueFrom(
+        this.http.post<Project>(
+          `${this.baseUrl}/projects/${projectId}/unarchive`,
+          {},
+          { withCredentials: true },
+        ),
+      );
+      this.refresh();
+      return unarchived;
+    } catch (error) {
+      this.logService.error('Failed to unarchive project', error, 'ProjectService');
+      this.errorState.set('Could not unarchive your project right now.');
+      throw error;
+    } finally {
+      this.savingState.set(false);
+    }
+  }
+
+  async reorderProjects(ids: string[]): Promise<Project[]> {
+    this.savingState.set(true);
+    this.errorState.set(null);
+    try {
+      const reordered = await firstValueFrom(
+        this.http.patch<Project[]>(
+          `${this.baseUrl}/projects/reorder`,
+          { ids },
+          { withCredentials: true },
+        ),
+      );
+      this.refresh();
+      return reordered;
+    } catch (error) {
+      this.logService.error('Failed to reorder projects', error, 'ProjectService');
+      this.errorState.set('Could not reorder your projects right now.');
+      throw error;
+    } finally {
+      this.savingState.set(false);
+    }
+  }
+
+  async deleteProject(projectId: string, keepTasks: boolean = true): Promise<void> {
+    this.savingState.set(true);
+    this.errorState.set(null);
+    try {
+      await firstValueFrom(
+        this.http.delete<{ success: boolean }>(
+          `${this.baseUrl}/projects/${projectId}?keepTasks=${keepTasks}`,
+          { withCredentials: true },
+        ),
+      );
+      this.refresh();
+    } catch (error) {
+      this.logService.error('Failed to delete project', error, 'ProjectService');
+      this.errorState.set('Could not delete your project right now.');
       throw error;
     } finally {
       this.savingState.set(false);

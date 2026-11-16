@@ -1,12 +1,14 @@
 import { signal, WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { provideMarkdown } from 'ngx-markdown';
 import type { Project } from '@yotara/shared';
 import { ProjectsPageComponent } from './projects-page.component';
 import { ProjectService } from '../../../core/services/project.service';
 
 describe('ProjectsPageComponent', () => {
   let projects: WritableSignal<Project[]>;
+  let getProjectsByStatusSpy: jasmine.Spy;
 
   beforeEach(async () => {
     projects = signal<Project[]>([
@@ -15,6 +17,9 @@ describe('ProjectsPageComponent', () => {
         name: 'Launch Yotara MVP',
         description: 'Core release scope',
         color: 'sage' as const,
+        kind: 'project',
+        sortOrder: 0,
+        pinned: false,
         ownerId: 'user-1',
         taskCount: 18,
         completedTaskCount: 11,
@@ -24,10 +29,13 @@ describe('ProjectsPageComponent', () => {
       },
     ]);
 
+    getProjectsByStatusSpy = jasmine.createSpy('getProjectsByStatus').and.resolveTo([]);
+
     await TestBed.configureTestingModule({
       imports: [ProjectsPageComponent],
       providers: [
         provideRouter([]),
+        provideMarkdown(),
         {
           provide: ProjectService,
           useValue: {
@@ -35,7 +43,16 @@ describe('ProjectsPageComponent', () => {
             loading: signal(false),
             saving: signal(false),
             error: signal(null),
+            version: signal(0),
+            getProjectsByStatus: getProjectsByStatusSpy,
             createProject: jasmine.createSpy('createProject'),
+            updateProject: jasmine.createSpy('updateProject'),
+            completeProject: jasmine.createSpy('completeProject'),
+            reopenProject: jasmine.createSpy('reopenProject'),
+            archiveProject: jasmine.createSpy('archiveProject'),
+            unarchiveProject: jasmine.createSpy('unarchiveProject'),
+            deleteProject: jasmine.createSpy('deleteProject'),
+            reorderProjects: jasmine.createSpy('reorderProjects').and.resolveTo([]),
           },
         },
       ],
@@ -53,7 +70,7 @@ describe('ProjectsPageComponent', () => {
     expect(text.toLowerCase()).toContain('active');
     expect(text).toContain('New Project');
 
-    // Check for edit button by aria-label since text 'Edit' is gone
+    // Check for edit button by aria-label
     const editBtn = fixture.nativeElement.querySelector('[aria-label*="Edit project"]');
     expect(editBtn).toBeTruthy();
   });
@@ -78,5 +95,72 @@ describe('ProjectsPageComponent', () => {
 
     const badge = fixture.nativeElement.querySelector('.open-task-badge');
     expect(badge.textContent.trim()).toBe('1 open task');
+  });
+
+  it('filters by active, completed, and archived tabs', async () => {
+    const [project] = projects();
+    const completedProject: Project = {
+      ...project,
+      id: 'project-2',
+      name: 'Completed Launch',
+      completedAt: '2026-04-05T10:00:00.000Z',
+      openTaskCount: 0,
+      completedTaskCount: 5,
+      taskCount: 5,
+    };
+    const archivedProject: Project = {
+      ...project,
+      id: 'project-3',
+      name: 'Archived Exploration',
+      archivedAt: '2026-04-06T10:00:00.000Z',
+    };
+    projects.set([project, completedProject]);
+    getProjectsByStatusSpy.and.resolveTo([archivedProject]);
+
+    const fixture = TestBed.createComponent(ProjectsPageComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    // Default tab is active: shows project-1
+    expect(fixture.nativeElement.textContent).toContain('Launch Yotara MVP');
+    expect(fixture.nativeElement.textContent).not.toContain('Completed Launch');
+
+    // Switch to completed
+    fixture.componentInstance['setTab']('completed');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Completed Launch');
+    expect(fixture.nativeElement.textContent).not.toContain('Launch Yotara MVP');
+  });
+
+  it('labels Ongoing areas without showing a progress percentage', () => {
+    const [project] = projects();
+    projects.set([{ ...project, name: 'Home', kind: 'ongoing' }]);
+
+    const fixture = TestBed.createComponent(ProjectsPageComponent);
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Ongoing area');
+    expect(fixture.nativeElement.querySelector('.progress-ongoing')).toBeTruthy();
+  });
+
+  it('persists a new order when a project is moved down', () => {
+    const [first] = projects();
+    const second: Project = {
+      ...first,
+      id: 'project-2',
+      name: 'Second project',
+      sortOrder: 1,
+    };
+    projects.set([first, second]);
+
+    const fixture = TestBed.createComponent(ProjectsPageComponent);
+    fixture.detectChanges();
+
+    const service = TestBed.inject(ProjectService);
+    fixture.componentInstance['moveProject'](first, 1);
+
+    expect(service.reorderProjects).toHaveBeenCalledWith(['project-2', 'project-1']);
+    expect(fixture.nativeElement.querySelector('.drag-handle')).toBeTruthy();
   });
 });

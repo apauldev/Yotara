@@ -11,6 +11,13 @@ export function isProjectColor(value: unknown): value is ProjectColor {
   return typeof value === 'string' && (PROJECT_COLORS as readonly string[]).includes(value);
 }
 
+export const PROJECT_KINDS = ['project', 'ongoing'] as const;
+export type ProjectKind = (typeof PROJECT_KINDS)[number];
+
+export function isProjectKind(value: unknown): value is ProjectKind {
+  return typeof value === 'string' && (PROJECT_KINDS as readonly string[]).includes(value);
+}
+
 export type RecurrenceFrequency = 'daily' | 'weekdays' | 'weekly' | 'monthly' | 'yearly';
 
 export interface RecurrenceRule {
@@ -38,6 +45,12 @@ export interface Project {
   name: string;
   description?: string;
   color?: ProjectColor;
+  kind: ProjectKind;
+  targetDate?: string | null;
+  completedAt?: string | null;
+  archivedAt?: string | null;
+  sortOrder: number;
+  pinned: boolean;
   ownerId: string;
   createdAt: string;
   updatedAt: string;
@@ -185,9 +198,18 @@ export interface CreateProjectDto {
   name: string;
   description?: string;
   color?: ProjectColor;
+  kind?: ProjectKind;
+  targetDate?: string | null;
+  pinned?: boolean;
 }
 
-export type UpdateProjectDto = Partial<CreateProjectDto>;
+export interface UpdateProjectDto extends Omit<Partial<CreateProjectDto>, 'description' | 'color'> {
+  /** `null` clears the description. */
+  description?: string | null;
+  /** `null` clears the color. */
+  color?: ProjectColor | null;
+  sortOrder?: number;
+}
 
 // ─── Notification Types ─────────────────────────────────────────────────────
 

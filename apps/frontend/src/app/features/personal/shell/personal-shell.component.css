@@ -247,6 +247,134 @@
   stroke-linejoin: round;
 }
 
+/* --- Pinned projects --- */
+
+.pinned-group {
+  width: 100%;
+  margin-top: 1.1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--outline-variant);
+}
+
+.pinned-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.35rem 0.85rem;
+  border: 0;
+  background: transparent;
+  color: var(--on-surface-muted);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.pinned-group-header:hover {
+  color: var(--on-surface);
+}
+
+.pinned-group-chevron {
+  font-size: 0.7rem;
+}
+
+.pinned-group-collapsed .pinned-group-label,
+.pinned-group-collapsed .pinned-group-chevron,
+.pinned-group-collapsed .pinned-list,
+.pinned-group-collapsed .pinned-actions {
+  display: none;
+}
+
+.pinned-group-collapsed .pinned-group-header {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.pinned-group-collapsed .pinned-group-header::before {
+  content: '*';
+  font-size: 1.1rem;
+  color: var(--primary-solid);
+}
+
+.pinned-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: 0.4rem;
+}
+
+.pinned-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--nav-item-radius);
+  color: var(--on-surface-muted);
+  text-decoration: none;
+  font-size: 0.86rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pinned-item:hover {
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+}
+
+.pinned-item-active {
+  color: var(--primary-solid);
+}
+
+.pinned-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.pinned-name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pinned-count {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  color: var(--on-surface-muted);
+  background: var(--surface-container-high);
+  border-radius: 999px;
+  min-width: 1.35rem;
+  text-align: center;
+  padding: 0.1rem 0.35rem;
+}
+
+.pinned-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.85rem 0;
+}
+
+.pinned-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--primary-solid);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.pinned-action:hover {
+  text-decoration: underline;
+}
+
 /* --- Sidebar Bottom --- */
 
 .sidebar-bottom {

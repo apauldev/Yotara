@@ -20,19 +20,77 @@
     (save)="createProject($event)"
   />
 
-  @if (projectService.loading()) {
+  <app-project-delete-dialog
+    [open]="deleteModalOpen()"
+    [project]="projectToDelete()"
+    [loading]="projectService.saving()"
+    (close)="closeDeleteModal()"
+    (confirmDelete)="confirmDeleteProject($event)"
+  />
+
+  <nav class="project-tabs" role="tablist" aria-label="Project status filter">
+    <button
+      type="button"
+      role="tab"
+      class="tab-button"
+      [class.tab-active]="activeTab() === 'active'"
+      [attr.aria-selected]="activeTab() === 'active'"
+      (click)="setTab('active')"
+    >
+      Active
+      <span class="tab-count">{{ tabCounts().active }}</span>
+    </button>
+
+    <button
+      type="button"
+      role="tab"
+      class="tab-button"
+      [class.tab-active]="activeTab() === 'completed'"
+      [attr.aria-selected]="activeTab() === 'completed'"
+      (click)="setTab('completed')"
+    >
+      Completed
+      <span class="tab-count">{{ tabCounts().completed }}</span>
+    </button>
+
+    <button
+      type="button"
+      role="tab"
+      class="tab-button"
+      [class.tab-active]="activeTab() === 'archived'"
+      [attr.aria-selected]="activeTab() === 'archived'"
+      (click)="setTab('archived')"
+    >
+      Archived
+      <span class="tab-count">{{ tabCounts().archived }}</span>
+    </button>
+  </nav>
+
+  @if (projectService.loading() && projects().length === 0) {
     <p class="status-copy">Loading your project spaces...</p>
   } @else if (projectService.error() && projects().length === 0) {
     <p class="status-copy">{{ projectService.error() }}</p>
-  } @else if (projects().length === 0) {
-    <app-empty-state
-      title="Start your first project"
-      description="A project becomes useful the moment the next step has a home."
-    >
-      <button empty-state-actions type="button" class="empty-button" (click)="openCreateModal()">
-        Create Project
-      </button>
-    </app-empty-state>
+  } @else if (currentTabProjects().length === 0) {
+    @if (activeTab() === 'active') {
+      <app-empty-state
+        title="Start your first project"
+        description="A project becomes useful the moment the next step has a home."
+      >
+        <button empty-state-actions type="button" class="empty-button" (click)="openCreateModal()">
+          Create Project
+        </button>
+      </app-empty-state>
+    } @else if (activeTab() === 'completed') {
+      <app-empty-state
+        title="No completed projects"
+        description="Completed projects rest here once all of their work is finished."
+      />
+    } @else {
+      <app-empty-state
+        title="No archived projects"
+        description="Archived projects are kept safely without cluttering your active spaces."
+      />
+    }
   } @else {
     <section class="projects-table-container" role="table" aria-label="Projects">
       <div class="table-header" role="rowgroup">
@@ -45,17 +103,31 @@
       </div>
 
       <div class="table-rows" role="rowgroup">
-        @for (project of projects(); track project.id) {
+        @for (project of currentTabProjects(); track project.id) {
           <div
             class="table-row"
             role="row"
+            [class.drop-target]="dropTargetId() === project.id"
             (click)="openProject(project.id)"
+            (dragover)="onDragOver($event, project)"
+            (dragleave)="onDragLeave(project)"
+            (drop)="onDrop($event, project)"
             tabindex="0"
             (keydown.enter)="openProject(project.id)"
             (keydown.space)="$event.preventDefault(); openProject(project.id)"
           >
             <div class="col-identification" role="cell">
               <div class="project-identifier">
+                <span
+                  class="drag-handle"
+                  draggable="true"
+                  (dragstart)="onDragStart($event, project)"
+                  (dragend)="onDragEnd()"
+                  [attr.aria-label]="'Drag to reorder ' + project.name"
+                  title="Drag to reorder"
+                >
+                  <fa-icon [icon]="faGripVertical" aria-hidden="true"></fa-icon>
+                </span>
                 <div
                   class="project-color-dot"
                   [ngClass]="projectColorClass(project)"
@@ -65,6 +137,19 @@
                 <div class="project-info">
                   <div class="project-title-row">
                     <h3>{{ project.name }}</h3>
+                    @if (project.pinned) {
+                      <fa-icon
+                        [icon]="faThumbtack"
+                        class="pinned-icon"
+                        title="Pinned to sidebar"
+                        aria-label="Pinned"
+                      ></fa-icon>
+                    }
+                    @if (project.kind === 'project' && project.targetDate) {
+                      <span class="target-date-pill">
+                        Due {{ formatTargetDate(project.targetDate) }}
+                      </span>
+                    }
                     <span class="open-task-badge" [class.is-empty]="project.openTaskCount === 0">
                       {{ openTaskLabel(project) }}
                     </span>
@@ -77,17 +162,21 @@
             </div>
             <div class="col-progress" role="cell">
               <div class="progress-info">
-                <span
-                  class="progress-label"
-                  [attr.aria-label]="'Progress: ' + progressPercent(project) + ' percent'"
-                >
-                  {{ progressPercent(project) }}%
-                </span>
+                @if (project.kind === 'ongoing') {
+                  <span class="progress-label progress-ongoing" aria-label="Ongoing area">—</span>
+                } @else {
+                  <span
+                    class="progress-label"
+                    [attr.aria-label]="'Progress: ' + progressPercent(project) + ' percent'"
+                  >
+                    {{ progressPercent(project) }}%
+                  </span>
+                }
               </div>
             </div>
             <div class="col-status" role="cell">
               <span class="status-badge" [ngClass]="'status-' + getProjectStatus(project)">
-                {{ getProjectStatus(project) }}
+                {{ getProjectStatusLabel(project) }}
               </span>
             </div>
             <div class="col-actions" role="cell">
@@ -101,6 +190,121 @@
                 >
                   <fa-icon [icon]="faEdit"></fa-icon>
                 </button>
+
+                <div class="row-menu-container">
+                  <button
+                    type="button"
+                    class="row-menu-trigger"
+                    [attr.aria-label]="'More actions for ' + project.name"
+                    [attr.aria-expanded]="rowMenuProjectId() === project.id"
+                    (click)="toggleRowMenu(project, $event)"
+                  >
+                    <fa-icon [icon]="faEllipsisVertical"></fa-icon>
+                  </button>
+
+                  @if (rowMenuProjectId() === project.id) {
+                    <div
+                      class="row-menu"
+                      role="menu"
+                      (click)="$event.stopPropagation()"
+                      (keydown)="$event.stopPropagation()"
+                    >
+                      <button
+                        type="button"
+                        role="menuitem"
+                        (click)="openEditModal(project, $event)"
+                      >
+                        Edit project
+                      </button>
+
+                      <button type="button" role="menuitem" (click)="togglePinned(project, $event)">
+                        {{ project.pinned ? 'Unpin from sidebar' : 'Pin to sidebar' }}
+                      </button>
+
+                      <button
+                        type="button"
+                        role="menuitem"
+                        [disabled]="!canMove(project, -1)"
+                        (click)="moveProject(project, -1, $event)"
+                      >
+                        <fa-icon [icon]="faArrowUp" aria-hidden="true"></fa-icon> Move up
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        [disabled]="!canMove(project, 1)"
+                        (click)="moveProject(project, 1, $event)"
+                      >
+                        <fa-icon [icon]="faArrowDown" aria-hidden="true"></fa-icon> Move down
+                      </button>
+
+                      @if (project.kind === 'project') {
+                        @if (!project.completedAt) {
+                          @if (project.openTaskCount > 0) {
+                            <p class="menu-helper">
+                              Finish or move the remaining {{ project.openTaskCount }} tasks first.
+                              <button
+                                type="button"
+                                role="menuitem"
+                                class="menu-helper-link"
+                                (click)="viewOpenTasks(project, $event)"
+                              >
+                                View open tasks
+                              </button>
+                            </p>
+                            <button type="button" role="menuitem" disabled>Complete project</button>
+                          } @else {
+                            <button
+                              type="button"
+                              role="menuitem"
+                              (click)="completeProject(project, $event)"
+                            >
+                              Complete project
+                            </button>
+                          }
+                        } @else {
+                          <button
+                            type="button"
+                            role="menuitem"
+                            (click)="reopenProject(project, $event)"
+                          >
+                            Reopen project
+                          </button>
+                        }
+                      }
+
+                      @if (project.archivedAt) {
+                        <button
+                          type="button"
+                          role="menuitem"
+                          (click)="unarchiveProject(project, $event)"
+                        >
+                          Restore project
+                        </button>
+                      } @else {
+                        <button
+                          type="button"
+                          role="menuitem"
+                          (click)="archiveProject(project, $event)"
+                        >
+                          Archive project
+                        </button>
+                      }
+
+                      <hr class="menu-divider" />
+
+                      <button
+                        type="button"
+                        role="menuitem"
+                        class="row-menu-danger"
+                        (click)="askDeleteProject(project, $event)"
+                      >
+                        Delete project…
+                      </button>
+                    </div>
+                  }
+                </div>
+
                 <span class="action-icon-go" aria-hidden="true">→</span>
               </div>
             </div>

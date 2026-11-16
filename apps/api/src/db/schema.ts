@@ -5,7 +5,7 @@ import {
   text,
   type AnySQLiteColumn,
 } from 'drizzle-orm/sqlite-core';
-import type { ProjectColor } from '@yotara/shared';
+import type { ProjectColor, ProjectKind } from '@yotara/shared';
 
 const PROJECT_COLOR_VALUES = [
   'sage',
@@ -15,6 +15,8 @@ const PROJECT_COLOR_VALUES = [
   'forest',
   'deep-ocean',
 ] as const satisfies readonly ProjectColor[];
+
+const PROJECT_KIND_VALUES = ['project', 'ongoing'] as const satisfies readonly ProjectKind[];
 
 export const users = sqliteTable('user', {
   id: text('id').primaryKey(),
@@ -87,6 +89,16 @@ export const projects = sqliteTable('projects', {
   color: text('color', {
     enum: PROJECT_COLOR_VALUES,
   }),
+  kind: text('kind', {
+    enum: PROJECT_KIND_VALUES,
+  })
+    .notNull()
+    .default('project'),
+  targetDate: text('target_date'),
+  completedAt: text('completed_at'),
+  archivedAt: text('archived_at'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  pinned: integer('pinned', { mode: 'boolean' }).notNull().default(false),
   retiredAt: text('retired_at'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),

@@ -250,6 +250,12 @@ const projectColorSchema = {
   enum: ['sage', 'teal', 'olive', 'clay', 'forest', 'deep-ocean'],
 } as const;
 
+const projectKindSchema = {
+  $id: 'ProjectKind',
+  type: 'string',
+  enum: ['project', 'ongoing'],
+} as const;
+
 const calendarSourceSchema = {
   $id: 'CalendarSource',
   type: 'object',
@@ -385,6 +391,9 @@ const projectSchema = {
   required: [
     'id',
     'name',
+    'kind',
+    'sortOrder',
+    'pinned',
     'ownerId',
     'taskCount',
     'completedTaskCount',
@@ -397,6 +406,12 @@ const projectSchema = {
     name: { type: 'string' },
     description: { type: 'string' },
     color: { $ref: 'ProjectColor#' },
+    kind: { $ref: 'ProjectKind#' },
+    targetDate: { anyOf: [{ type: 'string', format: 'date' }, { type: 'null' }] },
+    completedAt: { anyOf: [dateTimeSchema, { type: 'null' }] },
+    archivedAt: { anyOf: [dateTimeSchema, { type: 'null' }] },
+    sortOrder: { type: 'integer' },
+    pinned: { type: 'boolean' },
     ownerId: { type: 'string' },
     taskCount: { type: 'integer', minimum: 0 },
     completedTaskCount: { type: 'integer', minimum: 0 },
@@ -449,6 +464,9 @@ const createProjectSchema = {
     name: nonEmptyTextSchema,
     description: { type: 'string' },
     color: { $ref: 'ProjectColor#' },
+    kind: { $ref: 'ProjectKind#' },
+    targetDate: { anyOf: [{ type: 'string', format: 'date' }, { type: 'null' }] },
+    pinned: { type: 'boolean' },
   },
   additionalProperties: false,
 } as const;
@@ -458,8 +476,27 @@ const updateProjectSchema = {
   type: 'object',
   properties: {
     name: nonEmptyTextSchema,
-    description: { type: 'string' },
-    color: { $ref: 'ProjectColor#' },
+    description: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+    color: { anyOf: [{ $ref: 'ProjectColor#' }, { type: 'null' }] },
+    kind: { $ref: 'ProjectKind#' },
+    targetDate: { anyOf: [{ type: 'string', format: 'date' }, { type: 'null' }] },
+    pinned: { type: 'boolean' },
+    sortOrder: { type: 'integer' },
+  },
+  additionalProperties: false,
+} as const;
+
+const reorderProjectsSchema = {
+  $id: 'ReorderProjectsDto',
+  type: 'object',
+  required: ['ids'],
+  properties: {
+    ids: {
+      type: 'array',
+      items: { type: 'string' },
+      minItems: 1,
+      uniqueItems: true,
+    },
   },
   additionalProperties: false,
 } as const;
@@ -771,10 +808,12 @@ const sharedSchemas = [
   mergeLabelSchema,
   labelMergeResultSchema,
   projectColorSchema,
+  projectKindSchema,
   projectSchema,
   appUserSchema,
   createProjectSchema,
   updateProjectSchema,
+  reorderProjectsSchema,
   projectsListResponseSchema,
   calendarSourceSchema,
   createCalendarSourceSchema,

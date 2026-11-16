@@ -13,72 +13,235 @@
     (save)="saveProject($event)"
   />
 
+  <app-project-delete-dialog
+    [open]="deleteModalOpen()"
+    [project]="project()"
+    [loading]="projectService.saving()"
+    (close)="closeDeleteModal()"
+    (confirmDelete)="confirmDeleteProject($event)"
+  />
+
   <section class="page">
     @if (projectState() === 'ready') {
       @if (project(); as currentProject) {
+        @if (currentProject.archivedAt) {
+          <div class="archive-banner" role="status">
+            <span>Archived project · Its tasks still appear in your planned views.</span>
+            <button type="button" class="restore-button" (click)="unarchiveProject($event)">
+              Restore project
+            </button>
+          </div>
+        }
+
         <app-page-header
           [title]="currentProject.name"
           backRoute="/projects"
           backTitle="Back to Projects"
         >
-          <button
-            page-header-actions
-            type="button"
-            class="header-action-button"
-            (click)="openEditProjectModal()"
-          >
-            Edit Project
-          </button>
+          <div page-header-actions class="header-menu-container">
+            <button
+              type="button"
+              class="header-action-button menu-trigger"
+              [attr.aria-label]="'Project actions for ' + currentProject.name"
+              [attr.aria-expanded]="menuOpen()"
+              (click)="toggleMenu($event)"
+            >
+              <fa-icon [icon]="faEllipsisVertical"></fa-icon>
+            </button>
+
+            @if (menuOpen()) {
+              <div
+                class="header-menu"
+                role="menu"
+                (click)="$event.stopPropagation()"
+                (keydown)="$event.stopPropagation()"
+              >
+                <button type="button" role="menuitem" (click)="openEditProjectModal()">
+                  Edit project
+                </button>
+
+                <button type="button" role="menuitem" (click)="togglePinned($event)">
+                  {{ currentProject.pinned ? 'Unpin from sidebar' : 'Pin to sidebar' }}
+                </button>
+
+                @if (currentProject.kind === 'project') {
+                  @if (!currentProject.completedAt) {
+                    @if (currentProject.openTaskCount > 0) {
+                      <p class="menu-helper">
+                        Finish or move the remaining {{ currentProject.openTaskCount }} tasks first.
+                        <button
+                          type="button"
+                          role="menuitem"
+                          class="menu-helper-link"
+                          (click)="viewOpenTasks($event)"
+                        >
+                          View open tasks
+                        </button>
+                      </p>
+                      <button type="button" role="menuitem" disabled>Complete project</button>
+                    } @else {
+                      <button type="button" role="menuitem" (click)="completeProject($event)">
+                        Complete project
+                      </button>
+                    }
+                  } @else {
+                    <button type="button" role="menuitem" (click)="reopenProject($event)">
+                      Reopen project
+                    </button>
+                  }
+                }
+
+                @if (currentProject.archivedAt) {
+                  <button type="button" role="menuitem" (click)="unarchiveProject($event)">
+                    Restore project
+                  </button>
+                } @else {
+                  <button type="button" role="menuitem" (click)="archiveProject($event)">
+                    Archive project
+                  </button>
+                }
+
+                <hr class="menu-divider" />
+
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="menu-danger"
+                  (click)="askDeleteProject($event)"
+                >
+                  Delete project…
+                </button>
+              </div>
+            }
+          </div>
         </app-page-header>
 
+        <div class="project-meta-line">
+          <span
+            class="project-color-dot"
+            [ngClass]="projectColorClass(currentProject)"
+            role="presentation"
+          ></span>
+
+          @if (currentProject.kind === 'ongoing') {
+            <span class="meta-label">Ongoing area</span>
+          } @else {
+            <span class="meta-label">Project</span>
+            @if (currentProject.targetDate) {
+              <span
+                class="meta-date"
+                [class.meta-date-overdue]="isTargetDateOverdue(currentProject.targetDate)"
+              >
+                · Due {{ formatTargetDate(currentProject.targetDate) }}
+                @if (
+                  isTargetDateOverdue(currentProject.targetDate) && !currentProject.completedAt
+                ) {
+                  (overdue)
+                }
+              </span>
+            }
+          }
+
+          @if (currentProject.completedAt) {
+            <span class="completed-pill">Completed</span>
+          }
+        </div>
+
         @if (currentProject.description) {
-          <p class="project-description">{{ currentProject.description }}</p>
+          <div class="project-description-container">
+            <markdown
+              class="project-description-markdown"
+              [data]="currentProject.description"
+            ></markdown>
+          </div>
         }
 
-        <section class="metrics-card">
-          <div class="metric">
-            <strong>{{ currentProject.openTaskCount }}</strong>
-            <span>Remaining</span>
-          </div>
-          <div class="metric">
-            <strong>{{ currentProject.completedTaskCount }}</strong>
-            <span>Completed</span>
-          </div>
-          <div class="progress-block">
-            <div class="progress-copy">
-              <strong>{{ progressPercent(currentProject) }}% total progress</strong>
-              <span>{{ currentProject.taskCount }} tasks total</span>
-            </div>
-            <div class="progress-track">
-              <span class="progress-bar" [style.width.%]="progressPercent(currentProject)"></span>
-            </div>
-          </div>
-        </section>
+        @if (currentProject.taskCount > 0) {
+          @if (currentProject.kind === 'project') {
+            <section class="metrics-card">
+              <div class="metric">
+                <strong>{{ currentProject.openTaskCount }}</strong>
+                <span>Remaining</span>
+              </div>
+              <div class="metric">
+                <strong>{{ currentProject.completedTaskCount }}</strong>
+                <span>Completed</span>
+              </div>
+              <div class="progress-block">
+                <div class="progress-copy">
+                  <strong
+                    >{{ currentProject.completedTaskCount }} of {{ currentProject.taskCount }} tasks
+                    complete</strong
+                  >
+                  <span>{{ progressPercent(currentProject) }}%</span>
+                </div>
+                <div class="progress-track">
+                  <span
+                    class="progress-bar"
+                    [style.width.%]="progressPercent(currentProject)"
+                  ></span>
+                </div>
+              </div>
+            </section>
+          } @else {
+            <section class="metrics-card metrics-card-ongoing">
+              <div class="metric">
+                <strong>{{ currentProject.openTaskCount }}</strong>
+                <span>Open tasks</span>
+              </div>
+              <div class="metric">
+                <strong>{{ currentProject.taskCount }}</strong>
+                <span>Total tasks</span>
+              </div>
+              <div class="ongoing-note">Ongoing area · no completion goal</div>
+            </section>
+          }
+        }
 
         <div class="actions-row">
-          <div class="view-pill">List</div>
-          <button type="button" class="action-button" (click)="workspace.openCreateTaskModal()">
-            Add Task
+          <button
+            type="button"
+            class="action-button primary-action"
+            (click)="workspace.openCreateTaskModal()"
+          >
+            + Add Task
           </button>
         </div>
 
         @if (activeProjectTasks().length === 0 && completedProjectTasks().length === 0) {
-          <app-empty-state
-            title="Start with one meaningful step"
-            description="A project becomes useful the moment the next step is visible."
-            [icon]="faFolderOpen"
-          >
-            <button
-              empty-state-actions
-              type="button"
-              class="empty-button"
-              (click)="workspace.openCreateTaskModal()"
+          @if (currentProject.kind === 'ongoing') {
+            <app-empty-state
+              title="Add the first task for this area"
+              description="A continuing space for work and routines that belong together."
+              [icon]="faFolderOpen"
             >
-              Add First Task
-            </button>
-          </app-empty-state>
+              <button
+                empty-state-actions
+                type="button"
+                class="empty-button"
+                (click)="workspace.openCreateTaskModal()"
+              >
+                Add First Task
+              </button>
+            </app-empty-state>
+          } @else {
+            <app-empty-state
+              title="Start with one meaningful step"
+              description="A project becomes useful the moment the next step is visible."
+              [icon]="faFolderOpen"
+            >
+              <button
+                empty-state-actions
+                type="button"
+                class="empty-button"
+                (click)="workspace.openCreateTaskModal()"
+              >
+                Add First Task
+              </button>
+            </app-empty-state>
+          }
         } @else {
-          <section class="task-section">
+          <section class="task-section" #todoSection>
             <app-section-header title="To Do" [count]="activeProjectTasks().length" size="lg" />
 
             <div class="task-stack">
@@ -99,30 +262,57 @@
 
           @if (completedProjectTasks().length > 0) {
             <section class="task-section task-section-soft">
-              <app-section-header
-                title="Completed"
-                [count]="completedProjectTasks().length"
-                size="lg"
-              />
-
-              <div class="task-stack">
-                @for (task of completedProjectTasks(); track task.id) {
-                  <app-personal-task-card
-                    [task]="task"
-                    [interactive]="true"
-                    [showProject]="false"
-                    [showDescription]="false"
-                    [showCompletionState]="true"
-                    (select)="workspace.editTask(task)"
-                  />
-                }
+              <div class="completed-header-wrapper">
+                <app-section-header
+                  title="Completed"
+                  [count]="completedProjectTasks().length"
+                  size="lg"
+                >
+                  <button
+                    section-header-actions
+                    type="button"
+                    class="collapse-toggle-button"
+                    (click)="toggleCompletedCollapsed()"
+                    [attr.aria-expanded]="!completedCollapsed()"
+                  >
+                    {{ completedCollapsed() ? 'Show' : 'Hide' }}
+                  </button>
+                </app-section-header>
               </div>
+
+              @if (!completedCollapsed()) {
+                <div class="task-stack">
+                  @for (task of completedProjectTasks(); track task.id) {
+                    <app-personal-task-card
+                      [task]="task"
+                      [interactive]="true"
+                      [showProject]="false"
+                      [showDescription]="false"
+                      [showCompletionState]="true"
+                      (select)="workspace.editTask(task)"
+                    />
+                  }
+                </div>
+              }
             </section>
           }
         }
       }
     } @else if (projectState() === 'loading') {
-      <p class="status-copy">Loading your project...</p>
+      <div class="project-skeleton" role="status" aria-label="Loading your project">
+        <div class="skeleton-line skeleton-back"></div>
+        <div class="skeleton-line skeleton-title"></div>
+        <div class="skeleton-line skeleton-meta"></div>
+        <div class="skeleton-card">
+          <div class="skeleton-line skeleton-card-line"></div>
+          <div class="skeleton-line skeleton-card-line skeleton-card-line-short"></div>
+          <div class="skeleton-bar"></div>
+        </div>
+        <div class="skeleton-line skeleton-section"></div>
+        @for (row of [1, 2, 3]; track row) {
+          <div class="skeleton-row"></div>
+        }
+      </div>
     } @else if (projectState() === 'error') {
       <app-empty-state
         title="We could not load this project"

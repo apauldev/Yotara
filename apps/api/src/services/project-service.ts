@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { and, eq, isNull, sql } from 'drizzle-orm';
-import type { CreateProjectDto, ProjectColor, UpdateProjectDto } from '@yotara/shared';
+import { and, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
+import type { CreateProjectDto, ProjectColor, ProjectKind, UpdateProjectDto } from '@yotara/shared';
 import { DEFAULT_PROJECTS } from '@yotara/shared';
 import { db, type Database } from '../db/client.js';
 import { projects, tasks } from '../db/schema.js';
@@ -25,11 +25,18 @@ async function loadProjectById(projectId: string, ownerId: string) {
       name: projects.name,
       description: projects.description,
       color: projects.color,
+      kind: projects.kind,
+      targetDate: projects.targetDate,
+      completedAt: projects.completedAt,
+      archivedAt: projects.archivedAt,
+      sortOrder: projects.sortOrder,
+      pinned: projects.pinned,
+      retiredAt: projects.retiredAt,
       createdAt: projects.createdAt,
       updatedAt: projects.updatedAt,
-      taskCount: sql<number>`count(${tasks.id})`,
-      completedTaskCount: sql<number>`coalesce(sum(case when ${tasks.completed} = 1 and ${tasks.deletedAt} is null then 1 else 0 end), 0)`,
-      openTaskCount: sql<number>`coalesce(sum(case when ${tasks.completed} = 0 and ${tasks.deletedAt} is null then 1 else 0 end), 0)`,
+      taskCount: sql<number>`coalesce(sum(case when ${tasks.deletedAt} is null and ${tasks.status} <> 'archived' then 1 else 0 end), 0)`,
+      completedTaskCount: sql<number>`coalesce(sum(case when ${tasks.completed} = 1 and ${tasks.deletedAt} is null and ${tasks.status} <> 'archived' then 1 else 0 end), 0)`,
+      openTaskCount: sql<number>`coalesce(sum(case when ${tasks.completed} = 0 and ${tasks.deletedAt} is null and ${tasks.status} <> 'archived' then 1 else 0 end), 0)`,
     })
     .from(projects)
     .leftJoin(tasks, and(eq(tasks.projectId, projects.id), isNull(tasks.deletedAt)))
@@ -47,6 +54,7 @@ export interface ProjectSeed {
   name: string;
   description?: string;
   color?: ProjectColor;
+  kind?: ProjectKind;
 }
 
 /**
@@ -83,12 +91,14 @@ export function seedDefaultProjectsForOwner(
   client
     .insert(projects)
     .values(
-      missingProjects.map((project) => ({
+      missingProjects.map((project, index) => ({
         id: randomUUID(),
         ownerId,
         name: project.name,
         description: project.description ?? null,
         color: project.color ?? null,
+        kind: project.kind ?? 'ongoing',
+        sortOrder: index,
         createdAt: now,
         updatedAt: now,
       })),
@@ -96,7 +106,25 @@ export function seedDefaultProjectsForOwner(
     .run();
 }
 
-export async function listProjectsForOwner(ownerId: string) {
+export interface ListProjectsOptions {
+  status?: 'active' | 'completed' | 'archived' | 'all';
+}
+
+export async function listProjectsForOwner(ownerId: string, options?: ListProjectsOptions) {
+  const status = options?.status;
+  const conditions = [eq(projects.ownerId, ownerId), isNull(projects.retiredAt)];
+
+  if (status === 'active') {
+    conditions.push(isNull(projects.archivedAt), isNull(projects.completedAt));
+  } else if (status === 'completed') {
+    conditions.push(isNull(projects.archivedAt), isNotNull(projects.completedAt));
+  } else if (status === 'archived') {
+    conditions.push(isNotNull(projects.archivedAt));
+  } else if (status !== 'all') {
+    // Default when no status or unspecified: non-archived (active + completed)
+    conditions.push(isNull(projects.archivedAt));
+  }
+
   const rows = await db
     .select({
       id: projects.id,
@@ -104,17 +132,29 @@ export async function listProjectsForOwner(ownerId: string) {
       name: projects.name,
       description: projects.description,
       color: projects.color,
+      kind: projects.kind,
+      targetDate: projects.targetDate,
+      completedAt: projects.completedAt,
+      archivedAt: projects.archivedAt,
+      sortOrder: projects.sortOrder,
+      pinned: projects.pinned,
+      retiredAt: projects.retiredAt,
       createdAt: projects.createdAt,
       updatedAt: projects.updatedAt,
-      taskCount: sql<number>`count(${tasks.id})`,
-      completedTaskCount: sql<number>`coalesce(sum(case when ${tasks.completed} = 1 and ${tasks.deletedAt} is null then 1 else 0 end), 0)`,
-      openTaskCount: sql<number>`coalesce(sum(case when ${tasks.completed} = 0 and ${tasks.deletedAt} is null then 1 else 0 end), 0)`,
+      taskCount: sql<number>`coalesce(sum(case when ${tasks.deletedAt} is null and ${tasks.status} <> 'archived' then 1 else 0 end), 0)`,
+      completedTaskCount: sql<number>`coalesce(sum(case when ${tasks.completed} = 1 and ${tasks.deletedAt} is null and ${tasks.status} <> 'archived' then 1 else 0 end), 0)`,
+      openTaskCount: sql<number>`coalesce(sum(case when ${tasks.completed} = 0 and ${tasks.deletedAt} is null and ${tasks.status} <> 'archived' then 1 else 0 end), 0)`,
     })
     .from(projects)
     .leftJoin(tasks, and(eq(tasks.projectId, projects.id), isNull(tasks.deletedAt)))
-    .where(and(eq(projects.ownerId, ownerId), isNull(projects.retiredAt)))
+    .where(and(...conditions))
     .groupBy(projects.id)
-    .orderBy(sql`${projects.updatedAt} desc`);
+    .orderBy(
+      sql`${projects.pinned} desc`,
+      sql`${projects.sortOrder} asc`,
+      sql`${projects.name} asc`,
+      sql`${projects.id} asc`,
+    );
 
   return rows as ProjectWithCountsRow[];
 }
@@ -128,12 +168,22 @@ export async function createProjectForOwner(ownerId: string, body: CreateProject
   const now = nowIsoTimestamp();
   const id = randomUUID();
 
+  const [maxOrderRow] = await db
+    .select({ maxOrder: sql<number>`coalesce(max(${projects.sortOrder}), -1)` })
+    .from(projects)
+    .where(and(eq(projects.ownerId, ownerId), isNull(projects.retiredAt)));
+  const nextSortOrder = (maxOrderRow?.maxOrder ?? -1) + 1;
+
   await db.insert(projects).values({
     id,
     ownerId,
     name: payload.name,
     description: payload.description ?? null,
     color: payload.color ?? null,
+    kind: payload.kind ?? 'project',
+    targetDate: payload.targetDate ?? null,
+    pinned: payload.pinned ?? false,
+    sortOrder: nextSortOrder,
     createdAt: now,
     updatedAt: now,
   });
@@ -153,6 +203,7 @@ export async function updateProjectForOwner(
   }
 
   const patch = normalizeProjectUpdatePayload(body);
+  const nextKind = patch.kind ?? current.kind;
 
   await db
     .update(projects)
@@ -162,12 +213,213 @@ export async function updateProjectForOwner(
         body.description !== undefined
           ? (patch.description ?? null)
           : (current.description ?? null),
-      color: patch.color ?? current.color ?? null,
+      color: body.color !== undefined ? (patch.color ?? null) : (current.color ?? null),
+      kind: nextKind,
+      targetDate:
+        nextKind === 'ongoing'
+          ? null
+          : body.targetDate !== undefined
+            ? (patch.targetDate ?? null)
+            : (current.targetDate ?? null),
+      pinned: patch.pinned !== undefined ? patch.pinned : current.pinned,
+      sortOrder: patch.sortOrder !== undefined ? patch.sortOrder : current.sortOrder,
       updatedAt: nowIsoTimestamp(),
     })
     .where(and(eq(projects.id, projectId), eq(projects.ownerId, ownerId)));
 
   return loadProjectById(projectId, ownerId);
+}
+
+/**
+ * Persist a user-defined directory order. All ids must belong to the caller;
+ * a partial or foreign list is rejected so a request can never reorder
+ * someone else's projects or silently skip entries.
+ */
+export async function reorderProjectsForOwner(
+  ownerId: string,
+  orderedIds: string[],
+): Promise<{ ok: false } | { ok: true; projects: ProjectWithCountsRow[] }> {
+  if (orderedIds.length === 0) {
+    return { ok: true, projects: [] };
+  }
+
+  if (new Set(orderedIds).size !== orderedIds.length) {
+    return { ok: false };
+  }
+
+  const owned = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(
+      and(
+        eq(projects.ownerId, ownerId),
+        isNull(projects.retiredAt),
+        inArray(projects.id, orderedIds),
+      ),
+    );
+
+  if (owned.length !== orderedIds.length) {
+    return { ok: false };
+  }
+
+  const now = nowIsoTimestamp();
+  db.transaction((tx) => {
+    orderedIds.forEach((id, index) => {
+      tx.update(projects)
+        .set({ sortOrder: index, updatedAt: now })
+        .where(and(eq(projects.id, id), eq(projects.ownerId, ownerId)))
+        .run();
+    });
+  });
+
+  return { ok: true, projects: await listProjectsForOwner(ownerId, { status: 'all' }) };
+}
+
+export type CompleteProjectResult =
+  | { ok: true; project: ProjectWithCountsRow }
+  | {
+      ok: false;
+      error: 'not_found' | 'ongoing_area' | 'open_tasks_remain';
+      openTaskCount?: number;
+    };
+
+export async function completeProjectForOwner(
+  projectId: string,
+  ownerId: string,
+): Promise<CompleteProjectResult> {
+  const current = await loadProjectById(projectId, ownerId);
+  if (!current) {
+    return { ok: false, error: 'not_found' };
+  }
+
+  if (current.kind === 'ongoing') {
+    return { ok: false, error: 'ongoing_area' };
+  }
+
+  if (current.openTaskCount > 0) {
+    return { ok: false, error: 'open_tasks_remain', openTaskCount: current.openTaskCount };
+  }
+
+  const now = nowIsoTimestamp();
+  await db
+    .update(projects)
+    .set({
+      completedAt: now,
+      updatedAt: now,
+    })
+    .where(and(eq(projects.id, projectId), eq(projects.ownerId, ownerId)));
+
+  const updated = await loadProjectById(projectId, ownerId);
+  return { ok: true, project: updated! };
+}
+
+export async function reopenProjectForOwner(
+  projectId: string,
+  ownerId: string,
+): Promise<ProjectWithCountsRow | null> {
+  const current = await loadProjectById(projectId, ownerId);
+  if (!current) {
+    return null;
+  }
+
+  const now = nowIsoTimestamp();
+  await db
+    .update(projects)
+    .set({
+      completedAt: null,
+      updatedAt: now,
+    })
+    .where(and(eq(projects.id, projectId), eq(projects.ownerId, ownerId)));
+
+  return (await loadProjectById(projectId, ownerId)) ?? null;
+}
+
+export async function archiveProjectForOwner(
+  projectId: string,
+  ownerId: string,
+): Promise<ProjectWithCountsRow | null> {
+  const current = await loadProjectById(projectId, ownerId);
+  if (!current) {
+    return null;
+  }
+
+  const now = nowIsoTimestamp();
+  await db
+    .update(projects)
+    .set({
+      archivedAt: now,
+      updatedAt: now,
+    })
+    .where(and(eq(projects.id, projectId), eq(projects.ownerId, ownerId)));
+
+  return (await loadProjectById(projectId, ownerId)) ?? null;
+}
+
+export async function unarchiveProjectForOwner(
+  projectId: string,
+  ownerId: string,
+): Promise<ProjectWithCountsRow | null> {
+  const current = await loadProjectById(projectId, ownerId);
+  if (!current) {
+    return null;
+  }
+
+  const now = nowIsoTimestamp();
+  await db
+    .update(projects)
+    .set({
+      archivedAt: null,
+      updatedAt: now,
+    })
+    .where(and(eq(projects.id, projectId), eq(projects.ownerId, ownerId)));
+
+  return (await loadProjectById(projectId, ownerId)) ?? null;
+}
+
+export interface DeleteProjectOptions {
+  keepTasks?: boolean;
+}
+
+export async function deleteProjectForOwner(
+  projectId: string,
+  ownerId: string,
+  options: DeleteProjectOptions = { keepTasks: true },
+): Promise<boolean> {
+  const current = await loadProjectById(projectId, ownerId);
+  if (!current) {
+    return false;
+  }
+
+  const now = nowIsoTimestamp();
+  const keepTasks = options.keepTasks !== false;
+
+  db.transaction((tx) => {
+    if (keepTasks) {
+      tx.update(tasks)
+        .set({
+          projectId: null,
+          updatedAt: now,
+        })
+        .where(and(eq(tasks.projectId, projectId), eq(tasks.userId, ownerId)))
+        .run();
+    } else {
+      tx.update(tasks)
+        .set({
+          deletedAt: now,
+          updatedAt: now,
+        })
+        .where(
+          and(eq(tasks.projectId, projectId), eq(tasks.userId, ownerId), isNull(tasks.deletedAt)),
+        )
+        .run();
+    }
+
+    tx.delete(projects)
+      .where(and(eq(projects.id, projectId), eq(projects.ownerId, ownerId)))
+      .run();
+  });
+
+  return true;
 }
 
 export async function listTasksForProject(projectId: string, ownerId: string) {
@@ -222,5 +474,9 @@ export async function resolveProjectIdForTaskWrite(
     return { ok: false };
   }
 
-  return { ok: true, projectId: row.retiredAt ? null : row.id };
+  if (row.retiredAt) {
+    return { ok: true, projectId: null };
+  }
+
+  return { ok: true, projectId: row.id };
 }

@@ -29,6 +29,12 @@ interface TaskSearchRow {
   project_name: string | null;
   project_description: string | null;
   project_color: string | null;
+  project_kind?: string | null;
+  project_target_date?: string | null;
+  project_completed_at?: string | null;
+  project_archived_at?: string | null;
+  project_sort_order?: number | null;
+  project_pinned?: number | null;
   project_owner_id: string | null;
   project_created_at: string | null;
   project_updated_at: string | null;
@@ -41,6 +47,12 @@ interface ProjectSearchRow {
   name: string;
   description: string | null;
   color: string | null;
+  kind?: string | null;
+  target_date?: string | null;
+  completed_at?: string | null;
+  archived_at?: string | null;
+  sort_order?: number | null;
+  pinned?: number | null;
   created_at: string;
   updated_at: string;
   task_count: number;
@@ -142,6 +154,12 @@ function toProject(row: ProjectSearchRow): Project {
     name: row.name,
     description: row.description ?? undefined,
     color: (row.color as Project['color']) ?? undefined,
+    kind: (row.kind as Project['kind']) ?? 'project',
+    targetDate: row.target_date ?? undefined,
+    completedAt: row.completed_at ?? undefined,
+    archivedAt: row.archived_at ?? undefined,
+    sortOrder: row.sort_order ?? 0,
+    pinned: Boolean(row.pinned),
     ownerId: row.owner_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -290,6 +308,12 @@ export default async function searchRoutes(fastify: FastifyInstance) {
             p.name AS project_name,
             p.description AS project_description,
             p.color AS project_color,
+            p.kind AS project_kind,
+            p.target_date AS project_target_date,
+            p.completed_at AS project_completed_at,
+            p.archived_at AS project_archived_at,
+            p.sort_order AS project_sort_order,
+            p.pinned AS project_pinned,
             p.owner_id AS project_owner_id,
             p.created_at AS project_created_at,
             p.updated_at AS project_updated_at,
@@ -335,9 +359,9 @@ export default async function searchRoutes(fastify: FastifyInstance) {
           FROM projects p
           LEFT JOIN (
             SELECT project_id,
-              COUNT(*) AS task_count,
-              SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) AS completed_count,
-              SUM(CASE WHEN completed = 0 THEN 1 ELSE 0 END) AS open_count
+              SUM(CASE WHEN status <> 'archived' THEN 1 ELSE 0 END) AS task_count,
+              SUM(CASE WHEN completed = 1 AND status <> 'archived' THEN 1 ELSE 0 END) AS completed_count,
+              SUM(CASE WHEN completed = 0 AND status <> 'archived' THEN 1 ELSE 0 END) AS open_count
             FROM tasks
             WHERE deleted_at IS NULL
             GROUP BY project_id
@@ -400,6 +424,12 @@ export default async function searchRoutes(fastify: FastifyInstance) {
               name: row.project_name ?? '',
               description: row.project_description ?? undefined,
               color: (row.project_color ?? undefined) as Project['color'],
+              kind: (row.project_kind as Project['kind']) ?? 'project',
+              targetDate: row.project_target_date ?? undefined,
+              completedAt: row.project_completed_at ?? undefined,
+              archivedAt: row.project_archived_at ?? undefined,
+              sortOrder: row.project_sort_order ?? 0,
+              pinned: Boolean(row.project_pinned),
               ownerId: row.project_owner_id ?? '',
               createdAt: row.project_created_at ?? '',
               updatedAt: row.project_updated_at ?? '',
