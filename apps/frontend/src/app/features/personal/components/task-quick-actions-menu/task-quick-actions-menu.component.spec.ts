@@ -451,4 +451,70 @@ describe('TaskQuickActionsMenuComponent', () => {
       expect(component['shouldShowNoProjectOption']()).toBeFalse();
     });
   });
+
+  describe('Schedule presets and date helpers', () => {
+    it('evaluates schedule selection states correctly', () => {
+      // Null due date
+      component['draftDueDate'].set(null);
+      expect(component['isNoDateSelected']()).toBeTrue();
+      expect(component['isTodaySelected']()).toBeFalse();
+      expect(component['isTomorrowSelected']()).toBeFalse();
+      expect(component['isNextWeekSelected']()).toBeFalse();
+      expect(component['isCustomDateSelected']()).toBeFalse();
+      expect(component['customDateLabel']()).toBe('');
+
+      // Today
+      component['draftDueDate'].set(component['todayDate']());
+      expect(component['isTodaySelected']()).toBeTrue();
+      expect(component['isNoDateSelected']()).toBeFalse();
+      expect(component['isCustomDateSelected']()).toBeFalse();
+
+      // Tomorrow
+      component['draftDueDate'].set(component['tomorrowDate']());
+      expect(component['isTomorrowSelected']()).toBeTrue();
+      expect(component['isCustomDateSelected']()).toBeFalse();
+
+      // Next week
+      component['draftDueDate'].set(component['nextWeekDate']());
+      expect(component['isNextWeekSelected']()).toBeTrue();
+      expect(component['isCustomDateSelected']()).toBeFalse();
+
+      // Custom date
+      component['draftDueDate'].set('2030-05-15');
+      expect(component['isCustomDateSelected']()).toBeTrue();
+      expect(component['customDateLabel']()).toBe('May 15, 2030');
+    });
+
+    it('handles initialTask null guard in isDirty and computeDiff', () => {
+      component['initialTask'].set(null);
+      expect(component.isDirty()).toBeFalse();
+      expect(component['computeDiff']()).toEqual({});
+    });
+
+    it('handles tasks with undefined optional fields (labels, projectId, dueDate)', () => {
+      const bareTask: Task = {
+        id: 'task-bare',
+        title: 'Bare task',
+        completed: false,
+        order: 0,
+        priority: 'medium',
+        createdAt: '2026-01-01',
+        updatedAt: '2026-01-01',
+        status: 'inbox',
+      };
+      fixture.componentRef.setInput('task', bareTask);
+      fixture.detectChanges();
+
+      component['initializeDraft']();
+      expect(component['draftLabels']()).toEqual([]);
+      expect(component['draftProjectId']()).toBeNull();
+      expect(component['draftDueDate']()).toBeNull();
+      expect(component.isDirty()).toBeFalse();
+
+      component['draftProjectId'].set('project-1');
+      expect(component.isDirty()).toBeTrue();
+      const diff = component['computeDiff']();
+      expect(diff.projectId).toBe('project-1');
+    });
+  });
 });
