@@ -33,7 +33,9 @@ export class ProjectService {
   private baseUrl = environment.apiBaseUrl;
   private refreshState = signal(0);
   private loadingState = signal(false);
-  private savingState = signal(false);
+  // A boolean flips back to false when the first overlapping mutation finishes,
+  // hiding the saving state while another request is still in flight.
+  private savingCount = signal(0);
   private errorState = signal<string | null>(null);
 
   readonly projects = toSignal(
@@ -76,7 +78,7 @@ export class ProjectService {
   );
 
   readonly loading = this.loadingState.asReadonly();
-  readonly saving = this.savingState.asReadonly();
+  readonly saving = computed(() => this.savingCount() > 0);
   readonly error = this.errorState.asReadonly();
   readonly hasProjects = computed(() => this.projects().length > 0);
   readonly version = this.refreshState.asReadonly();
@@ -123,7 +125,7 @@ export class ProjectService {
     projectId: string,
     payload: CreateProjectSectionDto,
   ): Promise<ProjectSection> {
-    this.savingState.set(true);
+    this.savingCount.update((count) => count + 1);
     this.errorState.set(null);
     try {
       const created = await firstValueFrom(
@@ -138,7 +140,7 @@ export class ProjectService {
       this.errorState.set('Could not create the section right now.');
       throw error;
     } finally {
-      this.savingState.set(false);
+      this.savingCount.update((count) => count - 1);
     }
   }
 
@@ -146,7 +148,7 @@ export class ProjectService {
     sectionId: string,
     payload: UpdateProjectSectionDto,
   ): Promise<ProjectSection> {
-    this.savingState.set(true);
+    this.savingCount.update((count) => count + 1);
     this.errorState.set(null);
     try {
       const updated = await firstValueFrom(
@@ -161,12 +163,12 @@ export class ProjectService {
       this.errorState.set('Could not update the section right now.');
       throw error;
     } finally {
-      this.savingState.set(false);
+      this.savingCount.update((count) => count - 1);
     }
   }
 
   async reorderSections(projectId: string, ids: string[]): Promise<ProjectSection[]> {
-    this.savingState.set(true);
+    this.savingCount.update((count) => count + 1);
     this.errorState.set(null);
     const body: ReorderProjectSectionsDto = { projectId, ids };
     try {
@@ -182,12 +184,12 @@ export class ProjectService {
       this.errorState.set('Could not reorder your sections right now.');
       throw error;
     } finally {
-      this.savingState.set(false);
+      this.savingCount.update((count) => count - 1);
     }
   }
 
   async deleteSection(sectionId: string): Promise<void> {
-    this.savingState.set(true);
+    this.savingCount.update((count) => count + 1);
     this.errorState.set(null);
     try {
       await firstValueFrom(
@@ -199,12 +201,12 @@ export class ProjectService {
       this.errorState.set('Could not delete the section right now.');
       throw error;
     } finally {
-      this.savingState.set(false);
+      this.savingCount.update((count) => count - 1);
     }
   }
 
   async createProject(payload: CreateProjectDto) {
-    this.savingState.set(true);
+    this.savingCount.update((count) => count + 1);
     this.errorState.set(null);
 
     try {
@@ -218,12 +220,12 @@ export class ProjectService {
       this.errorState.set('Could not create your project right now.');
       throw error;
     } finally {
-      this.savingState.set(false);
+      this.savingCount.update((count) => count - 1);
     }
   }
 
   async updateProject(projectId: string, payload: UpdateProjectDto) {
-    this.savingState.set(true);
+    this.savingCount.update((count) => count + 1);
     this.errorState.set(null);
 
     try {
@@ -239,7 +241,7 @@ export class ProjectService {
       this.errorState.set('Could not update your project right now.');
       throw error;
     } finally {
-      this.savingState.set(false);
+      this.savingCount.update((count) => count - 1);
     }
   }
 
@@ -254,7 +256,7 @@ export class ProjectService {
   }
 
   async completeProject(projectId: string): Promise<Project> {
-    this.savingState.set(true);
+    this.savingCount.update((count) => count + 1);
     this.errorState.set(null);
     try {
       const completed = await firstValueFrom(
@@ -271,12 +273,12 @@ export class ProjectService {
       this.errorState.set('Could not complete your project right now.');
       throw error;
     } finally {
-      this.savingState.set(false);
+      this.savingCount.update((count) => count - 1);
     }
   }
 
   async reopenProject(projectId: string): Promise<Project> {
-    this.savingState.set(true);
+    this.savingCount.update((count) => count + 1);
     this.errorState.set(null);
     try {
       const reopened = await firstValueFrom(
@@ -293,12 +295,12 @@ export class ProjectService {
       this.errorState.set('Could not reopen your project right now.');
       throw error;
     } finally {
-      this.savingState.set(false);
+      this.savingCount.update((count) => count - 1);
     }
   }
 
   async archiveProject(projectId: string): Promise<Project> {
-    this.savingState.set(true);
+    this.savingCount.update((count) => count + 1);
     this.errorState.set(null);
     try {
       const archived = await firstValueFrom(
@@ -315,12 +317,12 @@ export class ProjectService {
       this.errorState.set('Could not archive your project right now.');
       throw error;
     } finally {
-      this.savingState.set(false);
+      this.savingCount.update((count) => count - 1);
     }
   }
 
   async unarchiveProject(projectId: string): Promise<Project> {
-    this.savingState.set(true);
+    this.savingCount.update((count) => count + 1);
     this.errorState.set(null);
     try {
       const unarchived = await firstValueFrom(
@@ -337,12 +339,12 @@ export class ProjectService {
       this.errorState.set('Could not unarchive your project right now.');
       throw error;
     } finally {
-      this.savingState.set(false);
+      this.savingCount.update((count) => count - 1);
     }
   }
 
   async reorderProjects(ids: string[]): Promise<Project[]> {
-    this.savingState.set(true);
+    this.savingCount.update((count) => count + 1);
     this.errorState.set(null);
     try {
       const reordered = await firstValueFrom(
@@ -359,12 +361,12 @@ export class ProjectService {
       this.errorState.set('Could not reorder your projects right now.');
       throw error;
     } finally {
-      this.savingState.set(false);
+      this.savingCount.update((count) => count - 1);
     }
   }
 
   async deleteProject(projectId: string, keepTasks: boolean = true): Promise<void> {
-    this.savingState.set(true);
+    this.savingCount.update((count) => count + 1);
     this.errorState.set(null);
     try {
       await firstValueFrom(
@@ -379,7 +381,7 @@ export class ProjectService {
       this.errorState.set('Could not delete your project right now.');
       throw error;
     } finally {
-      this.savingState.set(false);
+      this.savingCount.update((count) => count - 1);
     }
   }
 

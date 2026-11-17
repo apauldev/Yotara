@@ -10,6 +10,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type { Project, ProjectFormPayload } from '@yotara/shared';
 import { ProjectService } from '../../../core/services/project.service';
@@ -69,6 +70,7 @@ export class ProjectsPageComponent {
   private readonly statusService = inject(StatusService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly activeTab = signal<ProjectsTab>('active');
   protected readonly createModalOpen = signal(false);
@@ -77,6 +79,8 @@ export class ProjectsPageComponent {
   protected readonly rowMenuProjectId = signal<string | null>(null);
   /** Optimistic order applied to the visible list until the refreshed API list arrives. */
   private readonly pendingOrder = signal<string[] | null>(null);
+  private pendingOrderSequence = 0;
+  private pendingOrderFallback?: ReturnType<typeof setTimeout>;
 
   protected readonly deleteModalOpen = signal(false);
   protected readonly projectToDelete = signal<Project | null>(null);
@@ -115,6 +119,12 @@ export class ProjectsPageComponent {
         queryParamsHandling: 'merge',
         replaceUrl: true,
       });
+    });
+
+    this.destroyRef.onDestroy(() => {
+      if (this.pendingOrderFallback) {
+        clearTimeout(this.pendingOrderFallback);
+      }
     });
   }
 
@@ -427,12 +437,27 @@ export class ProjectsPageComponent {
   }
 
   private async persistOrder(ids: string[]) {
+    const sequence = ++this.pendingOrderSequence;
     this.pendingOrder.set(ids);
+    if (this.pendingOrderFallback) {
+      clearTimeout(this.pendingOrderFallback);
+    }
+
     try {
       await this.projectService.reorderProjects(ids);
+      // Normally the effect above releases the optimistic order as soon as the
+      // refreshed list matches. If an interleaving mutation changes the set,
+      // that exact match never fires — so guarantee release with a fallback.
+      this.pendingOrderFallback = setTimeout(() => {
+        if (this.pendingOrderSequence === sequence) {
+          this.pendingOrder.set(null);
+        }
+      }, 1500);
     } catch {
       // ProjectService surfaces the error; revert the optimistic order on failure.
-      this.pendingOrder.set(null);
+      if (this.pendingOrderSequence === sequence) {
+        this.pendingOrder.set(null);
+      }
     }
   }
 }

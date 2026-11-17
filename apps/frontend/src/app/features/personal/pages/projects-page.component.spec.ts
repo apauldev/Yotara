@@ -1,5 +1,5 @@
 import { signal, WritableSignal } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideMarkdown } from 'ngx-markdown';
 import type { Project } from '@yotara/shared';
@@ -163,4 +163,29 @@ describe('ProjectsPageComponent', () => {
     expect(service.reorderProjects).toHaveBeenCalledWith(['project-2', 'project-1']);
     expect(fixture.nativeElement.querySelector('.drag-handle')).toBeTruthy();
   });
+
+  it('releases the optimistic order when the refreshed list never matches', fakeAsync(() => {
+    const [first] = projects();
+    const second: Project = { ...first, id: 'project-2', name: 'Second', sortOrder: 1 };
+    projects.set([first, second]);
+
+    const fixture = TestBed.createComponent(ProjectsPageComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance['moveProject'](first, 1);
+    tick();
+    // The optimistic order is applied immediately after the drop.
+    expect(fixture.componentInstance['currentTabProjects']().map((p) => p.id)).toEqual([
+      'project-2',
+      'project-1',
+    ]);
+
+    // The stub never refreshes the list to match, so the effect cannot release
+    // the optimistic order — the timeout fallback must do it.
+    tick(1600);
+    expect(fixture.componentInstance['currentTabProjects']().map((p) => p.id)).toEqual([
+      'project-1',
+      'project-2',
+    ]);
+  }));
 });

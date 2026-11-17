@@ -227,6 +227,41 @@ describe('ProjectService', () => {
     expect(service.projects().map((project) => project.id)).toEqual(['project-2']);
   }));
 
+  it('keeps saving true until all overlapping mutations finish', fakeAsync(() => {
+    const service = TestBed.inject(ProjectService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    onboardingCompleted.set(true);
+    tick();
+    http.expectOne('http://localhost:3000/projects').flush([]);
+    tick();
+
+    void service.createProject({ name: 'First' });
+    void service.createProject({ name: 'Second' });
+    expect(service.saving()).toBeTrue();
+
+    const posts = http.match(
+      (req) => req.url === 'http://localhost:3000/projects' && req.method === 'POST',
+    );
+    expect(posts.length).toBe(2);
+    posts[0]?.flush({ id: 'p1', name: 'First', ownerId: 'user-1' });
+    tick();
+    expect(service.saving()).withContext('one mutation is still in flight').toBeTrue();
+
+    posts[1]?.flush({ id: 'p2', name: 'Second', ownerId: 'user-1' });
+    tick();
+    expect(service.saving()).toBeFalse();
+
+    const refreshes = http.match(
+      (req) => req.url === 'http://localhost:3000/projects' && req.method === 'GET',
+    );
+    refreshes.filter((request) => !request.cancelled).forEach((request) => request.flush([]));
+    tick();
+  }));
+
   it('exposes a version signal that increments on refresh', fakeAsync(() => {
     const service = TestBed.inject(ProjectService);
 
