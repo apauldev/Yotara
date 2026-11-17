@@ -115,11 +115,44 @@ describe('PersonalProjectModalComponent', () => {
     component['submit']();
     expect(saveSpy).toHaveBeenCalledWith({
       name: 'Health',
-      description: undefined,
+      description: null,
       color: 'sage',
       kind: 'ongoing',
       targetDate: null,
       pinned: false,
     });
+  });
+
+  it('emits null description so an existing description can be cleared on edit', () => {
+    component.mode = 'edit';
+    component.project = {
+      id: 'p1',
+      name: 'Existing',
+      description: 'Old text',
+      color: 'sage',
+      kind: 'project',
+      targetDate: null,
+      completedAt: null,
+      archivedAt: null,
+      sortOrder: 0,
+      pinned: false,
+      ownerId: 'user-1',
+      taskCount: 0,
+      completedTaskCount: 0,
+      openTaskCount: 0,
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:00:00Z',
+    };
+    component.open = true;
+    fixture.detectChanges();
+
+    const saveSpy = spyOn(component.save, 'emit');
+    component['draftName'].set('Existing');
+    component['draftDescription'].set('   ');
+    component['submit']();
+
+    expect(saveSpy).toHaveBeenCalledWith(
+      jasmine.objectContaining({ name: 'Existing', description: null }),
+    );
   });
 });

@@ -225,6 +225,11 @@ export interface CreateProjectDto {
   pinned?: boolean;
 }
 
+/** Payload emitted by the project form. `description: null` clears an existing description on edit. */
+export interface ProjectFormPayload extends Omit<CreateProjectDto, 'description'> {
+  description: string | null;
+}
+
 export interface UpdateProjectDto extends Omit<Partial<CreateProjectDto>, 'description' | 'color'> {
   /** `null` clears the description. */
   description?: string | null;

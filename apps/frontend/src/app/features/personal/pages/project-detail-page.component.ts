@@ -14,7 +14,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import type { CreateProjectDto, Project, ProjectSection, Task } from '@yotara/shared';
+import type { Project, ProjectFormPayload, ProjectSection, Task } from '@yotara/shared';
 import { constrainDragPreviewToViewport } from '../utils/drag-preview-constrain';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {
@@ -482,7 +482,7 @@ export class ProjectDetailPageComponent {
     await this.router.navigate(['/projects']);
   }
 
-  protected async saveProject(payload: CreateProjectDto) {
+  protected async saveProject(payload: ProjectFormPayload) {
     const currentProject = this.project();
     if (!currentProject) {
       return;

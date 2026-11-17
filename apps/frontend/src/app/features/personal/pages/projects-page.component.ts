@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import type { CreateProjectDto, Project } from '@yotara/shared';
+import type { Project, ProjectFormPayload } from '@yotara/shared';
 import { ProjectService } from '../../../core/services/project.service';
 import { StatusService } from '../../../core/services/status.service';
 import { PersonalProjectModalComponent } from '../components/personal-project-modal.component';
@@ -237,7 +237,7 @@ export class ProjectsPageComponent {
     this.modalMode.set('create');
   }
 
-  protected async createProject(payload: CreateProjectDto) {
+  protected async createProject(payload: ProjectFormPayload) {
     const selectedProject = this.selectedProject();
 
     if (this.modalMode() === 'edit' && selectedProject) {
@@ -246,7 +246,11 @@ export class ProjectsPageComponent {
       return;
     }
 
-    const created = await this.projectService.createProject(payload);
+    // The create DTO omits `description` for empty; the form emits `null`.
+    const created = await this.projectService.createProject({
+      ...payload,
+      description: payload.description ?? undefined,
+    });
     this.closeProjectModal();
     await this.router.navigate(['/projects', created.id]);
   }

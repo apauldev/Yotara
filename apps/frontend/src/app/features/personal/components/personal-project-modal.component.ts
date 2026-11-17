@@ -10,7 +10,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import type { CreateProjectDto, Project, ProjectColor, ProjectKind } from '@yotara/shared';
+import type { Project, ProjectColor, ProjectFormPayload, ProjectKind } from '@yotara/shared';
 import { PROJECT_PALETTE } from '../project-presentation';
 import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
 import { MarkdownEditorComponent } from '../../../shared/ui/markdown-editor/markdown-editor.component';
@@ -479,7 +479,7 @@ export class PersonalProjectModalComponent implements OnChanges {
   @Input() saving = false;
   @Input() error: string | null = null;
   @Output() readonly close = new EventEmitter<void>();
-  @Output() readonly save = new EventEmitter<CreateProjectDto>();
+  @Output() readonly save = new EventEmitter<ProjectFormPayload>();
 
   protected readonly palette = PROJECT_PALETTE;
   protected readonly draftName = signal('');
@@ -537,7 +537,7 @@ export class PersonalProjectModalComponent implements OnChanges {
     this.targetDateError.set(null);
     this.save.emit({
       name,
-      description: this.draftDescription().trim() || undefined,
+      description: this.draftDescription().trim() || null,
       color: this.draftColor(),
       kind: this.draftKind(),
       targetDate: this.draftKind() === 'project' ? this.draftTargetDate() || null : null,
