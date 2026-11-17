@@ -15,6 +15,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import type { CreateProjectDto, Project, ProjectSection, Task } from '@yotara/shared';
+import { constrainDragPreviewToViewport } from '../utils/drag-preview-constrain';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {
   faArrowDown,
@@ -118,6 +119,7 @@ export class ProjectDetailPageComponent {
   protected readonly project = signal<Project | null>(null);
   protected readonly projectTasks = signal<Task[]>([]);
   protected readonly sections = signal<ProjectSection[]>([]);
+  protected readonly constrainDragPreview = constrainDragPreviewToViewport;
   private readonly lastSeenTaskVersion = signal(this.taskService.version());
   private readonly loadedProjectId = signal<string | null>(null);
   private readonly todoSection = viewChild<ElementRef<HTMLElement>>('todoSection');

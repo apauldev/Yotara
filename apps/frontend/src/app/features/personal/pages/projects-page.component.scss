@@ -208,19 +208,25 @@
   }
 }
 
+// CDK owns `transform` on the preview root for positioning, so the tilt lives
+// on an inner card. Rotating the root would rotate CDK's translation vector
+// and shift the preview out of the clamped viewport position.
 .drag-preview {
+  cursor: grabbing;
+}
+
+.drag-preview-card {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  min-width: 16rem;
+  min-width: min(16rem, calc(100vw - 2rem));
   padding: 0.7rem 0.9rem;
   border: 1px solid var(--outline-variant);
   border-radius: 0.75rem;
   background: var(--surface-container-high);
   box-shadow: 0 12px 28px var(--surface-dim-strong);
   color: var(--on-surface);
-  transform: rotate(-1deg);
-  cursor: grabbing;
+  rotate: -1deg;
 
   fa-icon {
     color: var(--primary-solid);
@@ -296,16 +302,17 @@
   gap: 0.55rem;
 }
 
+// Keep in sync with the PINNED badge in project-detail-page.component.scss.
 .pinned-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  padding: 0.14rem 0.5rem;
+  padding: 0.15rem 0.6rem;
   border: 1px solid var(--primary-solid);
   border-radius: 999px;
   background: var(--primary-soft);
   color: var(--primary-solid);
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -629,5 +636,23 @@
 
   .action-icon-go {
     display: none;
+  }
+}
+
+@media (hover: none) {
+  .drag-handle {
+    width: 2.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .table-row,
+  .table-rows.cdk-drop-list-dragging .table-row:not(.cdk-drag-placeholder),
+  .table-row.cdk-drag-animating,
+  .table-row.cdk-drag-placeholder,
+  .drag-preview,
+  .drag-preview-card {
+    transition: none;
+    rotate: none;
   }
 }

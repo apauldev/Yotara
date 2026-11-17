@@ -182,6 +182,7 @@
     padding: 0.15rem 0.6rem;
   }
 
+  // Keep in sync with the PINNED badge in projects-page.component.scss.
   .pinned-badge {
     display: inline-flex;
     align-items: center;
@@ -571,7 +572,12 @@ h1 {
   }
 }
 
+// Tilt the inner card, not the root — CDK owns the root's transform.
 .section-drag-preview {
+  cursor: grabbing;
+}
+
+.section-drag-preview-card {
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -582,8 +588,7 @@ h1 {
   box-shadow: 0 12px 28px var(--surface-dim-strong);
   color: var(--on-surface);
   font-weight: 600;
-  transform: rotate(-1deg);
-  cursor: grabbing;
+  rotate: -1deg;
 
   fa-icon {
     color: var(--primary-solid);
@@ -812,5 +817,28 @@ h1 {
 
   &:hover {
     background: var(--primary-soft);
+  }
+}
+
+@media (hover: none) {
+  .project-section .drag-handle {
+    width: 2.75rem;
+    min-height: 2.75rem;
+  }
+}
+
+// CDK's sort animations are inline-transform driven; opt out of them for
+// users who request reduced motion. Placed last so it wins the cascade over
+// the drag rules above (the file's earlier reduced-motion block only covers
+// loading skeletons).
+@media (prefers-reduced-motion: reduce) {
+  .project-section,
+  .task-section.cdk-drop-list-dragging .project-section:not(.cdk-drag-placeholder),
+  .project-section.cdk-drag-animating,
+  .project-section.cdk-drag-placeholder,
+  .section-drag-preview,
+  .section-drag-preview-card {
+    transition: none;
+    rotate: none;
   }
 }

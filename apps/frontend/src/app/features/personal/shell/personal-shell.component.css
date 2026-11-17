@@ -365,6 +365,16 @@
   color: var(--primary-solid);
 }
 
+/* Touch devices have no hover, so the button would otherwise stay permanently
+   faded and undersized. Give it a full-size, full-contrast target there. */
+@media (hover: none) {
+  .pinned-unpin-button {
+    width: 2.75rem;
+    height: 2.75rem;
+    opacity: 1;
+  }
+}
+
 .pinned-item-active {
   color: var(--primary-solid);
 }

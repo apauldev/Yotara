@@ -19,6 +19,7 @@ import { ProjectDeleteDialogComponent } from '../components/project-delete-dialo
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { projectPaletteFor, projectProgressPercent } from '../project-presentation';
+import { constrainDragPreviewToViewport } from '../utils/drag-preview-constrain';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {
   faArrowDown,
@@ -177,6 +178,8 @@ export class ProjectsPageComponent {
       { pinned: false, projects: projects.filter((project) => !project.pinned) },
     ].filter((group) => group.projects.length > 0);
   });
+
+  protected readonly constrainDragPreview = constrainDragPreviewToViewport;
 
   protected readonly focusHeadline = computed(() => {
     const projects = this.activeProjects();

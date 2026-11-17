@@ -116,6 +116,7 @@
               role="row"
               cdkDrag
               [cdkDragData]="project"
+              [cdkDragConstrainPosition]="constrainDragPreview"
               (click)="openProject(project.id)"
               tabindex="0"
               (keydown.enter)="openProject(project.id)"
@@ -320,8 +321,10 @@
               </div>
 
               <div class="drag-preview" *cdkDragPreview>
-                <fa-icon [icon]="faGripVertical" aria-hidden="true"></fa-icon>
-                <span class="drag-preview-name">{{ project.name }}</span>
+                <div class="drag-preview-card">
+                  <fa-icon [icon]="faGripVertical" aria-hidden="true"></fa-icon>
+                  <span class="drag-preview-name">{{ project.name }}</span>
+                </div>
               </div>
             </div>
           }

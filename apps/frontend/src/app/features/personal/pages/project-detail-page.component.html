@@ -319,7 +319,12 @@
             }
 
             @for (section of sections(); track section.id) {
-              <div class="project-section" cdkDrag [cdkDragData]="section">
+              <div
+                class="project-section"
+                cdkDrag
+                [cdkDragData]="section"
+                [cdkDragConstrainPosition]="constrainDragPreview"
+              >
                 <div class="project-section-header">
                   <span
                     class="drag-handle"
@@ -459,8 +464,10 @@
                 }
 
                 <div class="section-drag-preview" *cdkDragPreview>
-                  <fa-icon [icon]="faGripVertical" aria-hidden="true"></fa-icon>
-                  <span>{{ section.name }}</span>
+                  <div class="section-drag-preview-card">
+                    <fa-icon [icon]="faGripVertical" aria-hidden="true"></fa-icon>
+                    <span>{{ section.name }}</span>
+                  </div>
                 </div>
               </div>
             }
