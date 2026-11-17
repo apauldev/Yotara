@@ -114,6 +114,10 @@
   flex-direction: column;
 }
 
+.table-rows + .table-rows {
+  border-top: 1px solid var(--outline-variant);
+}
+
 .table-row {
   display: grid;
   grid-template-columns: 2fr 12rem 10rem 6rem;
@@ -155,12 +159,14 @@
 .drag-handle {
   display: inline-grid;
   place-items: center;
+  align-self: stretch;
   flex: 0 0 auto;
-  width: 1.25rem;
-  height: 2rem;
+  width: 1.75rem;
+  margin-inline: -0.25rem;
   color: var(--on-surface-subtle);
   cursor: grab;
   border-radius: 0.4rem;
+  touch-action: none;
 
   &:hover,
   &:focus-visible {
@@ -173,9 +179,59 @@
   }
 }
 
-.table-row.drop-target {
-  background: color-mix(in srgb, var(--primary-solid) 10%, var(--surface-container-high));
-  box-shadow: inset 0 0 0 2px var(--primary-solid);
+// CDK drag-drop: siblings slide aside while the placeholder holds the gap.
+.table-row.cdk-drag {
+  position: relative;
+}
+
+.table-rows.cdk-drop-list-dragging .table-row:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.table-row.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+// CDK clones the row for the placeholder, so it is always exactly row-sized
+// (a custom template would be a few pixels off and make sorting jitter).
+.table-row.cdk-drag-placeholder {
+  // CDK positions the placeholder instantly via inline transform. Without an
+  // explicit override the base `transition: all` animates it a row behind.
+  transition: none;
+  outline: 2px dashed var(--primary-solid);
+  outline-offset: -2px;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--primary-solid) 6%, transparent);
+
+  > * {
+    visibility: hidden;
+  }
+}
+
+.drag-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 16rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.75rem;
+  background: var(--surface-container-high);
+  box-shadow: 0 12px 28px var(--surface-dim-strong);
+  color: var(--on-surface);
+  transform: rotate(-1deg);
+  cursor: grabbing;
+
+  fa-icon {
+    color: var(--primary-solid);
+  }
+}
+
+.drag-preview-name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .project-color-dot {
@@ -240,10 +296,19 @@
   gap: 0.55rem;
 }
 
-.pinned-icon {
+.pinned-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.14rem 0.5rem;
+  border: 1px solid var(--primary-solid);
+  border-radius: 999px;
+  background: var(--primary-soft);
   color: var(--primary-solid);
-  font-size: 0.78rem;
-  opacity: 0.85;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .target-date-pill {

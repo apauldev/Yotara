@@ -1,8 +1,33 @@
 import { test, expect, dismissTip } from '../../fixtures/auth';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 const projectName = (label: string) => `${label}-${Date.now()}`;
 const taskName = (label: string) => `${label}-${Date.now()}`;
+
+/** Drag via the CDK drag handle with realistic pointer steps so sorting updates. */
+async function dragByHandle(page: Page, handle: Locator, target: Locator): Promise<void> {
+  // Synthetic mouse coordinates are viewport-relative, so both rows must be on screen.
+  await target.scrollIntoViewIfNeeded();
+  await handle.scrollIntoViewIfNeeded();
+
+  const from = await handle.boundingBox();
+  const to = await target.boundingBox();
+  if (!from || !to) {
+    throw new Error('Drag handle and target must both be visible');
+  }
+
+  const startX = from.x + from.width / 2;
+  const startY = from.y + from.height / 2;
+  const endX = to.x + to.width / 2;
+  const endY = to.y + to.height / 2;
+
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  // Cross CDK's drag threshold first, then glide to the target.
+  await page.mouse.move(startX + 10, startY + 10, { steps: 4 });
+  await page.mouse.move(endX, endY, { steps: 12 });
+  await page.mouse.up();
+}
 
 test.describe.configure({ mode: 'serial' });
 
@@ -160,6 +185,16 @@ test.describe('Projects Overhaul E2E Journeys', () => {
     await page.getByRole('menuitem', { name: 'Move down' }).click();
     await expect(allSections.first()).toHaveText('Planning');
     await expect(allSections.nth(1)).toHaveText('Execution');
+
+    // Drag-to-reorder via the 6-dot handle (CDK drag-drop)
+    const executionHandle = page
+      .locator('.project-section')
+      .filter({ hasText: 'Execution' })
+      .locator('.drag-handle');
+    const planningSection = page.locator('.project-section').filter({ hasText: 'Planning' });
+    await dragByHandle(page, executionHandle, planningSection);
+    await expect(allSections.first()).toHaveText('Execution');
+    await expect(allSections.nth(1)).toHaveText('Planning');
 
     // Section collapse & expand
     const planningSec = page.locator('.project-section').filter({ hasText: 'Planning' });
@@ -502,5 +537,41 @@ test.describe('Projects Overhaul E2E Journeys', () => {
     await expect(page.locator('article.task-card').filter({ hasText: pTask })).toBeVisible({
       timeout: 10_000,
     });
+  });
+
+  test('9. Reorders projects by dragging the handle, and the order persists', async ({ page }) => {
+    await page.goto('/projects');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    const first = projectName('Drag First');
+    const second = projectName('Drag Second');
+    for (const name of [first, second]) {
+      await page.getByRole('button', { name: '+ New Project' }).click();
+      await page.locator('.modal-card').getByPlaceholder('e.g. Launch website').fill(name);
+      await page.getByRole('button', { name: 'Create Project' }).click();
+      await page.waitForURL(/\/projects\/[a-zA-Z0-9-]+/, { timeout: 10_000 });
+      await page.goto('/projects');
+      await page.waitForLoadState('networkidle');
+      await dismissTip(page);
+    }
+
+    const firstRow = page.locator('.table-row').filter({ hasText: first });
+    const secondRow = page.locator('.table-row').filter({ hasText: second });
+    await expect(firstRow).toBeVisible();
+    await expect(secondRow).toBeVisible();
+
+    // Drag the second project's handle above the first.
+    await dragByHandle(page, secondRow.locator('.drag-handle'), firstRow);
+
+    const secondComesFirst = async () => {
+      const names = await page.locator('.table-row h3').allTextContents();
+      return names.indexOf(second) !== -1 && names.indexOf(second) < names.indexOf(first);
+    };
+    await expect.poll(secondComesFirst).toBe(true);
+
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await expect.poll(secondComesFirst).toBe(true);
   });
 });

@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import {
   Component,
   ElementRef,
@@ -56,6 +57,7 @@ type ProjectLoadState = 'loading' | 'ready' | 'not-found' | 'error';
   standalone: true,
   imports: [
     CommonModule,
+    DragDropModule,
     RouterLink,
     FontAwesomeModule,
     MarkdownComponent,
@@ -110,8 +112,6 @@ export class ProjectDetailPageComponent {
   protected readonly creatingSection = signal(false);
   protected readonly newSectionName = signal('');
   protected readonly sectionToDelete = signal<ProjectSection | null>(null);
-  protected readonly draggedSectionId = signal<string | null>(null);
-  protected readonly dropSectionId = signal<string | null>(null);
 
   protected readonly projectState = signal<ProjectLoadState>('loading');
   protected readonly loadError = signal<string | null>(null);
@@ -335,59 +335,17 @@ export class ProjectDetailPageComponent {
     await this.persistSectionOrder(sections, reordered);
   }
 
-  protected onSectionDragStart(event: DragEvent, section: ProjectSection) {
-    this.draggedSectionId.set(section.id);
-    if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = 'move';
-      event.dataTransfer.setData('text/plain', section.id);
-    }
-  }
-
-  protected onSectionDragOver(event: DragEvent, section: ProjectSection) {
-    const draggedId = this.draggedSectionId();
-    if (!draggedId || draggedId === section.id) {
-      return;
-    }
-    event.preventDefault();
-    if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = 'move';
-    }
-    this.dropSectionId.set(section.id);
-  }
-
-  protected onSectionDragLeave(section: ProjectSection) {
-    if (this.dropSectionId() === section.id) {
-      this.dropSectionId.set(null);
-    }
-  }
-
-  protected onSectionDrop(event: DragEvent, section: ProjectSection) {
-    event.preventDefault();
-    const draggedId = this.draggedSectionId() ?? event.dataTransfer?.getData('text/plain') ?? null;
-    const targetId = section.id;
-    this.draggedSectionId.set(null);
-    this.dropSectionId.set(null);
-
-    if (!draggedId || draggedId === targetId) {
-      return;
-    }
-
+  protected onSectionDrop(event: CdkDragDrop<ProjectSection[]>) {
     const sections = this.sections();
-    const from = sections.findIndex((item) => item.id === draggedId);
-    const to = sections.findIndex((item) => item.id === targetId);
-    if (from < 0 || to < 0) {
+    const dragged = sections[event.previousIndex];
+    const target = sections[event.currentIndex];
+    if (!dragged || !target || dragged.id === target.id) {
       return;
     }
 
     const reordered = [...sections];
-    const [moved] = reordered.splice(from, 1);
-    reordered.splice(to, 0, moved);
+    moveItemInArray(reordered, event.previousIndex, event.currentIndex);
     void this.persistSectionOrder(sections, reordered);
-  }
-
-  protected onSectionDragEnd() {
-    this.draggedSectionId.set(null);
-    this.dropSectionId.set(null);
   }
 
   protected openAddTaskInSection(section: ProjectSection, event?: MouseEvent) {
@@ -426,6 +384,7 @@ export class ProjectDetailPageComponent {
     if (!projectId) {
       return;
     }
+    this.sections.set(reordered);
     try {
       const result = await this.projectService.reorderSections(
         projectId,

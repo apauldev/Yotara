@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import {
   Component,
   HostListener,
@@ -40,6 +41,7 @@ export type ProjectsTab = 'active' | 'completed' | 'archived';
   standalone: true,
   imports: [
     CommonModule,
+    DragDropModule,
     PersonalProjectModalComponent,
     ProjectDeleteDialogComponent,
     PageHeaderComponent,
@@ -72,8 +74,8 @@ export class ProjectsPageComponent {
   protected readonly modalMode = signal<'create' | 'edit'>('create');
   protected readonly selectedProject = signal<Project | null>(null);
   protected readonly rowMenuProjectId = signal<string | null>(null);
-  protected readonly draggedProjectId = signal<string | null>(null);
-  protected readonly dropTargetId = signal<string | null>(null);
+  /** Optimistic order applied to the visible list until the refreshed API list arrives. */
+  private readonly pendingOrder = signal<string[] | null>(null);
 
   protected readonly deleteModalOpen = signal(false);
   protected readonly projectToDelete = signal<Project | null>(null);
@@ -85,6 +87,19 @@ export class ProjectsPageComponent {
     effect(() => {
       this.projectService.version();
       void this.loadArchivedProjects();
+    });
+
+    // Release the optimistic order once the refreshed API list reflects it.
+    effect(() => {
+      const pending = this.pendingOrder();
+      if (!pending) {
+        return;
+      }
+      const ids = [...this.projects(), ...this.archivedProjects()].map((project) => project.id);
+      const expected = pending.filter((id) => ids.includes(id));
+      if (ids.length === expected.length && ids.every((id, index) => id === expected[index])) {
+        this.pendingOrder.set(null);
+      }
     });
 
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
@@ -125,15 +140,42 @@ export class ProjectsPageComponent {
   }));
 
   protected readonly currentTabProjects = computed(() => {
+    let list: Project[];
     switch (this.activeTab()) {
       case 'completed':
-        return this.completedProjects();
+        list = this.completedProjects();
+        break;
       case 'archived':
-        return this.archivedProjects();
+        list = this.archivedProjects();
+        break;
       case 'active':
       default:
-        return this.activeProjects();
+        list = this.activeProjects();
     }
+
+    const pending = this.pendingOrder();
+    if (!pending) {
+      return list;
+    }
+    const positions = new Map(pending.map((id, index) => [id, index]));
+    return [...list].sort(
+      (left, right) =>
+        (positions.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
+        (positions.get(right.id) ?? Number.MAX_SAFE_INTEGER),
+    );
+  });
+
+  /**
+   * Pinned and unpinned projects are independent drop lists. Keeping them in
+   * separate CDK lists confines each drag to its own group, so CDK never has
+   * to reject a cross-group swap mid-drag (which left the outline stuck).
+   */
+  protected readonly projectDropGroups = computed(() => {
+    const projects = this.currentTabProjects();
+    return [
+      { pinned: true, projects: projects.filter((project) => project.pinned) },
+      { pinned: false, projects: projects.filter((project) => !project.pinned) },
+    ].filter((group) => group.projects.length > 0);
   });
 
   protected readonly focusHeadline = computed(() => {
@@ -252,65 +294,17 @@ export class ProjectsPageComponent {
     void this.persistOrder(this.mergeTabOrder(list, reordered));
   }
 
-  protected onDragStart(event: DragEvent, project: Project) {
-    this.draggedProjectId.set(project.id);
-    if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = 'move';
-      event.dataTransfer.setData('text/plain', project.id);
-    }
-  }
-
-  protected onDragOver(event: DragEvent, project: Project) {
-    const draggedId = this.draggedProjectId();
-    if (!draggedId || draggedId === project.id) {
-      return;
-    }
-
-    const dragged = this.currentTabProjects().find((item) => item.id === draggedId);
-    if (!dragged || dragged.pinned !== project.pinned) {
-      return;
-    }
-
-    event.preventDefault();
-    if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = 'move';
-    }
-    this.dropTargetId.set(project.id);
-  }
-
-  protected onDragLeave(project: Project) {
-    if (this.dropTargetId() === project.id) {
-      this.dropTargetId.set(null);
-    }
-  }
-
-  protected onDrop(event: DragEvent, project: Project) {
-    event.preventDefault();
-    const draggedId = this.draggedProjectId() ?? event.dataTransfer?.getData('text/plain') ?? null;
-    const targetId = project.id;
-    this.draggedProjectId.set(null);
-    this.dropTargetId.set(null);
-
-    if (!draggedId || draggedId === targetId) {
-      return;
-    }
-
-    const list = this.currentTabProjects();
-    const from = list.findIndex((item) => item.id === draggedId);
-    const to = list.findIndex((item) => item.id === targetId);
-    if (from < 0 || to < 0 || list[from].pinned !== list[to].pinned) {
+  protected onProjectDrop(event: CdkDragDrop<Project[]>, pinned: boolean) {
+    const list = this.currentTabProjects().filter((project) => project.pinned === pinned);
+    const dragged = list[event.previousIndex];
+    const target = list[event.currentIndex];
+    if (!dragged || !target || dragged.id === target.id || dragged.pinned !== target.pinned) {
       return;
     }
 
     const reordered = [...list];
-    const [moved] = reordered.splice(from, 1);
-    reordered.splice(to, 0, moved);
+    moveItemInArray(reordered, event.previousIndex, event.currentIndex);
     void this.persistOrder(this.mergeTabOrder(list, reordered));
-  }
-
-  protected onDragEnd() {
-    this.draggedProjectId.set(null);
-    this.dropTargetId.set(null);
   }
 
   protected viewOpenTasks(project: Project, event: MouseEvent) {
@@ -426,10 +420,12 @@ export class ProjectsPageComponent {
   }
 
   private async persistOrder(ids: string[]) {
+    this.pendingOrder.set(ids);
     try {
       await this.projectService.reorderProjects(ids);
     } catch {
-      // ProjectService surfaces the error; keep the existing order on failure.
+      // ProjectService surfaces the error; revert the optimistic order on failure.
+      this.pendingOrder.set(null);
     }
   }
 }

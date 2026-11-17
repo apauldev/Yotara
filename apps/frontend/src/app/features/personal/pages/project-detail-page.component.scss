@@ -181,6 +181,21 @@
     font-weight: 700;
     padding: 0.15rem 0.6rem;
   }
+
+  .pinned-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.15rem 0.6rem;
+    border: 1px solid var(--primary-solid);
+    border-radius: 999px;
+    background: var(--primary-soft);
+    color: var(--primary-solid);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
 }
 
 // Project color variables
@@ -530,8 +545,49 @@ h1 {
   transition: box-shadow 150ms ease;
 }
 
-.project-section.drop-target {
-  box-shadow: inset 0 0 0 2px var(--primary-solid);
+.project-section.cdk-drag {
+  position: relative;
+}
+
+.task-section.cdk-drop-list-dragging .project-section:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.project-section.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+// CDK clones the section for the placeholder, so it always matches the
+// section's real height (sections can be very tall when expanded).
+.project-section.cdk-drag-placeholder {
+  transition: none;
+  outline: 2px dashed var(--primary-solid);
+  outline-offset: -2px;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--primary-solid) 6%, transparent);
+
+  > * {
+    visibility: hidden;
+  }
+}
+
+.section-drag-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.85rem;
+  background: var(--surface-container-high);
+  box-shadow: 0 12px 28px var(--surface-dim-strong);
+  color: var(--on-surface);
+  font-weight: 600;
+  transform: rotate(-1deg);
+  cursor: grabbing;
+
+  fa-icon {
+    color: var(--primary-solid);
+  }
 }
 
 .project-section-header {
@@ -544,12 +600,14 @@ h1 {
 .project-section .drag-handle {
   display: inline-grid;
   place-items: center;
+  align-self: stretch;
   flex: 0 0 auto;
-  width: 1.25rem;
-  height: 1.75rem;
+  width: 1.75rem;
+  margin-inline: -0.25rem;
   color: var(--on-surface-subtle);
   cursor: grab;
   border-radius: 0.35rem;
+  touch-action: none;
 
   &:hover,
   &:focus-visible {

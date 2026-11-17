@@ -154,6 +154,13 @@
             }
           }
 
+          @if (currentProject.pinned) {
+            <span class="pinned-badge" title="Pinned to sidebar">
+              <fa-icon [icon]="faThumbtack" aria-hidden="true"></fa-icon>
+              Pinned
+            </span>
+          }
+
           @if (currentProject.completedAt) {
             <span class="completed-pill">Completed</span>
           }
@@ -281,7 +288,13 @@
             </app-empty-state>
           }
         } @else {
-          <section class="task-section" #todoSection>
+          <section
+            class="task-section"
+            #todoSection
+            cdkDropList
+            [cdkDropListData]="sections()"
+            (cdkDropListDropped)="onSectionDrop($event)"
+          >
             @if (unsectionedTasks().length > 0 || sections().length === 0) {
               <app-section-header title="To Do" [count]="activeProjectTasks().length" size="lg" />
 
@@ -306,19 +319,11 @@
             }
 
             @for (section of sections(); track section.id) {
-              <div
-                class="project-section"
-                [class.drop-target]="dropSectionId() === section.id"
-                (dragover)="onSectionDragOver($event, section)"
-                (dragleave)="onSectionDragLeave(section)"
-                (drop)="onSectionDrop($event, section)"
-              >
+              <div class="project-section" cdkDrag [cdkDragData]="section">
                 <div class="project-section-header">
                   <span
                     class="drag-handle"
-                    draggable="true"
-                    (dragstart)="onSectionDragStart($event, section)"
-                    (dragend)="onSectionDragEnd()"
+                    cdkDragHandle
                     [attr.aria-label]="'Drag to reorder ' + section.name"
                     title="Drag to reorder"
                   >
@@ -452,6 +457,11 @@
                     </button>
                   </div>
                 }
+
+                <div class="section-drag-preview" *cdkDragPreview>
+                  <fa-icon [icon]="faGripVertical" aria-hidden="true"></fa-icon>
+                  <span>{{ section.name }}</span>
+                </div>
               </div>
             }
 
