@@ -227,6 +227,43 @@ export class ProjectsPageComponent {
     this.rowMenuProjectId.set(null);
   }
 
+  protected onTabKeydown(event: KeyboardEvent) {
+    const tabOrder: ProjectsTab[] = ['active', 'completed', 'archived'];
+    const focusedTab = (event.target as HTMLElement).closest<HTMLButtonElement>('[role="tab"]');
+    if (!focusedTab) {
+      return;
+    }
+    const currentIndex = tabOrder.findIndex((tab) => focusedTab.id === `projects-tab-${tab}`);
+    if (currentIndex < 0) {
+      return;
+    }
+
+    let nextIndex: number;
+    switch (event.key) {
+      case 'ArrowRight':
+        nextIndex = (currentIndex + 1) % tabOrder.length;
+        break;
+      case 'ArrowLeft':
+        nextIndex = (currentIndex + tabOrder.length - 1) % tabOrder.length;
+        break;
+      case 'Home':
+        nextIndex = 0;
+        break;
+      case 'End':
+        nextIndex = tabOrder.length - 1;
+        break;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    const nextTab = tabOrder[nextIndex];
+    this.setTab(nextTab);
+    (event.currentTarget as HTMLElement)
+      .querySelector<HTMLButtonElement>(`#projects-tab-${nextTab}`)
+      ?.focus();
+  }
+
   protected openCreateModal() {
     this.selectedProject.set(null);
     this.modalMode.set('create');

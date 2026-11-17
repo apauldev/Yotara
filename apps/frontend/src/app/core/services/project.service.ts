@@ -33,8 +33,7 @@ export class ProjectService {
   private baseUrl = environment.apiBaseUrl;
   private refreshState = signal(0);
   private loadingState = signal(false);
-  // A boolean flips back to false when the first overlapping mutation finishes,
-  // hiding the saving state while another request is still in flight.
+  // Keep the saving indicator active until every overlapping mutation finishes.
   private savingCount = signal(0);
   private errorState = signal<string | null>(null);
 

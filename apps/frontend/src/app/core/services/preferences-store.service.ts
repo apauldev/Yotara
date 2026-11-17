@@ -57,7 +57,20 @@ export class PreferencesStore {
   private static readCollapsedSections(): Record<string, boolean> {
     try {
       const raw = localStorage.getItem(PreferencesStore.COLLAPSED_SECTIONS_KEY);
-      return raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
+      if (!raw) {
+        return {};
+      }
+
+      const parsed: unknown = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return {};
+      }
+
+      return Object.fromEntries(
+        Object.entries(parsed).filter(
+          (entry): entry is [string, boolean] => typeof entry[1] === 'boolean',
+        ),
+      );
     } catch {
       return {};
     }

@@ -10,10 +10,13 @@ import {
   finalize,
   firstValueFrom,
   forkJoin,
+  interval,
   map,
   of,
+  startWith,
   switchMap,
   tap,
+  type Observable,
 } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthStateService } from './auth-state.service';
@@ -213,13 +216,25 @@ export class TaskService {
     );
   }
 
-  fetchTodayCompletedTasks$() {
+  fetchTodayCompletedTasks$(
+    today = DateTime.now().setZone(getUserTimezone()).toFormat('yyyy-MM-dd'),
+  ): Observable<Task[]> {
     const tz = getUserTimezone();
-    const today = DateTime.now().setZone(tz).toFormat('yyyy-MM-dd');
-    return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?completedSince=${today}&tz=${tz}&pageSize=100`,
-      { withCredentials: true },
-    );
+    const fetchPage = (page: number): Observable<Task[]> =>
+      this.http
+        .get<
+          PaginatedResponse<Task[]>
+        >(`${this.baseUrl}/tasks?completedSince=${today}&tz=${tz}&page=${page}&pageSize=${TASKS_PAGE_SIZE}`, { withCredentials: true })
+        .pipe(
+          switchMap((response) => {
+            const tasks = response.data.filter((task) => !task.parentId);
+            return response.meta.hasNextPage
+              ? fetchPage(page + 1).pipe(map((remaining) => [...tasks, ...remaining]))
+              : of(tasks);
+          }),
+        );
+
+    return fetchPage(1);
   }
 
   /** Fetch all active tasks including subtasks (for subtask maps, labels, search). */
@@ -652,19 +667,25 @@ export class TaskService {
   /** True when the Upcoming list holds more tasks than one API page. */
   readonly upcomingTruncated = this.upcomingTruncatedState.asReadonly();
 
+  private readonly todayDateKey$ = interval(60_000).pipe(
+    startWith(0),
+    map(() => DateTime.now().setZone(getUserTimezone()).toFormat('yyyy-MM-dd')),
+    distinctUntilChanged(),
+  );
+
   readonly todayCompletedTasks = toSignal(
     combineLatest([
       toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
       toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
       toObservable(this.refreshState),
+      this.todayDateKey$,
     ]).pipe(
-      switchMap(([initialized, currentUserId]) => {
+      switchMap(([initialized, currentUserId, , today]) => {
         if (!initialized || !currentUserId) {
           return of([] as Task[]);
         }
         this.errorState.set(null);
-        return this.fetchTodayCompletedTasks$().pipe(
-          map((response) => response.data.filter((task) => !task.parentId)),
+        return this.fetchTodayCompletedTasks$(today).pipe(
           catchError(this.handleLoadError('completed tasks')),
         );
       }),

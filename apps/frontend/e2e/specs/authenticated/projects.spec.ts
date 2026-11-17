@@ -50,6 +50,21 @@ test.describe('Projects Overhaul E2E Journeys', () => {
     await expect(completedTab).toBeVisible();
     await expect(archivedTab).toBeVisible();
     await expect(activeTab).toHaveAttribute('aria-selected', 'true');
+    await expect(activeTab).toHaveAttribute('aria-controls', 'projects-tabpanel');
+    await expect(page.getByRole('tabpanel')).toHaveAttribute(
+      'aria-labelledby',
+      'projects-tab-active',
+    );
+
+    await activeTab.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(completedTab).toHaveAttribute('aria-selected', 'true');
+    await expect(completedTab).toBeFocused();
+    await page.keyboard.press('End');
+    await expect(archivedTab).toHaveAttribute('aria-selected', 'true');
+    await expect(archivedTab).toBeFocused();
+    await page.keyboard.press('ArrowLeft');
+    await expect(completedTab).toHaveAttribute('aria-selected', 'true');
 
     // Switch to Completed tab
     await completedTab.click();
@@ -132,6 +147,38 @@ test.describe('Projects Overhaul E2E Journeys', () => {
     );
     await expect(pinnedGroup.getByText('New project', { exact: true })).toHaveCount(0);
     await expect(pinnedGroup.getByText('All projects', { exact: true })).toHaveCount(0);
+  });
+
+  test('edits a project and clears its description', async ({ page }) => {
+    await page.goto('/projects');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    const name = projectName('Editable Project');
+    await page.getByRole('button', { name: '+ New Project' }).click();
+    const createModal = page.locator('.modal-card');
+    await createModal.getByPlaceholder('e.g. Launch website').fill(name);
+    await createModal.locator('textarea.markdown-textarea').fill('Description to clear');
+    await createModal.getByRole('button', { name: 'Create Project' }).click();
+    await page.waitForURL(/\/projects\/[a-zA-Z0-9-]+/, { timeout: 10_000 });
+
+    await page.goto('/projects');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+    const row = page.locator('.table-row').filter({ hasText: name });
+    await expect(row).toBeVisible();
+    await row.getByRole('button', { name: `Edit project ${name}` }).click();
+
+    const editModal = page.locator('.modal-card');
+    await expect(editModal.getByRole('heading', { name: 'Edit Project' })).toBeVisible();
+    const description = editModal.locator('textarea.markdown-textarea');
+    await expect(description).toHaveValue('Description to clear');
+    await description.fill('');
+    await editModal.getByRole('button', { name: 'Save Changes' }).click();
+    await expect(editModal).not.toBeVisible();
+
+    await expect(row).toContainText('A calm place for the work that belongs together.');
+    await expect(row).not.toContainText('Description to clear');
   });
 
   test('3. Manages sections: add, inline rename, reorder, and collapse', async ({ page }) => {
@@ -351,6 +398,17 @@ test.describe('Projects Overhaul E2E Journeys', () => {
     // Meta line displays "Completed" pill
     await expect(page.locator('.completed-pill')).toBeVisible();
 
+    // The completion toast's Undo action restores the project immediately.
+    const completionToast = page.locator('.toast').filter({ hasText: 'Project completed' });
+    await expect(completionToast).toBeVisible();
+    await completionToast.getByRole('button', { name: 'Undo' }).click();
+    await expect(page.locator('.completed-pill')).not.toBeVisible();
+
+    // Complete it again to keep covering the directory's Completed tab and reopen flow below.
+    await page.getByRole('button', { name: `Project actions for ${name}` }).click();
+    await page.locator('.header-menu').getByRole('menuitem', { name: 'Complete project' }).click();
+    await expect(page.locator('.completed-pill')).toBeVisible();
+
     // Navigate to directory
     await page.goto('/projects');
     await page.waitForLoadState('networkidle');
@@ -548,6 +606,55 @@ test.describe('Projects Overhaul E2E Journeys', () => {
     await expect(page.locator('article.task-card').filter({ hasText: pTask })).toBeVisible({
       timeout: 10_000,
     });
+  });
+
+  test('deletes a project and its tasks when that option is selected', async ({ page }) => {
+    await page.goto('/projects');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    const name = projectName('Delete Tasks Project');
+    await page.getByRole('button', { name: '+ New Project' }).click();
+    await page.locator('.modal-card').getByPlaceholder('e.g. Launch website').fill(name);
+    await page.getByRole('button', { name: 'Create Project' }).click();
+    await page.waitForURL(/\/projects\/[a-zA-Z0-9-]+/, { timeout: 10_000 });
+
+    const taskNameToDelete = taskName('Deleted With Project');
+    await page.getByRole('button', { name: '+ Add Task', exact: true }).click();
+    const taskModal = page.locator('.modal-card').filter({ hasText: 'Capture a new task' });
+    const taskResponsePromise = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname === '/tasks' && response.request().method() === 'POST';
+    });
+    await taskModal.locator('#task-title-input').fill(taskNameToDelete);
+    await taskModal.getByRole('button', { name: 'Create Task' }).click();
+    const taskResponse = await taskResponsePromise;
+    const createdTask = (await taskResponse.json()) as { id: string };
+    await expect(taskModal).not.toBeVisible();
+    await expect(
+      page.locator('article.task-card').filter({ hasText: taskNameToDelete }),
+    ).toBeVisible();
+
+    await page.goto('/projects');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+    const row = page.locator('.table-row').filter({ hasText: name });
+    await row.getByRole('button', { name: `More actions for ${name}` }).click();
+    await page.getByRole('menuitem', { name: 'Delete project…' }).click();
+
+    const deleteModal = page.locator('.modal-card').filter({ hasText: `Delete “${name}”?` });
+    await deleteModal.getByRole('radio', { name: /Delete project and tasks/i }).click();
+    await expect(
+      deleteModal.getByRole('radio', { name: /Delete project and tasks/i }),
+    ).toHaveAttribute('aria-checked', 'true');
+    await deleteModal.getByRole('button', { name: 'Delete Project & Tasks' }).click();
+    await expect(deleteModal).not.toBeVisible();
+    await expect(row).not.toBeVisible();
+
+    const taskLookup = await page.request.get(
+      new URL(`/tasks/${createdTask.id}`, taskResponse.url()).toString(),
+    );
+    expect(taskLookup.status()).toBe(404);
   });
 
   test('9. Reorders projects by dragging the handle, and the order persists', async ({ page }) => {
