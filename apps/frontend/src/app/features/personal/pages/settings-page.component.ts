@@ -540,7 +540,7 @@ import type { CalendarSource } from '@yotara/shared';
           <div class="settings-item">
             <div class="settings-item-copy">
               <strong>Status</strong>
-              <span>Alpha Release</span>
+              <span>Public Beta</span>
             </div>
           </div>
         </div>
