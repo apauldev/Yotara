@@ -426,9 +426,19 @@ export async function deleteProjectForOwner(
         .run();
     }
 
-    tx.delete(projects)
-      .where(and(eq(projects.id, projectId), eq(projects.ownerId, ownerId)))
-      .run();
+    if (keepTasks) {
+      tx.delete(projects)
+        .where(and(eq(projects.id, projectId), eq(projects.ownerId, ownerId)))
+        .run();
+    } else {
+      // Keep the project row with a retired stamp matching its tasks, so the
+      // whole deletion can be undone from Trash as one unit. Retired projects
+      // are filtered out of every normal project listing.
+      tx.update(projects)
+        .set({ retiredAt: now, updatedAt: now })
+        .where(and(eq(projects.id, projectId), eq(projects.ownerId, ownerId)))
+        .run();
+    }
   });
 
   return true;

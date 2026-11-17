@@ -113,6 +113,10 @@ export interface Task {
   subtaskCount?: number;
   subtaskCompletedCount?: number;
   archivedAt?: string;
+  /** Set when the task sits in Trash; cleared on restore. */
+  deletedAt?: string;
+  /** Name of the retired project this task was deleted with (Trash listings only). */
+  deletedProjectName?: string;
   permanentArchive?: boolean;
   labels?: string[]; // label IDs
   order: number;

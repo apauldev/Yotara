@@ -24,6 +24,7 @@ import {
   getTaskForOwner,
   listSubtasks,
   listTasksForOwner,
+  restoreTaskForOwner,
   toTask,
   updateTaskForOwner,
 } from '../services/task-service.js';
@@ -100,6 +101,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       labelMode?: 'any' | 'all';
       projectId?: string;
       priority?: 'low' | 'medium' | 'high';
+      deleted?: string;
     };
     Reply: PaginatedResponse<Task[]> | { message: string };
   }>(
@@ -145,6 +147,11 @@ export default async function taskRoutes(fastify: FastifyInstance) {
               type: 'string',
               enum: ['low', 'medium', 'high'],
               description: 'Only tasks with this priority',
+            },
+            deleted: {
+              type: 'string',
+              enum: ['true', 'false'],
+              description: 'When true, list soft-deleted tasks from Trash instead of active tasks',
             },
           },
         },
@@ -216,6 +223,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         labelMode,
         projectId,
         priority: request.query.priority,
+        deleted: request.query.deleted === 'true',
       };
 
       return listTasksForOwner(userId, page, pageSize, includeSubtasks, parentId, filters);
@@ -257,6 +265,44 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       task.subtaskCompletedCount = subtasks.filter((s) => s.completed).length;
 
       return task;
+    },
+  );
+
+  fastify.post<{ Params: { id: string }; Reply: { ok: true } | { message: string } }>(
+    '/tasks/:id/restore',
+    {
+      schema: withJsonResponse({
+        tags: ['tasks'],
+        summary: 'Restore a task from Trash',
+        description:
+          'Restores a whole project deletion: un-retires the project and clears the soft-delete marker on every task removed with it. Only deletions within the 30-day recovery window can be restored.',
+        security: authCookieSecurity,
+        params: idParamSchema(),
+        response: {
+          200: {
+            description: 'Task restored',
+            type: 'object',
+            required: ['ok'],
+            properties: {
+              ok: { type: 'boolean' },
+            },
+          },
+          401: errorResponseSchema('Authentication required', 'Unauthorized'),
+          404: errorResponseSchema('Task was not found in Trash', 'Task not found'),
+        },
+      }),
+    },
+    async (request, reply) => {
+      if (!request.userId) {
+        return sendNotFound(reply, 'Task not found');
+      }
+
+      const restored = restoreTaskForOwner(request.userId, request.params.id);
+      if (!restored) {
+        return sendNotFound(reply, 'Task not found');
+      }
+
+      return { ok: true };
     },
   );
 

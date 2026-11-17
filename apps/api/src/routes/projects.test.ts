@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { eq } from 'drizzle-orm';
-import { projects } from '../db/schema.js';
+import { projects, tasks } from '../db/schema.js';
 
 async function createAuthedApp() {
   const dbFile = join(tmpdir(), `yotara-projects-test-${randomUUID()}.db`);
@@ -823,6 +823,70 @@ test('project deletion handles task preservation (keepTasks) and cascading soft-
       headers: { cookie: userCookie },
     });
     assert.equal(t2Fetch.statusCode, 404);
+
+    // The task view above runs the cleanup preHandler. The soft-delete must
+    // survive it: Trash promises a 30-day recovery window, not instant erasure.
+    const { db } = await import('../db/client.js');
+    const [stored] = await db
+      .select({ id: tasks.id, deletedAt: tasks.deletedAt })
+      .from(tasks)
+      .where(eq(tasks.id, t2Id))
+      .limit(1);
+    assert.ok(stored, 'task deleted with its project still exists in Trash');
+    assert.ok(stored.deletedAt, 'the task carries a soft-delete timestamp');
+
+    const [retiredProject] = await db
+      .select({ retiredAt: projects.retiredAt })
+      .from(projects)
+      .where(eq(projects.id, p2Id))
+      .limit(1);
+    assert.ok(retiredProject?.retiredAt, 'project is retired, not erased');
+    const hiddenProject = await ctx.app.inject({
+      method: 'GET',
+      url: `/projects/${p2Id}`,
+      headers: { cookie: userCookie },
+    });
+    assert.equal(hiddenProject.statusCode, 404, 'retired project is hidden until restored');
+
+    const trashList = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?deleted=true&includeSubtasks=true',
+      headers: { cookie: userCookie },
+    });
+    const trashedEntry = trashList.json().data.find((task: { id: string }) => task.id === t2Id) as {
+      deletedProjectName?: string;
+    };
+    assert.equal(trashedEntry.deletedProjectName, 'Project to Cascade');
+
+    // ...and it can actually be recovered.
+    const restore = await ctx.app.inject({
+      method: 'POST',
+      url: `/tasks/${t2Id}/restore`,
+      headers: { cookie: userCookie },
+    });
+    assert.equal(restore.statusCode, 200);
+    const restoredFetch = await ctx.app.inject({
+      method: 'GET',
+      url: `/tasks/${t2Id}`,
+      headers: { cookie: userCookie },
+    });
+    assert.equal(restoredFetch.statusCode, 200);
+    assert.equal(restoredFetch.json().projectId, p2Id, 'task returns to its original project');
+
+    // The project itself was retired (not erased), and restore undoes that too.
+    const [revivedProject] = await db
+      .select({ retiredAt: projects.retiredAt })
+      .from(projects)
+      .where(eq(projects.id, p2Id))
+      .limit(1);
+    assert.ok(revivedProject);
+    assert.equal(revivedProject.retiredAt, null);
+    const p2Fetch = await ctx.app.inject({
+      method: 'GET',
+      url: `/projects/${p2Id}`,
+      headers: { cookie: userCookie },
+    });
+    assert.equal(p2Fetch.statusCode, 200, 'project is visible again after restore');
   } finally {
     await ctx.cleanup();
   }

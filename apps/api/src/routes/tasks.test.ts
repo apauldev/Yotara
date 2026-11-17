@@ -2034,3 +2034,91 @@ test('retired projects resolve to unfiled on task writes and stay hidden', async
     await ctx.cleanup();
   }
 });
+
+test('soft-deleted tasks stay in Trash for 30 days and can be restored', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`trash-${randomUUID()}@example.com`);
+    const { db } = await import('../db/client.js');
+    const { tasks: tasksTable } = await import('../db/schema.js');
+
+    const created = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Trashed task' },
+    });
+    assert.equal(created.statusCode, 201);
+    const taskId = created.json().id as string;
+
+    // Mirror the project-deletion path: a soft-delete marker, not a hard delete.
+    await db
+      .update(tasksTable)
+      .set({ deletedAt: new Date().toISOString() })
+      .where(eq(tasksTable.id, taskId));
+
+    // Serving a task view runs the cleanup preHandler. A fresh soft-delete
+    // must survive it instead of being permanently erased (the P1 regression).
+    const listed = await ctx.app.inject({ method: 'GET', url: '/tasks', headers: { cookie } });
+    assert.equal(listed.statusCode, 200);
+    assert.ok(!listed.json().data.some((task: { id: string }) => task.id === taskId));
+    const [survivor] = await db
+      .select({ id: tasksTable.id })
+      .from(tasksTable)
+      .where(eq(tasksTable.id, taskId))
+      .limit(1);
+    assert.ok(survivor, 'freshly soft-deleted task must still exist after a task view');
+
+    const trashed = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?deleted=true&includeSubtasks=true',
+      headers: { cookie },
+    });
+    assert.equal(trashed.statusCode, 200);
+    const trashedTask = trashed.json().data.find((task: { id: string }) => task.id === taskId) as {
+      deletedAt?: string;
+    };
+    assert.ok(trashedTask, 'soft-deleted task is listed in Trash');
+    assert.ok(trashedTask.deletedAt, 'Trash entries expose their deletion timestamp');
+
+    const restored = await ctx.app.inject({
+      method: 'POST',
+      url: `/tasks/${taskId}/restore`,
+      headers: { cookie },
+    });
+    assert.equal(restored.statusCode, 200);
+
+    const afterRestore = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks',
+      headers: { cookie },
+    });
+    assert.ok(
+      afterRestore.json().data.some((task: { id: string }) => task.id === taskId),
+      'restored task is visible in the normal task list again',
+    );
+
+    const again = await ctx.app.inject({
+      method: 'POST',
+      url: `/tasks/${taskId}/restore`,
+      headers: { cookie },
+    });
+    assert.equal(again.statusCode, 404, 'restoring an active task is not found');
+
+    // Once past the recovery window the next task view purges it for good.
+    await db
+      .update(tasksTable)
+      .set({ deletedAt: daysAgoIso(31) })
+      .where(eq(tasksTable.id, taskId));
+    await ctx.app.inject({ method: 'GET', url: '/tasks', headers: { cookie } });
+    const [purged] = await db
+      .select({ id: tasksTable.id })
+      .from(tasksTable)
+      .where(eq(tasksTable.id, taskId))
+      .limit(1);
+    assert.equal(purged, undefined, 'expired Trash entries are permanently removed');
+  } finally {
+    await ctx.cleanup();
+  }
+});

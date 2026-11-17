@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, asc, eq, isNotNull, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import type {
   CreateTaskDto,
   PaginatedResponse,
@@ -10,7 +10,7 @@ import type {
   UpdateTaskDto,
 } from '@yotara/shared';
 import { db, type Database } from '../db/client.js';
-import { tasks, users } from '../db/schema.js';
+import { projects, tasks, users } from '../db/schema.js';
 import { DateTime } from 'luxon';
 import { nowIsoTimestamp } from '../lib/timestamps.js';
 import { todayInTimezone, startOfDayInUtc } from '../lib/timezone.js';
@@ -92,6 +92,7 @@ export function toTask(task: TaskRow, labelIds: string[] = []): Task {
       : undefined,
     baseTaskId: task.baseTaskId ?? undefined,
     archivedAt: task.archivedAt ?? undefined,
+    deletedAt: task.deletedAt ?? undefined,
     permanentArchive: task.permanentArchive,
     labels: labelIds,
     order: task.order,
@@ -101,16 +102,27 @@ export function toTask(task: TaskRow, labelIds: string[] = []): Task {
 }
 
 export async function cleanupExpiredArchivedTasks(ownerId: string) {
-  await db.delete(tasks).where(and(eq(tasks.userId, ownerId), isNotNull(tasks.deletedAt)));
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const cutoffIso = cutoff.toISOString();
+
+  // Soft-deleted tasks stay in Trash for the same 30-day recovery window as
+  // completed tasks. Only purge rows that have aged past it — deleting every
+  // deletedAt row here made "recover within 30 days" impossible.
+  await db
+    .delete(tasks)
+    .where(
+      and(
+        eq(tasks.userId, ownerId),
+        isNotNull(tasks.deletedAt),
+        sql`${tasks.deletedAt} < ${cutoffIso}`,
+      ),
+    );
 
   const archiveAutoDelete = await getArchiveAutoDeleteForOwner(ownerId);
   if (!archiveAutoDelete) {
     return 0;
   }
-
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 30);
-  const cutoffIso = cutoff.toISOString();
 
   await db
     .delete(tasks)
@@ -168,6 +180,8 @@ export interface TaskFilters {
   projectId?: string;
   /** Only tasks with this priority. */
   priority?: Priority;
+  /** List soft-deleted (Trash) tasks instead of active ones. */
+  deleted?: boolean;
 }
 
 export async function listTasksForOwner(
@@ -179,7 +193,10 @@ export async function listTasksForOwner(
   filters?: TaskFilters,
 ): Promise<PaginatedResponse<Task[]>> {
   const offset = (page - 1) * pageSize;
-  const baseWhere = and(eq(tasks.userId, ownerId), isNull(tasks.deletedAt));
+  const baseWhere = and(
+    eq(tasks.userId, ownerId),
+    filters?.deleted === true ? isNotNull(tasks.deletedAt) : isNull(tasks.deletedAt),
+  );
 
   // If parentId is provided, we specifically want subtasks for that parent.
   // If parentId is NOT provided, we filter based on the includeSubtasks toggle.
@@ -333,7 +350,30 @@ export async function listTasksForOwner(
   const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
   const taskIds = rows.map((r) => r.id);
   const labelsMap = await getLabelsForTasks(taskIds);
-  const data = rows.map((row) => toTask(row, labelsMap.get(row.id) ?? []));
+
+  // Trash entries still reference their retired project. Resolve its name so
+  // the UI can name the deletion batch it is about to restore.
+  let deletedProjectNames = new Map<string, string>();
+  if (filters?.deleted === true) {
+    const projectIds = [
+      ...new Set(rows.map((row) => row.projectId).filter((id): id is string => !!id)),
+    ];
+    if (projectIds.length > 0) {
+      const projectRows = await db
+        .select({ id: projects.id, name: projects.name })
+        .from(projects)
+        .where(inArray(projects.id, projectIds));
+      deletedProjectNames = new Map(projectRows.map((project) => [project.id, project.name]));
+    }
+  }
+
+  const data = rows.map((row) => {
+    const task = toTask(row, labelsMap.get(row.id) ?? []);
+    if (filters?.deleted === true && row.projectId) {
+      task.deletedProjectName = deletedProjectNames.get(row.projectId);
+    }
+    return task;
+  });
 
   return {
     data,
@@ -860,4 +900,47 @@ export function deleteTaskForOwner(
   };
 
   return tx ? run(tx) : db.transaction(run, { behavior: 'immediate' });
+}
+
+/**
+ * Restore a whole deletion from Trash. A project deletion stamps the project
+ * and every one of its tasks with the same moment, so restoring any task brings
+ * back the project and the complete task batch together.
+ */
+export function restoreTaskForOwner(ownerId: string, taskId: string): boolean {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const cutoffIso = cutoff.toISOString();
+
+  const run = (client: Database) => {
+    const [target] = client
+      .select({ deletedAt: tasks.deletedAt })
+      .from(tasks)
+      .where(and(eq(tasks.id, taskId), eq(tasks.userId, ownerId), isNotNull(tasks.deletedAt)))
+      .limit(1)
+      .all();
+
+    if (!target?.deletedAt || target.deletedAt < cutoffIso) {
+      return false;
+    }
+
+    const now = nowIsoTimestamp();
+    const restored = client
+      .update(tasks)
+      .set({ deletedAt: null, updatedAt: now })
+      .where(and(eq(tasks.userId, ownerId), eq(tasks.deletedAt, target.deletedAt)))
+      .run();
+
+    // The project was retired with the same stamp; un-retire it so the tasks
+    // land back in their original project instead of as orphaned Inbox items.
+    client
+      .update(projects)
+      .set({ retiredAt: null, updatedAt: now })
+      .where(and(eq(projects.ownerId, ownerId), eq(projects.retiredAt, target.deletedAt)))
+      .run();
+
+    return restored.changes > 0;
+  };
+
+  return db.transaction(run, { behavior: 'immediate' });
 }

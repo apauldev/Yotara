@@ -71,6 +71,8 @@ const taskSchema = {
     subtaskCount: { type: 'integer', minimum: 0 },
     subtaskCompletedCount: { type: 'integer', minimum: 0 },
     archivedAt: { type: 'string', format: 'date-time' },
+    deletedAt: { type: 'string', format: 'date-time' },
+    deletedProjectName: { type: 'string' },
     permanentArchive: { type: 'boolean' },
     labels: {
       type: 'array',

@@ -78,6 +78,20 @@
       Archived
       <span class="tab-count">{{ tabCounts().archived }}</span>
     </button>
+
+    <button
+      type="button"
+      role="tab"
+      id="projects-tab-trash"
+      class="tab-button"
+      [class.tab-active]="activeTab() === 'trash'"
+      [attr.aria-selected]="activeTab() === 'trash'"
+      aria-controls="projects-tabpanel"
+      [attr.tabindex]="activeTab() === 'trash' ? 0 : -1"
+      (click)="setTab('trash')"
+    >
+      Trash
+    </button>
   </nav>
 
   <div
@@ -86,7 +100,9 @@
     tabindex="0"
     [attr.aria-labelledby]="'projects-tab-' + activeTab()"
   >
-    @if (projectService.loading() && projects().length === 0) {
+    @if (activeTab() === 'trash') {
+      <app-trash-list />
+    } @else if (projectService.loading() && projects().length === 0) {
       <p class="status-copy">Loading your project spaces...</p>
     } @else if (projectService.error() && projects().length === 0) {
       <p class="status-copy">{{ projectService.error() }}</p>

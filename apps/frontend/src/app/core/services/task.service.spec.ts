@@ -944,6 +944,66 @@ describe('TaskService', () => {
     expect(service.version()).toBeGreaterThan(versionBefore);
   }));
 
+  it('fetches soft-deleted tasks from Trash', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    http.expectOne(ACTIVE_URL).flush(paginated([]));
+    flushCompletedTasks(http);
+    tick();
+
+    const trashed = { id: 'trashed-1', title: 'Deleted with project' } as Task;
+    let received: Task[] = [];
+    service.getDeletedTasks(2, 25).subscribe((response) => (received = response.data));
+
+    const request = http.expectOne(
+      'http://localhost:3000/tasks?deleted=true&includeSubtasks=true&page=2&pageSize=25',
+    );
+    expect(request.request.method).toBe('GET');
+    expect(request.request.withCredentials).toBeTrue();
+    request.flush(paginated([trashed]));
+    tick();
+
+    expect(received.map((task) => task.id)).toEqual(['trashed-1']);
+  }));
+
+  it('restores a task from Trash and refreshes dependent state', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    http.expectOne(ACTIVE_URL).flush(paginated([]));
+    flushCompletedTasks(http);
+    tick();
+
+    const versionBefore = service.version();
+    void service.restoreTask('trashed-1');
+
+    const request = http.expectOne('http://localhost:3000/tasks/trashed-1/restore');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.withCredentials).toBeTrue();
+    request.flush({ ok: true });
+    tick();
+
+    expect(service.error()).toBeNull();
+    expect(service.version()).toBeGreaterThan(versionBefore);
+    expect(labelServiceStub.refresh).toHaveBeenCalled();
+    expect(projectServiceStub.refresh).toHaveBeenCalled();
+
+    http.expectOne(ACTIVE_URL).flush(paginated([]));
+    flushCompletedTasks(http);
+    tick();
+  }));
+
   describe('error handling', () => {
     it('sets error state when allActiveTasks fetch fails with a network error', fakeAsync(() => {
       const service = TestBed.inject(TaskService);

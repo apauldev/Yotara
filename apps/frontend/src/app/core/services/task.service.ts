@@ -175,6 +175,35 @@ export class TaskService {
     );
   }
 
+  getDeletedTasks(page: number, pageSize: number) {
+    return this.http.get<PaginatedResponse<Task[]>>(
+      `${this.baseUrl}/tasks?deleted=true&includeSubtasks=true&page=${page}&pageSize=${pageSize}`,
+      { withCredentials: true },
+    );
+  }
+
+  async restoreTask(taskId: string) {
+    this.creatingState.set(true);
+    this.errorState.set(null);
+
+    try {
+      await firstValueFrom(
+        this.http.post<{ ok: true }>(`${this.baseUrl}/tasks/${taskId}/restore`, null, {
+          withCredentials: true,
+        }),
+      );
+      this.refreshState.update((value: number) => value + 1);
+      this.labelService.refresh();
+      this.projectService.refresh();
+    } catch (error) {
+      this.logService.error('Failed to restore task', error, 'TaskService');
+      this.errorState.set('Could not restore your task right now.');
+      throw error;
+    } finally {
+      this.creatingState.set(false);
+    }
+  }
+
   async clearCompletedTasks() {
     const result = await firstValueFrom(
       this.http.delete<{ ok: boolean; removed: number }>(`${this.baseUrl}/tasks/completed`, {

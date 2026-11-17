@@ -67,7 +67,9 @@ import { ModalComponent } from '../../../shared/ui/modal/modal.component';
             <div class="option-header">
               <strong>Delete project and tasks</strong>
             </div>
-            <p>Tasks are moved to Trash and can be recovered within 30 days.</p>
+            <p>
+              The project and its tasks move to Trash and can be restored together within 30 days.
+            </p>
           </button>
         </div>
       </div>

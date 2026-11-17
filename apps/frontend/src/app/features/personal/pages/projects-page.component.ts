@@ -16,6 +16,7 @@ import type { Project, ProjectFormPayload } from '@yotara/shared';
 import { ProjectService } from '../../../core/services/project.service';
 import { StatusService } from '../../../core/services/status.service';
 import { PersonalProjectModalComponent } from '../components/personal-project-modal.component';
+import { TrashListComponent } from './trash-list.component';
 import { ProjectDeleteDialogComponent } from '../components/project-delete-dialog.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
@@ -36,7 +37,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { parseCalendarDate } from '../../../shared/utils/timestamps';
 
-export type ProjectsTab = 'active' | 'completed' | 'archived';
+export type ProjectsTab = 'active' | 'completed' | 'archived' | 'trash';
 
 @Component({
   selector: 'app-projects-page',
@@ -46,6 +47,7 @@ export type ProjectsTab = 'active' | 'completed' | 'archived';
     DragDropModule,
     PersonalProjectModalComponent,
     ProjectDeleteDialogComponent,
+    TrashListComponent,
     PageHeaderComponent,
     FontAwesomeModule,
     EmptyStateComponent,
@@ -159,6 +161,10 @@ export class ProjectsPageComponent {
       case 'archived':
         list = this.archivedProjects();
         break;
+      case 'trash':
+        // Trash renders its own task list; there are no projects to show here.
+        list = [];
+        break;
       case 'active':
       default:
         list = this.activeProjects();
@@ -228,7 +234,7 @@ export class ProjectsPageComponent {
   }
 
   protected onTabKeydown(event: KeyboardEvent) {
-    const tabOrder: ProjectsTab[] = ['active', 'completed', 'archived'];
+    const tabOrder: ProjectsTab[] = ['active', 'completed', 'archived', 'trash'];
     const focusedTab = (event.target as HTMLElement).closest<HTMLButtonElement>('[role="tab"]');
     if (!focusedTab) {
       return;

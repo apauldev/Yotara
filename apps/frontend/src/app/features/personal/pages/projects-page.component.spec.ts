@@ -1,10 +1,14 @@
 import { signal, WritableSignal } from '@angular/core';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { provideMarkdown } from 'ngx-markdown';
+import { of } from 'rxjs';
 import type { Project } from '@yotara/shared';
 import { ProjectsPageComponent } from './projects-page.component';
 import { ProjectService } from '../../../core/services/project.service';
+import { TaskService } from '../../../core/services/task.service';
+import { LogService } from '../../../core/services/log.service';
 
 describe('ProjectsPageComponent', () => {
   let projects: WritableSignal<Project[]>;
@@ -55,6 +59,27 @@ describe('ProjectsPageComponent', () => {
             reorderProjects: jasmine.createSpy('reorderProjects').and.resolveTo([]),
           },
         },
+        {
+          provide: TaskService,
+          useValue: {
+            version: signal(0),
+            getDeletedTasks: jasmine.createSpy('getDeletedTasks').and.returnValue(
+              of({
+                data: [],
+                meta: {
+                  total: 0,
+                  page: 1,
+                  pageSize: 10,
+                  totalPages: 0,
+                  hasNextPage: false,
+                  hasPreviousPage: false,
+                },
+              }),
+            ),
+            restoreTask: jasmine.createSpy('restoreTask').and.resolveTo(undefined),
+          },
+        },
+        { provide: LogService, useValue: { error: jasmine.createSpy('error') } },
       ],
     }).compileComponents();
   });
@@ -129,6 +154,25 @@ describe('ProjectsPageComponent', () => {
     fixture.componentInstance['setTab']('completed');
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Completed Launch');
+    expect(fixture.nativeElement.textContent).not.toContain('Launch Yotara MVP');
+  });
+
+  it('renders the Trash list from the tab next to Archived', async () => {
+    const fixture = TestBed.createComponent(ProjectsPageComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const tabs = fixture.debugElement
+      .queryAll(By.css('[role="tab"]'))
+      .map((tab) => tab.nativeElement.textContent.replace(/\s+/g, ' ').trim());
+    expect(tabs).toEqual(['Active 1', 'Completed 0', 'Archived 0', 'Trash']);
+
+    fixture.componentInstance['setTab']('trash');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(fixture.debugElement.query(By.css('app-trash-list'))).toBeTruthy();
+    expect(fixture.nativeElement.textContent).toContain('Trash is empty');
     expect(fixture.nativeElement.textContent).not.toContain('Launch Yotara MVP');
   });
 
