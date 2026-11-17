@@ -262,6 +262,17 @@ export async function reorderProjectsForOwner(
     return { ok: false };
   }
 
+  // The list must cover every non-retired project for this owner. A partial
+  // list would assign duplicate sortOrder values that collide with omitted
+  // projects, silently corrupting the directory order.
+  const [{ count: total }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(projects)
+    .where(and(eq(projects.ownerId, ownerId), isNull(projects.retiredAt)));
+  if (total !== orderedIds.length) {
+    return { ok: false };
+  }
+
   const now = nowIsoTimestamp();
   db.transaction((tx) => {
     orderedIds.forEach((id, index) => {

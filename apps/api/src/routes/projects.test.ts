@@ -930,6 +930,51 @@ test('archived-status tasks do not count as open and do not block project comple
   }
 });
 
+test('reordering a partial list is rejected so sort orders stay unique', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`reorder-partial-${randomUUID()}@example.com`);
+    const make = async (name: string) => {
+      const response = await ctx.app.inject({
+        method: 'POST',
+        url: '/projects',
+        headers: { cookie },
+        payload: { name },
+      });
+      assert.equal(response.statusCode, 201);
+      return response.json().id as string;
+    };
+
+    const first = await make('First');
+    const second = await make('Second');
+    const third = await make('Third');
+
+    // Omitting one project would give two projects the same sortOrder.
+    const partial = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/projects/reorder',
+      headers: { cookie },
+      payload: { ids: [third, first] },
+    });
+    assert.equal(partial.statusCode, 400);
+
+    const full = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/projects/reorder',
+      headers: { cookie },
+      payload: { ids: [third, first, second] },
+    });
+    assert.equal(full.statusCode, 200);
+    const orders = (full.json() as Array<{ id: string; sortOrder: number }>).map(
+      (p) => p.sortOrder,
+    );
+    assert.deepEqual([...orders].sort(), [0, 1, 2]);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
 test('projects can be reordered and foreign or duplicate ids are rejected', async () => {
   const ctx = await createAuthedApp();
 
