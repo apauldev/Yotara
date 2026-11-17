@@ -796,6 +796,7 @@ function updateTaskForOwnerSync(
             priority: 'medium',
             simpleMode, // Inherit simpleMode from parent
             projectId: nextProjectId,
+            sectionId: nextSectionId,
             parentId: taskId,
             completed: sub.completed ?? false,
             archivedAt: sub.completed ? now : null,

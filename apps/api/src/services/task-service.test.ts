@@ -12,12 +12,14 @@ async function setupTestDb() {
   const { db, sqlite } = await import('../db/client.js');
   const taskService = await import('./task-service.js');
   const projectService = await import('./project-service.js');
+  const sectionService = await import('./section-service.js');
 
   return {
     db,
     sqlite,
     taskService,
     projectService,
+    sectionService,
     cleanup() {
       sqlite.close();
       rmSync(dbFile, { force: true });
@@ -898,6 +900,33 @@ test('Subtasks and Recurring Tasks Service Logic', async (t) => {
       assert.equal(subtasks.length, 2);
       const titles = subtasks.map((s) => s.title).sort();
       assert.deepEqual(titles, ['Update Sub 1', 'Update Sub 2']);
+    });
+
+    await t.test('subtasks added via update inherit the parent section', async () => {
+      const project = await ctx.projectService.createProjectForOwner(ownerId, {
+        name: 'Sectioned Project',
+      });
+      assert.ok(project);
+      const section = await ctx.sectionService.createSectionForProject(project.id, ownerId, {
+        name: 'Doing',
+      });
+      assert.ok(section);
+      const parent = await ctx.taskService.createTaskForOwner(ownerId, {
+        title: 'Sectioned Parent',
+        projectId: project.id,
+        sectionId: section.id,
+      });
+      assert.ok(parent);
+
+      const updated = await ctx.taskService.updateTaskForOwner(ownerId, parent.id, {
+        subtasks: [{ title: 'Inherited Sub' }],
+      });
+      assert.ok(updated);
+
+      const subtasks = await ctx.taskService.listSubtasks(parent.id, ownerId);
+      assert.equal(subtasks.length, 1);
+      assert.equal(subtasks[0]?.sectionId, section.id);
+      assert.equal(subtasks[0]?.projectId, project.id);
     });
 
     await t.test('createTaskForOwner creates subtasks from body', async () => {
