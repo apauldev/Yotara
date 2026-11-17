@@ -121,6 +121,17 @@ test.describe('Projects Overhaul E2E Journeys', () => {
     const pinnedItem = pinnedGroup.locator('.pinned-item').filter({ hasText: name });
     await expect(pinnedItem).toBeVisible();
     await expect(pinnedItem.locator('.pinned-count')).toHaveText('0');
+
+    // The sidebar offers a direct unpin action, and drops the redundant
+    // "New project" / "All projects" links (duplicated by the directory header
+    // and the Projects nav item respectively).
+    const pinnedRow = pinnedGroup.locator('.pinned-item-row').filter({ hasText: name });
+    await expect(pinnedRow.locator('.pinned-unpin-button')).toHaveAttribute(
+      'aria-label',
+      `Unpin ${name}`,
+    );
+    await expect(pinnedGroup.getByText('New project', { exact: true })).toHaveCount(0);
+    await expect(pinnedGroup.getByText('All projects', { exact: true })).toHaveCount(0);
   });
 
   test('3. Manages sections: add, inline rename, reorder, and collapse', async ({ page }) => {

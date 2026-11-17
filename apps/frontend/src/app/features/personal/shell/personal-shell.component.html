@@ -106,38 +106,33 @@
           @if (pinnedGroupExpanded()) {
             <div class="pinned-list">
               @for (project of pinnedProjects(); track project.id) {
-                <a
-                  [routerLink]="['/projects', project.id]"
-                  class="pinned-item"
-                  routerLinkActive="pinned-item-active"
-                  [title]="project.name"
-                  (click)="closeMobileMenu()"
-                >
-                  <span
-                    class="pinned-dot"
-                    [style.background]="projectPaletteFor(project.color).accent"
-                    aria-hidden="true"
-                  ></span>
-                  <span class="pinned-name">{{ project.name }}</span>
-                  <span class="pinned-count">{{ project.openTaskCount }}</span>
-                </a>
+                <div class="pinned-item-row">
+                  <a
+                    [routerLink]="['/projects', project.id]"
+                    class="pinned-item"
+                    routerLinkActive="pinned-item-active"
+                    [title]="project.name"
+                    (click)="closeMobileMenu()"
+                  >
+                    <span
+                      class="pinned-dot"
+                      [style.background]="projectPaletteFor(project.color).accent"
+                      aria-hidden="true"
+                    ></span>
+                    <span class="pinned-name">{{ project.name }}</span>
+                    <span class="pinned-count">{{ project.openTaskCount }}</span>
+                  </a>
+                  <button
+                    type="button"
+                    class="pinned-unpin-button"
+                    [attr.aria-label]="'Unpin ' + project.name"
+                    title="Unpin project"
+                    (click)="unpinProject(project, $event)"
+                  >
+                    <fa-icon [icon]="faThumbtack" aria-hidden="true"></fa-icon>
+                  </button>
+                </div>
               }
-            </div>
-
-            <div class="pinned-actions">
-              <a
-                [routerLink]="['/projects']"
-                [queryParams]="{ create: 'project' }"
-                class="pinned-action"
-                aria-label="Create a project"
-                (click)="closeMobileMenu()"
-              >
-                <fa-icon [icon]="faPlus" aria-hidden="true"></fa-icon>
-                <span>New project</span>
-              </a>
-              <a routerLink="/projects" class="pinned-action" (click)="closeMobileMenu()">
-                All projects
-              </a>
             </div>
           }
         </div>

@@ -30,7 +30,7 @@ import {
   faInbox,
   faArrowRightLong,
   faRocket,
-  faPlus,
+  faThumbtack,
   faSliders,
   faTag,
   faChevronDown,
@@ -54,7 +54,7 @@ import { projectPaletteFor } from '../project-presentation';
 import { TIMED_REMINDERS_UNAVAILABLE } from '../utils/timezone-notices';
 import { LogoutConfirmModalComponent } from '../../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
-import type { Notification } from '@yotara/shared';
+import type { Notification, Project } from '@yotara/shared';
 import { AppStatusComponent } from '../../../shared/ui/app-status/app-status.component';
 
 type PersonalIcon = 'inbox' | 'today' | 'upcoming' | 'calendar' | 'projects' | 'labels' | 'archive';
@@ -94,7 +94,7 @@ export class PersonalShellComponent implements OnDestroy {
   protected readonly faBoxArchive = faBoxArchive;
   protected readonly faInbox = faInbox;
   protected readonly faRocket = faRocket;
-  protected readonly faPlus = faPlus;
+  protected readonly faThumbtack = faThumbtack;
   protected readonly faSliders = faSliders;
   protected readonly faTag = faTag;
   protected readonly faChevronDown = faChevronDown;
@@ -219,6 +219,12 @@ export class PersonalShellComponent implements OnDestroy {
 
   protected togglePinnedGroup() {
     this.pinnedGroupExpanded.update((expanded) => !expanded);
+  }
+
+  protected async unpinProject(project: Project, event: MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    await this.projectService.updateProject(project.id, { pinned: false });
   }
 
   protected toggleProfileMenu() {
