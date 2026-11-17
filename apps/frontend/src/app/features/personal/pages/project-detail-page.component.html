@@ -296,7 +296,7 @@
             (cdkDropListDropped)="onSectionDrop($event)"
           >
             @if (unsectionedTasks().length > 0 || sections().length === 0) {
-              <app-section-header title="To Do" [count]="activeProjectTasks().length" size="lg" />
+              <app-section-header title="To Do" [count]="unsectionedTasks().length" size="lg" />
 
               <div class="task-stack">
                 @for (task of unsectionedTasks(); track task.id) {

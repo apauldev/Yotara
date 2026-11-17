@@ -327,6 +327,13 @@ describe('ProjectDetailPageComponent', () => {
     expect(text.indexOf('Flat task')).toBeLessThan(text.indexOf('Section task'));
     expect(fixture.nativeElement.querySelectorAll('.project-section').length).toBe(1);
     expect(projectServiceStub.getSections).toHaveBeenCalledWith('project-1');
+
+    // The "To Do" header counts only the flat group it renders, not the
+    // sectioned task displayed further down the page.
+    const todoHeader = [...fixture.nativeElement.querySelectorAll('app-section-header')].find(
+      (header: HTMLElement) => header.textContent?.includes('To Do'),
+    ) as HTMLElement | undefined;
+    expect(todoHeader?.querySelector('.section-header-count')?.textContent?.trim()).toBe('1');
   });
 
   it('creates a section inline and offers a safe delete confirmation', async () => {
