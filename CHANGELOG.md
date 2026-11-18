@@ -2,6 +2,58 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.93.0](https://github.com/apauldev/Yotara/compare/v0.92.0...v0.93.0) (2026-11-18)
+
+
+### Features
+
+* **projects:** add existing unassigned tasks from project detail ([a62c7fc](https://github.com/apauldev/Yotara/commit/a62c7fc91dd0ec82d8327a236b2db059d410160a))
+* **projects:** add lightweight project sections and task assignment ([eb28729](https://github.com/apauldev/Yotara/commit/eb2872981734909cb4393256f5f9605e1c988bb4))
+* **projects:** overhaul project lifecycle, kind, directory, and detail ([d1f4832](https://github.com/apauldev/Yotara/commit/d1f48326d274367b11549dd03b6863e90cff9843))
+* **projects:** show indeterminate select-all state in existing-tasks modal ([752c9ec](https://github.com/apauldev/Yotara/commit/752c9ec4015f3621d34041589522b5644a491c7d))
+* **projects:** smooth handle-only drag reordering and prominent pin badges ([107459b](https://github.com/apauldev/Yotara/commit/107459bce3dc7fd312403ab29dabb282697dd8e7))
+* **sidebar:** unpin projects inline and drop redundant links ([e0eb0a9](https://github.com/apauldev/Yotara/commit/e0eb0a9530f58a1315cfe7d0b5bde5ca6d0fce85))
+* **tasks:** add 'Completed today' collapsible section header in Today view ([e1664ef](https://github.com/apauldev/Yotara/commit/e1664eff6fa2ce0e56f8631bbe42700537148c88))
+
+
+### Bug Fixes
+
+* **api:** inherit sectionId for subtasks added via PATCH ([4f80905](https://github.com/apauldev/Yotara/commit/4f809055aaf12e45b1258609be6c0711c958facd))
+* **api:** reject project reorder requests missing projects ([9e7935d](https://github.com/apauldev/Yotara/commit/9e7935d4fce665b0028e0bce5db90e48787677f4))
+* **ci:** unblock unit and e2e suites ([49a5e55](https://github.com/apauldev/Yotara/commit/49a5e55f1f782ba2ec03da678ad130011b85db4b))
+* close remaining PR review findings ([d5f4b25](https://github.com/apauldev/Yotara/commit/d5f4b25fd9d69ca81ae267fff5febce85e4994db))
+* **project-detail:** align Add Task and Add Section action buttons ([7505012](https://github.com/apauldev/Yotara/commit/7505012ce1816302f48c77ac79028a9d864b9416))
+* **projects:** allow clearing a project description on edit ([4a24757](https://github.com/apauldev/Yotara/commit/4a24757d3fe019f33fc3e00a4be38bd420279758))
+* **projects:** cap modal selection at 100 tasks to match api limit ([eb52dee](https://github.com/apauldev/Yotara/commit/eb52deeb09543cbf663f61848de5ca93e8ec3cbd))
+* **projects:** close remaining directory and task-list gaps ([bc9746a](https://github.com/apauldev/Yotara/commit/bc9746ada4c00fcd7410b7b875d8b9567114d1b5))
+* **projects:** count only unsectioned tasks in To Do header ([0f6afee](https://github.com/apauldev/Yotara/commit/0f6afee325df55485a07df3ece77fb459991725e))
+* **projects:** harden empty deletion, retention parity, and restore scoping ([74b2568](https://github.com/apauldev/Yotara/commit/74b2568f2024d537eec08d2d1e92760af1e21d85))
+* **projects:** harden saving state and optimistic order release ([65d5af1](https://github.com/apauldev/Yotara/commit/65d5af1e52bb26a0d5305d17c1e84210f6ab4f93))
+* **projects:** make project deletion recoverable from Trash ([91f0457](https://github.com/apauldev/Yotara/commit/91f0457422815640c8f72e62021d9931592870f9))
+* **projects:** repair add-existing toast spec compile failure ([c3cc6ef](https://github.com/apauldev/Yotara/commit/c3cc6efd4b61d5878e1d9ed16ac672a40cfc4610))
+* **projects:** resolve mobile and CSS audit findings on drag UI ([a2b00ee](https://github.com/apauldev/Yotara/commit/a2b00eed19ab449626458ce9e2f67588b0bca3f0))
+* **projects:** return missing task ids from batch update and add test coverage ([ac80bff](https://github.com/apauldev/Yotara/commit/ac80bffba722d34261669d1f6d4cfc9e705d0a2d))
+* **projects:** toast actual updated task count from batch add response ([c6bcbdf](https://github.com/apauldev/Yotara/commit/c6bcbdfbb98c12a142208cbb7a85cb477db4cb3f))
+* **tasks:** restrict batch patch dto to safe bulk fields ([b08e0ce](https://github.com/apauldev/Yotara/commit/b08e0ce45e694cbd4f03aeeac460fafd961ae27e))
+
+
+### Chores
+
+* **settings:** relabel release status as Public Beta ([9e1b694](https://github.com/apauldev/Yotara/commit/9e1b69419c045f5303b6494e69aa6b3d7b8991f2))
+
+
+### Refactoring
+
+* **projects:** single-source palette hexes and harden dot rings ([53c6ddf](https://github.com/apauldev/Yotara/commit/53c6ddf7d1709ae0556c18d649c1aefdf7b0b109))
+
+
+### Tests
+
+* lift coverage on project pages and service ([9721f1f](https://github.com/apauldev/Yotara/commit/9721f1fcc402dd9e6668ffe81ca8570e778653a2))
+* **projects:** add comprehensive e2e test suite and fix project ux issues ([5331627](https://github.com/apauldev/Yotara/commit/53316272d829ed9139f664d04cb232700ae97af1))
+* **projects:** cover the add-existing-task flow end to end ([25aa712](https://github.com/apauldev/Yotara/commit/25aa712c331d8412237d58ae5e972ea236e581cf))
+* **quick-actions:** provide project kind and sortOrder in test fixtures ([6504a31](https://github.com/apauldev/Yotara/commit/6504a317386ab159d820db53c4f89a0d30645d6b))
+
 ## [0.92.0](https://github.com/apauldev/Yotara/compare/v0.91.0...v0.92.0) (2026-11-16)
 
 
