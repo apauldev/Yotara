@@ -692,4 +692,69 @@ test.describe('Projects Overhaul E2E Journeys', () => {
     await page.waitForLoadState('networkidle');
     await expect.poll(secondComesFirst).toBe(true);
   });
+
+  test('10. Adds existing unassigned tasks with multi-select and confirms via toast', async ({
+    page,
+  }) => {
+    // Two loose tasks in the Inbox — the pool the picker reads from.
+    await page.goto('/tasks?view=inbox');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    const first = taskName('Loose One');
+    const second = taskName('Loose Two');
+    const capture = page.getByPlaceholder("What's on your mind today?");
+    for (const title of [first, second]) {
+      await capture.fill(title);
+      await capture.press('Enter');
+      await expect(page.locator('article.task-card').filter({ hasText: title })).toBeVisible({
+        timeout: 10_000,
+      });
+    }
+
+    // A project to file them into.
+    await page.goto('/projects');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+
+    const name = projectName('Refile Target');
+    await page.getByRole('button', { name: '+ New Project' }).click();
+    await page.locator('.modal-card').getByPlaceholder('e.g. Launch website').fill(name);
+    await page.getByRole('button', { name: 'Create Project' }).click();
+    await page.waitForURL(/\/projects\/[a-zA-Z0-9-]+/, { timeout: 10_000 });
+
+    // Open the picker and find both tasks via its filter.
+    await page.getByRole('button', { name: 'Add existing task', exact: true }).click();
+    const picker = page.locator('.modal-card').filter({ hasText: 'Add existing tasks to' });
+    await expect(picker).toBeVisible();
+
+    const filter = picker.locator('.task-filter');
+    for (const title of [first, second]) {
+      await filter.fill(title);
+      const row = picker.locator('.task-list li').filter({ hasText: title });
+      await expect(row).toHaveCount(1);
+      // Selection persists across filter changes, so this ends up as multi-select.
+      await row.locator('input[type=checkbox]').check();
+    }
+
+    await expect(picker.getByRole('button', { name: 'Add 2 tasks' })).toBeEnabled();
+    await picker.getByRole('button', { name: 'Add 2 tasks' }).click();
+    await expect(picker).not.toBeVisible();
+
+    // Toast confirms the batch, and the tasks now live in the project.
+    await expect(
+      page.locator('.toast').filter({ hasText: '2 tasks added to this project' }),
+    ).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.locator('article.task-card').filter({ hasText: first })).toBeVisible();
+    await expect(page.locator('article.task-card').filter({ hasText: second })).toBeVisible();
+
+    // They no longer sit in the Inbox.
+    await page.goto('/tasks?view=inbox');
+    await page.waitForLoadState('networkidle');
+    await dismissTip(page);
+    await expect(page.locator('article.task-card').filter({ hasText: first })).toHaveCount(0);
+    await expect(page.locator('article.task-card').filter({ hasText: second })).toHaveCount(0);
+  });
 });
