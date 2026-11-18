@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import {
+  BatchTaskPatchDto,
   BatchUpdateTasksResponse,
   CreateTaskDto,
   PaginatedResponse,
@@ -198,7 +199,7 @@ export class TaskService {
   }
 
   /** Applies one patch to several tasks in a single API call. */
-  async updateTasks(taskIds: string[], patch: UpdateTaskDto) {
+  async updateTasks(taskIds: string[], patch: BatchTaskPatchDto) {
     this.creatingState.set(true);
     this.errorState.set(null);
 

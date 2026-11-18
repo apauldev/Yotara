@@ -12,7 +12,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import type { Priority, ProjectSection, Task, UpdateTaskDto } from '@yotara/shared';
+import type { BatchTaskPatchDto, Priority, ProjectSection, Task } from '@yotara/shared';
 import { TaskService } from '../../../core/services/task.service';
 import { ModalComponent } from '../../../shared/ui/modal/modal.component';
 import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
@@ -21,7 +21,7 @@ export const MAX_BATCH_TASKS = 100;
 
 export interface AddExistingTasksPayload {
   taskIds: string[];
-  patch: UpdateTaskDto;
+  patch: BatchTaskPatchDto;
 }
 
 @Component({
@@ -442,7 +442,7 @@ export class AddExistingTasksModalComponent implements OnChanges {
       return;
     }
 
-    const patch: UpdateTaskDto = {
+    const patch: BatchTaskPatchDto = {
       projectId: this.projectId,
       sectionId: this.sectionId(),
     };

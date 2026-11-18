@@ -124,10 +124,22 @@ export interface Task {
   updatedAt: string;
 }
 
+/** Allowed fields for bulk task updates. Excludes fields with per-task uniqueness (title, description, subtasks, parentId, recurrenceRule, order). */
+export interface BatchTaskPatchDto {
+  projectId?: string | null;
+  sectionId?: string | null;
+  priority?: Priority;
+  dueDate?: string | null;
+  dueTime?: string | null;
+  status?: TaskStatus;
+  completed?: boolean;
+  labels?: string[];
+}
+
 /** Apply the same patch to several tasks in one request. */
 export interface BatchUpdateTasksDto {
   taskIds: string[];
-  patch: UpdateTaskDto;
+  patch: BatchTaskPatchDto;
 }
 
 /** Result of applying a batch update to tasks. */

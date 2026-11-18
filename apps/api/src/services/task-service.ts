@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, asc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import type {
+  BatchTaskPatchDto,
   CreateTaskDto,
   PaginatedResponse,
   Priority,
@@ -889,7 +890,7 @@ export async function updateTaskForOwner(
 export function updateTasksForOwner(
   ownerId: string,
   taskIds: string[],
-  patch: UpdateTaskDto,
+  patch: BatchTaskPatchDto,
   tz?: string,
 ): { updated: number; missing: string[] } {
   const ids = [...new Set(taskIds)];

@@ -495,6 +495,41 @@ const updateProjectSchema = {
   additionalProperties: false,
 } as const;
 
+const batchTaskPatchSchema = {
+  $id: 'BatchTaskPatchDto',
+  type: 'object',
+  minProperties: 1,
+  properties: {
+    status: {
+      type: 'string',
+      enum: ['inbox', 'today', 'upcoming', 'done', 'archived'],
+    },
+    priority: {
+      type: 'string',
+      enum: ['low', 'medium', 'high'],
+    },
+    dueDate: {
+      anyOf: [{ type: 'string', format: 'date' }, { type: 'null' }],
+    },
+    dueTime: {
+      anyOf: [timeOfDaySchema, { type: 'null' }],
+    },
+    projectId: {
+      anyOf: [{ type: 'string', format: 'uuid' }, { type: 'null' }],
+    },
+    sectionId: {
+      anyOf: [{ type: 'string', format: 'uuid' }, { type: 'null' }],
+    },
+    labels: {
+      type: 'array',
+      maxItems: 50,
+      items: { type: 'string' },
+    },
+    completed: { type: 'boolean' },
+  },
+  additionalProperties: false,
+} as const;
+
 const batchUpdateTasksSchema = {
   $id: 'BatchUpdateTasksDto',
   type: 'object',
@@ -507,7 +542,7 @@ const batchUpdateTasksSchema = {
       maxItems: 100,
       uniqueItems: true,
     },
-    patch: { $ref: 'UpdateTaskDto#' },
+    patch: { $ref: 'BatchTaskPatchDto#' },
   },
   additionalProperties: false,
 } as const;
@@ -894,6 +929,7 @@ const sharedSchemas = [
   taskSchema,
   createTaskSchema,
   updateTaskSchema,
+  batchTaskPatchSchema,
   batchUpdateTasksSchema,
   recurrenceFrequencySchema,
   recurrenceRuleSchema,

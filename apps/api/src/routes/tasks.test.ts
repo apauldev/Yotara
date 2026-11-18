@@ -2364,6 +2364,40 @@ test('batch patch enforces atomicity, reports missing/trashed ids, and rejects >
       },
     });
     assert.equal(overLimitRes.statusCode, 400);
+
+    // (d) Per-task fields (subtasks, title, parentId, recurrenceRule) are rejected by schema validation
+    const forbiddenSubtasksRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/tasks',
+      headers: { cookie },
+      payload: {
+        taskIds: [task1Id],
+        patch: { subtasks: [{ title: 'Injected subtask' }] },
+      },
+    });
+    assert.equal(forbiddenSubtasksRes.statusCode, 400);
+
+    const forbiddenTitleRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/tasks',
+      headers: { cookie },
+      payload: {
+        taskIds: [task1Id],
+        patch: { title: 'Overwritten title' },
+      },
+    });
+    assert.equal(forbiddenTitleRes.statusCode, 400);
+
+    const forbiddenParentRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/tasks',
+      headers: { cookie },
+      payload: {
+        taskIds: [task1Id],
+        patch: { parentId: task2Id },
+      },
+    });
+    assert.equal(forbiddenParentRes.statusCode, 400);
   } finally {
     await ctx.cleanup();
   }

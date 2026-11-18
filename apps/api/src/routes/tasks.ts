@@ -456,6 +456,9 @@ export default async function taskRoutes(fastify: FastifyInstance) {
 
       const userId = request.userId;
       const patch = request.body.patch;
+      if (!patch || Object.keys(patch).length === 0) {
+        return sendBadRequest(reply, 'At least one valid patch field must be provided');
+      }
       if (patch.projectId != null) {
         const project = await resolveProjectIdForTaskWrite(userId, patch.projectId);
         if (!project.ok) {
