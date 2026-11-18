@@ -4,6 +4,7 @@ import { signal } from '@angular/core';
 import { of } from 'rxjs';
 import {
   AddExistingTasksModalComponent,
+  MAX_BATCH_TASKS,
   type AddExistingTasksPayload,
 } from './add-existing-tasks-modal.component';
 import { TaskService } from '../../../core/services/task.service';
@@ -144,5 +145,57 @@ describe('AddExistingTasksModalComponent', () => {
       .queryAll(By.css('.task-list .task-title'))
       .map((element) => element.nativeElement.textContent.trim());
     expect(titles).toEqual(['Book flights']);
+  });
+
+  it('caps selection at MAX_BATCH_TASKS and disables further checkboxes', () => {
+    const manyTasks: Task[] = Array.from(
+      { length: 105 },
+      (_, i) =>
+        ({
+          id: `task-${i + 1}`,
+          title: `Task ${i + 1}`,
+        }) as Task,
+    );
+    taskService.getUnassignedTasks.and.returnValue(of(paginated(manyTasks)));
+
+    const fixture = openModal();
+
+    const capNote = fixture.debugElement.query(By.css('.cap-note'));
+    expect(capNote).toBeTruthy();
+    expect(capNote.nativeElement.textContent).toContain(
+      `first ${MAX_BATCH_TASKS} will be selected`,
+    );
+
+    fixture.debugElement.query(By.css('.select-all input')).nativeElement.click();
+    fixture.detectChanges();
+
+    const confirmButton = fixture.debugElement.query(By.css('.picker-actions .primary-button'));
+    expect(confirmButton.nativeElement.textContent).toContain(`Add ${MAX_BATCH_TASKS} tasks`);
+
+    const capWarning = fixture.debugElement.query(By.css('.cap-warning'));
+    expect(capWarning).toBeTruthy();
+    expect(capWarning.nativeElement.textContent).toContain(
+      `Maximum limit of ${MAX_BATCH_TASKS} tasks reached`,
+    );
+
+    const checkboxes = fixture.debugElement.queryAll(By.css('.task-list input[type=checkbox]'));
+    expect(checkboxes.length).toBe(105);
+    expect(checkboxes[0].nativeElement.checked).toBeTrue();
+    expect(checkboxes[0].nativeElement.disabled).toBeFalse();
+    expect(checkboxes[99].nativeElement.checked).toBeTrue();
+    expect(checkboxes[99].nativeElement.disabled).toBeFalse();
+    expect(checkboxes[100].nativeElement.checked).toBeFalse();
+    expect(checkboxes[100].nativeElement.disabled).toBeTrue();
+    expect(checkboxes[104].nativeElement.checked).toBeFalse();
+    expect(checkboxes[104].nativeElement.disabled).toBeTrue();
+
+    checkboxes[100].nativeElement.click();
+    fixture.detectChanges();
+    expect(confirmButton.nativeElement.textContent).toContain(`Add ${MAX_BATCH_TASKS} tasks`);
+
+    checkboxes[0].nativeElement.click();
+    fixture.detectChanges();
+    expect(checkboxes[100].nativeElement.disabled).toBeFalse();
+    expect(fixture.debugElement.query(By.css('.cap-warning'))).toBeNull();
   });
 });

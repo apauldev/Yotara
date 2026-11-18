@@ -7,6 +7,7 @@ import {
   OnChanges,
   Output,
   SimpleChanges,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -15,6 +16,8 @@ import type { Priority, ProjectSection, Task, UpdateTaskDto } from '@yotara/shar
 import { TaskService } from '../../../core/services/task.service';
 import { ModalComponent } from '../../../shared/ui/modal/modal.component';
 import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
+
+export const MAX_BATCH_TASKS = 100;
 
 export interface AddExistingTasksPayload {
   taskIds: string[];
@@ -94,8 +97,19 @@ export interface AddExistingTasksPayload {
 
           <label class="select-all">
             <input type="checkbox" [checked]="allSelected()" (change)="toggleAll()" />
-            <span>Select all ({{ filteredTasks().length }})</span>
+            <span>
+              Select all ({{ filteredTasks().length }})
+              @if (filteredTasks().length > maxBatchTasks) {
+                <span class="cap-note">— first {{ maxBatchTasks }} will be selected</span>
+              }
+            </span>
           </label>
+
+          @if (selected().size >= maxBatchTasks) {
+            <p class="cap-warning" role="status">
+              Maximum limit of {{ maxBatchTasks }} tasks reached for this batch.
+            </p>
+          }
 
           <ul class="task-list">
             @for (task of filteredTasks(); track task.id) {
@@ -104,6 +118,7 @@ export interface AddExistingTasksPayload {
                   <input
                     type="checkbox"
                     [checked]="selected().has(task.id)"
+                    [disabled]="selected().size >= maxBatchTasks && !selected().has(task.id)"
                     (change)="toggle(task.id)"
                   />
                   <span class="task-title">{{ task.title }}</span>
@@ -122,7 +137,7 @@ export interface AddExistingTasksPayload {
         <button
           type="button"
           class="primary-button"
-          [disabled]="selected().size === 0 || saving"
+          [disabled]="selected().size === 0 || selected().size > maxBatchTasks || saving"
           (click)="confirm()"
         >
           {{
@@ -223,6 +238,22 @@ export interface AddExistingTasksPayload {
         font-weight: 700;
       }
 
+      .cap-warning {
+        margin: 0;
+        padding: 0.45rem 0.75rem;
+        border-radius: 0.65rem;
+        background: color-mix(in srgb, var(--status-pending) 12%, transparent);
+        color: var(--status-pending);
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+
+      .cap-note {
+        color: var(--on-surface-muted);
+        font-size: 0.78rem;
+        font-weight: 500;
+      }
+
       .task-list {
         list-style: none;
         margin: 0;
@@ -320,18 +351,23 @@ export class AddExistingTasksModalComponent implements OnChanges {
   protected readonly sectionId = signal<string | null>(null);
   protected readonly priority = signal<Priority | ''>('');
   protected readonly dueDate = signal('');
+  protected readonly maxBatchTasks = MAX_BATCH_TASKS;
 
-  protected readonly filteredTasks = () => {
+  protected readonly filteredTasks = computed(() => {
     const query = this.query().trim().toLowerCase();
-    return query
-      ? this.tasks().filter((task) => task.title.toLowerCase().includes(query))
-      : this.tasks();
-  };
+    const tasks = this.tasks();
+    return query ? tasks.filter((task) => task.title.toLowerCase().includes(query)) : tasks;
+  });
 
-  protected readonly allSelected = () => {
+  protected readonly allSelected = computed(() => {
     const visible = this.filteredTasks();
-    return visible.length > 0 && visible.every((task) => this.selected().has(task.id));
-  };
+    if (visible.length === 0) {
+      return false;
+    }
+    const targetCount = Math.min(visible.length, this.maxBatchTasks);
+    const selectedVisibleCount = visible.filter((task) => this.selected().has(task.id)).length;
+    return selectedVisibleCount >= targetCount;
+  });
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['open']?.currentValue === true) {
@@ -347,6 +383,8 @@ export class AddExistingTasksModalComponent implements OnChanges {
     this.dueDate.set('');
     this.loading.set(true);
     this.loadError.set(null);
+    // Subtasks are excluded from the unassigned picker by default; they belong to
+    // their parent task and inherit its project assignment automatically.
     this.taskService.getUnassignedTasks().subscribe({
       next: (response) => {
         this.tasks.set(response.data);
@@ -364,7 +402,7 @@ export class AddExistingTasksModalComponent implements OnChanges {
       const next = new Set(current);
       if (next.has(taskId)) {
         next.delete(taskId);
-      } else {
+      } else if (next.size < this.maxBatchTasks) {
         next.add(taskId);
       }
       return next;
@@ -375,11 +413,19 @@ export class AddExistingTasksModalComponent implements OnChanges {
     const ids = this.filteredTasks().map((task) => task.id);
     this.selected.update((current) => {
       const next = new Set(current);
-      const everySelected = ids.every((id) => next.has(id));
-      for (const id of ids) {
-        if (everySelected) {
+      const targetCount = Math.min(ids.length, this.maxBatchTasks);
+      const selectedVisibleCount = ids.filter((id) => next.has(id)).length;
+      const allVisibleSelected = selectedVisibleCount >= targetCount && targetCount > 0;
+
+      if (allVisibleSelected) {
+        for (const id of ids) {
           next.delete(id);
-        } else {
+        }
+      } else {
+        for (const id of ids) {
+          if (next.size >= this.maxBatchTasks) {
+            break;
+          }
           next.add(id);
         }
       }
@@ -388,7 +434,11 @@ export class AddExistingTasksModalComponent implements OnChanges {
   }
 
   protected confirm() {
-    if (this.selected().size === 0) {
+    if (
+      this.selected().size === 0 ||
+      this.selected().size > this.maxBatchTasks ||
+      !this.projectId
+    ) {
       return;
     }
 
