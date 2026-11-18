@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type {
   BatchUpdateTasksDto,
+  BatchUpdateTasksResponse,
   CreateTaskDto,
   PaginatedResponse,
   Task,
@@ -409,14 +410,15 @@ export default async function taskRoutes(fastify: FastifyInstance) {
   fastify.patch<{
     Body: BatchUpdateTasksDto;
     Querystring: { tz?: string };
-    Reply: { ok: true; updated: number } | { message: string };
+    Reply: BatchUpdateTasksResponse | { message: string };
   }>(
     '/tasks',
     {
       schema: withJsonResponse({
         tags: ['tasks'],
         summary: 'Update several tasks at once',
-        description: 'Applies the same patch to every listed task in a single transaction.',
+        description:
+          'Applies the same patch to every listed task in a single transaction. Missing or trashed tasks are skipped and returned in missing; invalid parameters (such as an invalid section for the target project) fail the entire batch atomically.',
         security: authCookieSecurity,
         querystring: {
           type: 'object',
@@ -429,10 +431,15 @@ export default async function taskRoutes(fastify: FastifyInstance) {
           200: {
             description: 'Tasks updated',
             type: 'object',
-            required: ['ok', 'updated'],
+            required: ['ok', 'updated', 'missing'],
             properties: {
               ok: { type: 'boolean' },
               updated: { type: 'integer', minimum: 0 },
+              missing: {
+                type: 'array',
+                items: { type: 'string', format: 'uuid' },
+                description: 'Task IDs that were not found or were in trash and were skipped.',
+              },
             },
           },
           400: errorResponseSchema('Invalid batch payload', 'Bad request'),
@@ -458,7 +465,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       }
 
       const result = updateTasksForOwner(userId, request.body.taskIds, patch, request.query.tz);
-      return { ok: true as const, updated: result.updated };
+      return { ok: true as const, updated: result.updated, missing: result.missing };
     },
   );
 

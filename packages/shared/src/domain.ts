@@ -130,6 +130,13 @@ export interface BatchUpdateTasksDto {
   patch: UpdateTaskDto;
 }
 
+/** Result of applying a batch update to tasks. */
+export interface BatchUpdateTasksResponse {
+  ok: true;
+  updated: number;
+  missing: string[];
+}
+
 // ─── API Response Wrappers ───────────────────────────────────────────────────
 
 export interface ApiResponse<T> {

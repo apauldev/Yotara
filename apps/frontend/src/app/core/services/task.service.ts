@@ -1,7 +1,14 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { CreateTaskDto, PaginatedResponse, Priority, Task, UpdateTaskDto } from '@yotara/shared';
+import {
+  BatchUpdateTasksResponse,
+  CreateTaskDto,
+  PaginatedResponse,
+  Priority,
+  Task,
+  UpdateTaskDto,
+} from '@yotara/shared';
 import { LogService } from './log.service';
 import {
   catchError,
@@ -197,7 +204,7 @@ export class TaskService {
 
     try {
       const result = await firstValueFrom(
-        this.http.patch<{ ok: boolean; updated: number; missing?: string[] }>(
+        this.http.patch<BatchUpdateTasksResponse>(
           `${this.baseUrl}/tasks`,
           { taskIds, patch },
           { withCredentials: true },

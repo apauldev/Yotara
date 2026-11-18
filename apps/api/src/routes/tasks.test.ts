@@ -2200,17 +2200,19 @@ test('unassigned filter and batch patch move several tasks into a project at onc
     assert.ok(unassignedIds.includes(ids[1]));
     assert.ok(!unassignedIds.includes(filedId), 'filed tasks are excluded');
 
+    const missingId = randomUUID();
     const batch = await ctx.app.inject({
       method: 'PATCH',
       url: '/tasks',
       headers: { cookie },
       payload: {
-        taskIds: [...ids, randomUUID()],
+        taskIds: [...ids, missingId],
         patch: { projectId, sectionId, priority: 'high' },
       },
     });
     assert.equal(batch.statusCode, 200);
     assert.equal(batch.json().updated, 2, 'missing ids are skipped, not fatal');
+    assert.deepEqual(batch.json().missing, [missingId], 'missing ids are reported in response');
 
     for (const id of ids) {
       const updated = await ctx.app.inject({
@@ -2232,6 +2234,136 @@ test('unassigned filter and batch patch move several tasks into a project at onc
       !after.json().data.some((task: { id: string }) => ids.includes(task.id)),
       'batched tasks left the unassigned pool',
     );
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('batch patch enforces atomicity, reports missing/trashed ids, and rejects >100 ids', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`batch-atomic-${randomUUID()}@example.com`);
+
+    const p1Res = await ctx.app.inject({
+      method: 'POST',
+      url: '/projects',
+      headers: { cookie },
+      payload: { name: 'Batch Atomic 1' },
+    });
+    assert.equal(p1Res.statusCode, 201);
+    const p1Id = p1Res.json().id as string;
+
+    const p2Res = await ctx.app.inject({
+      method: 'POST',
+      url: '/projects',
+      headers: { cookie },
+      payload: { name: 'Batch Atomic 2' },
+    });
+    assert.equal(p2Res.statusCode, 201);
+    const p2Id = p2Res.json().id as string;
+
+    const p2SectionRes = await ctx.app.inject({
+      method: 'POST',
+      url: `/projects/${p2Id}/sections`,
+      headers: { cookie },
+      payload: { name: 'P2 Section' },
+    });
+    assert.equal(p2SectionRes.statusCode, 201);
+    const p2SectionId = p2SectionRes.json().id as string;
+
+    const task1Res = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Atomic task 1' },
+    });
+    const task2Res = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Atomic task 2' },
+    });
+    const task1Id = task1Res.json().id as string;
+    const task2Id = task2Res.json().id as string;
+
+    // (a) Section from a different project fails and entire batch rolls back atomically
+    const mismatchedSectionRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/tasks',
+      headers: { cookie },
+      payload: {
+        taskIds: [task1Id, task2Id],
+        patch: { projectId: p1Id, sectionId: p2SectionId },
+      },
+    });
+    assert.equal(mismatchedSectionRes.statusCode, 400);
+
+    // Verify rollback: neither task was modified
+    for (const id of [task1Id, task2Id]) {
+      const getRes = await ctx.app.inject({
+        method: 'GET',
+        url: `/tasks/${id}`,
+        headers: { cookie },
+      });
+      assert.equal(getRes.statusCode, 200);
+      assert.equal(getRes.json().projectId, undefined);
+      assert.equal(getRes.json().sectionId, undefined);
+    }
+
+    // (b) Trashed / missing ID mixed into a valid batch is skipped, reported in missing, rest applied
+    const trashedRes = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'To be trashed' },
+    });
+    const trashedId = trashedRes.json().id as string;
+    const deleteRes = await ctx.app.inject({
+      method: 'DELETE',
+      url: `/tasks/${trashedId}`,
+      headers: { cookie },
+    });
+    assert.equal(deleteRes.statusCode, 200);
+
+    const nonExistentId = randomUUID();
+    const partialBatchRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/tasks',
+      headers: { cookie },
+      payload: {
+        taskIds: [task1Id, trashedId, task2Id, nonExistentId],
+        patch: { projectId: p1Id, priority: 'high' },
+      },
+    });
+    assert.equal(partialBatchRes.statusCode, 200);
+    const partialJson = partialBatchRes.json();
+    assert.equal(partialJson.ok, true);
+    assert.equal(partialJson.updated, 2);
+    assert.deepEqual(partialJson.missing.slice().sort(), [trashedId, nonExistentId].slice().sort());
+
+    for (const id of [task1Id, task2Id]) {
+      const getRes = await ctx.app.inject({
+        method: 'GET',
+        url: `/tasks/${id}`,
+        headers: { cookie },
+      });
+      assert.equal(getRes.json().projectId, p1Id);
+      assert.equal(getRes.json().priority, 'high');
+    }
+
+    // (c) More than 100 task IDs rejected by schema validation (400 Bad Request)
+    const tooManyIds = Array.from({ length: 101 }, () => randomUUID());
+    const overLimitRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/tasks',
+      headers: { cookie },
+      payload: {
+        taskIds: tooManyIds,
+        patch: { priority: 'low' },
+      },
+    });
+    assert.equal(overLimitRes.statusCode, 400);
   } finally {
     await ctx.cleanup();
   }

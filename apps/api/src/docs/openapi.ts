@@ -978,6 +978,18 @@ export const examples = {
     status: 'done',
     projectId: null,
   },
+  batchUpdateTasks: {
+    taskIds: ['9fd8141d-e282-43b8-96d5-a19e6b6f0c8f', '3f2c1b7a-9d84-4f2e-b0a1-5c7d8e9f0a1b'],
+    patch: {
+      projectId: '16f9232b-1dc3-4a8b-afec-0d6df02a4aa2',
+      priority: 'high',
+    },
+  },
+  batchUpdateTasksResponse: {
+    ok: true,
+    updated: 2,
+    missing: [],
+  },
   paginatedTasks: {
     data: [
       {
@@ -1361,6 +1373,19 @@ function addOpenApiExamples(paths: OpenApiPathRecord) {
     ensureJsonContent(tasksPost, '401').example = examples.apiError('Unauthorized');
     ensureJsonContent(tasksPost, '404').example = examples.apiError('Project not found');
     ensureJsonContent(tasksPost, '500').example = examples.apiError('Failed to create task');
+  }
+
+  const tasksBatchPatch = paths['/tasks']?.patch;
+  if (tasksBatchPatch) {
+    tasksBatchPatch.requestBody ??= { content: { 'application/json': {} } };
+    tasksBatchPatch.requestBody.content ??= {};
+    tasksBatchPatch.requestBody.content['application/json'] ??= {};
+    tasksBatchPatch.requestBody.content['application/json'].example = examples.batchUpdateTasks;
+    ensureJsonContent(tasksBatchPatch, '200').example = examples.batchUpdateTasksResponse;
+    ensureJsonContent(tasksBatchPatch, '400').example = examples.apiError('Invalid batch payload');
+    ensureJsonContent(tasksBatchPatch, '401').example = examples.apiError('Unauthorized');
+    ensureJsonContent(tasksBatchPatch, '404').example = examples.apiError('Project not found');
+    ensureJsonContent(tasksBatchPatch, '500').example = examples.apiError('Failed to update tasks');
   }
 
   const projectsGet = paths['/projects']?.get;
