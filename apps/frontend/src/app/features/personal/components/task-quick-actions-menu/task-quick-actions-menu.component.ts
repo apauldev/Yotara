@@ -695,6 +695,7 @@ export interface TaskQuickActionsSaveEvent {
         height: 0.5rem;
         border-radius: 999px;
         flex-shrink: 0;
+        box-shadow: 0 0 0 1px var(--project-dot-ring);
       }
 
       .project-dot-empty {

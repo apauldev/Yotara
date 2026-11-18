@@ -134,6 +134,8 @@
   --surface-container-highest: #e5e2da;
   --outline-variant: rgb(28 28 23 / 15%);
   --on-surface: #1c1c17;
+  /* Project accent ring: dark in light themes, light in dark themes. */
+  --project-dot-ring: color-mix(in srgb, var(--on-surface) 58%, transparent);
   --on-surface-muted: #5d5952;
   --on-surface-subtle: #706a60;
   --surface-overlay: color-mix(in srgb, var(--surface-container-low) 88%, transparent);

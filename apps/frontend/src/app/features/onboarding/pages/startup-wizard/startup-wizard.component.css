@@ -1057,6 +1057,7 @@ kbd {
   height: 1.4rem;
   border-radius: 50%;
   border: 2px solid transparent;
+  box-shadow: 0 0 0 1px var(--project-dot-ring);
   padding: 0;
   cursor: pointer;
   transition:

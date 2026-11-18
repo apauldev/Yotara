@@ -157,7 +157,7 @@ describe('PersonalTaskCardComponent', () => {
       fixture.detectChanges();
 
       const dot = fixture.debugElement.query(By.css('.project-inline .project-dot'));
-      expect(dot.nativeElement.style.backgroundColor).toBe('rgb(45, 123, 117)');
+      expect(dot.nativeElement.style.backgroundColor).toBe('rgb(14, 158, 152)');
     });
 
     it('should omit the project pill when the task has no project', () => {
