@@ -2107,6 +2107,22 @@ test('soft-deleted tasks stay in Trash for 30 days and can be restored', async (
     assert.equal(again.statusCode, 404, 'restoring an active task is not found');
 
     // Once past the recovery window the next task view purges it for good.
+    const [taskOwner] = await db
+      .select({ userId: tasksTable.userId })
+      .from(tasksTable)
+      .where(eq(tasksTable.id, taskId))
+      .limit(1);
+    const { projects: projectsTable } = await import('../db/schema.js');
+    const oldProjId = randomUUID();
+    await db.insert(projectsTable).values({
+      id: oldProjId,
+      name: 'Old Retired Project',
+      ownerId: taskOwner!.userId!,
+      retiredAt: daysAgoIso(31),
+      createdAt: daysAgoIso(35),
+      updatedAt: daysAgoIso(31),
+    });
+
     await db
       .update(tasksTable)
       .set({ deletedAt: daysAgoIso(31) })
@@ -2118,6 +2134,12 @@ test('soft-deleted tasks stay in Trash for 30 days and can be restored', async (
       .where(eq(tasksTable.id, taskId))
       .limit(1);
     assert.equal(purged, undefined, 'expired Trash entries are permanently removed');
+    const [purgedProj] = await db
+      .select({ id: projectsTable.id })
+      .from(projectsTable)
+      .where(eq(projectsTable.id, oldProjId))
+      .limit(1);
+    assert.equal(purgedProj, undefined, 'expired retired projects are permanently removed');
   } finally {
     await ctx.cleanup();
   }

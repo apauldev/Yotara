@@ -55,7 +55,7 @@ interface TrashGroup {
               (click)="restoreGroup(group)"
             >
               <fa-icon [icon]="faRotateLeft" aria-hidden="true"></fa-icon>
-              <span>{{ group.projectName ? 'Restore project & tasks' : 'Restore task' }}</span>
+              <span>{{ restoreButtonLabel(group) }}</span>
             </button>
           </header>
 
@@ -197,7 +197,7 @@ export class TrashListComponent {
   );
 
   /** Tasks removed by the same project deletion share a deletedAt stamp. */
-  protected readonly groups = computed(() => {
+  protected readonly groups = computed<TrashGroup[]>(() => {
     const byTimestamp = new Map<string, Task[]>();
     for (const task of this.response().data) {
       const key = task.deletedAt ?? 'unknown';
@@ -209,12 +209,14 @@ export class TrashListComponent {
       }
     }
     return [...byTimestamp.entries()]
-      .map(([deletedAt, tasks]) => ({
-        deletedAt,
-        tasks,
-        projectName: tasks.find((task) => !!task.deletedProjectName)?.deletedProjectName,
-      }))
-      .sort((a, b) => (a.deletedAt < b.deletedAt ? 1 : -1)) as TrashGroup[];
+      .map(
+        ([deletedAt, tasks]): TrashGroup => ({
+          deletedAt,
+          tasks,
+          projectName: tasks.find((task) => !!task.deletedProjectName)?.deletedProjectName,
+        }),
+      )
+      .sort((a, b) => (a.deletedAt < b.deletedAt ? 1 : -1));
   });
 
   private emptyResponse(): PaginatedResponse<Task[]> {
@@ -234,6 +236,13 @@ export class TrashListComponent {
   protected groupLabel(group: TrashGroup): string {
     const count = `${group.tasks.length} ${group.tasks.length === 1 ? 'task' : 'tasks'}`;
     return group.projectName ? `${group.projectName} · ${count}` : count;
+  }
+
+  protected restoreButtonLabel(group: TrashGroup): string {
+    if (group.projectName) {
+      return 'Restore project & tasks';
+    }
+    return group.tasks.length > 1 ? 'Restore tasks' : 'Restore task';
   }
 
   protected async restoreGroup(group: TrashGroup) {

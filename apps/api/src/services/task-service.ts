@@ -119,6 +119,18 @@ export async function cleanupExpiredArchivedTasks(ownerId: string) {
       ),
     );
 
+  // Retired projects whose tasks have aged past the recovery window are
+  // also purged so soft-deleted projects don't linger in SQLite forever.
+  await db
+    .delete(projects)
+    .where(
+      and(
+        eq(projects.ownerId, ownerId),
+        isNotNull(projects.retiredAt),
+        sql`${projects.retiredAt} < ${cutoffIso}`,
+      ),
+    );
+
   const archiveAutoDelete = await getArchiveAutoDeleteForOwner(ownerId);
   if (!archiveAutoDelete) {
     return 0;
@@ -950,7 +962,7 @@ export function restoreTaskForOwner(ownerId: string, taskId: string): boolean {
 
   const run = (client: Database) => {
     const [target] = client
-      .select({ deletedAt: tasks.deletedAt })
+      .select({ deletedAt: tasks.deletedAt, projectId: tasks.projectId })
       .from(tasks)
       .where(and(eq(tasks.id, taskId), eq(tasks.userId, ownerId), isNotNull(tasks.deletedAt)))
       .limit(1)
@@ -964,16 +976,32 @@ export function restoreTaskForOwner(ownerId: string, taskId: string): boolean {
     const restored = client
       .update(tasks)
       .set({ deletedAt: null, updatedAt: now })
-      .where(and(eq(tasks.userId, ownerId), eq(tasks.deletedAt, target.deletedAt)))
+      .where(
+        target.projectId
+          ? and(
+              eq(tasks.userId, ownerId),
+              eq(tasks.projectId, target.projectId),
+              eq(tasks.deletedAt, target.deletedAt),
+            )
+          : and(eq(tasks.userId, ownerId), eq(tasks.deletedAt, target.deletedAt)),
+      )
       .run();
 
     // The project was retired with the same stamp; un-retire it so the tasks
     // land back in their original project instead of as orphaned Inbox items.
-    client
-      .update(projects)
-      .set({ retiredAt: null, updatedAt: now })
-      .where(and(eq(projects.ownerId, ownerId), eq(projects.retiredAt, target.deletedAt)))
-      .run();
+    if (target.projectId) {
+      client
+        .update(projects)
+        .set({ retiredAt: null, updatedAt: now })
+        .where(
+          and(
+            eq(projects.id, target.projectId),
+            eq(projects.ownerId, ownerId),
+            isNotNull(projects.retiredAt),
+          ),
+        )
+        .run();
+    }
 
     return restored.changes > 0;
   };

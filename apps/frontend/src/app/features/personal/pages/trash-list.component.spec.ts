@@ -113,7 +113,8 @@ describe('TrashListComponent', () => {
 
     const buttons = fixture.debugElement.queryAll(By.css('.restore-button'));
     expect(buttons.length).toBe(2);
-    expect(buttons[0].nativeElement.textContent).toContain('Restore task');
+    expect(buttons[0].nativeElement.textContent).toContain('Restore tasks');
+    expect(buttons[1].nativeElement.textContent).toContain('Restore task');
 
     // One click restores the whole batch identified by the deletion stamp.
     buttons[0].nativeElement.click();

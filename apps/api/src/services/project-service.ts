@@ -405,6 +405,7 @@ export async function deleteProjectForOwner(
   const keepTasks = options.keepTasks !== false;
 
   db.transaction((tx) => {
+    let softDeletedTasksCount = 0;
     if (keepTasks) {
       tx.update(tasks)
         .set({
@@ -415,7 +416,8 @@ export async function deleteProjectForOwner(
         .where(and(eq(tasks.projectId, projectId), eq(tasks.userId, ownerId)))
         .run();
     } else {
-      tx.update(tasks)
+      const updateResult = tx
+        .update(tasks)
         .set({
           deletedAt: now,
           updatedAt: now,
@@ -424,9 +426,10 @@ export async function deleteProjectForOwner(
           and(eq(tasks.projectId, projectId), eq(tasks.userId, ownerId), isNull(tasks.deletedAt)),
         )
         .run();
+      softDeletedTasksCount = updateResult.changes;
     }
 
-    if (keepTasks) {
+    if (keepTasks || softDeletedTasksCount === 0) {
       tx.delete(projects)
         .where(and(eq(projects.id, projectId), eq(projects.ownerId, ownerId)))
         .run();

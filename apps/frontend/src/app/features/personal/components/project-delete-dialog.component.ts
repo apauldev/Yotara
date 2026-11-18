@@ -26,52 +26,55 @@ import { ModalComponent } from '../../../shared/ui/modal/modal.component';
       (close)="close.emit()"
     >
       <div class="delete-dialog-content">
-        <p class="delete-summary">
-          @if ((project?.taskCount ?? 0) === 0) {
-            This project has no tasks.
-          } @else {
+        @if ((project?.taskCount ?? 0) === 0) {
+          <p class="delete-summary">
+            Are you sure you want to delete <strong>“{{ project?.name }}”</strong>? This project has
+            no tasks, and this action cannot be undone.
+          </p>
+        } @else {
+          <p class="delete-summary">
             This project contains
             <strong
               >{{ project?.taskCount }} {{ project?.taskCount === 1 ? 'task' : 'tasks' }}</strong
             >. Choose what happens to them:
-          }
-        </p>
+          </p>
 
-        <div class="delete-options" role="radiogroup" aria-label="Task handling options">
-          <button
-            type="button"
-            role="radio"
-            class="delete-option-card"
-            [class.selected]="keepTasks()"
-            [attr.aria-checked]="keepTasks()"
-            (click)="keepTasks.set(true)"
-          >
-            <div class="option-header">
-              <strong>Delete project, keep tasks</strong>
-              <span class="recommended-badge">Recommended</span>
-            </div>
-            <p>
-              Tasks lose their project assignment but keep their dates, labels, and notes. Undated
-              open tasks return to your Inbox.
-            </p>
-          </button>
+          <div class="delete-options" role="radiogroup" aria-label="Task handling options">
+            <button
+              type="button"
+              role="radio"
+              class="delete-option-card"
+              [class.selected]="keepTasks()"
+              [attr.aria-checked]="keepTasks()"
+              (click)="keepTasks.set(true)"
+            >
+              <div class="option-header">
+                <strong>Delete project, keep tasks</strong>
+                <span class="recommended-badge">Recommended</span>
+              </div>
+              <p>
+                Tasks lose their project assignment but keep their dates, labels, and notes. Undated
+                open tasks return to your Inbox.
+              </p>
+            </button>
 
-          <button
-            type="button"
-            role="radio"
-            class="delete-option-card option-danger"
-            [class.selected]="!keepTasks()"
-            [attr.aria-checked]="!keepTasks()"
-            (click)="keepTasks.set(false)"
-          >
-            <div class="option-header">
-              <strong>Delete project and tasks</strong>
-            </div>
-            <p>
-              The project and its tasks move to Trash and can be restored together within 30 days.
-            </p>
-          </button>
-        </div>
+            <button
+              type="button"
+              role="radio"
+              class="delete-option-card option-danger"
+              [class.selected]="!keepTasks()"
+              [attr.aria-checked]="!keepTasks()"
+              (click)="keepTasks.set(false)"
+            >
+              <div class="option-header">
+                <strong>Delete project and tasks</strong>
+              </div>
+              <p>
+                The project and its tasks move to Trash and can be restored together within 30 days.
+              </p>
+            </button>
+          </div>
+        }
       </div>
 
       <div modal-footer class="delete-actions">
@@ -80,16 +83,20 @@ import { ModalComponent } from '../../../shared/ui/modal/modal.component';
         </button>
         <button
           type="button"
-          [class]="keepTasks() ? 'primary-button' : 'danger-button'"
+          [class]="
+            (project?.taskCount ?? 0) === 0 || !keepTasks() ? 'danger-button' : 'primary-button'
+          "
           [disabled]="loading"
           (click)="confirmDelete.emit({ keepTasks: keepTasks() })"
         >
           {{
             loading
               ? 'Deleting...'
-              : keepTasks()
-                ? 'Delete Project, Keep Tasks'
-                : 'Delete Project & Tasks'
+              : (project?.taskCount ?? 0) === 0
+                ? 'Delete Project'
+                : keepTasks()
+                  ? 'Delete Project, Keep Tasks'
+                  : 'Delete Project & Tasks'
           }}
         </button>
       </div>

@@ -79,6 +79,23 @@ describe('ProjectDeleteDialogComponent', () => {
     expect(confirmSpy).toHaveBeenCalledWith({ keepTasks: false });
   });
 
+  it('renders direct confirmation without radio options when project has 0 tasks', () => {
+    component.open = true;
+    component.project = { ...mockProject, taskCount: 0 };
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('This project has no tasks, and this action cannot be undone');
+    expect(fixture.nativeElement.querySelector('.delete-options')).toBeNull();
+
+    const confirmSpy = spyOn(component.confirmDelete, 'emit');
+    const deleteBtn = fixture.nativeElement.querySelector('.danger-button');
+    expect(deleteBtn.textContent.trim()).toBe('Delete Project');
+    deleteBtn.click();
+
+    expect(confirmSpy).toHaveBeenCalledWith({ keepTasks: true });
+  });
+
   it('emits close on cancel button click', () => {
     component.open = true;
     component.project = mockProject;

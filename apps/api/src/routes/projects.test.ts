@@ -887,6 +887,28 @@ test('project deletion handles task preservation (keepTasks) and cascading soft-
       headers: { cookie: userCookie },
     });
     assert.equal(p2Fetch.statusCode, 200, 'project is visible again after restore');
+
+    // Deleting an empty project with keepTasks: false permanently deletes it
+    // instead of creating an un-restorable retired zombie project.
+    const emptyProj = await ctx.app.inject({
+      method: 'POST',
+      url: '/projects',
+      headers: { cookie: userCookie },
+      payload: { name: 'Empty Project' },
+    });
+    const emptyProjId = emptyProj.json().id as string;
+    const deleteEmpty = await ctx.app.inject({
+      method: 'DELETE',
+      url: `/projects/${emptyProjId}?keepTasks=false`,
+      headers: { cookie: userCookie },
+    });
+    assert.equal(deleteEmpty.statusCode, 200);
+    const [emptyRow] = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(eq(projects.id, emptyProjId))
+      .limit(1);
+    assert.equal(emptyRow, undefined, 'empty project is hard deleted, not left as a retired ghost');
   } finally {
     await ctx.cleanup();
   }
