@@ -540,8 +540,9 @@ export class ProjectDetailPageComponent {
     this.reloadProjectDetails();
   }
 
-  protected projectColorClass(project: Project) {
-    return `project-${projectPaletteFor(project.color).value}`;
+  /** Single source of truth: accent hexes come from PROJECT_PALETTE, not duplicated CSS. */
+  protected projectAccent(project: Project) {
+    return projectPaletteFor(project.color).accent;
   }
 
   protected progressPercent(project: Project) {

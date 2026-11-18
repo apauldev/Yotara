@@ -240,36 +240,15 @@
   white-space: nowrap;
 }
 
+// --project-accent is set inline from PROJECT_PALETTE (the single source of truth).
 .project-color-dot {
   width: 0.75rem;
   height: 0.75rem;
   border-radius: 999px;
   flex-shrink: 0;
   background: var(--project-accent);
-  box-shadow: 0 0 0 1px var(--project-dot-ring);
+  outline: 1px solid var(--project-dot-ring);
 }
-
-// Project color variables
-/* stylelint-disable color-no-hex, yotara/no-hardcoded-color -- per-project accent colors are user-selectable domain data */
-.project-card-sage {
-  --project-accent: #49a56e;
-}
-.project-card-teal {
-  --project-accent: #0e9e98;
-}
-.project-card-olive {
-  --project-accent: #94a62f;
-}
-.project-card-clay {
-  --project-accent: #d66b43;
-}
-.project-card-forest {
-  --project-accent: #20714b;
-}
-.project-card-deep-ocean {
-  --project-accent: #3183bd;
-}
-/* stylelint-enable color-no-hex, yotara/no-hardcoded-color */
 
 .project-info {
   flex: 1;

@@ -9,6 +9,7 @@ import { ProjectsPageComponent } from './projects-page.component';
 import { ProjectService } from '../../../core/services/project.service';
 import { TaskService } from '../../../core/services/task.service';
 import { LogService } from '../../../core/services/log.service';
+import { projectPaletteFor } from '../project-presentation';
 
 describe('ProjectsPageComponent', () => {
   let projects: WritableSignal<Project[]>;
@@ -98,6 +99,22 @@ describe('ProjectsPageComponent', () => {
     // Check for edit button by aria-label
     const editBtn = fixture.nativeElement.querySelector('[aria-label*="Edit project"]');
     expect(editBtn).toBeTruthy();
+  });
+
+  it('drives the color dot from the shared palette via an inline accent', () => {
+    const fixture = TestBed.createComponent(ProjectsPageComponent);
+    fixture.detectChanges();
+
+    const accent = () =>
+      (
+        fixture.debugElement.query(By.css('.project-color-dot')).nativeElement as HTMLElement
+      ).style.getPropertyValue('--project-accent');
+
+    expect(accent()).toBe(projectPaletteFor('sage').accent);
+
+    projects.set([{ ...projects()[0], color: 'clay' }]);
+    fixture.detectChanges();
+    expect(accent()).toBe(projectPaletteFor('clay').accent);
   });
 
   it('shows open task counts in the always-visible project cell', () => {

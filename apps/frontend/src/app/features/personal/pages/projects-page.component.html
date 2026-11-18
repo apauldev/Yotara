@@ -175,7 +175,7 @@
                     </span>
                     <div
                       class="project-color-dot"
-                      [ngClass]="projectColorClass(project)"
+                      [style.--project-accent]="projectAccent(project)"
                       [attr.aria-label]="'Color: ' + paletteLabel(project)"
                       role="img"
                     ></div>

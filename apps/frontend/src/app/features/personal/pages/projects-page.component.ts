@@ -428,8 +428,9 @@ export class ProjectsPageComponent {
     this.statusService.show('Project deleted', 'info', 4000);
   }
 
-  protected projectColorClass(project: Project) {
-    return `project-card-${projectPaletteFor(project.color).value}`;
+  /** Single source of truth: accent hexes come from PROJECT_PALETTE, not duplicated CSS. */
+  protected projectAccent(project: Project) {
+    return projectPaletteFor(project.color).accent;
   }
 
   protected paletteLabel(project: Project) {

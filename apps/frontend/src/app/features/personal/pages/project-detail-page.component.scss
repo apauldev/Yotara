@@ -157,7 +157,7 @@
     border-radius: 999px;
     flex-shrink: 0;
     background: var(--project-accent);
-    box-shadow: 0 0 0 1px var(--project-dot-ring);
+    outline: 1px solid var(--project-dot-ring);
   }
 
   .meta-label {
@@ -199,27 +199,7 @@
   }
 }
 
-// Project color variables
-/* stylelint-disable color-no-hex, yotara/no-hardcoded-color -- domain color accents */
-.project-sage {
-  --project-accent: #49a56e;
-}
-.project-teal {
-  --project-accent: #0e9e98;
-}
-.project-olive {
-  --project-accent: #94a62f;
-}
-.project-clay {
-  --project-accent: #d66b43;
-}
-.project-forest {
-  --project-accent: #20714b;
-}
-.project-deep-ocean {
-  --project-accent: #3183bd;
-}
-/* stylelint-enable color-no-hex, yotara/no-hardcoded-color */
+// --project-accent is set inline from PROJECT_PALETTE (the single source of truth).
 
 .project-description-container {
   max-width: 48rem;
