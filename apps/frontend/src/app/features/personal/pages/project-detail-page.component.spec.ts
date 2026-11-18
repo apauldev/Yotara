@@ -203,6 +203,42 @@ describe('ProjectDetailPageComponent', () => {
     expect(fixture.componentInstance['addExistingOpen']()).toBeTrue();
   });
 
+  it('toasts the actual updated count when tasks are added to the project', async () => {
+    await configure(baseProject);
+
+    const fixture = TestBed.createComponent(ProjectDetailPageComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const statusSpy = spyOn((fixture.componentInstance as any).statusService, 'show');
+
+    // Case 1: All tasks updated (2 of 2)
+    taskServiceStub.updateTasks.and.resolveTo({ ok: true, updated: 2 });
+    await (fixture.componentInstance as any).confirmAddExistingTasks({
+      taskIds: ['task-1', 'task-2'],
+      patch: { projectId: 'project-1' },
+    });
+    expect(statusSpy).toHaveBeenCalledWith('2 tasks added to this project', 'success', 4000);
+
+    // Case 2: Partial update (2 of 3)
+    statusSpy.calls.reset();
+    taskServiceStub.updateTasks.and.resolveTo({ ok: true, updated: 2 });
+    await (fixture.componentInstance as any).confirmAddExistingTasks({
+      taskIds: ['task-1', 'task-2', 'task-3'],
+      patch: { projectId: 'project-1' },
+    });
+    expect(statusSpy).toHaveBeenCalledWith('2 of 3 tasks added to this project', 'success', 4000);
+
+    // Case 3: 0 tasks updated
+    statusSpy.calls.reset();
+    taskServiceStub.updateTasks.and.resolveTo({ ok: true, updated: 0 });
+    await (fixture.componentInstance as any).confirmAddExistingTasks({
+      taskIds: ['task-1', 'task-2'],
+      patch: { projectId: 'project-1' },
+    });
+    expect(statusSpy).toHaveBeenCalledWith('No tasks were added to this project', 'info', 4000);
+  });
+
   it('surfaces project save errors in the edit modal', async () => {
     await configure(baseProject);
 

@@ -197,7 +197,7 @@ export class TaskService {
 
     try {
       const result = await firstValueFrom(
-        this.http.patch<{ ok: boolean; updated: number }>(
+        this.http.patch<{ ok: boolean; updated: number; missing?: string[] }>(
           `${this.baseUrl}/tasks`,
           { taskIds, patch },
           { withCredentials: true },

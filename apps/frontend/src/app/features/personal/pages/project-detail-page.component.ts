@@ -226,14 +226,26 @@ export class ProjectDetailPageComponent {
 
   protected async confirmAddExistingTasks(event: AddExistingTasksPayload) {
     try {
-      await this.taskService.updateTasks(event.taskIds, event.patch);
+      const result = await this.taskService.updateTasks(event.taskIds, event.patch);
       this.addExistingOpen.set(false);
       this.reloadProjectDetails();
-      this.statusService.show(
-        `${event.taskIds.length} ${event.taskIds.length === 1 ? 'task' : 'tasks'} added to this project`,
-        'success',
-        4000,
-      );
+
+      const updatedCount = result?.updated ?? 0;
+      if (updatedCount === 0) {
+        this.statusService.show('No tasks were added to this project', 'info', 4000);
+      } else if (updatedCount < event.taskIds.length) {
+        this.statusService.show(
+          `${updatedCount} of ${event.taskIds.length} tasks added to this project`,
+          'success',
+          4000,
+        );
+      } else {
+        this.statusService.show(
+          `${updatedCount} ${updatedCount === 1 ? 'task' : 'tasks'} added to this project`,
+          'success',
+          4000,
+        );
+      }
     } catch {
       // TaskService surfaces the error in its own state; keep the picker open.
     }
