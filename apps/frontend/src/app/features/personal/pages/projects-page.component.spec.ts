@@ -225,6 +225,42 @@ describe('ProjectsPageComponent', () => {
     expect(fixture.nativeElement.querySelector('.drag-handle')).toBeTruthy();
   });
 
+  it('includes completed and archived ids in the reorder payload', async () => {
+    const [first] = projects();
+    const second: Project = { ...first, id: 'project-2', name: 'Second', sortOrder: 1 };
+    const completed: Project = {
+      ...first,
+      id: 'project-3',
+      name: 'Completed',
+      completedAt: '2026-04-05T10:00:00.000Z',
+      openTaskCount: 0,
+    };
+    const archived: Project = {
+      ...first,
+      id: 'project-4',
+      name: 'Archived',
+      archivedAt: '2026-04-06T10:00:00.000Z',
+    };
+    projects.set([first, second, completed]);
+    getProjectsByStatusSpy.and.resolveTo([archived]);
+
+    const fixture = TestBed.createComponent(ProjectsPageComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const service = TestBed.inject(ProjectService);
+    fixture.componentInstance['moveProject'](first, 1);
+
+    // The API validates the full non-retired set, so tabs outside Active must
+    // still be present in the payload even though they aren't being dragged.
+    expect(service.reorderProjects).toHaveBeenCalledWith([
+      'project-2',
+      'project-1',
+      'project-3',
+      'project-4',
+    ]);
+  });
+
   it('releases the optimistic order when the refreshed list never matches', fakeAsync(() => {
     const [first] = projects();
     const second: Project = { ...first, id: 'project-2', name: 'Second', sortOrder: 1 };

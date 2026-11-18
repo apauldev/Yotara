@@ -130,6 +130,49 @@ test('sections support create, rename, reorder, and list with open counts', asyn
   }
 });
 
+test('section reorder rejects duplicate ids and ids from another project', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`sections-reorder-guard-${randomUUID()}@example.com`);
+    const projectId = await createProject(ctx.app, cookie, 'Guarded project');
+    const firstId = await createSection(ctx.app, cookie, projectId, 'First');
+    const secondId = await createSection(ctx.app, cookie, projectId, 'Second');
+
+    const otherCookie = await signUpAndGetCookie(
+      `sections-reorder-other-${randomUUID()}@example.com`,
+    );
+    const otherProjectId = await createProject(ctx.app, otherCookie, 'Other project');
+    const foreignId = await createSection(ctx.app, otherCookie, otherProjectId, 'Foreign');
+
+    const duplicate = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/sections/reorder',
+      headers: { cookie },
+      payload: { projectId, ids: [firstId, firstId] },
+    });
+    assert.equal(duplicate.statusCode, 400, 'duplicate ids are rejected');
+
+    const foreign = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/sections/reorder',
+      headers: { cookie },
+      payload: { projectId, ids: [firstId, foreignId] },
+    });
+    assert.equal(foreign.statusCode, 400, 'ids from another project are rejected');
+
+    const valid = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/sections/reorder',
+      headers: { cookie },
+      payload: { projectId, ids: [secondId, firstId] },
+    });
+    assert.equal(valid.statusCode, 200, 'the full valid set still reorders');
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
 test('deleting a section unsections its tasks without deleting them', async () => {
   const ctx = await createAuthedApp();
 

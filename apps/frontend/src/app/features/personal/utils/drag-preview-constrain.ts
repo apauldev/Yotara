@@ -1,5 +1,3 @@
-import type { DragConstrainPosition } from '@angular/cdk/drag-drop';
-
 const VIEWPORT_PADDING = 8;
 
 /**
@@ -8,8 +6,12 @@ const VIEWPORT_PADDING = 8;
  * Clamp the placement to the visible viewport. CDK also uses this point for
  * drop-target sorting, but the clamp only engages near an edge — and the drag
  * lists are vertical, so horizontal clamping never changes the target row.
+ *
+ * Accepts only the point; a function with fewer parameters is assignable to
+ * CDK's `DragConstrainPosition`, so the unused dragRef/dimensions/pickup
+ * arguments are neither declared nor required by callers and tests.
  */
-export const constrainDragPreviewToViewport: DragConstrainPosition = (point) => {
+export const constrainDragPreviewToViewport = (point: { x: number; y: number }) => {
   const preview = document.querySelector<HTMLElement>('.cdk-drag-preview');
   if (!preview) {
     return point;
