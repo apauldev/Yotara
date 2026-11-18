@@ -3,6 +3,7 @@ import { signal } from '@angular/core';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Project } from '@yotara/shared';
 import { AuthStateService } from './auth-state.service';
+import { LogService } from './log.service';
 import { ProjectService } from './project.service';
 
 describe('ProjectService', () => {
@@ -10,8 +11,10 @@ describe('ProjectService', () => {
   const isAuthenticated = signal(false);
   const currentUserId = signal<string | null>(null);
   const onboardingCompleted = signal(false);
+  let logErrorSpy: jasmine.Spy;
 
   beforeEach(() => {
+    logErrorSpy = jasmine.createSpy('logError');
     initialized.set(false);
     isAuthenticated.set(false);
     currentUserId.set(null);
@@ -21,6 +24,7 @@ describe('ProjectService', () => {
       imports: [HttpClientTestingModule],
       providers: [
         ProjectService,
+        { provide: LogService, useValue: { error: logErrorSpy } },
         {
           provide: AuthStateService,
           useValue: {
@@ -481,5 +485,235 @@ describe('ProjectService', () => {
     expect(deleteReq.request.method).toBe('DELETE');
     deleteReq.flush({ success: true });
     tick();
+  }));
+
+  it('refreshes the list after a successful project or section update', fakeAsync(() => {
+    const service = TestBed.inject(ProjectService);
+    const http = TestBed.inject(HttpTestingController);
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    onboardingCompleted.set(true);
+    tick();
+    http.expectOne('http://localhost:3000/projects').flush([]);
+    tick();
+
+    const updatedProject: Project = {
+      id: 'project-1',
+      name: 'Updated',
+      description: '',
+      color: 'sage',
+      kind: 'project',
+      sortOrder: 0,
+      pinned: false,
+      ownerId: 'user-1',
+      taskCount: 0,
+      completedTaskCount: 0,
+      openTaskCount: 0,
+      createdAt: '2026-04-01T10:00:00.000Z',
+      updatedAt: '2026-04-01T10:00:00.000Z',
+    };
+    void service.updateProject('project-1', { name: 'Updated' });
+    http.expectOne('http://localhost:3000/projects/project-1').flush(updatedProject);
+    tick();
+    http.expectOne('http://localhost:3000/projects').flush([updatedProject]);
+    tick();
+
+    void service.updateSection('section-1', { name: 'Renamed' });
+    http
+      .expectOne('http://localhost:3000/sections/section-1')
+      .flush({ id: 'section-1', projectId: 'project-1', name: 'Renamed' });
+    tick();
+    http.expectOne('http://localhost:3000/projects').flush([updatedProject]);
+    tick();
+
+    expect(service.error()).toBeNull();
+  }));
+
+  it('returns null when a project or its tasks are not found', fakeAsync(() => {
+    const service = TestBed.inject(ProjectService);
+    const http = TestBed.inject(HttpTestingController);
+    let project: Project | null | undefined;
+    let tasks: unknown;
+
+    void service.getProject('missing').then((result) => (project = result));
+    void service.getProjectTasks('missing').then((result) => (tasks = result));
+
+    http
+      .expectOne('http://localhost:3000/projects/missing')
+      .flush('nope', { status: 404, statusText: 'Not Found' });
+    http
+      .expectOne('http://localhost:3000/projects/missing/tasks')
+      .flush('nope', { status: 404, statusText: 'Not Found' });
+    tick();
+
+    expect(project).toBeNull();
+    expect(tasks).toBeNull();
+  }));
+
+  it('rethrows non-404 failures when loading a project or its tasks', fakeAsync(() => {
+    const service = TestBed.inject(ProjectService);
+    const http = TestBed.inject(HttpTestingController);
+    let projectError: unknown;
+    let tasksError: unknown;
+
+    void service.getProject('project-1').catch((error) => (projectError = error));
+    void service.getProjectTasks('project-1').catch((error) => (tasksError = error));
+
+    http
+      .expectOne('http://localhost:3000/projects/project-1')
+      .flush('boom', { status: 500, statusText: 'Server Error' });
+    http
+      .expectOne('http://localhost:3000/projects/project-1/tasks')
+      .flush('boom', { status: 500, statusText: 'Server Error' });
+    tick();
+
+    expect(projectError).toBeTruthy();
+    expect(tasksError).toBeTruthy();
+  }));
+
+  it('swallows 401 but reports other failures when loading the project list', fakeAsync(() => {
+    const service = TestBed.inject(ProjectService);
+    const http = TestBed.inject(HttpTestingController);
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    onboardingCompleted.set(true);
+    tick();
+
+    http
+      .expectOne('http://localhost:3000/projects')
+      .flush('unauthorized', { status: 401, statusText: 'Unauthorized' });
+    tick();
+    expect(service.error()).toBeNull();
+
+    service.refresh();
+    tick();
+    http
+      .expectOne('http://localhost:3000/projects')
+      .flush('boom', { status: 500, statusText: 'Server Error' });
+    tick();
+
+    expect(service.error()).toBe('Could not load your projects right now.');
+    expect(logErrorSpy).toHaveBeenCalledWith(
+      'Failed to load projects',
+      jasmine.anything(),
+      'ProjectService',
+    );
+  }));
+
+  it('reports failures, logs, and releases saving for every mutation', fakeAsync(() => {
+    const service = TestBed.inject(ProjectService);
+    const http = TestBed.inject(HttpTestingController);
+
+    const mutations: Array<{
+      label: string;
+      run: () => Promise<unknown>;
+      url: string;
+      method: string;
+      message: string;
+    }> = [
+      {
+        label: 'create project',
+        run: () => service.createProject({ name: 'X' }),
+        url: 'http://localhost:3000/projects',
+        method: 'POST',
+        message: 'Could not create your project right now.',
+      },
+      {
+        label: 'update project',
+        run: () => service.updateProject('project-1', { name: 'X' }),
+        url: 'http://localhost:3000/projects/project-1',
+        method: 'PATCH',
+        message: 'Could not update your project right now.',
+      },
+      {
+        label: 'complete project',
+        run: () => service.completeProject('project-1'),
+        url: 'http://localhost:3000/projects/project-1/complete',
+        method: 'POST',
+        message: 'Could not complete your project right now.',
+      },
+      {
+        label: 'reopen project',
+        run: () => service.reopenProject('project-1'),
+        url: 'http://localhost:3000/projects/project-1/reopen',
+        method: 'POST',
+        message: 'Could not reopen your project right now.',
+      },
+      {
+        label: 'archive project',
+        run: () => service.archiveProject('project-1'),
+        url: 'http://localhost:3000/projects/project-1/archive',
+        method: 'POST',
+        message: 'Could not archive your project right now.',
+      },
+      {
+        label: 'unarchive project',
+        run: () => service.unarchiveProject('project-1'),
+        url: 'http://localhost:3000/projects/project-1/unarchive',
+        method: 'POST',
+        message: 'Could not unarchive your project right now.',
+      },
+      {
+        label: 'reorder projects',
+        run: () => service.reorderProjects(['project-1']),
+        url: 'http://localhost:3000/projects/reorder',
+        method: 'PATCH',
+        message: 'Could not reorder your projects right now.',
+      },
+      {
+        label: 'delete project',
+        run: () => service.deleteProject('project-1'),
+        url: 'http://localhost:3000/projects/project-1?keepTasks=true',
+        method: 'DELETE',
+        message: 'Could not delete your project right now.',
+      },
+      {
+        label: 'create section',
+        run: () => service.createSection('project-1', { name: 'X' }),
+        url: 'http://localhost:3000/projects/project-1/sections',
+        method: 'POST',
+        message: 'Could not create the section right now.',
+      },
+      {
+        label: 'update section',
+        run: () => service.updateSection('section-1', { name: 'X' }),
+        url: 'http://localhost:3000/sections/section-1',
+        method: 'PATCH',
+        message: 'Could not update the section right now.',
+      },
+      {
+        label: 'reorder sections',
+        run: () => service.reorderSections('project-1', ['section-1']),
+        url: 'http://localhost:3000/sections/reorder',
+        method: 'PATCH',
+        message: 'Could not reorder your sections right now.',
+      },
+      {
+        label: 'delete section',
+        run: () => service.deleteSection('section-1'),
+        url: 'http://localhost:3000/sections/section-1',
+        method: 'DELETE',
+        message: 'Could not delete the section right now.',
+      },
+    ];
+
+    for (const mutation of mutations) {
+      let caught: unknown;
+      void mutation.run().catch((error) => (caught = error));
+      tick();
+
+      const request = http.expectOne(mutation.url);
+      expect(request.request.method).withContext(mutation.label).toBe(mutation.method);
+      request.flush('boom', { status: 500, statusText: 'Server Error' });
+      tick();
+
+      expect(caught).withContext(mutation.label).toBeTruthy();
+      expect(service.error()).withContext(mutation.label).toBe(mutation.message);
+      expect(service.saving()).withContext(mutation.label).toBeFalse();
+    }
+
+    expect(logErrorSpy).toHaveBeenCalledTimes(mutations.length);
   }));
 });

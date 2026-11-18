@@ -1,7 +1,7 @@
 import { signal, WritableSignal } from '@angular/core';
-import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { provideMarkdown } from 'ngx-markdown';
 import { of } from 'rxjs';
 import type { Project } from '@yotara/shared';
@@ -9,6 +9,7 @@ import { ProjectsPageComponent } from './projects-page.component';
 import { ProjectService } from '../../../core/services/project.service';
 import { TaskService } from '../../../core/services/task.service';
 import { LogService } from '../../../core/services/log.service';
+import { StatusService } from '../../../core/services/status.service';
 import { projectPaletteFor } from '../project-presentation';
 
 describe('ProjectsPageComponent', () => {
@@ -260,6 +261,210 @@ describe('ProjectsPageComponent', () => {
       'project-4',
     ]);
   });
+
+  it('builds focus copy from active projects and switches tab lists', () => {
+    const fixture = TestBed.createComponent(ProjectsPageComponent);
+    fixture.detectChanges();
+    const cmp = fixture.componentInstance as any;
+
+    expect(cmp.focusHeadline()).toContain('Launch Yotara MVP');
+    expect(cmp.focusBody()).toContain('11');
+
+    cmp.setTab('archived');
+    expect(cmp.currentTabProjects()).toEqual([]);
+    cmp.setTab('trash');
+    expect(cmp.currentTabProjects()).toEqual([]);
+  });
+
+  it('ignores tab keys and moves that are not applicable', () => {
+    const fixture = TestBed.createComponent(ProjectsPageComponent);
+    fixture.detectChanges();
+    const cmp = fixture.componentInstance as any;
+    const button = fixture.nativeElement.querySelector('#projects-tab-active') as HTMLElement;
+
+    cmp.onTabKeydown({ key: 'Enter', target: button, currentTarget: button, preventDefault() {} });
+    expect(cmp.activeTab()).toBe('active');
+    cmp.onTabKeydown({
+      key: 'ArrowRight',
+      target: document.body,
+      currentTarget: button,
+      preventDefault() {},
+    });
+    expect(cmp.activeTab()).toBe('active');
+
+    const project = projects()[0];
+    expect(cmp.canMove(project, -1)).toBeFalse();
+    cmp.moveProject(project, -1);
+    expect(TestBed.inject(ProjectService).reorderProjects).not.toHaveBeenCalled();
+    cmp.onProjectDrop({ previousIndex: 0, currentIndex: 0 } as any, false);
+    expect(TestBed.inject(ProjectService).reorderProjects).not.toHaveBeenCalled();
+  });
+
+  it('navigates tabs with Arrow/Home/End keys', () => {
+    const fixture = TestBed.createComponent(ProjectsPageComponent);
+    fixture.detectChanges();
+    const cmp = fixture.componentInstance as any;
+    const tabs = ['active', 'completed', 'archived', 'trash'];
+
+    const press = (key: string, tab: string) => {
+      const button = fixture.nativeElement.querySelector(`#projects-tab-${tab}`) as HTMLElement;
+      button.focus();
+      cmp.onTabKeydown({ key, target: button, currentTarget: button, preventDefault() {} });
+      fixture.detectChanges();
+    };
+
+    press('ArrowRight', 'active');
+    expect(cmp.activeTab()).toBe('completed');
+    press('ArrowLeft', 'completed');
+    expect(cmp.activeTab()).toBe('active');
+    press('End', 'active');
+    expect(cmp.activeTab()).toBe('trash');
+    press('Home', 'trash');
+    expect(cmp.activeTab()).toBe('active');
+    press('ArrowLeft', 'active');
+    expect(cmp.activeTab()).toBe('trash');
+    press('ArrowRight', 'trash');
+    expect(cmp.activeTab()).toBe('active');
+    expect(tabs.length).toBe(4);
+  });
+
+  it('opens, edits, and closes the project modal', async () => {
+    const fixture = TestBed.createComponent(ProjectsPageComponent);
+    fixture.detectChanges();
+    const cmp = fixture.componentInstance as any;
+    const event = new MouseEvent('click');
+
+    cmp.openCreateModal();
+    expect(cmp.modalMode()).toBe('create');
+    expect(cmp.createModalOpen()).toBeTrue();
+    expect(cmp.selectedProject()).toBeNull();
+
+    cmp.openEditModal(projects()[0], event);
+    expect(cmp.modalMode()).toBe('edit');
+    expect(cmp.selectedProject()).toEqual(projects()[0]);
+
+    cmp.closeProjectModal();
+    expect(cmp.createModalOpen()).toBeFalse();
+    expect(cmp.selectedProject()).toBeNull();
+    expect(cmp.modalMode()).toBe('create');
+  });
+
+  it('creates and edits projects through the modal save', async () => {
+    const fixture = TestBed.createComponent(ProjectsPageComponent);
+    fixture.detectChanges();
+    const cmp = fixture.componentInstance as any;
+    const service = TestBed.inject(ProjectService);
+    spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+
+    const payload = { name: 'New Project', description: null } as any;
+    (service.createProject as jasmine.Spy).and.resolveTo({ ...projects()[0], id: 'project-2' });
+    await cmp.createProject(payload);
+    expect(service.createProject).toHaveBeenCalledWith({
+      name: 'New Project',
+      description: undefined,
+    });
+    expect(cmp.createModalOpen()).toBeFalse();
+
+    cmp.openEditModal(projects()[0]);
+    await cmp.createProject({ name: 'Renamed', description: 'x' } as any);
+    expect(service.updateProject).toHaveBeenCalledWith('project-1', {
+      name: 'Renamed',
+      description: 'x',
+    });
+    expect(cmp.createModalOpen()).toBeFalse();
+  });
+
+  it('runs row actions: pin, complete with undo, reopen, archive, unarchive, delete', async () => {
+    const fixture = TestBed.createComponent(ProjectsPageComponent);
+    fixture.detectChanges();
+    const cmp = fixture.componentInstance as any;
+    const service = TestBed.inject(ProjectService);
+    const showSpy = spyOn(TestBed.inject(StatusService), 'show');
+    const event = new MouseEvent('click');
+    const project = projects()[0];
+
+    cmp.toggleRowMenu(project, event);
+    expect(cmp.rowMenuProjectId()).toBe('project-1');
+    cmp.onDocumentClick();
+    expect(cmp.rowMenuProjectId()).toBeNull();
+
+    await cmp.togglePinned(project, event);
+    expect(service.updateProject).toHaveBeenCalledWith('project-1', { pinned: true });
+
+    // Gated while the project has open tasks.
+    await cmp.completeProject(project, event);
+    expect(service.completeProject).not.toHaveBeenCalled();
+
+    const doneProject = { ...project, openTaskCount: 0 };
+    await cmp.completeProject(doneProject, event);
+    expect(service.completeProject).toHaveBeenCalledWith('project-1');
+    const call = showSpy.calls.all().find((c) => c.args[0] === 'Project completed');
+    expect(call).toBeTruthy();
+    (call!.args[3] as any).action.callback();
+    await fixture.whenStable();
+    expect(service.reopenProject).toHaveBeenCalledWith('project-1');
+
+    await cmp.reopenProject(project, event);
+    await cmp.archiveProject(project, event);
+    await cmp.unarchiveProject(project, event);
+    expect(service.archiveProject).toHaveBeenCalledWith('project-1');
+    expect(service.unarchiveProject).toHaveBeenCalledWith('project-1');
+
+    cmp.viewOpenTasks(project, event);
+    cmp.openProject('project-1');
+
+    cmp.askDeleteProject(project, event);
+    expect(cmp.deleteModalOpen()).toBeTrue();
+    await cmp.confirmDeleteProject({ keepTasks: false });
+    expect(service.deleteProject).toHaveBeenCalledWith('project-1', false);
+    expect(cmp.deleteModalOpen()).toBeFalse();
+
+    cmp.askDeleteProject(project, event);
+    cmp.closeDeleteModal();
+    expect(cmp.projectToDelete()).toBeNull();
+  });
+
+  it('exposes project status helpers', () => {
+    const fixture = TestBed.createComponent(ProjectsPageComponent);
+    fixture.detectChanges();
+    const cmp = fixture.componentInstance as any;
+    const base = projects()[0];
+
+    expect(cmp.getProjectStatus(base)).toBe('active');
+    expect(cmp.getProjectStatus({ ...base, kind: 'ongoing' })).toBe('ongoing');
+    expect(cmp.getProjectStatus({ ...base, completedAt: '2026-04-05T00:00:00Z' })).toBe(
+      'completed',
+    );
+    expect(cmp.getProjectStatus({ ...base, archivedAt: '2026-04-06T00:00:00Z' })).toBe('archived');
+    expect(cmp.getProjectStatusLabel({ ...base, kind: 'ongoing' })).toBe('Ongoing area');
+    expect(cmp.getProjectStatusLabel(base)).toBe('Active');
+    expect(cmp.formatTargetDate('2026-04-03')).toBe('Apr 3, 2026');
+    expect(cmp.formatTargetDate(null)).toBeNull();
+    expect(cmp.openTaskLabel(base)).toBe('7 open tasks');
+    expect(cmp.openTaskLabel({ ...base, openTaskCount: 1 })).toBe('1 open task');
+  });
+
+  it('handles drag-drop reordering and reverts the optimistic order on failure', fakeAsync(() => {
+    const second = { ...projects()[0], id: 'project-2', name: 'Second', sortOrder: 1 };
+    projects.set([projects()[0], second]);
+    const fixture = TestBed.createComponent(ProjectsPageComponent);
+    fixture.detectChanges();
+    const cmp = fixture.componentInstance as any;
+    const service = TestBed.inject(ProjectService);
+    tick();
+
+    cmp.onProjectDrop({ previousIndex: 1, currentIndex: 0 } as any, false);
+    tick();
+    expect(service.reorderProjects).toHaveBeenCalledWith(['project-2', 'project-1']);
+
+    (service.reorderProjects as jasmine.Spy).and.rejectWith(new Error('nope'));
+    cmp.onProjectDrop({ previousIndex: 0, currentIndex: 1 } as any, false);
+    tick();
+    flushMicrotasks();
+    tick();
+    expect(service.reorderProjects).toHaveBeenCalledTimes(2);
+    expect(cmp.pendingOrder()).toBeNull();
+  }));
 
   it('releases the optimistic order when the refreshed list never matches', fakeAsync(() => {
     const [first] = projects();
