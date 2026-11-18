@@ -6,6 +6,7 @@ import { provideMarkdown } from 'ngx-markdown';
 import { DateTime } from 'luxon';
 import { Label, Project, Task } from '@yotara/shared';
 import { LabelService } from '../../../core/services/label.service';
+import { TaskService } from '../../../core/services/task.service';
 import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
 import type { DueDateDraft } from '../utils/due-date-draft';
 import { PersonalTaskModalComponent } from './personal-task-modal.component';
@@ -50,6 +51,15 @@ describe('PersonalTaskModalComponent', () => {
             labelById: () => new Map(labelsSignal().map((label) => [label.id, label])),
             createLabel: createLabelSpy,
             refresh: refreshLabelsSpy,
+          },
+        },
+        {
+          // Editing an existing task loads its subtasks; without this stub the
+          // modal issues a real HTTP request that never settles in the test.
+          provide: TaskService,
+          useValue: {
+            fetchSubtasks: jasmine.createSpy('fetchSubtasks').and.resolveTo([]),
+            updateTask: jasmine.createSpy('updateTask').and.resolveTo(undefined),
           },
         },
       ],

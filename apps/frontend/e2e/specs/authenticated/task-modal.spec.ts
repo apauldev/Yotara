@@ -317,7 +317,7 @@ test.describe('Task Modal CRUD', () => {
     await page.waitForLoadState('networkidle');
     await dismissTip(page);
     await page.getByRole('button', { name: '+ New Project' }).click();
-    await page.getByPlaceholder('e.g. Morning Rituals').fill(projName);
+    await page.getByPlaceholder('e.g. Launch website').fill(projName);
     await page.getByRole('button', { name: 'Create Project' }).click();
     await page.waitForURL(/\/projects\/[a-zA-Z0-9-]+/, { timeout: 10_000 });
     const projectUrl = page.url();

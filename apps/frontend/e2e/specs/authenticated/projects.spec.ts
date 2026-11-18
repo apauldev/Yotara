@@ -41,14 +41,16 @@ test.describe('Projects Overhaul E2E Journeys', () => {
     await expect(page.getByRole('heading', { name: 'Project Directory' })).toBeVisible();
     await expect(page.getByRole('button', { name: '+ New Project' })).toBeVisible();
 
-    // Tabs: Active, Completed, Archived
+    // Tabs: Active, Completed, Archived, Trash
     const activeTab = page.getByRole('tab', { name: /Active/i });
     const completedTab = page.getByRole('tab', { name: /Completed/i });
     const archivedTab = page.getByRole('tab', { name: /Archived/i });
+    const trashTab = page.getByRole('tab', { name: /Trash/i });
 
     await expect(activeTab).toBeVisible();
     await expect(completedTab).toBeVisible();
     await expect(archivedTab).toBeVisible();
+    await expect(trashTab).toBeVisible();
     await expect(activeTab).toHaveAttribute('aria-selected', 'true');
     await expect(activeTab).toHaveAttribute('aria-controls', 'projects-tabpanel');
     await expect(page.getByRole('tabpanel')).toHaveAttribute(
@@ -61,10 +63,15 @@ test.describe('Projects Overhaul E2E Journeys', () => {
     await expect(completedTab).toHaveAttribute('aria-selected', 'true');
     await expect(completedTab).toBeFocused();
     await page.keyboard.press('End');
+    await expect(trashTab).toHaveAttribute('aria-selected', 'true');
+    await expect(trashTab).toBeFocused();
+    await page.keyboard.press('ArrowLeft');
     await expect(archivedTab).toHaveAttribute('aria-selected', 'true');
     await expect(archivedTab).toBeFocused();
     await page.keyboard.press('ArrowLeft');
     await expect(completedTab).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('Home');
+    await expect(activeTab).toHaveAttribute('aria-selected', 'true');
 
     // Switch to Completed tab
     await completedTab.click();
