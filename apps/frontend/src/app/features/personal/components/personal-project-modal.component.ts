@@ -368,8 +368,9 @@ import { MarkdownEditorComponent } from '../../../shared/ui/markdown-editor/mark
         border-radius: 999px;
         border: 0;
         background: var(--chip-color);
-        box-shadow: inset 0 0 0 3px
-          color-mix(in srgb, hsl(var(--primary-foreground)) 90%, transparent);
+        box-shadow:
+          inset 0 0 0 3px color-mix(in srgb, hsl(var(--primary-foreground)) 90%, transparent),
+          0 0 0 1px var(--project-dot-ring);
         cursor: pointer;
       }
 
