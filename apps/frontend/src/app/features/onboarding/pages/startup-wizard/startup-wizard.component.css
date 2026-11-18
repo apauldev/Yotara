@@ -852,6 +852,7 @@ kbd {
   height: 0.7rem;
   border-radius: 999px;
   flex: 0 0 auto;
+  box-shadow: 0 0 0 1px var(--project-dot-ring);
 }
 
 .starter-name {
