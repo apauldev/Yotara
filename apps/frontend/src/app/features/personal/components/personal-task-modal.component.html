@@ -228,7 +228,7 @@
             id="task-project"
             class="status-select project-select"
             [ngModel]="draftProjectId()"
-            (ngModelChange)="draftProjectId.set($event)"
+            (ngModelChange)="onProjectChange($event)"
           >
             <option [ngValue]="null">No project</option>
             @for (project of projects; track project.id) {
@@ -238,6 +238,23 @@
         </label>
 
         <p class="project-helper">{{ selectedContextLabel() }}</p>
+
+        @if (sectionsForSelectedProject().length > 0) {
+          <label class="project-picker section-picker" for="task-section">
+            <span class="sr-only">Section</span>
+            <select
+              id="task-section"
+              class="status-select project-select"
+              [ngModel]="draftSectionId()"
+              (ngModelChange)="draftSectionId.set($event)"
+            >
+              <option [ngValue]="null">No section</option>
+              @for (section of sectionsForSelectedProject(); track section.id) {
+                <option [ngValue]="section.id">{{ section.name }}</option>
+              }
+            </select>
+          </label>
+        }
       </div>
 
       <div class="sidebar-section">

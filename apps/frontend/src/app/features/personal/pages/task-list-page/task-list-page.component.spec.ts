@@ -133,6 +133,45 @@ describe('TaskListPageComponent', () => {
       expect(text.toLowerCase()).toMatch(/daily clarity|the yotara journal/);
     });
 
+    it('renders Completed today section header and toggles collapse when today has completed tasks', () => {
+      mockTaskService.todayCompletedTasks.set([
+        {
+          id: 'done-task-1',
+          title: 'Finished morning routine',
+          completed: true,
+          status: 'done',
+          ownerId: 'owner-1',
+          createdAt: '2026-11-16T10:00:00.000Z',
+          updatedAt: '2026-11-16T10:00:00.000Z',
+        },
+      ]);
+      mockActivatedRoute.queryParamMap = of(new Map([['view', 'today']]));
+      const fixture = TestBed.createComponent(TaskListPageComponent);
+      fixture.detectChanges();
+
+      const completedSection = fixture.nativeElement.querySelector('.completed-today-section');
+      expect(completedSection).not.toBeNull();
+      expect(completedSection.textContent).toContain('Completed today');
+      expect(completedSection.textContent).toContain('1');
+
+      const toggleBtn = fixture.nativeElement.querySelector(
+        '.completed-today-section .collapse-toggle-button',
+      ) as HTMLButtonElement;
+      expect(toggleBtn.textContent.trim()).toBe('Hide');
+
+      // Click to hide
+      toggleBtn.click();
+      fixture.detectChanges();
+      expect(toggleBtn.textContent.trim()).toBe('Show');
+      expect(fixture.nativeElement.querySelector('.completed-stack')).toBeNull();
+
+      // Click to show
+      toggleBtn.click();
+      fixture.detectChanges();
+      expect(toggleBtn.textContent.trim()).toBe('Hide');
+      expect(fixture.nativeElement.querySelector('.completed-stack')).not.toBeNull();
+    });
+
     it('loads and shows today events in a separate schedule beside the task list', () => {
       const today = startOfToday().toISODate() ?? '';
       mockCalendarService.events.set([

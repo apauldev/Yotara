@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { and, asc, eq, isNotNull, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import type {
+  BatchTaskPatchDto,
   CreateTaskDto,
   PaginatedResponse,
   Priority,
@@ -10,13 +11,14 @@ import type {
   UpdateTaskDto,
 } from '@yotara/shared';
 import { db, type Database } from '../db/client.js';
-import { tasks, users } from '../db/schema.js';
+import { projects, tasks, users } from '../db/schema.js';
 import { DateTime } from 'luxon';
 import { nowIsoTimestamp } from '../lib/timestamps.js';
 import { todayInTimezone, startOfDayInUtc } from '../lib/timezone.js';
 import { assertCalendarDate } from '../lib/calendar-date.js';
 import { AppError, BadRequestError, NotFoundError } from '../lib/app-error.js';
 import { getLabelsForTasks, getTaskLabels, syncTaskLabels } from './label-service.js';
+import { resolveSectionIdForTaskWrite } from './section-service.js';
 import {
   createDueNotificationIfNeeded,
   retireSupersededDueNotifications,
@@ -84,12 +86,14 @@ export function toTask(task: TaskRow, labelIds: string[] = []): Task {
     dueTime: task.dueTime ?? undefined,
     simpleMode: task.simpleMode,
     projectId: task.projectId ?? undefined,
+    sectionId: task.sectionId ?? undefined,
     parentId: task.parentId ?? undefined,
     recurrenceRule: task.recurrenceRule
       ? (JSON.parse(task.recurrenceRule) as RecurrenceRule)
       : undefined,
     baseTaskId: task.baseTaskId ?? undefined,
     archivedAt: task.archivedAt ?? undefined,
+    deletedAt: task.deletedAt ?? undefined,
     permanentArchive: task.permanentArchive,
     labels: labelIds,
     order: task.order,
@@ -99,16 +103,39 @@ export function toTask(task: TaskRow, labelIds: string[] = []): Task {
 }
 
 export async function cleanupExpiredArchivedTasks(ownerId: string) {
-  await db.delete(tasks).where(and(eq(tasks.userId, ownerId), isNotNull(tasks.deletedAt)));
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const cutoffIso = cutoff.toISOString();
+
+  // Soft-deleted tasks stay in Trash for the same 30-day recovery window as
+  // completed tasks. Only purge rows that have aged past it — deleting every
+  // deletedAt row here made "recover within 30 days" impossible.
+  await db
+    .delete(tasks)
+    .where(
+      and(
+        eq(tasks.userId, ownerId),
+        isNotNull(tasks.deletedAt),
+        sql`${tasks.deletedAt} < ${cutoffIso}`,
+      ),
+    );
+
+  // Retired projects whose tasks have aged past the recovery window are
+  // also purged so soft-deleted projects don't linger in SQLite forever.
+  await db
+    .delete(projects)
+    .where(
+      and(
+        eq(projects.ownerId, ownerId),
+        isNotNull(projects.retiredAt),
+        sql`${projects.retiredAt} < ${cutoffIso}`,
+      ),
+    );
 
   const archiveAutoDelete = await getArchiveAutoDeleteForOwner(ownerId);
   if (!archiveAutoDelete) {
     return 0;
   }
-
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 30);
-  const cutoffIso = cutoff.toISOString();
 
   await db
     .delete(tasks)
@@ -166,6 +193,10 @@ export interface TaskFilters {
   projectId?: string;
   /** Only tasks with this priority. */
   priority?: Priority;
+  /** List soft-deleted (Trash) tasks instead of active ones. */
+  deleted?: boolean;
+  /** Only tasks with no project assigned. */
+  unassigned?: boolean;
 }
 
 export async function listTasksForOwner(
@@ -177,7 +208,14 @@ export async function listTasksForOwner(
   filters?: TaskFilters,
 ): Promise<PaginatedResponse<Task[]>> {
   const offset = (page - 1) * pageSize;
-  const baseWhere = and(eq(tasks.userId, ownerId), isNull(tasks.deletedAt));
+  const listConditions = [
+    eq(tasks.userId, ownerId),
+    filters?.deleted === true ? isNotNull(tasks.deletedAt) : isNull(tasks.deletedAt),
+  ];
+  if (filters?.unassigned === true) {
+    listConditions.push(isNull(tasks.projectId));
+  }
+  const baseWhere = and(...listConditions);
 
   // If parentId is provided, we specifically want subtasks for that parent.
   // If parentId is NOT provided, we filter based on the includeSubtasks toggle.
@@ -331,7 +369,30 @@ export async function listTasksForOwner(
   const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
   const taskIds = rows.map((r) => r.id);
   const labelsMap = await getLabelsForTasks(taskIds);
-  const data = rows.map((row) => toTask(row, labelsMap.get(row.id) ?? []));
+
+  // Trash entries still reference their retired project. Resolve its name so
+  // the UI can name the deletion batch it is about to restore.
+  let deletedProjectNames = new Map<string, string>();
+  if (filters?.deleted === true) {
+    const projectIds = [
+      ...new Set(rows.map((row) => row.projectId).filter((id): id is string => !!id)),
+    ];
+    if (projectIds.length > 0) {
+      const projectRows = await db
+        .select({ id: projects.id, name: projects.name })
+        .from(projects)
+        .where(inArray(projects.id, projectIds));
+      deletedProjectNames = new Map(projectRows.map((project) => [project.id, project.name]));
+    }
+  }
+
+  const data = rows.map((row) => {
+    const task = toTask(row, labelsMap.get(row.id) ?? []);
+    if (filters?.deleted === true && row.projectId) {
+      task.deletedProjectName = deletedProjectNames.get(row.projectId);
+    }
+    return task;
+  });
 
   return {
     data,
@@ -457,9 +518,22 @@ function createTaskForOwnerSync(ownerId: string, body: CreateTaskDto, tz?: strin
       if (!payload.projectId) {
         payload.projectId = parent.projectId ?? undefined;
       }
+      if (payload.sectionId === undefined) {
+        payload.sectionId = parent.sectionId ?? undefined;
+      }
     }
 
-    const projectId = payload.projectId ?? null;
+    const sectionResolution = resolveSectionIdForTaskWrite(
+      ownerId,
+      payload.sectionId,
+      payload.projectId,
+    );
+    if (!sectionResolution.ok) {
+      throw new BadRequestError('Section not found or does not belong to this project');
+    }
+
+    const projectId = sectionResolution.projectId ?? payload.projectId ?? null;
+    const sectionId = sectionResolution.sectionId;
 
     client
       .insert(tasks)
@@ -474,6 +548,7 @@ function createTaskForOwnerSync(ownerId: string, body: CreateTaskDto, tz?: strin
         dueTime: payload.dueTime,
         simpleMode: payload.simpleMode ?? false,
         projectId,
+        sectionId,
         parentId: payload.parentId ?? null,
         recurrenceRule: payload.recurrenceRule ? JSON.stringify(payload.recurrenceRule) : null,
         baseTaskId: payload.baseTaskId ?? null,
@@ -520,6 +595,7 @@ function createTaskForOwnerSync(ownerId: string, body: CreateTaskDto, tz?: strin
             priority: 'medium',
             simpleMode: payload.simpleMode ?? false, // Inherit simpleMode from parent
             projectId,
+            sectionId,
             parentId: id,
             completed: sub.completed ?? false,
             archivedAt: sub.completed ? now : null,
@@ -584,6 +660,22 @@ function updateTaskForOwnerSync(
           : null;
     const nextProjectId =
       body.projectId === null ? null : (body.projectId ?? current.projectId ?? null);
+    let nextSectionId = current.sectionId ?? null;
+    if (body.sectionId !== undefined) {
+      const sectionResolution = resolveSectionIdForTaskWrite(
+        ownerId,
+        body.sectionId,
+        nextProjectId,
+      );
+      if (!sectionResolution.ok) {
+        throw new BadRequestError('Section not found or does not belong to this project');
+      }
+      nextSectionId = sectionResolution.sectionId;
+    } else if (nextProjectId !== current.projectId) {
+      // A section only exists inside its own project; moving a task elsewhere
+      // leaves it unsectioned unless the caller names a section explicitly.
+      nextSectionId = null;
+    }
     const nextParentId =
       body.parentId === null ? null : (body.parentId ?? current.parentId ?? undefined);
 
@@ -669,7 +761,8 @@ function updateTaskForOwnerSync(
               dueDate: nextDueDate,
               dueTime: current.dueTime ?? undefined,
               simpleMode: current.simpleMode,
-              projectId: current.projectId ?? undefined,
+              projectId: nextProjectId ?? undefined,
+              sectionId: nextSectionId ?? undefined,
               recurrenceRule: rule,
               baseTaskId: current.baseTaskId ?? current.id, // link to template
               labels: currentLabels,
@@ -691,6 +784,7 @@ function updateTaskForOwnerSync(
         dueTime: nextDueTime,
         simpleMode,
         projectId: nextProjectId,
+        sectionId: nextSectionId,
         parentId: nextParentId,
         recurrenceRule: nextRecurrenceRule,
         order: body.order ?? current.order,
@@ -761,6 +855,7 @@ function updateTaskForOwnerSync(
             priority: 'medium',
             simpleMode, // Inherit simpleMode from parent
             projectId: nextProjectId,
+            sectionId: nextSectionId,
             parentId: taskId,
             completed: sub.completed ?? false,
             archivedAt: sub.completed ? now : null,
@@ -789,6 +884,36 @@ export async function updateTaskForOwner(
   tx?: Database,
 ) {
   return updateTaskForOwnerSync(ownerId, taskId, body, existing, tz, tx);
+}
+
+/** Applies one patch to several owned tasks atomically. */
+export function updateTasksForOwner(
+  ownerId: string,
+  taskIds: string[],
+  patch: BatchTaskPatchDto,
+  tz?: string,
+): { updated: number; missing: string[] } {
+  const ids = [...new Set(taskIds)];
+  const missing: string[] = [];
+  let updated = 0;
+
+  db.transaction(
+    (tx) => {
+      for (const id of ids) {
+        const existing = getTaskForOwnerSync(id, ownerId, tx);
+        if (!existing) {
+          missing.push(id);
+          continue;
+        }
+        if (updateTaskForOwnerSync(ownerId, id, patch, existing, tz, tx)) {
+          updated += 1;
+        }
+      }
+    },
+    { behavior: 'immediate' },
+  );
+
+  return { updated, missing };
 }
 
 export function deleteTaskForOwner(
@@ -824,4 +949,63 @@ export function deleteTaskForOwner(
   };
 
   return tx ? run(tx) : db.transaction(run, { behavior: 'immediate' });
+}
+
+/**
+ * Restore a whole deletion from Trash. A project deletion stamps the project
+ * and every one of its tasks with the same moment, so restoring any task brings
+ * back the project and the complete task batch together.
+ */
+export function restoreTaskForOwner(ownerId: string, taskId: string): boolean {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const cutoffIso = cutoff.toISOString();
+
+  const run = (client: Database) => {
+    const [target] = client
+      .select({ deletedAt: tasks.deletedAt, projectId: tasks.projectId })
+      .from(tasks)
+      .where(and(eq(tasks.id, taskId), eq(tasks.userId, ownerId), isNotNull(tasks.deletedAt)))
+      .limit(1)
+      .all();
+
+    if (!target?.deletedAt || target.deletedAt < cutoffIso) {
+      return false;
+    }
+
+    const now = nowIsoTimestamp();
+    const restored = client
+      .update(tasks)
+      .set({ deletedAt: null, updatedAt: now })
+      .where(
+        target.projectId
+          ? and(
+              eq(tasks.userId, ownerId),
+              eq(tasks.projectId, target.projectId),
+              eq(tasks.deletedAt, target.deletedAt),
+            )
+          : and(eq(tasks.userId, ownerId), eq(tasks.deletedAt, target.deletedAt)),
+      )
+      .run();
+
+    // The project was retired with the same stamp; un-retire it so the tasks
+    // land back in their original project instead of as orphaned Inbox items.
+    if (target.projectId) {
+      client
+        .update(projects)
+        .set({ retiredAt: null, updatedAt: now })
+        .where(
+          and(
+            eq(projects.id, target.projectId),
+            eq(projects.ownerId, ownerId),
+            isNotNull(projects.retiredAt),
+          ),
+        )
+        .run();
+    }
+
+    return restored.changes > 0;
+  };
+
+  return db.transaction(run, { behavior: 'immediate' });
 }

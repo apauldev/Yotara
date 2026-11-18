@@ -6,6 +6,227 @@
   padding: 0.9rem 0 3rem;
 }
 
+.archive-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 1.25rem;
+  border-radius: 0.85rem;
+  background: var(--surface-container-high);
+  border: 1px solid var(--outline-variant);
+  color: var(--on-surface-muted);
+  font-size: 0.88rem;
+
+  .restore-button {
+    border: 0;
+    background: transparent;
+    color: var(--primary-solid);
+    font-weight: 700;
+    font-size: 0.88rem;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+
+    &:hover {
+      background: var(--surface-container-highest);
+    }
+  }
+}
+
+.header-menu-container {
+  position: relative;
+}
+
+.header-action-button {
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-container-low);
+  box-shadow: inset 0 0 0 1px var(--outline-variant);
+  color: var(--on-surface-muted);
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  font-weight: 700;
+
+  &.menu-trigger {
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: all 150ms ease;
+
+    &:hover,
+    &[aria-expanded='true'] {
+      background: var(--surface-container-high);
+      color: var(--on-surface);
+    }
+  }
+}
+
+.header-menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  min-width: 13rem;
+  padding: 0.35rem;
+  border-radius: 0.85rem;
+  background: var(--surface-card);
+  box-shadow:
+    0 12px 30px var(--surface-dim-strong),
+    inset 0 0 0 1px var(--outline-variant);
+
+  button {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    border-radius: 0.55rem;
+    padding: 0.6rem 0.85rem;
+    min-height: 2.3rem;
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--on-surface);
+    text-align: left;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: var(--surface-container-high);
+    }
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+  }
+
+  .menu-divider {
+    border: 0;
+    border-top: 1px solid var(--outline-variant);
+    margin: 0.3rem 0;
+  }
+
+  .menu-helper {
+    margin: 0;
+    padding: 0.5rem 0.85rem 0.25rem;
+    max-width: 16rem;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--on-surface-muted);
+  }
+
+  .menu-helper-link {
+    display: inline;
+    padding: 0;
+    min-height: 0;
+    text-align: left;
+    color: var(--primary-solid);
+    text-decoration: underline;
+
+    &:hover:not(:disabled) {
+      background: transparent;
+    }
+  }
+
+  .menu-danger {
+    color: var(--status-overdue);
+
+    &:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--status-overdue) 10%, transparent);
+    }
+  }
+}
+
+.project-meta-line {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: -0.4rem;
+  margin-bottom: 0.85rem;
+  font-size: 0.88rem;
+  color: var(--on-surface-muted);
+
+  .project-color-dot {
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 999px;
+    flex-shrink: 0;
+    background: var(--project-accent);
+    outline: 1px solid var(--project-dot-ring);
+  }
+
+  .meta-label {
+    font-weight: 600;
+  }
+
+  .meta-date {
+    color: var(--on-surface-subtle);
+
+    &.meta-date-overdue {
+      color: var(--status-overdue);
+      font-weight: 600;
+    }
+  }
+
+  .completed-pill {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--primary-solid) 12%, var(--surface-container-high));
+    color: var(--primary-solid);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.15rem 0.6rem;
+  }
+
+  // Keep in sync with the PINNED badge in projects-page.component.scss.
+  .pinned-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.15rem 0.6rem;
+    border: 1px solid var(--primary-solid);
+    border-radius: 999px;
+    background: var(--primary-soft);
+    color: var(--primary-solid);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+}
+
+// --project-accent is set inline from PROJECT_PALETTE (the single source of truth).
+
+.project-description-container {
+  max-width: 48rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.85rem;
+  color: var(--on-surface-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+
+  ::ng-deep markdown {
+    p {
+      margin: 0.4rem 0;
+    }
+
+    ul,
+    ol {
+      padding-left: 1.25rem;
+      margin: 0.4rem 0;
+    }
+
+    a {
+      color: var(--primary-solid);
+      text-decoration: underline;
+    }
+  }
+}
+
 h1 {
   margin: 0;
   font-size: clamp(1.8rem, 4vw, 2.4rem);
@@ -21,14 +242,6 @@ h1 {
   color: var(--on-surface-muted);
   font-size: 1.05rem;
   line-height: 1.5;
-}
-
-.project-description {
-  margin: -0.6rem 0 0;
-  max-width: 48rem;
-  color: var(--on-surface-muted);
-  font-size: 1rem;
-  line-height: 1.65;
 }
 
 .metrics-card {
@@ -47,6 +260,16 @@ h1 {
   grid-template-columns: repeat(2, minmax(0, 10rem)) minmax(0, 1fr);
   gap: 1.1rem;
   align-items: center;
+}
+
+.metrics-card-ongoing {
+  grid-template-columns: repeat(2, minmax(0, 10rem)) minmax(0, 1fr);
+
+  .ongoing-note {
+    color: var(--on-surface-subtle);
+    font-size: 0.88rem;
+    font-style: italic;
+  }
 }
 
 .metric strong {
@@ -95,17 +318,8 @@ h1 {
   margin-top: 1.6rem;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 1rem;
-}
-
-.view-pill {
-  border-radius: 999px;
-  background: var(--surface-container-low);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary-solid) 12%, var(--outline-variant));
-  padding: 0.6rem 1rem;
-  color: var(--primary-solid);
-  font-weight: 700;
 }
 
 .action-button,
@@ -122,17 +336,20 @@ h1 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-}
+  cursor: pointer;
+  transition: all 150ms ease;
 
-.header-action-button {
-  border: 0;
-  border-radius: 999px;
-  background: var(--surface-container-low);
-  box-shadow: inset 0 0 0 1px var(--outline-variant);
-  color: var(--on-surface-muted);
-  min-height: 2.75rem;
-  padding: 0 1rem;
-  font-weight: 700;
+  &.secondary-action,
+  &.secondary-empty-button {
+    background: var(--surface-container-low);
+    box-shadow: inset 0 0 0 1px var(--outline-variant);
+    color: var(--on-surface);
+
+    &:hover {
+      background: var(--surface-container-high);
+      color: var(--on-surface);
+    }
+  }
 }
 
 .task-section {
@@ -141,6 +358,22 @@ h1 {
 
 .task-section-soft {
   margin-top: 2rem;
+}
+
+.collapse-toggle-button {
+  border: 0;
+  background: transparent;
+  color: var(--on-surface-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.4rem;
+
+  &:hover {
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+  }
 }
 
 .task-stack {
@@ -157,9 +390,6 @@ h1 {
 
 :host-context(.dark) .metrics-card {
   --metric-accent: var(--primary-solid);
-}
-
-:host-context(.dark) .metrics-card {
   text-shadow: 0 1px 1px var(--surface-dim-strong);
 }
 
@@ -173,9 +403,422 @@ h1 {
   .actions-row {
     flex-direction: column;
     align-items: stretch;
+
+    .action-button {
+      width: 100%;
+    }
   }
 
   .header-action-button {
     width: 100%;
+  }
+}
+
+/* --- Loading skeleton --- */
+
+.project-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 0.5rem 0 2rem;
+}
+
+.skeleton-line,
+.skeleton-bar,
+.skeleton-card,
+.skeleton-row {
+  border-radius: 0.75rem;
+  background: linear-gradient(
+    90deg,
+    var(--surface-container-low) 0%,
+    var(--surface-container-high) 50%,
+    var(--surface-container-low) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+.skeleton-line {
+  height: 0.9rem;
+  width: 60%;
+}
+
+.skeleton-back {
+  width: 6rem;
+  height: 0.7rem;
+  opacity: 0.7;
+}
+
+.skeleton-title {
+  width: 45%;
+  height: 1.9rem;
+  margin-top: 0.4rem;
+}
+
+.skeleton-meta {
+  width: 32%;
+  height: 0.75rem;
+  opacity: 0.75;
+}
+
+.skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border: 0;
+  animation: none;
+  background: var(--surface-container-low);
+}
+
+.skeleton-card-line {
+  width: 55%;
+  height: 0.8rem;
+
+  &.skeleton-card-line-short {
+    width: 32%;
+    height: 0.7rem;
+  }
+}
+
+.skeleton-bar {
+  width: 100%;
+  height: 0.5rem;
+  border-radius: 999px;
+}
+
+.skeleton-section {
+  width: 8rem;
+  height: 1.1rem;
+  margin-top: 1rem;
+}
+
+.skeleton-row {
+  height: 3.25rem;
+  border-radius: 1rem;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-line,
+  .skeleton-bar,
+  .skeleton-row {
+    animation: none;
+  }
+}
+
+/* --- Project sections --- */
+
+.project-section {
+  margin-top: 1.4rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--surface-container-low) 70%, transparent);
+  padding: 0.85rem 1rem;
+  transition: box-shadow 150ms ease;
+}
+
+.project-section.cdk-drag {
+  position: relative;
+}
+
+.task-section.cdk-drop-list-dragging .project-section:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.project-section.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+// CDK clones the section for the placeholder, so it always matches the
+// section's real height (sections can be very tall when expanded).
+.project-section.cdk-drag-placeholder {
+  transition: none;
+  outline: 2px dashed var(--primary-solid);
+  outline-offset: -2px;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--primary-solid) 6%, transparent);
+
+  > * {
+    visibility: hidden;
+  }
+}
+
+// Tilt the inner card, not the root — CDK owns the root's transform.
+.section-drag-preview {
+  cursor: grabbing;
+}
+
+.section-drag-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.85rem;
+  background: var(--surface-container-high);
+  box-shadow: 0 12px 28px var(--surface-dim-strong);
+  color: var(--on-surface);
+  font-weight: 600;
+  rotate: -1deg;
+
+  fa-icon {
+    color: var(--primary-solid);
+  }
+}
+
+.project-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 2.25rem;
+}
+
+.project-section .drag-handle {
+  display: inline-grid;
+  place-items: center;
+  align-self: stretch;
+  flex: 0 0 auto;
+  width: 1.75rem;
+  margin-inline: -0.25rem;
+  color: var(--on-surface-subtle);
+  cursor: grab;
+  border-radius: 0.35rem;
+  touch-action: none;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--primary-solid);
+    background: var(--surface-container-high);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.section-collapse {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--on-surface-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+
+  &:hover {
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+  }
+}
+
+.section-name {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--on-surface);
+}
+
+.section-count {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--on-surface-muted);
+  background: var(--surface-container-high);
+  border-radius: 999px;
+  min-width: 1.4rem;
+  text-align: center;
+  padding: 0.1rem 0.4rem;
+}
+
+.section-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex: 0 0 auto;
+}
+
+.section-action {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: var(--on-surface-muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+
+  &:hover,
+  &[aria-expanded='true'] {
+    background: var(--surface-container-high);
+    color: var(--primary-solid);
+  }
+}
+
+.section-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 40;
+  min-width: 11rem;
+  padding: 0.35rem;
+  border-radius: 0.75rem;
+  background: var(--surface-card);
+  box-shadow:
+    0 10px 26px var(--surface-dim-strong),
+    inset 0 0 0 1px var(--outline-variant);
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    width: 100%;
+    appearance: none;
+    border: 0;
+    border-radius: 0.5rem;
+    padding: 0.55rem 0.7rem;
+    min-height: 2.2rem;
+    background: transparent;
+    color: var(--on-surface);
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: var(--surface-container-high);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+
+  .menu-divider {
+    border: 0;
+    border-top: 1px solid var(--outline-variant);
+    margin: 0.3rem 0;
+  }
+
+  .menu-danger {
+    color: var(--status-overdue);
+  }
+}
+
+.section-task-stack {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--outline-variant);
+}
+
+.section-name-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 2.2rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--primary-solid);
+  border-radius: 0.5rem;
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  font: inherit;
+  font-size: 0.92rem;
+}
+
+.section-inline-action {
+  flex: 0 0 auto;
+  min-height: 2.2rem;
+  padding: 0 0.7rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--surface-container-high);
+  color: var(--primary-solid);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--primary-soft);
+  }
+}
+
+.section-create-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border: 1px dashed var(--outline-variant);
+  border-radius: 0.85rem;
+}
+
+.section-error {
+  margin: 0.35rem 0 0;
+  color: var(--status-overdue);
+  font-size: 0.82rem;
+}
+
+.add-section-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 1rem;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  border-radius: 0.6rem;
+  background: transparent;
+  color: var(--primary-solid);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--primary-soft);
+  }
+}
+
+@media (hover: none) {
+  .project-section .drag-handle {
+    width: 2.75rem;
+    min-height: 2.75rem;
+  }
+}
+
+// CDK's sort animations are inline-transform driven; opt out of them for
+// users who request reduced motion. Placed last so it wins the cascade over
+// the drag rules above (the file's earlier reduced-motion block only covers
+// loading skeletons).
+@media (prefers-reduced-motion: reduce) {
+  .project-section,
+  .task-section.cdk-drop-list-dragging .project-section:not(.cdk-drag-placeholder),
+  .project-section.cdk-drag-animating,
+  .project-section.cdk-drag-placeholder,
+  .section-drag-preview,
+  .section-drag-preview-card {
+    transition: none;
+    rotate: none;
   }
 }

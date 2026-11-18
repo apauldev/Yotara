@@ -23,6 +23,7 @@ import {
   Label,
   Priority,
   Project,
+  ProjectSection,
   RecurrenceFrequency,
   Task,
   TaskStatus,
@@ -89,6 +90,10 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
   @Input() initialTitle = '';
   @Input() initialDueDateDraft: DueDateDraft | null = null;
   @Input() initialProjectId: string | null = null;
+  /** Section preselected when quick-adding from a project section. */
+  @Input() initialSectionId: string | null = null;
+  /** Sections of the task's project, for the section picker. */
+  @Input() sections: ProjectSection[] = [];
   /** Labels applied to NEW tasks (Labels page pane); ignored when editing. */
   @Input() initialLabelIds: string[] = [];
   @Input() projects: Project[] = [];
@@ -111,6 +116,7 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
   protected readonly dateDraftSuppressed = signal(false);
   protected readonly draftSimpleMode = signal(true);
   protected readonly draftProjectId = signal<string | null>(null);
+  protected readonly draftSectionId = signal<string | null>(null);
   protected readonly draftCompleted = signal(false);
   protected readonly draftLabels = signal<string[]>([]);
   protected readonly labelSearch = signal('');
@@ -293,6 +299,22 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
   protected selectedContextLabel() {
     const projectName = this.projects.find((project) => project.id === this.draftProjectId())?.name;
     return projectName ?? 'No project';
+  }
+
+  protected sectionsForSelectedProject(): ProjectSection[] {
+    const projectId = this.draftProjectId();
+    return projectId ? this.sections.filter((section) => section.projectId === projectId) : [];
+  }
+
+  /** Changing the project clears a section that no longer belongs to it. */
+  protected onProjectChange(projectId: string | null) {
+    this.draftProjectId.set(projectId);
+    if (
+      this.draftSectionId() &&
+      !this.sectionsForSelectedProject().some((s) => s.id === this.draftSectionId())
+    ) {
+      this.draftSectionId.set(null);
+    }
   }
 
   /**
@@ -522,7 +544,8 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
       // A project assignment only counts as meaningful when editing: new
       // tasks do not default into a project, so a contextual assignment should
       // not force the advanced section open.
-      (this.task !== null && this.draftProjectId() !== null)
+      (this.task !== null && this.draftProjectId() !== null) ||
+      (this.task !== null && this.draftSectionId() !== null)
     );
   }
 
@@ -531,6 +554,10 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
     const projectName = this.projects.find((project) => project.id === this.draftProjectId())?.name;
     if (projectName) {
       parts.push(projectName);
+    }
+    const sectionName = this.sections.find((section) => section.id === this.draftSectionId())?.name;
+    if (sectionName) {
+      parts.push(sectionName);
     }
     if (this.draftPriority() !== 'medium') {
       parts.push(`${this.draftPriority()} priority`);
@@ -739,6 +766,7 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
       ...(dueTime ? { dueTime } : {}),
       simpleMode: this.draftSimpleMode(),
       projectId: this.draftProjectId(),
+      sectionId: this.draftSectionId(),
       labels: this.draftLabels(),
       recurrenceRule: recurrenceRule ?? undefined,
       subtasks: this.draftSubtasks().length > 0 ? this.draftSubtasks() : undefined,
@@ -998,10 +1026,21 @@ export class PersonalTaskModalComponent implements OnInit, OnDestroy {
       initialDateSource === 'inferred' ? (initialDraft?.matchEnd ?? null) : null,
     );
     this.dateDraftSuppressed.set(initialDateSource === 'cleared');
-    this.draftProjectId.set(
+    const resolvedProjectId = this.task
+      ? (this.task.projectId ?? null)
+      : (parsedProjectId ?? this.initialProjectId ?? null);
+    this.draftProjectId.set(resolvedProjectId);
+    const requestedSectionId = this.initialSectionId;
+    this.draftSectionId.set(
       this.task
-        ? (this.task.projectId ?? null)
-        : (parsedProjectId ?? this.initialProjectId ?? null),
+        ? (this.task.sectionId ?? null)
+        : requestedSectionId &&
+            this.sections.some(
+              (section) =>
+                section.id === requestedSectionId && section.projectId === resolvedProjectId,
+            )
+          ? requestedSectionId
+          : null,
     );
     this.draftCompleted.set(this.task?.completed ?? false);
     this.draftRecurrenceFrequency.set(this.task?.recurrenceRule?.frequency ?? null);

@@ -1,9 +1,10 @@
-import type { ProjectColor } from './domain.js';
+import type { ProjectColor, ProjectKind } from './domain.js';
 
 export interface DefaultProject {
   readonly name: string;
   readonly description?: string;
   readonly color?: ProjectColor;
+  readonly kind?: ProjectKind;
 }
 
 /**
@@ -17,19 +18,42 @@ export const DEFAULT_PROJECTS: readonly DefaultProject[] = [
     name: 'Work',
     description: 'Job, clients, and professional commitments.',
     color: 'deep-ocean',
+    kind: 'ongoing',
   },
-  { name: 'Personal', description: 'Appointments, paperwork, and everyday life.', color: 'clay' },
-  { name: 'Home', description: 'Household tasks, maintenance, and upkeep.', color: 'olive' },
-  { name: 'Health', description: 'Fitness, medical care, and wellbeing.', color: 'teal' },
-  { name: 'Finance', description: 'Bills, budgets, and money admin.', color: 'forest' },
+  {
+    name: 'Personal',
+    description: 'Appointments, paperwork, and everyday life.',
+    color: 'clay',
+    kind: 'ongoing',
+  },
+  {
+    name: 'Home',
+    description: 'Household tasks, maintenance, and upkeep.',
+    color: 'olive',
+    kind: 'ongoing',
+  },
+  {
+    name: 'Health',
+    description: 'Fitness, medical care, and wellbeing.',
+    color: 'teal',
+    kind: 'ongoing',
+  },
+  {
+    name: 'Finance',
+    description: 'Bills, budgets, and money admin.',
+    color: 'forest',
+    kind: 'ongoing',
+  },
   {
     name: 'Learning',
     description: 'Courses, reading, and skill building.',
     color: 'deep-ocean',
+    kind: 'ongoing',
   },
   {
     name: 'Side Projects',
     description: 'Creative work and independent projects.',
     color: 'clay',
+    kind: 'ongoing',
   },
 ];

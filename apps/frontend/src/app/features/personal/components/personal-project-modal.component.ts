@@ -10,13 +10,15 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import type { CreateProjectDto, Project, ProjectColor } from '@yotara/shared';
+import type { Project, ProjectColor, ProjectFormPayload, ProjectKind } from '@yotara/shared';
 import { PROJECT_PALETTE } from '../project-presentation';
+import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
+import { MarkdownEditorComponent } from '../../../shared/ui/markdown-editor/markdown-editor.component';
 
 @Component({
   selector: 'app-personal-project-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DatePickerComponent, MarkdownEditorComponent],
   template: `
     @if (open) {
       <div class="modal-shell">
@@ -34,7 +36,7 @@ import { PROJECT_PALETTE } from '../project-presentation';
               <p>
                 {{
                   mode === 'edit'
-                    ? 'Adjust the name, description, or color of this project space.'
+                    ? 'Adjust the name, type, description, or color of this project space.'
                     : 'A project is a home for related tasks and progress.'
                 }}
               </p>
@@ -53,23 +55,80 @@ import { PROJECT_PALETTE } from '../project-presentation';
               [ngModel]="draftName()"
               (ngModelChange)="draftName.set($event)"
               [class.field-error]="nameError()"
-              placeholder="e.g. Morning Rituals"
+              placeholder="e.g. Launch website"
             />
             @if (nameError()) {
               <p class="field-error-message">{{ nameError() }}</p>
             }
           </label>
 
-          <label class="field">
+          <div class="field">
+            <span class="field-label">Type</span>
+            <div class="kind-cards" role="radiogroup" aria-label="Project Type">
+              <button
+                type="button"
+                role="radio"
+                class="kind-card"
+                [class.kind-card-active]="draftKind() === 'project'"
+                [attr.aria-checked]="draftKind() === 'project'"
+                (click)="setKind('project')"
+              >
+                <strong>Project</strong>
+                <span>A finite outcome with progress and an optional target date.</span>
+              </button>
+
+              <button
+                type="button"
+                role="radio"
+                class="kind-card"
+                [class.kind-card-active]="draftKind() === 'ongoing'"
+                [attr.aria-checked]="draftKind() === 'ongoing'"
+                (click)="setKind('ongoing')"
+              >
+                <strong>Ongoing area</strong>
+                <span>A continuing part of life or work, such as Home or Health.</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="field">
             <span class="field-label">Description</span>
-            <textarea
-              name="projectDescription"
-              rows="4"
-              [ngModel]="draftDescription()"
-              (ngModelChange)="draftDescription.set($event)"
-              placeholder="Describe the sanctuary of this project..."
-            ></textarea>
-          </label>
+            <app-markdown-editor
+              [value]="draftDescription()"
+              (valueChange)="draftDescription.set($event)"
+              placeholder="What is this project for? Add useful context or links."
+              [rows]="4"
+            />
+          </div>
+
+          @if (draftKind() === 'project') {
+            <div class="field">
+              <span class="field-label">Target date (optional)</span>
+              <app-date-picker
+                label="Target date"
+                [value]="draftTargetDate()"
+                (valueChange)="draftTargetDate.set($event)"
+              />
+            </div>
+          } @else if (draftTargetDate()) {
+            <div class="field warning-box" role="alert">
+              <p class="warning-text">
+                Ongoing areas cannot have a target date. Clear the target date to continue saving as
+                an Ongoing area.
+              </p>
+              <button
+                type="button"
+                class="secondary-button clear-date-button"
+                (click)="clearTargetDate()"
+              >
+                Clear Target Date
+              </button>
+            </div>
+          }
+
+          @if (targetDateError()) {
+            <p class="field-error-message">{{ targetDateError() }}</p>
+          }
 
           <div class="field">
             <span class="field-label">Color identity</span>
@@ -86,6 +145,19 @@ import { PROJECT_PALETTE } from '../project-presentation';
               }
             </div>
           </div>
+
+          <label class="field pinned-field">
+            <input
+              type="checkbox"
+              name="projectPinned"
+              [ngModel]="draftPinned()"
+              (ngModelChange)="draftPinned.set($event)"
+            />
+            <span>
+              <strong>Pin to sidebar</strong>
+              <small>Keep this project close at hand in the pinned group.</small>
+            </span>
+          </label>
 
           @if (error) {
             <p class="error-copy">{{ error }}</p>
@@ -136,7 +208,9 @@ import { PROJECT_PALETTE } from '../project-presentation';
       .modal-card {
         position: relative;
         z-index: 1;
-        width: min(100%, 32rem);
+        width: min(100%, 34rem);
+        max-height: 90vh;
+        overflow-y: auto;
         border-radius: 1.7rem;
         background: var(--surface-container-lowest);
         box-shadow:
@@ -171,6 +245,7 @@ import { PROJECT_PALETTE } from '../project-presentation';
         line-height: 1;
         display: inline-grid;
         place-items: center;
+        cursor: pointer;
       }
 
       @media (pointer: coarse) {
@@ -194,8 +269,68 @@ import { PROJECT_PALETTE } from '../project-presentation';
         font-weight: 800;
       }
 
-      input,
-      textarea {
+      .kind-cards {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+      }
+
+      .kind-card {
+        display: flex;
+        flex-direction: column;
+        text-align: left;
+        border: 1px solid var(--outline-variant);
+        border-radius: 1rem;
+        background: var(--surface-container-low);
+        padding: 0.9rem 1rem;
+        cursor: pointer;
+        transition: all 150ms ease;
+
+        &:hover {
+          background: var(--surface-container-high);
+        }
+
+        &.kind-card-active {
+          border-color: var(--primary-solid);
+          background: color-mix(in srgb, var(--primary-soft) 40%, var(--surface-container-low));
+          box-shadow: 0 0 0 1px var(--primary-solid);
+        }
+
+        strong {
+          font-size: 0.92rem;
+          color: var(--on-surface);
+        }
+
+        span {
+          margin-top: 0.25rem;
+          font-size: 0.78rem;
+          color: var(--on-surface-muted);
+          line-height: 1.4;
+        }
+      }
+
+      .warning-box {
+        padding: 0.9rem 1rem;
+        border-radius: 1rem;
+        background: color-mix(in srgb, var(--status-overdue) 10%, var(--surface-container-low));
+        border: 1px solid color-mix(in srgb, var(--status-overdue) 30%, var(--outline-variant));
+      }
+
+      .warning-text {
+        margin: 0;
+        font-size: 0.85rem;
+        color: var(--status-overdue);
+        line-height: 1.45;
+      }
+
+      .clear-date-button {
+        justify-self: start;
+        margin-top: 0.5rem;
+        font-size: 0.82rem;
+        min-height: 2.2rem;
+      }
+
+      input {
         width: 100%;
         border-radius: 1rem;
         background: var(--surface-container-lowest);
@@ -204,11 +339,7 @@ import { PROJECT_PALETTE } from '../project-presentation';
         font: inherit;
         padding: 0.95rem 1rem;
         box-sizing: border-box;
-      }
-
-      textarea {
-        resize: vertical;
-        min-height: 7rem;
+        border: 0;
       }
 
       input.field-error {
@@ -218,7 +349,7 @@ import { PROJECT_PALETTE } from '../project-presentation';
 
       .field-error-message,
       .error-copy {
-        margin: 0;
+        margin: 0.25rem 0 0;
         color: var(--status-overdue);
         font-size: 0.88rem;
       }
@@ -237,13 +368,47 @@ import { PROJECT_PALETTE } from '../project-presentation';
         border-radius: 999px;
         border: 0;
         background: var(--chip-color);
-        box-shadow: inset 0 0 0 3px
-          color-mix(in srgb, hsl(var(--primary-foreground)) 90%, transparent);
+        box-shadow:
+          inset 0 0 0 3px color-mix(in srgb, hsl(var(--primary-foreground)) 90%, transparent),
+          0 0 0 1px var(--project-dot-ring);
+        cursor: pointer;
       }
 
       .color-chip-active {
         outline: 2px solid var(--chip-color);
         outline-offset: 3px;
+      }
+
+      .pinned-field {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.7rem;
+        cursor: pointer;
+
+        input {
+          width: 1.05rem;
+          height: 1.05rem;
+          margin: 0.15rem 0 0;
+          padding: 0;
+          border: 0;
+          border-radius: 0.25rem;
+          background: transparent;
+          accent-color: var(--primary-solid);
+          flex: 0 0 auto;
+        }
+
+        strong {
+          display: block;
+          font-size: 0.9rem;
+          color: var(--on-surface);
+        }
+
+        small {
+          display: block;
+          margin-top: 0.15rem;
+          font-size: 0.78rem;
+          color: var(--on-surface-muted);
+        }
       }
 
       .actions {
@@ -261,6 +426,7 @@ import { PROJECT_PALETTE } from '../project-presentation';
         min-height: 3rem;
         padding: 0 1.1rem;
         font-weight: 700;
+        cursor: pointer;
       }
 
       .primary-button {
@@ -288,7 +454,10 @@ import { PROJECT_PALETTE } from '../project-presentation';
           padding-left: calc(1.25rem + env(safe-area-inset-left, 0px));
           padding-right: calc(1.25rem + env(safe-area-inset-right, 0px));
           padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
-          overflow: auto;
+        }
+
+        .kind-cards {
+          grid-template-columns: 1fr;
         }
 
         .actions {
@@ -311,13 +480,17 @@ export class PersonalProjectModalComponent implements OnChanges {
   @Input() saving = false;
   @Input() error: string | null = null;
   @Output() readonly close = new EventEmitter<void>();
-  @Output() readonly save = new EventEmitter<CreateProjectDto>();
+  @Output() readonly save = new EventEmitter<ProjectFormPayload>();
 
   protected readonly palette = PROJECT_PALETTE;
   protected readonly draftName = signal('');
   protected readonly draftDescription = signal('');
   protected readonly draftColor = signal<ProjectColor>('sage');
+  protected readonly draftKind = signal<ProjectKind>('project');
+  protected readonly draftTargetDate = signal('');
+  protected readonly draftPinned = signal(false);
   protected readonly nameError = signal<string | null>(null);
+  protected readonly targetDateError = signal<string | null>(null);
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.open && (changes['open'] || changes['mode'] || changes['project'])) {
@@ -326,7 +499,24 @@ export class PersonalProjectModalComponent implements OnChanges {
 
     if (changes['open'] && !this.open) {
       this.nameError.set(null);
+      this.targetDateError.set(null);
     }
+  }
+
+  protected setKind(kind: ProjectKind) {
+    this.draftKind.set(kind);
+    if (kind === 'ongoing' && this.draftTargetDate()) {
+      this.targetDateError.set(
+        'Ongoing areas cannot have a target date. Clear the target date to continue.',
+      );
+    } else {
+      this.targetDateError.set(null);
+    }
+  }
+
+  protected clearTargetDate() {
+    this.draftTargetDate.set('');
+    this.targetDateError.set(null);
   }
 
   protected submit() {
@@ -337,11 +527,22 @@ export class PersonalProjectModalComponent implements OnChanges {
       return;
     }
 
+    if (this.draftKind() === 'ongoing' && this.draftTargetDate()) {
+      this.targetDateError.set(
+        'Ongoing areas cannot have a target date. Clear the target date before saving.',
+      );
+      return;
+    }
+
     this.nameError.set(null);
+    this.targetDateError.set(null);
     this.save.emit({
       name,
-      description: this.draftDescription().trim() || undefined,
+      description: this.draftDescription().trim() || null,
       color: this.draftColor(),
+      kind: this.draftKind(),
+      targetDate: this.draftKind() === 'project' ? this.draftTargetDate() || null : null,
+      pinned: this.draftPinned(),
     });
   }
 
@@ -350,12 +551,19 @@ export class PersonalProjectModalComponent implements OnChanges {
       this.draftName.set(this.project.name);
       this.draftDescription.set(this.project.description ?? '');
       this.draftColor.set(this.project.color ?? 'sage');
+      this.draftKind.set(this.project.kind ?? 'project');
+      this.draftTargetDate.set(this.project.targetDate ?? '');
+      this.draftPinned.set(this.project.pinned);
     } else {
       this.draftName.set('');
       this.draftDescription.set('');
       this.draftColor.set('sage');
+      this.draftKind.set('project');
+      this.draftTargetDate.set('');
+      this.draftPinned.set(false);
     }
 
     this.nameError.set(null);
+    this.targetDateError.set(null);
   }
 }

@@ -2034,3 +2034,371 @@ test('retired projects resolve to unfiled on task writes and stay hidden', async
     await ctx.cleanup();
   }
 });
+
+test('soft-deleted tasks stay in Trash for 30 days and can be restored', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`trash-${randomUUID()}@example.com`);
+    const { db } = await import('../db/client.js');
+    const { tasks: tasksTable } = await import('../db/schema.js');
+
+    const created = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Trashed task' },
+    });
+    assert.equal(created.statusCode, 201);
+    const taskId = created.json().id as string;
+
+    // Mirror the project-deletion path: a soft-delete marker, not a hard delete.
+    await db
+      .update(tasksTable)
+      .set({ deletedAt: new Date().toISOString() })
+      .where(eq(tasksTable.id, taskId));
+
+    // Serving a task view runs the cleanup preHandler. A fresh soft-delete
+    // must survive it instead of being permanently erased (the P1 regression).
+    const listed = await ctx.app.inject({ method: 'GET', url: '/tasks', headers: { cookie } });
+    assert.equal(listed.statusCode, 200);
+    assert.ok(!listed.json().data.some((task: { id: string }) => task.id === taskId));
+    const [survivor] = await db
+      .select({ id: tasksTable.id })
+      .from(tasksTable)
+      .where(eq(tasksTable.id, taskId))
+      .limit(1);
+    assert.ok(survivor, 'freshly soft-deleted task must still exist after a task view');
+
+    const trashed = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?deleted=true&includeSubtasks=true',
+      headers: { cookie },
+    });
+    assert.equal(trashed.statusCode, 200);
+    const trashedTask = trashed.json().data.find((task: { id: string }) => task.id === taskId) as {
+      deletedAt?: string;
+    };
+    assert.ok(trashedTask, 'soft-deleted task is listed in Trash');
+    assert.ok(trashedTask.deletedAt, 'Trash entries expose their deletion timestamp');
+
+    const restored = await ctx.app.inject({
+      method: 'POST',
+      url: `/tasks/${taskId}/restore`,
+      headers: { cookie },
+    });
+    assert.equal(restored.statusCode, 200);
+
+    const afterRestore = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks',
+      headers: { cookie },
+    });
+    assert.ok(
+      afterRestore.json().data.some((task: { id: string }) => task.id === taskId),
+      'restored task is visible in the normal task list again',
+    );
+
+    const again = await ctx.app.inject({
+      method: 'POST',
+      url: `/tasks/${taskId}/restore`,
+      headers: { cookie },
+    });
+    assert.equal(again.statusCode, 404, 'restoring an active task is not found');
+
+    // Once past the recovery window the next task view purges it for good.
+    const [taskOwner] = await db
+      .select({ userId: tasksTable.userId })
+      .from(tasksTable)
+      .where(eq(tasksTable.id, taskId))
+      .limit(1);
+    const { projects: projectsTable } = await import('../db/schema.js');
+    const oldProjId = randomUUID();
+    await db.insert(projectsTable).values({
+      id: oldProjId,
+      name: 'Old Retired Project',
+      ownerId: taskOwner!.userId!,
+      retiredAt: daysAgoIso(31),
+      createdAt: daysAgoIso(35),
+      updatedAt: daysAgoIso(31),
+    });
+
+    await db
+      .update(tasksTable)
+      .set({ deletedAt: daysAgoIso(31) })
+      .where(eq(tasksTable.id, taskId));
+    await ctx.app.inject({ method: 'GET', url: '/tasks', headers: { cookie } });
+    const [purged] = await db
+      .select({ id: tasksTable.id })
+      .from(tasksTable)
+      .where(eq(tasksTable.id, taskId))
+      .limit(1);
+    assert.equal(purged, undefined, 'expired Trash entries are permanently removed');
+    const [purgedProj] = await db
+      .select({ id: projectsTable.id })
+      .from(projectsTable)
+      .where(eq(projectsTable.id, oldProjId))
+      .limit(1);
+    assert.equal(purgedProj, undefined, 'expired retired projects are permanently removed');
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('unassigned filter and batch patch move several tasks into a project at once', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`batch-${randomUUID()}@example.com`);
+
+    const projectResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/projects',
+      headers: { cookie },
+      payload: { name: 'Batching Target' },
+    });
+    assert.equal(projectResponse.statusCode, 201);
+    const projectId = projectResponse.json().id as string;
+
+    const sectionResponse = await ctx.app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/sections`,
+      headers: { cookie },
+      payload: { name: 'Triage' },
+    });
+    assert.equal(sectionResponse.statusCode, 201);
+    const sectionId = sectionResponse.json().id as string;
+
+    const ids: string[] = [];
+    for (const title of ['Loose one', 'Loose two']) {
+      const created = await ctx.app.inject({
+        method: 'POST',
+        url: '/tasks',
+        headers: { cookie },
+        payload: { title },
+      });
+      assert.equal(created.statusCode, 201);
+      ids.push(created.json().id as string);
+    }
+    const filed = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Already filed', projectId },
+    });
+    assert.equal(filed.statusCode, 201);
+    const filedId = filed.json().id as string;
+
+    const unassigned = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?unassigned=true&pageSize=100',
+      headers: { cookie },
+    });
+    assert.equal(unassigned.statusCode, 200);
+    const unassignedIds = unassigned.json().data.map((task: { id: string }) => task.id);
+    assert.ok(unassignedIds.includes(ids[0]));
+    assert.ok(unassignedIds.includes(ids[1]));
+    assert.ok(!unassignedIds.includes(filedId), 'filed tasks are excluded');
+
+    const missingId = randomUUID();
+    const batch = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/tasks',
+      headers: { cookie },
+      payload: {
+        taskIds: [...ids, missingId],
+        patch: { projectId, sectionId, priority: 'high' },
+      },
+    });
+    assert.equal(batch.statusCode, 200);
+    assert.equal(batch.json().updated, 2, 'missing ids are skipped, not fatal');
+    assert.deepEqual(batch.json().missing, [missingId], 'missing ids are reported in response');
+
+    for (const id of ids) {
+      const updated = await ctx.app.inject({
+        method: 'GET',
+        url: `/tasks/${id}`,
+        headers: { cookie },
+      });
+      assert.equal(updated.json().projectId, projectId);
+      assert.equal(updated.json().sectionId, sectionId);
+      assert.equal(updated.json().priority, 'high');
+    }
+
+    const after = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?unassigned=true&pageSize=100',
+      headers: { cookie },
+    });
+    assert.ok(
+      !after.json().data.some((task: { id: string }) => ids.includes(task.id)),
+      'batched tasks left the unassigned pool',
+    );
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('batch patch enforces atomicity, reports missing/trashed ids, and rejects >100 ids', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`batch-atomic-${randomUUID()}@example.com`);
+
+    const p1Res = await ctx.app.inject({
+      method: 'POST',
+      url: '/projects',
+      headers: { cookie },
+      payload: { name: 'Batch Atomic 1' },
+    });
+    assert.equal(p1Res.statusCode, 201);
+    const p1Id = p1Res.json().id as string;
+
+    const p2Res = await ctx.app.inject({
+      method: 'POST',
+      url: '/projects',
+      headers: { cookie },
+      payload: { name: 'Batch Atomic 2' },
+    });
+    assert.equal(p2Res.statusCode, 201);
+    const p2Id = p2Res.json().id as string;
+
+    const p2SectionRes = await ctx.app.inject({
+      method: 'POST',
+      url: `/projects/${p2Id}/sections`,
+      headers: { cookie },
+      payload: { name: 'P2 Section' },
+    });
+    assert.equal(p2SectionRes.statusCode, 201);
+    const p2SectionId = p2SectionRes.json().id as string;
+
+    const task1Res = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Atomic task 1' },
+    });
+    const task2Res = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Atomic task 2' },
+    });
+    const task1Id = task1Res.json().id as string;
+    const task2Id = task2Res.json().id as string;
+
+    // (a) Section from a different project fails and entire batch rolls back atomically
+    const mismatchedSectionRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/tasks',
+      headers: { cookie },
+      payload: {
+        taskIds: [task1Id, task2Id],
+        patch: { projectId: p1Id, sectionId: p2SectionId },
+      },
+    });
+    assert.equal(mismatchedSectionRes.statusCode, 400);
+
+    // Verify rollback: neither task was modified
+    for (const id of [task1Id, task2Id]) {
+      const getRes = await ctx.app.inject({
+        method: 'GET',
+        url: `/tasks/${id}`,
+        headers: { cookie },
+      });
+      assert.equal(getRes.statusCode, 200);
+      assert.equal(getRes.json().projectId, undefined);
+      assert.equal(getRes.json().sectionId, undefined);
+    }
+
+    // (b) Trashed / missing ID mixed into a valid batch is skipped, reported in missing, rest applied
+    const trashedRes = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'To be trashed' },
+    });
+    const trashedId = trashedRes.json().id as string;
+    const deleteRes = await ctx.app.inject({
+      method: 'DELETE',
+      url: `/tasks/${trashedId}`,
+      headers: { cookie },
+    });
+    assert.equal(deleteRes.statusCode, 200);
+
+    const nonExistentId = randomUUID();
+    const partialBatchRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/tasks',
+      headers: { cookie },
+      payload: {
+        taskIds: [task1Id, trashedId, task2Id, nonExistentId],
+        patch: { projectId: p1Id, priority: 'high' },
+      },
+    });
+    assert.equal(partialBatchRes.statusCode, 200);
+    const partialJson = partialBatchRes.json();
+    assert.equal(partialJson.ok, true);
+    assert.equal(partialJson.updated, 2);
+    assert.deepEqual(partialJson.missing.slice().sort(), [trashedId, nonExistentId].slice().sort());
+
+    for (const id of [task1Id, task2Id]) {
+      const getRes = await ctx.app.inject({
+        method: 'GET',
+        url: `/tasks/${id}`,
+        headers: { cookie },
+      });
+      assert.equal(getRes.json().projectId, p1Id);
+      assert.equal(getRes.json().priority, 'high');
+    }
+
+    // (c) More than 100 task IDs rejected by schema validation (400 Bad Request)
+    const tooManyIds = Array.from({ length: 101 }, () => randomUUID());
+    const overLimitRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/tasks',
+      headers: { cookie },
+      payload: {
+        taskIds: tooManyIds,
+        patch: { priority: 'low' },
+      },
+    });
+    assert.equal(overLimitRes.statusCode, 400);
+
+    // (d) Per-task fields (subtasks, title, parentId, recurrenceRule) are rejected by schema validation
+    const forbiddenSubtasksRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/tasks',
+      headers: { cookie },
+      payload: {
+        taskIds: [task1Id],
+        patch: { subtasks: [{ title: 'Injected subtask' }] },
+      },
+    });
+    assert.equal(forbiddenSubtasksRes.statusCode, 400);
+
+    const forbiddenTitleRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/tasks',
+      headers: { cookie },
+      payload: {
+        taskIds: [task1Id],
+        patch: { title: 'Overwritten title' },
+      },
+    });
+    assert.equal(forbiddenTitleRes.statusCode, 400);
+
+    const forbiddenParentRes = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/tasks',
+      headers: { cookie },
+      payload: {
+        taskIds: [task1Id],
+        patch: { parentId: task2Id },
+      },
+    });
+    assert.equal(forbiddenParentRes.statusCode, 400);
+  } finally {
+    await ctx.cleanup();
+  }
+});

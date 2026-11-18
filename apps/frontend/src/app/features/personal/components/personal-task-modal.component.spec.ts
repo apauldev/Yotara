@@ -6,6 +6,7 @@ import { provideMarkdown } from 'ngx-markdown';
 import { DateTime } from 'luxon';
 import { Label, Project, Task } from '@yotara/shared';
 import { LabelService } from '../../../core/services/label.service';
+import { TaskService } from '../../../core/services/task.service';
 import { DatePickerComponent } from '../../../shared/ui/date-picker/date-picker.component';
 import type { DueDateDraft } from '../utils/due-date-draft';
 import { PersonalTaskModalComponent } from './personal-task-modal.component';
@@ -50,6 +51,15 @@ describe('PersonalTaskModalComponent', () => {
             labelById: () => new Map(labelsSignal().map((label) => [label.id, label])),
             createLabel: createLabelSpy,
             refresh: refreshLabelsSpy,
+          },
+        },
+        {
+          // Editing an existing task loads its subtasks; without this stub the
+          // modal issues a real HTTP request that never settles in the test.
+          provide: TaskService,
+          useValue: {
+            fetchSubtasks: jasmine.createSpy('fetchSubtasks').and.resolveTo([]),
+            updateTask: jasmine.createSpy('updateTask').and.resolveTo(undefined),
           },
         },
       ],
@@ -236,6 +246,34 @@ describe('PersonalTaskModalComponent', () => {
         expect(component['save'].emit).toHaveBeenCalledWith(
           jasmine.objectContaining({
             mode: 'create',
+          }),
+        );
+      });
+
+      it('includes the assigned section in the saved payload', () => {
+        const saveSpy = spyOn(component['save'], 'emit');
+        component.sections = [
+          {
+            id: 'section-1',
+            projectId: 'project-1',
+            name: 'Planning',
+            sortOrder: 0,
+            taskCount: 0,
+            completedTaskCount: 0,
+            openTaskCount: 0,
+            createdAt: '2026-04-01T00:00:00Z',
+            updatedAt: '2026-04-01T00:00:00Z',
+          },
+        ];
+        component['draftTitle'].set('New Task');
+        component['draftProjectId'].set('project-1');
+        component['draftSectionId'].set('section-1');
+        component['submit']();
+
+        expect(saveSpy).toHaveBeenCalledWith(
+          jasmine.objectContaining({
+            mode: 'create',
+            payload: jasmine.objectContaining({ projectId: 'project-1', sectionId: 'section-1' }),
           }),
         );
       });

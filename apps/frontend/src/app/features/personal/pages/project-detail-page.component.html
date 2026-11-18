@@ -1,6 +1,7 @@
 <app-personal-task-workspace
   #workspace
   [initialProjectId]="projectId()"
+  [sections]="sections()"
   (taskSaved)="handleTaskSaved()"
 >
   <app-personal-project-modal
@@ -13,116 +14,566 @@
     (save)="saveProject($event)"
   />
 
+  <app-project-delete-dialog
+    [open]="deleteModalOpen()"
+    [project]="project()"
+    [loading]="projectService.saving()"
+    (close)="closeDeleteModal()"
+    (confirmDelete)="confirmDeleteProject($event)"
+  />
+
+  <app-add-existing-tasks-modal
+    [open]="addExistingOpen()"
+    [projectId]="projectId() ?? ''"
+    [projectName]="project()?.name ?? ''"
+    [sections]="sections()"
+    [saving]="taskService.creating()"
+    (close)="closeAddExistingTasks()"
+    (add)="confirmAddExistingTasks($event)"
+  />
+
+  <app-confirm-dialog
+    [open]="sectionToDelete() !== null"
+    [title]="'Delete “' + (sectionToDelete()?.name ?? '') + '”?'"
+    description="Its tasks will stay in this project."
+    confirmLabel="Delete section"
+    [danger]="true"
+    (confirm)="confirmDeleteSection()"
+    (cancel)="closeDeleteSection()"
+    (close)="closeDeleteSection()"
+  />
+
   <section class="page">
     @if (projectState() === 'ready') {
       @if (project(); as currentProject) {
+        @if (currentProject.archivedAt) {
+          <div class="archive-banner" role="status">
+            <span>Archived project · Its tasks still appear in your planned views.</span>
+            <button type="button" class="restore-button" (click)="unarchiveProject($event)">
+              Restore project
+            </button>
+          </div>
+        }
+
         <app-page-header
           [title]="currentProject.name"
           backRoute="/projects"
           backTitle="Back to Projects"
         >
-          <button
-            page-header-actions
-            type="button"
-            class="header-action-button"
-            (click)="openEditProjectModal()"
-          >
-            Edit Project
-          </button>
+          <div page-header-actions class="header-menu-container">
+            <button
+              type="button"
+              class="header-action-button menu-trigger"
+              [attr.aria-label]="'Project actions for ' + currentProject.name"
+              [attr.aria-expanded]="menuOpen()"
+              (click)="toggleMenu($event)"
+            >
+              <fa-icon [icon]="faEllipsisVertical"></fa-icon>
+            </button>
+
+            @if (menuOpen()) {
+              <div
+                class="header-menu"
+                role="menu"
+                (click)="$event.stopPropagation()"
+                (keydown)="$event.stopPropagation()"
+              >
+                <button type="button" role="menuitem" (click)="openEditProjectModal()">
+                  Edit project
+                </button>
+
+                <button type="button" role="menuitem" (click)="togglePinned($event)">
+                  {{ currentProject.pinned ? 'Unpin from sidebar' : 'Pin to sidebar' }}
+                </button>
+
+                @if (currentProject.kind === 'project') {
+                  @if (!currentProject.completedAt) {
+                    @if (currentProject.openTaskCount > 0) {
+                      <p class="menu-helper">
+                        Finish or move the remaining {{ currentProject.openTaskCount }} tasks first.
+                        <button
+                          type="button"
+                          role="menuitem"
+                          class="menu-helper-link"
+                          (click)="viewOpenTasks($event)"
+                        >
+                          View open tasks
+                        </button>
+                      </p>
+                      <button type="button" role="menuitem" disabled>Complete project</button>
+                    } @else {
+                      <button type="button" role="menuitem" (click)="completeProject($event)">
+                        Complete project
+                      </button>
+                    }
+                  } @else {
+                    <button type="button" role="menuitem" (click)="reopenProject($event)">
+                      Reopen project
+                    </button>
+                  }
+                }
+
+                @if (currentProject.archivedAt) {
+                  <button type="button" role="menuitem" (click)="unarchiveProject($event)">
+                    Restore project
+                  </button>
+                } @else {
+                  <button type="button" role="menuitem" (click)="archiveProject($event)">
+                    Archive project
+                  </button>
+                }
+
+                <hr class="menu-divider" />
+
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="menu-danger"
+                  (click)="askDeleteProject($event)"
+                >
+                  Delete project…
+                </button>
+              </div>
+            }
+          </div>
         </app-page-header>
 
+        <div class="project-meta-line">
+          <span
+            class="project-color-dot"
+            [style.--project-accent]="projectAccent(currentProject)"
+            role="presentation"
+          ></span>
+
+          @if (currentProject.kind === 'ongoing') {
+            <span class="meta-label">Ongoing area</span>
+          } @else {
+            <span class="meta-label">Project</span>
+            @if (currentProject.targetDate) {
+              <span
+                class="meta-date"
+                [class.meta-date-overdue]="isTargetDateOverdue(currentProject.targetDate)"
+              >
+                · Due {{ formatTargetDate(currentProject.targetDate) }}
+                @if (
+                  isTargetDateOverdue(currentProject.targetDate) && !currentProject.completedAt
+                ) {
+                  (overdue)
+                }
+              </span>
+            }
+          }
+
+          @if (currentProject.pinned) {
+            <span class="pinned-badge" title="Pinned to sidebar">
+              <fa-icon [icon]="faThumbtack" aria-hidden="true"></fa-icon>
+              Pinned
+            </span>
+          }
+
+          @if (currentProject.completedAt) {
+            <span class="completed-pill">Completed</span>
+          }
+        </div>
+
         @if (currentProject.description) {
-          <p class="project-description">{{ currentProject.description }}</p>
+          <div class="project-description-container">
+            <markdown
+              class="project-description-markdown"
+              [data]="currentProject.description"
+            ></markdown>
+          </div>
         }
 
-        <section class="metrics-card">
-          <div class="metric">
-            <strong>{{ currentProject.openTaskCount }}</strong>
-            <span>Remaining</span>
-          </div>
-          <div class="metric">
-            <strong>{{ currentProject.completedTaskCount }}</strong>
-            <span>Completed</span>
-          </div>
-          <div class="progress-block">
-            <div class="progress-copy">
-              <strong>{{ progressPercent(currentProject) }}% total progress</strong>
-              <span>{{ currentProject.taskCount }} tasks total</span>
-            </div>
-            <div class="progress-track">
-              <span class="progress-bar" [style.width.%]="progressPercent(currentProject)"></span>
-            </div>
-          </div>
-        </section>
+        @if (currentProject.taskCount > 0) {
+          @if (currentProject.kind === 'project') {
+            <section class="metrics-card">
+              <div class="metric">
+                <strong>{{ currentProject.openTaskCount }}</strong>
+                <span>Remaining</span>
+              </div>
+              <div class="metric">
+                <strong>{{ currentProject.completedTaskCount }}</strong>
+                <span>Completed</span>
+              </div>
+              <div class="progress-block">
+                <div class="progress-copy">
+                  <strong
+                    >{{ currentProject.completedTaskCount }} of {{ currentProject.taskCount }} tasks
+                    complete</strong
+                  >
+                  <span>{{ progressPercent(currentProject) }}%</span>
+                </div>
+                <div class="progress-track">
+                  <span
+                    class="progress-bar"
+                    [style.width.%]="progressPercent(currentProject)"
+                  ></span>
+                </div>
+              </div>
+            </section>
+          } @else {
+            <section class="metrics-card metrics-card-ongoing">
+              <div class="metric">
+                <strong>{{ currentProject.openTaskCount }}</strong>
+                <span>Open tasks</span>
+              </div>
+              <div class="metric">
+                <strong>{{ currentProject.taskCount }}</strong>
+                <span>Total tasks</span>
+              </div>
+              <div class="ongoing-note">Ongoing area · no completion goal</div>
+            </section>
+          }
+        }
 
         <div class="actions-row">
-          <div class="view-pill">List</div>
-          <button type="button" class="action-button" (click)="workspace.openCreateTaskModal()">
-            Add Task
+          <button
+            type="button"
+            class="action-button primary-action"
+            (click)="workspace.openCreateTaskModal()"
+          >
+            Add new task
+          </button>
+          <button
+            type="button"
+            class="action-button secondary-action"
+            (click)="openAddExistingTasks()"
+          >
+            Add existing task
+          </button>
+          <button
+            type="button"
+            class="action-button secondary-action add-section-button"
+            (click)="startCreateSection()"
+          >
+            + Add Section
           </button>
         </div>
 
-        @if (activeProjectTasks().length === 0 && completedProjectTasks().length === 0) {
-          <app-empty-state
-            title="Start with one meaningful step"
-            description="A project becomes useful the moment the next step is visible."
-            [icon]="faFolderOpen"
-          >
-            <button
-              empty-state-actions
-              type="button"
-              class="empty-button"
-              (click)="workspace.openCreateTaskModal()"
+        @if (
+          !creatingSection() &&
+          activeProjectTasks().length === 0 &&
+          completedProjectTasks().length === 0 &&
+          sections().length === 0
+        ) {
+          @if (currentProject.kind === 'ongoing') {
+            <app-empty-state
+              title="Add the first task for this area"
+              description="A continuing space for work and routines that belong together."
+              [icon]="faFolderOpen"
             >
-              Add First Task
-            </button>
-          </app-empty-state>
-        } @else {
-          <section class="task-section">
-            <app-section-header title="To Do" [count]="activeProjectTasks().length" size="lg" />
-
-            <div class="task-stack">
-              @for (task of activeProjectTasks(); track task.id) {
-                <app-personal-task-card
-                  [task]="task"
-                  [interactive]="true"
-                  [showProject]="false"
-                  (select)="workspace.editTask(task)"
-                />
-              }
-
-              <button type="button" class="inline-create" (click)="workspace.openCreateTaskModal()">
-                + Add new task to {{ currentProject.name }}
+              <button
+                empty-state-actions
+                type="button"
+                class="empty-button"
+                (click)="workspace.openCreateTaskModal()"
+              >
+                Add First Task
               </button>
-            </div>
-          </section>
-
-          @if (completedProjectTasks().length > 0) {
-            <section class="task-section task-section-soft">
-              <app-section-header
-                title="Completed"
-                [count]="completedProjectTasks().length"
-                size="lg"
-              />
+              <button
+                empty-state-actions
+                type="button"
+                class="empty-button secondary-empty-button"
+                (click)="startCreateSection()"
+              >
+                Add Section
+              </button>
+            </app-empty-state>
+          } @else {
+            <app-empty-state
+              title="Start with one meaningful step"
+              description="A project becomes useful the moment the next step is visible."
+              [icon]="faFolderOpen"
+            >
+              <button
+                empty-state-actions
+                type="button"
+                class="empty-button"
+                (click)="workspace.openCreateTaskModal()"
+              >
+                Add First Task
+              </button>
+              <button
+                empty-state-actions
+                type="button"
+                class="empty-button secondary-empty-button"
+                (click)="startCreateSection()"
+              >
+                Add Section
+              </button>
+            </app-empty-state>
+          }
+        } @else {
+          <section
+            class="task-section"
+            #todoSection
+            cdkDropList
+            [cdkDropListData]="sections()"
+            (cdkDropListDropped)="onSectionDrop($event)"
+          >
+            @if (unsectionedTasks().length > 0 || sections().length === 0) {
+              <app-section-header title="To Do" [count]="unsectionedTasks().length" size="lg" />
 
               <div class="task-stack">
-                @for (task of completedProjectTasks(); track task.id) {
+                @for (task of unsectionedTasks(); track task.id) {
                   <app-personal-task-card
                     [task]="task"
                     [interactive]="true"
                     [showProject]="false"
-                    [showDescription]="false"
-                    [showCompletionState]="true"
                     (select)="workspace.editTask(task)"
                   />
                 }
+
+                <button
+                  type="button"
+                  class="inline-create"
+                  (click)="workspace.openCreateTaskModal()"
+                >
+                  + Add new task to {{ currentProject.name }}
+                </button>
               </div>
+            }
+
+            @for (section of sections(); track section.id) {
+              <div
+                class="project-section"
+                cdkDrag
+                [cdkDragData]="section"
+                [cdkDragConstrainPosition]="constrainDragPreview"
+              >
+                <div class="project-section-header">
+                  <span
+                    class="drag-handle"
+                    cdkDragHandle
+                    [attr.aria-label]="'Drag to reorder ' + section.name"
+                    title="Drag to reorder"
+                  >
+                    <fa-icon [icon]="faGripVertical" aria-hidden="true"></fa-icon>
+                  </span>
+
+                  <button
+                    type="button"
+                    class="section-collapse"
+                    [attr.aria-expanded]="!isSectionCollapsed(section.id)"
+                    [attr.aria-label]="
+                      (isSectionCollapsed(section.id) ? 'Expand ' : 'Collapse ') + section.name
+                    "
+                    (click)="toggleSectionCollapsed(section.id)"
+                  >
+                    <fa-icon
+                      [icon]="isSectionCollapsed(section.id) ? faChevronRight : faChevronDown"
+                      aria-hidden="true"
+                    ></fa-icon>
+                  </button>
+
+                  @if (editingSectionId() === section.id) {
+                    <input
+                      class="section-name-input"
+                      [value]="sectionDraftName()"
+                      (input)="sectionDraftName.set($any($event.target).value)"
+                      (keydown.enter)="confirmRenameSection(section)"
+                      (keydown.escape)="cancelRenameSection()"
+                      aria-label="Section name"
+                    />
+                    <button
+                      type="button"
+                      class="section-inline-action"
+                      (click)="confirmRenameSection(section)"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      class="section-inline-action"
+                      (click)="cancelRenameSection()"
+                    >
+                      Cancel
+                    </button>
+                  } @else {
+                    <h3 class="section-name">{{ section.name }}</h3>
+                    <span class="section-count">{{
+                      tasksBySection().get(section.id)?.length ?? 0
+                    }}</span>
+                  }
+
+                  <div class="section-actions">
+                    <button
+                      type="button"
+                      class="section-action"
+                      [attr.aria-label]="'Add task to ' + section.name"
+                      title="Add task to this section"
+                      (click)="openAddTaskInSection(section, $event)"
+                    >
+                      <fa-icon [icon]="faPlus" aria-hidden="true"></fa-icon>
+                    </button>
+                    <button
+                      type="button"
+                      class="section-action"
+                      [attr.aria-label]="'Section actions for ' + section.name"
+                      [attr.aria-expanded]="sectionMenuId() === section.id"
+                      (click)="toggleSectionMenu(section.id, $event)"
+                    >
+                      <fa-icon [icon]="faEllipsisVertical" aria-hidden="true"></fa-icon>
+                    </button>
+
+                    @if (sectionMenuId() === section.id) {
+                      <div class="section-menu" role="menu" (click)="$event.stopPropagation()">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          (click)="startRenameSection(section, $event)"
+                        >
+                          Rename
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          [disabled]="!canMoveSection(section, -1)"
+                          (click)="moveSection(section, -1, $event)"
+                        >
+                          <fa-icon [icon]="faArrowUp" aria-hidden="true"></fa-icon> Move up
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          [disabled]="!canMoveSection(section, 1)"
+                          (click)="moveSection(section, 1, $event)"
+                        >
+                          <fa-icon [icon]="faArrowDown" aria-hidden="true"></fa-icon> Move down
+                        </button>
+                        <hr class="menu-divider" />
+                        <button
+                          type="button"
+                          role="menuitem"
+                          class="menu-danger"
+                          (click)="askDeleteSection(section, $event)"
+                        >
+                          Delete section…
+                        </button>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                @if (sectionNameError() && editingSectionId() === section.id) {
+                  <p class="section-error">{{ sectionNameError() }}</p>
+                }
+
+                @if (!isSectionCollapsed(section.id)) {
+                  <div class="task-stack section-task-stack">
+                    @for (task of tasksBySection().get(section.id) ?? []; track task.id) {
+                      <app-personal-task-card
+                        [task]="task"
+                        [interactive]="true"
+                        [showProject]="false"
+                        (select)="workspace.editTask(task)"
+                      />
+                    }
+                    <button
+                      type="button"
+                      class="inline-create"
+                      (click)="openAddTaskInSection(section, $event)"
+                    >
+                      + Add task to {{ section.name }}
+                    </button>
+                  </div>
+                }
+
+                <div class="section-drag-preview" *cdkDragPreview>
+                  <div class="section-drag-preview-card">
+                    <fa-icon [icon]="faGripVertical" aria-hidden="true"></fa-icon>
+                    <span>{{ section.name }}</span>
+                  </div>
+                </div>
+              </div>
+            }
+
+            @if (creatingSection()) {
+              <div class="section-create-row">
+                <input
+                  class="section-name-input"
+                  [value]="newSectionName()"
+                  (input)="newSectionName.set($any($event.target).value)"
+                  (keydown.enter)="confirmCreateSection()"
+                  (keydown.escape)="cancelCreateSection()"
+                  aria-label="New section name"
+                  placeholder="Section name"
+                />
+                <button
+                  type="button"
+                  class="section-inline-action"
+                  (click)="confirmCreateSection()"
+                >
+                  Add section
+                </button>
+                <button type="button" class="section-inline-action" (click)="cancelCreateSection()">
+                  Cancel
+                </button>
+              </div>
+              @if (sectionNameError()) {
+                <p class="section-error">{{ sectionNameError() }}</p>
+              }
+            } @else {
+              <button type="button" class="add-section-inline" (click)="startCreateSection()">
+                <fa-icon [icon]="faPlus" aria-hidden="true"></fa-icon> Add section
+              </button>
+            }
+          </section>
+
+          @if (completedProjectTasks().length > 0) {
+            <section class="task-section task-section-soft">
+              <div class="completed-header-wrapper">
+                <app-section-header
+                  title="Completed"
+                  [count]="completedProjectTasks().length"
+                  size="lg"
+                >
+                  <button
+                    section-header-actions
+                    type="button"
+                    class="collapse-toggle-button"
+                    (click)="toggleCompletedCollapsed()"
+                    [attr.aria-expanded]="!completedCollapsed()"
+                  >
+                    {{ completedCollapsed() ? 'Show' : 'Hide' }}
+                  </button>
+                </app-section-header>
+              </div>
+
+              @if (!completedCollapsed()) {
+                <div class="task-stack">
+                  @for (task of completedProjectTasks(); track task.id) {
+                    <app-personal-task-card
+                      [task]="task"
+                      [interactive]="true"
+                      [showProject]="false"
+                      [showDescription]="false"
+                      [showCompletionState]="true"
+                      (select)="workspace.editTask(task)"
+                    />
+                  }
+                </div>
+              }
             </section>
           }
         }
       }
     } @else if (projectState() === 'loading') {
-      <p class="status-copy">Loading your project...</p>
+      <div class="project-skeleton" role="status" aria-label="Loading your project">
+        <div class="skeleton-line skeleton-back"></div>
+        <div class="skeleton-line skeleton-title"></div>
+        <div class="skeleton-line skeleton-meta"></div>
+        <div class="skeleton-card">
+          <div class="skeleton-line skeleton-card-line"></div>
+          <div class="skeleton-line skeleton-card-line skeleton-card-line-short"></div>
+          <div class="skeleton-bar"></div>
+        </div>
+        <div class="skeleton-line skeleton-section"></div>
+        @for (row of [1, 2, 3]; track row) {
+          <div class="skeleton-row"></div>
+        }
+      </div>
     } @else if (projectState() === 'error') {
       <app-empty-state
         title="We could not load this project"

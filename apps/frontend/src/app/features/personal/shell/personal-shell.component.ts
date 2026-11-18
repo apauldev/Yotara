@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import {
   Component,
+  computed,
   effect,
   inject,
   signal,
@@ -29,9 +30,10 @@ import {
   faInbox,
   faArrowRightLong,
   faRocket,
-  faPlus,
+  faThumbtack,
   faSliders,
   faTag,
+  faChevronDown,
   faChevronLeft,
   faChevronRight,
   faLightbulb,
@@ -42,15 +44,17 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { APP_VERSION } from '../../../core/constants/version';
 import { TIPS, type Tip } from '../../../core/constants/tips';
 import { AuthStateService } from '../../../core/services/auth-state.service';
+import { ProjectService } from '../../../core/services/project.service';
 import { TaskService } from '../../../core/services/task.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { DueTimeSchedulerService } from '../../../core/services/due-time-scheduler.service';
+import { projectPaletteFor } from '../project-presentation';
 import { TIMED_REMINDERS_UNAVAILABLE } from '../utils/timezone-notices';
 import { LogoutConfirmModalComponent } from '../../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
-import type { Notification } from '@yotara/shared';
+import type { Notification, Project } from '@yotara/shared';
 import { AppStatusComponent } from '../../../shared/ui/app-status/app-status.component';
 
 type PersonalIcon = 'inbox' | 'today' | 'upcoming' | 'calendar' | 'projects' | 'labels' | 'archive';
@@ -90,16 +94,19 @@ export class PersonalShellComponent implements OnDestroy {
   protected readonly faBoxArchive = faBoxArchive;
   protected readonly faInbox = faInbox;
   protected readonly faRocket = faRocket;
-  protected readonly faPlus = faPlus;
+  protected readonly faThumbtack = faThumbtack;
   protected readonly faSliders = faSliders;
   protected readonly faTag = faTag;
+  protected readonly faChevronDown = faChevronDown;
   protected readonly faChevronLeft = faChevronLeft;
   protected readonly faChevronRight = faChevronRight;
+  protected readonly projectPaletteFor = projectPaletteFor;
   protected readonly faLightbulb = faLightbulb;
   protected readonly faXmark = faXmark;
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   protected readonly authState = inject(AuthStateService);
+  protected readonly projectService = inject(ProjectService);
   protected readonly taskService = inject(TaskService);
   protected readonly themeService = inject(ThemeService);
   protected readonly notificationService = inject(NotificationService);
@@ -119,6 +126,12 @@ export class PersonalShellComponent implements OnDestroy {
     { label: 'Labels', route: '/labels', icon: 'labels' },
     { label: 'Completed', route: '/archive', icon: 'archive' },
   ];
+
+  protected readonly pinnedProjects = computed(() =>
+    this.projectService.projects().filter((project) => project.pinned),
+  );
+  protected readonly pinnedGroupExpanded = signal(true);
+
   protected readonly mobileMenuOpen = signal(false);
   protected readonly sidebarCollapsed = signal(false);
   protected readonly now = signal(new Date());
@@ -202,6 +215,16 @@ export class PersonalShellComponent implements OnDestroy {
 
   protected toggleSidebar() {
     this.sidebarCollapsed.update((collapsed) => !collapsed);
+  }
+
+  protected togglePinnedGroup() {
+    this.pinnedGroupExpanded.update((expanded) => !expanded);
+  }
+
+  protected async unpinProject(project: Project, event: MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    await this.projectService.updateProject(project.id, { pinned: false });
   }
 
   protected toggleProfileMenu() {

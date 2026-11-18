@@ -852,6 +852,7 @@ kbd {
   height: 0.7rem;
   border-radius: 999px;
   flex: 0 0 auto;
+  outline: 1px solid var(--project-dot-ring);
 }
 
 .starter-name {
@@ -1057,6 +1058,7 @@ kbd {
   height: 1.4rem;
   border-radius: 50%;
   border: 2px solid transparent;
+  outline: 1px solid var(--project-dot-ring);
   padding: 0;
   cursor: pointer;
   transition:

@@ -19,6 +19,9 @@ const projects: Project[] = [
   {
     id: 'p1',
     name: 'Work',
+    kind: 'ongoing',
+    sortOrder: 1,
+    pinned: false,
     ownerId: 'u1',
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
@@ -29,6 +32,9 @@ const projects: Project[] = [
   {
     id: 'p2',
     name: 'Home',
+    kind: 'ongoing',
+    sortOrder: 2,
+    pinned: false,
     ownerId: 'u1',
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',

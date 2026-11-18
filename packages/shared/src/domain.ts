@@ -11,6 +11,13 @@ export function isProjectColor(value: unknown): value is ProjectColor {
   return typeof value === 'string' && (PROJECT_COLORS as readonly string[]).includes(value);
 }
 
+export const PROJECT_KINDS = ['project', 'ongoing'] as const;
+export type ProjectKind = (typeof PROJECT_KINDS)[number];
+
+export function isProjectKind(value: unknown): value is ProjectKind {
+  return typeof value === 'string' && (PROJECT_KINDS as readonly string[]).includes(value);
+}
+
 export type RecurrenceFrequency = 'daily' | 'weekdays' | 'weekly' | 'monthly' | 'yearly';
 
 export interface RecurrenceRule {
@@ -38,12 +45,34 @@ export interface Project {
   name: string;
   description?: string;
   color?: ProjectColor;
+  kind: ProjectKind;
+  targetDate?: string | null;
+  completedAt?: string | null;
+  archivedAt?: string | null;
+  sortOrder: number;
+  pinned: boolean;
   ownerId: string;
   createdAt: string;
   updatedAt: string;
   taskCount: number;
   completedTaskCount: number;
   openTaskCount: number;
+}
+
+/**
+ * An optional, flat heading inside a project. A section is a display aid only:
+ * it never changes a task's status, dates, labels, or completion.
+ */
+export interface ProjectSection {
+  id: string;
+  projectId: string;
+  name: string;
+  sortOrder: number;
+  taskCount: number;
+  completedTaskCount: number;
+  openTaskCount: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Label {
@@ -76,17 +105,48 @@ export interface Task {
   dueTime?: string; // 'HH:mm' local wall-clock time
   simpleMode?: boolean;
   projectId?: string;
+  /** Optional section inside the project. Absent means unsectioned. */
+  sectionId?: string;
   parentId?: string;
   recurrenceRule?: RecurrenceRule;
   baseTaskId?: string;
   subtaskCount?: number;
   subtaskCompletedCount?: number;
   archivedAt?: string;
+  /** Set when the task sits in Trash; cleared on restore. */
+  deletedAt?: string;
+  /** Name of the retired project this task was deleted with (Trash listings only). */
+  deletedProjectName?: string;
   permanentArchive?: boolean;
   labels?: string[]; // label IDs
   order: number;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Allowed fields for bulk task updates. Excludes fields with per-task uniqueness (title, description, subtasks, parentId, recurrenceRule, order). */
+export interface BatchTaskPatchDto {
+  projectId?: string | null;
+  sectionId?: string | null;
+  priority?: Priority;
+  dueDate?: string | null;
+  dueTime?: string | null;
+  status?: TaskStatus;
+  completed?: boolean;
+  labels?: string[];
+}
+
+/** Apply the same patch to several tasks in one request. */
+export interface BatchUpdateTasksDto {
+  taskIds: string[];
+  patch: BatchTaskPatchDto;
+}
+
+/** Result of applying a batch update to tasks. */
+export interface BatchUpdateTasksResponse {
+  ok: true;
+  updated: number;
+  missing: string[];
 }
 
 // ─── API Response Wrappers ───────────────────────────────────────────────────
@@ -131,6 +191,8 @@ export interface CreateTaskDto {
   dueTime?: string; // 'HH:mm'; requires a dueDate
   simpleMode?: boolean;
   projectId?: string | null;
+  /** Assign the new task to a section of the selected project. */
+  sectionId?: string | null;
   parentId?: string;
   recurrenceRule?: RecurrenceRule;
   baseTaskId?: string;
@@ -147,6 +209,8 @@ export interface UpdateTaskDto {
   dueTime?: string | null; // null clears a persisted time; undefined leaves it unchanged
   simpleMode?: boolean;
   projectId?: string | null;
+  /** `null` moves the task back to the project's unsectioned group. */
+  sectionId?: string | null;
   parentId?: string | null;
   recurrenceRule?: RecurrenceRule | null;
   permanentArchive?: boolean;
@@ -185,9 +249,37 @@ export interface CreateProjectDto {
   name: string;
   description?: string;
   color?: ProjectColor;
+  kind?: ProjectKind;
+  targetDate?: string | null;
+  pinned?: boolean;
 }
 
-export type UpdateProjectDto = Partial<CreateProjectDto>;
+/** Payload emitted by the project form. `description: null` clears an existing description on edit. */
+export interface ProjectFormPayload extends Omit<CreateProjectDto, 'description'> {
+  description: string | null;
+}
+
+export interface UpdateProjectDto extends Omit<Partial<CreateProjectDto>, 'description' | 'color'> {
+  /** `null` clears the description. */
+  description?: string | null;
+  /** `null` clears the color. */
+  color?: ProjectColor | null;
+  sortOrder?: number;
+}
+
+export interface CreateProjectSectionDto {
+  name: string;
+}
+
+export interface UpdateProjectSectionDto {
+  name?: string;
+  sortOrder?: number;
+}
+
+export interface ReorderProjectSectionsDto {
+  projectId: string;
+  ids: string[];
+}
 
 // ─── Notification Types ─────────────────────────────────────────────────────
 

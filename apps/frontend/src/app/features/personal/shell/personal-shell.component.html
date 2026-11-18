@@ -86,6 +86,57 @@
           </a>
         }
       </nav>
+
+      @if (pinnedProjects().length > 0) {
+        <div class="pinned-group" [class.pinned-group-collapsed]="sidebarCollapsed()">
+          <button
+            type="button"
+            class="pinned-group-header"
+            [attr.aria-expanded]="pinnedGroupExpanded()"
+            (click)="togglePinnedGroup()"
+          >
+            <span class="pinned-group-label">Pinned projects</span>
+            <fa-icon
+              class="pinned-group-chevron"
+              [icon]="pinnedGroupExpanded() ? faChevronDown : faChevronRight"
+              aria-hidden="true"
+            ></fa-icon>
+          </button>
+
+          @if (pinnedGroupExpanded()) {
+            <div class="pinned-list">
+              @for (project of pinnedProjects(); track project.id) {
+                <div class="pinned-item-row">
+                  <a
+                    [routerLink]="['/projects', project.id]"
+                    class="pinned-item"
+                    routerLinkActive="pinned-item-active"
+                    [title]="project.name"
+                    (click)="closeMobileMenu()"
+                  >
+                    <span
+                      class="pinned-dot"
+                      [style.background]="projectPaletteFor(project.color).accent"
+                      aria-hidden="true"
+                    ></span>
+                    <span class="pinned-name">{{ project.name }}</span>
+                    <span class="pinned-count">{{ project.openTaskCount }}</span>
+                  </a>
+                  <button
+                    type="button"
+                    class="pinned-unpin-button"
+                    [attr.aria-label]="'Unpin ' + project.name"
+                    title="Unpin project"
+                    (click)="unpinProject(project, $event)"
+                  >
+                    <fa-icon [icon]="faThumbtack" aria-hidden="true"></fa-icon>
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
     </div>
 
     <div class="sidebar-bottom">

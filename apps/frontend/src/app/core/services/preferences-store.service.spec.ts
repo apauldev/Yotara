@@ -191,4 +191,37 @@ describe('PreferencesStore', () => {
     expect(store.showMetadataCalendar()).toBeFalse();
     expect(localStorage.getItem('yotara_showMetadataCalendar')).toBe('false');
   });
+
+  it('persists section collapsed state per section id', () => {
+    expect(store.isSectionCollapsed('section-1')).toBeFalse();
+
+    store.setSectionCollapsed('section-1', true);
+    expect(store.isSectionCollapsed('section-1')).toBeTrue();
+    expect(store.isSectionCollapsed('section-2')).toBeFalse();
+
+    TestBed.resetTestingModule();
+    store = TestBed.inject(PreferencesStore);
+    expect(store.isSectionCollapsed('section-1')).toBeTrue();
+
+    store.setSectionCollapsed('section-1', false);
+    expect(store.isSectionCollapsed('section-1')).toBeFalse();
+  });
+
+  it('ignores corrupt or incorrectly shaped collapsed-section storage', () => {
+    localStorage.setItem('yotara_collapsedProjectSections', '{bad json');
+    TestBed.resetTestingModule();
+    store = TestBed.inject(PreferencesStore);
+    expect(store.isSectionCollapsed('section-1')).toBeFalse();
+
+    localStorage.setItem('yotara_collapsedProjectSections', 'null');
+    TestBed.resetTestingModule();
+    store = TestBed.inject(PreferencesStore);
+    expect(store.isSectionCollapsed('section-1')).toBeFalse();
+
+    localStorage.setItem('yotara_collapsedProjectSections', '{"section-1":true,"invalid":"yes"}');
+    TestBed.resetTestingModule();
+    store = TestBed.inject(PreferencesStore);
+    expect(store.isSectionCollapsed('section-1')).toBeTrue();
+    expect(store.isSectionCollapsed('invalid')).toBeFalse();
+  });
 });

@@ -6,6 +6,7 @@ import { AuthStateService } from './auth-state.service';
 import { LabelService } from './label.service';
 import { ProjectService } from './project.service';
 import { Task } from '@yotara/shared';
+import { DateTime } from 'luxon';
 
 describe('TaskService', () => {
   const initialized = signal(false);
@@ -469,6 +470,100 @@ describe('TaskService', () => {
     ]);
   }));
 
+  it('loads every page of tasks completed today', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    const pageOne = http.expectOne(
+      (request) => request.url.includes('completedSince=') && request.url.includes('page=1'),
+    );
+    expect(pageOne.request.url).toContain('pageSize=3000');
+    flushDefaultViews(http);
+
+    const firstTask: Task = {
+      id: 'completed-today-1',
+      title: 'First completion',
+      status: 'today',
+      priority: 'medium',
+      completed: true,
+      order: 0,
+      createdAt: '2026-06-12T10:00:00.000Z',
+      updatedAt: '2026-06-12T10:00:00.000Z',
+    };
+    pageOne.flush({
+      data: [firstTask],
+      meta: {
+        total: 3001,
+        page: 1,
+        pageSize: 3000,
+        totalPages: 2,
+        hasNextPage: true,
+        hasPreviousPage: false,
+      },
+    });
+    tick();
+
+    const pageTwo = http.expectOne(
+      (request) => request.url.includes('completedSince=') && request.url.includes('page=2'),
+    );
+    const secondTask: Task = { ...firstTask, id: 'completed-today-3001' };
+    pageTwo.flush({
+      data: [secondTask],
+      meta: {
+        total: 3001,
+        page: 2,
+        pageSize: 3000,
+        totalPages: 2,
+        hasNextPage: false,
+        hasPreviousPage: true,
+      },
+    });
+    tick();
+
+    expect(service.todayCompletedTasks().map((task) => task.id)).toEqual([
+      'completed-today-1',
+      'completed-today-3001',
+    ]);
+  }));
+
+  it('refreshes the completed-today query when the user timezone reaches a new day', fakeAsync(() => {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    const beforeMidnight = DateTime.fromISO('2026-06-12T23:59:30', {
+      zone: timezone,
+    }) as DateTime<true>;
+    const afterMidnight = beforeMidnight.plus({ minutes: 2 });
+    spyOn(DateTime, 'now').and.returnValues(beforeMidnight, afterMidnight);
+
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    const beforeDate = beforeMidnight.toFormat('yyyy-MM-dd');
+    const initialRequest = http.expectOne((request) =>
+      request.url.includes(`completedSince=${beforeDate}`),
+    );
+    flushDefaultViews(http);
+    initialRequest.flush(paginated([]));
+    tick();
+
+    tick(60_000);
+    const afterDate = afterMidnight.toFormat('yyyy-MM-dd');
+    const nextDayRequest = http.expectOne((request) =>
+      request.url.includes(`completedSince=${afterDate}`),
+    );
+    nextDayRequest.flush(paginated([]));
+    tick();
+
+    expect(service.todayCompletedTasks()).toEqual([]);
+  }));
+
   it('treats date-only due dates as local calendar days', fakeAsync(() => {
     const service = TestBed.inject(TaskService);
     const http = TestBed.inject(HttpTestingController);
@@ -847,6 +942,124 @@ describe('TaskService', () => {
 
     expect(result).toEqual({ ok: true, removed: 3 });
     expect(service.version()).toBeGreaterThan(versionBefore);
+  }));
+
+  it('fetches soft-deleted tasks from Trash', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    http.expectOne(ACTIVE_URL).flush(paginated([]));
+    flushCompletedTasks(http);
+    tick();
+
+    const trashed = { id: 'trashed-1', title: 'Deleted with project' } as Task;
+    let received: Task[] = [];
+    service.getDeletedTasks(2, 25).subscribe((response) => (received = response.data));
+
+    const request = http.expectOne(
+      'http://localhost:3000/tasks?deleted=true&includeSubtasks=true&page=2&pageSize=25',
+    );
+    expect(request.request.method).toBe('GET');
+    expect(request.request.withCredentials).toBeTrue();
+    request.flush(paginated([trashed]));
+    tick();
+
+    expect(received.map((task) => task.id)).toEqual(['trashed-1']);
+  }));
+
+  it('restores a task from Trash and refreshes dependent state', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    http.expectOne(ACTIVE_URL).flush(paginated([]));
+    flushCompletedTasks(http);
+    tick();
+
+    const versionBefore = service.version();
+    void service.restoreTask('trashed-1');
+
+    const request = http.expectOne('http://localhost:3000/tasks/trashed-1/restore');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.withCredentials).toBeTrue();
+    request.flush({ ok: true });
+    tick();
+
+    expect(service.error()).toBeNull();
+    expect(service.version()).toBeGreaterThan(versionBefore);
+    expect(labelServiceStub.refresh).toHaveBeenCalled();
+    expect(projectServiceStub.refresh).toHaveBeenCalled();
+
+    http.expectOne(ACTIVE_URL).flush(paginated([]));
+    flushCompletedTasks(http);
+    tick();
+  }));
+
+  it('fetches unassigned tasks for the project picker', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    http.expectOne(ACTIVE_URL).flush(paginated([]));
+    flushCompletedTasks(http);
+    tick();
+
+    let received: Task[] = [];
+    service.getUnassignedTasks().subscribe((response) => (received = response.data));
+
+    const request = http.expectOne(
+      'http://localhost:3000/tasks?unassigned=true&completed=false&page=1&pageSize=3000',
+    );
+    expect(request.request.method).toBe('GET');
+    request.flush(paginated([{ id: 'loose-1', title: 'Loose task' } as Task]));
+    tick();
+
+    expect(received.map((task) => task.id)).toEqual(['loose-1']);
+  }));
+
+  it('updates several tasks in one batch request', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    http.expectOne(ACTIVE_URL).flush(paginated([]));
+    flushCompletedTasks(http);
+    tick();
+
+    const versionBefore = service.version();
+    const patch = { projectId: 'project-1', sectionId: 'section-1', priority: 'high' as const };
+    void service.updateTasks(['loose-1', 'loose-2'], patch);
+
+    const request = http.expectOne('http://localhost:3000/tasks');
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual({ taskIds: ['loose-1', 'loose-2'], patch });
+    request.flush({ ok: true, updated: 2 });
+    tick();
+
+    expect(service.version()).toBeGreaterThan(versionBefore);
+    expect(labelServiceStub.refresh).toHaveBeenCalled();
+    expect(projectServiceStub.refresh).toHaveBeenCalled();
+
+    http.expectOne(ACTIVE_URL).flush(paginated([]));
+    flushCompletedTasks(http);
+    tick();
   }));
 
   describe('error handling', () => {

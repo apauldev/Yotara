@@ -18,6 +18,9 @@ const mockProjects: Project[] = [
   {
     id: 'proj-1',
     name: 'Work',
+    kind: 'ongoing',
+    sortOrder: 1,
+    pinned: false,
     ownerId: 'user-1',
     createdAt: '',
     updatedAt: '',
@@ -28,6 +31,9 @@ const mockProjects: Project[] = [
   {
     id: 'proj-2',
     name: 'Personal',
+    kind: 'ongoing',
+    sortOrder: 2,
+    pinned: false,
     ownerId: 'user-1',
     createdAt: '',
     updatedAt: '',

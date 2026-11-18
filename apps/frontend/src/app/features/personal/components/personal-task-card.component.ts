@@ -717,6 +717,7 @@ import {
         flex: 0 0 auto;
         border-radius: 999px;
         background: var(--on-surface-subtle);
+        outline: 1px solid var(--project-dot-ring);
       }
 
       .project-name {

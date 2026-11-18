@@ -15,6 +15,7 @@ export class PreferencesStore {
   private static readonly WORKSPACE_TYPE_KEY = 'workspaceType';
   private static readonly SHOW_LABEL_NAMES_KEY = 'yotara_showLabelNames';
   private static readonly COLOR_FIRST_LABELS_KEY = 'yotara_colorFirstLabels';
+  private static readonly COLLAPSED_SECTIONS_KEY = 'yotara_collapsedProjectSections';
 
   readonly skipCompleteConfirm = signal(
     localStorage.getItem(PreferencesStore.SKIP_COMPLETE_KEY) === 'true',
@@ -48,6 +49,32 @@ export class PreferencesStore {
   readonly colorFirstLabels = signal(
     localStorage.getItem(PreferencesStore.COLOR_FIRST_LABELS_KEY) === 'true',
   );
+  /** Section collapse is a local display preference keyed by section id. */
+  readonly collapsedSections = signal<Record<string, boolean>>(
+    PreferencesStore.readCollapsedSections(),
+  );
+
+  private static readCollapsedSections(): Record<string, boolean> {
+    try {
+      const raw = localStorage.getItem(PreferencesStore.COLLAPSED_SECTIONS_KEY);
+      if (!raw) {
+        return {};
+      }
+
+      const parsed: unknown = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return {};
+      }
+
+      return Object.fromEntries(
+        Object.entries(parsed).filter(
+          (entry): entry is [string, boolean] => typeof entry[1] === 'boolean',
+        ),
+      );
+    } catch {
+      return {};
+    }
+  }
 
   setSkipCompleteConfirm(value: boolean): void {
     this.skipCompleteConfirm.set(value);
@@ -108,5 +135,17 @@ export class PreferencesStore {
   setColorFirstLabels(value: boolean): void {
     this.colorFirstLabels.set(value);
     localStorage.setItem(PreferencesStore.COLOR_FIRST_LABELS_KEY, value ? 'true' : 'false');
+  }
+
+  isSectionCollapsed(sectionId: string): boolean {
+    return this.collapsedSections()[sectionId] === true;
+  }
+
+  setSectionCollapsed(sectionId: string, collapsed: boolean): void {
+    this.collapsedSections.update((current) => ({ ...current, [sectionId]: collapsed }));
+    localStorage.setItem(
+      PreferencesStore.COLLAPSED_SECTIONS_KEY,
+      JSON.stringify(this.collapsedSections()),
+    );
   }
 }

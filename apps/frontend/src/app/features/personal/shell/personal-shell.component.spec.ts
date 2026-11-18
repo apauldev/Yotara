@@ -5,6 +5,7 @@ import { By } from '@angular/platform-browser';
 import { Router, provideRouter } from '@angular/router';
 import { PersonalShellComponent } from './personal-shell.component';
 import { AuthStateService } from '../../../core/services/auth-state.service';
+import { ProjectService } from '../../../core/services/project.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { DueTimeSchedulerService } from '../../../core/services/due-time-scheduler.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
@@ -33,10 +34,12 @@ class LoginStubComponent {}
 
 describe('PersonalShellComponent', () => {
   let preferences: PreferencesStore;
+  const pinnedProjects = signal<import('@yotara/shared').Project[]>([]);
 
   beforeEach(async () => {
     localStorage.clear();
     sessionStorage.clear();
+    pinnedProjects.set([]);
 
     await TestBed.configureTestingModule({
       imports: [PersonalShellComponent, InboxStubComponent, SearchStubComponent],
@@ -63,6 +66,10 @@ describe('PersonalShellComponent', () => {
           },
         },
         PreferencesStore,
+        {
+          provide: ProjectService,
+          useValue: { projects: pinnedProjects },
+        },
         {
           provide: NotificationService,
           useValue: {
@@ -118,6 +125,40 @@ describe('PersonalShellComponent', () => {
       'Labels',
       'Completed',
     ]);
+  });
+
+  it('shows a collapsible pinned projects group when projects are pinned', () => {
+    const fixture = TestBed.createComponent(PersonalShellComponent);
+    fixture.detectChanges();
+    expect(fixture.debugElement.query(By.css('.pinned-group'))).toBeNull();
+
+    pinnedProjects.set([
+      {
+        id: 'project-1',
+        name: 'Launch Yotara',
+        description: '',
+        color: 'teal',
+        kind: 'project',
+        sortOrder: 0,
+        pinned: true,
+        ownerId: 'user-1',
+        taskCount: 4,
+        completedTaskCount: 1,
+        openTaskCount: 3,
+        createdAt: '2026-04-01T00:00:00Z',
+        updatedAt: '2026-04-01T00:00:00Z',
+      },
+    ]);
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('.pinned-group'))).toBeTruthy();
+    expect(fixture.debugElement.query(By.css('.pinned-item')).nativeElement.textContent).toContain(
+      'Launch Yotara',
+    );
+
+    fixture.componentInstance['togglePinnedGroup']();
+    fixture.detectChanges();
+    expect(fixture.debugElement.query(By.css('.pinned-item'))).toBeNull();
   });
 
   it('renders the top bar branding and user avatar', () => {

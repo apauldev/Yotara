@@ -224,27 +224,53 @@
                     />
                   }
                 } @else {
-                  <app-task-stack
-                    [tasks]="processedTodayTasks()"
-                    [subtasksByParent]="subtasksByParent()"
-                    [taskCard]="taskCardTpl"
-                  />
+                  @if (processedTodayTasks().length === 0) {
+                    <p class="status-copy all-caught-up-note">All tasks for today are complete.</p>
+                  } @else {
+                    <app-task-stack
+                      [tasks]="processedTodayTasks()"
+                      [subtasksByParent]="subtasksByParent()"
+                      [taskCard]="taskCardTpl"
+                    />
 
-                  <app-pagination
-                    [totalItems]="taskService.todayTasks().length"
-                    [pageSize]="pageSize()"
-                    [currentPage]="currentPage()"
-                    (pageChange)="onPageChange($event)"
-                  />
+                    <app-pagination
+                      [totalItems]="taskService.todayTasks().length"
+                      [pageSize]="pageSize()"
+                      [currentPage]="currentPage()"
+                      (pageChange)="onPageChange($event)"
+                    />
+                  }
 
                   @if (taskService.todayCompletedTasks().length > 0) {
-                    <div class="completed-stack">
-                      <app-task-stack
-                        [tasks]="taskService.todayCompletedTasks()"
-                        [subtasksByParent]="subtasksByParent()"
-                        [taskCard]="completedTaskCardTpl"
-                      />
-                    </div>
+                    <section class="task-section completed-today-section">
+                      <div class="completed-header-wrapper">
+                        <app-section-header
+                          title="Completed today"
+                          [count]="taskService.todayCompletedTasks().length"
+                          size="md"
+                        >
+                          <button
+                            section-header-actions
+                            type="button"
+                            class="collapse-toggle-button"
+                            (click)="toggleCompletedTodayCollapsed()"
+                            [attr.aria-expanded]="!completedTodayCollapsed()"
+                          >
+                            {{ completedTodayCollapsed() ? 'Show' : 'Hide' }}
+                          </button>
+                        </app-section-header>
+                      </div>
+
+                      @if (!completedTodayCollapsed()) {
+                        <div class="completed-stack">
+                          <app-task-stack
+                            [tasks]="taskService.todayCompletedTasks()"
+                            [subtasksByParent]="subtasksByParent()"
+                            [taskCard]="completedTaskCardTpl"
+                          />
+                        </div>
+                      }
+                    </section>
                   }
                 }
               </div>

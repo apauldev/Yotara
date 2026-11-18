@@ -8,7 +8,7 @@ import {
   signal,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { CreateTaskDto, Task, UpdateTaskDto } from '@yotara/shared';
+import { CreateTaskDto, ProjectSection, Task, UpdateTaskDto } from '@yotara/shared';
 import { ProjectService } from '../../../core/services/project.service';
 import { StatusService } from '../../../core/services/status.service';
 import { TaskService } from '../../../core/services/task.service';
@@ -33,7 +33,9 @@ type SavePayload =
       [open]="modalOpen()"
       [task]="selectedTask()"
       [projects]="projectService.projects()"
+      [sections]="sections"
       [initialProjectId]="draftProjectId()"
+      [initialSectionId]="draftSectionId()"
       [initialTitle]="draftInitialTitle() || initialTitle"
       [initialDueDateDraft]="draftDueDateDraft()"
       [initialLabelIds]="draftInitialLabelIds()"
@@ -47,6 +49,8 @@ export class PersonalTaskWorkspaceComponent {
   @Input() initialProjectId: string | null = null;
   @Input() initialTitle = '';
   @Input() initialDueDateDraft: DueDateDraft | null = null;
+  /** Sections of the current project, passed through to the task modal. */
+  @Input() sections: ProjectSection[] = [];
   /** The workspace is hosted by the visible Inbox view. */
   @Input() fromInbox = false;
   @Output() readonly taskSaved = new EventEmitter<'create' | 'update'>();
@@ -59,6 +63,7 @@ export class PersonalTaskWorkspaceComponent {
   protected readonly modalOpen = signal(false);
   protected readonly selectedTask = signal<Task | null>(null);
   protected readonly draftProjectId = signal<string | null>(null);
+  protected readonly draftSectionId = signal<string | null>(null);
   protected readonly draftDueDateDraft = signal<DueDateDraft | null>(null);
   protected readonly draftInitialLabelIds = signal<string[]>([]);
   protected readonly draftInitialTitle = signal('');
@@ -69,10 +74,12 @@ export class PersonalTaskWorkspaceComponent {
     dueDateDraft: DueDateDraft | null = this.initialDueDateDraft,
     initialLabelIds: string[] = [],
     initialTitle = '',
+    sectionId?: string | null,
   ) {
     this.modalError.set(null);
     this.selectedTask.set(null);
     this.draftProjectId.set(projectId === undefined ? this.initialProjectId : projectId);
+    this.draftSectionId.set(sectionId ?? null);
     this.draftDueDateDraft.set(dueDateDraft);
     this.draftInitialLabelIds.set(initialLabelIds);
     this.draftInitialTitle.set(initialTitle);
@@ -83,6 +90,7 @@ export class PersonalTaskWorkspaceComponent {
     this.modalError.set(null);
     this.selectedTask.set(task);
     this.draftProjectId.set(task.projectId ?? null);
+    this.draftSectionId.set(task.sectionId ?? null);
     this.draftDueDateDraft.set(null);
     this.draftInitialLabelIds.set([]);
     this.draftInitialTitle.set('');
@@ -93,6 +101,7 @@ export class PersonalTaskWorkspaceComponent {
     this.modalError.set(null);
     this.selectedTask.set(null);
     this.draftProjectId.set(null);
+    this.draftSectionId.set(null);
     this.draftDueDateDraft.set(null);
     this.draftInitialLabelIds.set([]);
     this.draftInitialTitle.set('');

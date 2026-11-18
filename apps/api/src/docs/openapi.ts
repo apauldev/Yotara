@@ -64,12 +64,15 @@ const taskSchema = {
     dueTime: timeOfDaySchema,
     simpleMode: { type: 'boolean' },
     projectId: { type: 'string', format: 'uuid' },
+    sectionId: { type: 'string', format: 'uuid' },
     parentId: { type: 'string' },
     recurrenceRule: { $ref: 'RecurrenceRule#' },
     baseTaskId: { type: 'string' },
     subtaskCount: { type: 'integer', minimum: 0 },
     subtaskCompletedCount: { type: 'integer', minimum: 0 },
     archivedAt: { type: 'string', format: 'date-time' },
+    deletedAt: { type: 'string', format: 'date-time' },
+    deletedProjectName: { type: 'string' },
     permanentArchive: { type: 'boolean' },
     labels: {
       type: 'array',
@@ -100,6 +103,9 @@ const createTaskSchema = {
     dueTime: timeOfDaySchema,
     simpleMode: { type: 'boolean' },
     projectId: {
+      anyOf: [{ type: 'string', format: 'uuid' }, { type: 'null' }],
+    },
+    sectionId: {
       anyOf: [{ type: 'string', format: 'uuid' }, { type: 'null' }],
     },
     parentId: { type: 'string' },
@@ -148,6 +154,9 @@ const updateTaskSchema = {
     },
     simpleMode: { type: 'boolean' },
     projectId: {
+      anyOf: [{ type: 'string', format: 'uuid' }, { type: 'null' }],
+    },
+    sectionId: {
       anyOf: [{ type: 'string', format: 'uuid' }, { type: 'null' }],
     },
     parentId: {
@@ -248,6 +257,12 @@ const projectColorSchema = {
   $id: 'ProjectColor',
   type: 'string',
   enum: ['sage', 'teal', 'olive', 'clay', 'forest', 'deep-ocean'],
+} as const;
+
+const projectKindSchema = {
+  $id: 'ProjectKind',
+  type: 'string',
+  enum: ['project', 'ongoing'],
 } as const;
 
 const calendarSourceSchema = {
@@ -385,6 +400,9 @@ const projectSchema = {
   required: [
     'id',
     'name',
+    'kind',
+    'sortOrder',
+    'pinned',
     'ownerId',
     'taskCount',
     'completedTaskCount',
@@ -397,6 +415,12 @@ const projectSchema = {
     name: { type: 'string' },
     description: { type: 'string' },
     color: { $ref: 'ProjectColor#' },
+    kind: { $ref: 'ProjectKind#' },
+    targetDate: { anyOf: [{ type: 'string', format: 'date' }, { type: 'null' }] },
+    completedAt: { anyOf: [dateTimeSchema, { type: 'null' }] },
+    archivedAt: { anyOf: [dateTimeSchema, { type: 'null' }] },
+    sortOrder: { type: 'integer' },
+    pinned: { type: 'boolean' },
     ownerId: { type: 'string' },
     taskCount: { type: 'integer', minimum: 0 },
     completedTaskCount: { type: 'integer', minimum: 0 },
@@ -449,6 +473,9 @@ const createProjectSchema = {
     name: nonEmptyTextSchema,
     description: { type: 'string' },
     color: { $ref: 'ProjectColor#' },
+    kind: { $ref: 'ProjectKind#' },
+    targetDate: { anyOf: [{ type: 'string', format: 'date' }, { type: 'null' }] },
+    pinned: { type: 'boolean' },
   },
   additionalProperties: false,
 } as const;
@@ -458,8 +485,79 @@ const updateProjectSchema = {
   type: 'object',
   properties: {
     name: nonEmptyTextSchema,
-    description: { type: 'string' },
-    color: { $ref: 'ProjectColor#' },
+    description: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+    color: { anyOf: [{ $ref: 'ProjectColor#' }, { type: 'null' }] },
+    kind: { $ref: 'ProjectKind#' },
+    targetDate: { anyOf: [{ type: 'string', format: 'date' }, { type: 'null' }] },
+    pinned: { type: 'boolean' },
+    sortOrder: { type: 'integer' },
+  },
+  additionalProperties: false,
+} as const;
+
+const batchTaskPatchSchema = {
+  $id: 'BatchTaskPatchDto',
+  type: 'object',
+  minProperties: 1,
+  properties: {
+    status: {
+      type: 'string',
+      enum: ['inbox', 'today', 'upcoming', 'done', 'archived'],
+    },
+    priority: {
+      type: 'string',
+      enum: ['low', 'medium', 'high'],
+    },
+    dueDate: {
+      anyOf: [{ type: 'string', format: 'date' }, { type: 'null' }],
+    },
+    dueTime: {
+      anyOf: [timeOfDaySchema, { type: 'null' }],
+    },
+    projectId: {
+      anyOf: [{ type: 'string', format: 'uuid' }, { type: 'null' }],
+    },
+    sectionId: {
+      anyOf: [{ type: 'string', format: 'uuid' }, { type: 'null' }],
+    },
+    labels: {
+      type: 'array',
+      maxItems: 50,
+      items: { type: 'string' },
+    },
+    completed: { type: 'boolean' },
+  },
+  additionalProperties: false,
+} as const;
+
+const batchUpdateTasksSchema = {
+  $id: 'BatchUpdateTasksDto',
+  type: 'object',
+  required: ['taskIds', 'patch'],
+  properties: {
+    taskIds: {
+      type: 'array',
+      items: { type: 'string', format: 'uuid' },
+      minItems: 1,
+      maxItems: 100,
+      uniqueItems: true,
+    },
+    patch: { $ref: 'BatchTaskPatchDto#' },
+  },
+  additionalProperties: false,
+} as const;
+
+const reorderProjectsSchema = {
+  $id: 'ReorderProjectsDto',
+  type: 'object',
+  required: ['ids'],
+  properties: {
+    ids: {
+      type: 'array',
+      items: { type: 'string' },
+      minItems: 1,
+      uniqueItems: true,
+    },
   },
   additionalProperties: false,
 } as const;
@@ -468,6 +566,75 @@ const projectsListResponseSchema = {
   $id: 'ProjectsListResponse',
   type: 'array',
   items: { $ref: 'Project#' },
+} as const;
+
+const projectSectionSchema = {
+  $id: 'ProjectSection',
+  type: 'object',
+  required: [
+    'id',
+    'projectId',
+    'name',
+    'sortOrder',
+    'taskCount',
+    'completedTaskCount',
+    'openTaskCount',
+    'createdAt',
+    'updatedAt',
+  ],
+  properties: {
+    id: { type: 'string', format: 'uuid' },
+    projectId: { type: 'string', format: 'uuid' },
+    name: { type: 'string' },
+    sortOrder: { type: 'integer' },
+    taskCount: { type: 'integer', minimum: 0 },
+    completedTaskCount: { type: 'integer', minimum: 0 },
+    openTaskCount: { type: 'integer', minimum: 0 },
+    createdAt: dateTimeSchema,
+    updatedAt: dateTimeSchema,
+  },
+} as const;
+
+const createProjectSectionSchema = {
+  $id: 'CreateProjectSectionDto',
+  type: 'object',
+  required: ['name'],
+  properties: {
+    name: nonEmptyTextSchema,
+  },
+  additionalProperties: false,
+} as const;
+
+const updateProjectSectionSchema = {
+  $id: 'UpdateProjectSectionDto',
+  type: 'object',
+  properties: {
+    name: nonEmptyTextSchema,
+    sortOrder: { type: 'integer' },
+  },
+  additionalProperties: false,
+} as const;
+
+const reorderProjectSectionsSchema = {
+  $id: 'ReorderProjectSectionsDto',
+  type: 'object',
+  required: ['projectId', 'ids'],
+  properties: {
+    projectId: { type: 'string', format: 'uuid' },
+    ids: {
+      type: 'array',
+      items: { type: 'string', format: 'uuid' },
+      minItems: 1,
+      uniqueItems: true,
+    },
+  },
+  additionalProperties: false,
+} as const;
+
+const projectSectionsListResponseSchema = {
+  $id: 'ProjectSectionsListResponse',
+  type: 'array',
+  items: { $ref: 'ProjectSection#' },
 } as const;
 
 const paginationMetaSchema = {
@@ -762,6 +929,8 @@ const sharedSchemas = [
   taskSchema,
   createTaskSchema,
   updateTaskSchema,
+  batchTaskPatchSchema,
+  batchUpdateTasksSchema,
   recurrenceFrequencySchema,
   recurrenceRuleSchema,
   notificationSchema,
@@ -771,11 +940,18 @@ const sharedSchemas = [
   mergeLabelSchema,
   labelMergeResultSchema,
   projectColorSchema,
+  projectKindSchema,
   projectSchema,
   appUserSchema,
   createProjectSchema,
   updateProjectSchema,
+  reorderProjectsSchema,
   projectsListResponseSchema,
+  projectSectionSchema,
+  createProjectSectionSchema,
+  updateProjectSectionSchema,
+  reorderProjectSectionsSchema,
+  projectSectionsListResponseSchema,
   calendarSourceSchema,
   createCalendarSourceSchema,
   updateCalendarSourceSchema,
@@ -837,6 +1013,18 @@ export const examples = {
     completed: true,
     status: 'done',
     projectId: null,
+  },
+  batchUpdateTasks: {
+    taskIds: ['9fd8141d-e282-43b8-96d5-a19e6b6f0c8f', '3f2c1b7a-9d84-4f2e-b0a1-5c7d8e9f0a1b'],
+    patch: {
+      projectId: '16f9232b-1dc3-4a8b-afec-0d6df02a4aa2',
+      priority: 'high',
+    },
+  },
+  batchUpdateTasksResponse: {
+    ok: true,
+    updated: 2,
+    missing: [],
   },
   paginatedTasks: {
     data: [
@@ -1221,6 +1409,19 @@ function addOpenApiExamples(paths: OpenApiPathRecord) {
     ensureJsonContent(tasksPost, '401').example = examples.apiError('Unauthorized');
     ensureJsonContent(tasksPost, '404').example = examples.apiError('Project not found');
     ensureJsonContent(tasksPost, '500').example = examples.apiError('Failed to create task');
+  }
+
+  const tasksBatchPatch = paths['/tasks']?.patch;
+  if (tasksBatchPatch) {
+    tasksBatchPatch.requestBody ??= { content: { 'application/json': {} } };
+    tasksBatchPatch.requestBody.content ??= {};
+    tasksBatchPatch.requestBody.content['application/json'] ??= {};
+    tasksBatchPatch.requestBody.content['application/json'].example = examples.batchUpdateTasks;
+    ensureJsonContent(tasksBatchPatch, '200').example = examples.batchUpdateTasksResponse;
+    ensureJsonContent(tasksBatchPatch, '400').example = examples.apiError('Invalid batch payload');
+    ensureJsonContent(tasksBatchPatch, '401').example = examples.apiError('Unauthorized');
+    ensureJsonContent(tasksBatchPatch, '404').example = examples.apiError('Project not found');
+    ensureJsonContent(tasksBatchPatch, '500').example = examples.apiError('Failed to update tasks');
   }
 
   const projectsGet = paths['/projects']?.get;

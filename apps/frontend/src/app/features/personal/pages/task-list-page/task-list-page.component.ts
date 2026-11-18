@@ -116,6 +116,11 @@ export class TaskListPageComponent implements OnInit {
   protected readonly sortOption = signal<TaskSortOption>('date');
   protected readonly pageSize = signal<10 | 25>(10);
   protected readonly currentPage = signal(1);
+  protected readonly completedTodayCollapsed = signal(false);
+
+  protected toggleCompletedTodayCollapsed() {
+    this.completedTodayCollapsed.update((v) => !v);
+  }
 
   // --- View Mode Management ---
   protected readonly viewMode = toSignal(

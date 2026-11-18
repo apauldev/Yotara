@@ -1,5 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type {
+  BatchUpdateTasksDto,
+  BatchUpdateTasksResponse,
   CreateTaskDto,
   PaginatedResponse,
   Task,
@@ -24,8 +26,10 @@ import {
   getTaskForOwner,
   listSubtasks,
   listTasksForOwner,
+  restoreTaskForOwner,
   toTask,
   updateTaskForOwner,
+  updateTasksForOwner,
 } from '../services/task-service.js';
 
 /**
@@ -100,6 +104,8 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       labelMode?: 'any' | 'all';
       projectId?: string;
       priority?: 'low' | 'medium' | 'high';
+      deleted?: string;
+      unassigned?: string;
     };
     Reply: PaginatedResponse<Task[]> | { message: string };
   }>(
@@ -145,6 +151,16 @@ export default async function taskRoutes(fastify: FastifyInstance) {
               type: 'string',
               enum: ['low', 'medium', 'high'],
               description: 'Only tasks with this priority',
+            },
+            deleted: {
+              type: 'string',
+              enum: ['true', 'false'],
+              description: 'When true, list soft-deleted tasks from Trash instead of active tasks',
+            },
+            unassigned: {
+              type: 'string',
+              enum: ['true', 'false'],
+              description: 'When true, only list tasks with no project assigned',
             },
           },
         },
@@ -216,6 +232,8 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         labelMode,
         projectId,
         priority: request.query.priority,
+        deleted: request.query.deleted === 'true',
+        unassigned: request.query.unassigned === 'true',
       };
 
       return listTasksForOwner(userId, page, pageSize, includeSubtasks, parentId, filters);
@@ -257,6 +275,44 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       task.subtaskCompletedCount = subtasks.filter((s) => s.completed).length;
 
       return task;
+    },
+  );
+
+  fastify.post<{ Params: { id: string }; Reply: { ok: true } | { message: string } }>(
+    '/tasks/:id/restore',
+    {
+      schema: withJsonResponse({
+        tags: ['tasks'],
+        summary: 'Restore a task from Trash',
+        description:
+          'Restores a whole project deletion: un-retires the project and clears the soft-delete marker on every task removed with it. Only deletions within the 30-day recovery window can be restored.',
+        security: authCookieSecurity,
+        params: idParamSchema(),
+        response: {
+          200: {
+            description: 'Task restored',
+            type: 'object',
+            required: ['ok'],
+            properties: {
+              ok: { type: 'boolean' },
+            },
+          },
+          401: errorResponseSchema('Authentication required', 'Unauthorized'),
+          404: errorResponseSchema('Task was not found in Trash', 'Task not found'),
+        },
+      }),
+    },
+    async (request, reply) => {
+      if (!request.userId) {
+        return sendNotFound(reply, 'Task not found');
+      }
+
+      const restored = restoreTaskForOwner(request.userId, request.params.id);
+      if (!restored) {
+        return sendNotFound(reply, 'Task not found');
+      }
+
+      return { ok: true };
     },
   );
 
@@ -348,6 +404,71 @@ export default async function taskRoutes(fastify: FastifyInstance) {
 
       const removed = await clearCompletedTasksForOwner(request.userId);
       return { ok: true, removed };
+    },
+  );
+
+  fastify.patch<{
+    Body: BatchUpdateTasksDto;
+    Querystring: { tz?: string };
+    Reply: BatchUpdateTasksResponse | { message: string };
+  }>(
+    '/tasks',
+    {
+      schema: withJsonResponse({
+        tags: ['tasks'],
+        summary: 'Update several tasks at once',
+        description:
+          'Applies the same patch to every listed task in a single transaction. Missing or trashed tasks are skipped and returned in missing; invalid parameters (such as an invalid section for the target project) fail the entire batch atomically.',
+        security: authCookieSecurity,
+        querystring: {
+          type: 'object',
+          properties: {
+            tz: { type: 'string' },
+          },
+        },
+        body: { $ref: 'BatchUpdateTasksDto#' },
+        response: {
+          200: {
+            description: 'Tasks updated',
+            type: 'object',
+            required: ['ok', 'updated', 'missing'],
+            properties: {
+              ok: { type: 'boolean' },
+              updated: { type: 'integer', minimum: 0 },
+              missing: {
+                type: 'array',
+                items: { type: 'string', format: 'uuid' },
+                description: 'Task IDs that were not found or were in trash and were skipped.',
+              },
+            },
+          },
+          400: errorResponseSchema('Invalid batch payload', 'Bad request'),
+          401: errorResponseSchema('Authentication required', 'Unauthorized'),
+          404: errorResponseSchema('Project was not found', 'Project not found'),
+          500: errorResponseSchema('Tasks could not be updated', 'Failed to update tasks'),
+        },
+      }),
+    },
+    async (request, reply) => {
+      if (!request.userId) {
+        throw new UnauthorizedError();
+      }
+
+      const userId = request.userId;
+      const patch = request.body.patch;
+      if (!patch || Object.keys(patch).length === 0) {
+        return sendBadRequest(reply, 'At least one valid patch field must be provided');
+      }
+      if (patch.projectId != null) {
+        const project = await resolveProjectIdForTaskWrite(userId, patch.projectId);
+        if (!project.ok) {
+          return sendNotFound(reply, 'Project not found');
+        }
+        patch.projectId = project.projectId;
+      }
+
+      const result = updateTasksForOwner(userId, request.body.taskIds, patch, request.query.tz);
+      return { ok: true as const, updated: result.updated, missing: result.missing };
     },
   );
 

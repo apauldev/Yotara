@@ -934,7 +934,7 @@ describe('CaptureBarComponent', () => {
 
       const highlighter = fixture.debugElement.query(By.css('.capture-highlighter'));
       expect(highlighter.nativeElement.innerHTML).toContain(
-        '<span class="hl-project" style="--token-color:#2d7b75">@Work</span>',
+        '<span class="hl-project" style="--token-color:#0e9e98">@Work</span>',
       );
     });
 

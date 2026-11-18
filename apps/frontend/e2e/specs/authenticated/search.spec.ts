@@ -119,10 +119,8 @@ test.describe('Search', () => {
     await dismissTip(page);
 
     await page.getByRole('button', { name: '+ New Project' }).click();
-    await page.getByPlaceholder('e.g. Morning Rituals').fill(projectName);
-    await page
-      .getByPlaceholder('Describe the sanctuary of this project...')
-      .fill('A test project for search');
+    await page.getByPlaceholder('e.g. Launch website').fill(projectName);
+    await page.getByRole('textbox', { name: 'Description' }).fill('A test project for search');
     await page.getByRole('button', { name: 'Teal' }).click();
     await page.getByRole('button', { name: 'Create Project' }).click();
     await page.waitForURL(/\/projects\/[a-zA-Z0-9-]+/, { timeout: 10_000 });

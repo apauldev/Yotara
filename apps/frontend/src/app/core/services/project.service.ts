@@ -1,7 +1,16 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { CreateProjectDto, Project, Task, UpdateProjectDto } from '@yotara/shared';
+import {
+  CreateProjectDto,
+  CreateProjectSectionDto,
+  Project,
+  ProjectSection,
+  ReorderProjectSectionsDto,
+  Task,
+  UpdateProjectDto,
+  UpdateProjectSectionDto,
+} from '@yotara/shared';
 import { LogService } from './log.service';
 import {
   catchError,
@@ -24,7 +33,8 @@ export class ProjectService {
   private baseUrl = environment.apiBaseUrl;
   private refreshState = signal(0);
   private loadingState = signal(false);
-  private savingState = signal(false);
+  // Keep the saving indicator active until every overlapping mutation finishes.
+  private savingCount = signal(0);
   private errorState = signal<string | null>(null);
 
   readonly projects = toSignal(
@@ -46,9 +56,7 @@ export class ProjectService {
         this.errorState.set(null);
 
         return this.http.get<Project[]>(`${this.baseUrl}/projects`, { withCredentials: true }).pipe(
-          map((projects) =>
-            [...projects].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
-          ),
+          map((projects) => [...projects]),
           catchError((error: unknown) => {
             if (error instanceof HttpErrorResponse && error.status === 401) {
               this.errorState.set(null);
@@ -69,7 +77,7 @@ export class ProjectService {
   );
 
   readonly loading = this.loadingState.asReadonly();
-  readonly saving = this.savingState.asReadonly();
+  readonly saving = computed(() => this.savingCount() > 0);
   readonly error = this.errorState.asReadonly();
   readonly hasProjects = computed(() => this.projects().length > 0);
   readonly version = this.refreshState.asReadonly();
@@ -104,8 +112,100 @@ export class ProjectService {
     }
   }
 
+  async getSections(projectId: string): Promise<ProjectSection[]> {
+    return firstValueFrom(
+      this.http.get<ProjectSection[]>(`${this.baseUrl}/projects/${projectId}/sections`, {
+        withCredentials: true,
+      }),
+    );
+  }
+
+  async createSection(
+    projectId: string,
+    payload: CreateProjectSectionDto,
+  ): Promise<ProjectSection> {
+    this.savingCount.update((count) => count + 1);
+    this.errorState.set(null);
+    try {
+      const created = await firstValueFrom(
+        this.http.post<ProjectSection>(`${this.baseUrl}/projects/${projectId}/sections`, payload, {
+          withCredentials: true,
+        }),
+      );
+      this.refresh();
+      return created;
+    } catch (error) {
+      this.logService.error('Failed to create section', error, 'ProjectService');
+      this.errorState.set('Could not create the section right now.');
+      throw error;
+    } finally {
+      this.savingCount.update((count) => count - 1);
+    }
+  }
+
+  async updateSection(
+    sectionId: string,
+    payload: UpdateProjectSectionDto,
+  ): Promise<ProjectSection> {
+    this.savingCount.update((count) => count + 1);
+    this.errorState.set(null);
+    try {
+      const updated = await firstValueFrom(
+        this.http.patch<ProjectSection>(`${this.baseUrl}/sections/${sectionId}`, payload, {
+          withCredentials: true,
+        }),
+      );
+      this.refresh();
+      return updated;
+    } catch (error) {
+      this.logService.error('Failed to update section', error, 'ProjectService');
+      this.errorState.set('Could not update the section right now.');
+      throw error;
+    } finally {
+      this.savingCount.update((count) => count - 1);
+    }
+  }
+
+  async reorderSections(projectId: string, ids: string[]): Promise<ProjectSection[]> {
+    this.savingCount.update((count) => count + 1);
+    this.errorState.set(null);
+    const body: ReorderProjectSectionsDto = { projectId, ids };
+    try {
+      const reordered = await firstValueFrom(
+        this.http.patch<ProjectSection[]>(`${this.baseUrl}/sections/reorder`, body, {
+          withCredentials: true,
+        }),
+      );
+      this.refresh();
+      return reordered;
+    } catch (error) {
+      this.logService.error('Failed to reorder sections', error, 'ProjectService');
+      this.errorState.set('Could not reorder your sections right now.');
+      throw error;
+    } finally {
+      this.savingCount.update((count) => count - 1);
+    }
+  }
+
+  async deleteSection(sectionId: string): Promise<void> {
+    this.savingCount.update((count) => count + 1);
+    this.errorState.set(null);
+    try {
+      await firstValueFrom(
+        this.http.delete(`${this.baseUrl}/sections/${sectionId}`, { withCredentials: true }),
+      );
+      this.refresh();
+    } catch (error) {
+      this.logService.error('Failed to delete section', error, 'ProjectService');
+      this.errorState.set('Could not delete the section right now.');
+      throw error;
+    } finally {
+      this.savingCount.update((count) => count - 1);
+    }
+  }
+
   async createProject(payload: CreateProjectDto) {
-    this.savingState.set(true);
+    this.savingCount.update((count) => count + 1);
     this.errorState.set(null);
 
     try {
@@ -119,12 +219,12 @@ export class ProjectService {
       this.errorState.set('Could not create your project right now.');
       throw error;
     } finally {
-      this.savingState.set(false);
+      this.savingCount.update((count) => count - 1);
     }
   }
 
   async updateProject(projectId: string, payload: UpdateProjectDto) {
-    this.savingState.set(true);
+    this.savingCount.update((count) => count + 1);
     this.errorState.set(null);
 
     try {
@@ -140,7 +240,147 @@ export class ProjectService {
       this.errorState.set('Could not update your project right now.');
       throw error;
     } finally {
-      this.savingState.set(false);
+      this.savingCount.update((count) => count - 1);
+    }
+  }
+
+  async getProjectsByStatus(
+    status: 'active' | 'completed' | 'archived' | 'all',
+  ): Promise<Project[]> {
+    return await firstValueFrom(
+      this.http.get<Project[]>(`${this.baseUrl}/projects?status=${status}`, {
+        withCredentials: true,
+      }),
+    );
+  }
+
+  async completeProject(projectId: string): Promise<Project> {
+    this.savingCount.update((count) => count + 1);
+    this.errorState.set(null);
+    try {
+      const completed = await firstValueFrom(
+        this.http.post<Project>(
+          `${this.baseUrl}/projects/${projectId}/complete`,
+          {},
+          { withCredentials: true },
+        ),
+      );
+      this.refresh();
+      return completed;
+    } catch (error) {
+      this.logService.error('Failed to complete project', error, 'ProjectService');
+      this.errorState.set('Could not complete your project right now.');
+      throw error;
+    } finally {
+      this.savingCount.update((count) => count - 1);
+    }
+  }
+
+  async reopenProject(projectId: string): Promise<Project> {
+    this.savingCount.update((count) => count + 1);
+    this.errorState.set(null);
+    try {
+      const reopened = await firstValueFrom(
+        this.http.post<Project>(
+          `${this.baseUrl}/projects/${projectId}/reopen`,
+          {},
+          { withCredentials: true },
+        ),
+      );
+      this.refresh();
+      return reopened;
+    } catch (error) {
+      this.logService.error('Failed to reopen project', error, 'ProjectService');
+      this.errorState.set('Could not reopen your project right now.');
+      throw error;
+    } finally {
+      this.savingCount.update((count) => count - 1);
+    }
+  }
+
+  async archiveProject(projectId: string): Promise<Project> {
+    this.savingCount.update((count) => count + 1);
+    this.errorState.set(null);
+    try {
+      const archived = await firstValueFrom(
+        this.http.post<Project>(
+          `${this.baseUrl}/projects/${projectId}/archive`,
+          {},
+          { withCredentials: true },
+        ),
+      );
+      this.refresh();
+      return archived;
+    } catch (error) {
+      this.logService.error('Failed to archive project', error, 'ProjectService');
+      this.errorState.set('Could not archive your project right now.');
+      throw error;
+    } finally {
+      this.savingCount.update((count) => count - 1);
+    }
+  }
+
+  async unarchiveProject(projectId: string): Promise<Project> {
+    this.savingCount.update((count) => count + 1);
+    this.errorState.set(null);
+    try {
+      const unarchived = await firstValueFrom(
+        this.http.post<Project>(
+          `${this.baseUrl}/projects/${projectId}/unarchive`,
+          {},
+          { withCredentials: true },
+        ),
+      );
+      this.refresh();
+      return unarchived;
+    } catch (error) {
+      this.logService.error('Failed to unarchive project', error, 'ProjectService');
+      this.errorState.set('Could not unarchive your project right now.');
+      throw error;
+    } finally {
+      this.savingCount.update((count) => count - 1);
+    }
+  }
+
+  async reorderProjects(ids: string[]): Promise<Project[]> {
+    this.savingCount.update((count) => count + 1);
+    this.errorState.set(null);
+    try {
+      const reordered = await firstValueFrom(
+        this.http.patch<Project[]>(
+          `${this.baseUrl}/projects/reorder`,
+          { ids },
+          { withCredentials: true },
+        ),
+      );
+      this.refresh();
+      return reordered;
+    } catch (error) {
+      this.logService.error('Failed to reorder projects', error, 'ProjectService');
+      this.errorState.set('Could not reorder your projects right now.');
+      throw error;
+    } finally {
+      this.savingCount.update((count) => count - 1);
+    }
+  }
+
+  async deleteProject(projectId: string, keepTasks: boolean = true): Promise<void> {
+    this.savingCount.update((count) => count + 1);
+    this.errorState.set(null);
+    try {
+      await firstValueFrom(
+        this.http.delete<{ success: boolean }>(
+          `${this.baseUrl}/projects/${projectId}?keepTasks=${keepTasks}`,
+          { withCredentials: true },
+        ),
+      );
+      this.refresh();
+    } catch (error) {
+      this.logService.error('Failed to delete project', error, 'ProjectService');
+      this.errorState.set('Could not delete your project right now.');
+      throw error;
+    } finally {
+      this.savingCount.update((count) => count - 1);
     }
   }
 
