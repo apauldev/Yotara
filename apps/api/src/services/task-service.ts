@@ -182,6 +182,8 @@ export interface TaskFilters {
   priority?: Priority;
   /** List soft-deleted (Trash) tasks instead of active ones. */
   deleted?: boolean;
+  /** Only tasks with no project assigned. */
+  unassigned?: boolean;
 }
 
 export async function listTasksForOwner(
@@ -193,10 +195,14 @@ export async function listTasksForOwner(
   filters?: TaskFilters,
 ): Promise<PaginatedResponse<Task[]>> {
   const offset = (page - 1) * pageSize;
-  const baseWhere = and(
+  const listConditions = [
     eq(tasks.userId, ownerId),
     filters?.deleted === true ? isNotNull(tasks.deletedAt) : isNull(tasks.deletedAt),
-  );
+  ];
+  if (filters?.unassigned === true) {
+    listConditions.push(isNull(tasks.projectId));
+  }
+  const baseWhere = and(...listConditions);
 
   // If parentId is provided, we specifically want subtasks for that parent.
   // If parentId is NOT provided, we filter based on the includeSubtasks toggle.
@@ -865,6 +871,36 @@ export async function updateTaskForOwner(
   tx?: Database,
 ) {
   return updateTaskForOwnerSync(ownerId, taskId, body, existing, tz, tx);
+}
+
+/** Applies one patch to several owned tasks atomically. */
+export function updateTasksForOwner(
+  ownerId: string,
+  taskIds: string[],
+  patch: UpdateTaskDto,
+  tz?: string,
+): { updated: number; missing: string[] } {
+  const ids = [...new Set(taskIds)];
+  const missing: string[] = [];
+  let updated = 0;
+
+  db.transaction(
+    (tx) => {
+      for (const id of ids) {
+        const existing = getTaskForOwnerSync(id, ownerId, tx);
+        if (!existing) {
+          missing.push(id);
+          continue;
+        }
+        if (updateTaskForOwnerSync(ownerId, id, patch, existing, tz, tx)) {
+          updated += 1;
+        }
+      }
+    },
+    { behavior: 'immediate' },
+  );
+
+  return { updated, missing };
 }
 
 export function deleteTaskForOwner(

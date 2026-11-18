@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type {
+  BatchUpdateTasksDto,
   CreateTaskDto,
   PaginatedResponse,
   Task,
@@ -27,6 +28,7 @@ import {
   restoreTaskForOwner,
   toTask,
   updateTaskForOwner,
+  updateTasksForOwner,
 } from '../services/task-service.js';
 
 /**
@@ -102,6 +104,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       projectId?: string;
       priority?: 'low' | 'medium' | 'high';
       deleted?: string;
+      unassigned?: string;
     };
     Reply: PaginatedResponse<Task[]> | { message: string };
   }>(
@@ -152,6 +155,11 @@ export default async function taskRoutes(fastify: FastifyInstance) {
               type: 'string',
               enum: ['true', 'false'],
               description: 'When true, list soft-deleted tasks from Trash instead of active tasks',
+            },
+            unassigned: {
+              type: 'string',
+              enum: ['true', 'false'],
+              description: 'When true, only list tasks with no project assigned',
             },
           },
         },
@@ -224,6 +232,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         projectId,
         priority: request.query.priority,
         deleted: request.query.deleted === 'true',
+        unassigned: request.query.unassigned === 'true',
       };
 
       return listTasksForOwner(userId, page, pageSize, includeSubtasks, parentId, filters);
@@ -394,6 +403,62 @@ export default async function taskRoutes(fastify: FastifyInstance) {
 
       const removed = await clearCompletedTasksForOwner(request.userId);
       return { ok: true, removed };
+    },
+  );
+
+  fastify.patch<{
+    Body: BatchUpdateTasksDto;
+    Querystring: { tz?: string };
+    Reply: { ok: true; updated: number } | { message: string };
+  }>(
+    '/tasks',
+    {
+      schema: withJsonResponse({
+        tags: ['tasks'],
+        summary: 'Update several tasks at once',
+        description: 'Applies the same patch to every listed task in a single transaction.',
+        security: authCookieSecurity,
+        querystring: {
+          type: 'object',
+          properties: {
+            tz: { type: 'string' },
+          },
+        },
+        body: { $ref: 'BatchUpdateTasksDto#' },
+        response: {
+          200: {
+            description: 'Tasks updated',
+            type: 'object',
+            required: ['ok', 'updated'],
+            properties: {
+              ok: { type: 'boolean' },
+              updated: { type: 'integer', minimum: 0 },
+            },
+          },
+          400: errorResponseSchema('Invalid batch payload', 'Bad request'),
+          401: errorResponseSchema('Authentication required', 'Unauthorized'),
+          404: errorResponseSchema('Project was not found', 'Project not found'),
+          500: errorResponseSchema('Tasks could not be updated', 'Failed to update tasks'),
+        },
+      }),
+    },
+    async (request, reply) => {
+      if (!request.userId) {
+        throw new UnauthorizedError();
+      }
+
+      const userId = request.userId;
+      const patch = request.body.patch;
+      if (patch.projectId != null) {
+        const project = await resolveProjectIdForTaskWrite(userId, patch.projectId);
+        if (!project.ok) {
+          return sendNotFound(reply, 'Project not found');
+        }
+        patch.projectId = project.projectId;
+      }
+
+      const result = updateTasksForOwner(userId, request.body.taskIds, patch, request.query.tz);
+      return { ok: true as const, updated: result.updated };
     },
   );
 

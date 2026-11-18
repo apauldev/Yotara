@@ -1004,6 +1004,64 @@ describe('TaskService', () => {
     tick();
   }));
 
+  it('fetches unassigned tasks for the project picker', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    http.expectOne(ACTIVE_URL).flush(paginated([]));
+    flushCompletedTasks(http);
+    tick();
+
+    let received: Task[] = [];
+    service.getUnassignedTasks().subscribe((response) => (received = response.data));
+
+    const request = http.expectOne(
+      'http://localhost:3000/tasks?unassigned=true&completed=false&page=1&pageSize=3000',
+    );
+    expect(request.request.method).toBe('GET');
+    request.flush(paginated([{ id: 'loose-1', title: 'Loose task' } as Task]));
+    tick();
+
+    expect(received.map((task) => task.id)).toEqual(['loose-1']);
+  }));
+
+  it('updates several tasks in one batch request', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    initialized.set(true);
+    isAuthenticated.set(true);
+    currentUserId.set('user-1');
+    tick();
+
+    http.expectOne(ACTIVE_URL).flush(paginated([]));
+    flushCompletedTasks(http);
+    tick();
+
+    const versionBefore = service.version();
+    const patch = { projectId: 'project-1', sectionId: 'section-1', priority: 'high' as const };
+    void service.updateTasks(['loose-1', 'loose-2'], patch);
+
+    const request = http.expectOne('http://localhost:3000/tasks');
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual({ taskIds: ['loose-1', 'loose-2'], patch });
+    request.flush({ ok: true, updated: 2 });
+    tick();
+
+    expect(service.version()).toBeGreaterThan(versionBefore);
+    expect(labelServiceStub.refresh).toHaveBeenCalled();
+    expect(projectServiceStub.refresh).toHaveBeenCalled();
+
+    http.expectOne(ACTIVE_URL).flush(paginated([]));
+    flushCompletedTasks(http);
+    tick();
+  }));
+
   describe('error handling', () => {
     it('sets error state when allActiveTasks fetch fails with a network error', fakeAsync(() => {
       const service = TestBed.inject(TaskService);

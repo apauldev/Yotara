@@ -182,6 +182,40 @@ export class TaskService {
     );
   }
 
+  /** Active tasks with no project — the pool for "Add existing task". */
+  getUnassignedTasks(pageSize = 3000) {
+    return this.http.get<PaginatedResponse<Task[]>>(
+      `${this.baseUrl}/tasks?unassigned=true&completed=false&page=1&pageSize=${pageSize}`,
+      { withCredentials: true },
+    );
+  }
+
+  /** Applies one patch to several tasks in a single API call. */
+  async updateTasks(taskIds: string[], patch: UpdateTaskDto) {
+    this.creatingState.set(true);
+    this.errorState.set(null);
+
+    try {
+      const result = await firstValueFrom(
+        this.http.patch<{ ok: boolean; updated: number }>(
+          `${this.baseUrl}/tasks`,
+          { taskIds, patch },
+          { withCredentials: true },
+        ),
+      );
+      this.refreshState.update((value: number) => value + 1);
+      this.labelService.refresh();
+      this.projectService.refresh();
+      return result;
+    } catch (error) {
+      this.logService.error('Failed to update tasks', error, 'TaskService');
+      this.errorState.set('Could not update your tasks right now.');
+      throw error;
+    } finally {
+      this.creatingState.set(false);
+    }
+  }
+
   async restoreTask(taskId: string) {
     this.creatingState.set(true);
     this.errorState.set(null);

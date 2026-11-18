@@ -124,6 +124,12 @@ export interface Task {
   updatedAt: string;
 }
 
+/** Apply the same patch to several tasks in one request. */
+export interface BatchUpdateTasksDto {
+  taskIds: string[];
+  patch: UpdateTaskDto;
+}
+
 // ─── API Response Wrappers ───────────────────────────────────────────────────
 
 export interface ApiResponse<T> {

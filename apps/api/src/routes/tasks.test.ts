@@ -2122,3 +2122,95 @@ test('soft-deleted tasks stay in Trash for 30 days and can be restored', async (
     await ctx.cleanup();
   }
 });
+
+test('unassigned filter and batch patch move several tasks into a project at once', async () => {
+  const ctx = await createAuthedApp();
+
+  try {
+    const cookie = await signUpAndGetCookie(`batch-${randomUUID()}@example.com`);
+
+    const projectResponse = await ctx.app.inject({
+      method: 'POST',
+      url: '/projects',
+      headers: { cookie },
+      payload: { name: 'Batching Target' },
+    });
+    assert.equal(projectResponse.statusCode, 201);
+    const projectId = projectResponse.json().id as string;
+
+    const sectionResponse = await ctx.app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/sections`,
+      headers: { cookie },
+      payload: { name: 'Triage' },
+    });
+    assert.equal(sectionResponse.statusCode, 201);
+    const sectionId = sectionResponse.json().id as string;
+
+    const ids: string[] = [];
+    for (const title of ['Loose one', 'Loose two']) {
+      const created = await ctx.app.inject({
+        method: 'POST',
+        url: '/tasks',
+        headers: { cookie },
+        payload: { title },
+      });
+      assert.equal(created.statusCode, 201);
+      ids.push(created.json().id as string);
+    }
+    const filed = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { cookie },
+      payload: { title: 'Already filed', projectId },
+    });
+    assert.equal(filed.statusCode, 201);
+    const filedId = filed.json().id as string;
+
+    const unassigned = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?unassigned=true&pageSize=100',
+      headers: { cookie },
+    });
+    assert.equal(unassigned.statusCode, 200);
+    const unassignedIds = unassigned.json().data.map((task: { id: string }) => task.id);
+    assert.ok(unassignedIds.includes(ids[0]));
+    assert.ok(unassignedIds.includes(ids[1]));
+    assert.ok(!unassignedIds.includes(filedId), 'filed tasks are excluded');
+
+    const batch = await ctx.app.inject({
+      method: 'PATCH',
+      url: '/tasks',
+      headers: { cookie },
+      payload: {
+        taskIds: [...ids, randomUUID()],
+        patch: { projectId, sectionId, priority: 'high' },
+      },
+    });
+    assert.equal(batch.statusCode, 200);
+    assert.equal(batch.json().updated, 2, 'missing ids are skipped, not fatal');
+
+    for (const id of ids) {
+      const updated = await ctx.app.inject({
+        method: 'GET',
+        url: `/tasks/${id}`,
+        headers: { cookie },
+      });
+      assert.equal(updated.json().projectId, projectId);
+      assert.equal(updated.json().sectionId, sectionId);
+      assert.equal(updated.json().priority, 'high');
+    }
+
+    const after = await ctx.app.inject({
+      method: 'GET',
+      url: '/tasks?unassigned=true&pageSize=100',
+      headers: { cookie },
+    });
+    assert.ok(
+      !after.json().data.some((task: { id: string }) => ids.includes(task.id)),
+      'batched tasks left the unassigned pool',
+    );
+  } finally {
+    await ctx.cleanup();
+  }
+});

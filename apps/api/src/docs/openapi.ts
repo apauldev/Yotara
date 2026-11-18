@@ -495,6 +495,23 @@ const updateProjectSchema = {
   additionalProperties: false,
 } as const;
 
+const batchUpdateTasksSchema = {
+  $id: 'BatchUpdateTasksDto',
+  type: 'object',
+  required: ['taskIds', 'patch'],
+  properties: {
+    taskIds: {
+      type: 'array',
+      items: { type: 'string', format: 'uuid' },
+      minItems: 1,
+      maxItems: 100,
+      uniqueItems: true,
+    },
+    patch: { $ref: 'UpdateTaskDto#' },
+  },
+  additionalProperties: false,
+} as const;
+
 const reorderProjectsSchema = {
   $id: 'ReorderProjectsDto',
   type: 'object',
@@ -877,6 +894,7 @@ const sharedSchemas = [
   taskSchema,
   createTaskSchema,
   updateTaskSchema,
+  batchUpdateTasksSchema,
   recurrenceFrequencySchema,
   recurrenceRuleSchema,
   notificationSchema,

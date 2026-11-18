@@ -44,6 +44,10 @@ import { TaskService } from '../../../core/services/task.service';
 import { PersonalTaskCardComponent } from '../components/personal-task-card.component';
 import { PersonalTaskWorkspaceComponent } from '../components/personal-task-workspace.component';
 import { PersonalProjectModalComponent } from '../components/personal-project-modal.component';
+import {
+  AddExistingTasksModalComponent,
+  type AddExistingTasksPayload,
+} from '../components/add-existing-tasks-modal.component';
 import { ProjectDeleteDialogComponent } from '../components/project-delete-dialog.component';
 import { SectionHeaderComponent } from '../../../shared/components/section-header/section-header.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
@@ -64,6 +68,7 @@ type ProjectLoadState = 'loading' | 'ready' | 'not-found' | 'error';
     MarkdownComponent,
     PersonalProjectModalComponent,
     ProjectDeleteDialogComponent,
+    AddExistingTasksModalComponent,
     PersonalTaskCardComponent,
     PersonalTaskWorkspaceComponent,
     SectionHeaderComponent,
@@ -96,13 +101,14 @@ export class ProjectDetailPageComponent {
   protected readonly projectService = inject(ProjectService);
   private readonly preferences = inject(PreferencesStore);
   private readonly statusService = inject(StatusService);
-  private readonly taskService = inject(TaskService);
+  protected readonly taskService = inject(TaskService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   protected readonly workspace = viewChild(PersonalTaskWorkspaceComponent);
 
   protected readonly projectModalOpen = signal(false);
   protected readonly deleteModalOpen = signal(false);
+  protected readonly addExistingOpen = signal(false);
   protected readonly menuOpen = signal(false);
   protected readonly completedCollapsed = signal(true);
 
@@ -208,6 +214,29 @@ export class ProjectDetailPageComponent {
   protected handleTaskSaved() {
     this.workspace()?.closeTaskModal();
     this.reloadProjectDetails();
+  }
+
+  protected openAddExistingTasks() {
+    this.addExistingOpen.set(true);
+  }
+
+  protected closeAddExistingTasks() {
+    this.addExistingOpen.set(false);
+  }
+
+  protected async confirmAddExistingTasks(event: AddExistingTasksPayload) {
+    try {
+      await this.taskService.updateTasks(event.taskIds, event.patch);
+      this.addExistingOpen.set(false);
+      this.reloadProjectDetails();
+      this.statusService.show(
+        `${event.taskIds.length} ${event.taskIds.length === 1 ? 'task' : 'tasks'} added to this project`,
+        'success',
+        4000,
+      );
+    } catch {
+      // TaskService surfaces the error in its own state; keep the picker open.
+    }
   }
 
   protected openEditProjectModal() {

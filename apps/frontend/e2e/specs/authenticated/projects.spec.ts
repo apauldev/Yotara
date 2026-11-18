@@ -300,9 +300,9 @@ test.describe('Projects Overhaul E2E Journeys', () => {
     // Verify task1 is rendered under Milestone 1
     await expect(m1Section.locator('article.task-card').filter({ hasText: task1 })).toBeVisible();
 
-    // Add unsectioned task via header "+ Add Task"
+    // Add unsectioned task via header "Add new task"
     const task2 = taskName('Unsectioned Task');
-    await page.getByRole('button', { name: '+ Add Task', exact: true }).click();
+    await page.getByRole('button', { name: 'Add new task', exact: true }).click();
     await expect(taskModal).toBeVisible();
     await taskModal.locator('#task-title-input').fill(task2);
     await taskModal.getByRole('button', { name: 'Create Task' }).click();
@@ -355,7 +355,7 @@ test.describe('Projects Overhaul E2E Journeys', () => {
 
     // Add a single task
     const tName = taskName('Solo Task');
-    await page.getByRole('button', { name: '+ Add Task', exact: true }).click();
+    await page.getByRole('button', { name: 'Add new task', exact: true }).click();
     const taskModal = page.locator('.modal-card').filter({ hasText: 'Capture a new task' });
     await taskModal.locator('#task-title-input').fill(tName);
     await taskModal.getByRole('button', { name: 'Create Task' }).click();
@@ -523,7 +523,7 @@ test.describe('Projects Overhaul E2E Journeys', () => {
 
     // Add a task
     const oTask = taskName('Morning yoga');
-    await page.getByRole('button', { name: '+ Add Task', exact: true }).click();
+    await page.getByRole('button', { name: 'Add new task', exact: true }).click();
     const taskModal = page.locator('.modal-card').filter({ hasText: 'Capture a new task' });
     await taskModal.locator('#task-title-input').fill(oTask);
     await taskModal.getByRole('button', { name: 'Create Task' }).click();
@@ -561,7 +561,7 @@ test.describe('Projects Overhaul E2E Journeys', () => {
 
     // Add a task
     const pTask = taskName('Preserved Task');
-    await page.getByRole('button', { name: '+ Add Task', exact: true }).click();
+    await page.getByRole('button', { name: 'Add new task', exact: true }).click();
     const taskModal = page.locator('.modal-card').filter({ hasText: 'Capture a new task' });
     await taskModal.locator('#task-title-input').fill(pTask);
     await taskModal.getByRole('button', { name: 'Create Task' }).click();
@@ -620,7 +620,7 @@ test.describe('Projects Overhaul E2E Journeys', () => {
     await page.waitForURL(/\/projects\/[a-zA-Z0-9-]+/, { timeout: 10_000 });
 
     const taskNameToDelete = taskName('Deleted With Project');
-    await page.getByRole('button', { name: '+ Add Task', exact: true }).click();
+    await page.getByRole('button', { name: 'Add new task', exact: true }).click();
     const taskModal = page.locator('.modal-card').filter({ hasText: 'Capture a new task' });
     const taskResponsePromise = page.waitForResponse((response) => {
       const url = new URL(response.url());

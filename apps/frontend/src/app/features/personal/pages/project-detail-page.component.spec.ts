@@ -1,5 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { convertToParamMap, ActivatedRoute, provideRouter } from '@angular/router';
 import { provideMarkdown } from 'ngx-markdown';
 import { of } from 'rxjs';
@@ -105,8 +106,23 @@ describe('ProjectDetailPageComponent', () => {
     const taskServiceStub = {
       error: signal(null),
       version: taskVersion,
+      creating: signal(false),
       createTask: jasmine.createSpy('createTask').and.resolveTo(undefined),
       updateTask: jasmine.createSpy('updateTask').and.resolveTo(undefined),
+      updateTasks: jasmine.createSpy('updateTasks').and.resolveTo({ ok: true, updated: 2 }),
+      getUnassignedTasks: jasmine.createSpy('getUnassignedTasks').and.returnValue(
+        of({
+          data: [],
+          meta: {
+            total: 0,
+            page: 1,
+            pageSize: 3000,
+            totalPages: 0,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          },
+        }),
+      ),
     };
 
     const labelServiceStub = {
@@ -147,7 +163,7 @@ describe('ProjectDetailPageComponent', () => {
     expect(text).toContain('Launch Yotara MVP');
     expect(text).toContain('Core release scope');
     expect(text).toContain('Draft launch copy');
-    expect(text).toContain('Add Task');
+    expect(text).toContain('Add new task');
     expect(text).toContain('Completed');
 
     // Completed tasks are collapsed by default per spec; expand to reveal
@@ -165,6 +181,26 @@ describe('ProjectDetailPageComponent', () => {
     // Overflow action button exists
     const menuBtn = fixture.nativeElement.querySelector('.menu-trigger');
     expect(menuBtn).toBeTruthy();
+  });
+
+  it('offers Add new task and Add existing task actions', async () => {
+    await configure(baseProject);
+
+    const fixture = TestBed.createComponent(ProjectDetailPageComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const buttons = fixture.debugElement
+      .queryAll(By.css('.actions-row .action-button'))
+      .map((button) => button.nativeElement.textContent.replace(/\s+/g, ' ').trim());
+    expect(buttons).toEqual(['Add new task', 'Add existing task', '+ Add Section']);
+
+    const addExisting = fixture.debugElement.queryAll(By.css('.actions-row .action-button'))[1]
+      .nativeElement as HTMLButtonElement;
+    addExisting.click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance['addExistingOpen']()).toBeTrue();
   });
 
   it('surfaces project save errors in the edit modal', async () => {

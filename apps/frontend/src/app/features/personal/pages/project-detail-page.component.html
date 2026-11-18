@@ -22,6 +22,16 @@
     (confirmDelete)="confirmDeleteProject($event)"
   />
 
+  <app-add-existing-tasks-modal
+    [open]="addExistingOpen()"
+    [projectId]="projectId() ?? ''"
+    [projectName]="project()?.name ?? ''"
+    [sections]="sections()"
+    [saving]="taskService.creating()"
+    (close)="closeAddExistingTasks()"
+    (add)="confirmAddExistingTasks($event)"
+  />
+
   <app-confirm-dialog
     [open]="sectionToDelete() !== null"
     [title]="'Delete “' + (sectionToDelete()?.name ?? '') + '”?'"
@@ -223,7 +233,14 @@
             class="action-button primary-action"
             (click)="workspace.openCreateTaskModal()"
           >
-            + Add Task
+            Add new task
+          </button>
+          <button
+            type="button"
+            class="action-button secondary-action"
+            (click)="openAddExistingTasks()"
+          >
+            Add existing task
           </button>
           <button
             type="button"
