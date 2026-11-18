@@ -30,6 +30,15 @@ describe('ProjectDetailPageComponent', () => {
     deleteProject: jasmine.Spy;
     refresh: jasmine.Spy;
   };
+  let taskServiceStub: {
+    error: ReturnType<typeof signal>;
+    version: ReturnType<typeof signal>;
+    creating: ReturnType<typeof signal>;
+    createTask: jasmine.Spy;
+    updateTask: jasmine.Spy;
+    updateTasks: jasmine.Spy;
+    getUnassignedTasks: jasmine.Spy;
+  };
   let taskVersion = signal(0);
 
   const baseProject: Project = {
@@ -103,7 +112,7 @@ describe('ProjectDetailPageComponent', () => {
       refresh: jasmine.createSpy('refresh'),
     };
 
-    const taskServiceStub = {
+    taskServiceStub = {
       error: signal(null),
       version: taskVersion,
       creating: signal(false),
