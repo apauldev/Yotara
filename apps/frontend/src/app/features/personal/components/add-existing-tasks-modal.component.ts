@@ -96,9 +96,17 @@ export interface AddExistingTasksPayload {
           />
 
           <label class="select-all">
-            <input type="checkbox" [checked]="allSelected()" (change)="toggleAll()" />
+            <input
+              type="checkbox"
+              [checked]="allSelected()"
+              [indeterminate]="someSelected()"
+              (change)="toggleAll()"
+            />
             <span>
               Select all ({{ filteredTasks().length }})
+              @if (selected().size > 0) {
+                <span class="selected-note">· {{ selected().size }} selected</span>
+              }
               @if (filteredTasks().length > maxBatchTasks) {
                 <span class="cap-note">— first {{ maxBatchTasks }} will be selected</span>
               }
@@ -248,7 +256,8 @@ export interface AddExistingTasksPayload {
         font-weight: 600;
       }
 
-      .cap-note {
+      .cap-note,
+      .selected-note {
         color: var(--on-surface-muted);
         font-size: 0.78rem;
         font-weight: 500;
@@ -367,6 +376,15 @@ export class AddExistingTasksModalComponent implements OnChanges {
     const targetCount = Math.min(visible.length, this.maxBatchTasks);
     const selectedVisibleCount = visible.filter((task) => this.selected().has(task.id)).length;
     return selectedVisibleCount >= targetCount;
+  });
+
+  /** Some, but not all, visible tasks are selected — drives the checkbox's indeterminate state. */
+  protected readonly someSelected = computed(() => {
+    if (this.allSelected()) {
+      return false;
+    }
+    const visible = this.filteredTasks();
+    return visible.some((task) => this.selected().has(task.id));
   });
 
   ngOnChanges(changes: SimpleChanges) {

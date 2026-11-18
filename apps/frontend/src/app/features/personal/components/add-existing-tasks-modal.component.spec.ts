@@ -198,4 +198,29 @@ describe('AddExistingTasksModalComponent', () => {
     expect(checkboxes[100].nativeElement.disabled).toBeFalse();
     expect(fixture.debugElement.query(By.css('.cap-warning'))).toBeNull();
   });
+
+  it('marks the select-all checkbox indeterminate on a partial visible selection', () => {
+    const fixture = openModal();
+
+    const selectAll = fixture.debugElement.query(By.css('.select-all input'))
+      .nativeElement as HTMLInputElement;
+    expect(selectAll.indeterminate).toBeFalse();
+    expect(fixture.nativeElement.textContent).not.toContain('2 selected');
+
+    const checkboxes = fixture.debugElement.queryAll(By.css('.task-list input[type=checkbox]'));
+    checkboxes[0].nativeElement.click();
+    fixture.detectChanges();
+    expect(selectAll.indeterminate).toBeTrue();
+    expect(fixture.nativeElement.textContent).toContain('1 selected');
+
+    checkboxes[1].nativeElement.click();
+    fixture.detectChanges();
+    expect(selectAll.indeterminate).toBeFalse();
+    expect(selectAll.checked).toBeTrue();
+    expect(fixture.nativeElement.textContent).toContain('2 selected');
+
+    checkboxes[0].nativeElement.click();
+    fixture.detectChanges();
+    expect(selectAll.indeterminate).toBeTrue();
+  });
 });
