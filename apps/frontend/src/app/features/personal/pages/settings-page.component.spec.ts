@@ -166,6 +166,7 @@ describe('SettingsPageComponent', () => {
   let labelsSignal: ReturnType<typeof signal<Label[]>>;
   let createObjectURLSpy: jasmine.Spy;
   let anchor: { href: string; download: string; click: jasmine.Spy };
+  let themeSignal: ReturnType<typeof signal<string>>;
 
   function lastBlobContent(): Promise<string> {
     const blob = createObjectURLSpy.calls.mostRecent().args[0] as Blob;
@@ -184,6 +185,7 @@ describe('SettingsPageComponent', () => {
     tasksSignal = signal([...mockTasks]);
     projectsSignal = signal([...mockProjects]);
     labelsSignal = signal([...mockLabels]);
+    themeSignal = signal('dark-forest');
 
     anchor = { href: '', download: '', click: jasmine.createSpy('click') };
     createObjectURLSpy = spyOn(URL, 'createObjectURL').and.returnValue('blob:test');
@@ -230,7 +232,7 @@ describe('SettingsPageComponent', () => {
         { provide: AuthStateService, useValue: mockAuthState },
         {
           provide: ThemeService,
-          useValue: { theme: signal('light-forest'), setTheme: jasmine.createSpy() },
+          useValue: { theme: themeSignal, setTheme: jasmine.createSpy() },
         },
         { provide: Router, useValue: { navigate: jasmine.createSpy().and.resolveTo(true) } },
         {
@@ -845,6 +847,14 @@ describe('SettingsPageComponent', () => {
   });
 
   describe('onThemeChange', () => {
+    it('reflects the active theme in the picker on first render', () => {
+      const select = fixture.nativeElement.querySelector(
+        'select.settings-select',
+      ) as HTMLSelectElement;
+
+      expect(select.value).toBe('dark-forest');
+    });
+
     it('delegates to themeService.setTheme', () => {
       const themeService = TestBed.inject(ThemeService) as any;
       const event = { target: { value: 'dark-ocean' } } as unknown as Event;

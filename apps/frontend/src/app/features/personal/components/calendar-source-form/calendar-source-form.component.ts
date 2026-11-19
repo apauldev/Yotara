@@ -49,9 +49,9 @@ import { CalendarService } from '../../../../core/services/calendar.service';
         </label>
         <label class="source-color">
           <span>Colour</span>
-          <select [value]="color()" (change)="setColor($event)">
+          <select (change)="setColor($event)">
             @for (option of colors; track option) {
-              <option [value]="option">{{ option }}</option>
+              <option [value]="option" [selected]="option === color()">{{ option }}</option>
             }
           </select>
         </label>
