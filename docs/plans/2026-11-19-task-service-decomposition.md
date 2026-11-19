@@ -20,7 +20,8 @@ The current backend service is about 1,000 lines and combines queries, writes, r
 
 ## 2. Safety rules
 
-- Make one extraction per PR. Do not combine frontend and backend changes in one PR.
+- Keep one extraction per commit, and include the six ordered commits in one PR. Do not merge or deploy a partial sequence; the base branch should move from the monolith to the complete decomposition in one merge.
+- Keep the commits small and independently reviewable. The single PR is the release and rollback unit; the commit boundaries make the review easier without exposing an intermediate architecture to the rest of the codebase.
 - Move code without changing its behavior. Do not include unrelated bug fixes, query changes, schema changes, or endpoint changes.
 - Keep current import paths and public signatures working throughout the sequence. `task-service.ts` remains a backend compatibility façade; frontend consumers continue using `TaskService`.
 - Preserve transaction boundaries and transaction-scoped database handles. Recurrence materialization and batch updates must remain atomic.
@@ -106,20 +107,20 @@ Move calendar-range requests, range normalization/readiness, merged grid/focus r
 
 ## 6. Delivery and rollback
 
-Deliver in this order: BE-1, BE-2, BE-3, then FE-1, FE-2, FE-3. Each change should be independently reviewable and revertible. Do not start the next extraction until the current one is merged with its focused checks green.
+Deliver in this order: BE-1, BE-2, BE-3, then FE-1, FE-2, FE-3. Keep each extraction in its own commit on one feature branch, then review and merge all six together in one PR. Do not merge or deploy intermediate commits. Run focused checks for each slice as it is added, then run the full repository CI suite on the completed PR before merging.
 
-For each PR:
+For the PR:
 
 1. Confirm the diff is primarily code movement and delegation; review for accidental logic changes.
 2. Run the focused existing tests for the extracted behavior and the relevant package typecheck/build.
-3. Run the repository's full CI checks before the final beta release containing the refactor sequence.
-4. Smoke-check task create, edit, complete/uncomplete, delete/restore, list filters, and calendar loading in the beta environment after the full sequence.
+3. Run the repository's full CI checks on the complete six-commit PR before merging.
+4. Smoke-check task create, edit, complete/uncomplete, delete/restore, list filters, and calendar loading in the beta environment after the merge and before release.
 
-If a regression appears, revert only the latest extraction. Because each change preserves public contracts and requires no database migration or API rollout, the prior service remains a safe fallback.
+If a regression appears before merge, fix or revert the affected commit on the feature branch. If a regression appears after merge, revert the PR as one unit. Because the refactor preserves public contracts and requires no database migration or API rollout, the previous monolith remains a straightforward rollback point.
 
 ## 7. Completion criteria
 
-- [ ] All six planned extractions are merged as separate changes.
+- [ ] All six ordered extraction commits are included in one reviewed PR and merged together.
 - [ ] Existing backend route/service imports and frontend `TaskService` consumers remain compatible.
 - [ ] Existing monolithic behavioral specs remain intact and pass through the façades; focused specs cover the extracted modules where needed.
 - [ ] API and frontend typecheck/build checks pass, and full CI passes before beta release.
