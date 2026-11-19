@@ -1,7 +1,7 @@
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { TaskApiService, TASKS_PAGE_SIZE, TaskFilterState } from './task-api.service';
-import { CreateTaskDto, PaginatedResponse, Priority, Task, UpdateTaskDto } from '@yotara/shared';
+import { CreateTaskDto, PaginatedResponse, Task, UpdateTaskDto } from '@yotara/shared';
 
 describe('TaskApiService', () => {
   let service: TaskApiService;
