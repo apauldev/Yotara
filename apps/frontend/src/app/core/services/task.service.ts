@@ -1,12 +1,10 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse } from '@angular/common/http';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import {
   BatchTaskPatchDto,
-  BatchUpdateTasksResponse,
   CreateTaskDto,
   PaginatedResponse,
-  Priority,
   Task,
   UpdateTaskDto,
 } from '@yotara/shared';
@@ -26,13 +24,15 @@ import {
   tap,
   type Observable,
 } from 'rxjs';
-import { environment } from '../../../environments/environment';
 import { AuthStateService } from './auth-state.service';
 import { LabelService } from './label.service';
 import { ProjectService } from './project.service';
+import { TaskApiService, TASKS_PAGE_SIZE, type TaskFilterState } from './task-api.service';
 import { parseCalendarDate, startOfToday } from '../../shared/utils/timestamps';
 import { getUserTimezone } from '../../shared/utils/timezone';
 import { DateTime } from 'luxon';
+
+export { TASKS_PAGE_SIZE, type TaskFilterState };
 
 export type UpcomingBucket = 'This Week' | 'Next Week' | 'Later';
 
@@ -51,13 +51,6 @@ export interface CalendarRangeRequest {
   grid: { from: string; to: string };
   /** The week around the open day; ignored when the grid already covers it. */
   focus: { from: string; to: string };
-}
-
-export interface TaskFilterState {
-  labelIds: string[];
-  labelMode: 'any' | 'all';
-  projectId: string | null;
-  priority: Priority | null;
 }
 
 /** Stable identity for a filter combination, independent of label order. */
@@ -89,12 +82,6 @@ function calendarRangeStateKey(range: CalendarRangeState): string {
   ]);
 }
 
-/**
- * Largest tasks page the app requests. It matches the API's per-page cap; the
- * calendar flags truncation when a window returns more than it can hold.
- */
-export const TASKS_PAGE_SIZE = 3000;
-
 /** Merge the grid and focus windows, keeping one copy of tasks in both. */
 function mergeCalendarTasks(gridTasks: Task[], focusTasks: Task[]): Task[] {
   if (focusTasks.length === 0) {
@@ -113,12 +100,11 @@ function mergeCalendarTasks(gridTasks: Task[], focusTasks: Task[]): Task[] {
 
 @Injectable({ providedIn: 'root' })
 export class TaskService {
-  private http = inject(HttpClient);
+  private taskApiService = inject(TaskApiService);
   private authState = inject(AuthStateService);
   private labelService = inject(LabelService);
   private projectService = inject(ProjectService);
   private logService = inject(LogService);
-  private baseUrl = environment.apiBaseUrl;
   private refreshState = signal(0);
   private loadingState = signal(false);
   private creatingState = signal(false);
@@ -172,14 +158,10 @@ export class TaskService {
         }
         this.errorState.set(null);
 
-        return this.http
-          .get<
-            PaginatedResponse<Task[]>
-          >(`${this.baseUrl}/tasks?page=1&pageSize=100&completed=true&includeSubtasks=true`, { withCredentials: true })
-          .pipe(
-            map((response) => response.data),
-            catchError(this.handleLoadError('recently completed tasks')),
-          );
+        return this.taskApiService.fetchRecentlyCompletedTasks$().pipe(
+          map((response) => response.data),
+          catchError(this.handleLoadError('recently completed tasks')),
+        );
       }),
     ),
     { initialValue: [] as Task[] },
@@ -191,25 +173,16 @@ export class TaskService {
   readonly version = this.refreshState.asReadonly();
 
   getArchivedTasks(page: number, pageSize: number) {
-    return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?page=${page}&pageSize=${pageSize}&completed=true&includeSubtasks=true`,
-      { withCredentials: true },
-    );
+    return this.taskApiService.getArchivedTasks(page, pageSize);
   }
 
   getDeletedTasks(page: number, pageSize: number) {
-    return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?deleted=true&includeSubtasks=true&page=${page}&pageSize=${pageSize}`,
-      { withCredentials: true },
-    );
+    return this.taskApiService.getDeletedTasks(page, pageSize);
   }
 
   /** Active tasks with no project — the pool for "Add existing task". */
-  getUnassignedTasks(pageSize = 3000) {
-    return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?unassigned=true&completed=false&page=1&pageSize=${pageSize}`,
-      { withCredentials: true },
-    );
+  getUnassignedTasks(pageSize = TASKS_PAGE_SIZE) {
+    return this.taskApiService.getUnassignedTasks(pageSize);
   }
 
   /** Applies one patch to several tasks in a single API call. */
@@ -218,13 +191,7 @@ export class TaskService {
     this.errorState.set(null);
 
     try {
-      const result = await firstValueFrom(
-        this.http.patch<BatchUpdateTasksResponse>(
-          `${this.baseUrl}/tasks`,
-          { taskIds, patch },
-          { withCredentials: true },
-        ),
-      );
+      const result = await firstValueFrom(this.taskApiService.updateTasks$(taskIds, patch));
       this.refreshState.update((value: number) => value + 1);
       this.labelService.refresh();
       this.projectService.refresh();
@@ -243,11 +210,7 @@ export class TaskService {
     this.errorState.set(null);
 
     try {
-      await firstValueFrom(
-        this.http.post<{ ok: true }>(`${this.baseUrl}/tasks/${taskId}/restore`, null, {
-          withCredentials: true,
-        }),
-      );
+      await firstValueFrom(this.taskApiService.restoreTask$(taskId));
       this.refreshState.update((value: number) => value + 1);
       this.labelService.refresh();
       this.projectService.refresh();
@@ -261,74 +224,36 @@ export class TaskService {
   }
 
   async clearCompletedTasks() {
-    const result = await firstValueFrom(
-      this.http.delete<{ ok: boolean; removed: number }>(`${this.baseUrl}/tasks/completed`, {
-        withCredentials: true,
-      }),
-    );
+    const result = await firstValueFrom(this.taskApiService.clearCompletedTasks$());
     this.refreshState.update((value: number) => value + 1);
     return result;
   }
+
   fetchTodayTasks$() {
-    const tz = getUserTimezone();
-    return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?view=today&tz=${tz}&pageSize=${TASKS_PAGE_SIZE}`,
-      { withCredentials: true },
-    );
+    return this.taskApiService.fetchTodayTasks$();
   }
 
   fetchOverdueTasks$() {
-    const tz = getUserTimezone();
-    return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?overdue=true&tz=${tz}&pageSize=${TASKS_PAGE_SIZE}`,
-      { withCredentials: true },
-    );
+    return this.taskApiService.fetchOverdueTasks$();
   }
 
   fetchInboxTasks$() {
-    const tz = getUserTimezone();
-    return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?view=inbox&tz=${tz}&pageSize=${TASKS_PAGE_SIZE}`,
-      { withCredentials: true },
-    );
+    return this.taskApiService.fetchInboxTasks$();
   }
 
   fetchUpcomingTasks$() {
-    const tz = getUserTimezone();
-    return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?view=upcoming&tz=${tz}&pageSize=${TASKS_PAGE_SIZE}`,
-      { withCredentials: true },
-    );
+    return this.taskApiService.fetchUpcomingTasks$();
   }
 
   fetchTodayCompletedTasks$(
     today = DateTime.now().setZone(getUserTimezone()).toFormat('yyyy-MM-dd'),
   ): Observable<Task[]> {
-    const tz = getUserTimezone();
-    const fetchPage = (page: number): Observable<Task[]> =>
-      this.http
-        .get<
-          PaginatedResponse<Task[]>
-        >(`${this.baseUrl}/tasks?completedSince=${today}&tz=${tz}&page=${page}&pageSize=${TASKS_PAGE_SIZE}`, { withCredentials: true })
-        .pipe(
-          switchMap((response) => {
-            const tasks = response.data.filter((task) => !task.parentId);
-            return response.meta.hasNextPage
-              ? fetchPage(page + 1).pipe(map((remaining) => [...tasks, ...remaining]))
-              : of(tasks);
-          }),
-        );
-
-    return fetchPage(1);
+    return this.taskApiService.fetchTodayCompletedTasks$(today);
   }
 
   /** Fetch all active tasks including subtasks (for subtask maps, labels, search). */
   fetchAllActiveTasks$() {
-    return this.http
-      .get<
-        PaginatedResponse<Task[]>
-      >(`${this.baseUrl}/tasks?page=1&pageSize=${TASKS_PAGE_SIZE}&completed=false&includeSubtasks=true`, { withCredentials: true })
-      .pipe(map((response) => response.data));
+    return this.taskApiService.fetchAllActiveTasks$().pipe(map((response) => response.data));
   }
 
   /**
@@ -338,28 +263,14 @@ export class TaskService {
    * pane tabs; undefined asks for both.
    */
   fetchTasksByLabel$(labelId: string, completed?: boolean) {
-    const params = new URLSearchParams({
-      labelIds: labelId,
-      includeSubtasks: 'true',
-      page: '1',
-      pageSize: String(TASKS_PAGE_SIZE),
-    });
-    if (completed !== undefined) {
-      params.set('completed', String(completed));
-    }
-
-    return this.http
-      .get<PaginatedResponse<Task[]>>(`${this.baseUrl}/tasks?${params.toString()}`, {
-        withCredentials: true,
-      })
-      .pipe(
-        tap({
-          next: (response) =>
-            this.labelPaneTruncatedState.set(response.meta.total > response.data.length),
-          error: () => this.labelPaneTruncatedState.set(false),
-        }),
-        map((response) => response.data),
-      );
+    return this.taskApiService.fetchTasksByLabel$(labelId, completed).pipe(
+      tap({
+        next: (response) =>
+          this.labelPaneTruncatedState.set(response.meta.total > response.data.length),
+        error: () => this.labelPaneTruncatedState.set(false),
+      }),
+      map((response) => response.data),
+    );
   }
 
   /**
@@ -425,52 +336,24 @@ export class TaskService {
   readonly labelPaneTruncated = this.labelPaneTruncatedState.asReadonly();
 
   private fetchTasksByFilters$(filter: TaskFilterState) {
-    const params = new URLSearchParams({
-      includeSubtasks: 'true',
-      completed: 'false',
-      page: '1',
-      pageSize: String(TASKS_PAGE_SIZE),
-    });
-    if (filter.labelIds.length > 0) {
-      params.set('labelIds', filter.labelIds.join(','));
-      params.set('labelMode', filter.labelMode);
-    }
-    if (filter.projectId) {
-      params.set('projectId', filter.projectId);
-    }
-    if (filter.priority) {
-      params.set('priority', filter.priority);
-    }
-    return this.http
-      .get<PaginatedResponse<Task[]>>(`${this.baseUrl}/tasks?${params.toString()}`, {
-        withCredentials: true,
-      })
-      .pipe(
-        tap({
-          next: (response) =>
-            this.filterTruncatedState.set(response.meta.total > response.data.length),
-          error: () => this.filterTruncatedState.set(false),
-        }),
-        map((response) => response.data),
-      );
+    return this.taskApiService.fetchTasksByFilters$(filter).pipe(
+      tap({
+        next: (response) =>
+          this.filterTruncatedState.set(response.meta.total > response.data.length),
+        error: () => this.filterTruncatedState.set(false),
+      }),
+      map((response) => response.data),
+    );
   }
 
   /** Fetch active tasks without a due date (the calendar's No date list). */
   fetchUndatedTasks$() {
-    const tz = getUserTimezone();
-    return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?hasDueDate=false&completed=false&tz=${tz}&pageSize=${TASKS_PAGE_SIZE}`,
-      { withCredentials: true },
-    );
+    return this.taskApiService.fetchUndatedTasks$();
   }
 
   /** Fetch tasks due within an inclusive calendar-date range (YYYY-MM-DD bounds). */
   fetchTasksDueBetween$(dueFrom: string, dueTo: string) {
-    const tz = getUserTimezone();
-    return this.http.get<PaginatedResponse<Task[]>>(
-      `${this.baseUrl}/tasks?dueFrom=${dueFrom}&dueTo=${dueTo}&tz=${tz}&pageSize=${TASKS_PAGE_SIZE}`,
-      { withCredentials: true },
-    );
+    return this.taskApiService.fetchTasksDueBetween$(dueFrom, dueTo);
   }
 
   /** Signal of all active tasks for subtask maps, labels, and search. */
@@ -843,13 +726,7 @@ export class TaskService {
    *  Returns up to 10,000 tasks — enough for any reasonable power user.
    *  Beyond that, a database-level export is more appropriate. */
   fetchAllTasks(): Promise<Task[]> {
-    return firstValueFrom(
-      this.http
-        .get<PaginatedResponse<Task[]>>(`${this.baseUrl}/tasks?export=true`, {
-          withCredentials: true,
-        })
-        .pipe(map((res) => res.data)),
-    );
+    return firstValueFrom(this.taskApiService.fetchAllTasks$().pipe(map((res) => res.data)));
   }
 
   async createTask(payload: CreateTaskDto) {
@@ -858,12 +735,7 @@ export class TaskService {
 
     try {
       const tz = getUserTimezone();
-      const createdTask = await firstValueFrom(
-        this.http.post<Task>(`${this.baseUrl}/tasks`, payload, {
-          withCredentials: true,
-          params: { tz },
-        }),
-      );
+      const createdTask = await firstValueFrom(this.taskApiService.createTask$(payload, tz));
       this.refreshState.update((value: number) => value + 1);
       this.labelService.refresh();
       this.projectService.refresh();
@@ -884,9 +756,7 @@ export class TaskService {
     try {
       const tz = getUserTimezone();
       const updatedTask = await firstValueFrom(
-        this.http.patch<Task>(`${this.baseUrl}/tasks/${taskId}?tz=${tz}`, payload, {
-          withCredentials: true,
-        }),
+        this.taskApiService.updateTask$(taskId, payload, tz),
       );
       this.refreshState.update((value: number) => value + 1);
       this.labelService.refresh();
@@ -906,11 +776,7 @@ export class TaskService {
     this.errorState.set(null);
 
     try {
-      await firstValueFrom(
-        this.http.delete<{ ok: true }>(`${this.baseUrl}/tasks/${taskId}`, {
-          withCredentials: true,
-        }),
-      );
+      await firstValueFrom(this.taskApiService.deleteTask$(taskId));
       this.refreshState.update((value: number) => value + 1);
       this.labelService.refresh();
       this.projectService.refresh();
@@ -925,12 +791,7 @@ export class TaskService {
 
   async fetchSubtasks(parentId: string): Promise<Task[]> {
     try {
-      const response = await firstValueFrom(
-        this.http.get<PaginatedResponse<Task[]>>(
-          `${this.baseUrl}/tasks?parentId=${parentId}&pageSize=100`,
-          { withCredentials: true },
-        ),
-      );
+      const response = await firstValueFrom(this.taskApiService.fetchSubtasks$(parentId));
       return response.data;
     } catch (error) {
       this.logService.error('Failed to fetch subtasks', error, 'TaskService');
