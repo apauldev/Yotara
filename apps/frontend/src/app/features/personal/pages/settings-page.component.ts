@@ -53,12 +53,13 @@ import type { CalendarSource } from '@yotara/shared';
             </div>
             <select
               class="settings-select"
-              [value]="themeService.theme()"
               (change)="onThemeChange($event)"
               aria-label="Select theme"
             >
               @for (option of themes; track option.id) {
-                <option [value]="option.id">{{ option.label }}</option>
+                <option [value]="option.id" [selected]="option.id === themeService.theme()">
+                  {{ option.label }}
+                </option>
               }
             </select>
           </div>

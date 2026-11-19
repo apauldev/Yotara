@@ -481,6 +481,17 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
 
     sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_parent_id ON tasks(parent_id)`);
     sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_base_task_id ON tasks(base_task_id)`);
+    // Date-filtered views (calendar range, Today, Upcoming, Overdue) narrow by
+    // owner and soft-delete state, then filter on `date(due_date)`. Index the
+    // computed expression rather than the raw column so SQLite can use it;
+    // the second index covers the undated/hasDueDate queries. Very old legacy
+    // task tables can lack due_date entirely, so guard the expression index.
+    if (taskColumnNames.has('due_date')) {
+      sqlite.exec(
+        `CREATE INDEX IF NOT EXISTS idx_tasks_owner_deleted_due_date ON tasks(user_id, deleted_at, date(due_date))`,
+      );
+    }
+    sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_owner_deleted ON tasks(user_id, deleted_at)`);
 
     const projectColumns = sqlite.prepare(`PRAGMA table_info('projects')`).all() as Array<{
       name: string;

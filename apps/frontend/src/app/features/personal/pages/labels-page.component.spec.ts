@@ -244,6 +244,21 @@ describe('LabelsPageComponent', () => {
     expect(sections).toEqual(['Pinned', 'All labels']);
   }));
 
+  it('fetches the default label pane without waiting for the router query param', fakeAsync(() => {
+    // Hold navigation open so ?label= never arrives; the pane must still load
+    // the default label's tasks as soon as the directory is available.
+    (TestBed.inject(Router).navigate as jasmine.Spy).and.callFake(
+      () => new Promise<boolean>(() => {}),
+    );
+    const fixture = TestBed.createComponent(LabelsPageComponent);
+    fixture.detectChanges();
+    tick();
+
+    expect(queryParams$.getValue().get('label')).toBeNull();
+    expect(fetchTasksByLabel$).toHaveBeenCalledWith('finance', false);
+    fixture.destroy();
+  }));
+
   it('refetches the pane for the Open, Completed, and All tabs', fakeAsync(() => {
     const fixture = createFixture();
     tick();

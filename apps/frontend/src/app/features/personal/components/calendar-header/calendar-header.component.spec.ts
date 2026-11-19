@@ -38,6 +38,14 @@ describe('CalendarHeaderComponent', () => {
     expect(el('.cal-nodate-btn').classList.contains('cal-nodate-btn-active')).toBe(true);
   });
 
+  it('renders an approximate no-date count such as 3+', () => {
+    component.noDateCount = 3;
+    component.noDateCountApproximate = true;
+    fixture.detectChanges();
+
+    expect(el('.cal-badge').textContent?.trim()).toBe('3+');
+  });
+
   it('reflects the Show done state and emits the toggle', () => {
     component.showDone = true;
     fixture.detectChanges();
