@@ -16,30 +16,21 @@ import {
   finalize,
   firstValueFrom,
   forkJoin,
-  interval,
   map,
   of,
-  startWith,
   switchMap,
-  tap,
   type Observable,
 } from 'rxjs';
 import { AuthStateService } from './auth-state.service';
 import { LabelService } from './label.service';
 import { ProjectService } from './project.service';
 import { TaskApiService, TASKS_PAGE_SIZE, type TaskFilterState } from './task-api.service';
-import { parseCalendarDate, startOfToday } from '../../shared/utils/timestamps';
+import { TaskRefreshState } from './task-refresh-state';
+import { TaskListStore, type UpcomingBucket, type UpcomingTaskGroup } from './task-list.store';
 import { getUserTimezone } from '../../shared/utils/timezone';
-import { DateTime } from 'luxon';
 
 export { TASKS_PAGE_SIZE, type TaskFilterState };
-
-export type UpcomingBucket = 'This Week' | 'Next Week' | 'Later';
-
-export interface UpcomingTaskGroup {
-  label: UpcomingBucket;
-  tasks: Task[];
-}
+export type { UpcomingBucket, UpcomingTaskGroup };
 
 /**
  * The calendar's visible windows. The drawn grid and the open day's week are
@@ -51,20 +42,6 @@ export interface CalendarRangeRequest {
   grid: { from: string; to: string };
   /** The week around the open day; ignored when the grid already covers it. */
   focus: { from: string; to: string };
-}
-
-/** Stable identity for a filter combination, independent of label order. */
-function taskFilterKey(filter: TaskFilterState): string {
-  return [
-    [...filter.labelIds].sort().join(','),
-    filter.labelMode,
-    filter.projectId ?? '',
-    filter.priority ?? '',
-  ].join(':');
-}
-
-function hasActiveTaskFilters(filter: TaskFilterState): boolean {
-  return filter.labelIds.length > 0 || filter.projectId !== null || filter.priority !== null;
 }
 
 /** Normalized fetch state: focus windows the grid covers collapse to `null`. */
@@ -101,25 +78,17 @@ function mergeCalendarTasks(gridTasks: Task[], focusTasks: Task[]): Task[] {
 @Injectable({ providedIn: 'root' })
 export class TaskService {
   private taskApiService = inject(TaskApiService);
+  private taskListStore = inject(TaskListStore);
+  private refreshState = inject(TaskRefreshState);
   private authState = inject(AuthStateService);
   private labelService = inject(LabelService);
   private projectService = inject(ProjectService);
   private logService = inject(LogService);
-  private refreshState = signal(0);
-  private loadingState = signal(false);
+
   private creatingState = signal(false);
-  private errorState = signal<string | null>(null);
+
+  // Calendar and undated state (extracted in FE-3)
   private calendarRangeState = signal<CalendarRangeState | null>(null);
-  private filterState = signal<TaskFilterState>({
-    labelIds: [],
-    labelMode: 'any',
-    projectId: null,
-    priority: null,
-  });
-  private filterLoadingState = signal(false);
-  private filterResolvedKeyState = signal('');
-  private filterTruncatedState = signal(false);
-  private labelPaneTruncatedState = signal(false);
   private calendarRangeLoadingState = signal(false);
   private calendarRangeLoadedState = signal(false);
   private calendarRangeSettledKeyState = signal<string | null>(null);
@@ -129,10 +98,6 @@ export class TaskService {
   private undatedLoadingState = signal(false);
   private undatedLoadedState = signal(false);
   private undatedTruncatedState = signal(false);
-  private todayTruncatedState = signal(false);
-  private overdueTruncatedState = signal(false);
-  private inboxTruncatedState = signal(false);
-  private upcomingTruncatedState = signal(false);
 
   private handleLoadError(context: string) {
     return (error: unknown) => {
@@ -141,37 +106,80 @@ export class TaskService {
       }
 
       this.logService.error(`Failed to load ${context}`, error, 'TaskService');
-      this.errorState.set(`Could not load ${context} right now.`);
+      this.taskListStore.setError(`Could not load ${context} right now.`);
       return of([] as Task[]);
     };
   }
 
-  readonly recentlyCompleted = toSignal(
-    combineLatest([
-      toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
-      toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
-      toObservable(this.refreshState),
-    ]).pipe(
-      switchMap(([initialized, currentUserId]) => {
-        if (!initialized || !currentUserId) {
-          return of([] as Task[]);
-        }
-        this.errorState.set(null);
-
-        return this.taskApiService.fetchRecentlyCompletedTasks$().pipe(
-          map((response) => response.data),
-          catchError(this.handleLoadError('recently completed tasks')),
-        );
-      }),
-    ),
-    { initialValue: [] as Task[] },
-  );
-
-  readonly loading = this.loadingState.asReadonly();
+  // Delegated list signals & state
+  readonly recentlyCompleted = this.taskListStore.recentlyCompleted;
+  readonly todayTasks = this.taskListStore.todayTasks;
+  readonly todayTruncated = this.taskListStore.todayTruncated;
+  readonly overdueTasks = this.taskListStore.overdueTasks;
+  readonly overdueTruncated = this.taskListStore.overdueTruncated;
+  readonly inboxTasks = this.taskListStore.inboxTasks;
+  readonly inboxTruncated = this.taskListStore.inboxTruncated;
+  readonly upcomingTasks = this.taskListStore.upcomingTasks;
+  readonly upcomingTruncated = this.taskListStore.upcomingTruncated;
+  readonly todayCompletedTasks = this.taskListStore.todayCompletedTasks;
+  readonly upcomingTaskGroups = this.taskListStore.upcomingTaskGroups;
+  readonly allActiveTasks = this.taskListStore.allActiveTasks;
+  readonly filteredTasks = this.taskListStore.filteredTasks;
+  readonly filterLoading = this.taskListStore.filterLoading;
+  readonly filterPending = this.taskListStore.filterPending;
+  readonly filterTruncated = this.taskListStore.filterTruncated;
+  readonly labelPaneTruncated = this.taskListStore.labelPaneTruncated;
+  readonly loading = this.taskListStore.loading;
+  readonly error = this.taskListStore.error;
+  readonly version = this.refreshState.version;
   readonly creating = this.creatingState.asReadonly();
-  readonly error = this.errorState.asReadonly();
-  readonly version = this.refreshState.asReadonly();
 
+  // Delegated list methods
+  setFilters(next: TaskFilterState) {
+    this.taskListStore.setFilters(next);
+  }
+
+  fetchTodayTasks$() {
+    return this.taskListStore.fetchTodayTasks$();
+  }
+
+  fetchOverdueTasks$() {
+    return this.taskListStore.fetchOverdueTasks$();
+  }
+
+  fetchInboxTasks$() {
+    return this.taskListStore.fetchInboxTasks$();
+  }
+
+  fetchUpcomingTasks$() {
+    return this.taskListStore.fetchUpcomingTasks$();
+  }
+
+  fetchTodayCompletedTasks$(today?: string): Observable<Task[]> {
+    return this.taskListStore.fetchTodayCompletedTasks$(today);
+  }
+
+  fetchAllActiveTasks$(): Observable<Task[]> {
+    return this.taskListStore.fetchAllActiveTasks$();
+  }
+
+  fetchTasksByLabel$(labelId: string, completed?: boolean): Observable<Task[]> {
+    return this.taskListStore.fetchTasksByLabel$(labelId, completed);
+  }
+
+  formatTaskDate(value?: string | null, options?: Intl.DateTimeFormatOptions) {
+    return this.taskListStore.formatTaskDate(value, options);
+  }
+
+  upcomingBucketForTask(task: Task): UpcomingBucket {
+    return this.taskListStore.upcomingBucketForTask(task);
+  }
+
+  refresh() {
+    this.refreshState.refresh();
+  }
+
+  // HTTP CRUD / batch / retention methods
   getArchivedTasks(page: number, pageSize: number) {
     return this.taskApiService.getArchivedTasks(page, pageSize);
   }
@@ -188,17 +196,17 @@ export class TaskService {
   /** Applies one patch to several tasks in a single API call. */
   async updateTasks(taskIds: string[], patch: BatchTaskPatchDto) {
     this.creatingState.set(true);
-    this.errorState.set(null);
+    this.taskListStore.setError(null);
 
     try {
       const result = await firstValueFrom(this.taskApiService.updateTasks$(taskIds, patch));
-      this.refreshState.update((value: number) => value + 1);
+      this.refreshState.refresh();
       this.labelService.refresh();
       this.projectService.refresh();
       return result;
     } catch (error) {
       this.logService.error('Failed to update tasks', error, 'TaskService');
-      this.errorState.set('Could not update your tasks right now.');
+      this.taskListStore.setError('Could not update your tasks right now.');
       throw error;
     } finally {
       this.creatingState.set(false);
@@ -207,16 +215,16 @@ export class TaskService {
 
   async restoreTask(taskId: string) {
     this.creatingState.set(true);
-    this.errorState.set(null);
+    this.taskListStore.setError(null);
 
     try {
       await firstValueFrom(this.taskApiService.restoreTask$(taskId));
-      this.refreshState.update((value: number) => value + 1);
+      this.refreshState.refresh();
       this.labelService.refresh();
       this.projectService.refresh();
     } catch (error) {
       this.logService.error('Failed to restore task', error, 'TaskService');
-      this.errorState.set('Could not restore your task right now.');
+      this.taskListStore.setError('Could not restore your task right now.');
       throw error;
     } finally {
       this.creatingState.set(false);
@@ -225,173 +233,108 @@ export class TaskService {
 
   async clearCompletedTasks() {
     const result = await firstValueFrom(this.taskApiService.clearCompletedTasks$());
-    this.refreshState.update((value: number) => value + 1);
+    this.refreshState.refresh();
     return result;
   }
 
-  fetchTodayTasks$() {
-    return this.taskApiService.fetchTodayTasks$();
-  }
-
-  fetchOverdueTasks$() {
-    return this.taskApiService.fetchOverdueTasks$();
-  }
-
-  fetchInboxTasks$() {
-    return this.taskApiService.fetchInboxTasks$();
-  }
-
-  fetchUpcomingTasks$() {
-    return this.taskApiService.fetchUpcomingTasks$();
-  }
-
-  fetchTodayCompletedTasks$(
-    today = DateTime.now().setZone(getUserTimezone()).toFormat('yyyy-MM-dd'),
-  ): Observable<Task[]> {
-    return this.taskApiService.fetchTodayCompletedTasks$(today);
-  }
-
-  /** Fetch all active tasks including subtasks (for subtask maps, labels, search). */
-  fetchAllActiveTasks$() {
-    return this.taskApiService.fetchAllActiveTasks$().pipe(map((response) => response.data));
-  }
-
   /**
-   * Fetch tasks carrying one label (the Labels page pane). Runs server-side
-   * via the labelIds filter so the pane matches the flat, non-deleted count
-   * scope the label list reports. `completed` maps the Open/Completed/All
-   * pane tabs; undefined asks for both.
+   * Fetch all tasks for export (bypasses the 100-task cached page).
+   * Returns up to 10,000 tasks — enough for any reasonable power user.
    */
-  fetchTasksByLabel$(labelId: string, completed?: boolean) {
-    return this.taskApiService.fetchTasksByLabel$(labelId, completed).pipe(
-      tap({
-        next: (response) =>
-          this.labelPaneTruncatedState.set(response.meta.total > response.data.length),
-        error: () => this.labelPaneTruncatedState.set(false),
-      }),
-      map((response) => response.data),
-    );
+  fetchAllTasks(): Promise<Task[]> {
+    return firstValueFrom(this.taskApiService.fetchAllTasks$().pipe(map((res) => res.data)));
   }
 
-  /**
-   * Set the task-list filter. Labels compose with project and priority; empty
-   * values clear their part of the filter.
-   */
-  setFilters(next: TaskFilterState) {
-    const normalized: TaskFilterState = {
-      labelIds: [...new Set(next.labelIds.filter(Boolean))],
-      labelMode: next.labelMode,
-      projectId: next.projectId || null,
-      priority: next.priority || null,
-    };
-    if (taskFilterKey(this.filterState()) === taskFilterKey(normalized)) {
-      return;
+  async createTask(payload: CreateTaskDto) {
+    this.creatingState.set(true);
+    this.taskListStore.setError(null);
+
+    try {
+      const tz = getUserTimezone();
+      const createdTask = await firstValueFrom(this.taskApiService.createTask$(payload, tz));
+      this.refreshState.refresh();
+      this.labelService.refresh();
+      this.projectService.refresh();
+      return createdTask;
+    } catch (error) {
+      this.logService.error('Failed to create task', error, 'TaskService');
+      this.taskListStore.setError('Could not save your task right now.');
+      throw error;
+    } finally {
+      this.creatingState.set(false);
     }
-    this.filterState.set(normalized);
   }
 
-  /**
-   * Flat result set for the task-list filters. It deliberately includes
-   * subtasks and excludes completed tasks so the visible list matches the
-   * open counts; the labels page pane uses its own completed tabs.
-   */
-  readonly filteredTasks = toSignal(
-    combineLatest([
-      toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
-      toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
-      toObservable(this.refreshState),
-      toObservable(this.filterState),
-    ]).pipe(
-      switchMap(([initialized, currentUserId, , filter]) => {
-        const key = taskFilterKey(filter);
-        if (!initialized || !currentUserId || !hasActiveTaskFilters(filter)) {
-          this.filterLoadingState.set(false);
-          this.filterTruncatedState.set(false);
-          if (!hasActiveTaskFilters(filter)) {
-            this.filterResolvedKeyState.set(key);
-          }
-          return of([] as Task[]);
-        }
-        this.filterLoadingState.set(true);
-        return this.fetchTasksByFilters$(filter).pipe(
-          tap({
-            next: () => this.filterResolvedKeyState.set(key),
-            error: () => this.filterResolvedKeyState.set(key),
-          }),
-          finalize(() => this.filterLoadingState.set(false)),
-          catchError(this.handleLoadError('filtered tasks')),
-        );
-      }),
-    ),
-    { initialValue: [] as Task[] },
-  );
+  async updateTask(taskId: string, payload: UpdateTaskDto) {
+    this.creatingState.set(true);
+    this.taskListStore.setError(null);
 
-  readonly filterLoading = this.filterLoadingState.asReadonly();
-  /** True while a newly selected filter has no result set yet. */
-  readonly filterPending = computed(() => {
-    const filter = this.filterState();
-    return hasActiveTaskFilters(filter) && this.filterResolvedKeyState() !== taskFilterKey(filter);
-  });
-  readonly filterTruncated = this.filterTruncatedState.asReadonly();
-  readonly labelPaneTruncated = this.labelPaneTruncatedState.asReadonly();
-
-  private fetchTasksByFilters$(filter: TaskFilterState) {
-    return this.taskApiService.fetchTasksByFilters$(filter).pipe(
-      tap({
-        next: (response) =>
-          this.filterTruncatedState.set(response.meta.total > response.data.length),
-        error: () => this.filterTruncatedState.set(false),
-      }),
-      map((response) => response.data),
-    );
+    try {
+      const tz = getUserTimezone();
+      const updatedTask = await firstValueFrom(
+        this.taskApiService.updateTask$(taskId, payload, tz),
+      );
+      this.refreshState.refresh();
+      this.labelService.refresh();
+      this.projectService.refresh();
+      return updatedTask;
+    } catch (error) {
+      this.logService.error('Failed to update task', error, 'TaskService');
+      this.taskListStore.setError('Could not update your task right now.');
+      throw error;
+    } finally {
+      this.creatingState.set(false);
+    }
   }
 
-  /** Fetch active tasks without a due date (the calendar's No date list). */
+  async deleteTask(taskId: string) {
+    this.creatingState.set(true);
+    this.taskListStore.setError(null);
+
+    try {
+      await firstValueFrom(this.taskApiService.deleteTask$(taskId));
+      this.refreshState.refresh();
+      this.labelService.refresh();
+      this.projectService.refresh();
+    } catch (error) {
+      this.logService.error('Failed to delete task', error, 'TaskService');
+      this.taskListStore.setError('Could not delete your task right now.');
+      throw error;
+    } finally {
+      this.creatingState.set(false);
+    }
+  }
+
+  async fetchSubtasks(parentId: string): Promise<Task[]> {
+    try {
+      const response = await firstValueFrom(this.taskApiService.fetchSubtasks$(parentId));
+      return response.data;
+    } catch (error) {
+      this.logService.error('Failed to fetch subtasks', error, 'TaskService');
+      return [];
+    }
+  }
+
+  // Calendar and undated methods & signals
   fetchUndatedTasks$() {
     return this.taskApiService.fetchUndatedTasks$();
   }
 
-  /** Fetch tasks due within an inclusive calendar-date range (YYYY-MM-DD bounds). */
   fetchTasksDueBetween$(dueFrom: string, dueTo: string) {
     return this.taskApiService.fetchTasksDueBetween$(dueFrom, dueTo);
   }
-
-  /** Signal of all active tasks for subtask maps, labels, and search. */
-  readonly allActiveTasks = toSignal(
-    combineLatest([
-      toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
-      toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
-      toObservable(this.refreshState),
-    ]).pipe(
-      switchMap(([initialized, currentUserId]) => {
-        if (!initialized || !currentUserId) {
-          this.loadingState.set(false);
-          return of([] as Task[]);
-        }
-        this.loadingState.set(true);
-        this.errorState.set(null);
-        return this.fetchAllActiveTasks$().pipe(
-          catchError(this.handleLoadError('tasks')),
-          finalize(() => this.loadingState.set(false)),
-        );
-      }),
-    ),
-    { initialValue: [] as Task[] },
-  );
 
   /** Signal of active tasks without a due date, for the calendar's No date list. */
   readonly undatedTasks = toSignal(
     combineLatest([
       toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
       toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
-      toObservable(this.refreshState),
+      toObservable(this.refreshState.version),
       toObservable(this.undatedRequestedState).pipe(distinctUntilChanged()),
       toObservable(this.undatedRetryState),
     ]).pipe(
       switchMap(([initialized, currentUserId, , requested]) => {
         if (!initialized || !currentUserId) {
-          // No user owns the list now; clear its flag so the next user does
-          // not inherit a truncation notice from the previous account.
           this.undatedRequestedState.set(false);
           this.undatedLoadingState.set(false);
           this.undatedLoadedState.set(false);
@@ -403,7 +346,7 @@ export class TaskService {
         }
 
         this.undatedLoadingState.set(true);
-        this.errorState.set(null);
+        this.taskListStore.setError(null);
         return this.fetchUndatedTasks$().pipe(
           map((response) => {
             this.undatedLoadedState.set(true);
@@ -441,11 +384,6 @@ export class TaskService {
 
   readonly undatedLoading = this.undatedLoadingState.asReadonly();
   readonly undatedLoaded = this.undatedLoadedState.asReadonly();
-
-  /**
-   * True when the No date list holds more tasks than the API returns in a
-   * page, so the list (and its count) is incomplete.
-   */
   readonly undatedTruncated = this.undatedTruncatedState.asReadonly();
 
   /**
@@ -471,14 +409,8 @@ export class TaskService {
   }
 
   readonly calendarRangeLoading = this.calendarRangeLoadingState.asReadonly();
-
-  /**
-   * True once a window has been fetched, so refetches never re-show the
-   * loader. Reset on sign-out so the next user in the tab still gets it.
-   */
   readonly calendarRangeLoaded = this.calendarRangeLoadedState.asReadonly();
 
-  /** True only after the request for the current visible range has settled. */
   readonly calendarRangeReady = computed(() => {
     const range = this.calendarRangeState();
     return (
@@ -488,31 +420,17 @@ export class TaskService {
     );
   });
 
-  /**
-   * True when the fetched windows hold more tasks than the API returns in a
-   * page, so some days in the range are missing their tail.
-   */
   readonly calendarRangeTruncated = this.calendarRangeTruncatedState.asReadonly();
 
-  /**
-   * Signal of tasks due inside the calendar's visible windows. The grid and
-   * the open day's week are fetched as two bounded requests (the week is
-   * skipped when the grid already covers it), so the payload never grows with
-   * the months browsed between the selection and the drawn grid. A window that
-   * fills the API page cap is surfaced through `calendarRangeTruncated`.
-   */
   readonly calendarRangeTasks = toSignal(
     combineLatest([
       toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
       toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
-      toObservable(this.refreshState),
+      toObservable(this.refreshState.version),
       toObservable(this.calendarRangeState),
     ]).pipe(
       switchMap(([initialized, currentUserId, , range]) => {
         if (!initialized || !currentUserId || !range) {
-          // No user owns the calendar now, so drop the sticky load flags. The
-          // next user in this tab then gets the loading state instead of a
-          // stale, empty calendar (and no stale truncation notice).
           this.calendarRangeLoadingState.set(false);
           this.calendarRangeLoadedState.set(false);
           this.calendarRangeSettledKeyState.set(null);
@@ -521,7 +439,7 @@ export class TaskService {
         }
         const requestedRangeKey = calendarRangeStateKey(range);
         this.calendarRangeLoadingState.set(true);
-        this.errorState.set(null);
+        this.taskListStore.setError(null);
 
         const focusResponse$ = range.focus
           ? this.fetchTasksDueBetween$(range.focus.from, range.focus.to)
@@ -552,286 +470,4 @@ export class TaskService {
     ),
     { initialValue: [] as Task[] },
   );
-
-  readonly todayTasks = toSignal(
-    combineLatest([
-      toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
-      toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
-      toObservable(this.refreshState),
-    ]).pipe(
-      switchMap(([initialized, currentUserId]) => {
-        if (!initialized || !currentUserId) {
-          this.todayTruncatedState.set(false);
-          return of([] as Task[]);
-        }
-        this.errorState.set(null);
-        return this.fetchTodayTasks$().pipe(
-          map((response) => {
-            this.todayTruncatedState.set(response.meta.total > response.data.length);
-            return response.data
-              .filter((task) => !task.parentId)
-              .sort((left, right) => left.order - right.order);
-          }),
-          catchError((error) => {
-            this.todayTruncatedState.set(false);
-            return this.handleLoadError('today tasks')(error);
-          }),
-        );
-      }),
-    ),
-    { initialValue: [] as Task[] },
-  );
-
-  /** True when the Today view holds more tasks than one API page. */
-  readonly todayTruncated = this.todayTruncatedState.asReadonly();
-
-  readonly overdueTasks = toSignal(
-    combineLatest([
-      toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
-      toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
-      toObservable(this.refreshState),
-    ]).pipe(
-      switchMap(([initialized, currentUserId]) => {
-        if (!initialized || !currentUserId) {
-          this.overdueTruncatedState.set(false);
-          return of([] as Task[]);
-        }
-        this.errorState.set(null);
-        return this.fetchOverdueTasks$().pipe(
-          map((response) => {
-            this.overdueTruncatedState.set(response.meta.total > response.data.length);
-            return response.data
-              .filter((task) => !task.parentId)
-              .sort((left, right) => left.order - right.order);
-          }),
-          catchError((error) => {
-            this.overdueTruncatedState.set(false);
-            return this.handleLoadError('overdue tasks')(error);
-          }),
-        );
-      }),
-    ),
-    { initialValue: [] as Task[] },
-  );
-
-  /** True when the Overdue list holds more tasks than one API page. */
-  readonly overdueTruncated = this.overdueTruncatedState.asReadonly();
-
-  readonly inboxTasks = toSignal(
-    combineLatest([
-      toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
-      toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
-      toObservable(this.refreshState),
-    ]).pipe(
-      switchMap(([initialized, currentUserId]) => {
-        if (!initialized || !currentUserId) {
-          this.inboxTruncatedState.set(false);
-          return of([] as Task[]);
-        }
-        this.errorState.set(null);
-        return this.fetchInboxTasks$().pipe(
-          map((response) => {
-            this.inboxTruncatedState.set(response.meta.total > response.data.length);
-            return response.data
-              .filter((task) => !task.parentId)
-              .sort((left, right) => left.order - right.order);
-          }),
-          catchError((error) => {
-            this.inboxTruncatedState.set(false);
-            return this.handleLoadError('inbox tasks')(error);
-          }),
-        );
-      }),
-    ),
-    { initialValue: [] as Task[] },
-  );
-
-  /** True when the Inbox holds more tasks than one API page. */
-  readonly inboxTruncated = this.inboxTruncatedState.asReadonly();
-
-  readonly upcomingTasks = toSignal(
-    combineLatest([
-      toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
-      toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
-      toObservable(this.refreshState),
-    ]).pipe(
-      switchMap(([initialized, currentUserId]) => {
-        if (!initialized || !currentUserId) {
-          this.upcomingTruncatedState.set(false);
-          return of([] as Task[]);
-        }
-        this.errorState.set(null);
-        return this.fetchUpcomingTasks$().pipe(
-          map((response) => {
-            this.upcomingTruncatedState.set(response.meta.total > response.data.length);
-            return response.data
-              .filter((task) => !task.parentId)
-              .sort((left, right) => left.order - right.order);
-          }),
-          catchError((error) => {
-            this.upcomingTruncatedState.set(false);
-            return this.handleLoadError('upcoming tasks')(error);
-          }),
-        );
-      }),
-    ),
-    { initialValue: [] as Task[] },
-  );
-
-  /** True when the Upcoming list holds more tasks than one API page. */
-  readonly upcomingTruncated = this.upcomingTruncatedState.asReadonly();
-
-  private readonly todayDateKey$ = interval(60_000).pipe(
-    startWith(0),
-    map(() => DateTime.now().setZone(getUserTimezone()).toFormat('yyyy-MM-dd')),
-    distinctUntilChanged(),
-  );
-
-  readonly todayCompletedTasks = toSignal(
-    combineLatest([
-      toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
-      toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
-      toObservable(this.refreshState),
-      this.todayDateKey$,
-    ]).pipe(
-      switchMap(([initialized, currentUserId, , today]) => {
-        if (!initialized || !currentUserId) {
-          return of([] as Task[]);
-        }
-        this.errorState.set(null);
-        return this.fetchTodayCompletedTasks$(today).pipe(
-          catchError(this.handleLoadError('completed tasks')),
-        );
-      }),
-    ),
-    { initialValue: [] as Task[] },
-  );
-  readonly upcomingTaskGroups = computed<UpcomingTaskGroup[]>(() => {
-    const buckets: Record<UpcomingBucket, Task[]> = {
-      'This Week': [],
-      'Next Week': [],
-      Later: [],
-    };
-
-    for (const task of this.upcomingTasks()) {
-      buckets[this.upcomingBucketForTask(task)].push(task);
-    }
-
-    return (Object.entries(buckets) as [UpcomingBucket, Task[]][])
-      .filter(([, tasks]) => tasks.length > 0)
-      .map(([label, tasks]) => ({ label, tasks }));
-  });
-
-  /** Fetch all tasks for export (bypasses the 100-task cached page).
-   *  Returns up to 10,000 tasks — enough for any reasonable power user.
-   *  Beyond that, a database-level export is more appropriate. */
-  fetchAllTasks(): Promise<Task[]> {
-    return firstValueFrom(this.taskApiService.fetchAllTasks$().pipe(map((res) => res.data)));
-  }
-
-  async createTask(payload: CreateTaskDto) {
-    this.creatingState.set(true);
-    this.errorState.set(null);
-
-    try {
-      const tz = getUserTimezone();
-      const createdTask = await firstValueFrom(this.taskApiService.createTask$(payload, tz));
-      this.refreshState.update((value: number) => value + 1);
-      this.labelService.refresh();
-      this.projectService.refresh();
-      return createdTask;
-    } catch (error) {
-      this.logService.error('Failed to create task', error, 'TaskService');
-      this.errorState.set('Could not save your task right now.');
-      throw error;
-    } finally {
-      this.creatingState.set(false);
-    }
-  }
-
-  async updateTask(taskId: string, payload: UpdateTaskDto) {
-    this.creatingState.set(true);
-    this.errorState.set(null);
-
-    try {
-      const tz = getUserTimezone();
-      const updatedTask = await firstValueFrom(
-        this.taskApiService.updateTask$(taskId, payload, tz),
-      );
-      this.refreshState.update((value: number) => value + 1);
-      this.labelService.refresh();
-      this.projectService.refresh();
-      return updatedTask;
-    } catch (error) {
-      this.logService.error('Failed to update task', error, 'TaskService');
-      this.errorState.set('Could not update your task right now.');
-      throw error;
-    } finally {
-      this.creatingState.set(false);
-    }
-  }
-
-  async deleteTask(taskId: string) {
-    this.creatingState.set(true);
-    this.errorState.set(null);
-
-    try {
-      await firstValueFrom(this.taskApiService.deleteTask$(taskId));
-      this.refreshState.update((value: number) => value + 1);
-      this.labelService.refresh();
-      this.projectService.refresh();
-    } catch (error) {
-      this.logService.error('Failed to delete task', error, 'TaskService');
-      this.errorState.set('Could not delete your task right now.');
-      throw error;
-    } finally {
-      this.creatingState.set(false);
-    }
-  }
-
-  async fetchSubtasks(parentId: string): Promise<Task[]> {
-    try {
-      const response = await firstValueFrom(this.taskApiService.fetchSubtasks$(parentId));
-      return response.data;
-    } catch (error) {
-      this.logService.error('Failed to fetch subtasks', error, 'TaskService');
-      return [];
-    }
-  }
-
-  refresh() {
-    this.refreshState.update((value: number) => value + 1);
-  }
-
-  formatTaskDate(value?: string | null, options?: Intl.DateTimeFormatOptions) {
-    const dt = parseCalendarDate(value);
-    if (!dt) {
-      return '';
-    }
-
-    return new Intl.DateTimeFormat('en-US', options ?? { month: 'short', day: 'numeric' }).format(
-      dt.toJSDate(),
-    );
-  }
-
-  upcomingBucketForTask(task: Task): UpcomingBucket {
-    const dueDate = parseCalendarDate(task.dueDate);
-    const today = startOfToday();
-
-    if (!dueDate) {
-      return 'Later';
-    }
-
-    const dayDiff = Math.floor(dueDate.diff(today, 'days').days);
-
-    if (dayDiff <= 7) {
-      return 'This Week';
-    }
-
-    if (dayDiff <= 14) {
-      return 'Next Week';
-    }
-
-    return 'Later';
-  }
 }
