@@ -19,7 +19,9 @@ export interface CalendarScheduleRequest {
     <div class="cal-panel">
       <header class="cal-panel-head">
         <h2 class="cal-panel-title">No date</h2>
-        <span class="cal-panel-count">{{ countLabel }}</span>
+        @if (loaded) {
+          <span class="cal-panel-count">{{ countLabel }}</span>
+        }
       </header>
 
       @if (tasks.length > 0) {
@@ -60,6 +62,11 @@ export interface CalendarScheduleRequest {
             </li>
           }
         </ul>
+      } @else if (loading) {
+        <p class="cal-panel-empty" role="status">Loading tasks…</p>
+      } @else if (!loaded) {
+        <p class="cal-panel-empty" role="status">Could not load undated tasks.</p>
+        <button type="button" class="cal-panel-retry" (click)="retry.emit()">Try again</button>
       } @else {
         <p class="cal-panel-empty">Everything has a date.</p>
       }
@@ -171,6 +178,19 @@ export interface CalendarScheduleRequest {
         font-size: 0.85rem;
       }
 
+      .cal-panel-retry {
+        align-self: flex-start;
+        min-height: 2rem;
+        padding: 0 0.65rem;
+        border: 0;
+        border-radius: 0.55rem;
+        background: var(--surface-container-low);
+        color: var(--on-surface);
+        font-size: 0.78rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
       .cal-quick-btn:focus-visible {
         outline: 2px solid var(--primary-solid);
         outline-offset: 1px;
@@ -187,9 +207,12 @@ export class CalendarNoDateListComponent {
   @Input() labelNames: Map<string, string> = new Map();
   @Input() showMetadata = false;
   @Input() touchTargets = false;
+  @Input() loading = false;
+  @Input() loaded = true;
   @Output() readonly openTask = new EventEmitter<Task>();
   @Output() readonly completeTask = new EventEmitter<Task>();
   @Output() readonly scheduleTask = new EventEmitter<CalendarScheduleRequest>();
+  @Output() readonly retry = new EventEmitter<void>();
 
   protected get countLabel(): string {
     const count = this.tasks.length;

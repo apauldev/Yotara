@@ -5,7 +5,7 @@ import {
   provideEnvironmentInitializer,
   provideZoneChangeDetection,
 } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { PreloadAllModules, provideRouter, withPreloading } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideMarkdown, SANITIZE } from 'ngx-markdown';
 import DOMPurify from 'dompurify';
@@ -22,7 +22,7 @@ type E2EWindow = Window & { __YOTARA_E2E_API_URL__?: string };
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes),
+    provideRouter(routes, withPreloading(PreloadAllModules)),
     provideAnimationsAsync(),
     provideMarkdown(),
     provideHttpClient(

@@ -14,6 +14,7 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faArrowLeft, faCalendarDays, faCalendarWeek } from '@fortawesome/free-solid-svg-icons';
 import { DateTime } from 'luxon';
 import type { CalendarEventDto, Task } from '@yotara/shared';
+import { AuthStateService } from '../../../../core/services/auth-state.service';
 import { LabelService } from '../../../../core/services/label.service';
 import { PreferencesStore } from '../../../../core/services/preferences-store.service';
 import { ProjectService } from '../../../../core/services/project.service';
@@ -40,6 +41,7 @@ import {
   buildUndatedTasks,
   buildWeekDays,
   dayKey,
+  isCalendarTask,
   weekStart,
   type CalendarRescheduleRequest,
 } from '../../utils/calendar-view';
@@ -75,6 +77,7 @@ function pruneIds(ids: ReadonlySet<string>, allowed: ReadonlySet<string>): Reado
 export class CalendarPageComponent {
   private readonly taskService = inject(TaskService);
   private readonly calendarService = inject(CalendarService);
+  private readonly authState = inject(AuthStateService);
   private readonly projectService = inject(ProjectService);
   private readonly labelService = inject(LabelService);
   private readonly statusService = inject(StatusService);
@@ -173,6 +176,11 @@ export class CalendarPageComponent {
       to: range.grid.to > range.focus.to ? range.grid.to : range.focus.to,
     };
   });
+  private readonly eventRangeKey = computed(() => {
+    const range = this.eventRange();
+    return JSON.stringify([this.authState.currentUserId(), range.from, range.to]);
+  });
+  private readonly loadedEventRangeKey = signal<string | null>(null);
 
   private readonly calendarTasks = computed(() => {
     const tasks = this.taskService
@@ -210,7 +218,21 @@ export class CalendarPageComponent {
     buildWeekDays(this.selectedDate(), this.tasksByDay(), this.today, this.eventsByDay()),
   );
 
-  protected readonly noDateCount = computed(() => this.undatedTasks().length);
+  /**
+   * The No date badge is visible before the drawer is ever opened. Until the
+   * full undated list loads, derive its count from all active tasks, which the
+   * app already fetches for subtasks/labels/search — no extra request needed.
+   */
+  private readonly estimatedNoDateCount = computed(
+    () =>
+      this.taskService.allActiveTasks().filter((task) => isCalendarTask(task) && !task.dueDate)
+        .length,
+  );
+  protected readonly noDateCount = computed(() =>
+    this.undatedLoaded() ? this.undatedTasks().length : this.estimatedNoDateCount(),
+  );
+  protected readonly undatedLoading = computed(() => this.taskService.undatedLoading());
+  protected readonly undatedLoaded = computed(() => this.taskService.undatedLoaded());
   protected readonly monthHasTasks = computed(() =>
     this.cells().some((cell) => cell.inMonth && cell.tasks.length > 0),
   );
@@ -219,6 +241,10 @@ export class CalendarPageComponent {
   );
   protected readonly showInitialLoading = computed(
     () => this.taskService.calendarRangeLoading() && !this.taskService.calendarRangeLoaded(),
+  );
+  protected readonly calendarDataReady = computed(
+    () =>
+      this.taskService.calendarRangeReady() && this.loadedEventRangeKey() === this.eventRangeKey(),
   );
   /** True when a calendar list holds more tasks than the API returns in a page. */
   protected readonly limitExceeded = computed(
@@ -232,9 +258,23 @@ export class CalendarPageComponent {
 
     effect(() => {
       const range = this.eventRange();
-      void this.calendarService.loadEvents(range.from, range.to).catch(() => {
-        this.statusService.error('Could not load calendar events right now.');
-      });
+      const rangeKey = this.eventRangeKey();
+      if (!this.authState.currentUserId()) {
+        this.loadedEventRangeKey.set(null);
+        return;
+      }
+      void this.calendarService
+        .loadEvents(range.from, range.to)
+        .catch(() => {
+          this.statusService.error('Could not load calendar events right now.');
+        })
+        .finally(() => {
+          // A failed event fetch must not leave the empty-state message hidden
+          // forever; the range is settled either way. Stale ranges are ignored.
+          if (this.eventRangeKey() === rangeKey) {
+            this.loadedEventRangeKey.set(rangeKey);
+          }
+        });
     });
 
     effect(() => {
@@ -336,7 +376,15 @@ export class CalendarPageComponent {
   }
 
   protected toggleNoDate(): void {
-    this.showNoDate.update((value) => !value);
+    const opening = !this.showNoDate();
+    this.showNoDate.set(opening);
+    if (opening) {
+      this.taskService.loadUndatedTasks();
+    }
+  }
+
+  protected retryUndatedTasks(): void {
+    this.taskService.loadUndatedTasks();
   }
 
   protected toggleShowDone(): void {

@@ -239,6 +239,9 @@ describe('TaskService', () => {
     currentUserId.set('user-1');
     tick();
 
+    service.loadUndatedTasks();
+    tick();
+
     service.setCalendarRange({
       grid: { from: '2026-10-01', to: '2026-11-11' },
       focus: { from: '2026-01-04', to: '2026-01-10' },
@@ -1589,13 +1592,18 @@ describe('TaskService', () => {
     expect(result).toEqual([]);
   }));
 
-  it('loads undatedTasks once authenticated and refetches on refresh', fakeAsync(() => {
+  it('loads undatedTasks on first open', fakeAsync(() => {
     const service = TestBed.inject(TaskService);
     const http = TestBed.inject(HttpTestingController);
 
     initialized.set(true);
     isAuthenticated.set(true);
     currentUserId.set('user-1');
+    tick();
+
+    http.expectNone((r) => r.url.includes('hasDueDate=false'));
+
+    service.loadUndatedTasks();
     tick();
 
     http
@@ -1617,6 +1625,11 @@ describe('TaskService', () => {
     tick();
 
     expect(service.undatedTasks().map((task) => task.id)).toEqual(['undated-1']);
+
+    // Already loaded: reopening the drawer reuses the list.
+    service.loadUndatedTasks();
+    tick();
+    http.expectNone((r) => r.url.includes('hasDueDate=false'));
   }));
 
   function calendarTask(id: string, dueDate: string): Task {
@@ -1746,6 +1759,9 @@ describe('TaskService', () => {
     initialized.set(true);
     isAuthenticated.set(true);
     currentUserId.set('user-1');
+    tick();
+
+    service.loadUndatedTasks();
     tick();
 
     http

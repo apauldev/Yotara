@@ -9,9 +9,12 @@
 }
 
 .cal-loading {
-  padding: 2rem;
-  text-align: center;
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 0.8rem;
+  background: var(--surface-container-low);
   color: var(--on-surface-muted);
+  font-size: 0.85rem;
 }
 
 .cal-layout {

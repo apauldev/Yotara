@@ -243,10 +243,17 @@ export class LabelsPageComponent {
 
   /**
    * The pane only fetches for a label that exists in the loaded list; while a
-   * label rename/refresh is in flight there is nothing to query.
+   * label rename/refresh is in flight there is nothing to query. On a cold
+   * load there is no `?label=` yet, so fall back to the default label as soon
+   * as the directory arrives. The router still writes the query param, but it
+   * no longer sits between the labels response and the pane's task request.
    */
   private fetchableLabelId(): string | null {
-    return this.selectedLabelId() && this.selectedLabel() ? this.selectedLabelId() : null;
+    const selectedId = this.selectedLabelId();
+    if (selectedId) {
+      return this.selectedLabel() ? selectedId : null;
+    }
+    return this.hasLabels() ? this.defaultLabelId() : null;
   }
 
   constructor() {

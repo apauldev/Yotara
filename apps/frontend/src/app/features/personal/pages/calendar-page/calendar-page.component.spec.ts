@@ -4,9 +4,11 @@ import { By } from '@angular/platform-browser';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideMarkdown } from 'ngx-markdown';
 import { DateTime } from 'luxon';
-import type { Label, Project, Task } from '@yotara/shared';
+import type { CalendarEventDto, Label, Project, Task } from '@yotara/shared';
 import { CalendarPageComponent } from './calendar-page.component';
 import { PersonalTaskWorkspaceComponent } from '../../components/personal-task-workspace.component';
+import { AuthStateService } from '../../../../core/services/auth-state.service';
+import { CalendarService } from '../../../../core/services/calendar.service';
 import { LabelService } from '../../../../core/services/label.service';
 import { PreferencesStore } from '../../../../core/services/preferences-store.service';
 import { ProjectService } from '../../../../core/services/project.service';
@@ -39,7 +41,10 @@ function label(id: string, name: string): Label {
 describe('CalendarPageComponent', () => {
   let fixture: ComponentFixture<CalendarPageComponent>;
   let rangeTasks: WritableSignal<Task[]>;
+  let allActiveTasks: WritableSignal<Task[]>;
   let undatedTasks: WritableSignal<Task[]>;
+  let undatedLoading: WritableSignal<boolean>;
+  let undatedLoaded: WritableSignal<boolean>;
   let rangeTruncated: WritableSignal<boolean>;
   let undatedTruncated: WritableSignal<boolean>;
   let projects: WritableSignal<Project[]>;
@@ -50,13 +55,22 @@ describe('CalendarPageComponent', () => {
     calendarRangeTasks: WritableSignal<Task[]>;
     calendarRangeLoading: WritableSignal<boolean>;
     calendarRangeLoaded: WritableSignal<boolean>;
+    calendarRangeReady: WritableSignal<boolean>;
     calendarRangeTruncated: WritableSignal<boolean>;
     undatedTruncated: WritableSignal<boolean>;
     setCalendarRange: jasmine.Spy;
+    allActiveTasks: WritableSignal<Task[]>;
     undatedTasks: WritableSignal<Task[]>;
+    undatedLoading: WritableSignal<boolean>;
+    undatedLoaded: WritableSignal<boolean>;
+    loadUndatedTasks: jasmine.Spy;
     error: WritableSignal<string | null>;
     updateTask: jasmine.Spy;
     createTask: jasmine.Spy;
+  };
+  let calendarService: {
+    events: WritableSignal<CalendarEventDto[]>;
+    loadEvents: jasmine.Spy;
   };
   let statusService: jasmine.SpyObj<StatusService>;
   let workspace: PersonalTaskWorkspaceComponent;
@@ -102,7 +116,14 @@ describe('CalendarPageComponent', () => {
 
   beforeEach(async () => {
     rangeTasks = signal<Task[]>([]);
+    allActiveTasks = signal<Task[]>([]);
     undatedTasks = signal<Task[]>([]);
+    undatedLoading = signal(false);
+    undatedLoaded = signal(true);
+    calendarService = {
+      events: signal<CalendarEventDto[]>([]),
+      loadEvents: jasmine.createSpy('loadEvents').and.resolveTo([]),
+    };
     rangeTruncated = signal(false);
     undatedTruncated = signal(false);
     projects = signal<Project[]>([]);
@@ -114,10 +135,15 @@ describe('CalendarPageComponent', () => {
       calendarRangeTasks: rangeTasks,
       calendarRangeLoading: signal(false),
       calendarRangeLoaded: signal(true),
+      calendarRangeReady: signal(true),
       calendarRangeTruncated: rangeTruncated,
       undatedTruncated,
       setCalendarRange: jasmine.createSpy('setCalendarRange'),
+      allActiveTasks,
       undatedTasks,
+      undatedLoading,
+      undatedLoaded,
+      loadUndatedTasks: jasmine.createSpy('loadUndatedTasks'),
       error: signal<string | null>(null),
       updateTask: jasmine.createSpy('updateTask').and.resolveTo({ id: 'task-1' }),
       createTask: jasmine.createSpy('createTask').and.resolveTo({ id: 'created-task' }),
@@ -136,6 +162,15 @@ describe('CalendarPageComponent', () => {
         provideMarkdown(),
         provideNoopAnimations(),
         { provide: TaskService, useValue: taskService },
+        { provide: CalendarService, useValue: calendarService },
+        {
+          provide: AuthStateService,
+          useValue: {
+            initialized: signal(true),
+            isAuthenticated: signal(true),
+            currentUserId: signal<string | null>('user-1'),
+          },
+        },
         {
           provide: ProjectService,
           useValue: { projects, refresh: jasmine.createSpy('refresh') },
@@ -345,6 +380,59 @@ describe('CalendarPageComponent', () => {
       fixture.detectChanges();
 
       expect(component.completionOverrides().has('due-1')).toBe(false);
+    });
+  });
+
+  describe('No date drawer and month empty state', () => {
+    it('shows the badge count from all active tasks before the drawer loads', () => {
+      undatedLoaded.set(false);
+      allActiveTasks.set([
+        task({ id: 'a' }),
+        task({ id: 'b' }),
+        task({ id: 'dated', dueDate: todayISO }),
+        task({ id: 'sub', parentId: 'a' }),
+      ]);
+      fixture.detectChanges();
+
+      expect(element<HTMLElement>('.cal-badge').textContent?.trim()).toBe('2');
+      expect(taskService.loadUndatedTasks).not.toHaveBeenCalled();
+
+      openNoDateList();
+      expect(taskService.loadUndatedTasks).toHaveBeenCalledTimes(1);
+    });
+
+    it('switches to the fetched count and offers a retry after a failure', () => {
+      undatedLoaded.set(false);
+      allActiveTasks.set([task({ id: 'a' })]);
+      fixture.detectChanges();
+      expect(element<HTMLElement>('.cal-badge').textContent?.trim()).toBe('1');
+
+      undatedLoaded.set(false);
+      openNoDateList();
+      expect(fixture.nativeElement.textContent).toContain('Could not load undated tasks.');
+
+      findByText('.cal-panel-retry', 'Try again').click();
+      expect(taskService.loadUndatedTasks).toHaveBeenCalledTimes(2);
+
+      undatedTasks.set([task({ id: 'x' }), task({ id: 'y' }), task({ id: 'z' })]);
+      undatedLoaded.set(true);
+      fixture.detectChanges();
+      expect(element<HTMLElement>('.cal-badge').textContent?.trim()).toBe('3');
+    });
+
+    it('settles the month empty state even when event loading fails', async () => {
+      calendarService.loadEvents.and.rejectWith(new Error('boom'));
+      const localFixture = TestBed.createComponent(CalendarPageComponent);
+      localFixture.detectChanges();
+      await localFixture.whenStable();
+      localFixture.detectChanges();
+
+      const component = localFixture.componentInstance as unknown as {
+        calendarDataReady: () => boolean;
+      };
+      expect(component.calendarDataReady()).toBe(true);
+      expect(statusService.error).toHaveBeenCalledWith('Could not load calendar events right now.');
+      localFixture.destroy();
     });
   });
 

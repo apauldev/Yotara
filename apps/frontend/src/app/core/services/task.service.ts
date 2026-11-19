@@ -80,6 +80,15 @@ interface CalendarRangeState {
   focus: { from: string; to: string } | null;
 }
 
+function calendarRangeStateKey(range: CalendarRangeState): string {
+  return JSON.stringify([
+    range.grid.from,
+    range.grid.to,
+    range.focus?.from ?? null,
+    range.focus?.to ?? null,
+  ]);
+}
+
 /**
  * Largest tasks page the app requests. It matches the API's per-page cap; the
  * calendar flags truncation when a window returns more than it can hold.
@@ -127,7 +136,12 @@ export class TaskService {
   private labelPaneTruncatedState = signal(false);
   private calendarRangeLoadingState = signal(false);
   private calendarRangeLoadedState = signal(false);
+  private calendarRangeSettledKeyState = signal<string | null>(null);
   private calendarRangeTruncatedState = signal(false);
+  private undatedRequestedState = signal(false);
+  private undatedRetryState = signal(0);
+  private undatedLoadingState = signal(false);
+  private undatedLoadedState = signal(false);
   private undatedTruncatedState = signal(false);
   private todayTruncatedState = signal(false);
   private overdueTruncatedState = signal(false);
@@ -488,29 +502,62 @@ export class TaskService {
       toObservable(this.authState.initialized).pipe(distinctUntilChanged()),
       toObservable(this.authState.currentUserId).pipe(distinctUntilChanged()),
       toObservable(this.refreshState),
+      toObservable(this.undatedRequestedState).pipe(distinctUntilChanged()),
+      toObservable(this.undatedRetryState),
     ]).pipe(
-      switchMap(([initialized, currentUserId]) => {
+      switchMap(([initialized, currentUserId, , requested]) => {
         if (!initialized || !currentUserId) {
           // No user owns the list now; clear its flag so the next user does
           // not inherit a truncation notice from the previous account.
+          this.undatedRequestedState.set(false);
+          this.undatedLoadingState.set(false);
+          this.undatedLoadedState.set(false);
           this.undatedTruncatedState.set(false);
           return of([] as Task[]);
         }
+        if (!requested) {
+          return of([] as Task[]);
+        }
+
+        this.undatedLoadingState.set(true);
         this.errorState.set(null);
         return this.fetchUndatedTasks$().pipe(
           map((response) => {
+            this.undatedLoadedState.set(true);
             this.undatedTruncatedState.set(response.meta.total > response.data.length);
             return response.data;
           }),
           catchError((error) => {
+            this.undatedLoadedState.set(false);
             this.undatedTruncatedState.set(false);
             return this.handleLoadError('undated tasks')(error);
           }),
+          finalize(() => this.undatedLoadingState.set(false)),
         );
       }),
     ),
     { initialValue: [] as Task[] },
   );
+
+  /** Start loading on first open; reuse loaded data and allow retry after a failure. */
+  loadUndatedTasks(): void {
+    if (!this.authState.initialized() || !this.authState.currentUserId()) {
+      return;
+    }
+    if (this.undatedLoadingState() || this.undatedLoadedState()) {
+      return;
+    }
+
+    this.undatedLoadingState.set(true);
+    if (this.undatedRequestedState()) {
+      this.undatedRetryState.update((version) => version + 1);
+    } else {
+      this.undatedRequestedState.set(true);
+    }
+  }
+
+  readonly undatedLoading = this.undatedLoadingState.asReadonly();
+  readonly undatedLoaded = this.undatedLoadedState.asReadonly();
 
   /**
    * True when the No date list holds more tasks than the API returns in a
@@ -548,6 +595,16 @@ export class TaskService {
    */
   readonly calendarRangeLoaded = this.calendarRangeLoadedState.asReadonly();
 
+  /** True only after the request for the current visible range has settled. */
+  readonly calendarRangeReady = computed(() => {
+    const range = this.calendarRangeState();
+    return (
+      range !== null &&
+      !this.calendarRangeLoadingState() &&
+      this.calendarRangeSettledKeyState() === calendarRangeStateKey(range)
+    );
+  });
+
   /**
    * True when the fetched windows hold more tasks than the API returns in a
    * page, so some days in the range are missing their tail.
@@ -575,9 +632,11 @@ export class TaskService {
           // stale, empty calendar (and no stale truncation notice).
           this.calendarRangeLoadingState.set(false);
           this.calendarRangeLoadedState.set(false);
+          this.calendarRangeSettledKeyState.set(null);
           this.calendarRangeTruncatedState.set(false);
           return of([] as Task[]);
         }
+        const requestedRangeKey = calendarRangeStateKey(range);
         this.calendarRangeLoadingState.set(true);
         this.errorState.set(null);
 
@@ -603,6 +662,7 @@ export class TaskService {
           finalize(() => {
             this.calendarRangeLoadingState.set(false);
             this.calendarRangeLoadedState.set(true);
+            this.calendarRangeSettledKeyState.set(requestedRangeKey);
           }),
         );
       }),

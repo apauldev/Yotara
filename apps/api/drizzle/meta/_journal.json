@@ -57,6 +57,13 @@
       "when": 1792985388345,
       "tag": "0007_mature_johnny_blaze",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1795019400000,
+      "tag": "0008_task_due_date_indexes",
+      "breakpoints": true
     }
   ]
 }

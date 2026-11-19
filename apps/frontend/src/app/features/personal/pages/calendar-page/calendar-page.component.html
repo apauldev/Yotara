@@ -20,120 +20,120 @@
 
     @if (showInitialLoading()) {
       <div class="cal-loading" role="status" aria-live="polite">Loading your calendar…</div>
-    } @else {
-      @if (limitExceeded()) {
-        <p class="cal-limit-notice" role="status">Task limit exceeded. Some tasks aren't shown.</p>
-      }
+    }
 
-      <ng-template #calendarMain>
-        <app-calendar-month-grid
-          [cells]="cells()"
-          [selectedKey]="selectedKey()"
+    @if (limitExceeded()) {
+      <p class="cal-limit-notice" role="status">Task limit exceeded. Some tasks aren't shown.</p>
+    }
+
+    <ng-template #calendarMain>
+      <app-calendar-month-grid
+        [cells]="cells()"
+        [selectedKey]="selectedKey()"
+        [completionOverrides]="completionOverrides()"
+        [todayKey]="todayKey"
+        [showMetadata]="showMetadata()"
+        [showCheck]="!isMobile()"
+        [allowDrag]="!isMobile()"
+        [allowQuickCreate]="!isMobile()"
+        [compactCounts]="isMobile()"
+        (selectDate)="selectDate($event)"
+        (openTask)="openTask($event)"
+        (openEvent)="openEvent($event)"
+        (completeTask)="completeTask($event)"
+        (rescheduleTask)="moveTask($event)"
+        (createTask)="createTaskForDate($event)"
+      />
+
+      @if (calendarDataReady() && !monthHasTasks() && !monthHasEvents()) {
+        <p class="cal-month-empty">
+          No tasks or events in {{ monthLabel() }} yet. Give a task a due date or connect a calendar
+          in Settings.
+        </p>
+      }
+    </ng-template>
+
+    <ng-template #sidePanel>
+      @if (showNoDate()) {
+        <app-calendar-no-date-list
+          [tasks]="undatedTasks()"
+          [accentByProject]="projectAccents()"
           [completionOverrides]="completionOverrides()"
           [todayKey]="todayKey"
+          [projectNames]="projectNames()"
+          [labelNames]="labelNames()"
           [showMetadata]="showMetadata()"
-          [showCheck]="!isMobile()"
-          [allowDrag]="!isMobile()"
-          [allowQuickCreate]="!isMobile()"
-          [compactCounts]="isMobile()"
-          (selectDate)="selectDate($event)"
+          [touchTargets]="isMobile()"
+          [loading]="undatedLoading()"
+          [loaded]="undatedLoaded()"
           (openTask)="openTask($event)"
-          (openEvent)="openEvent($event)"
           (completeTask)="completeTask($event)"
-          (rescheduleTask)="moveTask($event)"
-          (createTask)="createTaskForDate($event)"
+          (scheduleTask)="scheduleTask($event)"
+          (retry)="retryUndatedTasks()"
         />
-
-        @if (!monthHasTasks() && !monthHasEvents()) {
-          <p class="cal-month-empty">
-            No tasks or events in {{ monthLabel() }} yet. Give a task a due date or connect a
-            calendar in Settings.
-          </p>
-        }
-      </ng-template>
-
-      <ng-template #sidePanel>
-        @if (showNoDate()) {
-          <app-calendar-no-date-list
-            [tasks]="undatedTasks()"
-            [accentByProject]="projectAccents()"
-            [completionOverrides]="completionOverrides()"
-            [todayKey]="todayKey"
-            [projectNames]="projectNames()"
-            [labelNames]="labelNames()"
-            [showMetadata]="showMetadata()"
-            [touchTargets]="isMobile()"
-            (openTask)="openTask($event)"
-            (completeTask)="completeTask($event)"
-            (scheduleTask)="scheduleTask($event)"
-          />
-        } @else {
-          <app-calendar-day-view
-            [dateLabel]="selectedDateLabel()"
-            [dateKey]="selectedKey()"
-            [todayKey]="todayKey"
-            [tasks]="selectedDayTasks()"
-            [events]="selectedDayEvents()"
-            [accentByProject]="projectAccents()"
-            [completionOverrides]="completionOverrides()"
-            [projectNames]="projectNames()"
-            [labelNames]="labelNames()"
-            [showMetadata]="showMetadata()"
-            [touchTargets]="isMobile()"
-            (openEvent)="openEvent($event)"
-            (openTask)="openTask($event)"
-            (completeTask)="completeTask($event)"
-            (addTask)="addTaskForDate()"
-          />
-        }
-      </ng-template>
-
-      @if (isMobile()) {
-        @if (mobileMonthView()) {
-          <ng-container [ngTemplateOutlet]="calendarMain" />
-        } @else {
-          <app-calendar-week-strip [days]="weekDays()" (selectDate)="selectDate($event)" />
-        }
-
-        <button type="button" class="cal-view-toggle" (click)="toggleMobileMonth()">
-          <fa-icon
-            [icon]="mobileMonthView() ? faCalendarWeek : faCalendarDays"
-            aria-hidden="true"
-          />
-          {{ mobileMonthView() ? 'Show week' : 'Show full month' }}
-        </button>
-
-        @if (mobilePanelOpen()) {
-          <div
-            class="cal-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Day details"
-            tabindex="-1"
-            cdkTrapFocus
-            [cdkTrapFocusAutoCapture]="true"
-            (keydown.escape)="closeMobilePanel()"
-          >
-            <header class="cal-sheet-head">
-              <button type="button" class="cal-sheet-back" (click)="closeMobilePanel()">
-                <fa-icon [icon]="faArrowLeft" aria-hidden="true" />
-                Back
-              </button>
-            </header>
-            <ng-container [ngTemplateOutlet]="sidePanel" />
-          </div>
-        }
       } @else {
-        <div class="cal-layout">
-          <div class="cal-main">
-            <ng-container [ngTemplateOutlet]="calendarMain" />
-          </div>
+        <app-calendar-day-view
+          [dateLabel]="selectedDateLabel()"
+          [dateKey]="selectedKey()"
+          [todayKey]="todayKey"
+          [tasks]="selectedDayTasks()"
+          [events]="selectedDayEvents()"
+          [accentByProject]="projectAccents()"
+          [completionOverrides]="completionOverrides()"
+          [projectNames]="projectNames()"
+          [labelNames]="labelNames()"
+          [showMetadata]="showMetadata()"
+          [touchTargets]="isMobile()"
+          (openEvent)="openEvent($event)"
+          (openTask)="openTask($event)"
+          (completeTask)="completeTask($event)"
+          (addTask)="addTaskForDate()"
+        />
+      }
+    </ng-template>
 
-          <aside class="cal-side">
-            <ng-container [ngTemplateOutlet]="sidePanel" />
-          </aside>
+    @if (isMobile()) {
+      @if (mobileMonthView()) {
+        <ng-container [ngTemplateOutlet]="calendarMain" />
+      } @else {
+        <app-calendar-week-strip [days]="weekDays()" (selectDate)="selectDate($event)" />
+      }
+
+      <button type="button" class="cal-view-toggle" (click)="toggleMobileMonth()">
+        <fa-icon [icon]="mobileMonthView() ? faCalendarWeek : faCalendarDays" aria-hidden="true" />
+        {{ mobileMonthView() ? 'Show week' : 'Show full month' }}
+      </button>
+
+      @if (mobilePanelOpen()) {
+        <div
+          class="cal-sheet"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Day details"
+          tabindex="-1"
+          cdkTrapFocus
+          [cdkTrapFocusAutoCapture]="true"
+          (keydown.escape)="closeMobilePanel()"
+        >
+          <header class="cal-sheet-head">
+            <button type="button" class="cal-sheet-back" (click)="closeMobilePanel()">
+              <fa-icon [icon]="faArrowLeft" aria-hidden="true" />
+              Back
+            </button>
+          </header>
+          <ng-container [ngTemplateOutlet]="sidePanel" />
         </div>
       }
+    } @else {
+      <div class="cal-layout">
+        <div class="cal-main">
+          <ng-container [ngTemplateOutlet]="calendarMain" />
+        </div>
+
+        <aside class="cal-side">
+          <ng-container [ngTemplateOutlet]="sidePanel" />
+        </aside>
+      </div>
     }
 
     @if (selectedEvent(); as event) {
