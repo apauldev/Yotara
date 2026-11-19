@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.93.1](https://github.com/apauldev/Yotara/compare/v0.93.0...v0.93.1) (2026-11-19)
+
+
+### Bug Fixes
+
+* **calendar:** mark capped No date counts as approximate ([#454](https://github.com/apauldev/Yotara/issues/454)) ([b04ff5f](https://github.com/apauldev/Yotara/commit/b04ff5fd626ac97eb1bca394476c559f5fb50886))
+* **theme:** picker reflect active theme on first render ([5975351](https://github.com/apauldev/Yotara/commit/59753517ef7707acc5e8defaeeb0e1fa0090da65))
+
+
+### Performance
+
+* reduce calendar and labels load latency ([#454](https://github.com/apauldev/Yotara/issues/454)) ([6546dee](https://github.com/apauldev/Yotara/commit/6546dee334951d77b05637b0c154a9c6e0084d57))
+
 ## [0.93.0](https://github.com/apauldev/Yotara/compare/v0.92.0...v0.93.0) (2026-11-18)
 
 
