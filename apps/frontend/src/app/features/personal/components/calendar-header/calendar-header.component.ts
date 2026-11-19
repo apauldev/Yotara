@@ -68,7 +68,7 @@ import {
         >
           No date
           @if (noDateCount > 0) {
-            <span class="cal-badge">{{ noDateCount }}</span>
+            <span class="cal-badge">{{ noDateCount }}{{ noDateCountApproximate ? '+' : '' }}</span>
           }
         </button>
         <button type="button" class="cal-new-btn" (click)="newTask.emit()">
@@ -242,6 +242,7 @@ export class CalendarHeaderComponent {
   @Input() previousLabel = 'Previous month';
   @Input() nextLabel = 'Next month';
   @Input() noDateCount = 0;
+  @Input() noDateCountApproximate = false;
   @Input() noDateActive = false;
   @Input() showDone = false;
   @Input() showMetadata = false;

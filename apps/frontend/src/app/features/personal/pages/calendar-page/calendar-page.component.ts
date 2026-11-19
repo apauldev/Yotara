@@ -19,7 +19,11 @@ import { LabelService } from '../../../../core/services/label.service';
 import { PreferencesStore } from '../../../../core/services/preferences-store.service';
 import { ProjectService } from '../../../../core/services/project.service';
 import { StatusService } from '../../../../core/services/status.service';
-import { TaskService, type CalendarRangeRequest } from '../../../../core/services/task.service';
+import {
+  TASKS_PAGE_SIZE,
+  TaskService,
+  type CalendarRangeRequest,
+} from '../../../../core/services/task.service';
 import { CalendarService } from '../../../../core/services/calendar.service';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { startOfToday } from '../../../../shared/utils/timestamps';
@@ -230,6 +234,18 @@ export class CalendarPageComponent {
   );
   protected readonly noDateCount = computed(() =>
     this.undatedLoaded() ? this.undatedTasks().length : this.estimatedNoDateCount(),
+  );
+  /**
+   * Both the all-active and the undated requests are capped at one API page,
+   * so either source can only ever be a lower bound. The header renders a '+'
+   * instead of presenting a capped count as exact.
+   */
+  protected readonly noDateCountApproximate = computed(
+    () =>
+      this.noDateCount() > 0 &&
+      (this.undatedLoaded()
+        ? this.taskService.undatedTruncated()
+        : this.estimatedNoDateCount() >= TASKS_PAGE_SIZE),
   );
   protected readonly undatedLoading = computed(() => this.taskService.undatedLoading());
   protected readonly undatedLoaded = computed(() => this.taskService.undatedLoaded());

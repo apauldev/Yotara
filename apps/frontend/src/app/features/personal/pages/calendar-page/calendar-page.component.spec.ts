@@ -13,7 +13,11 @@ import { LabelService } from '../../../../core/services/label.service';
 import { PreferencesStore } from '../../../../core/services/preferences-store.service';
 import { ProjectService } from '../../../../core/services/project.service';
 import { StatusService } from '../../../../core/services/status.service';
-import { TaskService, type CalendarRangeRequest } from '../../../../core/services/task.service';
+import {
+  TASKS_PAGE_SIZE,
+  TaskService,
+  type CalendarRangeRequest,
+} from '../../../../core/services/task.service';
 import { DatePickerComponent } from '../../../../shared/ui/date-picker/date-picker.component';
 
 function task(overrides: Partial<Task> = {}): Task {
@@ -399,6 +403,25 @@ describe('CalendarPageComponent', () => {
 
       openNoDateList();
       expect(taskService.loadUndatedTasks).toHaveBeenCalledTimes(1);
+    });
+
+    it('marks the pre-load badge as approximate when the active list hits the page cap', () => {
+      undatedLoaded.set(false);
+      allActiveTasks.set(
+        Array.from({ length: TASKS_PAGE_SIZE }, (_, index) => task({ id: `undated-${index}` })),
+      );
+      fixture.detectChanges();
+
+      expect(element<HTMLElement>('.cal-badge').textContent?.trim()).toBe(`${TASKS_PAGE_SIZE}+`);
+    });
+
+    it('marks the loaded badge as approximate when the undated list is truncated', () => {
+      undatedTasks.set([task({ id: 'x' }), task({ id: 'y' })]);
+      undatedLoaded.set(true);
+      undatedTruncated.set(true);
+      fixture.detectChanges();
+
+      expect(element<HTMLElement>('.cal-badge').textContent?.trim()).toBe('2+');
     });
 
     it('switches to the fetched count and offers a retry after a failure', () => {
