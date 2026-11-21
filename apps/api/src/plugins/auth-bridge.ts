@@ -13,7 +13,9 @@ import { checkRateLimitOrThrow } from '../lib/email.js';
 import { recordEmailSend } from '../lib/email-rate-limit.js';
 import { banIp, isIpBanned } from '../lib/blocked-ips.js';
 import { bypassLoginLockout } from '../lib/dev-mode.js';
+import { shouldValidateSignupEmail, validateSignupEmail } from '../lib/email-validator.js';
 import { scanDueNotifications } from '../services/notification-service.js';
+import { normalizeEmail } from '@yotara/shared';
 
 function toHeaders(source: Record<string, string | string[] | undefined>) {
   const headers = new Headers();
@@ -143,13 +145,18 @@ export default async function authBridgePlugin(app: FastifyInstance) {
         }
       }
 
+      // Normalize once so rate limits, lockout, and validation share the same
+      // key as the lowercased email Better Auth stores. Without this,
+      // `Alice@x.com` and `alice@example.com` get separate rate-limit buckets.
       const loginEmail =
-        isSignIn && parsedBody && typeof parsedBody.email === 'string' ? parsedBody.email : null;
+        isSignIn && parsedBody && typeof parsedBody.email === 'string'
+          ? normalizeEmail(parsedBody.email)
+          : null;
       const actionEmail =
         (isSignUp || isForgetPassword || isSendVerificationEmail) &&
         parsedBody &&
         typeof parsedBody.email === 'string'
-          ? parsedBody.email
+          ? normalizeEmail(parsedBody.email)
           : null;
       const actionType = isSignUp
         ? ('signup' as const)
@@ -198,6 +205,19 @@ export default async function authBridgePlugin(app: FastifyInstance) {
 
         if (user?.emailVerified && user.passwordSetupRequired) {
           return reply.code(401).send({ message: 'Invalid email or password.' });
+        }
+      }
+
+      // Domain/robustness checks run AFTER rate limiting (so invalid signups
+      // still consume their quota) but BEFORE auth.handler() (so no SQLite
+      // write transaction is held during a DNS lookup).
+      if (isSignUp && actionEmail && shouldValidateSignupEmail()) {
+        const validation = await validateSignupEmail(actionEmail);
+        if (!validation.valid) {
+          return reply.code(400).send({
+            message: validation.reason ?? 'Invalid email address.',
+            error: 'BAD_REQUEST',
+          });
         }
       }
 

@@ -5,7 +5,7 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faEnvelope, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { isLocalhostHostname } from '../../shared/utils/hostname';
-import { AuthService } from '@yotara/shared';
+import { AuthService, isValidEmail } from '@yotara/shared';
 
 @Component({
   selector: 'app-forgot-password',
@@ -141,7 +141,7 @@ export class ForgotPasswordComponent {
       return;
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!isValidEmail(email)) {
       this.error.set('Enter a valid email address');
       return;
     }

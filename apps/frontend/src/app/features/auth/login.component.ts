@@ -11,6 +11,7 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faEnvelope, faLock } from '@fortawesome/free-solid-svg-icons';
+import { isValidEmail } from '@yotara/shared';
 
 import { PasswordTrialComponent } from './password-trial.component';
 import { StrengthMeterComponent } from '../../shared/ui/strength-meter/strength-meter.component';
@@ -163,10 +164,6 @@ export class LoginComponent implements OnInit, OnDestroy {
     }, 1000);
   }
 
-  private isValidEmail(email: string): boolean {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  }
-
   markTouched(field: 'name' | 'email' | 'password' | 'terms') {
     if (field === 'name') {
       this.nameTouched.set(true);
@@ -225,7 +222,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       if (!email) {
         return 'Email is required';
       }
-      if (!this.isValidEmail(email)) {
+      if (!isValidEmail(email)) {
         return 'Enter a valid email address';
       }
       return null;

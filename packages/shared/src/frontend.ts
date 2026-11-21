@@ -6,6 +6,7 @@ export * from './default-projects';
 export * from './label-colors';
 export * from './label-icons';
 export * from './name-key';
+export * from './utils/email';
 export * from './domain';
 export type { ProjectKind } from './domain';
 export { PROJECT_KINDS, isProjectKind } from './domain';
