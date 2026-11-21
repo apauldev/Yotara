@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.94.0](https://github.com/apauldev/Yotara/compare/v0.93.1...v0.94.0) (2026-11-21)
+
+
+### Features
+
+* **api:** validate signup email domains before verification ([7edbbaf](https://github.com/apauldev/Yotara/commit/7edbbaf4957c020a972f718f8a0ade951d3014d3))
+
+
+### Documentation
+
+* **plan:** align task refactor with atomic PR ([a4db4f5](https://github.com/apauldev/Yotara/commit/a4db4f5ade0b4338017806659a4f1d2d4bde44e6))
+
+
+### Refactoring
+
+* **api:** extract archive and deletion lifecycle (BE-3) ([e6cbc82](https://github.com/apauldev/Yotara/commit/e6cbc82142e46ba2adf16f42f2ba56a96aaadea3))
+* **api:** extract task queries and mapping (BE-1) ([1736afe](https://github.com/apauldev/Yotara/commit/1736afe8ba510a6db4ba26bea845b8fa1519896f))
+* **api:** extract task write workflows and policy (BE-2) ([2d47a21](https://github.com/apauldev/Yotara/commit/2d47a215c7e35454b6b358aa0f3dc785b4d3c961))
+* **frontend:** extract calendar and undated state to TaskCalendarStore (FE-3) ([5092347](https://github.com/apauldev/Yotara/commit/5092347c975d515022334f629233df942211de90))
+* **frontend:** extract list-view state to TaskListStore (FE-2) ([e92a460](https://github.com/apauldev/Yotara/commit/e92a4605fa2aa212d106e482e13d46eed0099ca2))
+* **frontend:** extract task http transport to TaskApiService (FE-1) ([db7fde7](https://github.com/apauldev/Yotara/commit/db7fde7b0699ad0ad01b85f9e39cb8a2acfa9859))
+
 ## [0.93.1](https://github.com/apauldev/Yotara/compare/v0.93.0...v0.93.1) (2026-11-19)
 
 
