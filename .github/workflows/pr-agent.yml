@@ -31,9 +31,10 @@ jobs:
           # Fail over in-process to a different model if the primary request
           # fails; the separate review_backup job still uses nemotron-ultra.
           config.fallback_models: '["openrouter/nvidia/nemotron-3.5-lightning:free"]'
-          # Keep reasoning off so the completion budget goes to the review
-          # itself, not an internal reasoning trace.
-          openrouter.reasoning_effort: 'none'
+          # Ernie requires reasoning — OpenRouter rejects reasoning_effort=none
+          # with "Reasoning is mandatory for this endpoint". Use high effort for
+          # a more thorough review; max_model_tokens caps the generation budget.
+          openrouter.reasoning_effort: 'high'
           # pr-agent defaults to 2 minutes, and LiteLLM retries a timed-out call
           # internally, so every request was failing after three attempts while
           # the model was still working.
