@@ -22,16 +22,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           openrouter__key: ${{ secrets.OPENROUTER_REVIEW_KEY }}
-          config.model: 'openrouter/dots-studio/dots-3-note-preview:free'
+          config.model: 'openrouter/baidu/ernie-5.5-flash-preview:free'
           # Required, not optional. get_max_tokens() raises unless the model is
           # in pr_agent/algo/__init__.py's MAX_TOKENS table or this is positive,
           # and max_model_tokens caps whatever this resolves to.
           config.custom_model_max_tokens: '512000'
           config.max_model_tokens: '262144'
-          # Fail over in-process to the backup model if the primary request fails.
-          config.fallback_models: '["openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"]'
-          # Dots is reasoning-capable. Without this it can spend the whole output
-          # budget on reasoning and return empty content with finish_reason=length.
+          # Fail over in-process to a different model if the primary request
+          # fails; the separate review_backup job still uses nemotron-ultra.
+          config.fallback_models: '["openrouter/nvidia/nemotron-3.5-lightning:free"]'
+          # Keep reasoning off so the completion budget goes to the review
+          # itself, not an internal reasoning trace.
           openrouter.reasoning_effort: 'none'
           # pr-agent defaults to 2 minutes, and LiteLLM retries a timed-out call
           # internally, so every request was failing after three attempts while
