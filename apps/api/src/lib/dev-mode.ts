@@ -115,7 +115,18 @@ export function devMode(): boolean {
 }
 
 export function isLoopbackHostname(hostname: string): boolean {
-  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+  // WHATWG URL keeps IPv6 brackets in `.hostname` ("[::1]"), and normalizes
+  // IPv4-mapped addresses to hex ("[::ffff:7f00:1]"). Accept both the raw and
+  // the URL-parsed forms so loopback detection works regardless of the caller.
+  const bracketed = hostname.startsWith('[') && hostname.endsWith(']');
+  const normalized = (bracketed ? hostname.slice(1, -1) : hostname).toLowerCase();
+  return (
+    normalized === 'localhost' ||
+    normalized === '127.0.0.1' ||
+    normalized === '::1' ||
+    normalized === '::ffff:7f00:1' ||
+    normalized === '::ffff:127.0.0.1'
+  );
 }
 
 /**

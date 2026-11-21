@@ -31,7 +31,9 @@
     "fastify": "^5.12.7",
     "html-to-text": "^10.0.1",
     "ical.js": "^2.2.1",
+    "lru-cache": "^11.5.3",
     "luxon": "^3.7.2",
+    "mailchecker": "^6.0.21",
     "resend": "^6.34.1"
   },
   "devDependencies": {

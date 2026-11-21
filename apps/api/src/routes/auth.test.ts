@@ -203,6 +203,65 @@ test('a banned IP can still sign in', async () => {
   }
 });
 
+test('signup email validation is skipped in test mode', async () => {
+  const ctx = await createTestApp();
+  const email = `skip-validation-${randomUUID()}@mailinator.com`;
+
+  try {
+    const response = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: TEST_PASSWORD, name: 'Skip Validation User' },
+    });
+    assert.equal(response.statusCode, 200);
+  } finally {
+    await ctx.cleanup();
+  }
+});
+
+test('signup rejects a disposable domain when validation is enabled', async () => {
+  const ctx = await createTestApp();
+  const email = `blocked-burner-${randomUUID()}@mailinator.com`;
+  const previous = {
+    APP_BASE_URL: process.env['APP_BASE_URL'],
+    REQUIRE_EMAIL_VERIFICATION: process.env['REQUIRE_EMAIL_VERIFICATION'],
+  };
+
+  try {
+    // The gate reads these dynamically, so flip them after the app is built.
+    // A non-loopback base URL plus the verification flag turns validation on
+    // without using production NODE_ENV (which would flip other modules).
+    process.env['NODE_ENV'] = 'development';
+    process.env['APP_BASE_URL'] = 'https://api.example.com';
+    process.env['REQUIRE_EMAIL_VERIFICATION'] = 'true';
+
+    const response = await ctx.app.inject({
+      method: 'POST',
+      url: '/auth/sign-up/email',
+      headers: { origin: TEST_ORIGIN },
+      payload: { email, password: TEST_PASSWORD, name: 'Burner User' },
+    });
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.json().error, 'BAD_REQUEST');
+    assert.match(response.json().message, /Disposable or temporary email/);
+
+    const { sqlite } = await import('../db/client.js');
+    const created = sqlite.prepare('SELECT id FROM user WHERE email = ?').get(email);
+    assert.equal(created, undefined, 'no user is created');
+  } finally {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+    await ctx.cleanup();
+  }
+});
+
 test('a banned IP can still request a password reset and the email is sent', async () => {
   const ctx = await createTestApp();
   const email = `banned-reset-${randomUUID()}@example.com`;

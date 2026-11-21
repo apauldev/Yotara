@@ -13,6 +13,7 @@ import {
   devMode,
   emailToConsole,
   isLocalDevMode,
+  isLoopbackHostname,
   parseDevModeConfig,
 } from './dev-mode.js';
 
@@ -163,6 +164,18 @@ test('dev mode forces email verification off even when REQUIRE_EMAIL_VERIFICATIO
   }
 });
 
+test('isLoopbackHostname accepts URL-parsed IPv6 loopback forms', () => {
+  assert.equal(isLoopbackHostname('localhost'), true);
+  assert.equal(isLoopbackHostname('127.0.0.1'), true);
+  assert.equal(isLoopbackHostname('::1'), true);
+  // `new URL("http://[::1]:3000").hostname` returns "[::1]".
+  assert.equal(isLoopbackHostname(new URL('http://[::1]:3000').hostname), true);
+  assert.equal(isLoopbackHostname(new URL('http://[::ffff:127.0.0.1]:3000').hostname), true);
+  assert.equal(isLoopbackHostname('LOCALHOST'), true);
+  assert.equal(isLoopbackHostname('example.com'), false);
+  assert.equal(isLoopbackHostname('127.0.0.2'), false);
+});
+
 test('isLocalDevMode requires a loopback deployment, not just dev NODE_ENV', () => {
   const previous = {
     NODE_ENV: process.env['NODE_ENV'],
@@ -180,6 +193,11 @@ test('isLocalDevMode requires a loopback deployment, not just dev NODE_ENV', () 
     // Loopback deployment → local dev mode.
     process.env['APP_BASE_URL'] = 'http://localhost:3000';
     process.env['FRONTEND_BASE_URL'] = 'http://localhost:4200';
+    assert.equal(isLocalDevMode(), true);
+
+    // IPv6 loopback is still loopback (URL preserves the brackets).
+    process.env['APP_BASE_URL'] = 'http://[::1]:3000';
+    process.env['FRONTEND_BASE_URL'] = 'http://[::1]:4200';
     assert.equal(isLocalDevMode(), true);
 
     // Publicly reachable test deployment with dev mode on → not local.

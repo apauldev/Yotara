@@ -5,6 +5,7 @@ export * from './default-projects.js';
 export * from './label-colors.js';
 export * from './label-icons.js';
 export * from './name-key.js';
+export * from './utils/email.js';
 export * from './domain.js';
 export type { ProjectKind } from './domain.js';
 export { PROJECT_KINDS, isProjectKind } from './domain.js';

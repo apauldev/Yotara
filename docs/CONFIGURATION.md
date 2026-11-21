@@ -92,6 +92,7 @@ openssl rand -base64 32  # canonical Base64
 |:---|:---|:---|
 | `RESEND_API_KEY` | unset | [Resend](https://resend.com) API key. When unset, emails are logged to the console instead of sent. Required to boot in production, since the verification flow depends on delivery. |
 | `EMAIL_FROM` | `noreply@email.yotara.website` | From address for outgoing email. Must be a sender you have verified with Resend. |
+| `SKIP_EMAIL_DOMAIN_VALIDATION` | unset (`false`) | Emergency bypass for signup validation of disposable/dummy domains and DNS mail-server checks. Set to `true` only if DNS validation misbehaves on a public instance; restart the API process for the change to take effect. Skipped automatically in test mode, dev mode, and on non-production loopback deployments — production Docker uses a loopback `APP_BASE_URL` behind nginx and is still validated. |
 
 ## Calendar feeds
 
