@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.94.2](https://github.com/apauldev/Yotara/compare/v0.94.1...v0.94.2) (2026-11-23)
+
+
+### Bug Fixes
+
+* **frontend:** disable critical CSS inlining to restore CSP compliance ([45d2632](https://github.com/apauldev/Yotara/commit/45d2632709bace50e23748c190d6b02179cea767)), closes [#462](https://github.com/apauldev/Yotara/issues/462)
+
 ## [0.94.1](https://github.com/apauldev/Yotara/compare/v0.94.0...v0.94.1) (2026-11-23)
 
 
