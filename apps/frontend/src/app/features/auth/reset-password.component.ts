@@ -30,10 +30,10 @@ import { passwordPolicyMessage } from './password-policy';
             Your password has been reset successfully. You can now sign in with your new password.
           </p>
           <button type="button" class="submit-button" (click)="goToLogin()">
-            <svg class="inline-icon" viewBox="0 0 448 512" aria-hidden="true" focusable="false">
+            <svg class="inline-icon" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
               <path
                 fill="currentColor"
-                d="M438.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-160-160c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L338.8 224 32 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l306.7 0L233.4 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l160-160z"
+                d="M502.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-160-160c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L402.7 224 32 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l370.7 0-105.4 105.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l160-160z"
               />
             </svg>
             Sign in
@@ -57,10 +57,10 @@ import { passwordPolicyMessage } from './password-policy';
             <div class="field-group">
               <label for="newPassword">New password</label>
               <div class="input-wrap" [class.input-wrap-invalid]="!!error()">
-                <svg class="input-icon" viewBox="0 0 448 512" aria-hidden="true" focusable="false">
+                <svg class="input-icon" viewBox="0 0 384 512" aria-hidden="true" focusable="false">
                   <path
                     fill="currentColor"
-                    d="M144 144v48H304V144c0-44.2-35.8-80-80-80s-80 35.8-80 80zM80 192V144C80 64.5 144.5 0 224 0s144 64.5 144 144v48h16c35.3 0 64 28.7 64 64V448c0 35.3-28.7 64-64 64H64c-35.3 0-64-28.7-64-64V256c0-35.3 28.7-64 64-64H80z"
+                    d="M128 96l0 64 128 0 0-64c0-35.3-28.7-64-64-64s-64 28.7-64 64zM64 160l0-64C64 25.3 121.3-32 192-32S320 25.3 320 96l0 64c35.3 0 64 28.7 64 64l0 224c0 35.3-28.7 64-64 64L64 512c-35.3 0-64-28.7-64-64L0 224c0-35.3 28.7-64 64-64z"
                   />
                 </svg>
                 <input
@@ -80,10 +80,10 @@ import { passwordPolicyMessage } from './password-policy';
             <div class="field-group">
               <label for="confirmPassword">Confirm password</label>
               <div class="input-wrap" [class.input-wrap-invalid]="!!error()">
-                <svg class="input-icon" viewBox="0 0 448 512" aria-hidden="true" focusable="false">
+                <svg class="input-icon" viewBox="0 0 384 512" aria-hidden="true" focusable="false">
                   <path
                     fill="currentColor"
-                    d="M144 144v48H304V144c0-44.2-35.8-80-80-80s-80 35.8-80 80zM80 192V144C80 64.5 144.5 0 224 0s144 64.5 144 144v48h16c35.3 0 64 28.7 64 64V448c0 35.3-28.7 64-64 64H64c-35.3 0-64-28.7-64-64V256c0-35.3 28.7-64 64-64H80z"
+                    d="M128 96l0 64 128 0 0-64c0-35.3-28.7-64-64-64s-64 28.7-64 64zM64 160l0-64C64 25.3 121.3-32 192-32S320 25.3 320 96l0 64c35.3 0 64 28.7 64 64l0 224c0 35.3-28.7 64-64 64L64 512c-35.3 0-64-28.7-64-64L0 224c0-35.3 28.7-64 64-64z"
                   />
                 </svg>
                 <input

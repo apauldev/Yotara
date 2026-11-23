@@ -119,6 +119,7 @@ label {
   color: var(--on-surface-subtle);
   width: 1rem;
   height: 1rem;
+  overflow: visible;
   flex: 0 0 auto;
 }
 
@@ -126,8 +127,13 @@ label {
   width: 1em;
   height: 1em;
   fill: currentColor;
+  overflow: visible;
   vertical-align: -0.125em;
   flex: 0 0 auto;
+}
+
+.hero-icon svg {
+  overflow: visible;
 }
 
 .link-button .inline-icon,
