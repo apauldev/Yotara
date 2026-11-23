@@ -94,10 +94,11 @@ export class DueTimeSchedulerService {
     const token = ++this.rescheduleToken;
 
     try {
-      await this.notificationService.fetchNotifications();
-      await this.notificationService.fetchUnreadCount();
-      await this.announceNewDueTimeNotifications();
-      await this.scheduleNextDueCheck(token);
+      await Promise.all([
+        this.notificationService.fetchNotifications(),
+        this.notificationService.fetchUnreadCount(),
+      ]);
+      await Promise.all([this.announceNewDueTimeNotifications(), this.scheduleNextDueCheck(token)]);
     } catch {
       // A failed poll is retried on the next tick; the in-app list stays
       // authoritative either way.

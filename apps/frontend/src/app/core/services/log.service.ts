@@ -21,7 +21,9 @@ export class LogService {
   private buffer: LogEntry[] = [];
 
   constructor() {
-    this.loadFromStorage();
+    if (!environment.production) {
+      this.loadFromStorage();
+    }
   }
 
   /**

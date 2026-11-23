@@ -162,8 +162,6 @@ export class PersonalShellComponent implements OnDestroy {
 
     effect(() => {
       if (this.authState.initialized() && this.authState.isAuthenticated()) {
-        this.notificationService.fetchUnreadCount();
-        this.notificationService.fetchNotifications();
         this.dueTimeScheduler.start();
       } else if (this.authState.initialized()) {
         this.dueTimeScheduler.stop();

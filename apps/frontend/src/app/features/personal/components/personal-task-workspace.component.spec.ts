@@ -275,7 +275,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
     expect(modal.task).toBeNull();
   });
 
-  it('creates a task, refreshes projects, and closes the modal', async () => {
+  it('creates a task and closes the modal', async () => {
     fixture.detectChanges();
 
     const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
@@ -301,7 +301,6 @@ describe('PersonalTaskWorkspaceComponent', () => {
         projectId: null,
       }),
     );
-    expect(projectService.refresh).toHaveBeenCalled();
     expect(statusServiceSpy.success).toHaveBeenCalledWith('"New task" added to Inbox');
     expect(savedSpy).toHaveBeenCalledWith('create');
     expect(workspace['modalOpen']()).toBeFalse();
@@ -468,7 +467,6 @@ describe('PersonalTaskWorkspaceComponent', () => {
         completed: true,
       }),
     );
-    expect(projectService.refresh).toHaveBeenCalled();
     expect(savedSpy).toHaveBeenCalledWith('update');
     expect(workspace['modalOpen']()).toBeFalse();
     expect(statusServiceSpy.success).toHaveBeenCalledWith('Task completed');

@@ -6,13 +6,13 @@ import {
   catchError,
   combineLatest,
   distinctUntilChanged,
+  expand,
   finalize,
-  interval,
   map,
   of,
-  startWith,
   switchMap,
   tap,
+  timer,
   type Observable,
 } from 'rxjs';
 import { DateTime } from 'luxon';
@@ -257,9 +257,18 @@ export class TaskListStore {
 
   readonly upcomingTruncated = this.upcomingTruncatedState.asReadonly();
 
-  private readonly todayDateKey$ = interval(60_000).pipe(
-    startWith(0),
-    map(() => DateTime.now().setZone(getUserTimezone()).toFormat('yyyy-MM-dd')),
+  private nextDayTick(): { key: string; delayMs: number } {
+    const now = DateTime.now().setZone(getUserTimezone());
+    return {
+      key: now.toFormat('yyyy-MM-dd'),
+      delayMs: Math.max(1_000, now.endOf('day').plus({ milliseconds: 1 }).diff(now).milliseconds),
+    };
+  }
+
+  private readonly todayDateKey$ = timer(0).pipe(
+    map(() => this.nextDayTick()),
+    expand((tick) => timer(tick.delayMs).pipe(map(() => this.nextDayTick()))),
+    map((tick) => tick.key),
     distinctUntilChanged(),
   );
 

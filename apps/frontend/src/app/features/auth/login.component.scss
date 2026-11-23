@@ -117,9 +117,22 @@ label {
 
 .input-icon {
   color: var(--on-surface-subtle);
-  font-size: 1rem;
-  line-height: 1;
+  width: 1rem;
+  height: 1rem;
   flex: 0 0 auto;
+}
+
+.inline-icon {
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+  vertical-align: -0.125em;
+  flex: 0 0 auto;
+}
+
+.link-button .inline-icon,
+.submit-button .inline-icon {
+  margin-right: 0.35rem;
 }
 
 input {

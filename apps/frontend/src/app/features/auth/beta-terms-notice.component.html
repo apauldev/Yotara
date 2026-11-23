@@ -22,7 +22,9 @@
     >
       <p modal-subtitle>Version {{ document.version }} · Effective {{ document.effectiveDate }}</p>
       <article class="terms-content">
-        <markdown [data]="document.content" />
+        @defer (when termsOpen()) {
+          <app-terms-markdown [content]="document.content" />
+        }
       </article>
     </app-modal>
   }

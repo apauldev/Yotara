@@ -142,7 +142,6 @@ export class PersonalTaskWorkspaceComponent {
         }
       }
 
-      this.projectService.refresh();
       this.taskSaved.emit(event.mode);
       this.closeTaskModal();
     } catch {

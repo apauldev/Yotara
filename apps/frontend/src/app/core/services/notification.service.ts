@@ -50,6 +50,7 @@ export class NotificationService {
     const result = await firstValueFrom(
       this.http.get<AppNotification[]>(`${this.baseUrl}/notifications`, {
         params: zone ? { limit: String(limit), tz: zone } : { limit: String(limit) },
+        headers: { 'X-Skip-Loading': 'true' },
         withCredentials: true,
       }),
     );
@@ -61,6 +62,7 @@ export class NotificationService {
     const result = await firstValueFrom(
       this.http.get<{ count: number }>(`${this.baseUrl}/notifications/unread-count`, {
         params: zone ? { tz: zone } : {},
+        headers: { 'X-Skip-Loading': 'true' },
         withCredentials: true,
       }),
     );
@@ -77,6 +79,7 @@ export class NotificationService {
     const result = await firstValueFrom(
       this.http.get<{ at: string | null }>(`${this.baseUrl}/notifications/next-due`, {
         params: zone ? { tz: zone } : {},
+        headers: { 'X-Skip-Loading': 'true' },
         withCredentials: true,
       }),
     );

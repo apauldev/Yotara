@@ -9,8 +9,6 @@ import {
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faEnvelope, faLock } from '@fortawesome/free-solid-svg-icons';
 import { isValidEmail } from '@yotara/shared';
 
 import { PasswordTrialComponent } from './password-trial.component';
@@ -24,20 +22,12 @@ import { BetaTermsNoticeComponent } from './beta-terms-notice.component';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [
-    FormsModule,
-    FontAwesomeModule,
-    PasswordTrialComponent,
-    StrengthMeterComponent,
-    BetaTermsNoticeComponent,
-  ],
+  imports: [FormsModule, PasswordTrialComponent, StrengthMeterComponent, BetaTermsNoticeComponent],
   templateUrl: './login.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./login.component.scss'],
 })
 export class LoginComponent implements OnInit, OnDestroy {
-  protected readonly faEnvelope = faEnvelope;
-  protected readonly faLock = faLock;
   isLogin = signal(true);
   email = signal('');
   password = signal('');
