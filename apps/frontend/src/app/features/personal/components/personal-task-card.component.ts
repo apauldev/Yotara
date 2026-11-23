@@ -23,6 +23,7 @@ import {
   faTrash,
 } from '@fortawesome/free-solid-svg-icons';
 import { MarkdownComponent } from 'ngx-markdown';
+import { MARKDOWN_UI_PROVIDERS } from '../../../shared/ui/markdown/markdown.providers';
 import { LabelService } from '../../../core/services/label.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { ProjectService } from '../../../core/services/project.service';
@@ -50,6 +51,7 @@ import {
     MarkdownComponent,
     TaskQuickActionsMenuComponent,
   ],
+  providers: [...MARKDOWN_UI_PROVIDERS],
   host: {
     // The +N overflow popover listens for outside interactions; the toggle
     // button stops its events so this never closes what it just opened.

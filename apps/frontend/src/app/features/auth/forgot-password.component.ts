@@ -1,8 +1,6 @@
 import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faEnvelope, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { isLocalhostHostname } from '../../shared/utils/hostname';
 import { AuthService, isValidEmail } from '@yotara/shared';
@@ -10,7 +8,7 @@ import { AuthService, isValidEmail } from '@yotara/shared';
 @Component({
   selector: 'app-forgot-password',
   standalone: true,
-  imports: [FormsModule, FontAwesomeModule],
+  imports: [FormsModule],
   template: `
     <div class="login-screen">
       <div class="auth-card">
@@ -56,7 +54,12 @@ import { AuthService, isValidEmail } from '@yotara/shared';
             <div class="field-group">
               <label for="email">Email</label>
               <div class="input-wrap" [class.input-wrap-invalid]="!!error()">
-                <fa-icon class="input-icon" [icon]="faEnvelope" aria-hidden="true"></fa-icon>
+                <svg class="input-icon" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
+                  <path
+                    fill="currentColor"
+                    d="M48 64c-26.5 0-48 21.5-48 48 0 15.1 7.1 29.3 19.2 38.4l208 156c17.1 12.8 40.5 12.8 57.6 0l208-156c12.1-9.1 19.2-23.3 19.2-38.4 0-26.5-21.5-48-48-48L48 64zM0 196L0 384c0 35.3 28.7 64 64 64l384 0c35.3 0 64-28.7 64-64l0-188-198.4 148.8c-34.1 25.6-81.1 25.6-115.2 0L0 196z"
+                  />
+                </svg>
                 <input
                   id="email"
                   type="email"
@@ -82,7 +85,12 @@ import { AuthService, isValidEmail } from '@yotara/shared';
         <div class="divider"></div>
         <p class="toggle-mode">
           <button type="button" class="link-button accent-link" (click)="goBack()">
-            <fa-icon [icon]="faArrowLeft" aria-hidden="true"></fa-icon>
+            <svg class="inline-icon" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
+              <path
+                fill="currentColor"
+                d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 288 480 288c17.7 0 32-14.3 32-32s-14.3-32-32-32l-370.7 0 105.4-105.4c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"
+              />
+            </svg>
             Back to sign in
           </button>
         </p>
@@ -93,8 +101,6 @@ import { AuthService, isValidEmail } from '@yotara/shared';
   styleUrls: ['./login.component.scss', './forgot-password.component.scss'],
 })
 export class ForgotPasswordComponent {
-  protected readonly faEnvelope = faEnvelope;
-  protected readonly faArrowLeft = faArrowLeft;
   email = signal('');
   submittedEmail = signal('');
   loading = signal(false);

@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import * as chrono from 'chrono-node/en';
+import { parse } from 'chrono-node/en';
 import type { ParsedResult } from 'chrono-node/en';
 
 export type TaskDueDateParseStatus =
@@ -649,7 +649,7 @@ function classifyWithoutCandidate(
 
 function parseChrono(input: string, reference: DateTime): ParsedResult[] | null {
   try {
-    return chrono.parse(input, reference.toJSDate());
+    return parse(input, reference.toJSDate());
   } catch {
     return null;
   }

@@ -36,6 +36,7 @@ import {
   faXmark,
 } from '@fortawesome/free-solid-svg-icons';
 import { MarkdownComponent } from 'ngx-markdown';
+import { MARKDOWN_UI_PROVIDERS } from '../../../shared/ui/markdown/markdown.providers';
 import { ProjectService } from '../../../core/services/project.service';
 import { PreferencesStore } from '../../../core/services/preferences-store.service';
 import { StatusService } from '../../../core/services/status.service';
@@ -76,6 +77,7 @@ type ProjectLoadState = 'loading' | 'ready' | 'not-found' | 'error';
     EmptyStateComponent,
     ConfirmDialogComponent,
   ],
+  providers: [...MARKDOWN_UI_PROVIDERS],
   templateUrl: './project-detail-page.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './project-detail-page.component.scss',

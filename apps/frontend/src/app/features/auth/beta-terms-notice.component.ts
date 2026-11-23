@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject, model, signal } from '@angular/core';
-import { MarkdownComponent } from 'ngx-markdown';
 import { LegalContentService } from '../../core/services/legal-content.service';
 import { ModalComponent } from '../../shared/ui/modal/modal.component';
+import { TermsMarkdownComponent } from './terms-markdown.component';
 
 @Component({
   selector: 'app-beta-terms-notice',
   standalone: true,
-  imports: [MarkdownComponent, ModalComponent],
+  imports: [TermsMarkdownComponent, ModalComponent],
   templateUrl: './beta-terms-notice.component.html',
   styleUrl: './beta-terms-notice.component.scss',
   changeDetection: ChangeDetectionStrategy.Eager,

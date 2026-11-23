@@ -10,12 +10,14 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MarkdownComponent } from 'ngx-markdown';
+import { MARKDOWN_UI_PROVIDERS } from '../markdown/markdown.providers';
 import { FormatToolbarComponent, SyntaxInsert } from './format-toolbar.component';
 
 @Component({
   selector: 'app-markdown-editor',
   standalone: true,
   imports: [FormsModule, MarkdownComponent, FormatToolbarComponent],
+  providers: [...MARKDOWN_UI_PROVIDERS],
   templateUrl: './markdown-editor.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './markdown-editor.component.css',

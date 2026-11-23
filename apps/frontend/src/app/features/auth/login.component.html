@@ -28,7 +28,12 @@
     } @else if (emailSubmitted()) {
       <div class="check-email">
         <div class="hero-icon" aria-hidden="true">
-          <fa-icon [icon]="faEnvelope" size="2x"></fa-icon>
+          <svg viewBox="0 0 512 512" focusable="false">
+            <path
+              fill="currentColor"
+              d="M48 64c-26.5 0-48 21.5-48 48 0 15.1 7.1 29.3 19.2 38.4l208 156c17.1 12.8 40.5 12.8 57.6 0l208-156c12.1-9.1 19.2-23.3 19.2-38.4 0-26.5-21.5-48-48-48L48 64zM0 196L0 384c0 35.3 28.7 64 64 64l384 0c35.3 0 64-28.7 64-64l0-188-198.4 148.8c-34.1 25.6-81.1 25.6-115.2 0L0 196z"
+            />
+          </svg>
         </div>
         <h2>Check your email</h2>
         <p>
@@ -72,7 +77,12 @@
         <div class="field-group">
           <label for="email">Email</label>
           <div class="input-wrap" [class.input-wrap-invalid]="shouldShowFieldError('email')">
-            <fa-icon class="input-icon" [icon]="faEnvelope" aria-hidden="true"></fa-icon>
+            <svg class="input-icon" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
+              <path
+                fill="currentColor"
+                d="M48 64c-26.5 0-48 21.5-48 48 0 15.1 7.1 29.3 19.2 38.4l208 156c17.1 12.8 40.5 12.8 57.6 0l208-156c12.1-9.1 19.2-23.3 19.2-38.4 0-26.5-21.5-48-48-48L48 64zM0 196L0 384c0 35.3 28.7 64 64 64l384 0c35.3 0 64-28.7 64-64l0-188-198.4 148.8c-34.1 25.6-81.1 25.6-115.2 0L0 196z"
+              />
+            </svg>
             <input
               id="email"
               type="email"
@@ -101,7 +111,12 @@
           </div>
           @if (!emailFirstSignup) {
             <div class="input-wrap" [class.input-wrap-invalid]="shouldShowFieldError('password')">
-              <fa-icon class="input-icon" [icon]="faLock" aria-hidden="true"></fa-icon>
+              <svg class="input-icon" viewBox="0 0 384 512" aria-hidden="true" focusable="false">
+                <path
+                  fill="currentColor"
+                  d="M128 96l0 64 128 0 0-64c0-35.3-28.7-64-64-64s-64 28.7-64 64zM64 160l0-64C64 25.3 121.3-32 192-32S320 25.3 320 96l0 64c35.3 0 64 28.7 64 64l0 224c0 35.3-28.7 64-64 64L64 512c-35.3 0-64-28.7-64-64L0 224c0-35.3 28.7-64 64-64z"
+                />
+              </svg>
               <input
                 id="password"
                 type="password"

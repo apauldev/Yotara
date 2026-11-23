@@ -1,6 +1,5 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, DeferBlockState, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { provideMarkdown } from 'ngx-markdown';
 import { signal } from '@angular/core';
 import { LegalContentService, type LegalDocument } from '../../core/services/legal-content.service';
 import { BetaTermsNoticeComponent } from './beta-terms-notice.component';
@@ -27,7 +26,6 @@ describe('BetaTermsNoticeComponent', () => {
     await TestBed.configureTestingModule({
       imports: [BetaTermsNoticeComponent],
       providers: [
-        provideMarkdown(),
         {
           provide: LegalContentService,
           useValue: { configured, document, load },
@@ -56,6 +54,13 @@ describe('BetaTermsNoticeComponent', () => {
     fixture.debugElement.query(By.css('.terms-link')).nativeElement.click();
     fixture.detectChanges();
     await fixture.whenStable();
+
+    for (const block of await fixture.getDeferBlocks()) {
+      await block.render(DeferBlockState.Complete);
+    }
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).not.toBeNull();
     // Opening the terms from inside the label must not toggle agreement.

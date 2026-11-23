@@ -1,15 +1,13 @@
 import { Component, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faLock, faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { passwordPolicyMessage } from './password-policy';
 
 @Component({
   selector: 'app-reset-password',
   standalone: true,
-  imports: [FormsModule, FontAwesomeModule],
+  imports: [FormsModule],
   template: `
     <div class="login-screen">
       <div class="auth-card">
@@ -32,7 +30,12 @@ import { passwordPolicyMessage } from './password-policy';
             Your password has been reset successfully. You can now sign in with your new password.
           </p>
           <button type="button" class="submit-button" (click)="goToLogin()">
-            <fa-icon [icon]="faArrowRight" aria-hidden="true"></fa-icon>
+            <svg class="inline-icon" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
+              <path
+                fill="currentColor"
+                d="M502.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-160-160c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L402.7 224 32 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l370.7 0-105.4 105.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l160-160z"
+              />
+            </svg>
             Sign in
           </button>
         } @else if (invalidToken()) {
@@ -54,7 +57,12 @@ import { passwordPolicyMessage } from './password-policy';
             <div class="field-group">
               <label for="newPassword">New password</label>
               <div class="input-wrap" [class.input-wrap-invalid]="!!error()">
-                <fa-icon class="input-icon" [icon]="faLock" aria-hidden="true"></fa-icon>
+                <svg class="input-icon" viewBox="0 0 384 512" aria-hidden="true" focusable="false">
+                  <path
+                    fill="currentColor"
+                    d="M128 96l0 64 128 0 0-64c0-35.3-28.7-64-64-64s-64 28.7-64 64zM64 160l0-64C64 25.3 121.3-32 192-32S320 25.3 320 96l0 64c35.3 0 64 28.7 64 64l0 224c0 35.3-28.7 64-64 64L64 512c-35.3 0-64-28.7-64-64L0 224c0-35.3 28.7-64 64-64z"
+                  />
+                </svg>
                 <input
                   id="newPassword"
                   type="password"
@@ -72,7 +80,12 @@ import { passwordPolicyMessage } from './password-policy';
             <div class="field-group">
               <label for="confirmPassword">Confirm password</label>
               <div class="input-wrap" [class.input-wrap-invalid]="!!error()">
-                <fa-icon class="input-icon" [icon]="faLock" aria-hidden="true"></fa-icon>
+                <svg class="input-icon" viewBox="0 0 384 512" aria-hidden="true" focusable="false">
+                  <path
+                    fill="currentColor"
+                    d="M128 96l0 64 128 0 0-64c0-35.3-28.7-64-64-64s-64 28.7-64 64zM64 160l0-64C64 25.3 121.3-32 192-32S320 25.3 320 96l0 64c35.3 0 64 28.7 64 64l0 224c0 35.3-28.7 64-64 64L64 512c-35.3 0-64-28.7-64-64L0 224c0-35.3 28.7-64 64-64z"
+                  />
+                </svg>
                 <input
                   id="confirmPassword"
                   type="password"
@@ -114,9 +127,6 @@ import { passwordPolicyMessage } from './password-policy';
   styleUrls: ['./login.component.scss', './forgot-password.component.scss'],
 })
 export class ResetPasswordComponent implements OnInit {
-  protected readonly faLock = faLock;
-  protected readonly faArrowRight = faArrowRight;
-
   newPassword = signal('');
   confirmPassword = signal('');
   loading = signal(false);
