@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.94.1](https://github.com/apauldev/Yotara/compare/v0.94.0...v0.94.1) (2026-11-23)
+
+
+### Bug Fixes
+
+* **frontend:** keep due-time wake-ups after scheduler check ([b250ba4](https://github.com/apauldev/Yotara/commit/b250ba472e0f1de4049a8b63c6ed54932b37e6fd))
+* **frontend:** match auth inline icons to Font Awesome 7 paths ([00920d3](https://github.com/apauldev/Yotara/commit/00920d36594cda678b01590e5bccfb654931f4bf))
+* **frontend:** queue due wake-ups fired during an active check ([432ae23](https://github.com/apauldev/Yotara/commit/432ae2318ddf7c0316e1daec3d6803488837b32e))
+
+
+### Performance
+
+* **frontend:** cut initial bundle and startup request load ([09eb3ae](https://github.com/apauldev/Yotara/commit/09eb3ae43611ab72692ca1380ee6bb7f6f62a293))
+
 ## [0.94.0](https://github.com/apauldev/Yotara/compare/v0.93.1...v0.94.0) (2026-11-21)
 
 
