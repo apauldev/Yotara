@@ -173,6 +173,42 @@ describe('DueTimeSchedulerService', () => {
       service.stop();
     });
 
+    it('queues a due wake-up that arrives while a check is in flight', async () => {
+      let notificationCalls = 0;
+      let releaseSecondFetch!: () => void;
+      fetchNotifications.and.callFake(() => {
+        notificationCalls += 1;
+        if (notificationCalls === 2) {
+          return new Promise<void>((resolve) => {
+            releaseSecondFetch = resolve;
+          });
+        }
+        return Promise.resolve();
+      });
+
+      let dueCalls = 0;
+      fetchNextDueAt.and.callFake(() =>
+        Promise.resolve(dueCalls++ === 0 ? atIn(0.05) : atIn(3_600)),
+      );
+
+      // The first check arms a timer for the near-due instant.
+      await service.check();
+      expect(fetchNotifications.calls.count()).toBe(1);
+
+      // Hold the second check in flight while that timer fires.
+      const secondCheck = service.check();
+      expect(fetchNotifications.calls.count()).toBe(2);
+      await new Promise((resolve) => setTimeout(resolve, 120));
+
+      releaseSecondFetch();
+      await secondCheck;
+      await new Promise((resolve) => setTimeout(resolve));
+
+      // The wake-up was queued and re-ran instead of being dropped.
+      expect(fetchNotifications.calls.count()).toBe(3);
+      service.stop();
+    });
+
     it('does not arm a timer for an instant beyond the poll interval', async () => {
       // Far beyond the window: the interval will come into range on its own.
       fetchNextDueAt.and.resolveTo(atIn(3_600));

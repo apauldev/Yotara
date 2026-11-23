@@ -29,6 +29,7 @@ export class DueTimeSchedulerService {
   private timer: ReturnType<typeof setInterval> | null = null;
   private dueTimer: ReturnType<typeof setTimeout> | null = null;
   private checking = false;
+  private pendingCheck = false;
   private active = false;
   private rescheduleToken = 0;
 
@@ -74,6 +75,7 @@ export class DueTimeSchedulerService {
 
   stop(): void {
     this.active = false;
+    this.pendingCheck = false;
     // Invalidate any in-flight reschedule: a lookup that resolves after this
     // must not arm a timer, or it would undo the stop.
     this.rescheduleToken++;
@@ -105,6 +107,13 @@ export class DueTimeSchedulerService {
       // authoritative either way.
     } finally {
       this.checking = false;
+      // A due timer can fire while this check is in flight (for example while
+      // announce waits on another tab's Web Lock). Queue that wake-up instead
+      // of dropping it; the next poll is five minutes away.
+      if (this.pendingCheck) {
+        this.pendingCheck = false;
+        void this.check();
+      }
     }
   }
 
@@ -144,6 +153,10 @@ export class DueTimeSchedulerService {
 
     this.dueTimer = setTimeout(() => {
       this.dueTimer = null;
+      if (this.checking) {
+        this.pendingCheck = true;
+        return;
+      }
       void this.check();
     }, delayMs);
   }
