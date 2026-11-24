@@ -265,9 +265,8 @@ Yotara/
       src/
         routes/         Route handlers (tasks, projects, labels, auth, me)
         services/       Business logic layer
-        db/             Schema, migrations, client
+        db/             Schema, client, upgrade guards
         docs/           OpenAPI spec generation
-      drizzle/          SQLite migrations
     frontend/           Angular 22 application
       src/app/
         core/           Auth guards, services, interceptors

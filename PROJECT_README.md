@@ -85,7 +85,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full feature recipe and enginee
 
 ## Data model
 
-The schema is defined in [`apps/api/src/db/schema.ts`](./apps/api/src/db/schema.ts), which is authoritative for field names, types, and nullability.
+The Drizzle ORM view of the schema is defined in [`apps/api/src/db/schema.ts`](./apps/api/src/db/schema.ts), which is authoritative for field names, types, and nullability as seen by queries. The runtime authority is the bootstrap and upgrade guards in [`apps/api/src/db/client.ts`](./apps/api/src/db/client.ts); a test checks that their table and column names agree.
 
 | Group | Tables |
 |:---|:---|
@@ -97,14 +97,11 @@ Tasks support soft delete (`deletedAt`) and an `archived` status distinct from `
 
 The API bootstraps the SQLite schema on startup and enables WAL mode, so a fresh clone needs no migration step. The database defaults to `./data/yotara.db` locally.
 
-Drizzle artifacts:
+Drizzle config:
 
-- [`apps/api/drizzle`](./apps/api/drizzle) — generated migrations
-- [`apps/api/drizzle.config.ts`](./apps/api/drizzle.config.ts) — Drizzle config
+- [`apps/api/drizzle.config.ts`](./apps/api/drizzle.config.ts) — config for Drizzle Studio (local inspection only)
 
 ```bash
-pnpm --filter @yotara/api db:generate   # Generate a migration
-pnpm --filter @yotara/api db:push       # Push the schema
 pnpm --filter @yotara/api db:studio     # Inspect the data
 ```
 

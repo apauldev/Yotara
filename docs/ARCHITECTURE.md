@@ -136,10 +136,12 @@ by measured requirements rather than premature abstraction.
 
 #### Schema upgrades and the retired Inbox project
 
-`ensureSqliteSchema` (`apps/api/src/db/client.ts`) is the only startup migration
-mechanism; the Drizzle snapshot chain is not applied at boot. It runs inside an
-immediate transaction, so a failed migration rolls back its DDL and data writes
-together.
+`ensureSqliteSchema` (`apps/api/src/db/client.ts`) is the only runtime schema
+authority; `schema.ts` holds the Drizzle ORM definitions, and a test
+(`src/db/schema-drift.test.ts`) checks that the two agree on table and column
+names. Generated Drizzle snapshots were removed because they were never applied
+at boot. `ensureSqliteSchema` runs inside an immediate transaction, so a failed
+migration rolls back its DDL and data writes together.
 
 The Inbox refactor retires the legacy seeded `Inbox` project instead of deleting
 it: `projects.retired_at` is set and its tasks are detached (`project_id = NULL`)
