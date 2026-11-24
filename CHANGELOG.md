@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.94.3](https://github.com/apauldev/Yotara/compare/v0.94.2...v0.94.3) (2026-11-24)
+
+
+### Documentation
+
+* **db:** plan single runtime schema authority for SQLite ([7e23e9e](https://github.com/apauldev/Yotara/commit/7e23e9e766e2ac9f78229959f062c450d0cf1145))
+
+
+### Chores
+
+* **db:** retire unused Drizzle snapshots and guard schema drift ([474ae40](https://github.com/apauldev/Yotara/commit/474ae409b2be4b11a0c96422cfdc0ea0ad16b592))
+
 ## [0.94.2](https://github.com/apauldev/Yotara/compare/v0.94.1...v0.94.2) (2026-11-23)
 
 
