@@ -143,7 +143,6 @@ pnpm --filter @yotara/frontend e2e
 | `pnpm test` | Run API tests |
 | `pnpm docs:check` | Validate the OpenAPI spec |
 | `pnpm docs:export` | Export the spec to a file |
-| `pnpm db:generate` / `pnpm db:push` | Generate a migration, or push the schema |
 | `pnpm db:studio` | Open Drizzle Studio |
 
 ### From `apps/frontend`

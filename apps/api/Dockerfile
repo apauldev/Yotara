@@ -69,7 +69,6 @@ COPY --from=prod-deps /app /app
 # Copy built artifacts (no source files)
 COPY --from=build /app/packages/shared/dist /app/packages/shared/dist
 COPY --from=build /app/apps/api/dist /app/apps/api/dist
-COPY --from=build /app/apps/api/drizzle /app/apps/api/drizzle
 # Dev-mode config (defaults to disabled in the image; override at runtime via
 # the DEV_MODE env var or a mounted file).
 COPY --from=build /app/apps/api/dev-mode.json /app/apps/api/dev-mode.json
