@@ -39,7 +39,12 @@ if (required.length === 0) {
   process.exit(1);
 }
 
-const missing = required.filter((file) => !indexSource.includes(file.split('/').at(-1))).sort();
+// Match the full docs-relative link target, not just the basename. Two tracked
+// plans already share `2026-10-15-sqlite-scaling-and-concurrency.md`; a
+// basename check would accept one row as proof that both are indexed.
+const missing = required
+  .filter((file) => !indexSource.includes(`](${file.replace(/^docs\//, './')})`))
+  .sort();
 
 if (missing.length > 0) {
   console.error(`Documents missing from docs/README.md (${missing.length}):\n`);
