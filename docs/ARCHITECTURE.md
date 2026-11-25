@@ -280,6 +280,8 @@ Security-sensitive behavior belongs at the boundary where it can be enforced:
 
 - The frontend/API data-flow migration is complete: no old full-dataset view
   filtering or client-side search scorer remains.
+- The task service has been decomposed into focused query, write, retention,
+  policy, recurrence, and mapping modules behind a compatibility façade.
 - Preferences are centralized in `PreferencesStore` rather than scattered
   `localStorage` access.
 - Error handling, rate limiting, auth hardening, database hygiene, and Docker
@@ -295,18 +297,7 @@ Security-sensitive behavior belongs at the boundary where it can be enforced:
 These are architectural observations, not a second roadmap. Create or update
 the corresponding GitHub Issue when work is ready to be prioritized.
 
-### 1. The API task service is still large
-
-`apps/api/src/services/task-service.ts` is roughly 685 lines and currently
-combines task CRUD, filtering, recurrence, subtasks, labels, notifications,
-and date restoration. It is coherent, but it is the first place likely to
-become difficult to change. Future extraction should follow domain seams
-(recurrence, task queries, or notification side effects) and preserve service
-transaction boundaries. This is represented by Issues [#57](https://github.com/apauldev/Yotara/issues/57)
-and [#175](https://github.com/apauldev/Yotara/issues/175), which capture the
-remaining frontend/service decomposition work.
-
-### 2. A few UI timers are deliberate but deserve scrutiny
+### 1. A few UI timers are deliberate but deserve scrutiny
 
 Timers remain for the loading indicator's minimum display duration, the change
 password success close, and toast lifecycle. These are now explicit UX
@@ -317,21 +308,21 @@ close timer was too short on slow devices (the success message vanished before
 it was read) and felt laggy on fast connections, which is exactly the kind of
 UX regression fixed-duration timers cause.
 
-### 3. Input validation should remain uniform
+### 2. Input validation should remain uniform
 
 The API has route schemas and typed domain errors, but every new query/body
 field needs runtime validation—not just TypeScript types. In particular,
 timezone, enum, pagination, and free-text limits should be reviewed whenever a
 route evolves.
 
-### 4. Self-hosting remains the product's largest operational risk
+### 3. Self-hosting remains the product's largest operational risk
 
 Installation, upgrades, backups, restore, email configuration, and migration
 recovery matter as much as feature breadth. Docker images and smoke tests help,
 but changes to deployment behavior should include a documented upgrade and
 rollback story.
 
-### 5. Ownership and contributor concentration
+### 4. Ownership and contributor concentration
 
 The project still has a high single-maintainer concentration. This is less a
 code smell than a continuity risk. Documentation, small well-scoped Issues,
