@@ -10,7 +10,6 @@ export default [
       '**/out-tsc/**',
       '**/.angular/**',
       '**/coverage/**',
-      '**/*.spec.ts',
       '**/environments/environment.prod.ts',
       'apps/api/data/**',
       'apps/yotara-website/**',
@@ -32,7 +31,11 @@ export default [
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
-        projectService: true,
+        projectService: {
+          // Shared tests live outside src/ so tsc's build never emits them.
+          allowDefaultProject: ['packages/shared/tests/*.ts'],
+        },
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     plugins: {

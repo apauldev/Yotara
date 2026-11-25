@@ -25,7 +25,7 @@
     "dev:email": "DEV_MODE=false REQUIRE_EMAIL_VERIFICATION=true node scripts/dev.mjs",
     "build": "pnpm -r build",
     "start": "pnpm -r start",
-    "lint": "eslint . && pnpm -r lint",
+    "lint": "eslint . && node scripts/check-whitebox-baseline.mjs && pnpm -r lint",
     "lint:fix": "eslint . --fix && pnpm -r lint:fix 2>/dev/null || true",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

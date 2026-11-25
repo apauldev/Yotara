@@ -242,7 +242,7 @@ describe('PersonalTaskCardComponent', () => {
     });
 
     it('should not render due date when dueDate is not provided', () => {
-      const { dueDate, ...taskWithoutDate } = mockTask;
+      const { dueDate: _dueDate, ...taskWithoutDate } = mockTask;
       setTask(taskWithoutDate as Task);
       fixture.detectChanges();
       const datePills = fixture.debugElement.queryAll(By.css('.meta-pill'));
@@ -640,7 +640,7 @@ describe('PersonalTaskCardComponent', () => {
     });
 
     it('should return empty string when dueDate is not provided', () => {
-      const { dueDate, ...taskWithoutDate } = mockTask;
+      const { dueDate: _dueDate, ...taskWithoutDate } = mockTask;
       setTask(taskWithoutDate as Task);
       fixture.detectChanges();
       expect(component['dateLabel']()).toBe('');
@@ -706,7 +706,7 @@ describe('PersonalTaskCardComponent', () => {
 
   describe('Edge cases', () => {
     it('should render task with no description', () => {
-      const { description, ...taskWithoutDescription } = mockTask;
+      const { description: _description, ...taskWithoutDescription } = mockTask;
       setTask(taskWithoutDescription as Task);
       fixture.detectChanges();
       const descElement = fixture.debugElement.query(By.css('.task-description'));
@@ -842,7 +842,7 @@ describe('PersonalTaskCardComponent', () => {
     });
 
     it('returns undefined when no description', () => {
-      const { description, ...taskNoDesc } = mockTask;
+      const { description: _description, ...taskNoDesc } = mockTask;
       setTask(taskNoDesc as Task);
       fixture.detectChanges();
       expect((component as any).truncatedDescription()).toBeUndefined();

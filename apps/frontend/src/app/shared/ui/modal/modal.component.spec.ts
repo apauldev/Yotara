@@ -130,7 +130,7 @@ class LayoutHostComponent {
       }
 
       .edge-control:focus {
-        outline: 2px solid #000;
+        outline: 2px solid currentColor;
         outline-offset: 2px;
       }
 
