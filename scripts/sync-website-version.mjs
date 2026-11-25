@@ -133,9 +133,11 @@ function main() {
   const htmlPath = resolve(root, 'apps/yotara-website/index.html');
   const installHtmlPath = resolve(root, 'apps/yotara-website/install.html');
   const composePath = resolve(root, 'docker-compose.selfhost.yml');
+  const hubComposePath = resolve(root, 'docker-compose.hub.yml');
 
   syncWebsiteVersion({ htmlPath, version: pkg.version, date: formatReleaseDate() });
   syncComposeVersion({ yamlPath: composePath, version: pkg.version });
+  syncComposeVersion({ yamlPath: hubComposePath, version: pkg.version });
   syncInstallComposeVersion({ htmlPath: installHtmlPath, version: pkg.version });
 }
 

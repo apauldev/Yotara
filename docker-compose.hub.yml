@@ -1,10 +1,9 @@
-# Beta-2 deployment — pinned to immutable tag v0.77.0 (release chore(release): 0.77.0)
-# Do NOT use :latest. Rollback tag: v0.76.1.
-# Fix: mobile task workflow with shared modal shell (PR #372).
-# Ongoing mechanism: release-specific checked-in compose (update both image lines per release).
+# Beta deployment — both image tags are pinned by the release version sync
+# (scripts/sync-website-version.mjs), which updates this file on every release.
+# Do NOT use :latest: immutable tags keep compose backups and rollbacks deterministic.
 services:
   api:
-    image: apauldev2/yotara-api:v0.77.0
+    image: apauldev2/yotara-api:v0.94.3
     restart: unless-stopped
     environment:
       DATABASE_URL: /app/apps/api/data/yotara.db
@@ -38,7 +37,7 @@ services:
       - /tmp
 
   frontend:
-    image: apauldev2/yotara-frontend:v0.77.0
+    image: apauldev2/yotara-frontend:v0.94.3
     restart: unless-stopped
     depends_on:
       - api
