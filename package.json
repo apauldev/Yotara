@@ -40,6 +40,7 @@
     "db:studio": "pnpm --filter @yotara/api db:studio",
     "docs:check": "pnpm --filter @yotara/api docs:check",
     "docs:check:env": "node scripts/check-env-docs.mjs",
+    "docs:check:index": "node scripts/check-docs-index.mjs",
     "docs:export": "pnpm --filter @yotara/api docs:export",
     "contributors:add": "all-contributors add",
     "contributors:generate": "all-contributors generate",

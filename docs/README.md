@@ -29,13 +29,40 @@ not sure where something belongs, this table is the answer.
 | [archive/](./archive/README.md) | Superseded plans and historical snapshots, kept for context | Anyone asking "why?" | **Historical — never current** |
 | [assets/](./assets) | Logo, banner, and documentation images | — | Assets |
 
-## Active plans
+## Plans in `docs/plans/`
+
+Each plan owns its own status header. The index lists what each plan covers; it
+does not restate status, which belongs on the roadmap board and in Issues.
 
 | Plan | Owns | Audience |
 |:---|:---|:---|
-| [2026-10-20-label-system-ux-redesign.md](./plans/2026-10-20-label-system-ux-redesign.md) | Three-phase label system UX redesign: taxonomy, shared chips, icon identity, one Labels surface, and server-side filtering | Contributors, designers |
-| [2026-11-09-startup-wizard.md](./plans/2026-11-09-startup-wizard.md) | Six-step startup wizard for new accounts: themes, Settings-backed preferences, optional client-processed profile photo, starter project and label selection, tips, and completion flow | Contributors, designers |
-| [2026-11-12-inbound-calendar-read-only.md](./plans/2026-11-12-inbound-calendar-read-only.md) | Inbound read-only calendar events: ICS sources, server-side fetch/parse/expand, encrypted source URLs, and a distinct events layer in the Calendar view | Contributors, designers |
+| [2026-10-15-sqlite-scaling-and-concurrency.md](./plans/2026-10-15-sqlite-scaling-and-concurrency.md) | SQLite concurrency pragmas, capacity estimates, and PostgreSQL graduation criteria | Contributors, operators |
+| [2026-10-16-refresh-yotara-marketing-site.md](./plans/2026-10-16-refresh-yotara-marketing-site.md) | Marketing-site copy and the release version-stamping repair | Maintainers, writers |
+| [2026-10-20-label-system-ux-redesign.md](./plans/2026-10-20-label-system-ux-redesign.md) | Icon-first label identity, one Labels surface, and server-side label filtering | Contributors, designers |
+| [2026-10-22-inbox-quick-capture.md](./plans/2026-10-22-inbox-quick-capture.md) | Source of truth for Inbox as the capture surface for unfiled work | Contributors, designers |
+| [2026-10-22-project-inline-shortcut.md](./plans/2026-10-22-project-inline-shortcut.md) | Inline project shortcut and capture-token date handling | Contributors |
+| [2026-10-23-inbox-quick-capture-phases.md](./plans/2026-10-23-inbox-quick-capture-phases.md) | Delivery phases and completion gates for the Inbox capture plan | Contributors |
+| [2026-11-02-project-shortcut-hint.md](./plans/2026-11-02-project-shortcut-hint.md) | `@project` capture with typing guidance | Contributors, designers |
+| [2026-11-09-startup-wizard.md](./plans/2026-11-09-startup-wizard.md) | Six-step startup wizard for new accounts | Contributors, designers |
+| [2026-11-12-inbound-calendar-read-only.md](./plans/2026-11-12-inbound-calendar-read-only.md) | Inbound read-only calendar events: ICS sources, fetch/parse, and the Calendar layer | Contributors, designers |
+| [2026-11-15-task-quick-actions-menu.md](./plans/2026-11-15-task-quick-actions-menu.md) | Task-card quick-actions menu and optimistic background updates | Contributors, designers |
+| [2026-11-16-personal-mode-finish-line.md](./plans/2026-11-16-personal-mode-finish-line.md) | Personal-mode project lifecycle, organization, import, and scope decisions | Contributors, product |
+| [2026-11-16-project-detail-ux-and-implementation.md](./plans/2026-11-16-project-detail-ux-and-implementation.md) | UX authority for `/projects/:id` and its edit form | Contributors, designers |
+| [2026-11-19-task-service-decomposition.md](./plans/2026-11-19-task-service-decomposition.md) | Safe extraction of task-service modules behind a compatibility façade | Contributors |
+| [2026-11-24-sqlite-schema-single-source.md](./plans/2026-11-24-sqlite-schema-single-source.md) | One runtime authority for the SQLite schema (finding BE-1) | Contributors |
+
+## Other plan trees and snapshots
+
+These live outside `docs/plans/` and are not surfaced by the main plan table.
+`docs/superpowers/plans/` is retained from an earlier workflow; new plans belong
+in `docs/plans/`.
+
+| Document | Owns | Audience |
+|:---|:---|:---|
+| [superpowers/plans/2026-10-11-deploy-automation.md](./superpowers/plans/2026-10-11-deploy-automation.md) | Task-by-task implementation plan for `pnpm deploy` | Maintainers |
+| [superpowers/plans/2026-10-15-sqlite-scaling-and-concurrency.md](./superpowers/plans/2026-10-15-sqlite-scaling-and-concurrency.md) | Task-by-task companion to the SQLite scaling spec | Contributors |
+| [deploy-automation-plan.md](./deploy-automation-plan.md) | Maintainer spec for semi-automated beta release and deploy | Maintainers |
+| [precheck-beta-2026-10-14.md](./precheck-beta-2026-10-14.md) | Point-in-time snapshot of the 2026-10-14 beta release precheck | Maintainers, historians |
 
 ## At the repository root
 
@@ -87,7 +114,8 @@ behaviour a document describes, that document is part of the pull request.
 4. Link it from wherever a reader would look for it — not just from this index.
 
 CI ignores changes limited to `**.md` and `docs/**`, so a docs-only pull request
-skips the main pipeline. The one automated check that still runs is
-`docs-consistency.yml`, which verifies that every variable in
-`apps/api/.env.example` is documented in [CONFIGURATION.md](./CONFIGURATION.md).
-Run it locally with `pnpm docs:check:env`.
+skips the main pipeline. `docs-consistency.yml` still runs and checks two things:
+every variable in `apps/api/.env.example` is documented in
+[CONFIGURATION.md](./CONFIGURATION.md), and every tracked document listed above
+has a row in this index. Run them locally with `pnpm docs:check:env` and
+`pnpm docs:check:index`.

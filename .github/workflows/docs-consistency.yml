@@ -14,6 +14,7 @@ on:
       - '**.md'
       - 'apps/api/.env.example'
       - 'scripts/check-env-docs.mjs'
+      - 'scripts/check-docs-index.mjs'
       - '.github/workflows/docs-consistency.yml'
   push:
     branches: [main]
@@ -22,6 +23,7 @@ on:
       - '**.md'
       - 'apps/api/.env.example'
       - 'scripts/check-env-docs.mjs'
+      - 'scripts/check-docs-index.mjs'
 
 permissions:
   contents: read
@@ -38,3 +40,5 @@ jobs:
           node-version: '26.12.1'
       - name: Check docs/CONFIGURATION.md covers apps/api/.env.example
         run: node scripts/check-env-docs.mjs
+      - name: Check docs/README.md indexes every tracked document
+        run: node scripts/check-docs-index.mjs
