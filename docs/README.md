@@ -25,6 +25,7 @@ not sure where something belongs, this table is the answer.
 | [INSTALL.md](./INSTALL.md) | Canonical local setup, workspace commands, troubleshooting | Contributors, self-hosters | Current |
 | [CONFIGURATION.md](./CONFIGURATION.md) | Every environment variable, its default, and its purpose | Operators | Current |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Durable architectural decisions, constraints, known risks, engineering principles | Contributors, architects | Current |
+| [code-quality-review-2026-11-23.md](./code-quality-review-2026-11-23.md) | Repository-wide quality review findings, severity, and checklist | Contributors, maintainers | Review record |
 | [RELEASING.md](./RELEASING.md) | Release pipeline, versioning rules, Docker Hub publishing | Maintainers | Current |
 | [archive/](./archive/README.md) | Superseded plans and historical snapshots, kept for context | Anyone asking "why?" | **Historical — never current** |
 | [assets/](./assets) | Logo, banner, and documentation images | — | Assets |
