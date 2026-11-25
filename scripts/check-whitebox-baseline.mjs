@@ -8,31 +8,44 @@
  * always fine; the cap only moves when the casts are deliberately removed.
  */
 
-import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const srcRoot = resolve(root, 'apps/frontend/src');
 const baseline = 78;
 const pattern = /componentInstance\s+as\s+any/g;
 
-const specs = execFileSync('git', ['ls-files', 'apps/frontend/src'], {
-  cwd: root,
-  encoding: 'utf8',
-})
-  .split('\n')
-  .filter((file) => file.endsWith('.spec.ts'));
+// Walk the working tree, not `git ls-files`, so a brand-new spec cannot bypass
+// the guard just because it has not been staged yet.
+function findSpecs(dir) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = resolve(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      return findSpecs(path);
+    }
+
+    return entry.name.endsWith('.spec.ts') ? [path] : [];
+  });
+}
 
 let found = 0;
 const byFile = new Map();
 
-for (const file of specs) {
-  const source = readFileSync(resolve(root, file), 'utf8');
-  const matches = source.match(pattern)?.length ?? 0;
+for (const path of findSpecs(srcRoot)) {
+  const source = readFileSync(path, 'utf8');
+  // Normalize redundant parentheses so `(fixture.componentInstance) as any`
+  // cannot slip past the same check as `fixture.componentInstance as any`.
+  const normalized = source.replace(
+    /\(\s*(fixture\.componentInstance|componentInstance)\s*\)/g,
+    '$1',
+  );
+  const matches = normalized.match(pattern)?.length ?? 0;
 
   if (matches > 0) {
-    byFile.set(file, matches);
+    byFile.set(relative(root, path), matches);
     found += matches;
   }
 }
