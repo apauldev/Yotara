@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.94.4](https://github.com/apauldev/Yotara/compare/v0.94.3...v0.94.4) (2026-11-25)
+
+
+### Bug Fixes
+
+* **ci:** keep beta compose pinned to the released version ([176cf45](https://github.com/apauldev/Yotara/commit/176cf4561162a50c6c164b015c49401cb23026a7))
+* **ci:** match full paths in the docs index check ([b84a968](https://github.com/apauldev/Yotara/commit/b84a9689d61956e2abdfaf3be3f85e3bfc6063d1))
+* **security:** single-source the CSP and guard deployment copies ([e91c79f](https://github.com/apauldev/Yotara/commit/e91c79f617074c87851b3afe882a660a8a181fe8))
+
+
+### Documentation
+
+* **architecture:** remove resolved task-service monolith risk ([bfaa6e4](https://github.com/apauldev/Yotara/commit/bfaa6e4d5ada7adb8b5be6b0b862030665bc6bdb))
+* index every tracked document and enforce it in CI ([4929d23](https://github.com/apauldev/Yotara/commit/4929d2376fe25224dfc99f6d0c6e13dc1d9263bf))
+
 ## [0.94.3](https://github.com/apauldev/Yotara/compare/v0.94.2...v0.94.3) (2026-11-24)
 
 
