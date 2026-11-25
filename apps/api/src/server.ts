@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import { CONTENT_SECURITY_POLICY as DEFAULT_CONTENT_SECURITY_POLICY } from '@yotara/shared';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import rateLimit from '@fastify/rate-limit';
@@ -24,21 +25,14 @@ import calendarRoutes from './routes/calendar.js';
 import devRoutes from './routes/dev.js';
 import { isLocalDevMode, bypassGlobalRateLimit } from './lib/dev-mode.js';
 
-// Content-Security-Policy — single source of truth for the API and nginx.
-// nginx reads it via the CONTENT_SECURITY_POLICY env var (injected at container
-// start from this same value), so there is only one copy to update. HSTS is
-// intentionally omitted from the generic set — it only belongs behind TLS
-// termination; add it once nginx serves HTTPS.
+// The literal lives in @yotara/shared; compose files and the website's install
+// snippet are checked against it by content-security-policy.test.ts. An env
+// override still wins so operators can tighten the policy per deployment.
 export const CONTENT_SECURITY_POLICY =
-  process.env['CONTENT_SECURITY_POLICY'] ??
-  "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; " +
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-    "font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; " +
-    "connect-src 'self' https://cloudflareinsights.com; " +
-    "frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+  process.env['CONTENT_SECURITY_POLICY'] ?? DEFAULT_CONTENT_SECURITY_POLICY;
 
-// Defense-in-depth security headers. The CSP is shared with nginx (above); the
-// remaining three are stable and only set here.
+// Defense-in-depth security headers. The CSP is shared with nginx through the
+// env var; the remaining three are stable and only set here.
 const SECURITY_HEADERS: Record<string, string> = {
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
