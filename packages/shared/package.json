@@ -15,7 +15,8 @@
     "build": "tsc",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test:coverage": "echo 'No tests in shared package'"
+    "test": "node --test tests/*.test.ts",
+    "test:coverage": "node --test tests/*.test.ts"
   },
   "devDependencies": {
     "typescript": "^6.0.3"
