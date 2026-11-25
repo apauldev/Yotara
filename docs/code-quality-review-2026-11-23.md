@@ -318,7 +318,7 @@ the checklist below cannot imply more than the code delivers.
 - [ ] Remove service→routes import and dead project helpers (BE-3)
 - [x] Add a coverage gate (TC-1)
 - [x] Add tests for `packages/shared` (TC-2)
-- [x] Lint frontend specs and remove white-box `as any` (FE-6) — specs linted; existing casts capped, not removed
+- [ ] Lint frontend specs and remove white-box `as any` (FE-6) — specs linted and new casts blocked; the 78 existing casts remain, so removal is still open
 - [x] Update `docs/ARCHITECTURE.md` (DC-2)
 - [x] Update/prune the docs index (DC-3)
 - [x] Generate the CSP from one source (DC-4) — canonical runtime value plus drift guard
