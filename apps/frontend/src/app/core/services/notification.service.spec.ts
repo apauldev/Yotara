@@ -70,6 +70,15 @@ describe('NotificationService', () => {
     expect(service.unreadCount()).toBe(3);
   });
 
+  it('scanDue posts the timezone and opts out of the global toast', async () => {
+    const promise = service.scanDue();
+    const req = httpMock.expectOne(`${baseUrl}/notifications/scan?tz=${getUserTimezone()}`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.headers.get('X-Skip-Error')).toBe('true');
+    req.flush({ created: 1 });
+    await promise;
+  });
+
   describe('when the browser cannot resolve a timezone', () => {
     beforeEach(() => {
       spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').and.returnValue(
@@ -84,6 +93,13 @@ describe('NotificationService', () => {
       await promise;
 
       expect(service.notifications()).toEqual(mockNotifications);
+    });
+
+    it('scanDue omits tz rather than guessing UTC', async () => {
+      const promise = service.scanDue();
+      const req = httpMock.expectOne(`${baseUrl}/notifications/scan`);
+      req.flush({ created: 0 });
+      await promise;
     });
 
     it('flags the missing timezone so the UI can explain it', async () => {

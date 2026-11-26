@@ -334,6 +334,18 @@ describe('TaskApiService', () => {
     req.flush({ ok: true });
   });
 
+  it('cleanupRetention$ posts a background mutation without a toast', () => {
+    service.cleanupRetention$().subscribe((res) => {
+      expect(res.ok).toBeTrue();
+    });
+
+    const req = http.expectOne((r) => r.url.endsWith('/tasks/retention/cleanup'));
+    expect(req.request.method).toBe('POST');
+    expect(req.request.withCredentials).toBeTrue();
+    expect(req.request.headers.get('X-Skip-Error')).toBe('true');
+    req.flush({ ok: true });
+  });
+
   it('fetchSubtasks$ requests subtasks by parentId', () => {
     service.fetchSubtasks$('parent-1', 100).subscribe();
 

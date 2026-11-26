@@ -43,6 +43,22 @@ export class NotificationService {
     return zone;
   }
 
+  /**
+   * Materialize due/overdue reminders. This is the only path that writes; the
+   * list and unread-count GETs are pure reads. The zone is required by name
+   * for timed tasks, and a failed background scan must not raise a toast.
+   */
+  async scanDue(): Promise<void> {
+    const zone = this.dueZone();
+    await firstValueFrom(
+      this.http.post<{ created: number }>(`${this.baseUrl}/notifications/scan`, null, {
+        params: zone ? { tz: zone } : {},
+        headers: { 'X-Skip-Error': 'true' },
+        withCredentials: true,
+      }),
+    );
+  }
+
   async fetchNotifications(limit = 50): Promise<void> {
     // The server evaluates due-state in the user's timezone, so every
     // notification call must carry it when the browser knows one.

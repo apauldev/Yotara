@@ -328,15 +328,25 @@ the checklist below cannot imply more than the code delivers.
   is rendered only by `task-list-page.component.html`, so a blanket opt-out
   would leave project, calendar, and archive pages with no visible error at all.
 
-- **BE-2.** Partially resolved, and the headline finding is untouched. Only the
-  `scanDueNotifications` call inside `createTaskForOwnerSync` was removed. Both
-  `GET /notifications` endpoints still insert rows, and the `cleanupExpiredArchivedTasks`
-  `preHandler` still deletes on every request to the tasks route instance — not
-  only on `GET /tasks`, as the original finding implies. There is still no test
-  asserting that a GET leaves the database unchanged. The timezone argument in
-  the earlier commit message is a design constraint on one particular fix, not a
-  reason the finding cannot be closed: an explicit mutation carrying the
-  client's `tz`, or a job limited to date-only tasks, both work.
+- **BE-2.** Resolved. Reminder materialization moved to `POST /notifications/scan`,
+  which takes the caller's timezone, and retention purging moved to
+  `POST /tasks/retention/cleanup`. The task-router `preHandler` and both
+  `scanDueNotifications` calls on notification GETs are gone, so those reads no
+  longer insert or delete rows. The timezone problem only ruled out a tz-less
+  scheduled scan: `due_time` rows are created solely by the server scan, so a
+  client-driven mutation is necessary regardless of any job. The login scan in
+  `auth-bridge.ts` stays for date-only tasks before the client loads. The
+  frontend calls the scan from `DueTimeSchedulerService.check()` — preserving
+  the existing five-minute, focus and next-due-instant cadence — and sweeps
+  retention from the same loop, throttled to hourly and retried on failure so
+  a task that crosses the 30-day window mid-session is still purged. A session
+  token invalidates an in-flight sweep at logout, and `start()` queues a check
+  when the previous session's check has not finished, so neither a stale
+  success nor the in-flight guard can suppress the next session's sweep.
+  Route tests assert a seeded overdue task survives
+  both notification reads and an expired Trash entry survives `GET /tasks`,
+  then that each mutation produces the expected write. The earlier
+  `scanDueNotifications` removal from the task-create transaction remains.
 
 - **FE-2.** Deliberately not doing the migration. Angular 22 defaults to
   `OnPush` (`Default` is now a deprecated alias for `Eager`), so those
@@ -357,7 +367,7 @@ the checklist below cannot imply more than the code delivers.
 
 ### P1
 
-- [ ] Make `GET /tasks` and `GET /notifications` read-only (BE-2) — only the create-path scan was removed; both GET paths still write, so this stays open
+- [x] Make `GET /tasks` and `GET /notifications` read-only (BE-2) — writes moved to `POST /notifications/scan` and `POST /tasks/retention/cleanup`; route tests assert the GETs leave the database unchanged
 - [ ] Remove service→routes import and dead project helpers (BE-3)
 - [x] Add a coverage gate (TC-1)
 - [x] Add tests for `packages/shared` (TC-2)

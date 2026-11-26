@@ -62,7 +62,6 @@ export default async function notificationRoutes(fastify: FastifyInstance) {
         throw new UnauthorizedError();
       }
 
-      scanDueNotifications(request.userId, request.query.tz);
       const limit = Math.min(200, Math.max(1, request.query.limit ?? 50));
       const rows = getNotificationsForOwner(request.userId, limit);
       return rows.map(toNotification);
@@ -100,9 +99,50 @@ export default async function notificationRoutes(fastify: FastifyInstance) {
         throw new UnauthorizedError();
       }
 
-      scanDueNotifications(request.userId, request.query.tz);
       const count = getUnreadCountForOwner(request.userId);
       return { count };
+    },
+  );
+
+  // Reminder materialization is a mutation so the read endpoints stay pure.
+  // The caller supplies its timezone: timed tasks must not be judged against
+  // UTC, and the server does not persist one. Keeping the scan here also lets
+  // the client drive it from its existing focus/poll scheduler.
+  fastify.post<{
+    Querystring: { tz?: string };
+    Reply: { created: number } | { message: string };
+  }>(
+    '/notifications/scan',
+    {
+      schema: withJsonResponse({
+        tags: ['notifications'],
+        summary: 'Materialize due and overdue reminders',
+        security: authCookieSecurity,
+        querystring: {
+          type: 'object',
+          properties: {
+            tz: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            description: 'How many reminders the scan created',
+            type: 'object',
+            required: ['created'],
+            properties: {
+              created: { type: 'integer', minimum: 0 },
+            },
+          },
+          401: errorResponseSchema('Authentication required', 'Unauthorized'),
+        },
+      }),
+    },
+    async (request) => {
+      if (!request.userId) {
+        throw new UnauthorizedError();
+      }
+
+      return { created: scanDueNotifications(request.userId, request.query.tz) };
     },
   );
 

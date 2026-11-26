@@ -215,6 +215,20 @@ export class TaskService {
     }
   }
 
+  /**
+   * Background purge; a failure is logged only and reported as false so the
+   * caller can retry. It must not raise a toast or inline error state.
+   */
+  async cleanupRetention(): Promise<boolean> {
+    try {
+      await firstValueFrom(this.taskApiService.cleanupRetention$());
+      return true;
+    } catch (error) {
+      this.logService.error('Failed to clean up old tasks', error, 'TaskService');
+      return false;
+    }
+  }
+
   async updateTask(taskId: string, payload: UpdateTaskDto, options: MutationOptions = {}) {
     this.creatingState.set(true);
     this.taskListStore.setError(null);

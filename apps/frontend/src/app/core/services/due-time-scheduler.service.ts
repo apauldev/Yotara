@@ -14,6 +14,11 @@ const MAX_ANNOUNCED_IDS = 100;
  * at 10:03 is still announced at 10:03 rather than at the next tick.
  */
 const POLL_INTERVAL_MS = 300_000;
+/**
+ * Trash items expire on a 30-day window, so an hourly sweep is ample. A failed
+ * sweep is retried on the next check instead of being marked done.
+ */
+const RETENTION_CLEANUP_INTERVAL_MS = 3_600_000;
 
 /**
  * Announces due-time notifications while the site is open: checks on start,
@@ -32,6 +37,8 @@ export class DueTimeSchedulerService {
   private pendingCheck = false;
   private active = false;
   private rescheduleToken = 0;
+  private sessionToken = 0;
+  private lastRetentionCleanupAt = 0;
 
   constructor() {
     // Creating a task, or moving one to an earlier time, changes when the next
@@ -63,7 +70,14 @@ export class DueTimeSchedulerService {
     if (this.timer !== null) return;
 
     this.active = true;
-    void this.check();
+    this.sessionToken++;
+    if (this.checking) {
+      // A check from the previous session is still in flight. Queue ours so
+      // the `checking` guard does not silently drop the new session's sweep.
+      this.pendingCheck = true;
+    } else {
+      void this.check();
+    }
     this.timer = setInterval(() => {
       if (document.visibilityState === 'visible') {
         void this.check();
@@ -75,7 +89,11 @@ export class DueTimeSchedulerService {
 
   stop(): void {
     this.active = false;
+    // Invalidate any cleanup still in flight so its success cannot throttle
+    // the next session's sweep.
+    this.sessionToken++;
     this.pendingCheck = false;
+    this.lastRetentionCleanupAt = 0;
     // Invalidate any in-flight reschedule: a lookup that resolves after this
     // must not arm a timer, or it would undo the stop.
     this.rescheduleToken++;
@@ -94,8 +112,14 @@ export class DueTimeSchedulerService {
     // Claim the newest scheduling token up front, so a lookup already in flight
     // when a task changes or the scheduler stops cannot arm after this one.
     const token = ++this.rescheduleToken;
+    const session = this.sessionToken;
 
     try {
+      await this.cleanupRetentionIfDue(session);
+      // Reminders are materialized by an explicit mutation before the reads.
+      // Without this the GETs would stay pure but no due_time rows would ever
+      // be created while the site is open.
+      await this.notificationService.scanDue();
       await Promise.all([
         this.notificationService.fetchNotifications(),
         this.notificationService.fetchUnreadCount(),
@@ -113,6 +137,26 @@ export class DueTimeSchedulerService {
       if (this.pendingCheck) {
         this.pendingCheck = false;
         void this.check();
+      }
+    }
+  }
+
+  /**
+   * Retention is not tied to a page load: a task can cross the 30-day window
+   * during a long session. Throttle the sweep, but only record it as done on
+   * success so the next poll retries a failed request.
+   */
+  private async cleanupRetentionIfDue(session: number): Promise<void> {
+    const now = Date.now();
+    if (now - this.lastRetentionCleanupAt < RETENTION_CLEANUP_INTERVAL_MS) {
+      return;
+    }
+
+    if (await this.taskService.cleanupRetention()) {
+      // The session may have ended while the request was in flight. A stale
+      // success must not throttle the next session's first sweep.
+      if (session === this.sessionToken) {
+        this.lastRetentionCleanupAt = now;
       }
     }
   }
