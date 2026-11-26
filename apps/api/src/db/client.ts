@@ -497,8 +497,22 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
     // `id` is included as the final column because it is the last ORDER BY term
     // in listTasksForProject: without it SQLite satisfies the prefix from the
     // index and then still runs a temp B-tree for that term.
+    // `CREATE INDEX IF NOT EXISTS` only checks the name. A database booted by
+    // the earlier four-column definition keeps that index forever, leaving the
+    // last ORDER BY term unsorted. Recreate it when the columns drift.
+    const projectOrderIndex = 'idx_tasks_owner_project_order';
+    const expectedProjectOrderColumns = ['user_id', 'project_id', 'sort_order', 'created_at', 'id'];
+    const actualProjectOrderColumns = (
+      sqlite.prepare(`PRAGMA index_info('${projectOrderIndex}')`).all() as Array<{ name: string }>
+    ).map((column) => column.name);
+    if (
+      actualProjectOrderColumns.length > 0 &&
+      actualProjectOrderColumns.join(',') !== expectedProjectOrderColumns.join(',')
+    ) {
+      sqlite.exec(`DROP INDEX ${projectOrderIndex}`);
+    }
     sqlite.exec(
-      `CREATE INDEX IF NOT EXISTS idx_tasks_owner_project_order ON tasks(user_id, project_id, sort_order, created_at, id)`,
+      `CREATE INDEX IF NOT EXISTS ${projectOrderIndex} ON tasks(user_id, project_id, sort_order, created_at, id)`,
     );
 
     const projectColumns = sqlite.prepare(`PRAGMA table_info('projects')`).all() as Array<{
