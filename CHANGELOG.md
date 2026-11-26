@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.94.6](https://github.com/apauldev/Yotara/compare/v0.94.5...v0.94.6) (2026-11-26)
+
+
+### Bug Fixes
+
+* **api:** include id in the project-order index so the sort is fully covered ([a308828](https://github.com/apauldev/Yotara/commit/a3088285c8ae5092434a2b657aa7c47cc369aa74))
+* **api:** rebuild a stale project-order index on boot ([8ef3abd](https://github.com/apauldev/Yotara/commit/8ef3abd75ca795f8fec4ee3946b4f2ef1d3ba1b8))
+* **frontend:** extend the error-toast opt-out and record review status ([e9c763c](https://github.com/apauldev/Yotara/commit/e9c763c0bc3a376e4396de594c1f94f0ef120d74))
+* **frontend:** remove dead pipe, tear down router subscriptions, stop duplicate error toasts ([a742439](https://github.com/apauldev/Yotara/commit/a7424391b4302b088f63a1536bb04b6224af2880))
+
+
+### Performance
+
+* **api:** bound and SQL-sort the project task listing ([459ba4a](https://github.com/apauldev/Yotara/commit/459ba4ae92cf3573dcc8d0da94a7acfc49114941))
+* **api:** stop scanning every due task inside the task-create transaction ([ceb4083](https://github.com/apauldev/Yotara/commit/ceb4083e36b2853b4ae969a837f06a7dd9be62e3))
+
 ## [0.94.5](https://github.com/apauldev/Yotara/compare/v0.94.4...v0.94.5) (2026-11-26)
 
 
