@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.94.5](https://github.com/apauldev/Yotara/compare/v0.94.4...v0.94.5) (2026-11-26)
+
+
+### Bug Fixes
+
+* **ci:** harden the white-box cast guard ([92488f3](https://github.com/apauldev/Yotara/commit/92488f3aa23754de9b60699a98c6e5fc223060e4))
+* **ci:** lint frontend specs and cap white-box casts ([54c9206](https://github.com/apauldev/Yotara/commit/54c9206b8bb014ef08288829de7296b3156df058))
+
+
+### Documentation
+
+* close out resolved code-quality findings ([aedfa99](https://github.com/apauldev/Yotara/commit/aedfa9910afd97d4e91459fe27ede9be32058944))
+* keep FE-6 checkbox honest about remaining casts ([60408c7](https://github.com/apauldev/Yotara/commit/60408c7925b284aada440950be148e1eb41589d5))
+
+
+### Tests
+
+* **ci:** enforce coverage thresholds ([1b870c7](https://github.com/apauldev/Yotara/commit/1b870c7f687daa392d07d8252ac6913fa3f9353c))
+* **shared:** cover name folding, email, and label tokens ([22a5428](https://github.com/apauldev/Yotara/commit/22a54282bda1989ff95623e5274f8bc09ec1071d))
+
 ## [0.94.4](https://github.com/apauldev/Yotara/compare/v0.94.3...v0.94.4) (2026-11-25)
 
 
