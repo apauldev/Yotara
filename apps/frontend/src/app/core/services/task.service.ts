@@ -4,7 +4,12 @@ import { LogService } from './log.service';
 import { firstValueFrom, map, type Observable } from 'rxjs';
 import { LabelService } from './label.service';
 import { ProjectService } from './project.service';
-import { TaskApiService, TASKS_PAGE_SIZE, type TaskFilterState } from './task-api.service';
+import {
+  TaskApiService,
+  TASKS_PAGE_SIZE,
+  type TaskFilterState,
+  type MutationOptions,
+} from './task-api.service';
 import { TaskRefreshState } from './task-refresh-state';
 import { TaskListStore, type UpcomingBucket, type UpcomingTaskGroup } from './task-list.store';
 import { TaskCalendarStore, type CalendarRangeRequest } from './task-calendar.store';
@@ -208,14 +213,14 @@ export class TaskService {
     }
   }
 
-  async updateTask(taskId: string, payload: UpdateTaskDto) {
+  async updateTask(taskId: string, payload: UpdateTaskDto, options: MutationOptions = {}) {
     this.creatingState.set(true);
     this.taskListStore.setError(null);
 
     try {
       const tz = getUserTimezone();
       const updatedTask = await firstValueFrom(
-        this.taskApiService.updateTask$(taskId, payload, tz),
+        this.taskApiService.updateTask$(taskId, payload, tz, options),
       );
       this.refreshState.refresh();
       this.labelService.refresh();
@@ -230,12 +235,12 @@ export class TaskService {
     }
   }
 
-  async deleteTask(taskId: string) {
+  async deleteTask(taskId: string, options: MutationOptions = {}) {
     this.creatingState.set(true);
     this.taskListStore.setError(null);
 
     try {
-      await firstValueFrom(this.taskApiService.deleteTask$(taskId));
+      await firstValueFrom(this.taskApiService.deleteTask$(taskId, options));
       this.refreshState.refresh();
       this.labelService.refresh();
       this.projectService.refresh();

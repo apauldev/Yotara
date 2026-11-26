@@ -145,12 +145,17 @@ export class PersonalShellComponent implements OnDestroy {
   protected readonly signingOut = signal(false);
 
   constructor() {
-    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
-      this.mobileMenuOpen.set(false);
-      this.profileMenuOpen.set(false);
-      this.preferencesMenuOpen.set(false);
-      this.notificationsOpen.set(false);
-    });
+    this.router.events
+      .pipe(
+        filter((event) => event instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => {
+        this.mobileMenuOpen.set(false);
+        this.profileMenuOpen.set(false);
+        this.preferencesMenuOpen.set(false);
+        this.notificationsOpen.set(false);
+      });
 
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
       this.searchQuery.set(params.get('q') ?? '');

@@ -1149,7 +1149,7 @@ export class PersonalTaskCardComponent {
     this.deleting.set(true);
     const task = this.task();
     try {
-      await this.taskService.deleteTask(task.id);
+      await this.taskService.deleteTask(task.id, { skipErrorToast: true });
       this.deleteConfirmOpen.set(false);
       this.statusService.show('Task deleted', 'success');
     } catch {
@@ -1170,7 +1170,7 @@ export class PersonalTaskCardComponent {
     });
 
     try {
-      await this.taskService.updateTask(event.taskId, event.diff);
+      await this.taskService.updateTask(event.taskId, event.diff, { skipErrorToast: true });
       this.statusService.show('Task updated', 'success');
     } catch {
       this.optimisticOverrides.set(null);

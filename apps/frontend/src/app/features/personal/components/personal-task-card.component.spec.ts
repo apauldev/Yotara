@@ -1152,10 +1152,14 @@ describe('PersonalTaskCardComponent', () => {
       });
       fixture.detectChanges();
 
-      expect(taskServiceSpy.updateTask).toHaveBeenCalledWith(mockTask.id, {
-        priority: 'high',
-        labels: ['label-1'],
-      });
+      expect(taskServiceSpy.updateTask).toHaveBeenCalledWith(
+        mockTask.id,
+        {
+          priority: 'high',
+          labels: ['label-1'],
+        },
+        { skipErrorToast: true },
+      );
       expect(statusServiceSpy.show).toHaveBeenCalledWith('Task updated', 'success');
 
       // Optimistic update reflects on card
@@ -1246,7 +1250,9 @@ describe('PersonalTaskCardComponent', () => {
       await component.confirmDeleteTask();
       fixture.detectChanges();
 
-      expect(taskServiceSpy.deleteTask).toHaveBeenCalledWith(mockTask.id);
+      expect(taskServiceSpy.deleteTask).toHaveBeenCalledWith(mockTask.id, {
+        skipErrorToast: true,
+      });
       expect(component['deleteConfirmOpen']()).toBeFalse();
       expect(statusServiceSpy.show).toHaveBeenCalledWith('Task deleted', 'success');
     });
