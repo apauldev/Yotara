@@ -118,8 +118,14 @@ export class DueTimeSchedulerService {
       await this.cleanupRetentionIfDue(session);
       // Reminders are materialized by an explicit mutation before the reads.
       // Without this the GETs would stay pure but no due_time rows would ever
-      // be created while the site is open.
-      await this.notificationService.scanDue();
+      // be created while the site is open. A failed scan is best-effort: the
+      // reads and next-due scheduling must still run, and the next poll retries.
+      try {
+        await this.notificationService.scanDue();
+      } catch {
+        // Deliberately silent; an in-app list stays authoritative and the next
+        // tick tries again.
+      }
       await Promise.all([
         this.notificationService.fetchNotifications(),
         this.notificationService.fetchUnreadCount(),

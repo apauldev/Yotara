@@ -111,6 +111,16 @@ describe('DueTimeSchedulerService', () => {
     expect(order[1]).toBe('fetch');
   });
 
+  it('still reads notifications when the scan fails', async () => {
+    scanDue.and.rejectWith(new Error('scan unavailable'));
+
+    await service.check();
+
+    expect(fetchNotifications).toHaveBeenCalled();
+    expect(fetchUnreadCount).toHaveBeenCalled();
+    expect(fetchNextDueAt).toHaveBeenCalled();
+  });
+
   it('sweeps retention on the first check and throttles the next hour', async () => {
     const start = Date.now();
     const now = spyOn(Date, 'now').and.returnValue(start);
