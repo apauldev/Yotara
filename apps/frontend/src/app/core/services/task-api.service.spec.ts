@@ -307,6 +307,30 @@ describe('TaskApiService', () => {
     const req = http.expectOne((r) => r.url.endsWith('/tasks/task-1'));
     expect(req.request.method).toBe('DELETE');
     expect(req.request.withCredentials).toBeTrue();
+    expect(req.request.headers.has('X-Skip-Error')).toBeFalse();
+    req.flush({ ok: true });
+  });
+
+  it('updateTask$ omits the interceptor opt-out by default', () => {
+    service.updateTask$('task-1', { title: 'Updated task' }, 'UTC').subscribe();
+    const req = http.expectOne((r) => r.url.includes('/tasks/task-1?tz=UTC'));
+    expect(req.request.headers.has('X-Skip-Error')).toBeFalse();
+    req.flush(sampleTask);
+  });
+
+  it('updateTask$ opts out of the global error toast when the caller reports it', () => {
+    service
+      .updateTask$('task-1', { title: 'Updated task' }, 'UTC', { skipErrorToast: true })
+      .subscribe();
+    const req = http.expectOne((r) => r.url.includes('/tasks/task-1?tz=UTC'));
+    expect(req.request.headers.get('X-Skip-Error')).toBe('true');
+    req.flush(sampleTask);
+  });
+
+  it('deleteTask$ opts out of the global error toast when the caller reports it', () => {
+    service.deleteTask$('task-1', { skipErrorToast: true }).subscribe();
+    const req = http.expectOne((r) => r.url.endsWith('/tasks/task-1'));
+    expect(req.request.headers.get('X-Skip-Error')).toBe('true');
     req.flush({ ok: true });
   });
 

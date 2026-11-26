@@ -305,6 +305,49 @@ the checklist below cannot imply more than the code delivers.
   baseline guard caps white-box `componentInstance as any` casts at 78 so new
   ones fail lint. Removing the existing casts remains future work.
 
+- **BE-5.** Resolved. Ordering moved into SQL and bounded at 3000. The cap is a
+  runaway guard, not a page size: the route returns a bare `Task[]` with no
+  `meta`, so a client cannot detect truncation. The first attempt shipped a
+  four-column index that left the third `ORDER BY` term unsorted — SQLite
+  reported `USE TEMP B-TREE FOR LAST TERM OF ORDER BY`, and the accompanying
+  test passed anyway because its assertion matched only the exact string
+  `USE TEMP B-TREE FOR ORDER BY`. Including `id` as a fifth column removes the
+  sort entirely, and the assertion now rejects any temp B-tree.
+
+- **FE-5.** Partially resolved. The unused `TaskCountPipe` is deleted and both
+  shells' `router.events` subscriptions are torn down. The duplicate-error work
+  is not finished: `skipErrorToast` covers the call sites that render their own
+  message, but `TaskService` still calls `taskListStore.setError` inside every
+  mutation `catch`, so a failed task mutation reports twice — inline banner on
+  the task-list page plus the interceptor toast.
+
+  The right fix is to stop writing inline error state from mutation catches
+  (keep the log and the rethrow, let the interceptor toast once) and rely on
+  `skipErrorToast: true` at the sites that present their own message. That must
+  not be done by making `TaskService` opt out unconditionally: `taskService.error()`
+  is rendered only by `task-list-page.component.html`, so a blanket opt-out
+  would leave project, calendar, and archive pages with no visible error at all.
+
+- **BE-2.** Partially resolved, and the headline finding is untouched. Only the
+  `scanDueNotifications` call inside `createTaskForOwnerSync` was removed. Both
+  `GET /notifications` endpoints still insert rows, and the `cleanupExpiredArchivedTasks`
+  `preHandler` still deletes on every request to the tasks route instance — not
+  only on `GET /tasks`, as the original finding implies. There is still no test
+  asserting that a GET leaves the database unchanged. The timezone argument in
+  the earlier commit message is a design constraint on one particular fix, not a
+  reason the finding cannot be closed: an explicit mutation carrying the
+  client's `tz`, or a job limited to date-only tasks, both work.
+
+- **FE-2.** Deliberately not doing the migration. Angular 22 defaults to
+  `OnPush` (`Default` is now a deprecated alias for `Eager`), so those
+  components explicitly opt out and new components are correct by default. The
+  UI mounts 10–25 task cards per page (`task-list-page` `pageSize` is
+  `signal<10 | 25>`); the 3000 figure is a fetch cap, not a render count. The
+  measured problems are in `docs/plans/2026-11-23-angular-page-load-performance.md`
+  (LCP 1.62 s dominated by JS parse/paint, 508 KB initial JS, a 134 KB
+  Font Awesome chunk on `/login`). Removing stray `Eager` lines
+  opportunistically is fine; a dedicated migration is not worth the `L` effort.
+
 ## 5. Checklist
 
 ### P0
@@ -314,7 +357,7 @@ the checklist below cannot imply more than the code delivers.
 
 ### P1
 
-- [ ] Make `GET /tasks` and `GET /notifications` read-only (BE-2)
+- [ ] Make `GET /tasks` and `GET /notifications` read-only (BE-2) — only the create-path scan was removed; both GET paths still write, so this stays open
 - [ ] Remove service→routes import and dead project helpers (BE-3)
 - [x] Add a coverage gate (TC-1)
 - [x] Add tests for `packages/shared` (TC-2)
@@ -330,11 +373,11 @@ the checklist below cannot imply more than the code delivers.
 ### P2
 
 - [ ] Derive or contract-test OpenAPI schemas against DTOs (BE-4)
-- [ ] Bound/sort the project task query (BE-5)
+- [x] Bound/sort the project task query (BE-5) — ordered in SQL with the sort fully covered by `idx_tasks_owner_project_order(user_id, project_id, sort_order, created_at, id)`; capped at 3000 (silently, see the comment on `MAX_PROJECT_TASKS`)
 - [ ] Reuse mappers in the search path (BE-6)
 - [ ] Standardize API error/auth semantics (BE-7)
 - [ ] Extract API test factories (BE-9)
-- [ ] Remove unused pipe, add router teardown, fix double error reporting (FE-5)
+- [ ] Remove unused pipe, add router teardown, fix double error reporting (FE-5) — pipe removed and both router subscriptions torn down; the toast work is partial. `skipErrorToast` now covers the sites that render their own message, but `TaskService` still writes `taskListStore.setError` on mutation failures, which double-reports alongside the interceptor toast. Closing that needs the refactor described below.
 - [ ] Run E2E against the production build; add one retry (TC-3)
 - [ ] Add Docker Dependabot, SHA pins, workflow permissions (TC-4)
 - [ ] Delete/move `llms-full.txt`; update e2e plan (DC-5)

@@ -11,6 +11,7 @@ import {
   faUsers,
 } from '@fortawesome/free-solid-svg-icons';
 import { filter } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { LogoutConfirmModalComponent } from '../../shared/ui/logout-confirm-modal/logout-confirm-modal.component';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
@@ -714,10 +715,15 @@ export class AuthShellComponent {
   });
 
   constructor() {
-    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
-      this.mobileMenuOpen.set(false);
-      this.profileMenuOpen.set(false);
-    });
+    this.router.events
+      .pipe(
+        filter((event) => event instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => {
+        this.mobileMenuOpen.set(false);
+        this.profileMenuOpen.set(false);
+      });
   }
 
   protected toggleMobileMenu() {

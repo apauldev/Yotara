@@ -20,6 +20,18 @@ import { DateTime } from 'luxon';
  */
 export const TASKS_PAGE_SIZE = 3000;
 
+/**
+ * Opt-out for the global error toast. A caller that reports the failure itself
+ * sets this so the person sees one message, not the same failure twice.
+ */
+export interface MutationOptions {
+  skipErrorToast?: boolean;
+}
+
+function skipErrorHeaders(options: MutationOptions): Record<string, string> | undefined {
+  return options.skipErrorToast ? { 'X-Skip-Error': 'true' } : undefined;
+}
+
 export interface TaskFilterState {
   labelIds: string[];
   labelMode: 'any' | 'all';
@@ -222,22 +234,34 @@ export class TaskApiService {
     });
   }
 
-  createTask$(payload: CreateTaskDto, tz = getUserTimezone()): Observable<Task> {
+  createTask$(
+    payload: CreateTaskDto,
+    tz = getUserTimezone(),
+    options: MutationOptions = {},
+  ): Observable<Task> {
     return this.http.post<Task>(`${this.baseUrl}/tasks`, payload, {
       withCredentials: true,
       params: { tz },
+      headers: skipErrorHeaders(options),
     });
   }
 
-  updateTask$(taskId: string, payload: UpdateTaskDto, tz = getUserTimezone()): Observable<Task> {
+  updateTask$(
+    taskId: string,
+    payload: UpdateTaskDto,
+    tz = getUserTimezone(),
+    options: MutationOptions = {},
+  ): Observable<Task> {
     return this.http.patch<Task>(`${this.baseUrl}/tasks/${taskId}?tz=${tz}`, payload, {
       withCredentials: true,
+      headers: skipErrorHeaders(options),
     });
   }
 
-  deleteTask$(taskId: string): Observable<{ ok: true }> {
+  deleteTask$(taskId: string, options: MutationOptions = {}): Observable<{ ok: true }> {
     return this.http.delete<{ ok: true }>(`${this.baseUrl}/tasks/${taskId}`, {
       withCredentials: true,
+      headers: skipErrorHeaders(options),
     });
   }
 
