@@ -96,7 +96,9 @@ jobs:
 
   coverage:
     runs-on: ubuntu-latest
-    continue-on-error: true
+    # Thresholds are enforced by c8 and karma-coverage in the test:coverage
+    # scripts. The Codecov upload remains advisory because upload outages
+    # should not fail a build whose measured coverage passed locally.
     steps:
       - uses: actions/checkout@v7
         with:

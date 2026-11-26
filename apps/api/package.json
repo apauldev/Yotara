@@ -10,7 +10,7 @@
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "NODE_ENV=test tsx --test src/**/*.test.ts",
-    "test:coverage": "NODE_ENV=test c8 --reporter=lcov --reporter=text tsx --test src/**/*.test.ts",
+    "test:coverage": "NODE_ENV=test c8 --check-coverage --lines 93 --statements 93 --functions 92 --branches 81 --reporter=lcov --reporter=text tsx --test src/**/*.test.ts",
     "docs:check": "tsx --test src/docs/openapi.test.ts",
     "docs:export": "tsx src/scripts/export-openapi.ts",
     "bench:sqlite": "tsx src/scripts/bench-sqlite.ts",

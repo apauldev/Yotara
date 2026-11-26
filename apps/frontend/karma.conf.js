@@ -27,6 +27,17 @@ module.exports = function (config) {
     coverageReporter: {
       dir: require('path').join(__dirname, './coverage/frontend'),
       subdir: '.',
+      // Baselines recorded 2026-11-25: 92.66% statements, 83.4% branches,
+      // 92.24% functions, 93.38% lines. Thresholds sit ~2 points below so
+      // small measurement variance does not break CI, but a real drop does.
+      check: {
+        global: {
+          statements: 90,
+          branches: 81,
+          functions: 90,
+          lines: 91,
+        },
+      },
       reporters: [
         { type: 'html' },
         { type: 'lcovonly', file: 'lcov.info' },
