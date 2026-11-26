@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.94.7](https://github.com/apauldev/Yotara/compare/v0.94.6...v0.94.7) (2026-11-26)
+
+
+### Bug Fixes
+
+* **api:** make task and notification reads write-free (BE-2) ([e587d8e](https://github.com/apauldev/Yotara/commit/e587d8e926d11aad9dc6f54f4463ae501765e27b))
+* **frontend:** keep polling alive when the scan request fails ([826f1ee](https://github.com/apauldev/Yotara/commit/826f1ee6c9d69d1ee284ca15214734f68f10c81f))
+
 ## [0.94.6](https://github.com/apauldev/Yotara/compare/v0.94.5...v0.94.6) (2026-11-26)
 
 
