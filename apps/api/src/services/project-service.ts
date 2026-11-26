@@ -451,6 +451,13 @@ export async function deleteProjectForOwner(
  * Safety bound for a project's task list. The project page groups by section
  * and renders the whole array, so the cap is set to the same page size the
  * rest of the API uses rather than a browsing-sized page.
+ *
+ * NOTE: this silently truncates. The contrast with the paginated `/tasks`
+ * endpoints is deliberate but imperfect: this route returns a bare `Task[]`
+ * with no `meta`, so a client cannot tell a full list from a capped one. A
+ * project past this size renders an incomplete page with no notice. Treat
+ * 3000 as a runaway guard, not a supported page size; real pagination is the
+ * fix if a project ever approaches it.
  */
 const MAX_PROJECT_TASKS = 3000;
 

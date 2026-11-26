@@ -60,9 +60,13 @@ test('a project task listing is answered with the project-order index', () => {
     );
 
     const orderByDetail = plan.map((row) => row.detail).join(' | ');
+    // "USE TEMP B-TREE FOR LAST TERM OF ORDER BY" is the failure mode here: the
+    // index satisfies a prefix of the ORDER BY and SQLite still sorts the rest.
+    // Matching the exact "FOR ORDER BY" phrasing missed that, so assert on any
+    // temp B-tree at all.
     assert.ok(
-      !/USE TEMP B-TREE FOR ORDER BY/i.test(orderByDetail),
-      `expected no in-memory sort, got: ${orderByDetail}`,
+      !/TEMP B-TREE/i.test(orderByDetail),
+      `expected the index to satisfy the whole ORDER BY with no sort, got: ${orderByDetail}`,
     );
   } finally {
     sqlite.close();
