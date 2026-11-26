@@ -16,7 +16,6 @@ import { resolveSectionIdForTaskWrite } from './section-service.js';
 import {
   createDueNotificationIfNeeded,
   retireSupersededDueNotifications,
-  scanDueNotifications,
 } from './notification-service.js';
 import type { TaskRow } from './task-mapper.js';
 import { getTaskForOwnerSync } from './task-query-service.js';
@@ -116,10 +115,6 @@ export function createTaskForOwnerSync(
       },
       tz,
     );
-
-    // Scan all tasks for due/overdue notifications in case this user
-    // has other tasks that became due while they were away
-    scanDueNotifications(ownerId, tz, client);
 
     // Bulk create subtasks if provided
     if (payload.subtasks?.length) {

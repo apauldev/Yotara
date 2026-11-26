@@ -56,6 +56,48 @@ test('Task Write Service Workflows', async (t) => {
       assert.deepEqual(created.labels, []);
     });
 
+    await t.test('creating a task does not re-announce another task\u2019s reminder', async () => {
+      // The create path used to sweep the owner's whole task list inside its
+      // write transaction. A cleared reminder for an unrelated overdue task
+      // must stay cleared until the notification read path or the login scan
+      // revives it, so the create itself stays O(1) in the user's task count.
+      const { notifications } = await import('../db/schema.js');
+      const { eq } = await import('drizzle-orm');
+
+      const overdueTask = await ctx.taskWriteService.createTaskForOwner(
+        ownerId,
+        { title: 'Overdue and already announced', dueDate: '2020-01-01' },
+        'UTC',
+      );
+      assert.ok(overdueTask);
+
+      const notificationsForOverdueTask = () =>
+        ctx.db.select().from(notifications).where(eq(notifications.taskId, overdueTask.id)).all();
+
+      assert.equal(
+        notificationsForOverdueTask().length,
+        1,
+        'creating the overdue task should announce it exactly once',
+      );
+
+      // The person has seen and cleared it.
+      ctx.db.delete(notifications).where(eq(notifications.taskId, overdueTask.id)).run();
+      assert.equal(notificationsForOverdueTask().length, 0);
+
+      const created = await ctx.taskWriteService.createTaskForOwner(
+        ownerId,
+        { title: 'Unrelated new task' },
+        'UTC',
+      );
+      assert.ok(created);
+
+      assert.deepEqual(
+        notificationsForOverdueTask(),
+        [],
+        'creating another task must not re-announce the overdue one',
+      );
+    });
+
     await t.test(
       'updateTaskForOwner updates task and materializes recurrence on completion',
       async () => {
