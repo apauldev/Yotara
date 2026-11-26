@@ -317,7 +317,11 @@ describe('CalendarPageComponent', () => {
       element<HTMLButtonElement>('.cal-chip-check').click();
       fixture.detectChanges();
 
-      expect(taskService.updateTask).toHaveBeenCalledWith('due-1', { completed: true });
+      expect(taskService.updateTask).toHaveBeenCalledWith(
+        'due-1',
+        { completed: true },
+        { skipErrorToast: true },
+      );
       expect(workspace.editTask).not.toHaveBeenCalled();
       expect(workspace.openCreateTaskModal).not.toHaveBeenCalled();
 
@@ -474,7 +478,11 @@ describe('CalendarPageComponent', () => {
       fixture.detectChanges();
 
       // Only dueDate is sent: the due time is never touched.
-      expect(taskService.updateTask).toHaveBeenCalledWith('undated-1', { dueDate: todayISO });
+      expect(taskService.updateTask).toHaveBeenCalledWith(
+        'undated-1',
+        { dueDate: todayISO },
+        { skipErrorToast: true },
+      );
 
       // The row leaves the No date list immediately.
       expect(fixture.nativeElement.querySelector('.cal-nodate-row')).toBeFalsy();
@@ -499,7 +507,11 @@ describe('CalendarPageComponent', () => {
       picker.valueChange.emit('2026-11-30');
       fixture.detectChanges();
 
-      expect(taskService.updateTask).toHaveBeenCalledWith('undated-1', { dueDate: '2026-11-30' });
+      expect(taskService.updateTask).toHaveBeenCalledWith(
+        'undated-1',
+        { dueDate: '2026-11-30' },
+        { skipErrorToast: true },
+      );
     });
 
     it('rolls back the optimistic removal and surfaces an error when scheduling fails', async () => {
@@ -555,9 +567,11 @@ describe('CalendarPageComponent', () => {
       findByText('.cal-quick-btn', 'Tomorrow').click();
       fixture.detectChanges();
 
-      expect(taskService.updateTask).toHaveBeenCalledWith('undated-1', {
-        dueDate: today.plus({ days: 1 }).toISODate() as string,
-      });
+      expect(taskService.updateTask).toHaveBeenCalledWith(
+        'undated-1',
+        { dueDate: today.plus({ days: 1 }).toISODate() as string },
+        { skipErrorToast: true },
+      );
     });
   });
 
@@ -728,7 +742,11 @@ describe('CalendarPageComponent', () => {
       }
     ).completeTask(done);
 
-    expect(taskService.updateTask).toHaveBeenCalledWith('done-1', { completed: false });
+    expect(taskService.updateTask).toHaveBeenCalledWith(
+      'done-1',
+      { completed: false },
+      { skipErrorToast: true },
+    );
 
     // Once the refetch reports it open again, the optimistic override is dropped.
     const reopened = (
@@ -769,7 +787,11 @@ describe('CalendarPageComponent', () => {
 
     taskService.updateTask.and.resolveTo({ id: 'due-1' });
     await component.moveTask({ task: rangeTasks()[0], date: '2026-12-01' });
-    expect(taskService.updateTask).toHaveBeenCalledWith('due-1', { dueDate: '2026-12-01' });
+    expect(taskService.updateTask).toHaveBeenCalledWith(
+      'due-1',
+      { dueDate: '2026-12-01' },
+      { skipErrorToast: true },
+    );
 
     taskService.updateTask.and.returnValue(Promise.reject(new Error('boom')));
     await component.moveTask({ task: rangeTasks()[0], date: '2026-12-02' });

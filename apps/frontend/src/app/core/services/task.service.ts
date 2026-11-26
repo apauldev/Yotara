@@ -193,13 +193,15 @@ export class TaskService {
     return firstValueFrom(this.taskApiService.fetchAllTasks$().pipe(map((res) => res.data)));
   }
 
-  async createTask(payload: CreateTaskDto) {
+  async createTask(payload: CreateTaskDto, options: MutationOptions = {}) {
     this.creatingState.set(true);
     this.taskListStore.setError(null);
 
     try {
       const tz = getUserTimezone();
-      const createdTask = await firstValueFrom(this.taskApiService.createTask$(payload, tz));
+      const createdTask = await firstValueFrom(
+        this.taskApiService.createTask$(payload, tz, options),
+      );
       this.refreshState.refresh();
       this.labelService.refresh();
       this.projectService.refresh();

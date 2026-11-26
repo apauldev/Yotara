@@ -300,6 +300,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
         title: 'New task',
         projectId: null,
       }),
+      { skipErrorToast: true },
     );
     expect(statusServiceSpy.success).toHaveBeenCalledWith('"New task" added to Inbox');
     expect(savedSpy).toHaveBeenCalledWith('create');
@@ -466,6 +467,7 @@ describe('PersonalTaskWorkspaceComponent', () => {
       jasmine.objectContaining({
         completed: true,
       }),
+      { skipErrorToast: true },
     );
     expect(savedSpy).toHaveBeenCalledWith('update');
     expect(workspace['modalOpen']()).toBeFalse();

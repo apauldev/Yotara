@@ -115,9 +115,11 @@ export class PersonalTaskWorkspaceComponent {
     try {
       let updated: Task | null = null;
       if (event.mode === 'create') {
-        await this.taskService.createTask(event.payload);
+        await this.taskService.createTask(event.payload, { skipErrorToast: true });
       } else {
-        updated = await this.taskService.updateTask(event.taskId, event.payload);
+        updated = await this.taskService.updateTask(event.taskId, event.payload, {
+          skipErrorToast: true,
+        });
       }
 
       if (event.mode === 'create') {

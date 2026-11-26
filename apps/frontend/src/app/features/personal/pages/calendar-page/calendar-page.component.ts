@@ -441,7 +441,11 @@ export class CalendarPageComponent {
     this.completionOverrides.update((overrides) => new Map(overrides).set(task.id, nextCompleted));
 
     try {
-      await this.taskService.updateTask(task.id, { completed: nextCompleted });
+      await this.taskService.updateTask(
+        task.id,
+        { completed: nextCompleted },
+        { skipErrorToast: true },
+      );
       if (nextCompleted) {
         notifyTaskCompleted(this.statusService, this.preferences);
       }
@@ -477,7 +481,11 @@ export class CalendarPageComponent {
     this.schedulingIds.update((ids) => new Set(ids).add(task.id));
 
     try {
-      const updated = await this.taskService.updateTask(task.id, { dueDate: date });
+      const updated = await this.taskService.updateTask(
+        task.id,
+        { dueDate: date },
+        { skipErrorToast: true },
+      );
       // A 200 that did not store the date would otherwise leave the task hidden
       // from the No date list with nothing on the calendar until a reload.
       if (updated?.dueDate?.slice(0, 10) !== date) {
@@ -506,7 +514,7 @@ export class CalendarPageComponent {
     this.dueDateOverrides.update((overrides) => new Map(overrides).set(task.id, date));
 
     try {
-      await this.taskService.updateTask(task.id, { dueDate: date });
+      await this.taskService.updateTask(task.id, { dueDate: date }, { skipErrorToast: true });
     } catch {
       this.dueDateOverrides.update((overrides) => {
         const next = new Map(overrides);

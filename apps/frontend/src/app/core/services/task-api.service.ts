@@ -234,10 +234,15 @@ export class TaskApiService {
     });
   }
 
-  createTask$(payload: CreateTaskDto, tz = getUserTimezone()): Observable<Task> {
+  createTask$(
+    payload: CreateTaskDto,
+    tz = getUserTimezone(),
+    options: MutationOptions = {},
+  ): Observable<Task> {
     return this.http.post<Task>(`${this.baseUrl}/tasks`, payload, {
       withCredentials: true,
       params: { tz },
+      headers: skipErrorHeaders(options),
     });
   }
 
