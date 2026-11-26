@@ -492,6 +492,11 @@ function ensureSqliteSchema(sqlite: Database.Database): void {
       );
     }
     sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_owner_deleted ON tasks(user_id, deleted_at)`);
+    // The project page lists one project's live tasks in display order; without
+    // this the query scans every task the user owns and sorts the result.
+    sqlite.exec(
+      `CREATE INDEX IF NOT EXISTS idx_tasks_owner_project_order ON tasks(user_id, project_id, sort_order, created_at)`,
+    );
 
     const projectColumns = sqlite.prepare(`PRAGMA table_info('projects')`).all() as Array<{
       name: string;

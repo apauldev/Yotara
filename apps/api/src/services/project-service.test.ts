@@ -218,6 +218,42 @@ test('Project Service', async (t) => {
       assert.equal(tasks[0].projectId, project.id);
     });
 
+    await t.test('orders project tasks by sort order, then creation time', async () => {
+      const project = await ctx.projectService.createProjectForOwner(ownerId, {
+        name: 'Ordered Project',
+      });
+      assert.ok(project);
+
+      const { tasks: tasksTable } = await import('../db/schema.js');
+      const base = new Date('2026-01-01T00:00:00.000Z').getTime();
+      const seed = (id: string, title: string, order: number, createdAt: string) => ({
+        id,
+        userId: ownerId,
+        title,
+        status: 'inbox' as const,
+        priority: 'medium' as const,
+        completed: false,
+        order,
+        projectId: project.id,
+        createdAt,
+        updatedAt: createdAt,
+      });
+
+      await ctx.db.insert(tasksTable).values([
+        // Inserted out of display order on purpose.
+        seed(randomUUID(), 'third', 2, new Date(base + 3000).toISOString()),
+        seed(randomUUID(), 'second', 1, new Date(base + 2000).toISOString()),
+        seed(randomUUID(), 'first', 1, new Date(base + 1000).toISOString()),
+      ]);
+
+      const tasks = await ctx.projectService.listTasksForProject(project.id, ownerId);
+      assert.ok(tasks);
+      assert.deepEqual(
+        tasks.map((task) => task.title),
+        ['first', 'second', 'third'],
+      );
+    });
+
     await t.test('updateProjectForOwner returns null for wrong ownerId (4b)', async () => {
       const project = await ctx.projectService.createProjectForOwner(ownerId, {
         name: 'Owner Check Project',

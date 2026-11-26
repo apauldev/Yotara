@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import type { CreateProjectDto, ProjectColor, ProjectKind, UpdateProjectDto } from '@yotara/shared';
 import { DEFAULT_PROJECTS } from '@yotara/shared';
 import { db, type Database } from '../db/client.js';
@@ -447,28 +447,27 @@ export async function deleteProjectForOwner(
   return true;
 }
 
+/**
+ * Safety bound for a project's task list. The project page groups by section
+ * and renders the whole array, so the cap is set to the same page size the
+ * rest of the API uses rather than a browsing-sized page.
+ */
+const MAX_PROJECT_TASKS = 3000;
+
 export async function listTasksForProject(projectId: string, ownerId: string) {
   const project = await loadProjectById(projectId, ownerId);
   if (!project) {
     return null;
   }
 
+  // Ordered in SQL so the database returns rows in display order; sorting in
+  // JS meant reading and transferring the entire result set first.
   const rows = await db
     .select()
     .from(tasks)
-    .where(and(eq(tasks.userId, ownerId), eq(tasks.projectId, projectId), isNull(tasks.deletedAt)));
-  rows.sort((left, right) => {
-    if (left.order !== right.order) {
-      return left.order - right.order;
-    }
-
-    const createdAtOrder = left.createdAt.localeCompare(right.createdAt);
-    if (createdAtOrder !== 0) {
-      return createdAtOrder;
-    }
-
-    return left.id.localeCompare(right.id);
-  });
+    .where(and(eq(tasks.userId, ownerId), eq(tasks.projectId, projectId), isNull(tasks.deletedAt)))
+    .orderBy(asc(tasks.order), asc(tasks.createdAt), asc(tasks.id))
+    .limit(MAX_PROJECT_TASKS);
 
   const labelsMap = await getLabelsForTasks(rows.map((row) => row.id));
   return rows.map((row) => ({ ...row, labels: labelsMap.get(row.id) ?? [] }));
