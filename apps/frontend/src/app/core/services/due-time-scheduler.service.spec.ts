@@ -36,18 +36,22 @@ describe('DueTimeSchedulerService', () => {
   let service: DueTimeSchedulerService;
   let notifications: WritableSignal<AppNotification[]>;
   let taskVersion: WritableSignal<number>;
+  let scanDue: jasmine.Spy;
   let fetchNotifications: jasmine.Spy;
   let fetchUnreadCount: jasmine.Spy;
   let fetchNextDueAt: jasmine.Spy;
+  let cleanupRetention: jasmine.Spy;
   let showBrowserNotification: jasmine.Spy;
 
   beforeEach(() => {
     localStorage.clear();
     notifications = signal<AppNotification[]>([]);
     taskVersion = signal(0);
+    scanDue = jasmine.createSpy('scanDue').and.resolveTo(undefined);
     fetchNotifications = jasmine.createSpy('fetchNotifications').and.resolveTo(undefined);
     fetchUnreadCount = jasmine.createSpy('fetchUnreadCount').and.resolveTo(undefined);
     fetchNextDueAt = jasmine.createSpy('fetchNextDueAt').and.resolveTo(null);
+    cleanupRetention = jasmine.createSpy('cleanupRetention').and.resolveTo(true);
     showBrowserNotification = jasmine.createSpy('showBrowserNotification');
 
     TestBed.configureTestingModule({
@@ -57,6 +61,7 @@ describe('DueTimeSchedulerService', () => {
           provide: NotificationService,
           useValue: {
             notifications,
+            scanDue,
             fetchNotifications,
             fetchUnreadCount,
             fetchNextDueAt,
@@ -65,7 +70,7 @@ describe('DueTimeSchedulerService', () => {
         },
         {
           provide: TaskService,
-          useValue: { version: taskVersion.asReadonly() },
+          useValue: { version: taskVersion.asReadonly(), cleanupRetention },
         },
         { provide: AuthStateService, useValue: { user: signal({ id: 'user-1' }) } },
       ],
@@ -87,6 +92,91 @@ describe('DueTimeSchedulerService', () => {
 
     await service.check();
     expect(showBrowserNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it('materializes reminders with a mutation before reading them', async () => {
+    const order: string[] = [];
+    scanDue.and.callFake(() => {
+      order.push('scan');
+      return Promise.resolve();
+    });
+    fetchNotifications.and.callFake(() => {
+      order.push('fetch');
+      return Promise.resolve();
+    });
+
+    await service.check();
+
+    expect(order[0]).toBe('scan');
+    expect(order[1]).toBe('fetch');
+  });
+
+  it('still reads notifications when the scan fails', async () => {
+    scanDue.and.rejectWith(new Error('scan unavailable'));
+
+    await service.check();
+
+    expect(fetchNotifications).toHaveBeenCalled();
+    expect(fetchUnreadCount).toHaveBeenCalled();
+    expect(fetchNextDueAt).toHaveBeenCalled();
+  });
+
+  it('sweeps retention on the first check and throttles the next hour', async () => {
+    const start = Date.now();
+    const now = spyOn(Date, 'now').and.returnValue(start);
+
+    await service.check();
+    expect(cleanupRetention).toHaveBeenCalledTimes(1);
+
+    now.and.returnValue(start + 60_000);
+    await service.check();
+    expect(cleanupRetention).toHaveBeenCalledTimes(1);
+
+    now.and.returnValue(start + 3_600_001);
+    await service.check();
+    expect(cleanupRetention).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries a failed retention sweep on the next check', async () => {
+    const start = Date.now();
+    const now = spyOn(Date, 'now').and.returnValue(start);
+    cleanupRetention.and.resolveTo(false);
+
+    await service.check();
+    expect(cleanupRetention).toHaveBeenCalledTimes(1);
+
+    cleanupRetention.and.resolveTo(true);
+    now.and.returnValue(start + 60_000);
+    await service.check();
+    expect(cleanupRetention).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not let a cleanup finishing after logout throttle the next session', async () => {
+    const start = Date.now();
+    spyOn(Date, 'now').and.returnValue(start);
+    const pending: Array<(ok: boolean) => void> = [];
+    cleanupRetention.and.callFake(
+      () =>
+        new Promise<boolean>((resolve) => {
+          pending.push(resolve);
+        }),
+    );
+
+    service.start();
+    await drainMicrotasks();
+    expect(cleanupRetention).toHaveBeenCalledTimes(1);
+
+    service.stop();
+    service.start();
+
+    // The old session's cleanup succeeds after logout; it must not record a
+    // timestamp, and the new session's queued check must still sweep.
+    pending[0](true);
+    await flush();
+
+    expect(cleanupRetention).toHaveBeenCalledTimes(2);
+    pending[1](true);
+    await flush();
   });
 
   it('skips read rows, other types, and rows from earlier days', async () => {
@@ -197,6 +287,7 @@ describe('DueTimeSchedulerService', () => {
 
       // Hold the second check in flight while that timer fires.
       const secondCheck = service.check();
+      await drainMicrotasks();
       expect(fetchNotifications.calls.count()).toBe(2);
       await new Promise((resolve) => setTimeout(resolve, 120));
 

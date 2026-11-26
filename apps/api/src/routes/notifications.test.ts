@@ -64,6 +64,12 @@ test('notifications CRUD and auth', async () => {
     });
     assert.equal(noAuthCount.statusCode, 401);
 
+    const noAuthScan = await ctx.app.inject({
+      method: 'POST',
+      url: '/notifications/scan',
+    });
+    assert.equal(noAuthScan.statusCode, 401);
+
     const noAuthMark = await ctx.app.inject({
       method: 'PATCH',
       url: '/notifications/some-id/read',
@@ -348,39 +354,77 @@ test('next-due requires authentication', async () => {
   }
 });
 
-test('a timed task becomes a due_time notification instead of due_today', async () => {
+test('notification reads do not write; the scan mutation materializes reminders', async () => {
   const ctx = await createAuthedApp();
 
   try {
-    const cookie = await signUpAndGetCookie(`notif-timed-${randomUUID()}@example.com`);
+    const email = `notif-readonly-${randomUUID()}@example.com`;
+    const cookie = await signUpAndGetCookie(email);
+    const { eq } = await import('drizzle-orm');
+    const { db } = await import('../db/client.js');
+    const { tasks: tasksTable, users } = await import('../db/schema.js');
 
-    // A due time already passed today (UTC). Five minutes back keeps the
-    // instant in the past; the day edge clamps to the start of the day.
-    const nowUtc = DateTime.now().setZone('UTC');
-    const past = nowUtc.minus({ minutes: 5 });
-    const dueDate = (past.hasSame(nowUtc, 'day') ? past : nowUtc.startOf('day')).toISODate();
-    const dueTime = past.hasSame(nowUtc, 'day') ? past.toFormat('HH:mm') : '00:00';
-    assert.ok(dueDate && dueTime);
+    const [user] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+    assert.ok(user);
 
-    const createRes = await ctx.app.inject({
-      method: 'POST',
-      url: '/tasks?tz=UTC',
-      headers: { cookie },
-      payload: { title: 'Timed route task', dueDate, dueTime },
+    // Seed the due task directly: creating through the API would announce it
+    // immediately, leaving nothing for the read path to materialize.
+    const pastDate = DateTime.now().setZone('UTC').minus({ days: 1 }).toISODate();
+    assert.ok(pastDate);
+    const nowIso = new Date().toISOString();
+    await db.insert(tasksTable).values({
+      id: randomUUID(),
+      userId: user.id,
+      title: 'Overdue from a seed',
+      status: 'inbox',
+      priority: 'medium',
+      completed: false,
+      order: 0,
+      simpleMode: false,
+      permanentArchive: false,
+      dueDate: pastDate,
+      createdAt: nowIso,
+      updatedAt: nowIso,
     });
-    assert.equal(createRes.statusCode, 201);
 
-    const listRes = await ctx.app.inject({
+    const before = await ctx.app.inject({
       method: 'GET',
       url: '/notifications?tz=UTC',
       headers: { cookie },
     });
-    assert.equal(listRes.statusCode, 200);
-    const rows = listRes.json();
+    assert.equal(before.statusCode, 200);
+    assert.deepEqual(before.json(), [], 'a notification read must not insert rows');
+
+    const countBefore = await ctx.app.inject({
+      method: 'GET',
+      url: '/notifications/unread-count?tz=UTC',
+      headers: { cookie },
+    });
+    assert.deepEqual(countBefore.json(), { count: 0 });
+
+    const scan = await ctx.app.inject({
+      method: 'POST',
+      url: '/notifications/scan?tz=UTC',
+      headers: { cookie },
+    });
+    assert.equal(scan.statusCode, 200);
+    assert.deepEqual(scan.json(), { created: 1 });
+
+    const after = await ctx.app.inject({
+      method: 'GET',
+      url: '/notifications?tz=UTC',
+      headers: { cookie },
+    });
+    assert.equal(after.statusCode, 200);
+    const rows = after.json();
     assert.equal(rows.length, 1);
-    assert.equal(rows[0].type, 'due_time');
-    assert.equal(rows[0].title, 'Task due now');
-    assert.equal(rows[0].body, 'Timed route task');
+    assert.equal(rows[0].type, 'overdue');
+    assert.equal(rows[0].title, 'Task overdue');
+    assert.equal(rows[0].body, 'Overdue from a seed');
   } finally {
     await ctx.cleanup();
   }

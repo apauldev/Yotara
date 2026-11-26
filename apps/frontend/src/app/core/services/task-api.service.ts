@@ -265,6 +265,14 @@ export class TaskApiService {
     });
   }
 
+  /** Background purge of expired Trash entries; the task GETs stay read-only. */
+  cleanupRetention$(): Observable<{ ok: true }> {
+    return this.http.post<{ ok: true }>(`${this.baseUrl}/tasks/retention/cleanup`, null, {
+      withCredentials: true,
+      headers: { 'X-Skip-Error': 'true' },
+    });
+  }
+
   fetchSubtasks$(parentId: string, pageSize = 100): Observable<PaginatedResponse<Task[]>> {
     return this.http.get<PaginatedResponse<Task[]>>(
       `${this.baseUrl}/tasks?parentId=${parentId}&pageSize=${pageSize}`,

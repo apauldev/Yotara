@@ -76,13 +76,38 @@ export function parseLabelIdsParam(value: string | undefined): string[] | undefi
  */
 export default async function taskRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', requireAuthenticatedUser);
-  fastify.addHook('preHandler', async (request) => {
-    if (!request.userId) {
-      return;
-    }
 
-    await cleanupExpiredArchivedTasks(request.userId);
-  });
+  // Retention purges rows, so it is an explicit mutation rather than a hook on
+  // the whole router: a task view must never delete data as a side effect.
+  fastify.post<{ Reply: { ok: true } | { message: string } }>(
+    '/tasks/retention/cleanup',
+    {
+      schema: withJsonResponse({
+        tags: ['tasks'],
+        summary: 'Purge expired Trash entries and retired projects',
+        security: authCookieSecurity,
+        response: {
+          200: {
+            description: 'Expired entries purged for the authenticated user',
+            type: 'object',
+            required: ['ok'],
+            properties: {
+              ok: { type: 'boolean' },
+            },
+          },
+          401: errorResponseSchema('Authentication required', 'Unauthorized'),
+        },
+      }),
+    },
+    async (request) => {
+      if (!request.userId) {
+        throw new UnauthorizedError();
+      }
+
+      await cleanupExpiredArchivedTasks(request.userId);
+      return { ok: true };
+    },
+  );
 
   fastify.get<{
     Querystring: {

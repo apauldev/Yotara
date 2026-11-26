@@ -1375,6 +1375,40 @@ describe('TaskService', () => {
     expect(result?.map((t) => t.id)).toEqual(['t1', 't2']);
   }));
 
+  it('cleanupRetention swallows a failure without raising inline error state', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    let result: boolean | undefined;
+    void service.cleanupRetention().then((value) => {
+      result = value;
+    });
+    const req = http.expectOne((r) => r.url.endsWith('/tasks/retention/cleanup'));
+    expect(req.request.method).toBe('POST');
+    expect(req.request.headers.get('X-Skip-Error')).toBe('true');
+    req.flush({ message: 'Server Error' }, { status: 500, statusText: 'Server Error' });
+    tick();
+
+    expect(result).toBeFalse();
+    expect(service.error()).toBeNull();
+  }));
+
+  it('cleanupRetention reports success to the caller', fakeAsync(() => {
+    const service = TestBed.inject(TaskService);
+    const http = TestBed.inject(HttpTestingController);
+
+    let result: boolean | undefined;
+    void service.cleanupRetention().then((value) => {
+      result = value;
+    });
+
+    const req = http.expectOne((r) => r.url.endsWith('/tasks/retention/cleanup'));
+    req.flush({ ok: true });
+    tick();
+
+    expect(result).toBeTrue();
+  }));
+
   it('fetchSubtasks returns subtasks for a given parent', fakeAsync(() => {
     const service = TestBed.inject(TaskService);
     const http = TestBed.inject(HttpTestingController);

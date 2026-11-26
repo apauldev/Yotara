@@ -386,6 +386,13 @@ test('temporary archived tasks are cleaned up in the database while permanent ar
     assert.equal(enableCleanupResponse.statusCode, 200);
     assert.equal(enableCleanupResponse.json().user.archiveAutoDelete, true);
 
+    const cleanup = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks/retention/cleanup',
+      headers: { cookie: userCookie },
+    });
+    assert.equal(cleanup.statusCode, 200);
+
     const cleanedArchive = await ctx.app.inject({
       method: 'GET',
       url: '/tasks',
@@ -2058,8 +2065,8 @@ test('soft-deleted tasks stay in Trash for 30 days and can be restored', async (
       .set({ deletedAt: new Date().toISOString() })
       .where(eq(tasksTable.id, taskId));
 
-    // Serving a task view runs the cleanup preHandler. A fresh soft-delete
-    // must survive it instead of being permanently erased (the P1 regression).
+    // Task views no longer run cleanup. A fresh soft-delete must survive any
+    // read instead of being permanently erased (the P1 regression).
     const listed = await ctx.app.inject({ method: 'GET', url: '/tasks', headers: { cookie } });
     assert.equal(listed.statusCode, 200);
     assert.ok(!listed.json().data.some((task: { id: string }) => task.id === taskId));
@@ -2106,7 +2113,7 @@ test('soft-deleted tasks stay in Trash for 30 days and can be restored', async (
     });
     assert.equal(again.statusCode, 404, 'restoring an active task is not found');
 
-    // Once past the recovery window the next task view purges it for good.
+    // Once past the recovery window the cleanup mutation purges it for good.
     const [taskOwner] = await db
       .select({ userId: tasksTable.userId })
       .from(tasksTable)
@@ -2127,7 +2134,25 @@ test('soft-deleted tasks stay in Trash for 30 days and can be restored', async (
       .update(tasksTable)
       .set({ deletedAt: daysAgoIso(31) })
       .where(eq(tasksTable.id, taskId));
+
+    // Even an expired entry must survive a read; only the explicit cleanup
+    // mutation is allowed to delete it.
     await ctx.app.inject({ method: 'GET', url: '/tasks', headers: { cookie } });
+    const [survivorAfterRead] = await db
+      .select({ id: tasksTable.id })
+      .from(tasksTable)
+      .where(eq(tasksTable.id, taskId))
+      .limit(1);
+    assert.ok(survivorAfterRead, 'a GET must never purge expired Trash entries');
+
+    const cleaned = await ctx.app.inject({
+      method: 'POST',
+      url: '/tasks/retention/cleanup',
+      headers: { cookie },
+    });
+    assert.equal(cleaned.statusCode, 200);
+    assert.deepEqual(cleaned.json(), { ok: true });
+
     const [purged] = await db
       .select({ id: tasksTable.id })
       .from(tasksTable)
