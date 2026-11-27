@@ -501,4 +501,31 @@ describe('PersonalTaskWorkspaceComponent', () => {
     expect(projectService.refresh).not.toHaveBeenCalled();
     expect(workspace['modalOpen']()).toBeFalse();
   });
+
+  it('emits an update-specific failure when the service rejects an update', async () => {
+    taskService.updateTask.and.rejectWith(new Error('offline'));
+
+    fixture.detectChanges();
+
+    const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
+      .componentInstance as PersonalTaskWorkspaceComponent;
+    const failedSpy = spyOn(workspace.taskSaveFailed, 'emit');
+
+    await workspace['saveTask']({
+      mode: 'update',
+      taskId: task.id,
+      payload: {
+        title: 'Draft release notes',
+        description: undefined,
+        status: 'today',
+        priority: 'high',
+        dueDate: undefined,
+        simpleMode: true,
+        projectId: 'project-1',
+      } as UpdateTaskDto,
+    });
+
+    expect(failedSpy).toHaveBeenCalledWith('Could not update your task right now.');
+    expect(workspace['modalOpen']()).toBeFalse();
+  });
 });
