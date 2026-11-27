@@ -86,7 +86,7 @@ delivery (a free [Resend](https://resend.com) key is enough). You can also use
 the pre-built images for a zero-build start:
 
 ```bash
-curl -o docker-compose.yml https://raw.githubusercontent.com/apauldev/yotara/main/docker-compose.hub.yml
+curl -o docker-compose.yml https://raw.githubusercontent.com/apauldev/yotara/main/docker-compose.selfhost.yml
 export BETTER_AUTH_SECRET=$(openssl rand -base64 32)
 export RESEND_API_KEY=re_your_key_here
 docker compose up -d
