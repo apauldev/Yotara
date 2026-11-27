@@ -1,9 +1,11 @@
 import { TestBed } from '@angular/core/testing';
-import { LogService, LogEntry } from './log.service';
+import { LogService } from './log.service';
 
 describe('LogService', () => {
   let service: LogService;
-  const STORAGE_KEY = 'yotara_debug_logs';
+  let errorSpy: jasmine.Spy;
+  let warnSpy: jasmine.Spy;
+  let infoSpy: jasmine.Spy;
 
   beforeEach(() => {
     localStorage.clear();
@@ -11,9 +13,9 @@ describe('LogService', () => {
     service = TestBed.inject(LogService);
 
     // Spy on console to prevent test failures from expected error/warn logs
-    spyOn(console, 'error');
-    spyOn(console, 'warn');
-    spyOn(console, 'info');
+    errorSpy = spyOn(console, 'error');
+    warnSpy = spyOn(console, 'warn');
+    infoSpy = spyOn(console, 'info');
   });
 
   afterEach(() => {
@@ -24,80 +26,34 @@ describe('LogService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should start with an empty buffer if localStorage is empty', () => {
-    expect(service.getLogs()).toEqual([]);
-  });
-
-  it('should add logs to the buffer and localStorage', () => {
-    service.info('Test Info', { foo: 'bar' }, 'TestCtx');
-
-    const logs = service.getLogs();
-    expect(logs.length).toBe(1);
-    expect(logs[0].message).toBe('Test Info');
-    expect(logs[0].level).toBe('info');
-    expect(logs[0].context).toBe('TestCtx');
-    expect(logs[0].data).toEqual({ foo: 'bar' });
-
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    expect(stored.length).toBe(1);
-    expect(stored[0].message).toBe('Test Info');
-  });
-
-  it('should maintain a maximum of 100 logs', () => {
-    for (let i = 0; i < 110; i++) {
-      service.info(`Log ${i}`);
-    }
-
-    const logs = service.getLogs();
-    expect(logs.length).toBe(100);
-    expect(logs[0].message).toBe('Log 10'); // First 10 should be shifted out
-    expect(logs[99].message).toBe('Log 109');
-  });
-
-  it('should clear logs', () => {
-    service.error('Error');
-    expect(service.getLogs().length).toBe(1);
-
-    service.clearLogs();
-    expect(service.getLogs().length).toBe(0);
-    expect(localStorage.getItem(STORAGE_KEY)).toBe('[]');
-  });
-
-  it('should load logs from localStorage on initialization', () => {
-    const mockLogs: LogEntry[] = [
-      { timestamp: new Date().toISOString(), level: 'warn', message: 'Old Log' },
-    ];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(mockLogs));
-
-    // Create new instance to trigger constructor load
-    const newService = new LogService();
-    expect(newService.getLogs().length).toBe(1);
-    expect(newService.getLogs()[0].message).toBe('Old Log');
-  });
-
-  it('should sanitize circular data', () => {
-    const circular: any = { name: 'circular' };
-    circular.self = circular;
-
-    service.error('Circular Data', circular);
-    const logs = service.getLogs();
-    expect(logs[0].data).toBe('[Unserializable Data]');
-  });
-
-  it('should sanitize Error objects preserving key properties', () => {
+  it('logs errors with their context and a sanitized error object', () => {
     const error = new Error('Test Error Message');
     error.name = 'CustomError';
 
-    service.error('Logged Error', error);
-    const logs = service.getLogs();
-    const data = logs[0].data as any;
+    service.error('Failed to save', error, 'TaskService');
 
+    expect(errorSpy).toHaveBeenCalled();
+    const [message, data] = errorSpy.calls.mostRecent().args;
+    expect(message).toBe('[TaskService] Failed to save');
     expect(data.name).toBe('CustomError');
     expect(data.message).toBe('Test Error Message');
     expect(data.stack).toBeDefined();
   });
 
-  it('should redact sensitive keys in logged data (5a)', () => {
+  it('uses the matching console method for each level', () => {
+    service.info('Heads up', { foo: 'bar' }, 'Ctx');
+    service.warn('Careful', { foo: 'bar' }, 'Ctx');
+
+    const [infoMessage, infoData] = infoSpy.calls.mostRecent().args;
+    expect(infoMessage).toBe('[Ctx] Heads up');
+    expect(infoData).toEqual({ foo: 'bar' });
+
+    const [warnMessage, warnData] = warnSpy.calls.mostRecent().args;
+    expect(warnMessage).toBe('[Ctx] Careful');
+    expect(warnData).toEqual({ foo: 'bar' });
+  });
+
+  it('redacts sensitive keys before logging', () => {
     const sensitiveData = {
       email: 'user@example.com',
       password: 'supersecret',
@@ -109,13 +65,27 @@ describe('LogService', () => {
     };
 
     service.error('Sensitive Data Test', sensitiveData);
-    const logs = service.getLogs();
-    const data = logs[0].data as any;
+    const data = errorSpy.calls.mostRecent().args[1];
 
     expect(data.password).toBe('[REDACTED]');
     expect(data.token).toBe('[REDACTED]');
     expect(data.email).toBe('user@example.com');
     expect(data.nested.authorization).toBe('[REDACTED]');
     expect(data.nested.normalField).toBe('hello');
+  });
+
+  it('handles circular data without throwing', () => {
+    const circular: { name: string; self?: unknown } = { name: 'circular' };
+    circular.self = circular;
+
+    service.error('Circular Data', circular);
+
+    expect(errorSpy.calls.mostRecent().args[1]).toBe('[Unserializable Data]');
+  });
+
+  it('does not persist logs to localStorage', () => {
+    service.info('Nothing to persist');
+
+    expect(localStorage.getItem('yotara_debug_logs')).toBeNull();
   });
 });

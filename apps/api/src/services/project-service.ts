@@ -9,7 +9,7 @@ import { getLabelsForTasks } from './label-service.js';
 import {
   normalizeProjectCreatePayload,
   normalizeProjectUpdatePayload,
-} from '../routes/project-utils.js';
+} from '../lib/project-normalizers.js';
 
 type ProjectWithCountsRow = typeof projects.$inferSelect & {
   taskCount: number;
