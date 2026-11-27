@@ -1734,18 +1734,23 @@ test('tasks list composes project, priority, and label filters', async () => {
         headers: { cookie },
       });
       assert.equal(response.statusCode, 200);
-      return response.json().data.map((task: { title: string }) => task.title) as string[];
+      // This test checks which tasks match, not their order. Tasks created in
+      // the same millisecond tie on createdAt, so the server's order is not
+      // deterministic here.
+      return response
+        .json()
+        .data.map((task: { title: string }) => task.title)
+        .sort() as string[];
     };
 
-    assert.deepEqual(await titlesFor({ projectId: workProjectId }), [
-      'Work high focus',
-      'Work low',
-    ]);
-    assert.deepEqual(await titlesFor({ priority: 'high' }), [
-      'Work high focus',
-      'Home high focus',
-      'Unfiled high',
-    ]);
+    assert.deepEqual(
+      await titlesFor({ projectId: workProjectId }),
+      ['Work high focus', 'Work low'].sort(),
+    );
+    assert.deepEqual(
+      await titlesFor({ priority: 'high' }),
+      ['Work high focus', 'Home high focus', 'Unfiled high'].sort(),
+    );
     assert.deepEqual(
       await titlesFor({ projectId: workProjectId, priority: 'high', labelIds: focusLabelId }),
       ['Work high focus'],

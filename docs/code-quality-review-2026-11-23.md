@@ -329,6 +329,32 @@ the checklist below cannot imply more than the code delivers.
   `task-list-page.component.html`, so project, calendar, and archive pages
   depend on the toast for visible errors.
 
+- **BE-3.** Resolved. The payload normalizers moved to
+  `apps/api/src/lib/project-normalizers.ts`, so `services/project-service.ts`
+  no longer imports from `routes/`. The unused `getProjectById`,
+  `getProjectsForOwner`, `ensureOwnedProject` and `isValidProjectColor`
+  helpers, along with a duplicate `PROJECT_COLOR_VALUES` list, were deleted
+  from `routes/project-utils.ts`, leaving only `toProject`. `db/schema.ts`
+  keeps its own project-color enum; the service's queries are unchanged.
+
+- **CC-4.** Resolved. `LogService` is console-only with the same sensitive-key
+  redaction. Its buffer, localStorage persistence, `getLogs()`, `clearLogs()`
+  and `LogEntry` type are gone — nothing in the app read them back. `info()`
+  now uses `console.info` instead of `console.warn`. Specs assert the console
+  output, redaction, circular-data fallback, and that nothing is persisted.
+
+- **DC-5.** Resolved. Deleted the unreferenced 16,477-line
+  `apps/frontend/llms-full.txt` (the last TODO comments in the tree). The
+  stale e2e plan, which claimed 73 tests and an obsolete rate-limit default,
+  was replaced by a short `e2e/README.md` documenting the five Playwright
+  projects and the logout-session invariant without duplicating live counts.
+
+  While running the full suite, `tasks list composes project, priority, and
+  label filters` failed on unmodified `main` too: tasks created in the same
+  millisecond tie on `createdAt`, so its order-dependent assertion was
+  nondeterministic. The test now compares sorted titles because it verifies
+  filtering, not ordering.
+
 - **BE-2.** Resolved. Reminder materialization moved to `POST /notifications/scan`,
   which takes the caller's timezone, and retention purging moved to
   `POST /tasks/retention/cleanup`. The task-router `preHandler` and both
@@ -369,7 +395,7 @@ the checklist below cannot imply more than the code delivers.
 ### P1
 
 - [x] Make `GET /tasks` and `GET /notifications` read-only (BE-2) — writes moved to `POST /notifications/scan` and `POST /tasks/retention/cleanup`; route tests assert the GETs leave the database unchanged
-- [ ] Remove service→routes import and dead project helpers (BE-3)
+- [x] Remove service→routes import and dead project helpers (BE-3) — normalizers now live in `lib/`, and four dead exports plus a duplicate color list were deleted from `routes/project-utils.ts`
 - [x] Add a coverage gate (TC-1)
 - [x] Add tests for `packages/shared` (TC-2)
 - [ ] Lint frontend specs and remove white-box `as any` (FE-6) — specs linted and new casts blocked; the 78 existing casts remain, so removal is still open
@@ -391,7 +417,7 @@ the checklist below cannot imply more than the code delivers.
 - [x] Remove unused pipe, add router teardown, fix double error reporting (FE-5) — pipe removed, both router subscriptions torn down, and `TaskService` mutation catches now only log and rethrow so the interceptor reports once. Load errors still use inline state; modal call sites with `skipErrorToast` use operation-specific messages.
 - [ ] Run E2E against the production build; add one retry (TC-3)
 - [ ] Add Docker Dependabot, SHA pins, workflow permissions (TC-4)
-- [ ] Delete/move `llms-full.txt`; update e2e plan (DC-5)
+- [x] Delete/move `llms-full.txt`; update e2e plan (DC-5) — unreferenced 16k-line file deleted; stale plan replaced with a short, accurate `e2e/README.md`
 - [ ] Consolidate tsconfigs and shared resolution (DC-6)
 - [ ] Bring the marketing site under lint/format guardrails (DC-7)
 - [ ] Remove likely-unused dependencies (CC-2)
@@ -401,4 +427,4 @@ the checklist below cannot imply more than the code delivers.
 
 - [ ] Format-check Markdown in CI (TC-5)
 - [ ] Single source for Node/pnpm versions (TC-6)
-- [ ] Remove `LogService` buffer/persistence or surface it (CC-4)
+- [x] Remove `LogService` buffer/persistence or surface it (CC-4) — logging is console-only with redaction; unused buffer, localStorage mirror and read APIs removed
