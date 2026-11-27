@@ -249,7 +249,8 @@ export class ProjectDetailPageComponent {
         );
       }
     } catch {
-      // TaskService surfaces the error in its own state; keep the picker open.
+      // The interceptor reports the failure via toast. Keep the picker open so
+      // the user can retry without reselecting the tasks.
     }
   }
 

@@ -314,19 +314,20 @@ the checklist below cannot imply more than the code delivers.
   `USE TEMP B-TREE FOR ORDER BY`. Including `id` as a fifth column removes the
   sort entirely, and the assertion now rejects any temp B-tree.
 
-- **FE-5.** Partially resolved. The unused `TaskCountPipe` is deleted and both
-  shells' `router.events` subscriptions are torn down. The duplicate-error work
-  is not finished: `skipErrorToast` covers the call sites that render their own
-  message, but `TaskService` still calls `taskListStore.setError` inside every
-  mutation `catch`, so a failed task mutation reports twice — inline banner on
-  the task-list page plus the interceptor toast.
+- **FE-5.** Resolved. The unused `TaskCountPipe` is deleted and both shells'
+  `router.events` subscriptions are torn down. `TaskService` mutations no
+  longer touch inline error state at all: each catch logs and rethrows, so the
+  interceptor shows one toast, and mutations no longer clear a load error that
+  is still accurate. The store keeps `errorState` for list-load failures, which
+  are still rendered in the task-list page's empty states.
 
-  The right fix is to stop writing inline error state from mutation catches
-  (keep the log and the rethrow, let the interceptor toast once) and rely on
-  `skipErrorToast: true` at the sites that present their own message. That must
-  not be done by making `TaskService` opt out unconditionally: `taskService.error()`
-  is rendered only by `task-list-page.component.html`, so a blanket opt-out
-  would leave project, calendar, and archive pages with no visible error at all.
+  `skipErrorToast: true` remains at the sites that present their own message.
+  The task modal is one of them; because a stale load error could otherwise be
+  picked up there, `PersonalTaskWorkspaceComponent` now uses a mode-specific
+  message instead of reading `taskService.error()`. A blanket interceptor
+  opt-out was never an option: `taskService.error()` is rendered only by
+  `task-list-page.component.html`, so project, calendar, and archive pages
+  depend on the toast for visible errors.
 
 - **BE-2.** Resolved. Reminder materialization moved to `POST /notifications/scan`,
   which takes the caller's timezone, and retention purging moved to
@@ -387,7 +388,7 @@ the checklist below cannot imply more than the code delivers.
 - [ ] Reuse mappers in the search path (BE-6)
 - [ ] Standardize API error/auth semantics (BE-7)
 - [ ] Extract API test factories (BE-9)
-- [ ] Remove unused pipe, add router teardown, fix double error reporting (FE-5) — pipe removed and both router subscriptions torn down; the toast work is partial. `skipErrorToast` now covers the sites that render their own message, but `TaskService` still writes `taskListStore.setError` on mutation failures, which double-reports alongside the interceptor toast. Closing that needs the refactor described below.
+- [x] Remove unused pipe, add router teardown, fix double error reporting (FE-5) — pipe removed, both router subscriptions torn down, and `TaskService` mutation catches now only log and rethrow so the interceptor reports once. Load errors still use inline state; modal call sites with `skipErrorToast` use operation-specific messages.
 - [ ] Run E2E against the production build; add one retry (TC-3)
 - [ ] Add Docker Dependabot, SHA pins, workflow permissions (TC-4)
 - [ ] Delete/move `llms-full.txt`; update e2e plan (DC-5)

@@ -147,11 +147,13 @@ export class PersonalTaskWorkspaceComponent {
       this.taskSaved.emit(event.mode);
       this.closeTaskModal();
     } catch {
+      // This call site opts out of the interceptor toast and shows its own
+      // message. Use an operation-specific one: taskService.error() belongs to
+      // list-loading failures and may still hold a stale message from earlier.
       const message =
-        this.taskService.error() ??
-        (event.mode === 'create'
+        event.mode === 'create'
           ? 'Could not save your task right now.'
-          : 'Could not update your task right now.');
+          : 'Could not update your task right now.';
       this.modalError.set(message);
       this.taskSaveFailed.emit(message);
     }

@@ -1237,7 +1237,7 @@ describe('TaskService', () => {
       expect(service.error()).toBe('Could not load upcoming tasks right now.');
     }));
 
-    it('sets error state when createTask fails', fakeAsync(() => {
+    it('does not set inline error state when createTask fails', fakeAsync(() => {
       const service = TestBed.inject(TaskService);
       const http = TestBed.inject(HttpTestingController);
 
@@ -1271,10 +1271,10 @@ describe('TaskService', () => {
       tick();
 
       expect(thrown).toBeTrue();
-      expect(service.error()).toBe('Could not save your task right now.');
+      expect(service.error()).toBeNull();
     }));
 
-    it('sets error state when updateTask fails', fakeAsync(() => {
+    it('does not set inline error state when updateTask fails', fakeAsync(() => {
       const service = TestBed.inject(TaskService);
       const http = TestBed.inject(HttpTestingController);
 
@@ -1302,10 +1302,10 @@ describe('TaskService', () => {
       tick();
 
       expect(thrown).toBeTrue();
-      expect(service.error()).toBe('Could not update your task right now.');
+      expect(service.error()).toBeNull();
     }));
 
-    it('sets error state when deleteTask fails', fakeAsync(() => {
+    it('does not set inline error state when deleteTask fails', fakeAsync(() => {
       const service = TestBed.inject(TaskService);
       const http = TestBed.inject(HttpTestingController);
 
@@ -1331,7 +1331,44 @@ describe('TaskService', () => {
       tick();
 
       expect(thrown).toBeTrue();
-      expect(service.error()).toBe('Could not delete your task right now.');
+      expect(service.error()).toBeNull();
+    }));
+
+    it('leaves a load error intact when a mutation fails', fakeAsync(() => {
+      const service = TestBed.inject(TaskService);
+      const http = TestBed.inject(HttpTestingController);
+
+      initialized.set(true);
+      isAuthenticated.set(true);
+      currentUserId.set('user-1');
+      tick();
+
+      const loadReq = http.expectOne(ACTIVE_URL);
+      loadReq.flush(
+        { message: 'Internal Server Error' },
+        { status: 500, statusText: 'Internal Server Error' },
+      );
+      tick();
+      expect(service.error()).toBe('Could not load tasks right now.');
+
+      let thrown = false;
+      void service
+        .createTask({ title: 'Failing task', status: 'inbox', priority: 'medium' })
+        .catch(() => {
+          thrown = true;
+        });
+
+      const postReq = http.expectOne(
+        (req) => req.url.startsWith('http://localhost:3000/tasks') && req.method === 'POST',
+      );
+      postReq.flush(
+        { message: 'Internal Server Error' },
+        { status: 500, statusText: 'Internal Server Error' },
+      );
+      tick();
+
+      expect(thrown).toBeTrue();
+      expect(service.error()).toBe('Could not load tasks right now.');
     }));
   });
 

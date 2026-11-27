@@ -474,8 +474,8 @@ describe('PersonalTaskWorkspaceComponent', () => {
     expect(statusServiceSpy.success).toHaveBeenCalledWith('Task completed');
   });
 
-  it('emits a save failure when the service rejects', async () => {
-    taskService.error.set('Could not save your task right now.');
+  it('emits an operation-specific save failure even when a stale load error is present', async () => {
+    taskService.error.set('Could not load tasks right now.');
     taskService.createTask.and.rejectWith(new Error('offline'));
 
     fixture.detectChanges();
@@ -499,6 +499,33 @@ describe('PersonalTaskWorkspaceComponent', () => {
 
     expect(failedSpy).toHaveBeenCalledWith('Could not save your task right now.');
     expect(projectService.refresh).not.toHaveBeenCalled();
+    expect(workspace['modalOpen']()).toBeFalse();
+  });
+
+  it('emits an update-specific failure when the service rejects an update', async () => {
+    taskService.updateTask.and.rejectWith(new Error('offline'));
+
+    fixture.detectChanges();
+
+    const workspace = fixture.debugElement.query(By.directive(PersonalTaskWorkspaceComponent))
+      .componentInstance as PersonalTaskWorkspaceComponent;
+    const failedSpy = spyOn(workspace.taskSaveFailed, 'emit');
+
+    await workspace['saveTask']({
+      mode: 'update',
+      taskId: task.id,
+      payload: {
+        title: 'Draft release notes',
+        description: undefined,
+        status: 'today',
+        priority: 'high',
+        dueDate: undefined,
+        simpleMode: true,
+        projectId: 'project-1',
+      } as UpdateTaskDto,
+    });
+
+    expect(failedSpy).toHaveBeenCalledWith('Could not update your task right now.');
     expect(workspace['modalOpen']()).toBeFalse();
   });
 });
