@@ -355,6 +355,25 @@ the checklist below cannot imply more than the code delivers.
   nondeterministic. The test now compares sorted titles because it verifies
   filtering, not ordering.
 
+- **TC-6.** Resolved. `.node-version` is now the canonical Node version:
+  all 10 `actions/setup-node` steps use `node-version-file`, `package.json`
+  keeps `engines.node`, and both Dockerfiles take `NODE_VERSION` as a build
+  arg defaulting to that value. pnpm stays single-sourced in
+  `packageManager`, with matching `PNPM_VERSION` Dockerfile args. A node:test
+  guard in `scripts/config-truth.test.mjs` checks workflows, Dockerfiles,
+  `package.json` and the README/CONTRIBUTING/INSTALL version mentions; it is
+  run by `pnpm test:scripts` in CI.
+
+- **DC-6.** Resolved. Every tsconfig now extends `tsconfig.base.json`. The
+  four `@yotara/shared` resolutions are reduced to one declaration per
+  intentional entry point: the base maps the API source, the frontend maps
+  its browser entry, and the API build maps the built `dist` types. No config
+  resolves the package through `node_modules` any more. `apps/api/tsconfig.json`
+  and `apps/frontend/tsconfig.json` carry a repo-root `rootDir` so the shared
+  sources can be in the program across typecheck, app, and spec builds, while
+  the API build keeps `src` as its `rootDir`. The same guard test enforces the
+  extends chain and the exact set of path mappings.
+
 - **BE-2.** Resolved. Reminder materialization moved to `POST /notifications/scan`,
   which takes the caller's timezone, and retention purging moved to
   `POST /tasks/retention/cleanup`. The task-router `preHandler` and both
@@ -418,7 +437,7 @@ the checklist below cannot imply more than the code delivers.
 - [ ] Run E2E against the production build; add one retry (TC-3)
 - [ ] Add Docker Dependabot, SHA pins, workflow permissions (TC-4)
 - [x] Delete/move `llms-full.txt`; update e2e plan (DC-5) — unreferenced 16k-line file deleted; stale plan replaced with a short, accurate `e2e/README.md`
-- [ ] Consolidate tsconfigs and shared resolution (DC-6)
+- [x] Consolidate tsconfigs and shared resolution (DC-6) — all configs extend the base; the four `@yotara/shared` paths reduced to three intentional declarations with a drift guard
 - [ ] Bring the marketing site under lint/format guardrails (DC-7)
 - [ ] Remove likely-unused dependencies (CC-2)
 - [ ] Add a credentials interceptor (CC-3)
@@ -426,5 +445,5 @@ the checklist below cannot imply more than the code delivers.
 ### P3
 
 - [ ] Format-check Markdown in CI (TC-5)
-- [ ] Single source for Node/pnpm versions (TC-6)
+- [x] Single source for Node/pnpm versions (TC-6) — `.node-version` plus `packageManager`, with workflows and Dockerfiles referencing them and a CI guard against drift
 - [x] Remove `LogService` buffer/persistence or surface it (CC-4) — logging is console-only with redaction; unused buffer, localStorage mirror and read APIs removed

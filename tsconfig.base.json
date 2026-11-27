@@ -1,15 +1,15 @@
 {
-    "compilerOptions": {
-        "strict": true,
-        "esModuleInterop": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true,
-        "moduleResolution": "bundler",
-        "resolveJsonModule": true,
-        "target": "ES2022",
-        "module": "ESNext",
-        "declaration": true,
-        "declarationMap": true,
-        "sourceMap": true
+  "compilerOptions": {
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "paths": {
+      "@yotara/shared": ["./packages/shared/src/index.ts"]
     }
+  }
 }

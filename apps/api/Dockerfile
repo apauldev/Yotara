@@ -1,9 +1,10 @@
 # syntax=docker/dockerfile:1
 
-# Keep in sync with the "packageManager" field in the root package.json.
+# Keep in sync with the root package.json and .node-version.
 ARG PNPM_VERSION=10.30.3
+ARG NODE_VERSION=26.12.1
 
-FROM node:26.12.1-alpine AS build
+FROM node:${NODE_VERSION}-alpine AS build
 
 ARG PNPM_VERSION
 
@@ -33,7 +34,7 @@ RUN pnpm --filter @yotara/shared build \
 
 # --- Production dependency stage — the expected runtime /app layout ---
 
-FROM node:26.12.1-alpine AS prod-deps
+FROM node:${NODE_VERSION}-alpine AS prod-deps
 
 ARG PNPM_VERSION
 
@@ -57,7 +58,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
 
 # --- Production stage — clean Node image, no build or package tooling ---
 
-FROM node:26.12.1-alpine
+FROM node:${NODE_VERSION}-alpine
 
 WORKDIR /app
 
