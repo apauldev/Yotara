@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.94.8](https://github.com/apauldev/Yotara/compare/v0.94.7...v0.94.8) (2026-11-27)
+
+
+### Bug Fixes
+
+* **frontend:** stop double-reporting task mutation errors (FE-5) ([5f5173f](https://github.com/apauldev/Yotara/commit/5f5173fc0d04f51e596646d20cfc79b15d322246))
+
+
+### Tests
+
+* **frontend:** cover update failure in the task modal ([d6da331](https://github.com/apauldev/Yotara/commit/d6da33182029c98ca53544acb3f4b85df561614c))
+
 ## [0.94.7](https://github.com/apauldev/Yotara/compare/v0.94.6...v0.94.7) (2026-11-26)
 
 
