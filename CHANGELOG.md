@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.94.9](https://github.com/apauldev/Yotara/compare/v0.94.8...v0.94.9) (2026-11-27)
+
+
+### Chores
+
+* remove dead project helpers and unused surfaces (BE-3, CC-4, DC-5) ([4050c91](https://github.com/apauldev/Yotara/commit/4050c918f7099b1d55fb054cf1201681ba3d318f))
+* single-source toolchain versions and tsconfig resolution (TC-6, DC-6) ([b02a3c6](https://github.com/apauldev/Yotara/commit/b02a3c65db9bad1df88702a6b6c4200eef825293))
+
 ## [0.94.8](https://github.com/apauldev/Yotara/compare/v0.94.7...v0.94.8) (2026-11-27)
 
 
