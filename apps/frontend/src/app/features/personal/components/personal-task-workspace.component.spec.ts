@@ -474,8 +474,8 @@ describe('PersonalTaskWorkspaceComponent', () => {
     expect(statusServiceSpy.success).toHaveBeenCalledWith('Task completed');
   });
 
-  it('emits a save failure when the service rejects', async () => {
-    taskService.error.set('Could not save your task right now.');
+  it('emits an operation-specific save failure even when a stale load error is present', async () => {
+    taskService.error.set('Could not load tasks right now.');
     taskService.createTask.and.rejectWith(new Error('offline'));
 
     fixture.detectChanges();

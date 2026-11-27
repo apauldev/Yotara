@@ -144,7 +144,6 @@ export class TaskService {
   /** Applies one patch to several tasks in a single API call. */
   async updateTasks(taskIds: string[], patch: BatchTaskPatchDto) {
     this.creatingState.set(true);
-    this.taskListStore.setError(null);
 
     try {
       const result = await firstValueFrom(this.taskApiService.updateTasks$(taskIds, patch));
@@ -154,7 +153,6 @@ export class TaskService {
       return result;
     } catch (error) {
       this.logService.error('Failed to update tasks', error, 'TaskService');
-      this.taskListStore.setError('Could not update your tasks right now.');
       throw error;
     } finally {
       this.creatingState.set(false);
@@ -163,7 +161,6 @@ export class TaskService {
 
   async restoreTask(taskId: string) {
     this.creatingState.set(true);
-    this.taskListStore.setError(null);
 
     try {
       await firstValueFrom(this.taskApiService.restoreTask$(taskId));
@@ -172,7 +169,6 @@ export class TaskService {
       this.projectService.refresh();
     } catch (error) {
       this.logService.error('Failed to restore task', error, 'TaskService');
-      this.taskListStore.setError('Could not restore your task right now.');
       throw error;
     } finally {
       this.creatingState.set(false);
@@ -195,7 +191,6 @@ export class TaskService {
 
   async createTask(payload: CreateTaskDto, options: MutationOptions = {}) {
     this.creatingState.set(true);
-    this.taskListStore.setError(null);
 
     try {
       const tz = getUserTimezone();
@@ -208,7 +203,6 @@ export class TaskService {
       return createdTask;
     } catch (error) {
       this.logService.error('Failed to create task', error, 'TaskService');
-      this.taskListStore.setError('Could not save your task right now.');
       throw error;
     } finally {
       this.creatingState.set(false);
@@ -231,7 +225,6 @@ export class TaskService {
 
   async updateTask(taskId: string, payload: UpdateTaskDto, options: MutationOptions = {}) {
     this.creatingState.set(true);
-    this.taskListStore.setError(null);
 
     try {
       const tz = getUserTimezone();
@@ -244,7 +237,6 @@ export class TaskService {
       return updatedTask;
     } catch (error) {
       this.logService.error('Failed to update task', error, 'TaskService');
-      this.taskListStore.setError('Could not update your task right now.');
       throw error;
     } finally {
       this.creatingState.set(false);
@@ -253,7 +245,6 @@ export class TaskService {
 
   async deleteTask(taskId: string, options: MutationOptions = {}) {
     this.creatingState.set(true);
-    this.taskListStore.setError(null);
 
     try {
       await firstValueFrom(this.taskApiService.deleteTask$(taskId, options));
@@ -262,7 +253,6 @@ export class TaskService {
       this.projectService.refresh();
     } catch (error) {
       this.logService.error('Failed to delete task', error, 'TaskService');
-      this.taskListStore.setError('Could not delete your task right now.');
       throw error;
     } finally {
       this.creatingState.set(false);
