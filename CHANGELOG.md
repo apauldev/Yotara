@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.94.11](https://github.com/apauldev/Yotara/compare/v0.94.10...v0.94.11) (2026-11-28)
+
+
+### Chores
+
+* **ci:** pin workflow actions, restrict permissions, and add Docker Dependabot (TC-4) ([aad8ae1](https://github.com/apauldev/Yotara/commit/aad8ae12c75b25419f4114fdf8a8430fde69292d))
+
 ## [0.94.10](https://github.com/apauldev/Yotara/compare/v0.94.9...v0.94.10) (2026-11-28)
 
 

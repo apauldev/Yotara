@@ -3,7 +3,7 @@
 # Do NOT use :latest: immutable tags keep compose backups and rollbacks deterministic.
 services:
   api:
-    image: apauldev2/yotara-api:v0.94.10
+    image: apauldev2/yotara-api:v0.94.11
     restart: unless-stopped
     environment:
       DATABASE_URL: /app/apps/api/data/yotara.db
@@ -37,7 +37,7 @@ services:
       - /tmp
 
   frontend:
-    image: apauldev2/yotara-frontend:v0.94.10
+    image: apauldev2/yotara-frontend:v0.94.11
     restart: unless-stopped
     depends_on:
       - api
