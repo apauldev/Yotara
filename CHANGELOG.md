@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.94.10](https://github.com/apauldev/Yotara/compare/v0.94.9...v0.94.10) (2026-11-28)
+
+
+### Bug Fixes
+
+* **security:** drop unused font and analytics origins from CSP ([0af6f81](https://github.com/apauldev/Yotara/commit/0af6f814a03656726962874ece8467e1844fdecb))
+
 ## [0.94.9](https://github.com/apauldev/Yotara/compare/v0.94.8...v0.94.9) (2026-11-27)
 
 
