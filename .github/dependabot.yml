@@ -37,3 +37,43 @@ updates:
       - 'apauldev'
     labels:
       - 'dependencies'
+
+  # Docker images used by the build. The Node base image is pinned through
+  # .node-version (see TC-6), so there is no literal tag for Dependabot to
+  # bump in the Dockerfiles today; these entries cover any third-party image
+  # added later. Our own published app images in compose are version-synced
+  # by the release script, so Dependabot must not fight that process.
+  - package-ecosystem: 'docker'
+    directory: '/apps/api'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+    open-pull-requests-limit: 5
+    assignees:
+      - 'apauldev'
+    labels:
+      - 'dependencies'
+
+  - package-ecosystem: 'docker'
+    directory: '/apps/frontend'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+    open-pull-requests-limit: 5
+    assignees:
+      - 'apauldev'
+    labels:
+      - 'dependencies'
+
+  - package-ecosystem: 'docker-compose'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: 'apauldev2/*'
+    assignees:
+      - 'apauldev'
+    labels:
+      - 'dependencies'
