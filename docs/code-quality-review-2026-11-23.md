@@ -374,6 +374,22 @@ the checklist below cannot imply more than the code delivers.
   the API build keeps `src` as its `rootDir`. The same guard test enforces the
   extends chain and the exact set of path mappings.
 
+- **TC-4.** Resolved for the actionable items. All 52 remote `uses:` references
+  across `.github/workflows` are pinned to full commit SHAs with a `# vX.Y.Z`
+  comment; Dependabot can still update them and keep the comment in sync.
+  Every workflow now declares a top-level `permissions:` block, with the two
+  that lacked one fixed: CI is read-only, and Secret Scan gets
+  `pull-requests: write` because Gitleaks comments findings on PRs. CodeQL and
+  PR Agent keep their existing job-level escalations. Dependabot now watches
+  both Dockerfiles and Docker Compose manifests; `apauldev2/*` images are
+  ignored because the release script already version-syncs them.
+
+  The Node base image is pinned through `.node-version` rather than a literal
+  tag, so Dependabot cannot bump it directly; TC-6's guard covers that value.
+  Container image scanning and SBOM generation remain **out of scope** — they
+  would add a new CI tool and potential false positives, and are not required
+  for the finding's core hardening.
+
 - **BE-2.** Resolved. Reminder materialization moved to `POST /notifications/scan`,
   which takes the caller's timezone, and retention purging moved to
   `POST /tasks/retention/cleanup`. The task-router `preHandler` and both
@@ -435,7 +451,7 @@ the checklist below cannot imply more than the code delivers.
 - [ ] Extract API test factories (BE-9)
 - [x] Remove unused pipe, add router teardown, fix double error reporting (FE-5) — pipe removed, both router subscriptions torn down, and `TaskService` mutation catches now only log and rethrow so the interceptor reports once. Load errors still use inline state; modal call sites with `skipErrorToast` use operation-specific messages.
 - [ ] Run E2E against the production build; add one retry (TC-3)
-- [ ] Add Docker Dependabot, SHA pins, workflow permissions (TC-4)
+- [x] Add Docker Dependabot, SHA pins, workflow permissions (TC-4) — 52 actions pinned to SHAs, explicit permissions on every workflow, Docker Compose/Dockerfile updates enabled; image scanning/SBOM deliberately deferred
 - [x] Delete/move `llms-full.txt`; update e2e plan (DC-5) — unreferenced 16k-line file deleted; stale plan replaced with a short, accurate `e2e/README.md`
 - [x] Consolidate tsconfigs and shared resolution (DC-6) — all configs extend the base; the four `@yotara/shared` paths reduced to three intentional declarations with a drift guard
 - [ ] Bring the marketing site under lint/format guardrails (DC-7)
