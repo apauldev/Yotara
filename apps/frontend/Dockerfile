@@ -36,7 +36,7 @@ RUN pnpm version:gen
 RUN pnpm --filter @yotara/shared build
 RUN pnpm --filter @yotara/frontend build
 
-FROM nginx:1.27-alpine
+FROM nginx:1.29-alpine
 
 COPY docker/nginx.conf /etc/nginx/templates/default.conf.template
 COPY docker/realip.conf /etc/nginx/conf.d/realip.conf
